@@ -606,7 +606,7 @@
           {
             "id": "agents",
             "title": "Make your AI an expert",
-            "description": "`nika init` writes AGENTS.md + .cursor/rules + MCP wiring so Cursor/Claude write valid workflows and can RUN them.\n[Setup agents](command:nika.setupMcp)",
+            "description": "`nika init` writes schema wiring, AGENTS.md, and Cursor rules; this command wires MCP so agents can check workflows and explain failures through the real oracle.\n[Setup agents](command:nika.setupMcp)",
             "media": {
               "markdown": "walkthrough/06-agents.md"
             }

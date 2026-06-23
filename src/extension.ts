@@ -36,7 +36,14 @@ import {
   runNikaCommand,
   type ClientState,
 } from './lspClient';
-import { ensureCursorMcpConfig, ensureCursorRules, ensureVscodeMcpConfig, isCursor } from './mcpConfig';
+import {
+  ensureCursorMcpConfig,
+  ensureCursorRules,
+  ensureVscodeMcpConfig,
+  ensureWindsurfMcpConfig,
+  isCursor,
+  isWindsurf,
+} from './mcpConfig';
 import { NikaService } from './nikaService';
 import { NikaStatusBar } from './features/statusBar';
 import { DiagnosticsController } from './features/diagnostics';
@@ -741,14 +748,7 @@ export function activate(context: ExtensionContext): void {
   // Command: Wire MCP + agent rules for the current client (consent via command).
   context.subscriptions.push(
     commands.registerCommand('nika.setupMcp', async () => {
-      if (isCursor()) {
-        await ensureCursorMcpConfig(state.resolvedServerPath, log);
-        await ensureCursorRules(log, service.intel?.providers);
-        window.showInformationMessage('Nika MCP + .cursor/rules wired for Cursor.');
-      } else {
-        await ensureVscodeMcpConfig(state.resolvedServerPath, log);
-        window.showInformationMessage('Nika MCP config wired (.vscode/mcp.json).');
-      }
+      await configureMcpForHost(state.resolvedServerPath, service.intel?.providers);
     }),
   );
 
@@ -787,6 +787,12 @@ export function activate(context: ExtensionContext): void {
       return;
     }
 
+    if (service.caps.mcp) {
+      await configureMcpForHost(binaryPath, service.intel?.providers, false);
+    } else {
+      log('INFO', 'nika mcp not in this binary — agent MCP setup skipped');
+    }
+
     if (service.caps.lsp) {
       // The engine ships `nika lsp` — full server takes over; the client
       // keeps expression intel (server is structure-level at v0.1) and the
@@ -798,6 +804,30 @@ export function activate(context: ExtensionContext): void {
       log('INFO', 'nika lsp not in this binary (ships in-binary at v0.81) — client-side intelligence active');
     }
   })();
+}
+
+async function configureMcpForHost(
+  resolvedServerPath: string | undefined,
+  providers: Parameters<typeof ensureCursorRules>[1],
+  notify = true,
+): Promise<void> {
+  if (isCursor()) {
+    await ensureCursorMcpConfig(resolvedServerPath, log);
+    await ensureCursorRules(log, providers);
+    if (notify) {
+      window.showInformationMessage('Nika MCP + .cursor/rules wired for Cursor.');
+    }
+  } else if (isWindsurf()) {
+    await ensureWindsurfMcpConfig(resolvedServerPath, log);
+    if (notify) {
+      window.showInformationMessage('Nika MCP config wired for Windsurf.');
+    }
+  } else {
+    await ensureVscodeMcpConfig(resolvedServerPath, log);
+    if (notify) {
+      window.showInformationMessage('Nika MCP config wired (.vscode/mcp.json).');
+    }
+  }
 }
 
 /** Discovery priority: explicit config → bundled → PATH (`nika` · `nika-cli`) → cached → download. */

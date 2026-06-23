@@ -6,6 +6,12 @@
 import { workspace, Uri, env } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  NIKA_MCP_COMMAND,
+  patchCursorLikeConfig,
+  patchVscodeConfig,
+  type JsonObject,
+} from './core/mcpConfigShape';
 
 export type LogFn = (level: string, msg: string) => void;
 
@@ -22,7 +28,7 @@ export function isWindsurf(): boolean {
 // path (auto-download cache · per-machine install) committed to the repo
 // would break for every teammate who clones it. Only the per-machine
 // Windsurf global config may carry the resolved path.
-const PORTABLE_COMMAND = 'nika';
+const PORTABLE_COMMAND = NIKA_MCP_COMMAND;
 
 export async function ensureCursorMcpConfig(_resolvedServerPath: string | undefined, log: LogFn): Promise<void> {
   const folder = workspace.workspaceFolders?.[0];
@@ -31,25 +37,16 @@ export async function ensureCursorMcpConfig(_resolvedServerPath: string | undefi
   const cursorDir = Uri.joinPath(folder.uri, '.cursor');
   const mcpPath = Uri.joinPath(cursorDir, 'mcp.json');
 
-  try {
-    await workspace.fs.stat(mcpPath);
-    return; // Already exists — don't overwrite
-  } catch {
-    // File doesn't exist — create it
-  }
-
-  const mcpConfig = {
-    mcpServers: {
-      nika: {
-        command: PORTABLE_COMMAND,
-        args: ['mcp', 'serve', '--stdio'],
-      },
-    },
-  };
+  const existing = await readJsonUri(mcpPath, log);
+  if (existing === undefined && await existsUri(mcpPath)) { return; }
+  const result = patchCursorLikeConfig(existing, PORTABLE_COMMAND);
+  if (!result.changed && existing !== undefined) { return; }
 
   await workspace.fs.createDirectory(cursorDir);
-  await workspace.fs.writeFile(mcpPath, Buffer.from(JSON.stringify(mcpConfig, null, 2)));
-  log('INFO', 'Auto-generated .cursor/mcp.json for Cursor MCP integration');
+  await workspace.fs.writeFile(mcpPath, Buffer.from(JSON.stringify(result.config, null, 2)));
+  log('INFO', result.migrated
+    ? 'Migrated .cursor/mcp.json Nika MCP command to `nika mcp`'
+    : 'Auto-generated .cursor/mcp.json for Cursor MCP integration');
 }
 
 /** Provider groups for the generated rules (derived from the canon). */
@@ -133,26 +130,16 @@ export async function ensureVscodeMcpConfig(_resolvedServerPath: string | undefi
   const vscodeDir = Uri.joinPath(folder.uri, '.vscode');
   const mcpPath = Uri.joinPath(vscodeDir, 'mcp.json');
 
-  try {
-    await workspace.fs.stat(mcpPath);
-    return;
-  } catch {
-    // Create
-  }
-
-  const mcpConfig = {
-    servers: {
-      nika: {
-        type: 'stdio',
-        command: PORTABLE_COMMAND,
-        args: ['mcp', 'serve', '--stdio'],
-      },
-    },
-  };
+  const existing = await readJsonUri(mcpPath, log);
+  if (existing === undefined && await existsUri(mcpPath)) { return; }
+  const result = patchVscodeConfig(existing, PORTABLE_COMMAND);
+  if (!result.changed && existing !== undefined) { return; }
 
   await workspace.fs.createDirectory(vscodeDir);
-  await workspace.fs.writeFile(mcpPath, Buffer.from(JSON.stringify(mcpConfig, null, 2)));
-  log('INFO', 'Auto-generated .vscode/mcp.json for VS Code MCP integration');
+  await workspace.fs.writeFile(mcpPath, Buffer.from(JSON.stringify(result.config, null, 2)));
+  log('INFO', result.migrated
+    ? 'Migrated .vscode/mcp.json Nika MCP command to `nika mcp`'
+    : 'Auto-generated .vscode/mcp.json for VS Code MCP integration');
 }
 
 export async function ensureWindsurfMcpConfig(resolvedServerPath: string | undefined, log: LogFn): Promise<void> {
@@ -163,39 +150,47 @@ export async function ensureWindsurfMcpConfig(resolvedServerPath: string | undef
   const configDir = path.join(homeDir, '.codeium', 'windsurf');
   const configPath = path.join(configDir, 'mcp_config.json');
 
-  if (fs.existsSync(configPath)) {
-    // Check if nika is already configured
-    try {
-      const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      if (existing?.mcpServers?.nika) { return; }
-    } catch {
-      // Malformed JSON — don't overwrite
-      return;
-    }
-  }
-
   const nikaPath = resolvedServerPath ?? 'nika';
-  const mcpConfig = {
-    mcpServers: {
-      nika: {
-        command: nikaPath,
-        args: ['mcp', 'serve', '--stdio'],
-      },
-    },
-  };
 
   try {
     fs.mkdirSync(configDir, { recursive: true });
+    let existing: JsonObject | undefined;
     if (fs.existsSync(configPath)) {
-      // Merge into existing config
-      const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      existing.mcpServers = { ...existing.mcpServers, nika: mcpConfig.mcpServers.nika };
-      fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
-    } else {
-      fs.writeFileSync(configPath, JSON.stringify(mcpConfig, null, 2));
+      try {
+        existing = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as JsonObject;
+      } catch {
+        // Malformed JSON — don't overwrite
+        return;
+      }
     }
-    log('INFO', 'Auto-configured Windsurf MCP at ~/.codeium/windsurf/mcp_config.json');
+    const result = patchCursorLikeConfig(existing, nikaPath);
+    if (!result.changed && existing !== undefined) { return; }
+    fs.writeFileSync(configPath, JSON.stringify(result.config, null, 2));
+    log('INFO', result.migrated
+      ? 'Migrated Windsurf MCP Nika command to `nika mcp`'
+      : 'Auto-configured Windsurf MCP at ~/.codeium/windsurf/mcp_config.json');
   } catch (err) {
     log('WARN', `Failed to configure Windsurf MCP: ${err}`);
+  }
+}
+
+async function existsUri(uri: Uri): Promise<boolean> {
+  try {
+    await workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readJsonUri(uri: Uri, log: LogFn): Promise<JsonObject | undefined> {
+  try {
+    const bytes = await workspace.fs.readFile(uri);
+    return JSON.parse(Buffer.from(bytes).toString('utf-8')) as JsonObject;
+  } catch (err) {
+    if (await existsUri(uri)) {
+      log('WARN', `Refusing to overwrite malformed MCP config ${uri.fsPath}: ${err}`);
+    }
+    return undefined;
   }
 }

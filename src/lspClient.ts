@@ -21,15 +21,7 @@ import {
 } from 'vscode-languageclient/node';
 import { execFile } from 'child_process';
 import { DagPanel, TaskStatus } from './dagPanel';
-import {
-  isCursor,
-  isWindsurf,
-  ensureCursorMcpConfig,
-  ensureCursorRules,
-  ensureVscodeMcpConfig,
-  ensureWindsurfMcpConfig,
-  type LogFn,
-} from './mcpConfig';
+import { type LogFn } from './mcpConfig';
 
 export type { LogFn } from './mcpConfig';
 
@@ -185,16 +177,6 @@ export function startClient(
 
     // Check for version mismatch between extension and LSP server
     checkVersionMismatch(context, log, state.resolvedServerPath);
-
-    // Auto-configure MCP for the current IDE
-    if (isCursor()) {
-      ensureCursorMcpConfig(state.resolvedServerPath, log);
-      ensureCursorRules(log, state.rulesIntel?.());
-    } else if (isWindsurf()) {
-      ensureWindsurfMcpConfig(state.resolvedServerPath, log);
-    } else {
-      ensureVscodeMcpConfig(state.resolvedServerPath, log);
-    }
 
     // Forward execution events from LSP to DAG webview for live updates
     if (state.client) {

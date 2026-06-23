@@ -3,7 +3,7 @@
 // The extension adapts to what the binary ACTUALLY ships instead of
 // hardcoding a feature matrix: today's static suite (check · inspect ·
 // graph · explain · spec · schema · examples · new · completions · trace)
-// lights up immediately; `run` / `lsp` / `mcp serve` light up the day the
+// lights up immediately; `run` / `lsp` / `mcp` light up the day the
 // engine ships them — same extension, zero release needed. The probe
 // parses `--help` (clap's "Commands:" section), never guesses.
 

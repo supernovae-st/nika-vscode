@@ -83,7 +83,7 @@ HaaLeo/publish-vscode-extension@v2. Preflight `vsce verify-pat` /
 ## Repo split (monorepo → supernovae-st/nika-vscode)
 
 1. `git subtree split` (or filter-repo) on
-   `nika/02-engineering/devex/nika-vscode` → new public repo
+   `nika/02-engineering/repos/vscode` → new public repo
 2. The monorepo keeps it as a submodule under `02-engineering/repos/`
    (naming + privacy rules per `submodule-discipline.md`)
 3. PUBLIC repo carries strictly code/tests/docs · no monorepo references

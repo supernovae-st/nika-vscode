@@ -71,8 +71,8 @@ editor paints in the margin. Apache-2.0 spec · AGPL engine.
 - **LM tools** · `nika_check` / `nika_explain` / `nika_graph` registered as
   Language Model Tools · in-editor AI agents validate the workflows they
   write through the REAL oracle instead of guessing
-- **MCP + rules setup** · one command wires MCP + `.cursor/rules` +
-  `AGENTS.md` for Cursor / VS Code / Windsurf
+- **MCP + rules setup** · one command wires editor MCP config and Cursor rules;
+  `nika init` scaffolds the repo-local `AGENTS.md`
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
 
@@ -80,7 +80,7 @@ editor paints in the margin. Apache-2.0 spec · AGPL engine.
 - **Capability-gated UI** · the extension probes what the binary ACTUALLY
   ships (`--help`) · the static suite + `run` light up today (the gate lit
   `run` the day nika-runtime reached L3, zero extension update); `lsp` /
-  `mcp serve` light up the same way the day they climb
+  `mcp` light up the same way the day they climb
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
   are read from the self-contained binary (`nika spec` · `nika schema` ·
   `nika examples` · `nika new`) · nothing duplicated, nothing drifts
