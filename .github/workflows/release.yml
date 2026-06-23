@@ -1,0 +1,66 @@
+# release.yml — tag-gated publish (OpenVSX + VS Marketplace).
+#
+# Push a `v*` tag → package the VSIX once → publish the identical artifact
+# to every registry whose token is configured. One VSIX, two registries.
+# Linux runner ON PURPOSE: Windows-built VSIXes drop the POSIX executable
+# bit, which breaks any bundled binary (PUBLISHING.md §platform-specific).
+# Injection-safe: no github.event data is interpolated anywhere.
+#
+# Secrets (each registry step self-skips when its token is absent):
+#   OVSX_PAT — open-vsx.org token · namespace contributor (Cursor/Windsurf/VSCodium)
+#   VSCE_PAT — Azure DevOps · Marketplace>Manage · all-orgs
+#              (migrate to Entra --azure-credential before Dec 2026)
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # vsce 3.x floor
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test # vitest (contract suite self-skips without a binary) + parity
+      - run: npx vsce package --no-dependencies -o nika-lang.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: nika-lang.vsix
+
+  publish:
+    needs: gate
+    runs-on: ubuntu-latest
+    # Each step runs only when its token is configured, so the pipeline is
+    # green with whichever PATs exist (OVSX-only today; add VSCE_PAT to
+    # enable the Marketplace half — no workflow edit needed).
+    env:
+      HAS_OVSX: ${{ secrets.OVSX_PAT != '' }}
+      HAS_VSCE: ${{ secrets.VSCE_PAT != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+      - name: Publish to OpenVSX (Cursor · Windsurf · VSCodium)
+        if: env.HAS_OVSX == 'true'
+        uses: HaaLeo/publish-vscode-extension@v2
+        with:
+          pat: ${{ secrets.OVSX_PAT }}
+          extensionFile: nika-lang.vsix
+          skipDuplicate: true
+      - name: Publish to VS Marketplace
+        if: env.HAS_VSCE == 'true'
+        uses: HaaLeo/publish-vscode-extension@v2
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: nika-lang.vsix
+          skipDuplicate: true

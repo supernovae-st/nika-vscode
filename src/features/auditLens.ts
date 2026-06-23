@@ -1,0 +1,201 @@
+// auditLens.ts — the static-audit moat made visible: inlay hints + code lens.
+//
+// Nika is the language you can audit BEFORE running: cost ceiling ·
+// permits boundary · when-gates · fan-out are all static facts. This
+// module paints them in the editor margin instead of leaving them buried
+// in a terminal report. Sources: `graph --format json` (per-task) and
+// `check --json` (workflow ceiling) — both engine-derived, never guessed.
+
+import * as vscode from 'vscode';
+import { countReportFindings } from '../core/cliContract';
+import type { NikaService } from '../nikaService';
+
+function isNikaDoc(doc: vscode.TextDocument): boolean {
+  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+}
+
+function usd(n: number): string {
+  return `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
+}
+
+// ─── Inlay hints — per-task static facts at the `- id:` line ────────────────
+
+export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscode.Disposable {
+  private readonly emitter = new vscode.EventEmitter<void>();
+  readonly onDidChangeInlayHints = this.emitter.event;
+  private readonly disposables: vscode.Disposable[] = [];
+
+  constructor(private readonly service: NikaService) {
+    this.disposables.push(
+      this.emitter,
+      service.onDidChange(() => this.emitter.fire()),
+      // When a fresh check/graph lands (debounced diagnostics or explicit
+      // command), re-query so the peek path below picks it up.
+      service.onDidUpdateDocument(() => this.emitter.fire()),
+    );
+  }
+
+  refresh(): void {
+    this.emitter.fire();
+  }
+
+  dispose(): void {
+    for (const d of this.disposables) { d.dispose(); }
+  }
+
+  async provideInlayHints(
+    document: vscode.TextDocument,
+    range: vscode.Range,
+  ): Promise<vscode.InlayHint[] | undefined> {
+    if (!isNikaDoc(document)) { return undefined; }
+    if (!vscode.workspace.getConfiguration('nika').get<boolean>('inlayHints.enabled', true)) {
+      return undefined;
+    }
+    // Providers re-fire on EVERY edit; spawning `nika graph` per keystroke
+    // would be brutal. Dirty buffer → cheap peek (last projection, possibly
+    // stale). Clean buffer → authoritative (version-cached) call.
+    const doc = document.isDirty
+      ? this.service.peekGraph(document.uri.toString())
+      : await this.service.graphDocument(document);
+    if (!doc) { return undefined; }
+
+    const hints: vscode.InlayHint[] = [];
+    const text = document.getText();
+    const lines = text.split('\n');
+
+    for (const node of doc.nodes) {
+      // Locate the `- id: <node.id>` line (client anchor for engine facts).
+      const lineIdx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*id:\\s*["']?${escapeRe(node.id)}["']?\\s*(#.*)?$`).test(l));
+      if (lineIdx === -1 || lineIdx < range.start.line || lineIdx > range.end.line) { continue; }
+
+      const parts: string[] = [];
+      if (node.cost_interval) {
+        parts.push(`${usd(node.cost_interval[0])}–${usd(node.cost_interval[1])}`);
+      }
+      if (node.when && node.when !== 'true') { parts.push('⌁ when'); }
+      if (node.fan_out) {
+        parts.push(node.fan_out.count != null ? `×${node.fan_out.count}` : '×n');
+      }
+      if (parts.length === 0) { continue; }
+
+      const position = new vscode.Position(lineIdx, lines[lineIdx].length);
+      const hint = new vscode.InlayHint(position, ` ${parts.join('  ')}`, vscode.InlayHintKind.Type);
+      const tip = new vscode.MarkdownString();
+      tip.appendMarkdown(`**${node.id}** · static audit  \n`);
+      if (node.cost_interval) {
+        tip.appendMarkdown(`cost interval \`${usd(node.cost_interval[0])} → ${usd(node.cost_interval[1])}\` (min path → worst case)  \n`);
+      }
+      if (node.when && node.when !== 'true') { tip.appendMarkdown(`gated: \`when: ${node.when}\`  \n`); }
+      if (node.fan_out) { tip.appendMarkdown(`fan-out: ${node.fan_out.kind}${node.fan_out.count != null ? ` ×${node.fan_out.count}` : ''}  \n`); }
+      hint.tooltip = tip;
+      hint.paddingLeft = true;
+      hints.push(hint);
+    }
+    return hints;
+  }
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ─── Code lens — the workflow header audit card ─────────────────────────────
+
+export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+  private readonly emitter = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this.emitter.event;
+  private readonly disposables: vscode.Disposable[] = [];
+
+  constructor(private readonly service: NikaService) {
+    this.disposables.push(
+      this.emitter,
+      service.onDidChange(() => this.emitter.fire()),
+      service.onDidUpdateDocument(() => this.emitter.fire()),
+      vscode.workspace.onDidSaveTextDocument(() => this.emitter.fire()),
+    );
+  }
+
+  refresh(): void {
+    this.emitter.fire();
+  }
+
+  dispose(): void {
+    for (const d of this.disposables) { d.dispose(); }
+  }
+
+  async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
+    if (!isNikaDoc(document)) { return []; }
+    if (!vscode.workspace.getConfiguration('nika').get<boolean>('codeLens.enabled', true)) {
+      return [];
+    }
+
+    const top = new vscode.Range(0, 0, 0, 0);
+    const lenses: vscode.CodeLens[] = [
+      new vscode.CodeLens(top, {
+        command: 'nika.checkWorkflow',
+        title: '$(check) Check',
+        arguments: [document.uri],
+      }),
+      new vscode.CodeLens(top, {
+        command: 'nika.showDag',
+        title: '$(type-hierarchy) DAG',
+        arguments: [document.uri],
+      }),
+    ];
+
+    if (this.service.caps.run) {
+      lenses.push(new vscode.CodeLens(top, {
+        command: 'nika.runWorkflow',
+        title: '$(play) Run',
+        arguments: [document.uri],
+      }));
+    } else if (this.service.caps.trace) {
+      lenses.push(new vscode.CodeLens(top, {
+        command: 'nika.watchDemo',
+        title: '$(play-circle) Demo replay',
+        tooltip: '`run` ships with the engine runtime (L3) — watch the flight-recorder demo meanwhile',
+      }));
+    }
+
+    if (this.service.caps.check) {
+      // Same per-keystroke discipline as inlay hints: dirty → peek only.
+      const outcome = document.isDirty
+        ? this.service.peekCheck(document.uri.toString())
+        : await this.service.checkDocument(document);
+      if (outcome?.report) {
+        const r = outcome.report;
+        const waveTotal = r.waves.reduce((acc, w) => acc + w.length, 0);
+        const clean = r.clean === true;
+        const findingCount = countReportFindings(r);
+        const findingsTitle = clean
+          ? '$(pass-filled) clean'
+          : `$(warning) ${findingCount} finding${findingCount === 1 ? '' : 's'}`;
+        lenses.push(new vscode.CodeLens(top, {
+          command: 'nika.showReport',
+          title: findingsTitle,
+          arguments: [document.uri],
+          tooltip: 'Open the full static pre-flight report (check --json)',
+        }));
+        if (waveTotal > 0) {
+          lenses.push(new vscode.CodeLens(top, {
+            command: 'nika.showDag',
+            title: `${waveTotal} task${waveTotal === 1 ? '' : 's'} · ${r.waves.length} wave${r.waves.length === 1 ? '' : 's'}`,
+            arguments: [document.uri],
+          }));
+        }
+        const bounded = r.cost.bounded_total_usd;
+        if (typeof bounded === 'number' && bounded > 0) {
+          const minPath = r.cost.min_path_total_usd;
+          lenses.push(new vscode.CodeLens(top, {
+            command: 'nika.showReport',
+            title: `ceiling ${typeof minPath === 'number' ? `${usd(minPath)}–` : ''}${usd(bounded)}`,
+            arguments: [document.uri],
+            tooltip: 'Static worst-case cost ceiling across all priced tasks — audited before a single token is spent',
+          }));
+        }
+      }
+    }
+
+    return lenses;
+  }
+}

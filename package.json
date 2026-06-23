@@ -1,0 +1,650 @@
+{
+  "name": "nika-lang",
+  "displayName": "Nika Workflow Language",
+  "description": "Nika (.nika.yaml) language support for every VS Code-compatible editor — VS Code · Cursor · Windsurf · VSCodium. The auditable-before-run AI workflow language: check diagnostics with one-keystroke permits fixes, schema-derived completions/hover (vocabulary FROM the binary), task rename/references, cost/when/fan-out inlay audit, ${{ }} expression intelligence, DAG visualization with live trace overlay + replay, flight-recorder runs view, LSP, AI agent tools (LM tools + MCP setup).",
+  "version": "0.90.0",
+  "publisher": "supernovae",
+  "license": "AGPL-3.0-or-later",
+  "icon": "icons/nika-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supernovae-st/nika-vscode"
+  },
+  "homepage": "https://nika.sh",
+  "bugs": {
+    "url": "https://github.com/supernovae-st/nika-vscode/issues"
+  },
+  "galleryBanner": {
+    "color": "#0f172a",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets",
+    "Visualization"
+  ],
+  "keywords": [
+    "nika",
+    "yaml",
+    "workflow",
+    "ai",
+    "llm",
+    "mcp",
+    "cursor",
+    "windsurf",
+    "agent",
+    "lsp"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.nika.yaml"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In Restricted Mode the workspace cannot override which binary the extension executes; static language features stay on.",
+      "restrictedConfigurations": [
+        "nika.server.path",
+        "nika.server.extraArgs"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "Diagnostics, graph and runs need a real file system and the nika binary; syntax, snippets and expression intel work everywhere."
+    }
+  },
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nika",
+          "title": "Nika",
+          "icon": "./icons/nika-dark.svg"
+        }
+      ]
+    },
+    "views": {
+      "nika": [
+        {
+          "id": "nikaWorkflows",
+          "name": "Workflows"
+        },
+        {
+          "id": "nikaRuns",
+          "name": "Runs (flight recorder)"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "nika",
+        "aliases": [
+          "Nika Workflow",
+          "nika"
+        ],
+        "extensions": [
+          ".nika.yaml"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/nika-light.svg",
+          "dark": "./icons/nika-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nika",
+        "scopeName": "source.nika",
+        "path": "./syntaxes/nika.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "nika",
+        "path": "./snippets/nika.code-snippets"
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "nika",
+        "scopes": {
+          "keyword": [
+            "keyword.control.nika"
+          ],
+          "macro": [
+            "entity.name.function.verb.nika"
+          ],
+          "property": [
+            "variable.other.property.nika"
+          ],
+          "variable": [
+            "variable.other.template.nika"
+          ],
+          "function": [
+            "entity.name.function.nika"
+          ],
+          "type": [
+            "entity.name.type.nika"
+          ],
+          "comment": [
+            "comment.nika"
+          ]
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "nika.runWorkflow",
+        "title": "Nika: Run Current Workflow",
+        "icon": "$(play)"
+      },
+      {
+        "command": "nika.checkWorkflow",
+        "title": "Nika: Validate Current Workflow",
+        "icon": "$(check)"
+      },
+      {
+        "command": "nika.newWorkflow",
+        "title": "Nika: New Workflow File",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "nika.restartServer",
+        "title": "Nika: Restart Language Server",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nika.showTasks",
+        "title": "Nika: Show Tasks (Outline)",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "nika.showOutput",
+        "title": "Nika: Show Output",
+        "icon": "$(output)"
+      },
+      {
+        "command": "nika.showDag",
+        "title": "Nika: Show Workflow DAG",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "nika.checkBinary",
+        "title": "Nika: Verify Engine Binary"
+      },
+      {
+        "command": "nika.setupMcp",
+        "title": "Nika: Setup MCP + Agent Rules"
+      },
+      {
+        "command": "nika.showMenu",
+        "title": "Nika: Command Menu"
+      },
+      {
+        "command": "nika.showReport",
+        "title": "Nika: Open Check Report (static pre-flight)",
+        "icon": "$(output)"
+      },
+      {
+        "command": "nika.inspectWorkflow",
+        "title": "Nika: Inspect Anatomy (tasks · cost · permits)",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "nika.inferPermits",
+        "title": "Nika: Insert Inferred Permits Boundary",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "nika.explainCode",
+        "title": "Nika: Explain Error Code (NIKA-XXXX)"
+      },
+      {
+        "command": "nika.exportDagMermaid",
+        "title": "Nika: Export DAG as Mermaid"
+      },
+      {
+        "command": "nika.exportDagDot",
+        "title": "Nika: Export DAG as Graphviz Dot"
+      },
+      {
+        "command": "nika.replayTrace",
+        "title": "Nika: Replay a Recorded Run (trace)",
+        "icon": "$(history)"
+      },
+      {
+        "command": "nika.watchDemo",
+        "title": "Nika: Watch Demo Replay"
+      },
+      {
+        "command": "nika.openSpec",
+        "title": "Nika: Open Embedded Spec"
+      },
+      {
+        "command": "nika.openSchema",
+        "title": "Nika: Open Embedded JSON Schema"
+      },
+      {
+        "command": "nika.browseExamples",
+        "title": "Nika: Browse Embedded Examples"
+      },
+      {
+        "command": "nika.copyAiPrompt",
+        "title": "Nika: Copy AI Authoring Prompt (deterministic protocol)"
+      },
+      {
+        "command": "nika.generateWorkflow",
+        "title": "Nika: Generate Workflow from Intent (oracle-checked)",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "nika.refreshRuns",
+        "title": "Nika: Refresh Runs",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nika.fixAll",
+        "title": "Nika: Fix All Auto-Fixable Issues",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "nika.focusTaskInDag",
+        "title": "Nika: Focus Task in DAG",
+        "icon": "$(target)"
+      },
+      {
+        "command": "nika.peekTaskRefs",
+        "title": "Nika: Peek Task References"
+      }
+    ],
+    "configuration": {
+      "title": "Nika",
+      "properties": {
+        "nika.server.path": {
+          "type": "string",
+          "default": "nika",
+          "description": "Path to the nika binary. Uses PATH by default."
+        },
+        "nika.server.autoDownload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically download the nika binary from GitHub releases if not found in PATH."
+        },
+        "nika.server.extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments passed to the nika lsp command."
+        },
+        "nika.inlayHints.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inlay hints (timeout annotations, model costs, binding labels)."
+        },
+        "nika.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show code lens actions (Run, Validate, task count, last run status)."
+        },
+        "nika.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Trace communication between VS Code and the Nika language server."
+        },
+        "nika.intel.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Client-side template intelligence inside ${{ ... }} islands (completions, hover, go-to-definition for tasks/with/env/secrets/vars refs)."
+        },
+        "nika.diagnostics.runOn": {
+          "type": "string",
+          "enum": [
+            "type",
+            "save",
+            "off"
+          ],
+          "default": "type",
+          "description": "When to run `nika check --json` for editor diagnostics (client path, used until the LSP ships). 'type' is debounced."
+        },
+        "nika.secretsLint.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn on literal credentials pasted in workflow YAML (pure local scan) with a ${{ env.VAR }} quick fix."
+        },
+        "nika.traces.glob": {
+          "type": "string",
+          "default": "**/.nika/traces/*.ndjson",
+          "description": "Where the Runs view looks for flight-recorder traces."
+        },
+        "nika.traces.live": {
+          "type": "boolean",
+          "default": true,
+          "description": "Live-overlay a growing trace onto the open DAG panel while an engine writes a run (statuses update in real time)."
+        },
+        "nika.run.liveDag": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run workflows by streaming `nika run --json` into the DAG panel live (statuses paint in real time). Off = run in a terminal for raw output."
+        },
+        "nika.replay.speed": {
+          "type": "number",
+          "default": 6,
+          "description": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default)."
+        },
+        "nika.dag.followActiveEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "The open DAG panel re-targets when you switch to another .nika.yaml (debounced)."
+        },
+        "nika.dag.cursorSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Soft halo in the DAG on the task your editor caret is in (same workflow · panel visible)."
+        },
+        "nika.decorations.verbDots": {
+          "type": "boolean",
+          "default": true,
+          "description": "Verb-tinted gutter dots on each task line (infer purple · exec green · invoke cyan · agent orange)."
+        },
+        "nika.ai.toolsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Register nika_check / nika_explain / nika_graph as Language Model Tools so in-editor AI agents validate workflows through the real oracle."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[nika]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2,
+        "editor.autoIndent": "advanced"
+      },
+      "files.associations": {
+        "*.nika.yaml": "nika",
+        "*.nika.yml": "nika"
+      }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "nika.runWorkflow",
+          "when": "resourceLangId == 'nika'",
+          "group": "navigation"
+        },
+        {
+          "command": "nika.checkWorkflow",
+          "when": "resourceLangId == 'nika'",
+          "group": "navigation"
+        },
+        {
+          "command": "nika.showDag",
+          "when": "resourceLangId == 'nika'",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "nika.runWorkflow",
+          "when": "resourceLangId == 'nika'",
+          "group": "nika@1"
+        },
+        {
+          "command": "nika.checkWorkflow",
+          "when": "resourceLangId == 'nika'",
+          "group": "nika@2"
+        },
+        {
+          "command": "nika.inspectWorkflow",
+          "when": "resourceLangId == 'nika' && nika.hasBinary",
+          "group": "nika@3"
+        },
+        {
+          "command": "nika.inferPermits",
+          "when": "resourceLangId == 'nika' && nika.capCheck",
+          "group": "nika@4"
+        },
+        {
+          "command": "nika.exportDagMermaid",
+          "when": "resourceLangId == 'nika' && nika.capGraph",
+          "group": "nika@5"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "nika.refreshRuns",
+          "when": "view == 'nikaRuns'",
+          "group": "navigation"
+        },
+        {
+          "command": "nika.newWorkflow",
+          "when": "view == 'nikaWorkflows'",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "nika.runWorkflow",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "resourceLangId == 'nika'"
+      },
+      {
+        "command": "nika.checkWorkflow",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "resourceLangId == 'nika'"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "nika_check",
+        "displayName": "Nika Check",
+        "toolReferenceName": "nikaCheck",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. Call this after every edit to a .nika.yaml file and repair until clean.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "Absolute path to the .nika.yaml file (defaults to the active editor)."
+            }
+          }
+        }
+      },
+      {
+        "name": "nika_explain",
+        "displayName": "Nika Explain",
+        "toolReferenceName": "nikaExplain",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Explain a NIKA-XXXX error code: cause, category, and the fix form. Use when a check report or diagnostic carries a code you do not recognize.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "The error code, e.g. NIKA-440 (bare 440 also accepted)."
+            }
+          },
+          "required": [
+            "code"
+          ]
+        }
+      },
+      {
+        "name": "nika_graph",
+        "displayName": "Nika Graph",
+        "toolReferenceName": "nikaGraph",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Project the canonical execution DAG of a Nika workflow (graph_format 1 JSON): topologically sorted task nodes with verb, model, when-gates, fan-out and static cost intervals, plus depends_on edges. Requires the workflow to pass conformance first.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "description": "Absolute path to the .nika.yaml file (defaults to the active editor)."
+            }
+          }
+        }
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "nika",
+        "required": [
+          "command"
+        ],
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The nika subcommand to run (check · run · fmt)"
+          },
+          "file": {
+            "type": "string",
+            "description": "Workflow file (defaults to active editor)"
+          }
+        }
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "nika",
+        "owner": "nika",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.*\\.nika\\.ya?ml):(\\d+):(\\d+):\\s+(error|warning)\\[(NIKA-\\d+)\\]:\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "nika.gettingStarted",
+        "title": "Get started with Nika",
+        "description": "From zero to a running AI workflow in five steps.",
+        "steps": [
+          {
+            "id": "install",
+            "title": "Install the nika engine",
+            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Install nika](https://nika.sh/install)\nOr let the extension download it · it will offer automatically.",
+            "media": {
+              "markdown": "walkthrough/01-install.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.checkBinary"
+            ]
+          },
+          {
+            "id": "create",
+            "title": "Create your first workflow",
+            "description": "Scaffold a `.nika.yaml` with the canonical envelope.\n[New Workflow](command:nika.newWorkflow)",
+            "media": {
+              "markdown": "walkthrough/02-create.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.newWorkflow"
+            ]
+          },
+          {
+            "id": "validate",
+            "title": "Validate as you type",
+            "description": "Diagnostics · completions · hover docs are live via the LSP. Run an explicit check ·\n[Validate Workflow](command:nika.checkWorkflow)",
+            "media": {
+              "markdown": "walkthrough/03-validate.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.checkWorkflow"
+            ]
+          },
+          {
+            "id": "run",
+            "title": "Run it (no API key needed)",
+            "description": "The starter uses `model: mock/echo` — deterministic · zero keys.\n[Run Workflow](command:nika.runWorkflow)",
+            "media": {
+              "markdown": "walkthrough/04-run.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.runWorkflow"
+            ]
+          },
+          {
+            "id": "dag",
+            "title": "See the DAG",
+            "description": "Visualize task dependencies · click a node to jump to its YAML.\n[Show DAG](command:nika.showDag)",
+            "media": {
+              "markdown": "walkthrough/05-dag.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.showDag"
+            ]
+          },
+          {
+            "id": "agents",
+            "title": "Make your AI an expert",
+            "description": "`nika init` writes AGENTS.md + .cursor/rules + MCP wiring so Cursor/Claude write valid workflows and can RUN them.\n[Setup agents](command:nika.setupMcp)",
+            "media": {
+              "markdown": "walkthrough/06-agents.md"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run clean && npm run compile",
+    "clean": "rm -rf out",
+    "compile": "npm run typecheck && node esbuild.mjs",
+    "typecheck": "tsc -p ./ && tsc --noEmit --strict --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "eslint src --ext ts",
+    "parity": "node scripts/parity.mjs",
+    "test": "vitest run && node scripts/parity.mjs",
+    "test:watch": "vitest",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "d3-selection": "^3.0.0",
+    "d3-shape": "^3.2.0",
+    "d3-transition": "^3.0.1",
+    "d3-zoom": "^3.0.0",
+    "elkjs": "^0.9.3",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/d3-selection": "^3.0.11",
+    "@types/d3-shape": "^3.1.8",
+    "@types/d3-transition": "^3.0.9",
+    "@types/d3-zoom": "^3.0.8",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.1.2"
+  }
+}

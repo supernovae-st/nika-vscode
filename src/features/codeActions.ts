@@ -1,0 +1,270 @@
+// codeActions.ts — quick fixes from the check fix grammar + secrets rewrite.
+//
+// The engine emits ONE machine-applicable fix form (`add "X" to
+// permits.<path>`); this provider applies it as a WorkspaceEdit — the
+// exact convergence loop agents run in CI, one keystroke in the editor.
+// Plus: did-you-mean tool replacement · literal-secret → ${{ env.VAR }} ·
+// explain-this-code · insert the whole inferred permits boundary.
+
+import * as vscode from 'vscode';
+import { didYouMean } from '../core/graphIntel';
+import { applyPermitsFix, parseFix } from '../core/permitsEdit';
+import {
+  addDependsOn,
+  addVarDeclaration,
+  parseDag003,
+  parseVar001,
+  removeDependsOn,
+} from '../core/structuralFixes';
+import { parseRichWorkflow } from '../workflowParser';
+import type { DiagnosticsController } from './diagnostics';
+import type { NikaService } from '../nikaService';
+
+/** `unresolved reference \`tasks.X\`` (VAR-001 family · unknown task id). */
+function parseUnresolvedTaskRef(message: string): string | undefined {
+  return message.match(/unresolved reference\s+`tasks\.([a-z][a-z0-9_]*)`/)?.[1];
+}
+
+export class NikaCodeActionProvider implements vscode.CodeActionProvider {
+  static readonly metadata: vscode.CodeActionProviderMetadata = {
+    providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+  };
+
+  constructor(
+    private readonly controller: DiagnosticsController,
+    private readonly service: NikaService,
+  ) {}
+
+  provideCodeActions(
+    document: vscode.TextDocument,
+    range: vscode.Range,
+  ): vscode.CodeAction[] {
+    const actions: vscode.CodeAction[] = [];
+    const text = document.getText();
+
+    for (const { finding, range: fRange } of this.controller.findingsAt(document.uri, range)) {
+      // 1 · the locked fix grammar → one-keystroke permits repair
+      if (finding.fix) {
+        const parsed = parseFix(finding.fix);
+        if (parsed) {
+          const rewritten = applyPermitsFix(text, parsed);
+          if (rewritten !== undefined) {
+            const action = new vscode.CodeAction(
+              `Nika: ${finding.fix}`,
+              vscode.CodeActionKind.QuickFix,
+            );
+            action.edit = this.fullRewrite(document, rewritten);
+            action.isPreferred = true;
+            actions.push(action);
+          }
+        }
+      }
+
+      // 2 · did-you-mean tool replacement (unknown builtin)
+      if (finding.source === 'unknown-tool' && finding.suggestion) {
+        const wrongTool = finding.message.match(/`([^`]+)`/)?.[1];
+        if (wrongTool) {
+          // The diagnostic anchors the task's `- id:` line; the tool: line
+          // lives inside the item — search forward for the literal.
+          for (let l = fRange.start.line; l < Math.min(fRange.start.line + 30, document.lineCount); l++) {
+            const idx = document.lineAt(l).text.indexOf(wrongTool);
+            if (idx !== -1) {
+              const action = new vscode.CodeAction(
+                `Nika: replace with \`${finding.suggestion}\``,
+                vscode.CodeActionKind.QuickFix,
+              );
+              action.edit = new vscode.WorkspaceEdit();
+              action.edit.replace(
+                document.uri,
+                new vscode.Range(l, idx, l, idx + wrongTool.length),
+                finding.suggestion,
+              );
+              action.isPreferred = true;
+              actions.push(action);
+              break;
+            }
+          }
+        }
+      }
+
+      // 3 · structural conformance repairs (the two most common classes)
+      if (finding.source === 'conformance') {
+        const dag = parseDag003(finding.message);
+        if (dag) {
+          const rewritten = addDependsOn(text, dag.task, dag.missing);
+          if (rewritten !== undefined) {
+            const action = new vscode.CodeAction(
+              `Nika: declare \`${dag.missing}\` in depends_on of \`${dag.task}\``,
+              vscode.CodeActionKind.QuickFix,
+            );
+            action.edit = this.fullRewrite(document, rewritten);
+            action.isPreferred = true;
+            actions.push(action);
+          }
+        }
+        // Unknown TASK id in a ref → did-you-mean (Damerau ≤2 · same UX
+        // contract as the engine's tool suggestions, client-side).
+        const badTask = parseUnresolvedTaskRef(finding.message);
+        if (badTask) {
+          const ids = parseRichWorkflow(text).tasks.map((t) => t.id);
+          const suggestion = didYouMean(badTask, ids);
+          if (suggestion) {
+            const re = new RegExp(`\\btasks\\.${badTask}(?![A-Za-z0-9_])`, 'g');
+            const rewritten = text.replace(re, `tasks.${suggestion}`);
+            if (rewritten !== text) {
+              const action = new vscode.CodeAction(
+                `Nika: did you mean \`tasks.${suggestion}\`?`,
+                vscode.CodeActionKind.QuickFix,
+              );
+              action.edit = this.fullRewrite(document, rewritten);
+              action.isPreferred = true;
+              actions.push(action);
+            }
+          }
+        }
+
+        const varRef = parseVar001(finding.message);
+        if (varRef) {
+          const rewritten = addVarDeclaration(text, varRef.varName);
+          if (rewritten !== undefined) {
+            const action = new vscode.CodeAction(
+              `Nika: declare \`${varRef.varName}\` in the vars: block`,
+              vscode.CodeActionKind.QuickFix,
+            );
+            action.edit = this.fullRewrite(document, rewritten);
+            action.isPreferred = true;
+            actions.push(action);
+          }
+        }
+      }
+
+      // 4 · explain the code (engine-embedded pedagogy)
+      if (finding.code.startsWith('NIKA-') && this.service.caps.explain) {
+        const action = new vscode.CodeAction(
+          `Nika: explain ${finding.code}`,
+          vscode.CodeActionKind.QuickFix,
+        );
+        action.command = {
+          command: 'nika.explainCode',
+          title: 'Explain',
+          arguments: [finding.code],
+        };
+        actions.push(action);
+      }
+    }
+
+    // 5 · literal secret → ${{ env.VAR }}
+    for (const { secret, range: sRange } of this.controller.secretsAt(document.uri, range)) {
+      const action = new vscode.CodeAction(
+        `Nika: replace literal with \${{ env.${secret.envVar} }}`,
+        vscode.CodeActionKind.QuickFix,
+      );
+      action.edit = new vscode.WorkspaceEdit();
+      action.edit.replace(document.uri, sRange, `\${{ env.${secret.envVar} }}`);
+      action.isPreferred = true;
+      actions.push(action);
+    }
+
+    // 6 · redundant depends_on → remove (transitive reduction hint)
+    for (const { task, dep } of this.controller.redundantAt(document.uri, range)) {
+      const rewritten = removeDependsOn(text, task, dep);
+      if (rewritten !== undefined) {
+        const action = new vscode.CodeAction(
+          `Nika: remove redundant dependency \`${dep}\` (ordering already guaranteed)`,
+          vscode.CodeActionKind.QuickFix,
+        );
+        action.edit = this.fullRewrite(document, rewritten);
+        action.isPreferred = true;
+        actions.push(action);
+      }
+    }
+
+    return actions;
+  }
+
+  private fullRewrite(document: vscode.TextDocument, newText: string): vscode.WorkspaceEdit {
+    const edit = new vscode.WorkspaceEdit();
+    const full = new vscode.Range(0, 0, document.lineCount, 0);
+    edit.replace(document.uri, full, newText);
+    return edit;
+  }
+}
+
+// ─── Fix All · the check→repair convergence loop as ONE editor action ──────
+// Applies every machine-applicable repair (permits fixes · DAG-003
+// declares · redundant-dep removals) to a fixpoint, bounded. This is the
+// same loop agents run in CI — `source.fixAll.nika` makes it a save
+// action (`editor.codeActionsOnSave`).
+
+export const NIKA_FIX_ALL = vscode.CodeActionKind.SourceFixAll.append('nika');
+
+export class NikaFixAllProvider implements vscode.CodeActionProvider {
+  static readonly metadata: vscode.CodeActionProviderMetadata = {
+    providedCodeActionKinds: [NIKA_FIX_ALL],
+  };
+
+  constructor(private readonly controller: DiagnosticsController) {}
+
+  provideCodeActions(
+    document: vscode.TextDocument,
+    _range: vscode.Range,
+    context: vscode.CodeActionContext,
+  ): vscode.CodeAction[] {
+    if (context.only && !context.only.contains(NIKA_FIX_ALL) && !NIKA_FIX_ALL.contains(context.only)) {
+      return [];
+    }
+    const rewritten = this.applyAll(document);
+    if (rewritten === undefined) { return []; }
+    const action = new vscode.CodeAction('Nika: fix all auto-fixable issues', NIKA_FIX_ALL);
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), rewritten);
+    action.edit = edit;
+    return [action];
+  }
+
+  /** Fixpoint application over the CURRENT stored findings (≤8 rounds). */
+  applyAll(document: vscode.TextDocument): string | undefined {
+    const fullRange = new vscode.Range(0, 0, document.lineCount, 0);
+    let text = document.getText();
+    let changed = false;
+
+    for (let round = 0; round < 8; round++) {
+      let roundChanged = false;
+
+      for (const { finding } of this.controller.findingsAt(document.uri, fullRange)) {
+        if (finding.fix) {
+          const parsed = parseFix(finding.fix);
+          if (parsed) {
+            const next = applyPermitsFix(text, parsed);
+            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
+          }
+        }
+        if (finding.source === 'conformance') {
+          const dag = parseDag003(finding.message);
+          if (dag) {
+            const next = addDependsOn(text, dag.task, dag.missing);
+            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
+          }
+          const varRef = parseVar001(finding.message);
+          if (varRef) {
+            const next = addVarDeclaration(text, varRef.varName);
+            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
+          }
+        }
+      }
+      for (const { task, dep } of this.controller.redundantAt(document.uri, fullRange)) {
+        const next = removeDependsOn(text, task, dep);
+        if (next !== undefined && next !== text) { text = next; roundChanged = true; }
+      }
+
+      if (!roundChanged) { break; }
+      changed = true;
+      // Findings are anchored to the PRE-edit text — one pass per stored
+      // snapshot is what's sound; the debounced re-check supplies the next
+      // round's findings. Stop here rather than re-derive on shifted text.
+      break;
+    }
+
+    return changed ? text : undefined;
+  }
+}

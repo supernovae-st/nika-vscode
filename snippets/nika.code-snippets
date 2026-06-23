@@ -1,0 +1,378 @@
+{
+  "New Workflow": {
+    "prefix": [
+      "workflow",
+      "nika"
+    ],
+    "description": "Complete Nika workflow file (nika: v1 envelope)",
+    "body": [
+      "# yaml-language-server: $schema=https://nika.sh/schema/v1.json",
+      "nika: v1",
+      "workflow: ${1:my-workflow}",
+      "",
+      "model: ${2|mock/echo,anthropic/claude-sonnet-4-6,openai/gpt-4o,gemini/gemini-2.5-flash,openrouter/anthropic/claude-sonnet-4-6,ollama/llama3.3|}",
+      "",
+      "tasks:",
+      "  - id: ${3:first_task}",
+      "    infer:",
+      "      prompt: \"${4:Your prompt here}\"",
+      "$0"
+    ]
+  },
+  "Task": {
+    "prefix": [
+      "task",
+      "newtask"
+    ],
+    "description": "New task block",
+    "body": [
+      "- id: ${1:task_id}",
+      "  ${2|infer,exec,invoke,agent|}:",
+      "    ${0:prompt: \"Your prompt\"}"
+    ]
+  },
+  "Infer Task": {
+    "prefix": [
+      "infer",
+      "llm",
+      "prompt"
+    ],
+    "description": "LLM inference task (interpolate via ${{ vars.x }} · ${{ tasks.y.output }} · ${{ with.alias }})",
+    "body": [
+      "- id: ${1:analyze}",
+      "  infer:",
+      "    prompt: \"${2:Your prompt here}\"",
+      "$0"
+    ]
+  },
+  "Infer with System": {
+    "prefix": [
+      "infersys",
+      "system"
+    ],
+    "description": "Inference with system prompt + temperature",
+    "body": [
+      "- id: ${1:analyze}",
+      "  infer:",
+      "    system: \"${2:You are a precise analyst.}\"",
+      "    prompt: \"${3:Task prompt}\"",
+      "    temperature: ${4:0.2}",
+      "$0"
+    ]
+  },
+  "Exec Task": {
+    "prefix": [
+      "exec",
+      "shell",
+      "cmd"
+    ],
+    "description": "Shell command task (capability-gated)",
+    "body": [
+      "- id: ${1:build}",
+      "  exec:",
+      "    command: \"${2:cargo test --workspace --lib}\"",
+      "    cwd: \"${3:.}\"",
+      "    capture: ${4|stdout,stderr,combined,structured|}",
+      "$0"
+    ]
+  },
+  "Exec with Timeout": {
+    "prefix": [
+      "execblock",
+      "timeout"
+    ],
+    "description": "Exec with hard timeout + cleanup",
+    "body": [
+      "- id: ${1:build}",
+      "  timeout: \"${2:5m}\"",
+      "  exec:",
+      "    command: \"${3:make build}\"",
+      "    capture: structured            # → { stdout, stderr, exit_code }",
+      "  on_finally:                      # steps (verb objects) · run even on failure",
+      "    - exec:",
+      "        command: \"${4:make clean}\"",
+      "$0"
+    ]
+  },
+  "Fetch (nika:fetch builtin)": {
+    "prefix": [
+      "fetch",
+      "http",
+      "api"
+    ],
+    "description": "HTTP fetch · the nika:fetch builtin under invoke (fetch is a TOOL, not a verb)",
+    "body": [
+      "- id: ${1:fetch_data}",
+      "  invoke:",
+      "    tool: nika:fetch",
+      "    args:",
+      "      url: \"${2:https://api.example.com/data}\"",
+      "$0"
+    ]
+  },
+  "Fetch with Extract": {
+    "prefix": [
+      "fetchextract",
+      "scrape"
+    ],
+    "description": "Fetch + extraction mode + jq output bindings",
+    "body": [
+      "- id: ${1:scrape}",
+      "  invoke:",
+      "    tool: nika:fetch",
+      "    args:",
+      "      url: \"${2:https://example.com/page}\"",
+      "      mode: ${3|markdown,article,text,selector,metadata,links,jq,feed,sitemap|}",
+      "  output:",
+      "    ${4:title}: \"${5:.data.title}\"",
+      "$0"
+    ]
+  },
+  "Invoke Task": {
+    "prefix": [
+      "invoke",
+      "mcp",
+      "tool"
+    ],
+    "description": "Invoke a builtin or MCP tool",
+    "body": [
+      "- id: ${1:step}",
+      "  invoke:",
+      "    tool: ${2|nika:fetch,nika:read,nika:write,nika:jq,nika:validate,mcp:server/tool|}",
+      "    args:",
+      "      ${3:url}: ${4:https://example.com}",
+      "$0"
+    ]
+  },
+  "Invoke Nika Builtin": {
+    "prefix": [
+      "niktool",
+      "builtin"
+    ],
+    "description": "Invoke a stdlib builtin (closed set — completion lists them from the binary)",
+    "body": [
+      "- id: ${1:step}",
+      "  invoke:",
+      "    tool: nika:${2:read}",
+      "    args:",
+      "      ${3:path}: \"${4:./file.txt}\"",
+      "$0"
+    ]
+  },
+  "Agent Task": {
+    "prefix": [
+      "agent",
+      "loop",
+      "agentic"
+    ],
+    "description": "Agent loop · default-deny tool whitelist + budgets",
+    "body": [
+      "- id: ${1:review}",
+      "  agent:",
+      "    model: ${2:anthropic/claude-sonnet-4-6}",
+      "    system: \"${3:You are a senior reviewer.}\"",
+      "    prompt: \"${4:Review the diff and list the issues.}\"",
+      "    tools:                       # default-deny · ONLY these",
+      "      - \"${5:nika:read}\"",
+      "      - \"nika:done\"             # completion sentinel",
+      "    max_turns: ${6:20}",
+      "    max_tokens_total: ${7:100000}",
+      "$0"
+    ]
+  },
+  "With Bindings": {
+    "prefix": [
+      "with",
+      "bind"
+    ],
+    "description": "Bind upstream outputs into scope",
+    "body": [
+      "with:",
+      "  ${1:a}: \\${{ tasks.${2:upstream}.output }}",
+      "$0"
+    ]
+  },
+  "Depends On": {
+    "prefix": [
+      "depends",
+      "dep",
+      "after"
+    ],
+    "description": "Explicit DAG dependency (fan-in)",
+    "body": [
+      "depends_on: [${1:task_a}, ${2:task_b}]",
+      "$0"
+    ]
+  },
+  "For Each Loop": {
+    "prefix": [
+      "foreach",
+      "loop",
+      "iterate"
+    ],
+    "description": "Iterate over a list (parallel fan-out per element)",
+    "body": [
+      "- id: ${1:process_all}",
+      "  for_each: \\${{ ${2:vars.items} }}",
+      "  ${3|infer,exec,invoke|}:",
+      "    prompt: \"${4:Process · \\${{ item }}}\"",
+      "$0"
+    ]
+  },
+  "When Conditional": {
+    "prefix": [
+      "when",
+      "if",
+      "gate"
+    ],
+    "description": "CEL conditional gate",
+    "body": [
+      "when: \"${1:tasks.test.output.exit_code == 0}\"",
+      "$0"
+    ]
+  },
+  "Retry Block": {
+    "prefix": [
+      "retry",
+      "resilience"
+    ],
+    "description": "Transient-error retry policy",
+    "body": [
+      "retry:",
+      "  max_attempts: ${1:3}",
+      "  backoff_strategy: exponential",
+      "  backoff_ms: ${2:500}",
+      "  jitter: true",
+      "$0"
+    ]
+  },
+  "On Error Recover": {
+    "prefix": [
+      "onerror",
+      "recover",
+      "fallback"
+    ],
+    "description": "Graceful degradation on failure",
+    "body": [
+      "on_error:",
+      "  recover: \\${{ tasks.${1:cached}.output }}",
+      "$0"
+    ]
+  },
+  "Structured Output": {
+    "prefix": [
+      "structured",
+      "json",
+      "schema"
+    ],
+    "description": "Schema-validated structured output",
+    "body": [
+      "schema:",
+      "  type: object",
+      "  properties:",
+      "    ${1:items}:",
+      "      type: array",
+      "      items: { type: string }",
+      "  required: [${1:items}]",
+      "$0"
+    ]
+  },
+  "Output Bindings": {
+    "prefix": [
+      "output",
+      "jq"
+    ],
+    "description": "Named jq output bindings",
+    "body": [
+      "output:",
+      "  ${1:title}: \"${2:.data.title}\"",
+      "$0"
+    ]
+  },
+  "Workflow Outputs": {
+    "prefix": [
+      "outputs",
+      "return"
+    ],
+    "description": "Workflow return value (what nika run prints)",
+    "body": [
+      "outputs:",
+      "  ${1:result}: \\${{ tasks.${2:final}.output }}",
+      "$0"
+    ]
+  },
+  "Vars Block": {
+    "prefix": [
+      "vars",
+      "variables"
+    ],
+    "description": "Workflow variables (typed optional)",
+    "body": [
+      "vars:",
+      "  ${1:topic}: \"${2:value}\"",
+      "$0"
+    ]
+  },
+  "Env Secret": {
+    "prefix": [
+      "env",
+      "secret",
+      "key"
+    ],
+    "description": "Environment interpolation (secrets NEVER inline)",
+    "body": [
+      "\\${{ env.${1:API_KEY} }}$0"
+    ]
+  },
+  "Pipeline (2 tasks)": {
+    "prefix": [
+      "pipe2",
+      "chain2"
+    ],
+    "description": "Two chained tasks",
+    "body": [
+      "tasks:",
+      "  - id: ${1:first}",
+      "    infer:",
+      "      prompt: \"${2:Step one}\"",
+      "",
+      "  - id: ${3:second}",
+      "    depends_on: [${1:first}]",
+      "    with:",
+      "      prev: \\${{ tasks.${1:first}.output }}",
+      "    infer:",
+      "      prompt: \"${4:Use · \\${{ with.prev }}}\"",
+      "$0"
+    ]
+  },
+  "Fan-Out Fan-In": {
+    "prefix": [
+      "fanout",
+      "parallel",
+      "mapreduce"
+    ],
+    "description": "Parallel tasks merged by a dependent task",
+    "body": [
+      "tasks:",
+      "  - id: ${1:a}",
+      "    infer:",
+      "      prompt: \"${2:Angle A on \\${{ vars.topic }}}\"",
+      "",
+      "  - id: ${3:b}",
+      "    infer:",
+      "      prompt: \"${4:Angle B on \\${{ vars.topic }}}\"",
+      "",
+      "  - id: merge",
+      "    depends_on: [${1:a}, ${3:b}]",
+      "    with:",
+      "      a: \\${{ tasks.${1:a}.output }}",
+      "      b: \\${{ tasks.${3:b}.output }}",
+      "    infer:",
+      "      prompt: |",
+      "        Synthesize ·",
+      "        \\${{ with.a }}",
+      "        \\${{ with.b }}",
+      "$0"
+    ]
+  }
+}
