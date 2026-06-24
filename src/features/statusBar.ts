@@ -50,7 +50,7 @@ export class NikaStatusBar implements vscode.Disposable {
         `**nika** \`${this.service.binaryPath ?? ''}\``,
         '',
         `surface: ${describeCapabilities(caps)}`,
-        caps.lsp ? `LSP: ${this.lspState}` : 'LSP: ships in-binary at v0.81 (D-2026-06-10-N6)',
+        caps.lsp ? `LSP: ${this.lspState}` : 'LSP: unavailable from this binary; client-side intelligence active',
         '',
         '_click for the command menu_',
       ].join('  \n'),

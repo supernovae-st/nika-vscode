@@ -41,6 +41,8 @@
     "lsp"
   ],
   "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:nika",
     "workspaceContains:**/*.nika.yaml"
   ],
   "extensionKind": [
@@ -609,7 +611,10 @@
             "description": "`nika init` writes schema wiring, AGENTS.md, and Cursor rules; this command wires MCP so agents can check workflows and explain failures through the real oracle.\n[Setup agents](command:nika.setupMcp)",
             "media": {
               "markdown": "walkthrough/06-agents.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:nika.setupMcp"
+            ]
           }
         ]
       }

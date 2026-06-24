@@ -1,8 +1,9 @@
 # Make your AI an expert
 
-`Nika: Setup MCP + Agent Rules` wires the current editor. In a terminal,
-`nika init` scaffolds repo-local schema + agent rules, and `nika wire <client>`
-wires MCP clients explicitly.
+`Nika: Setup MCP + Agent Rules` runs the non-destructive repo scaffold
+(`nika init`) when your binary supports it, then wires MCP for the current
+editor. In a terminal, the same explicit flow is `nika init` followed by
+`nika wire <client>`.
 
 - **`.cursor/rules/nika.mdc`** · Cursor writes valid Nika instantly
 - **`AGENTS.md`** · any agent (Claude, Codex…) gets the canon

@@ -629,7 +629,7 @@ export function activate(context: ExtensionContext): void {
       }
 
       const content = Buffer.from(
-        `# yaml-language-server: $schema=https://nika.sh/schema/v1.json\nnika: v1\nworkflow: ${name}\n\nmodel: mock/echo  # deterministic · swap for anthropic/claude-sonnet-4-6\n\ntasks:\n  - id: start\n    infer:\n      prompt: ""\n`,
+        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow: ${name}\n\nmodel: mock/echo  # deterministic · swap for anthropic/claude-sonnet-4-6\n\ntasks:\n  - id: start\n    infer:\n      prompt: ""\n`,
         'utf-8',
       );
       await workspace.fs.writeFile(filePath, content);
@@ -748,6 +748,30 @@ export function activate(context: ExtensionContext): void {
   // Command: Wire MCP + agent rules for the current client (consent via command).
   context.subscriptions.push(
     commands.registerCommand('nika.setupMcp', async () => {
+      if (!workspace.workspaceFolders?.[0]) {
+        window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
+        return;
+      }
+      if (!service.caps.mcp) {
+        window.showWarningMessage(
+          'Nika: this binary does not expose `nika mcp` yet. Update Nika, then run setup again.',
+          'Install instructions',
+        ).then(choice => {
+          if (choice) { commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
+        });
+        return;
+      }
+      if (service.caps.init) {
+        const folderPath = workspace.workspaceFolders[0].uri.fsPath;
+        const init = await service.runCli(['init', folderPath], 30000);
+        if (init.code !== 0) {
+          log('WARN', `nika init failed during agent setup (${init.code}): ${init.stderr || init.stdout}`);
+          window.showWarningMessage('Nika: `nika init` failed; MCP wiring skipped. See the Nika output channel.');
+          return;
+        }
+      } else {
+        window.showInformationMessage('Nika: this binary has no `init`; wiring MCP only.');
+      }
       await configureMcpForHost(state.resolvedServerPath, service.intel?.providers);
     }),
   );
@@ -787,11 +811,9 @@ export function activate(context: ExtensionContext): void {
       return;
     }
 
-    if (service.caps.mcp) {
-      await configureMcpForHost(binaryPath, service.intel?.providers, false);
-    } else {
-      log('INFO', 'nika mcp not in this binary — agent MCP setup skipped');
-    }
+    log('INFO', service.caps.mcp
+      ? 'nika mcp is available — run "Nika: Setup MCP + Agent Rules" to wire agents explicitly'
+      : 'nika mcp not in this binary — agent MCP setup unavailable');
 
     if (service.caps.lsp) {
       // The engine ships `nika lsp` — full server takes over; the client
@@ -801,7 +823,7 @@ export function activate(context: ExtensionContext): void {
       startClient(context, state, log, binaryPath);
     } else {
       statusBar.setLspState('off');
-      log('INFO', 'nika lsp not in this binary (ships in-binary at v0.81) — client-side intelligence active');
+      log('INFO', 'nika lsp not in this binary — client-side intelligence active');
     }
   })();
 }
@@ -811,6 +833,10 @@ async function configureMcpForHost(
   providers: Parameters<typeof ensureCursorRules>[1],
   notify = true,
 ): Promise<void> {
+  if (!workspace.workspaceFolders?.[0]) {
+    window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
+    return;
+  }
   if (isCursor()) {
     await ensureCursorMcpConfig(resolvedServerPath, log);
     await ensureCursorRules(log, providers);
@@ -827,6 +853,11 @@ async function configureMcpForHost(
     if (notify) {
       window.showInformationMessage('Nika MCP config wired (.vscode/mcp.json).');
     }
+  }
+  if (notify && resolvedServerPath && path.isAbsolute(resolvedServerPath) && (isCursor() || !isWindsurf())) {
+    window.showWarningMessage(
+      `Nika MCP workspace config uses the portable command "nika". Add ${path.dirname(resolvedServerPath)} to PATH if your agent cannot start MCP.`,
+    );
   }
 }
 

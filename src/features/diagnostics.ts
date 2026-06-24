@@ -1,7 +1,7 @@
 // diagnostics.ts — `nika check --json` → editor diagnostics (client path).
 //
-// Active whenever the LSP is NOT running (today's reality until the engine
-// ships `nika lsp`): the conformance oracle itself paints the squiggles.
+// Active whenever the LSP is NOT running or unavailable from the selected
+// binary: the conformance oracle itself paints the squiggles.
 // Findings keep their machine-applicable `fix` — the code-action provider
 // reads them back from this controller. The local secrets lint rides the
 // same collection (its findings exist BEFORE a secret is ever declared).

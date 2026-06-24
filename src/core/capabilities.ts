@@ -16,6 +16,7 @@ export interface CapabilitySet {
   inspect: boolean;
   graph: boolean;
   explain: boolean;
+  init: boolean;
   spec: boolean;
   schema: boolean;
   examples: boolean;
@@ -60,6 +61,7 @@ export function buildCapabilities(helpText: string, versionText: string): Capabi
     inspect: commands.has('inspect'),
     graph: commands.has('graph'),
     explain: commands.has('explain'),
+    init: commands.has('init'),
     spec: commands.has('spec'),
     schema: commands.has('schema'),
     examples: commands.has('examples'),

@@ -3,10 +3,9 @@
 The starter workflow uses `model: mock/echo`, a deterministic test provider:
 install → run in 60 seconds, zero keys.
 
-> The extension adapts to your engine build: while the binary ships the
-> STATIC suite (audit-before-run), the Run button offers `check` and the
-> demo replay instead · `run` lights up here the day your binary has it,
-> no extension update needed.
+> The extension adapts to your engine build: current release binaries expose
+> `nika run`, and older partial binaries fall back to `check` / demo replay
+> instead of showing a broken run button.
 
 When you're ready for real inference, swap one line:
 
