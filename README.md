@@ -95,7 +95,7 @@ paints in the margin. Apache-2.0 spec · AGPL engine.
 nika: v1
 workflow: hello
 
-model: mock/echo          # deterministic · swap for anthropic/claude-sonnet-4-6
+model: mock/echo          # deterministic · swap for ollama/llama3.1 or any provider
 
 tasks:
   - id: greet
