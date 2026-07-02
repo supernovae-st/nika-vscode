@@ -1,7 +1,7 @@
 {
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
-  "description": "Nika (.nika.yaml) language support for every VS Code-compatible editor — VS Code · Cursor · Windsurf · VSCodium. The auditable-before-run AI workflow language: check diagnostics with one-keystroke permits fixes, schema-derived completions/hover (vocabulary FROM the binary), task rename/references, cost/when/fan-out inlay audit, ${{ }} expression intelligence, DAG visualization with live trace overlay + replay, flight-recorder runs view, LSP, AI agent tools (LM tools + MCP setup).",
+  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). For VS Code, Cursor, Windsurf, VSCodium: check-as-you-type audit diagnostics, DAG view with live run and trace replay, cost inlay hints, schema-derived completions, agent tools.",
   "version": "0.90.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
