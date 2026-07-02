@@ -3,6 +3,22 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [0.90.1] · 2026-07-02
+
+Docs-only release: the marketplace page finally shows the product.
+
+- **README hero GIF** · `check-as-you-type` — real `nika check --json`
+  diagnostics animated in an editor frame (NIKA-DAG-003 ×2 +
+  NIKA-VAR-001 with the did-you-mean, the fix, the clean bar).
+  Provenance stated under the gif; editor chrome illustrative, every
+  code/message/position is the engine's own output.
+- **See-the-run GIF** · `dag-execution` — the real `pr-review-fanout`
+  topology executing wave by wave.
+- **Agent-native section** · the `nika wire` row (cursor · claude ·
+  windsurf · codex) — CLI agents call the same oracle.
+
+No code change; 0.90.0 functionality untouched.
+
 ## [0.81.0] · unreleased (announce line)
 
 ### Pass 18 · the gate fires — run streams live (2026-06-13)
