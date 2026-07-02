@@ -55,6 +55,9 @@ messages and positions come from the engine, not the extension.*
   snippet is own-corpus tested against `nika check`
 
 ### See the run
+
+![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)
+
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
   mermaid/dot export
