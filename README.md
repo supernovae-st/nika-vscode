@@ -87,6 +87,9 @@ messages and positions come from the engine, not the extension.*
   `windsurf` / `codex` patches each client's MCP config (idempotent ·
   preserves your other servers) so Claude Code, Codex CLI and friends
   call the same oracle from the terminal
+- **Codex plugin** · `codex plugin marketplace add supernovae-st/nika`
+  then `codex plugin add nika@nika` — the `$nika-authoring` skill + the
+  MCP oracle in one install
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
 
