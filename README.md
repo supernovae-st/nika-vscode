@@ -7,7 +7,7 @@
 > get the same brain via `nika lsp` + the published JSON Schema.
 
 Language support for [Nika](https://nika.sh) (`.nika.yaml`) · **Intent as
-Code** — the workflow language for AI (one file · 4 verbs · one binary) that
+Code**, the workflow language for AI (one file, 4 verbs, one binary) that
 turns repeatable AI work into files you can run, review, diff and share.
 And **the only one auditable BEFORE it runs**: cost ceiling, permits
 boundary, secret flows and schema parity are all static facts the editor
@@ -65,7 +65,7 @@ paints in the margin. Apache-2.0 spec · AGPL engine.
   in the activity feed, the verdict + cost land on close. The same canonical
   NDJSON the flight recorder writes, painted in real time
 - **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
-  duration · cost per run) and **animated trace replay** through the DAG —
+  duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
 - **Validate / Inspect** from the editor, tasks + problem matcher
 
