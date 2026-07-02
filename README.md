@@ -13,6 +13,11 @@ And **the only one auditable BEFORE it runs**: cost ceiling, permits
 boundary, secret flows and schema parity are all static facts the editor
 paints in the margin. Apache-2.0 spec · AGPL engine.
 
+![The static audit painted as you type: real nika check diagnostics (NIKA-DAG-003, NIKA-VAR-001 with did-you-mean), the three-line fix, then a clean verdict](media/check-as-you-type.gif)
+
+*The diagnostics above are the real `nika check --json` output — codes,
+messages and positions come from the engine, not the extension.*
+
 ## Features
 
 ### The audit moat, in the editor
@@ -75,6 +80,10 @@ paints in the margin. Apache-2.0 spec · AGPL engine.
   write through the REAL oracle instead of guessing
 - **MCP + rules setup** · one command wires editor MCP config and Cursor rules;
   `nika init` scaffolds the repo-local `AGENTS.md`
+- **Works with your CLI agents too** · `nika wire cursor` / `claude` /
+  `windsurf` / `codex` patches each client's MCP config (idempotent ·
+  preserves your other servers) so Claude Code, Codex CLI and friends
+  call the same oracle from the terminal
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
 
