@@ -88,8 +88,8 @@ messages and positions come from the engine, not the extension.*
   preserves your other servers) so Claude Code, Codex CLI and friends
   call the same oracle from the terminal
 - **One plugin, both ecosystems** · `codex plugin marketplace add
-  supernovae-st/nika` + `codex plugin add nika@nika` (Codex) · `claude
-  plugin marketplace add supernovae-st/nika` + `claude plugin install
+  supernovae-st/nika-agents` + `codex plugin add nika@nika` (Codex) · `claude
+  plugin marketplace add supernovae-st/nika-agents` + `claude plugin install
   nika@nika` (Claude Code) — the `nika-authoring` skill + the MCP oracle
   in one install
 - **Deterministic authoring prompt** · copy the template→check→repair
