@@ -3,6 +3,13 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [0.90.2] · 2026-07-03
+
+Docs-only: the plugin install pointer moves to the lean
+`supernovae-st/nika-agents` marketplace (kilobytes, not the 5.5GiB
+engine clone · verified 0.6s cold add on both ecosystems), and the
+agent-native section covers Claude Code beside Codex.
+
 ## [0.90.1] · 2026-07-02
 
 Docs-only release: the marketplace page finally shows the product.
