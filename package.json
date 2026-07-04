@@ -324,6 +324,21 @@
           "default": "type",
           "description": "When to run `nika check --json` for editor diagnostics (client path, used until the LSP ships). 'type' is debounced."
         },
+        "nika.diagnostics.severity": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "info",
+              "hint",
+              "off"
+            ]
+          },
+          "default": {},
+          "markdownDescription": "Remap finding severity per code — exact (`NIKA-DAG-003`), glob family (`NIKA-SEC-*`), or client lints (`nika.literal-secret` · `nika.redundant-dep` · `nika.unused-schema`). Exact keys win over globs; `off` hides the squiggle (quick fixes stay available)."
+        },
         "nika.secretsLint.enabled": {
           "type": "boolean",
           "default": true,

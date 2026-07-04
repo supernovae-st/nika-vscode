@@ -16,6 +16,8 @@ import { scanSecrets, type SecretFinding } from '../core/credentialLint';
 import { collectDataFlow } from '../core/dataflow';
 import { redundantEdges } from '../core/graphIntel';
 import { collectShapes } from '../core/schemaShape';
+import { severityOverrideFor, type SeverityName } from '../core/severityMap';
+import { parseDag003 } from '../core/structuralFixes';
 import { parseRichWorkflow, type RichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
 
@@ -69,6 +71,28 @@ function severityOf(f: UnifiedFinding): vscode.DiagnosticSeverity {
   }
 }
 
+const SEVERITY_BY_NAME: Record<Exclude<SeverityName, 'off'>, vscode.DiagnosticSeverity> = {
+  error: vscode.DiagnosticSeverity.Error,
+  warning: vscode.DiagnosticSeverity.Warning,
+  info: vscode.DiagnosticSeverity.Information,
+  hint: vscode.DiagnosticSeverity.Hint,
+};
+
+/**
+ * Apply the user's `nika.diagnostics.severity` remap to a built diagnostic.
+ * Returns false when the code is configured `off` (the finding is dropped).
+ */
+function applySeverityRemap(d: vscode.Diagnostic): boolean {
+  const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
+  if (code.length === 0) { return true; }
+  const map = vscode.workspace.getConfiguration('nika').get<Record<string, string>>('diagnostics.severity', {});
+  const override = severityOverrideFor(code, map);
+  if (override === undefined) { return true; }
+  if (override === 'off') { return false; }
+  d.severity = SEVERITY_BY_NAME[override];
+  return true;
+}
+
 function isNikaDoc(doc: vscode.TextDocument): boolean {
   return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
 }
@@ -80,6 +104,9 @@ export class DiagnosticsController implements vscode.Disposable {
   private readonly redundant = new Map<string, StoredRedundant[]>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly disposables: vscode.Disposable[] = [];
+  /** Fires around each lint pass — the language status busy indicator. */
+  private readonly runStateEmitter = new vscode.EventEmitter<{ uri: string; running: boolean }>();
+  readonly onDidRunState = this.runStateEmitter.event;
   /** When true, the LSP owns check diagnostics — only the secrets lint runs. */
   lspOwnsDiagnostics = false;
 
@@ -147,6 +174,15 @@ export class DiagnosticsController implements vscode.Disposable {
   }
 
   private async run(doc: vscode.TextDocument): Promise<void> {
+    this.runStateEmitter.fire({ uri: doc.uri.toString(), running: true });
+    try {
+      await this.runInner(doc);
+    } finally {
+      this.runStateEmitter.fire({ uri: doc.uri.toString(), running: false });
+    }
+  }
+
+  private async runInner(doc: vscode.TextDocument): Promise<void> {
     const diagnostics: vscode.Diagnostic[] = [];
     const text = doc.getText();
 
@@ -163,7 +199,9 @@ export class DiagnosticsController implements vscode.Disposable {
         d.source = NIKA_DIAG_SOURCE;
         d.code = 'nika.literal-secret';
         d.tags = [];
-        diagnostics.push(d);
+        if (applySeverityRemap(d)) { diagnostics.push(d); }
+        // Stored regardless — the ${{ env.VAR }} quick fix stays reachable
+        // even when the user silenced the squiggle.
         storedSecrets.push({ secret: s, range });
       }
     }
@@ -194,7 +232,14 @@ export class DiagnosticsController implements vscode.Disposable {
         d.source = NIKA_DIAG_SOURCE;
         d.code = 'nika.redundant-dep';
         d.tags = [vscode.DiagnosticTag.Unnecessary];
-        diagnostics.push(d);
+        const srcTask = wf.tasks.find((t) => t.id === edge.source);
+        if (srcTask) {
+          d.relatedInformation = [new vscode.DiagnosticRelatedInformation(
+            new vscode.Location(doc.uri, doc.lineAt(Math.min(srcTask.line, doc.lineCount - 1)).range),
+            `\`${edge.source}\` already orders \`${edge.target}\` through the longer path from here`,
+          )];
+        }
+        if (applySeverityRemap(d)) { diagnostics.push(d); }
         storedRedundant.push({ task: edge.target, dep: edge.source, range });
       }
     }
@@ -225,7 +270,7 @@ export class DiagnosticsController implements vscode.Disposable {
           );
           d.source = NIKA_DIAG_SOURCE;
           d.code = 'nika.unused-schema';
-          diagnostics.push(d);
+          if (applySeverityRemap(d)) { diagnostics.push(d); }
           break;
         }
       }
@@ -247,7 +292,7 @@ export class DiagnosticsController implements vscode.Disposable {
         );
         d.source = NIKA_DIAG_SOURCE;
         d.code = 'nika.parse';
-        diagnostics.push(d);
+        if (applySeverityRemap(d)) { diagnostics.push(d); }
       }
       if (outcome?.report) {
         const wf = parseRichWorkflow(text);
@@ -259,7 +304,20 @@ export class DiagnosticsController implements vscode.Disposable {
           d.code = f.code.startsWith('NIKA-')
             ? { value: f.code, target: vscode.Uri.parse(`https://nika.sh/errors/${f.code}`) }
             : f.code;
-          diagnostics.push(d);
+          // DAG-003 names two tasks — light the producer's declaration so
+          // the Problems panel walks the user to both ends of the wire.
+          if (f.code === 'NIKA-DAG-003') {
+            const dag = parseDag003(f.message);
+            const declLine = dag ? taskLine.get(dag.missing) : undefined;
+            if (dag && declLine !== undefined) {
+              d.relatedInformation = [new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(doc.uri, doc.lineAt(Math.min(declLine, doc.lineCount - 1)).range),
+                `\`${dag.missing}\` is produced here — declare it in \`${dag.task}\`'s depends_on`,
+              )];
+            }
+          }
+          if (applySeverityRemap(d)) { diagnostics.push(d); }
+          // Stored regardless — quick fixes outlive a silenced squiggle.
           stored.push({ finding: f, range });
         }
       }
@@ -293,6 +351,7 @@ export class DiagnosticsController implements vscode.Disposable {
     for (const t of this.timers.values()) { clearTimeout(t); }
     this.timers.clear();
     this.collection.dispose();
+    this.runStateEmitter.dispose();
     for (const d of this.disposables) { d.dispose(); }
   }
 }

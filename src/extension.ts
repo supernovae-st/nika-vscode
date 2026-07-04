@@ -46,6 +46,7 @@ import {
 } from './mcpConfig';
 import { NikaService } from './nikaService';
 import { NikaStatusBar } from './features/statusBar';
+import { NikaLanguageStatus } from './features/languageStatus';
 import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
 import { registerIntel } from './features/intel';
@@ -123,7 +124,8 @@ export function activate(context: ExtensionContext): void {
   const service = new NikaService();
   const statusBar = new NikaStatusBar(service);
   context.subscriptions.push(statusBar);
-  state.statusSink = (s) => statusBar.setLspState(s === 'starting' ? 'starting' : s === 'running' ? 'running' : 'failed');
+  // statusSink is (re)assigned below once the language-status items exist —
+  // nothing fires it before activation completes (LSP start is async-after).
   state.rulesIntel = () => service.intel?.providers;
 
   // Capability context keys drive `when` clauses in package.json menus.
@@ -197,6 +199,15 @@ export function activate(context: ExtensionContext): void {
   // Diagnostics (check --json + secrets lint) · quick fixes · intel.
   const diagnosticsController = new DiagnosticsController(service);
   context.subscriptions.push(diagnosticsController);
+
+  // Native language-status flyout ({} icon) — engine · check · server,
+  // per-file precision beside the global status bar ladder.
+  const langStatus = new NikaLanguageStatus(service, diagnosticsController);
+  context.subscriptions.push(langStatus);
+  state.statusSink = (s) => {
+    statusBar.setLspState(s);
+    langStatus.setLspState(s);
+  };
   const fixAllProvider = new NikaFixAllProvider(diagnosticsController);
   context.subscriptions.push(
     languages.registerCodeActionsProvider(
@@ -801,6 +812,7 @@ export function activate(context: ExtensionContext): void {
 
     if (!binaryPath) {
       statusBar.setLspState('off');
+      langStatus.setLspState('off');
       const choice = await window.showWarningMessage(
         'Nika binary not found. Install it (cargo install nika) or let the extension download it.',
         'Open Install Guide',
@@ -823,6 +835,7 @@ export function activate(context: ExtensionContext): void {
       startClient(context, state, log, binaryPath);
     } else {
       statusBar.setLspState('off');
+      langStatus.setLspState('off');
       log('INFO', 'nika lsp not in this binary — client-side intelligence active');
     }
   })();
