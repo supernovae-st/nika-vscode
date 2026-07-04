@@ -155,6 +155,17 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
         if (task.dependsOn.length > 0) { facts.push(`depends on ${task.dependsOn.map((d) => `\`${d}\``).join(' · ')}`); }
         md.appendMarkdown(`${facts.join(' · ')}  \n_line ${task.line + 1}_`);
 
+        // Hover ACTIONS (rust-analyzer pattern): the card can drive the
+        // graph and the reference peek directly.
+        md.isTrusted = { enabledCommands: ['nika.focusTaskInDag', 'nika.peekTaskRefs'] };
+        md.supportThemeIcons = true;
+        const dagArgs = encodeURIComponent(JSON.stringify([document.uri.toString(), task.id]));
+        const refArgs = encodeURIComponent(JSON.stringify([document.uri.toString(), task.id, task.line]));
+        md.appendMarkdown(
+          `\n\n[$(target) Focus in DAG](command:nika.focusTaskInDag?${dagArgs} "Light this task's lineage in the graph")` +
+          ` · [$(references) References](command:nika.peekTaskRefs?${refArgs} "Peek every home of this id")`,
+        );
+
         // Shape propagation: hovering output(.path) shows the DECLARED type.
         const shape = collectShapes(text).get(task.id);
         if (shape && ref.path.length >= 2 && ref.path[1] === 'output') {

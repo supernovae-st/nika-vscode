@@ -81,8 +81,9 @@ const SEVERITY_BY_NAME: Record<Exclude<SeverityName, 'off'>, vscode.DiagnosticSe
 /**
  * Apply the user's `nika.diagnostics.severity` remap to a built diagnostic.
  * Returns false when the code is configured `off` (the finding is dropped).
+ * Shared with the workspace (closed-file) lint — ONE remap semantics.
  */
-function applySeverityRemap(d: vscode.Diagnostic): boolean {
+export function applySeverityRemap(d: vscode.Diagnostic): boolean {
   const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
   if (code.length === 0) { return true; }
   const map = vscode.workspace.getConfiguration('nika').get<Record<string, string>>('diagnostics.severity', {});

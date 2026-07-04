@@ -47,6 +47,8 @@ import {
 import { NikaService } from './nikaService';
 import { NikaStatusBar } from './features/statusBar';
 import { NikaLanguageStatus } from './features/languageStatus';
+import { WorkspaceLint } from './features/workspaceLint';
+import { registerStructureNav } from './features/structureNav';
 import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
 import { registerIntel } from './features/intel';
@@ -84,7 +86,18 @@ function log(level: string, msg: string): void {
 
 const NIKA_FILE_RE = /\.nika\.ya?ml$/;
 
-function activeNikaDocument(uri?: Uri): TextDocument | undefined {
+/** Command-link args arrive as plain strings — commands accept both. */
+function toUri(uri?: Uri | string): Uri | undefined {
+  if (typeof uri !== 'string') { return uri; }
+  try {
+    return Uri.parse(uri, true);
+  } catch {
+    return undefined;
+  }
+}
+
+function activeNikaDocument(rawUri?: Uri | string): TextDocument | undefined {
+  const uri = toUri(rawUri);
   if (uri) {
     return workspace.textDocuments.find((d) => d.uri.toString() === uri.toString())
       ?? workspace.textDocuments.find((d) => d.uri.fsPath === uri.fsPath);
@@ -93,7 +106,8 @@ function activeNikaDocument(uri?: Uri): TextDocument | undefined {
   return doc && NIKA_FILE_RE.test(doc.fileName) ? doc : undefined;
 }
 
-async function requireNikaDocument(uri?: Uri): Promise<TextDocument | undefined> {
+async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument | undefined> {
+  const uri = toUri(rawUri);
   if (uri) {
     if (!NIKA_FILE_RE.test(uri.fsPath)) {
       void window.showWarningMessage('Nika commands target .nika.yaml files.');
@@ -208,6 +222,13 @@ export function activate(context: ExtensionContext): void {
     statusBar.setLspState(s);
     langStatus.setLspState(s);
   };
+
+  // Problems-panel coverage for CLOSED workflows (open ones stay with the
+  // controller — ownership hands over on open/close).
+  context.subscriptions.push(new WorkspaceLint(service, log));
+
+  // Smart-expand selection + linked editing (task ids edit as one).
+  registerStructureNav(context);
   const fixAllProvider = new NikaFixAllProvider(diagnosticsController);
   context.subscriptions.push(
     languages.registerCodeActionsProvider(
@@ -300,7 +321,7 @@ export function activate(context: ExtensionContext): void {
 
   // Editor ⇄ graph: the per-task lens drives the DAG panel.
   context.subscriptions.push(
-    commands.registerCommand('nika.focusTaskInDag', async (uri: Uri, taskId: string) => {
+    commands.registerCommand('nika.focusTaskInDag', async (uri: Uri | string, taskId: string) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       dagWorkflowUri = doc.uri;
@@ -308,7 +329,7 @@ export function activate(context: ExtensionContext): void {
       dagPanel.show(graph);
       dagPanel.focusNode(taskId);
     }),
-    commands.registerCommand('nika.peekTaskRefs', async (uri: Uri, taskId: string, line: number) => {
+    commands.registerCommand('nika.peekTaskRefs', async (uri: Uri | string, taskId: string, line: number) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       const locations = findTaskRefs(doc.getText(), taskId)

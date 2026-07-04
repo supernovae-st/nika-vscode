@@ -324,6 +324,11 @@
           "default": "type",
           "description": "When to run `nika check --json` for editor diagnostics (client path, used until the LSP ships). 'type' is debounced."
         },
+        "nika.diagnostics.workspace": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Lint CLOSED `*.nika.yaml` files across the workspace (`nika check --json`) so every workflow shows in the Problems panel. Capped at 300 files per sweep (logged when hit); open files stay with the live controller."
+        },
         "nika.diagnostics.severity": {
           "type": "object",
           "additionalProperties": {
