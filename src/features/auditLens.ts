@@ -68,26 +68,35 @@ export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscod
       const lineIdx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*id:\\s*["']?${escapeRe(node.id)}["']?\\s*(#.*)?$`).test(l));
       if (lineIdx === -1 || lineIdx < range.start.line || lineIdx > range.end.line) { continue; }
 
-      const parts: string[] = [];
+      // Interactive label parts (rust-analyzer pattern): each fact carries
+      // its own tooltip; the cost part CLICKS through to the full report.
+      const parts: vscode.InlayHintLabelPart[] = [];
+      const push = (part: vscode.InlayHintLabelPart): void => {
+        if (parts.length > 0) { part.value = `  ${part.value}`; }
+        parts.push(part);
+      };
       if (node.cost_interval) {
-        parts.push(`${usd(node.cost_interval[0])}–${usd(node.cost_interval[1])}`);
+        const p = new vscode.InlayHintLabelPart(`${usd(node.cost_interval[0])}–${usd(node.cost_interval[1])}`);
+        p.tooltip = new vscode.MarkdownString(
+          `**${node.id}** · static cost interval \`${usd(node.cost_interval[0])} → ${usd(node.cost_interval[1])}\` (min path → worst case) — click for the full pre-flight report`,
+        );
+        p.command = { command: 'nika.showReport', title: 'Open check report', arguments: [document.uri] };
+        push(p);
       }
-      if (node.when && node.when !== 'true') { parts.push('⌁ when'); }
+      if (node.when && node.when !== 'true') {
+        const p = new vscode.InlayHintLabelPart('⌁ when');
+        p.tooltip = new vscode.MarkdownString(`gated: \`when: ${node.when}\` — the task runs only when this CEL condition holds`);
+        push(p);
+      }
       if (node.fan_out) {
-        parts.push(node.fan_out.count != null ? `×${node.fan_out.count}` : '×n');
+        const p = new vscode.InlayHintLabelPart(node.fan_out.count != null ? `×${node.fan_out.count}` : '×n');
+        p.tooltip = new vscode.MarkdownString(`fan-out: ${node.fan_out.kind}${node.fan_out.count != null ? ` ×${node.fan_out.count}` : ' (count known at run time)'}`);
+        push(p);
       }
       if (parts.length === 0) { continue; }
 
       const position = new vscode.Position(lineIdx, lines[lineIdx].length);
-      const hint = new vscode.InlayHint(position, ` ${parts.join('  ')}`, vscode.InlayHintKind.Type);
-      const tip = new vscode.MarkdownString();
-      tip.appendMarkdown(`**${node.id}** · static audit  \n`);
-      if (node.cost_interval) {
-        tip.appendMarkdown(`cost interval \`${usd(node.cost_interval[0])} → ${usd(node.cost_interval[1])}\` (min path → worst case)  \n`);
-      }
-      if (node.when && node.when !== 'true') { tip.appendMarkdown(`gated: \`when: ${node.when}\`  \n`); }
-      if (node.fan_out) { tip.appendMarkdown(`fan-out: ${node.fan_out.kind}${node.fan_out.count != null ? ` ×${node.fan_out.count}` : ''}  \n`); }
-      hint.tooltip = tip;
+      const hint = new vscode.InlayHint(position, parts, vscode.InlayHintKind.Type);
       hint.paddingLeft = true;
       hints.push(hint);
     }

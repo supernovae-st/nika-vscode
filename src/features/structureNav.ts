@@ -87,9 +87,81 @@ class NikaLinkedEditingProvider implements vscode.LinkedEditingRangeProvider {
   }
 }
 
+// ─── Call hierarchy ≙ task dependency hierarchy ─────────────────────────────
+// The editor's native hierarchy UI, mapped onto the DAG: outgoing calls =
+// what this task NEEDS (upstream depends_on) · incoming calls = what it
+// UNLOCKS (downstream dependents). Same peek/tree affordances users know
+// from functions, zero new UI to learn.
+
+interface TaskShape {
+  id: string;
+  verb: string;
+  line: number;
+  endLine: number;
+  dependsOn: string[];
+}
+
+function hierarchyItem(document: vscode.TextDocument, task: TaskShape): vscode.CallHierarchyItem {
+  const declLine = Math.min(task.line, document.lineCount - 1);
+  const lineText = document.lineAt(declLine).text;
+  const idCol = Math.max(lineText.indexOf(task.id), 0);
+  return new vscode.CallHierarchyItem(
+    vscode.SymbolKind.Function,
+    task.id,
+    task.verb,
+    document.uri,
+    new vscode.Range(declLine, 0, Math.min(task.endLine, document.lineCount - 1), 0),
+    new vscode.Range(declLine, idCol, declLine, idCol + task.id.length),
+  );
+}
+
+class NikaTaskHierarchyProvider implements vscode.CallHierarchyProvider {
+  prepareCallHierarchy(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+  ): vscode.CallHierarchyItem | undefined {
+    const wordRange = document.getWordRangeAtPosition(position, TASK_ID_RE);
+    if (!wordRange) { return undefined; }
+    const word = document.getText(wordRange);
+    const wf = parseRichWorkflow(document.getText());
+    const task = wf.tasks.find((t) => t.id === word);
+    return task ? hierarchyItem(document, task) : undefined;
+  }
+
+  async provideCallHierarchyOutgoingCalls(
+    item: vscode.CallHierarchyItem,
+  ): Promise<vscode.CallHierarchyOutgoingCall[]> {
+    const document = await vscode.workspace.openTextDocument(item.uri);
+    const wf = parseRichWorkflow(document.getText());
+    const self = wf.tasks.find((t) => t.id === item.name);
+    if (!self) { return []; }
+    return self.dependsOn
+      .map((dep) => wf.tasks.find((t) => t.id === dep))
+      .filter((t): t is NonNullable<typeof t> => t !== undefined)
+      .map((dep) => new vscode.CallHierarchyOutgoingCall(
+        hierarchyItem(document, dep),
+        [new vscode.Range(self.line, 0, Math.min(self.endLine, document.lineCount - 1), 0)],
+      ));
+  }
+
+  async provideCallHierarchyIncomingCalls(
+    item: vscode.CallHierarchyItem,
+  ): Promise<vscode.CallHierarchyIncomingCall[]> {
+    const document = await vscode.workspace.openTextDocument(item.uri);
+    const wf = parseRichWorkflow(document.getText());
+    return wf.tasks
+      .filter((t) => t.dependsOn.includes(item.name))
+      .map((dependent) => new vscode.CallHierarchyIncomingCall(
+        hierarchyItem(document, dependent),
+        [new vscode.Range(dependent.line, 0, Math.min(dependent.endLine, document.lineCount - 1), 0)],
+      ));
+  }
+}
+
 export function registerStructureNav(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.languages.registerSelectionRangeProvider(SELECTOR, new NikaSelectionRangeProvider()),
     vscode.languages.registerLinkedEditingRangeProvider(SELECTOR, new NikaLinkedEditingProvider()),
+    vscode.languages.registerCallHierarchyProvider(SELECTOR, new NikaTaskHierarchyProvider()),
   );
 }
