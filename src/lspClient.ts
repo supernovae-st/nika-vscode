@@ -10,8 +10,6 @@ import {
   commands,
   env,
   Uri,
-  Position,
-  Range,
 } from 'vscode';
 import {
   LanguageClient,

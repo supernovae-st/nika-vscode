@@ -516,7 +516,7 @@
         "properties": {
           "command": {
             "type": "string",
-            "description": "The nika subcommand to run (check · run · fmt)"
+            "description": "The nika subcommand to run (check · run · inspect)"
           },
           "file": {
             "type": "string",
@@ -626,9 +626,9 @@
     "compile": "npm run typecheck && node esbuild.mjs",
     "typecheck": "tsc -p ./ && tsc --noEmit --strict --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts",
     "watch": "node esbuild.mjs --watch",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
     "parity": "node scripts/parity.mjs",
-    "test": "vitest run && node scripts/parity.mjs",
+    "test": "vitest run && node scripts/parity.mjs && npm run lint",
     "test:watch": "vitest",
     "package": "vsce package"
   },
@@ -641,6 +641,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/d3-selection": "^3.0.11",
     "@types/d3-shape": "^3.1.8",
     "@types/d3-transition": "^3.0.9",
@@ -649,7 +650,9 @@
     "@types/vscode": "^1.75.0",
     "@vscode/vsce": "^2.22.0",
     "esbuild": "^0.24.0",
+    "eslint": "^10.6.0",
     "typescript": "^5.3.0",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.2"
   }
 }

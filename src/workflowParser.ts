@@ -102,7 +102,6 @@ export function parseRichWorkflow(content: string): RichWorkflow {
   const wf: RichWorkflow = { tasks: [], secretsKeys: [], varsKeys: [] };
 
   // Pass 1 — top-level scalars and block keys.
-  let topBlock: { key: string; start: number } | undefined;
   const collectBlockKeys = (start: number): string[] => {
     const keys: string[] = [];
     for (let i = start + 1; i < lines.length; i++) {
@@ -139,7 +138,6 @@ export function parseRichWorkflow(content: string): RichWorkflow {
       default:
         break;
     }
-    void topBlock;
   }
 
   // Pass 2 — tasks with spans and nested facts. Only `- id:` items at the

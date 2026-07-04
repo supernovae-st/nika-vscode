@@ -30,9 +30,10 @@ export function getArtifactName(): string | null {
   if (platform === 'linux' && arch === 'arm64') {
     return 'nika-linux-arm64';
   }
-  if (platform === 'win32' && arch === 'x64') {
-    return 'nika-windows-x64';
-  }
+  // Windows: the engine ships no Windows release artifacts today
+  // (0.92.0 assets = linux/macos × x64/arm64 only) — a phantom name here
+  // would send the download path into a guaranteed asset-lookup miss.
+  // Null routes Windows users straight to the install guide instead.
   return null;
 }
 

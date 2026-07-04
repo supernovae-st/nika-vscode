@@ -222,47 +222,41 @@ export class NikaFixAllProvider implements vscode.CodeActionProvider {
     return [action];
   }
 
-  /** Fixpoint application over the CURRENT stored findings (≤8 rounds). */
+  /**
+   * ONE pass over the CURRENT stored findings. Findings are anchored to
+   * the pre-edit text, so a second in-memory round would apply against
+   * shifted offsets; the debounced re-check supplies the next round's
+   * findings — the fixpoint runs across save/check cycles, not here.
+   */
   applyAll(document: vscode.TextDocument): string | undefined {
     const fullRange = new vscode.Range(0, 0, document.lineCount, 0);
     let text = document.getText();
     let changed = false;
 
-    for (let round = 0; round < 8; round++) {
-      let roundChanged = false;
-
-      for (const { finding } of this.controller.findingsAt(document.uri, fullRange)) {
-        if (finding.fix) {
-          const parsed = parseFix(finding.fix);
-          if (parsed) {
-            const next = applyPermitsFix(text, parsed);
-            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
-          }
-        }
-        if (finding.source === 'conformance') {
-          const dag = parseDag003(finding.message);
-          if (dag) {
-            const next = addDependsOn(text, dag.task, dag.missing);
-            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
-          }
-          const varRef = parseVar001(finding.message);
-          if (varRef) {
-            const next = addVarDeclaration(text, varRef.varName);
-            if (next !== undefined && next !== text) { text = next; roundChanged = true; }
-          }
+    for (const { finding } of this.controller.findingsAt(document.uri, fullRange)) {
+      if (finding.fix) {
+        const parsed = parseFix(finding.fix);
+        if (parsed) {
+          const next = applyPermitsFix(text, parsed);
+          if (next !== undefined && next !== text) { text = next; changed = true; }
         }
       }
-      for (const { task, dep } of this.controller.redundantAt(document.uri, fullRange)) {
-        const next = removeDependsOn(text, task, dep);
-        if (next !== undefined && next !== text) { text = next; roundChanged = true; }
+      if (finding.source === 'conformance') {
+        const dag = parseDag003(finding.message);
+        if (dag) {
+          const next = addDependsOn(text, dag.task, dag.missing);
+          if (next !== undefined && next !== text) { text = next; changed = true; }
+        }
+        const varRef = parseVar001(finding.message);
+        if (varRef) {
+          const next = addVarDeclaration(text, varRef.varName);
+          if (next !== undefined && next !== text) { text = next; changed = true; }
+        }
       }
-
-      if (!roundChanged) { break; }
-      changed = true;
-      // Findings are anchored to the PRE-edit text — one pass per stored
-      // snapshot is what's sound; the debounced re-check supplies the next
-      // round's findings. Stop here rather than re-derive on shifted text.
-      break;
+    }
+    for (const { task, dep } of this.controller.redundantAt(document.uri, fullRange)) {
+      const next = removeDependsOn(text, task, dep);
+      if (next !== undefined && next !== text) { text = next; changed = true; }
     }
 
     return changed ? text : undefined;

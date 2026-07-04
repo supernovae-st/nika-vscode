@@ -191,7 +191,7 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
     }
 
     // 2bis · model value hover — sovereignty group from the canon
-    const modelMatch = lineText.match(/^\s*model:\s*["']?([A-Za-z0-9_.\/-]+)/);
+    const modelMatch = lineText.match(/^\s*model:\s*["']?([A-Za-z0-9_./-]+)/);
     if (modelMatch && modelMatch[1].includes(word)) {
       const provider = modelMatch[1].split('/')[0];
       const group = intel.providers.local.includes(provider) ? 'local — sovereign (zero-cloud path · Rule 1)'

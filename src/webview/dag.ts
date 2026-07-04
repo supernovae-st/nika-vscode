@@ -24,6 +24,12 @@ import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 // Every animation in this view is gated on the user's motion preference.
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// d3-zoom's programmatic methods are typed against a Selection; calling
+// them on a Transition is the documented pattern but needs a variance-
+// erasing cast — the ONE sanctioned `any` in this bundle.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type D3ZoomCall = any;
+
 // ─── Types (mirrored from dagPanel.ts — no shared import in webview) ────────
 
 type TaskStatus = 'pending' | 'running' | 'retrying' | 'success' | 'failed' | 'skipped' | 'cancelled';
@@ -565,10 +571,13 @@ class DagRenderer {
 
   private renderMinimap(): void {
     const mm = document.getElementById('minimap-svg');
-    if (!mm || !this.currentGraph) { return; }
+    const host = document.getElementById('minimap');
+    if (!mm || !host || !this.currentGraph) { return; }
     const PAD = 6;
-    const W = 148;
-    const H = 96;
+    // The card is responsive (CSS shrinks it on narrow panels) — measure
+    // the live box; hardcoded dims would misplace the viewport rect.
+    const W = host.clientWidth || 148;
+    const H = host.clientHeight || 96;
     while (mm.firstChild) { mm.removeChild(mm.firstChild); }
     mm.setAttribute('width', String(W));
     mm.setAttribute('height', String(H));
@@ -591,6 +600,7 @@ class DagRenderer {
       r.setAttribute('width', String(Math.max(b.w * s, 2)));
       r.setAttribute('height', String(Math.max(b.h * s, 2)));
       r.setAttribute('rx', '1');
+      r.setAttribute('data-id', id);
       const status = this.nodeMap.get(id)?.status ?? 'pending';
       r.setAttribute('class', `mm-node st-${status}`);
       mm.appendChild(r);
@@ -621,6 +631,11 @@ class DagRenderer {
     vp.style.height = `${Math.max(h * s, 8)}px`;
   }
 
+  /** Re-measure + redraw the minimap (panel resize re-scales the card). */
+  refreshMinimap(): void {
+    this.renderMinimap();
+  }
+
   /** Click the minimap → center the main view on that point. */
   minimapNavigate(clientX: number, clientY: number): void {
     const mm = document.getElementById('minimap-svg');
@@ -637,8 +652,7 @@ class DagRenderer {
     const t = zoomIdentity.translate(svgW / 2 - rootX * k, svgH / 2 - rootY * k).scale(k);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 240)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .call(this.zoomBehavior.transform as any, t);
+      .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
   /**
@@ -673,8 +687,7 @@ class DagRenderer {
       .scale(k);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 420)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .call(this.zoomBehavior.transform as any, t);
+      .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
   /** Data flows: edges whose source completed get the animated current. */
@@ -1163,9 +1176,10 @@ class DagRenderer {
 
   // ─── Status Updates ──────────────────────────────────────────────────────
 
-  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number): void {
+  /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number): boolean {
     const node = this.nodeMap.get(taskId);
-    if (!node) return;
+    if (!node) return false;
 
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs);
@@ -1177,6 +1191,14 @@ class DagRenderer {
     el.attr('class', `dag-node status-${status} verb-${node.verb}`);
     el.select('.node-subtitle').text(this.getSubtitle(node));
 
+    // The minimap mirrors the run live (class-only touch, no re-render).
+    document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
+      ?.setAttribute('class', `mm-node st-${status}`);
+    return true;
+  }
+
+  /** Graph-wide consequences of status changes — once per update batch. */
+  private afterStatusChange(): void {
     // Durations refine the critical path; completion lights the edge flow.
     this.recomputeCritical();
     this.updateEdgeFlow();
@@ -1186,10 +1208,17 @@ class DagRenderer {
     this.updateStatusDisplay();
   }
 
+  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number): void {
+    if (!this.applyStatus(taskId, status, durationMs)) return;
+    this.afterStatusChange();
+  }
+
   batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }>): void {
+    let touched = false;
     for (const u of updates) {
-      this.updateNodeStatus(u.taskId, u.status, u.durationMs);
+      touched = this.applyStatus(u.taskId, u.status, u.durationMs) || touched;
     }
+    if (touched) { this.afterStatusChange(); }
   }
 
   // ─── Viewport Controls ───────────────────────────────────────────────────
@@ -1221,20 +1250,20 @@ class DagRenderer {
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     this.svg
-      .transition().duration(500)
-      .call(this.zoomBehavior.transform as any, t);
+      .transition().duration(REDUCED_MOTION ? 0 : 500)
+      .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
   zoomIn(): void {
     this.svg
-      .transition().duration(300)
-      .call(this.zoomBehavior.scaleBy as any, 1.3);
+      .transition().duration(REDUCED_MOTION ? 0 : 300)
+      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 1.3);
   }
 
   zoomOut(): void {
     this.svg
-      .transition().duration(300)
-      .call(this.zoomBehavior.scaleBy as any, 0.7);
+      .transition().duration(REDUCED_MOTION ? 0 : 300)
+      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 0.7);
   }
 
   clear(): void {
@@ -1693,6 +1722,13 @@ window.addEventListener('mouseup', () => { minimapDragging = false; });
 
 document.getElementById('es-open')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:showActive' });
+});
+
+// Panel resize re-scales the responsive minimap card (debounced).
+let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+window.addEventListener('resize', () => {
+  if (resizeTimer) { clearTimeout(resizeTimer); }
+  resizeTimer = setTimeout(() => renderer.refreshMinimap(), 150);
 });
 
 // First-contact hint: one discreet line, once ever — the gestures are

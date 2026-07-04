@@ -48,7 +48,7 @@ async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
     tmpSeq += 1;
     const tmp = path.join(os.tmpdir(), `nika-gen-tpl-${process.pid}-${tmpSeq}.nika.yaml`);
     const res = await service.newFromTemplate(slug, tmp);
-    let body = '';
+    let body: string;
     try {
       body = fs.readFileSync(tmp, 'utf-8');
     } catch {
