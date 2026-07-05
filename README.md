@@ -113,7 +113,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **Run from the canvas** · a **▶ Run / ▶ mock / ■ Stop** pill drives the
   run without leaving the panel; **▶ mock** streams
   `run --model mock/echo` (deterministic · zero keys · zero network).
-  The DAG lights live; the pill flips ▶/■ from the real spawn/close
+  The DAG lights live; the pill flips ▶/■ from the real spawn/close.
+  On a 0.93+ engine an **↻ changed** button joins the pill — engine
+  `--resume`: unchanged tasks cache-hit their recorded output (dashed
+  `↻ cached` cards, never a fake fresh-green), edited tasks re-run
 - **Time-travel replay** · click a recorded run and **scrub its whole
   timeline** — play/pause (Space), drag the handle, the DAG state at any
   instant computed locally. Replay re-renders, never re-executes
@@ -130,7 +133,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   floor; **`⚠N` audit chips** on the cards surface the task's
   `nika check` findings (secret-flow · permits · schema · unknown-tools),
   click-through to the report; a **`△N` stale count** shows what a run
-  will re-execute. Every number is static — read before a token is spent
+  will re-execute; a **`Δ ±$` cost delta** beside the ceiling shows what
+  your edits changed vs the last commit (the delta is the review signal —
+  amber only when it grew). Every number is static — read before a token
+  is spent
 - **Keyboard-drivable** · `Tab` / `⇧Tab` cycle the topological order, `↑`
   walks to a dependency, `↓` to a dependent, `Enter` opens the YAML — the
   whole canvas without the mouse
@@ -156,7 +162,11 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
   duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
-- **Validate / Inspect** from the editor (`nika check` · `nika inspect`), tasks + problem matcher
+- **Validate / Inspect / Explain / Dry-run** from the editor —
+  `nika check` diagnostics, `nika inspect` anatomy, a **deterministic
+  Explain Workflow** (the story wave-by-wave · cost ceiling · what it
+  touches · structural risks — zero LLM, works offline), and the
+  engine's `--dry-run` plan; tasks + problem matcher
 - **The 0.93 loop rides the integrated terminal** · launch inputs with
   `nika run --var key=value` · pin the output contract with
   `nika test <file> --update` and keep `nika test` as the offline CI gate
