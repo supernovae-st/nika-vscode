@@ -789,6 +789,8 @@ class DagRenderer {
    */
   /** Focus lineage set (null = no focus) — one input to the dim truth. */
   private focusRelated: Set<string> | null = null;
+  /** The editor-caret hinted task — restored after any class rewrite. */
+  private cursorHintedId: string | null = null;
   /** Live `/`-filter matches (null = no filter) — the other input. */
   private filterMatches: Set<string> | null = null;
 
@@ -822,7 +824,11 @@ class DagRenderer {
       || (this.filterMatches !== null && !this.filterMatches.has(nid));
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('dimmed', (d) => dimNode(d.id))
-      .classed('selected', (d) => d.id === this.focusedId);
+      .classed('selected', (d) => d.id === this.focusedId)
+      // cursor-hint lives outside nodeClassOf; a class rewrite (audit ·
+      // status · frame) drops it — restore it here so the caret halo
+      // survives every refresh.
+      .classed('cursor-hint', (d) => d.id === this.cursorHintedId);
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('dimmed', (d) => {
         const ends = this.edgeEnds.get(d.id);
@@ -1198,6 +1204,7 @@ class DagRenderer {
    * it just whispers « you are here ».
    */
   cursorHint(taskId: string | null): void {
+    this.cursorHintedId = taskId;
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('cursor-hint', (d) => taskId !== null && d.id === taskId);
   }
