@@ -96,6 +96,16 @@ messages and positions come from the engine, not the extension.*
 - **Regions** · a `# nika:region <name>` comment (ignored by the engine)
   groups the tasks that follow it into a labeled box on the canvas —
   logic grouping at zero cost to the YAML
+- **Audit before you run** · the moat, on the canvas. A **cost forecast**
+  rides the run pill — `$min–$max` when `nika check` can price it (a
+  ceiling), an honest amber `≥ $X` when an uncapped task makes it a
+  floor; **`⚠N` audit chips** on the cards surface the task's
+  `nika check` findings (secret-flow · permits · schema · unknown-tools),
+  click-through to the report; a **`△N` stale count** shows what a run
+  will re-execute. Every number is static — read before a token is spent
+- **Keyboard-drivable** · `Tab` / `⇧Tab` cycle the topological order, `↑`
+  walks to a dependency, `↓` to a dependent, `Enter` opens the YAML — the
+  whole canvas without the mouse
 - **The nika.sh skin** · the panel ships the landing page's design
   language by default — engineered-black register, one blue accent, the
   4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
