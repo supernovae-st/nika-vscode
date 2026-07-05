@@ -66,6 +66,10 @@ bottom-center (run · cost Δ · verb palette · command input), minimap
 bottom-right, legend chips bottom-left. Fit-to-view accounts for the
 top rail AND the bottom dock — the graph never hides under chrome.
 On narrow panels the dock un-stacks into two floors; nothing overlaps.
+Sidebar-dock tiers: ≤380px keeps run + command line + zoom (every
+optional chip yields, F still fits); ≤460px height gives the floor
+back to the canvas (minimap/legend/hint yield). The status pill
+ellipsizes — chrome never clips.
 
 ## 4 · The two registers
 
@@ -80,8 +84,11 @@ running/selected/failed only.
 
 ### `editor` (adaptive · `nika.dag.theme: "editor"`)
 
-Everything derives from `--vscode-*` tokens (any theme works); two
-refinement scopes sharpen the craft:
+Everything derives from `--vscode-*` tokens (any theme works) — and
+the ACCENT is the theme's own voice: `focusBorder` drives selection/
+accent, `textLink-foreground` drives data wires, `button-*` drives the
+Run CTA. A purple theme means a purple canvas. Two refinement scopes
+sharpen the craft:
 
 - **Light — the ElevenLabs read**: white page, near-invisible dot grid,
   white cards (radius 10 · `rgb(0 0 0 / 0.1)` hairline · layered soft
@@ -91,7 +98,13 @@ refinement scopes sharpen the craft:
   `editorWidget` cards, white hairlines (0.09 → 0.14 hover), inset top
   light catch, tight shadows.
 
-High contrast (`forced-colors`) overrides both skins.
+`nika.dag.theme: "auto"` resolves live: the brand skin on dark
+themes, the adaptive skin on light — re-resolved on every theme
+switch, no reload.
+
+High contrast wins over both skins TWICE: the OS `forced-colors`
+media query AND VS Code's own hc themes (`.vscode-high-contrast`
+body class — hard 2px borders, zero shadows/grain/loops).
 
 ## 5 · Status grammar (LOCK-005 · never brand-swapped)
 

@@ -31,8 +31,11 @@ body {
   /* Editor-adaptive defaults — the `nika` skin re-scopes every token below
    * (body[data-nk-theme="nika"]) to the nika.sh register. Rules consume
    * TOKENS, never raw --vscode-* — one seam, two skins. */
-  --nk-accent: var(--vscode-charts-blue, #38bdf8);
-  --nk-data: var(--vscode-charts-blue, #3794ff);
+  /* The editor skin adopts YOUR theme's accent — focusBorder is the
+   * theme's own voice (purple theme → purple canvas accents); charts
+   * stay the semantic run palette. */
+  --nk-accent: var(--vscode-focusBorder, var(--vscode-charts-blue, #38bdf8));
+  --nk-data: var(--vscode-textLink-foreground, var(--vscode-charts-blue, #3794ff));
   --nk-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   --nk-surface: var(--vscode-editorWidget-background, #252526);
   --nk-page: var(--vscode-editor-background, #1f1f1f);
@@ -56,6 +59,11 @@ body {
   --nk-border-soft: color-mix(in srgb, var(--nk-border) 55%, transparent);
   --nk-card-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 10px 24px -18px rgb(0 0 0 / 0.35);
   --nk-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.2), 0 16px 32px -18px rgb(0 0 0 / 0.42);
+  /* The one solid CTA (Run · empty-state primary) — the editor skin
+   * speaks the THEME's button voice; nika pins the brand blue. */
+  --nk-cta: var(--vscode-button-background, #2b62ea);
+  --nk-cta-hover: var(--vscode-button-hoverBackground, #2f6bff);
+  --nk-cta-ink: var(--vscode-button-foreground, #ffffff);
   /* Run-state palette (LOCK-005 semantics — never brand-swapped). */
   --nk-st-running: var(--vscode-charts-blue, #3794ff);
   --nk-st-success: var(--vscode-charts-green, #89d185);
@@ -256,6 +264,10 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
   white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
@@ -1505,10 +1517,32 @@ body.vscode-light .logo-dark { display: none; }
   #hover-card { max-width: calc(100vw - 24px); }
 }
 
-@media (max-height: 420px) {
-  #activity { max-height: 90px; }
+@media (max-width: 380px) {
+  /* Sidebar-docked widths: the run verb + the command line survive,
+   * every optional chip yields. F still fits from the keyboard. */
+  #run-cost, #run-stale, #btn-run-resume, #omni-go, #first-hint { display: none !important; }
+  #run-controls { padding-right: 6px; }
+  #omnibar { gap: 6px; padding: 5px 6px; bottom: 12px; }
   #dag-legend { display: none; }
-  #transport { bottom: 8px; } /* legend gone — hug the floor */
+  .tb-group:has(#btn-waves),
+  .tb-group:has(#btn-fit) { display: none; }
+  /* Out-specify the base #dag-toolbar button rule (id+type). */
+  #dag-toolbar #btn-add-task { min-width: 28px; padding: 0 7px; font-size: 0; }
+  #dag-toolbar #btn-add-task::before { content: '＋'; font-size: 13px; }
+}
+
+@media (max-height: 460px) {
+  /* Bottom-docked panels: the canvas floor wins. */
+  #minimap { display: none; }
+  #activity { max-height: 80px; bottom: 8px; }
+  #dag-legend { display: none; }
+  #omnibar { bottom: 10px; }
+  #transport { right: 12px; bottom: 8px; }
+  #first-hint { display: none; }
+}
+
+@media (max-height: 420px) {
+  #activity { max-height: 80px; }
 }
 
 /* ─── Reduced motion · every animation opt-outs ─────────────────────────── */
@@ -1657,6 +1691,19 @@ body[data-nk-theme='nika'] #dag-container {
   background-color: var(--nk-page);
 }
 
+/* Depth vignette — the pool falls away at the edges (paint-only). */
+body[data-nk-theme='nika'] #dag-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 100% at 50% 38%,
+    transparent 55%,
+    rgb(0 0 0 / 0.3) 100%
+  );
+}
+
 /* A faint blue lamp follows the pointer over the pool (Linear-class
  * depth cue). One fixed overlay, two custom props written per frame —
  * paint-only, zero layout. Hidden when the pointer leaves. */
@@ -1742,15 +1789,21 @@ body[data-nk-theme='nika'] #progress-track {
   background: rgb(140 170 255 / 0.14);
 }
 
-/* Empty-state CTA · the one solid accent fill (accent-cta). */
+/* nika pins the brand CTA (the editor skin rides the theme's). */
+body[data-nk-theme='nika'] {
+  --nk-cta: #2b62ea;
+  --nk-cta-hover: #2f6bff;
+  --nk-cta-ink: #f4f5f7;
+}
+
 body[data-nk-theme='nika'] .es-button {
-  color: #f4f5f7;
-  background: #2b62ea;
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
   border-color: rgb(140 170 255 / 0.25);
 }
 
 body[data-nk-theme='nika'] .es-button:hover {
-  background: #2f6bff;
+  background: var(--nk-cta-hover);
 }
 
 /* ─── Edge aurora · the drum (fx/edge-aurora.css, webview form) ─────────── */
@@ -2205,6 +2258,8 @@ body.lod-far .nc-id { font-size: 16px; }
 body.lod-far .nc-tile { width: 26px; height: 26px; font-size: 13px; border-radius: 7px; }
 body.lod-far .nc-dot { width: 9px; height: 9px; }
 body.lod-far .nc-port { opacity: 0 !important; }
+/* Edge alias labels yield when the map read takes over. */
+body.lod-far .edge-label { display: none; }
 
 /* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
 
@@ -2374,13 +2429,13 @@ body[data-nk-theme='nika'] #omnibar {
 }
 
 .rc-run {
-  color: #f4f5f7;
-  background: #2b62ea;
-  border: 1px solid rgb(140 170 255 / 0.25);
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
+  border: 1px solid color-mix(in srgb, var(--nk-cta) 40%, var(--nk-border));
 }
 
 .rc-run:hover:not(:disabled) {
-  background: #2f6bff;
+  background: var(--nk-cta-hover);
 }
 
 .rc-mock {
@@ -3093,4 +3148,43 @@ body[data-nk-theme='editor'].vscode-dark {
     inset 0 1px 0 rgb(255 255 255 / 0.06),
     0 2px 5px rgb(0 0 0 / 0.35),
     0 18px 36px -18px rgb(0 0 0 / 0.6);
+}
+
+
+/* ═══ VS Code high-contrast THEMES (hc body class · DESIGN.md §4) ═════════ */
+/* OS forced-colors is handled above; VS Code's own HC themes only stamp a
+ * body class — same discipline: hard borders, zero decoration, zero loops. */
+
+body.vscode-high-contrast {
+  --nk-card-border: var(--vscode-contrastBorder, var(--vscode-editorWidget-border, #6fc3df));
+  --nk-border: var(--vscode-contrastBorder, var(--vscode-editorWidget-border, #6fc3df));
+  --nk-border-strong: var(--vscode-contrastActiveBorder, var(--vscode-focusBorder, #f38518));
+  --nk-border-soft: var(--vscode-contrastBorder, rgb(127 127 127 / 0.6));
+  --nk-card-shadow: none;
+  --nk-card-shadow-hover: none;
+  --nk-shadow-1: none;
+  --nk-shadow-2: none;
+  --nk-grain: none;
+  --nk-grid-img: none;
+}
+
+body.vscode-high-contrast .nc {
+  border-width: 2px;
+}
+
+body.vscode-high-contrast .dag-node.status-running .nc::before,
+body.vscode-high-contrast .dag-node.status-retrying .nc::before,
+body.vscode-high-contrast .dag-node.status-success .nc::after,
+body.vscode-high-contrast #dag-container::after,
+body.vscode-high-contrast #dag-container::before {
+  display: none !important;
+}
+
+body.vscode-high-contrast .dag-node.dimmed {
+  opacity: 0.45;
+}
+
+body.vscode-high-contrast .dag-edge.edge-dep,
+body.vscode-high-contrast .dag-edge.edge-data {
+  animation: none !important;
 }

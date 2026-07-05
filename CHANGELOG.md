@@ -62,6 +62,15 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **Every editor, every theme, every panel**: the adaptive skin now
+  adopts YOUR theme's voice (`focusBorder` → accent, `textLink` → data
+  wires, `button-*` → the Run CTA — a purple theme purples the canvas);
+  `nika.dag.theme: "auto"` picks the brand skin on dark themes and the
+  adaptive one on light, re-resolving live on theme switch; VS Code's
+  own high-contrast themes get the hard-border zero-decoration
+  treatment (on top of OS forced-colors); and two dock tiers keep the
+  canvas first-class at sidebar widths (≤380px) and bottom-dock
+  heights (≤460px) — proven by 320w/420h/purple-theme screenshots.
 - **The reference background**: the nika skin's page went warm
   near-black (blue now lives only in accents, wires, verbs and the
   aurora), the activity feed became the nika.sh terminal card (chrome

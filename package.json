@@ -421,14 +421,16 @@
           "type": "string",
           "enum": [
             "nika",
-            "editor"
+            "editor",
+            "auto"
           ],
           "enumDescriptions": [
-            "The nika.sh design language — engineered-black register, one blue accent, verb-hue LEDs, Martian Mono (the brand skin, pinned dark like every Nika product frame)",
-            "Adaptive — follows the editor theme via --vscode-* variables"
+            "The Nika design language — warm engineered-black canvas, one blue accent, verb-hue tiles, Martian Mono (the brand skin, pinned dark)",
+            "Adaptive — derives every surface AND the accent from your editor theme (--vscode-* variables, focusBorder as accent)",
+            "Auto — the brand skin on dark themes, the adaptive skin on light themes"
           ],
           "default": "nika",
-          "description": "Visual skin of the DAG panel. High-contrast (forced colors) always wins over both."
+          "description": "Visual skin of the DAG panel. High-contrast themes and forced colors always win over both."
         },
         "nika.dag.followActiveEditor": {
           "type": "boolean",

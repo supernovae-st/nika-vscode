@@ -256,7 +256,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'auto' }
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
   | { kind: 'transport:clear' }
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
@@ -2755,6 +2755,22 @@ class Replayer {
 
 const replayer = new Replayer();
 
+// ─── Skin resolution · `auto` = brand on dark themes, adaptive on light ────
+// VS Code stamps vscode-light / vscode-dark / vscode-high-contrast on
+// <body>; the initial data-nk-theme arrives server-rendered from the
+// panel HTML, so this only needs to run on mode/theme CHANGES.
+let rawSkinMode: 'nika' | 'editor' | 'auto' =
+  (document.body.dataset.nkTheme as 'nika' | 'editor' | 'auto') ?? 'nika';
+
+function applySkinMode(mode: 'nika' | 'editor' | 'auto'): void {
+  const resolved = mode === 'auto'
+    ? (document.body.classList.contains('vscode-light') ? 'editor' : 'nika')
+    : mode;
+  document.body.dataset.nkTheme = resolved;
+}
+
+applySkinMode(rawSkinMode);
+
 // The resolved binary ships --resume (stamped on the graph at load) —
 // gates the ↻ affordance + the honest stale-chip tooltip. Declared
 // BEFORE the restore bootstrap below: refreshStaleChip reads it (and
@@ -2829,12 +2845,15 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       renderer.fitToView();
       break;
     case 'theme:changed':
-      // CSS variables update automatically — nothing to do
+      // CSS variables update automatically; an `auto` skin re-resolves
+      // against the swapped body theme class (dark ⇄ light live).
+      applySkinMode(rawSkinMode);
       break;
     case 'theme:mode':
-      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload. A
-      // pending aurora must not replay when flipping BACK to nika.
-      document.body.dataset.nkTheme = msg.mode;
+      // Skin flip (nika ⇄ editor ⇄ auto) — tokens re-scope, no reload.
+      // A pending aurora must not replay when flipping BACK to nika.
+      rawSkinMode = msg.mode;
+      applySkinMode(rawSkinMode);
       if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = undefined; }
       delete document.body.dataset.aurora;
       break;
