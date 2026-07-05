@@ -226,6 +226,12 @@ export class DagPanel implements vscode.Disposable {
     return new Set(this.currentGraph.nodes.map((n) => n.id));
   }
 
+  /** Source workflow URI of the displayed graph (undefined when synthesized
+   *  from a bare trace) — lets the overlay key its fold to the FILE. */
+  public currentWorkflowUri(): string | undefined {
+    return this.currentGraph?.workflowUri;
+  }
+
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;

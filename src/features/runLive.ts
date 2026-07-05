@@ -17,9 +17,14 @@
 import { spawn } from 'child_process';
 import * as vscode from 'vscode';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
+import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 import { cancelActiveReplay } from './runsView';
+
+/** Min gap between intermediate store publishes — editor surfaces
+ *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
+const STORE_THROTTLE_MS = 500;
 
 /** A live run handle — cancellable, one at a time per panel. */
 let activeRun: { kill: () => void } | undefined;
@@ -61,9 +66,17 @@ export function runWorkflowLive(
 
   let buffer = '';
   let lastPainted = '';
+  let lastStorePublish = 0;
   const paint = (): void => {
     const model = foldTrace(buffer);
     if (model.tasks.size === 0) { return; }
+    // Editor surfaces read the SAME fold through the store — throttled
+    // here (the close handler publishes the exact final unconditionally).
+    const now = Date.now();
+    if (now - lastStorePublish >= STORE_THROTTLE_MS) {
+      lastStorePublish = now;
+      traceStore.set(fsPath, model);
+    }
     dagPanel.batchUpdateStatus(
       [...model.tasks.values()].map((t) => ({
         taskId: t.id,
@@ -98,6 +111,9 @@ export function runWorkflowLive(
     activeRun = undefined;
     paint(); // final flush — the buffer now holds every complete line
     const model = foldTrace(buffer);
+    // Final fold ALWAYS lands in the store (the throttle above may have
+    // swallowed the last intermediate) — the badges' resting truth.
+    if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
     const verdict = model.workflowStatus;
     const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';
     const cls = verdict === 'completed' ? 'st-success' : verdict === 'cancelled' ? 'st-cancelled' : 'st-failed';

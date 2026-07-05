@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace, summarizeRun, type RunModel } from '../core/traceFold';
+import { traceStore } from '../core/traceStore';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 
@@ -159,6 +160,13 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
       durationMs: t.durationMs,
     })),
   );
+  // The overlap gate just PROVED this trace belongs to the displayed
+  // workflow — feed the editor surfaces the same fold, keyed on the file.
+  // (Synthesized graphs carry no URI and publish nothing.)
+  const workflowUri = dagPanel.currentWorkflowUri();
+  if (workflowUri) {
+    traceStore.set(vscode.Uri.parse(workflowUri).fsPath, model);
+  }
   return true;
 }
 
