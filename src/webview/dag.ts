@@ -132,7 +132,9 @@ type ExtToWebviewMessage =
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
-  | { kind: 'transport:clear' };
+  | { kind: 'transport:clear' }
+  | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
+  | { kind: 'diff:clear' };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -1827,6 +1829,8 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // A new graph invalidates any loaded timeline; transport:load (if
       // this is a replay) follows in-order and re-arms it. The resync
       // covers the race where the timeline lands while ELK is laying out.
+      // A diff paints the PREVIOUS graph's story — drop it too.
+      clearDiff();
       transport.deactivate();
       void renderer.render(msg.graph).then(() => transport.resync());
       break;
@@ -1868,8 +1872,52 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'transport:clear':
       transport.deactivate();
       break;
+    case 'diff:load':
+      applyDiff(msg.entries);
+      break;
+    case 'diff:clear':
+      clearDiff();
+      break;
   }
 });
+
+// ─── Run-diff paint ─────────────────────────────────────────────────────────
+// Verdicts ride DATA attributes on the node <g>, never its class attr —
+// updateStatus rewrites `class` wholesale on every live event and must
+// not wipe a diff mid-run. The badge is an SVG <text> appended inside
+// the group (the cards are pure SVG · CSS pseudo-elements don't exist
+// there), anchored to the node-bg's top-right corner: zero change to
+// the card metrics the layout was computed from (anatomy law).
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function applyDiff(entries: Array<{ taskId: string; verdict: string; badge: string }>): void {
+  clearDiff();
+  for (const e of entries) {
+    const g = document.querySelector(`.dag-node[data-id="${CSS.escape(e.taskId)}"]`);
+    if (!g) { continue; }
+    g.setAttribute('data-diff', e.verdict);
+    if (!e.badge) { continue; }
+    const bg = g.querySelector('.node-bg');
+    const width = bg ? Number(bg.getAttribute('width') ?? 0) : 0;
+    const badge = document.createElementNS(SVG_NS, 'text');
+    badge.setAttribute('class', 'diff-badge');
+    badge.setAttribute('x', String(width > 0 ? width - 8 : 0));
+    badge.setAttribute('y', '-6');
+    badge.setAttribute('text-anchor', 'end');
+    badge.textContent = e.badge;
+    g.appendChild(badge);
+  }
+}
+
+function clearDiff(): void {
+  for (const el of Array.from(document.querySelectorAll('.dag-node[data-diff]'))) {
+    el.removeAttribute('data-diff');
+  }
+  for (const el of Array.from(document.querySelectorAll('.diff-badge'))) {
+    el.remove();
+  }
+}
 
 // ─── Toolbar Handlers ───────────────────────────────────────────────────────
 

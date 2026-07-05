@@ -1752,3 +1752,32 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
     transition: none;
   }
 }
+
+/* ── Run-diff paint ──────────────────────────────────────────────────────
+   Verdicts ride data-attrs on the node <g> (class-rewrite-proof); the
+   badge is an SVG <text> anchored above the card's top-right corner —
+   card metrics never move (anatomy law). Semantic hues through the
+   --nk-* seam, identical in both skins; paint-order strokes the page
+   color under the glyphs so badges stay legible over edges. */
+.diff-badge {
+  font-family: var(--nk-mono, ui-monospace, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  fill: var(--nk-fg-mute, #8a93a6);
+  stroke: var(--nk-page, #101418);
+  stroke-width: 3px;
+  paint-order: stroke;
+  pointer-events: none;
+}
+.dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-ok, #3fb950); }
+.dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-err, #f85149); }
+.dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying, #d29922); }
+.dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
+.dag-node[data-diff='removed'] { opacity: 0.55; }
+.dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-fg-mute, #8a93a6); }
+
+@media (forced-colors: active) {
+  .diff-badge { fill: CanvasText !important; stroke: Canvas !important; }
+  .dag-node[data-diff='removed'] { opacity: 1 !important; }
+}

@@ -33,7 +33,12 @@ export type ExtToWebviewMessage =
   // The platine: a normalized trace timeline the webview transport
   // plays/scrubs LOCALLY — zero round-trips per frame.
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
-  | { kind: 'transport:clear' };
+  | { kind: 'transport:clear' }
+  // Run-diff: per-task verdicts painted over the CURRENT graph (data-attrs,
+  // so live status repaints never wipe them). Badges are pre-formatted
+  // extension-side -- the webview stays dumb about diff semantics.
+  | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
+  | { kind: 'diff:clear' };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -294,6 +299,16 @@ export class DagPanel implements vscode.Disposable {
       speed: opts?.speed,
       autoPlay: opts?.autoPlay,
     });
+  }
+
+  /** Paint per-task run-diff verdicts over the current graph. */
+  public loadDiff(entries: Array<{ taskId: string; verdict: string; badge: string }>): void {
+    this.postMessage({ kind: 'diff:load', entries });
+  }
+
+  /** Remove any diff paint (new graph · new run · user clear). */
+  public clearDiff(): void {
+    this.postMessage({ kind: 'diff:clear' });
   }
 
   /** Drop any replay transport — a live run supersedes the platine. */

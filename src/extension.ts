@@ -57,7 +57,7 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
-import { RunsTreeProvider, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
+import { RunsTreeProvider, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
@@ -742,6 +742,39 @@ export function activate(context: ExtensionContext): void {
     }),
     commands.registerCommand('nika.watchDemo', () => {
       runNikaCommand(state.resolvedServerPath, 'trace replay --demo', '');
+    }),
+    // Command: diff two recorded runs on the DAG ("why is this run 3x
+    // slower"). First pick = BASE (reference) · second = COMPARE (under
+    // scrutiny). Paints compare's statuses + movement badges vs base.
+    commands.registerCommand('nika.diffTraces', async (uri?: Uri) => {
+      const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+      const files = await workspace.findFiles(glob, '**/node_modules/**', 50);
+      if (files.length < 2) {
+        void window.showInformationMessage('Nika: need at least two traces to diff.');
+        return;
+      }
+      const items = files
+        .map((f) => ({ label: path.basename(f.fsPath), description: workspace.asRelativePath(f), uri: f, mtime: fs.statSync(f.fsPath).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      let base = uri;
+      if (!base) {
+        const picked = await window.showQuickPick(items, { title: 'Diff runs 1/2 — the BASE (reference) run' });
+        if (!picked) { return; }
+        base = picked.uri;
+      }
+      const rest = items.filter((i) => i.uri.toString() !== base?.toString());
+      const compare = await window.showQuickPick(rest, { title: 'Diff runs 2/2 — the run to compare against it' });
+      if (!compare) { return; }
+      // The diff paints the SHOWING graph — load the active workflow first
+      // when the panel is empty (same ritual as replay).
+      const active = activeNikaDocument();
+      if (active && dagWorkflowUri?.toString() !== active.uri.toString()) {
+        dagWorkflowUri = active.uri;
+        dagPanel.loadGraph(await service.dagForDocument(active));
+      }
+      if (!diffTracesOntoDag(dagPanel, base, compare.uri)) {
+        void window.showInformationMessage('Nika: these traces do not match the workflow the DAG is showing.');
+      }
     }),
   );
 

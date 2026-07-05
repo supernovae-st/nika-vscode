@@ -8,7 +8,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { foldTrace, summarizeRun, type RunModel } from '../core/traceFold';
+import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
@@ -224,4 +225,84 @@ export async function replayIntoDag(
 
   const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
   dagPanel.loadTransport(timeline, { speed, autoPlay: true });
+}
+
+/**
+ * Compare two recorded runs and paint the verdict on the DAG — the
+ * "why is this run 3x slower" answer. BASE is the reference (usually
+ * older), COMPARE is the run under scrutiny; badges read as
+ * compare-vs-base. Same majority-overlap gate as the overlay: the diff
+ * paints the graph the panel is SHOWING or nothing at all.
+ */
+export function diffTracesOntoDag(
+  dagPanel: DagPanel,
+  baseUri: vscode.Uri,
+  compareUri: vscode.Uri,
+): boolean {
+  if (!dagPanel.hasPanel) { return false; }
+  const ids = dagPanel.currentGraphIds();
+  if (!ids || ids.size === 0) { return false; }
+
+  let base: RunModel;
+  let compare: RunModel;
+  try {
+    base = foldTrace(fs.readFileSync(baseUri.fsPath, 'utf-8'));
+    compare = foldTrace(fs.readFileSync(compareUri.fsPath, 'utf-8'));
+  } catch {
+    return false;
+  }
+  if (base.tasks.size === 0 || compare.tasks.size === 0) { return false; }
+
+  const seen = new Set([...base.tasks.keys(), ...compare.tasks.keys()]);
+  const overlap = [...seen].filter((id) => ids.has(id)).length;
+  if (overlap < Math.ceil(seen.size / 2)) { return false; }
+
+  const diff = diffRuns(base, compare);
+
+  // The COMPARE run's statuses become the painted state (its story), the
+  // badges carry the movement vs base.
+  dagPanel.clearTransport();
+  dagPanel.batchUpdateStatus(
+    [...compare.tasks.values()].map((t) => ({
+      taskId: t.id,
+      status: t.status as TaskStatus,
+      durationMs: t.durationMs,
+    })),
+  );
+  dagPanel.loadDiff(
+    diff.tasks
+      .filter((t) => t.kind !== 'same')
+      .map((t) => ({ taskId: t.id, verdict: t.kind, badge: diffBadge(t) })),
+  );
+
+  const baseName = path.basename(baseUri.fsPath);
+  const compareName = path.basename(compareUri.fsPath);
+  dagPanel.note('Δ', `diff ${compareName} vs ${baseName} — ${summarizeDiff(diff)}`, undefined, 'st-note');
+  // Narrate the top movers (the sorted head IS the ranking).
+  for (const t of diff.tasks.slice(0, 3)) {
+    if (t.kind === 'same') { break; }
+    dagPanel.note('·', `${t.id} ${diffBadge(t)}`, t.id, 'st-note');
+  }
+  return true;
+}
+
+function diffBadge(t: TaskDiff): string {
+  switch (t.kind) {
+    case 'slower':
+      return t.deltaPct !== undefined
+        ? `+${Math.round(t.deltaPct)}%`
+        : `+${humanizeDuration(t.deltaMs ?? 0)}`;
+    case 'faster':
+      return t.deltaPct !== undefined
+        ? `${Math.round(t.deltaPct)}%`
+        : `-${humanizeDuration(Math.abs(t.deltaMs ?? 0))}`;
+    case 'status-changed':
+      return `${t.statusFrom} to ${t.statusTo}`;
+    case 'added':
+      return 'new';
+    case 'removed':
+      return 'gone';
+    default:
+      return '';
+  }
 }

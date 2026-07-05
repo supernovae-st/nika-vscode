@@ -224,6 +224,11 @@
         "icon": "$(history)"
       },
       {
+        "command": "nika.diffTraces",
+        "title": "Nika: Diff Two Runs on the DAG",
+        "icon": "$(diff)"
+      },
+      {
         "command": "nika.watchDemo",
         "title": "Nika: Watch Demo Replay"
       },
@@ -486,6 +491,13 @@
           "command": "nika.newWorkflow",
           "when": "view == 'nikaWorkflows'",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "nika.diffTraces",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "inline"
         }
       ]
     },
