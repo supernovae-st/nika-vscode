@@ -54,6 +54,14 @@ announce line (forever-v0.x).
 - **Drag got faster**: pointer moves are rAF-coalesced and wire re-routes
   write through an id→element cache — O(touched wires) per frame, no
   edge-list scans mid-drag.
+- **The reference background**: the nika skin's page went warm
+  near-black (blue now lives only in accents, wires, verbs and the
+  aurora), the activity feed became the nika.sh terminal card (chrome
+  dots · mono), the status pill leads with an aggregate state dot, the
+  zoom group is the canonical `− % +` pill, and the harness gained real
+  interaction proofs (click-focus · pointer-hover · empty state) that
+  caught and fixed two nits (wrapping hover-card labels · a ghost
+  minimap on the empty canvas).
 
 ## [0.94.0] · 2026-07-05
 
