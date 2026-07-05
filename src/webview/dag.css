@@ -148,6 +148,7 @@ body {
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
   min-width: 36px;
+  max-width: 40vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -185,6 +186,14 @@ body {
 
 .tb-group button + button {
   border-left: none;
+}
+
+.tb-inner-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--nk-border);
+  flex: none;
 }
 
 #dag-toolbar button {
@@ -404,8 +413,8 @@ body.running .dag-edge.edge-dep {
   stroke-width: 1;
 }
 
-.dag-node .node-stack-5 { opacity: 0.5; }
-.dag-node .node-stack-10 { opacity: 0.24; }
+.dag-node .node-stack-6 { opacity: 0.5; }
+.dag-node .node-stack-12 { opacity: 0.24; }
 
 /* Spinner — a thin ring orbiting the status dot, running only. */
 .dag-node .node-spinner {
@@ -780,7 +789,8 @@ body.running .dag-edge.edge-dep {
 .legend-chip.st-critical .legend-dot { background: var(--nk-critical); }
 
 #progress-track {
-  flex: 1;
+  flex: 0 1 240px;
+  max-width: 240px;
   height: 4px;
   border-radius: 2px;
   background: var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
@@ -2226,7 +2236,7 @@ body.running .dag-node.status-success .nc::after {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
@@ -2476,6 +2486,13 @@ body[data-nk-theme='nika'] #omnibar {
 /* The display rule above would defeat the hidden attribute (found by
  * the harness screenshot — Stop showed at rest). */
 #run-controls button[hidden] {
+  display: none;
+}
+
+/* A LIVE run clears the bench — the dead-disabled mock/resume yield
+ * their width to the command line; ■ n/N is the action now. */
+body.running #run-controls .rc-mock,
+body.running #run-controls .rc-resume {
   display: none;
 }
 

@@ -998,13 +998,25 @@ class DagRenderer {
     const svgEl = this.svg.node();
     if (!svgEl) { return; }
     const { height: svgH } = svgEl.getBoundingClientRect();
-    const centerY = (svgH / 2 - this.currentTy) / this.currentZoom;
+    const viewTop = (0 - this.currentTy) / this.currentZoom;
+    const viewBottom = (svgH - this.currentTy) / this.currentZoom;
+    const centerY = (viewTop + viewBottom) / 2;
+    // The whole plan on screen → no arbitrary highlight.
+    let minTop = Infinity;
+    let maxBottom = -Infinity;
+    for (const ext of this.waveExtents.values()) {
+      minTop = Math.min(minTop, ext.top);
+      maxBottom = Math.max(maxBottom, ext.bottom);
+    }
+    const allVisible = minTop >= viewTop - 4 && maxBottom <= viewBottom + 4;
     let best = -1;
     let bestDist = Infinity;
+    if (!allVisible) {
     for (const [w, ext] of this.waveExtents) {
       const mid = (ext.top + ext.bottom) / 2;
       const dist = centerY >= ext.top && centerY <= ext.bottom ? 0 : Math.abs(centerY - mid);
       if (dist < bestDist) { bestDist = dist; best = w; }
+    }
     }
     document.querySelectorAll<HTMLElement>('#plan-rail .pr-row').forEach((row) => {
       row.classList.toggle('active', Number(row.dataset.wave) === best);
@@ -1626,7 +1638,7 @@ class DagRenderer {
 
     // Fan-out DECK — a map ×N task reads as a stack of sheets (two ghost
     // layers behind the card · the parallel copies made visible).
-    for (const off of [10, 5]) {
+    for (const off of [12, 6]) {
       enter.filter((d) => Boolean(d.fanOutKind))
         .append('rect')
         .attr('class', `node-stack node-stack-${off}`)
