@@ -158,6 +158,11 @@
         "icon": "$(play)"
       },
       {
+        "command": "nika.resumeWorkflow",
+        "title": "Nika: Resume Last Run (re-run what changed)",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "nika.checkWorkflow",
         "title": "Nika: Validate Current Workflow",
         "icon": "$(check)"

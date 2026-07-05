@@ -27,6 +27,9 @@ announce line (forever-v0.x).
   card, decoded as text (never its JSON encoding).
 - The stale chip's tooltip now tells the per-binary truth: whole-graph
   below 0.93, cache-hit slice with `--resume` at 0.93+.
+- **`Nika: Resume Last Run`** joins the command palette — the ↻ button's
+  twin (one shared flow · the same honest notices on an older binary or
+  a first run).
 
 ## [0.93.1] · 2026-07-05
 

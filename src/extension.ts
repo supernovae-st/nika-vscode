@@ -652,30 +652,12 @@ export function activate(context: ExtensionContext): void {
     // keys); a normal run rides the full capability-gated command.
     (preview, workflowUri, resume) => {
       void (async () => {
-        const doc = await requireNikaDocument(workflowUri ?? dagWorkflowUri);
-        if (!doc) { return; }
         if (resume) {
-          // ↻ re-run what changed: `--resume <last trace>` (ADR-099) —
-          // the ENGINE decides the dirty slice by def_hash/input_hash;
-          // unchanged tasks cache-hit their recorded output.
-          if (!service.caps.resume) { return; }
-          if (doc.isDirty) { await doc.save(); }
-          if (doc.uri.scheme !== 'file') { return; }
-          const trace = latestTraceFor(doc.uri.fsPath);
-          if (!trace) {
-            void window.showInformationMessage('Nika: no recorded run to resume from — running the whole workflow.');
-            await commands.executeCommand('nika.runWorkflow', doc.uri);
-            return;
-          }
-          dagWorkflowUri = doc.uri;
-          const graph = await loadGraphFor(doc);
-          dagPanel.show(graph);
-          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
-            extraArgs: ['--resume', trace],
-            onClose: () => refreshStaleBadges(doc.uri.fsPath),
-          });
+          await resumeWorkflowFlow(workflowUri ?? dagWorkflowUri);
           return;
         }
+        const doc = await requireNikaDocument(workflowUri ?? dagWorkflowUri);
+        if (!doc) { return; }
         if (!preview) {
           await commands.executeCommand('nika.runWorkflow', doc.uri);
           return;
@@ -700,6 +682,36 @@ export function activate(context: ExtensionContext): void {
     () => cancelActiveRun(),
   );
   state.activeDagPanel = dagPanel;
+
+  // ↻ re-run what changed — `run --resume <newest trace>` (ADR-099). The
+  // ENGINE decides the dirty slice by def_hash/input_hash; unchanged
+  // tasks cache-hit their recorded output. ONE flow shared by the canvas
+  // ↻ button and the `nika.resumeWorkflow` palette command.
+  async function resumeWorkflowFlow(uriLike?: Uri | string): Promise<void> {
+    const doc = await requireNikaDocument(uriLike ?? dagWorkflowUri);
+    if (!doc) { return; }
+    if (!service.caps.resume) {
+      void window.showInformationMessage(
+        'Nika: this binary predates `run --resume` (the 0.93 line) — update it to re-run only what changed.',
+      );
+      return;
+    }
+    if (doc.isDirty) { await doc.save(); }
+    if (doc.uri.scheme !== 'file') { return; }
+    const trace = latestTraceFor(doc.uri.fsPath);
+    if (!trace) {
+      void window.showInformationMessage('Nika: no recorded run to resume from — running the whole workflow.');
+      await commands.executeCommand('nika.runWorkflow', doc.uri);
+      return;
+    }
+    dagWorkflowUri = doc.uri;
+    const graph = await loadGraphFor(doc);
+    dagPanel.show(graph);
+    runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+      extraArgs: ['--resume', trace],
+      onClose: () => refreshStaleBadges(doc.uri.fsPath),
+    });
+  }
 
   // Session narration → the activity feed (check verdicts · live when the
   // panel shows THIS workflow). onDidUpdateDocument fires for BOTH check
@@ -768,6 +780,10 @@ export function activate(context: ExtensionContext): void {
       const graph = await service.dagForDocument(doc);
       dagPanel.show(graph);
       runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, taskId);
+    }),
+    // Command: ↻ resume — the palette twin of the canvas button (ADR-099).
+    commands.registerCommand('nika.resumeWorkflow', async (uri?: Uri) => {
+      await resumeWorkflowFlow(uri);
     }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
