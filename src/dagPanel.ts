@@ -668,6 +668,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
       <button id="zoom-pct" title="Current zoom — click to fit">100%</button>
+      <button id="btn-relayout" title="Auto-layout — drop the dragged card positions">⌗<kbd>A</kbd></button>
     </div>
     <div class="tb-group">
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>

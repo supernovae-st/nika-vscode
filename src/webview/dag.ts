@@ -287,6 +287,10 @@ interface WebviewState {
   smoothEdges?: boolean;
   showFeed?: boolean;
   seenHint?: boolean;
+  /** Hand-dragged card positions per workflow (uri → id → root coords).
+   *  Presentation ONLY — the YAML stays the single truth; positions live
+   *  in webview state, never in the file. Bounded to the last 6 flows. */
+  manualLayouts?: Record<string, Record<string, { x: number; y: number }>>;
 }
 
 declare function acquireVsCodeApi(): VsCodeApi;
@@ -330,9 +334,11 @@ function nodeHeightOf(node: DagNode): number {
     const lines = body.kind === 'prompt'
       ? Math.min(body.text.split('\n').length, 3)
       : 1;
-    // Prompt wraps: budget by character count too (≈34 chars/line).
+    // Prompt wraps: budget by character count too (≈31 chars/line at
+    // 10px Martian Mono in the 214px content column — the conservative
+    // figure; an optimistic 34 clipped the third line mid-glyph).
     const wrapLines = body.kind === 'prompt'
-      ? Math.max(lines, Math.min(3, Math.ceil(body.text.replace(/\n/g, ' ').length / 34)))
+      ? Math.max(lines, Math.min(3, Math.ceil(body.text.replace(/\n/g, ' ').length / 31)))
       : lines;
     h += 3 + wrapLines * BODY_LINE_H;
   }
@@ -364,6 +370,11 @@ function verbIcon(verb: string): string {
 
 function usd(n: number): string {
   return `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
+}
+
+/** Storage key for a workflow's hand-dragged layout (uri, else name). */
+function layoutKeyOf(graph: DagGraph): string {
+  return graph.workflowUri ?? graph.workflowName;
 }
 
 // ─── ELK Layout Engine ──────────────────────────────────────────────────────
@@ -447,6 +458,19 @@ class DagRenderer {
   private tempEdge: Selection<SVGPathElement, unknown, null, undefined> | null = null;
   /** Structural DAG read, cached per load (hover-card blast/pinch rows). */
   private structuralInsights: DagInsights | undefined;
+  /** Hand-dragged card positions for the CURRENT workflow (root coords). */
+  private manualPos = new Map<string, { x: number; y: number }>();
+  /** node id → edge ids touching it (live re-route on the drag hot path). */
+  private nodeEdges = new Map<string, string[]>();
+  /** In-flight card drag (null = none). Threshold guards click vs drag. */
+  private dragging: {
+    id: string; startX: number; startY: number;
+    origX: number; origY: number; moved: boolean;
+  } | null = null;
+  /** Swallow the click that ends a drag — a drop is not a select. */
+  private suppressClick = false;
+  /** Wave count of the current graph (post-drag band refresh). */
+  private waveCount = 0;
 
   constructor(containerId: string) {
     this.container = document.getElementById(containerId)!;
@@ -541,7 +565,24 @@ class DagRenderer {
         });
       });
 
+    // Dragging a CARD moves the card, never the canvas: pan only starts
+    // on background mousedown (wheel-zoom keeps working everywhere).
+    // Mirrors d3's default filter for the button/ctrl semantics.
+    this.zoomBehavior.filter((event: MouseEvent | WheelEvent) => {
+      if (event.type === 'mousedown'
+        && (event.target as Element | null)?.closest?.('.dag-node')) {
+        return false;
+      }
+      return (!event.ctrlKey || event.type === 'wheel')
+        && !('button' in event && (event as MouseEvent).button);
+    });
+
     this.svg.call(this.zoomBehavior);
+
+    // Card drag: move + settle (namespaced — never collides with connect).
+    this.svg.on('mousemove.carddrag', (event: MouseEvent) => this.dragMove(event));
+    this.svg.on('mouseup.carddrag', () => this.dragEnd());
+    this.svg.on('mouseleave.carddrag', () => this.dragEnd());
 
     // Restore saved viewport
     const savedState = vscode.getState();
@@ -554,18 +595,18 @@ class DagRenderer {
   }
 
   private createArrowMarkers(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {
-    // Data edge arrow (solid, blue)
+    // Data edge arrow (solid — slender, not a traffic sign)
     defs
       .append('marker')
       .attr('id', 'arrow-data')
       .attr('viewBox', '0 0 10 10')
-      .attr('refX', 10)
+      .attr('refX', 9.5)
       .attr('refY', 5)
-      .attr('markerWidth', 8)
-      .attr('markerHeight', 8)
+      .attr('markerWidth', 6.5)
+      .attr('markerHeight', 6.5)
       .attr('orient', 'auto-start-reverse')
       .append('path')
-      .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+      .attr('d', 'M 0 1 L 9.5 5 L 0 9 z')
       .attr('class', 'arrow-data');
 
     // Dependency arrow (subtle, gray)
@@ -573,13 +614,13 @@ class DagRenderer {
       .append('marker')
       .attr('id', 'arrow-dep')
       .attr('viewBox', '0 0 10 10')
-      .attr('refX', 10)
+      .attr('refX', 9.5)
       .attr('refY', 5)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
       .attr('orient', 'auto-start-reverse')
       .append('path')
-      .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+      .attr('d', 'M 0 1 L 9.5 5 L 0 9 z')
       .attr('class', 'arrow-dep');
   }
 
@@ -621,9 +662,23 @@ class DagRenderer {
       (this.upstreamOf.get(e.target) ?? this.upstreamOf.set(e.target, []).get(e.target)!).push(e.source);
       (this.downstreamOf.get(e.source) ?? this.downstreamOf.set(e.source, []).get(e.source)!).push(e.target);
     }
+    this.nodeEdges.clear();
+    for (const e of graph.edges) {
+      (this.nodeEdges.get(e.source) ?? this.nodeEdges.set(e.source, []).get(e.source)!).push(e.id);
+      (this.nodeEdges.get(e.target) ?? this.nodeEdges.set(e.target, []).get(e.target)!).push(e.id);
+    }
     this.waveOf.clear();
     const waves = topoWaves(graph.nodes, graph.edges);
     waves.forEach((wave, i) => wave.forEach((id) => this.waveOf.set(id, i)));
+    this.waveCount = waves.length;
+    // Restore this workflow's hand-dragged positions (ids may have moved
+    // on since — renamed/deleted tasks silently drop their pin).
+    this.manualPos = new Map(Object.entries(
+      vscode.getState()?.manualLayouts?.[layoutKeyOf(graph)] ?? {},
+    ));
+    for (const id of [...this.manualPos.keys()]) {
+      if (!this.nodeMap.has(id)) { this.manualPos.delete(id); }
+    }
     // A graph that ARRIVES complete (restored panel · finished trace) must
     // not fire the aurora — only a LIVE transition to complete does.
     this.wasAllTerminal = graph.nodes.length > 0 && graph.nodes.every(
@@ -638,6 +693,14 @@ class DagRenderer {
     this.saveState({ graph });
 
     const layoutResult = await computeLayout(graph);
+
+    // Hand-dragged positions override the ELK result — presentation only
+    // (the YAML stays the truth); edges touching a moved card re-route as
+    // direct curves since their ELK sections no longer apply.
+    for (const child of layoutResult.children ?? []) {
+      const m = this.manualPos.get(child.id);
+      if (m) { child.x = m.x; child.y = m.y; }
+    }
 
     // Update toolbar
     const titleEl = document.getElementById('dag-title');
@@ -656,7 +719,7 @@ class DagRenderer {
     }
 
     // Wave bands at the back, then edges, then nodes.
-    this.renderWaveBands(layoutResult.children ?? [], waves.length);
+    this.renderWaveBands(waves.length);
     this.renderRegions();
     this.renderEdges(layoutResult.edges ?? [], graph.edges);
     this.renderNodes(layoutResult.children ?? [], graph.nodes);
@@ -759,24 +822,25 @@ class DagRenderer {
     });
   }
 
-  /** Background bands per topological wave — parallelism made visible. */
-  private renderWaveBands(elkNodes: ElkNode[], waveCount: number): void {
+  /** Background bands per topological wave — parallelism made visible.
+   *  Reads the LIVE layout boxes so bands follow hand-dragged cards. */
+  private renderWaveBands(waveCount: number): void {
     this.bandGroup.selectAll('*').remove();
     if (!this.showWaves || waveCount < 2) { return; }
 
     const byWave = new Map<number, { top: number; bottom: number }>();
     let maxX = 0;
-    for (const n of elkNodes) {
-      const wave = this.waveOf.get(n.id);
-      if (wave === undefined || n.y === undefined) { continue; }
-      const top = n.y;
-      const bottom = n.y + (n.height ?? NODE_HEIGHT);
+    for (const [id, b] of this.layoutBox) {
+      const wave = this.waveOf.get(id);
+      if (wave === undefined) { continue; }
+      const top = b.y;
+      const bottom = b.y + b.h;
       const cur = byWave.get(wave);
       byWave.set(wave, {
         top: cur ? Math.min(cur.top, top) : top,
         bottom: cur ? Math.max(cur.bottom, bottom) : bottom,
       });
-      maxX = Math.max(maxX, (n.x ?? 0) + (n.width ?? NODE_WIDTH));
+      maxX = Math.max(maxX, b.x + b.w);
     }
 
     for (const [wave, ext] of byWave) {
@@ -898,6 +962,80 @@ class DagRenderer {
       (clientX - rect.left - this.currentTx) / this.currentZoom,
       (clientY - rect.top - this.currentTy) / this.currentZoom,
     ];
+  }
+
+  // ─── Card drag · move the node, the wires follow (n8n-grade) ─────────────
+
+  /** Drag hot path: past a 4px threshold the card follows the pointer. */
+  private dragMove(event: MouseEvent): void {
+    const drag = this.dragging;
+    if (!drag) { return; }
+    const [rx, ry] = this.screenToRoot(event.clientX, event.clientY);
+    if (!drag.moved) {
+      if (Math.hypot(rx - drag.startX, ry - drag.startY) < 4) { return; }
+      drag.moved = true;
+      this.hideHoverCard(true);
+      this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', true);
+    }
+    this.moveCard(drag.id, drag.origX + (rx - drag.startX), drag.origY + (ry - drag.startY));
+  }
+
+  /** Reposition one card + live re-route every wire touching it. */
+  private moveCard(id: string, x: number, y: number): void {
+    const box = this.layoutBox.get(id);
+    if (!box) { return; }
+    box.x = x;
+    box.y = y;
+    this.manualPos.set(id, { x, y }); // direct-curve routing reads this mid-drag
+    this.nodeGroup.select(`[data-id="${CSS.escape(id)}"]`)
+      .attr('transform', `translate(${x},${y})`);
+    const touched = new Set(this.nodeEdges.get(id) ?? []);
+    if (touched.size === 0) { return; }
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
+      .filter((d) => touched.has(d.id))
+      .attr('d', (d) => this.edgePathFor(d));
+    this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
+      .filter((d) => touched.has(d.id))
+      .attr('x', (d) => this.edgeLabelPoint(d)[0])
+      .attr('y', (d) => this.edgeLabelPoint(d)[1] - 5);
+  }
+
+  /** Settle a drag: persist the pin, refresh bands/regions/minimap. */
+  private dragEnd(): void {
+    const drag = this.dragging;
+    this.dragging = null;
+    if (!drag?.moved) { return; }
+    this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', false);
+    this.suppressClick = true; // the click firing on mouseup is the drop
+    this.persistManualLayout();
+    this.renderWaveBands(this.waveCount);
+    this.renderRegions();
+    this.renderMinimap();
+  }
+
+  /** Save this workflow's dragged positions (store bounded to 6 flows). */
+  private persistManualLayout(): void {
+    if (!this.currentGraph) { return; }
+    const key = layoutKeyOf(this.currentGraph);
+    const all = { ...(vscode.getState()?.manualLayouts ?? {}) };
+    delete all[key]; // re-insert as the freshest entry (insertion order = age)
+    if (this.manualPos.size > 0) {
+      all[key] = Object.fromEntries(this.manualPos);
+      const keys = Object.keys(all);
+      for (let i = 0; i < keys.length - 6; i++) { delete all[keys[i]]; }
+    }
+    this.saveState({ manualLayouts: all });
+  }
+
+  /** Whether any card of the current graph is hand-pinned. */
+  get hasManualLayout(): boolean {
+    return this.manualPos.size > 0;
+  }
+
+  /** Drop every pin for the current workflow — back to the auto layout. */
+  clearManualLayout(): void {
+    this.manualPos.clear();
+    this.persistManualLayout();
   }
 
   startConnect(fromId: string): void {
@@ -1074,7 +1212,9 @@ class DagRenderer {
   private updateZoomChrome(): void {
     const pct = document.getElementById('zoom-pct');
     if (pct) { pct.textContent = `${Math.round(this.currentZoom * 100)}%`; }
-    const lod = this.currentZoom < 0.55 ? 'lod-far' : this.currentZoom < 0.85 ? 'lod-mid' : 'lod-near';
+    // Thresholds sit BELOW the typical fit zoom (~0.5): the first paint
+    // reads mid (id + fact + body), far is a deliberate zoom-out to map.
+    const lod = this.currentZoom < 0.45 ? 'lod-far' : this.currentZoom < 0.7 ? 'lod-mid' : 'lod-near';
     if (!document.body.classList.contains(lod)) {
       document.body.classList.remove('lod-far', 'lod-mid', 'lod-near');
       document.body.classList.add(lod);
@@ -1341,25 +1481,42 @@ class DagRenderer {
       .attr('class', 'nc-port nc-port-in')
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', 0)
-      .attr('r', 4);
+      .attr('r', 5);
     enter
       .append('circle')
       .attr('class', 'nc-port nc-port-out')
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', (d) => nodeHeightOf(d))
-      .attr('r', 4)
+      .attr('r', 5)
       .on('mousedown', (event: MouseEvent, d: DagNode) => {
         event.preventDefault();
         event.stopPropagation();
         this.startConnect(d.id);
       });
 
-    // Alt-drag from a node = create a dependency edge (the n8n gesture).
+    // Mousedown on a card: ⌥ starts a dependency edge (the n8n gesture);
+    // plain primary button arms a CARD DRAG (threshold-gated so clicks
+    // stay clicks). Interactive chips and ports keep their own gestures.
     enter.on('mousedown', (event: MouseEvent, d: DagNode) => {
-      if (!event.altKey) { return; }
+      if (event.altKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.startConnect(d.id);
+        return;
+      }
+      if (event.button !== 0) { return; }
+      if ((event.target as Element).closest('.nc-chip, .nc-audit, .nc-port')) { return; }
+      const box = this.layoutBox.get(d.id);
+      if (!box) { return; }
+      // preventDefault kills text selection for the whole drag; the zoom
+      // filter already refuses card mousedowns, so the canvas stays put.
       event.preventDefault();
       event.stopPropagation();
-      this.startConnect(d.id);
+      const [rx, ry] = this.screenToRoot(event.clientX, event.clientY);
+      this.dragging = {
+        id: d.id, startX: rx, startY: ry,
+        origX: box.x, origY: box.y, moved: false,
+      };
     });
 
     // Click = focus the lineage + jump to YAML (workflowUri rides along
@@ -1367,6 +1524,7 @@ class DagRenderer {
     // restored panels where the extension side has no closure URI).
     enter.on('click', (event: MouseEvent, d: DagNode) => {
       event.stopPropagation(); // keep the background click-to-clear away
+      if (this.suppressClick) { this.suppressClick = false; return; } // a drop, not a select
       if (event.altKey) { return; } // alt belongs to edge creation
       this.applyFocus(this.focusedId === d.id ? null : d.id);
       vscode.postMessage({
@@ -1535,6 +1693,7 @@ class DagRenderer {
 
   private showHoverCard(event: MouseEvent, node: DagNode): void {
     if (!this.hoverCard) { return; }
+    if (this.dragging?.moved) { return; } // no tooltips mid-drag
     // A pending delayed-hide (from leaving the PREVIOUS node) must not
     // kill the card we are about to show for this one.
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
@@ -1766,8 +1925,8 @@ class DagRenderer {
       .append('text')
       .attr('class', 'edge-label')
       .merge(labels)
-      .attr('x', (d) => this.edgeMidpoint(d)[0])
-      .attr('y', (d) => this.edgeMidpoint(d)[1] - 5)
+      .attr('x', (d) => this.edgeLabelPoint(d)[0])
+      .attr('y', (d) => this.edgeLabelPoint(d)[1] - 5)
       .attr('text-anchor', 'middle')
       .text((d) => dagEdgeMap.get(d.id)?.label ?? '');
 
@@ -1775,7 +1934,43 @@ class DagRenderer {
       .merge(paths)
       .transition().duration(300)
       .attr('opacity', 1)
-      .attr('d', (d) => this.smoothEdges ? this.edgePathSmooth(d) : this.edgePath(d));
+      .attr('d', (d) => this.edgePathFor(d));
+  }
+
+  /** Path for one edge — a direct curve when an endpoint is hand-pinned
+   *  (its ELK sections describe a layout the card has left). */
+  private edgePathFor(edge: ElkExtendedEdge): string {
+    const ends = this.edgeEnds.get(edge.id);
+    if (ends && (this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
+      return this.edgePathDirect(ends.source, ends.target);
+    }
+    return this.smoothEdges ? this.edgePathSmooth(edge) : this.edgePath(edge);
+  }
+
+  /** Vertical cubic between two cards' ports (drag re-route). */
+  private edgePathDirect(source: string, target: string): string {
+    const s = this.layoutBox.get(source);
+    const t = this.layoutBox.get(target);
+    if (!s || !t) { return ''; }
+    const sx = s.x + s.w / 2;
+    const sy = s.y + s.h;
+    const tx = t.x + t.w / 2;
+    const ty = t.y;
+    const reach = Math.max(Math.abs(ty - sy) / 2, 32);
+    return `M ${sx} ${sy} C ${sx} ${sy + reach}, ${tx} ${ty - reach}, ${tx} ${ty}`;
+  }
+
+  /** Label anchor — bezier midpoint for pinned edges, ELK midpoint else. */
+  private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
+    const ends = this.edgeEnds.get(edge.id);
+    if (ends && (this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
+      const s = this.layoutBox.get(ends.source);
+      const t = this.layoutBox.get(ends.target);
+      if (s && t) {
+        return [(s.x + s.w / 2 + t.x + t.w / 2) / 2, (s.y + s.h + t.y) / 2];
+      }
+    }
+    return this.edgeMidpoint(edge);
   }
 
   /** Midpoint of an edge's polyline (label anchor). */
@@ -1892,10 +2087,25 @@ class DagRenderer {
     const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
     if (svgW === 0 || svgH === 0) return;
 
+    // The bottom dock (omnibar · legend) floats OVER the canvas — the fit
+    // must park the graph in the visible pool above it, or the last wave
+    // hides under the run pill forever.
+    const usableH = Math.max(svgH - 92, 160);
+
     let graphW: number;
     let graphH: number;
 
-    if (elkResult) {
+    if (this.layoutBox.size > 0) {
+      // The live boxes are the truth (they follow hand-dragged cards).
+      let maxX = 1;
+      let maxY = 1;
+      for (const b of this.layoutBox.values()) {
+        maxX = Math.max(maxX, b.x + b.w);
+        maxY = Math.max(maxY, b.y + b.h);
+      }
+      graphW = maxX + PADDING;
+      graphH = maxY + PADDING;
+    } else if (elkResult) {
       graphW = (elkResult.width ?? svgW) + PADDING * 2;
       graphH = (elkResult.height ?? svgH) + PADDING * 2;
     } else {
@@ -1906,9 +2116,9 @@ class DagRenderer {
       graphH = bbox.height + PADDING * 2;
     }
 
-    const scale = Math.min(svgW / graphW, svgH / graphH, 1.5);
+    const scale = Math.min(svgW / graphW, usableH / graphH, 1.5);
     const tx = (svgW - graphW * scale) / 2;
-    const ty = (svgH - graphH * scale) / 2;
+    const ty = (usableH - graphH * scale) / 2;
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     this.svg
@@ -2045,6 +2255,12 @@ class DagRenderer {
         chips.appendChild(chip);
       }
     }
+    // An untouched graph shows no progress furniture — the empty track
+    // reads as a hairline of noise, not information.
+    document.getElementById('progress-track')?.toggleAttribute(
+      'hidden',
+      terminal === 0 && counts.running === 0 && counts.retrying === 0,
+    );
     const fill = document.getElementById('progress-fill');
     if (fill) {
       const pct = total > 0 ? Math.round((terminal / total) * 100) : 0;
@@ -2168,6 +2384,7 @@ function buildExplainer(): void {
     ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
     ['ex-glyph-hover', 'Hover a node', 'the full story — model · gates · fan-out · static cost · needs/unlocks (clickable)'],
+    ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — the wires follow, positions stick per workflow · A returns to the auto-layout'],
     ['ex-glyph-connect', '⌥ drag node → node', 'create a dependency — the YAML gets the depends_on (⌘Z undoes) · ⌥click an edge removes it'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here (the label is the binding alias) — gray dashed edges are ordering only'],
@@ -2188,7 +2405,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -2433,12 +2650,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // A diff paints the PREVIOUS graph's story — drop it too.
       clearDiff();
       transport.deactivate();
-      void renderer.render(msg.graph).then(() => transport.resync());
       // Any graph load while a replay is up supersedes it (live run ·
       // follow-mode retarget · normal show). The replay's OWN graph
       // loads BEFORE the scrubber arms, so this never closes itself.
+      // Close it BEFORE the ONE render — a second render here used to
+      // race two async ELK layouts and double every entrance transition.
       if (replayer.active) { replayer.close(); }
-      renderer.render(msg.graph);
+      void renderer.render(msg.graph).then(() => transport.resync());
       applyResumeCapable(msg.graph);
       refreshStaleChip();
       // The cost chip is a singleton, not per-node data — a workflow
@@ -2692,6 +2910,17 @@ document.getElementById('btn-zoom-in')?.addEventListener('click', () => renderer
 document.getElementById('btn-zoom-out')?.addEventListener('click', () => renderer.zoomOut());
 document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
 
+/** Auto-layout: drop the drag pins, re-run ELK, re-fit (⌗ · key A). */
+async function resetLayout(): Promise<void> {
+  if (!renderer.hasManualLayout) { return; }
+  renderer.clearManualLayout();
+  const g = vscode.getState()?.graph;
+  if (!g) { return; }
+  await renderer.render(g);
+  renderer.fitToView();
+}
+document.getElementById('btn-relayout')?.addEventListener('click', () => { void resetLayout(); });
+
 // ─── Verb palette + omnibar (the Flows bottom bar) ─────────────────────────
 
 for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.vp-btn'))) {
@@ -2828,6 +3057,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     renderer.clearFocus();
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
+  if (e.key === 'a' || e.key === 'A') { void resetLayout(); }
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
   // Run keys — modifier-free only (⌘R must stay the browser/editor's).
