@@ -35,6 +35,8 @@ export type ExtToWebviewMessage =
   | { kind: 'run:state'; running: boolean }
   // Dirty-nodes refresh (badges only — run statuses stay painted).
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  // Per-card audit rollup from a completed check (⚠N badges).
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
   // Time-travel: hand the whole timeline to the webview scrubber (it
   // computes DAG state at any instant locally — 60fps, zero round-trips).
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
@@ -51,6 +53,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:nodeDoubleClicked'; taskId: string; workflowUri?: string }
   | { kind: 'dag:requestRefresh' }
   | { kind: 'dag:showActive' }
+  // A card's ⚠N badge was clicked — open the full pre-flight report.
+  | { kind: 'dag:openReport' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
   | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
@@ -114,6 +118,19 @@ export class DagPanel implements vscode.Disposable {
   /** Load a recorded run into the webview scrubber (time-travel). */
   public loadReplay(timeline: TimelineEntry[], label: string, speed: number): void {
     this.postMessage({ kind: 'dag:replayLoad', timeline, label, speed });
+  }
+
+  /** Push per-card audit badges from a completed check (⚠N). */
+  public auditUpdate(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+    if (this.currentGraph) {
+      const byId = new Map(audits.map((a) => [a.taskId, a]));
+      for (const node of this.currentGraph.nodes) {
+        const a = byId.get(node.id);
+        node.auditCount = a?.count;
+        node.auditWorst = a?.worst;
+      }
+    }
+    this.postMessage({ kind: 'dag:audit', audits });
   }
 
   /** Refresh stale badges in place (statuses stay painted post-run). */
@@ -400,6 +417,10 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:showActive':
         this.onShowActive?.();
+        break;
+
+      case 'dag:openReport':
+        void vscode.commands.executeCommand('nika.showReport');
         break;
 
       case 'dag:export':

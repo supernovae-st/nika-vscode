@@ -85,6 +85,10 @@ export interface DagNode {
   stale?: boolean;
   /** The stale flag is inherited from an edited upstream task. */
   staleUpstream?: boolean;
+  /** Task-attributed `nika check` findings on this task (0 = none). */
+  auditCount?: number;
+  /** Worst severity across those findings. */
+  auditWorst?: 'error' | 'warning' | 'info';
 }
 
 export interface DagEdge {

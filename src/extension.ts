@@ -66,7 +66,8 @@ import { registerLmTools } from './features/lmTools';
 import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
-import { countReportFindings } from './core/cliContract';
+import { collectFindings, countReportFindings } from './core/cliContract';
+import { auditByTask } from './core/auditByTask';
 import { computeDirty } from './core/dirtyNodes';
 import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
@@ -671,6 +672,13 @@ export function activate(context: ExtensionContext): void {
       if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
       const report = service.peekCheck(uriString)?.report;
       if (!report) { return; }
+      // Per-card audit badges: the static-check moat surfaced on the
+      // cards (⚠N · worst severity · click → report). Pushed on every
+      // check completion, even a clean one (clears stale badges).
+      const rollup = auditByTask(collectFindings(report));
+      dagPanel.auditUpdate(
+        [...rollup].map(([taskId, a]) => ({ taskId, count: a.count, worst: a.worst })),
+      );
       const findings = countReportFindings(report);
       const verdict = `${uriString}#${findings}`;
       if (verdict === lastCheckNote) { return; }

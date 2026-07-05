@@ -212,6 +212,8 @@ interface DagNode {
   avgRuns?: number;
   stale?: boolean;
   staleUpstream?: boolean;
+  auditCount?: number;
+  auditWorst?: 'error' | 'warning' | 'info';
 }
 
 interface DagEdge {
@@ -249,6 +251,7 @@ type ExtToWebviewMessage =
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' };
 
@@ -335,7 +338,8 @@ const VERB_ICONS: Record<Verb, string> = {
 function nodeClassOf(node: DagNode): string {
   return `dag-node status-${node.status} verb-${node.verb}`
     + (node.stale ? ' is-stale' : '')
-    + (node.staleUpstream ? ' stale-up' : '');
+    + (node.staleUpstream ? ' stale-up' : '')
+    + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '');
 }
 
 function verbIcon(verb: string): string {
@@ -991,6 +995,21 @@ class DagRenderer {
     this.updateStatusDisplay();
   }
 
+  /** dag:audit — refresh the ⚠N chips in place (rebuild the card body). */
+  applyAudit(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+    const byId = new Map(audits.map((a) => [a.taskId, a]));
+    for (const node of this.nodeMap.values()) {
+      const a = byId.get(node.id);
+      node.auditCount = a?.count;
+      node.auditWorst = a?.worst;
+      const el = this.nodeGroup.select(`[data-id="${CSS.escape(node.id)}"]`);
+      el.attr('class', nodeClassOf(node));
+      const host = el.select<HTMLElement>('.nc').node();
+      if (host) { this.buildCardHtml(host, node); }
+    }
+    this.refreshDim();
+  }
+
   /** dag:stale — refresh badges in place; run statuses stay painted. */
   applyStale(stale: string[], direct: string[]): void {
     const staleSet = new Set(stale);
@@ -1385,10 +1404,24 @@ class DagRenderer {
     staleChip.className = 'nc-stale';
     staleChip.textContent = '△ stale';
     staleChip.title = 'Edited since its last successful run (or downstream of such an edit) — a run will re-execute this.';
+    // Audit chip — the static-check moat on the card (⚠N · worst
+    // severity via the group class · click → the pre-flight report).
+    const auditChip = document.createElement('button');
+    auditChip.className = 'nc-audit';
+    if (node.auditCount) {
+      auditChip.textContent = `⚠ ${node.auditCount}`;
+      auditChip.dataset.worst = node.auditWorst ?? 'error';
+      auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task — click for the pre-flight report`;
+    }
+    auditChip.addEventListener('mousedown', (e) => e.stopPropagation());
+    auditChip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      vscode.postMessage({ kind: 'dag:openReport' });
+    });
     const badge = document.createElement('span');
     badge.className = 'nc-badge';
     badge.textContent = this.badgeText(node);
-    header.append(glyph, id, staleChip, badge);
+    header.append(glyph, id, auditChip, staleChip, badge);
     host.appendChild(header);
 
     const sub = document.createElement('div');
@@ -2368,6 +2401,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);
       refreshStaleChip();
+      break;
+    case 'dag:audit':
+      renderer.applyAudit(msg.audits);
       break;
     case 'dag:replayLoad':
       replayer.load(msg.timeline, msg.label, msg.speed);

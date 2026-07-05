@@ -2196,3 +2196,48 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-ink-dim);
   text-align: right;
 }
+
+/* ─── Audit chip · the static-check moat on the card ────────────────────── */
+
+.nc-audit {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 5px;
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.03em;
+  color: var(--nk-st-failed);
+  background: color-mix(in srgb, var(--nk-st-failed) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 35%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+
+.dag-node.has-audit .nc-audit {
+  display: inline-flex;
+}
+
+.nc-audit:hover {
+  background: color-mix(in srgb, var(--nk-st-failed) 22%, transparent);
+}
+
+/* Worst-severity hue: error red · warning amber · info accent. */
+.dag-node.audit-warning .nc-audit {
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+}
+
+.dag-node.audit-info .nc-audit {
+  color: var(--nk-accent);
+  background: color-mix(in srgb, var(--nk-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent) 32%, transparent);
+}
+
+/* A failed-status card already reads red — let the node border carry the
+ * error; the chip stays as the count + click target. */
+body.lod-far .nc-audit { display: none !important; }
