@@ -1,8 +1,8 @@
 {
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
-  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). For VS Code, Cursor, Windsurf, VSCodium: check-as-you-type audit diagnostics, DAG view with live run and trace replay, cost inlay hints, schema-derived completions, agent tools.",
-  "version": "0.90.2",
+  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
+  "version": "0.93.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -15,7 +15,7 @@
     "url": "https://github.com/supernovae-st/nika-vscode/issues"
   },
   "galleryBanner": {
-    "color": "#0f172a",
+    "color": "#08090b",
     "theme": "dark"
   },
   "pricing": "Free",
@@ -38,7 +38,15 @@
     "cursor",
     "windsurf",
     "agent",
-    "lsp"
+    "lsp",
+    "dag",
+    "canvas",
+    "pipeline",
+    "orchestration",
+    "replay",
+    "audit",
+    "automation",
+    "linter"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -700,6 +708,8 @@
     "parity": "node scripts/parity.mjs",
     "test": "vitest run && node scripts/parity.mjs && npm run lint",
     "test:watch": "vitest",
+    "compile:integration": "tsc -p tsconfig.integration.json",
+    "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js",
     "package": "vsce package"
   },
   "dependencies": {
@@ -716,11 +726,15 @@
     "@types/d3-shape": "^3.1.8",
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.75.0",
+    "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^2.22.0",
     "esbuild": "^0.24.0",
     "eslint": "^10.6.0",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.6",
     "typescript": "^5.3.0",
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.2"

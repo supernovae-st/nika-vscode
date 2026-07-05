@@ -71,6 +71,24 @@ export interface DagNode {
   dependsOn: string[];
   /** Inbound data bindings (alias ← from.path) — the wires, named. */
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
+  /** Card body — what the task SAYS (client YAML read · ≤3 lines). */
+  promptPreview?: string;
+  /** Card body — the exec command line (client YAML read). */
+  commandPreview?: string;
+  /** Card body — invoke args summary `k: v · k: v` (client YAML read). */
+  argsPreview?: string;
+  /** Mean success duration across recorded traces (flight recorder). */
+  avgMs?: number;
+  /** How many recorded runs back that mean (0/undefined = none). */
+  avgRuns?: number;
+  /** Edited since its last successful run (dirty cone included). */
+  stale?: boolean;
+  /** The stale flag is inherited from an edited upstream task. */
+  staleUpstream?: boolean;
+  /** Task-attributed `nika check` findings on this task (0 = none). */
+  auditCount?: number;
+  /** Worst severity across those findings. */
+  auditWorst?: 'error' | 'warning' | 'info';
 }
 
 export interface DagEdge {
@@ -87,6 +105,12 @@ export interface DagEdge {
   ghost?: boolean;
 }
 
+/** Author-declared task grouping (`# nika:region <name>`). */
+export interface DagRegion {
+  name: string;
+  taskIds: string[];
+}
+
 export interface DagGraph {
   workflowName: string;
   /**
@@ -96,6 +120,8 @@ export interface DagGraph {
   workflowUri?: string;
   nodes: DagNode[];
   edges: DagEdge[];
+  /** Author-declared regions (background groupings) — optional. */
+  regions?: DagRegion[];
 }
 
 export function isGraphDoc(value: unknown): value is GraphDoc {
@@ -173,6 +199,8 @@ export interface CostCeiling {
   tasks: TaskCost[];
   bounded_total_usd?: number;
   min_path_total_usd?: number;
+  /** True when ≥1 priced task has no token limit — the total is a FLOOR. */
+  has_unbounded?: boolean;
   [key: string]: unknown;
 }
 
@@ -209,6 +237,17 @@ export interface CheckReport {
   analysis?: ReportDagAnalysis;
 }
 
+/**
+ * Normalize the `cost` block so `cost.tasks` is ALWAYS an array — a real
+ * report can carry a `cost` object with no `tasks` key (unbounded-only),
+ * and the type claims `TaskCost[]`, so unchecked consumers would throw.
+ */
+function normalizeCost(raw: unknown): CostCeiling {
+  if (typeof raw !== 'object' || raw === null) { return { tasks: [] }; }
+  const c = raw as Record<string, unknown>;
+  return { ...(c as object), tasks: Array.isArray(c.tasks) ? (c.tasks as TaskCost[]) : [] } as CostCeiling;
+}
+
 export function parseCheckReport(jsonText: string): CheckReport | undefined {
   try {
     const v = JSON.parse(jsonText) as Record<string, unknown>;
@@ -220,7 +259,7 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
       clean: typeof v.clean === 'boolean' ? v.clean : undefined,
       conformance: arr('conformance') as ConformanceViolation[],
       waves: arr('waves') as number[][],
-      cost: (typeof v.cost === 'object' && v.cost !== null ? v.cost : { tasks: [] }) as CostCeiling,
+      cost: normalizeCost(v.cost),
       secret_leaks: arr('secret_leaks') as SecretLeak[],
       secret_egresses: arr('secret_egresses') as SecretEgress[],
       capability_escapes: arr('capability_escapes') as CapabilityEscape[],

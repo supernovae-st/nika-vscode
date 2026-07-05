@@ -64,9 +64,18 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
       if (finding.source === 'unknown-tool' && finding.suggestion) {
         const wrongTool = finding.message.match(/`([^`]+)`/)?.[1];
         if (wrongTool) {
-          // The diagnostic anchors the task's `- id:` line; the tool: line
-          // lives inside the item — search forward for the literal.
-          for (let l = fRange.start.line; l < Math.min(fRange.start.line + 30, document.lineCount); l++) {
+          // Stored findings anchor PRE-edit lines — re-resolve the owning
+          // task's CURRENT span by id, so an edit above the finding can't
+          // shift this scan onto an unrelated occurrence of the same
+          // substring (silent wrong-location rewrite).
+          const owner = finding.task !== undefined
+            ? parseRichWorkflow(text).tasks.find((t) => t.id === finding.task)
+            : undefined;
+          const scanStart = owner?.line ?? fRange.start.line;
+          const scanEnd = owner !== undefined
+            ? Math.min(owner.endLine + 1, document.lineCount)
+            : Math.min(fRange.start.line + 30, document.lineCount);
+          for (let l = scanStart; l < scanEnd; l++) {
             const idx = document.lineAt(l).text.indexOf(wrongTool);
             if (idx !== -1) {
               const action = new vscode.CodeAction(

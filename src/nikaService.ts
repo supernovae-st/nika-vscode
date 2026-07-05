@@ -29,7 +29,22 @@ import {
 } from './core/cliContract';
 import { clientDagFor } from './core/clientDag';
 import { annotateDataFlow } from './core/dataflow';
+import { collectBodyFacts } from './core/bodyFacts';
+import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
+import { parseRichWorkflow } from './workflowParser';
+
+/** Card substance (prompt · command · args) onto the graph nodes. */
+function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNode[]): void {
+  const facts = collectBodyFacts(text);
+  for (const node of nodes) {
+    const f = facts.get(node.id);
+    if (!f) { continue; }
+    node.promptPreview = f.prompt;
+    node.commandPreview = f.command;
+    node.argsPreview = f.args;
+  }
+}
 
 export interface CliResult {
   code: number;
@@ -193,7 +208,12 @@ export class NikaService {
     const cached = this.checkCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
 
-    const flightKey = `${key}#${doc.version}`;
+    // Capture the version BEING checked: `doc` is a live reference, and
+    // stamping the cache with a re-read doc.version would label a stale
+    // result as current when the user typed mid-check (then every later
+    // call at that version cache-HITS the wrong content).
+    const checkedVersion = doc.version;
+    const flightKey = `${key}#${checkedVersion}`;
     const inFlight = this.checkInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
@@ -209,7 +229,7 @@ export class NikaService {
       } satisfies CheckOutcome;
     }).then((outcome) => {
       if (this.checkInFlight.get(flightKey) === promise) {
-        this.checkCache.set(key, { version: doc.version, value: outcome });
+        this.checkCache.set(key, { version: checkedVersion, value: outcome });
         this.updateEmitter.fire(key);
       }
       return outcome;
@@ -245,7 +265,9 @@ export class NikaService {
     const cached = this.graphCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
 
-    const flightKey = `${key}#${doc.version}`;
+    // Same captured-version discipline as checkDocument (stale-stamp race).
+    const checkedVersion = doc.version;
+    const flightKey = `${key}#${checkedVersion}`;
     const inFlight = this.graphInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
@@ -260,7 +282,7 @@ export class NikaService {
       }
     }).then((value) => {
       if (this.graphInFlight.get(flightKey) === promise) {
-        this.graphCache.set(key, { version: doc.version, value });
+        this.graphCache.set(key, { version: checkedVersion, value });
         this.updateEmitter.fire(key);
       }
       return value;
@@ -294,10 +316,42 @@ export class NikaService {
       const flow = annotateDataFlow(text, dag.nodes, dag.edges);
       dag.nodes = flow.nodes;
       dag.edges = [...flow.edges, ...flow.ghosts];
+      mergeBodyFacts(text, dag.nodes);
+      const regions = parseRegions(text);
+      if (regions.length > 0) { dag.regions = regions; }
       return dag;
     }
 
     return clientDagFor(text, doc.uri.toString(), path.basename(doc.uri.fsPath ?? 'workflow'));
+    const wf = parseRichWorkflow(text);
+    const base: DagGraph = {
+      workflowName: wf.name ?? path.basename(doc.uri.fsPath ?? 'workflow'),
+      workflowUri: doc.uri.toString(),
+      nodes: wf.tasks.map((t) => ({
+        id: t.id,
+        label: t.id,
+        verb: t.verb,
+        status: 'pending' as const,
+        model: t.model ?? wf.defaultModel,
+        tool: t.tool,
+        dependsOn: t.dependsOn,
+      })),
+      edges: wf.tasks.flatMap((t) =>
+        t.dependsOn.map((dep) => ({
+          id: `${dep}->${t.id}`,
+          source: dep,
+          target: t.id,
+          isDataEdge: false,
+        })),
+      ),
+    };
+    const flow = annotateDataFlow(text, base.nodes, base.edges);
+    base.nodes = flow.nodes;
+    base.edges = [...flow.edges, ...flow.ghosts];
+    mergeBodyFacts(text, base.nodes);
+    const regions = parseRegions(text);
+    if (regions.length > 0) { base.regions = regions; }
+    return base;
   }
 
   async graphFormat(doc: TextDocument, format: 'mermaid' | 'dot'): Promise<string | undefined> {

@@ -15,6 +15,7 @@ import * as crypto from 'crypto';
 
 import type { DagGraph, TaskStatus } from './core/cliContract';
 import type { TraceTimeline } from './core/traceTimeline';
+import type { TimelineEntry } from './core/traceFold';
 
 export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract';
 
@@ -38,7 +39,21 @@ export type ExtToWebviewMessage =
   // so live status repaints never wipe them). Badges are pre-formatted
   // extension-side -- the webview stays dumb about diff semantics.
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
-  | { kind: 'diff:clear' };
+  | { kind: 'diff:clear' }
+  // Live-run lifecycle — the toolbar flips ▶/■ on this (replayed on
+  // dag:ready so a reloaded panel keeps the truthful state).
+  | { kind: 'run:state'; running: boolean }
+  // Dirty-nodes refresh (badges only — run statuses stay painted).
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  // Per-card audit rollup from a completed check (⚠N badges).
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  // Static cost forecast for the run pill (label · tooltip · unbounded).
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
+  // Time-travel: hand the whole timeline to the webview scrubber (it
+  // computes DAG state at any instant locally — 60fps, zero round-trips).
+  | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
+  // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
+  | { kind: 'dag:replayEnd' };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -50,19 +65,31 @@ export type WebviewToExtMessage =
   | { kind: 'dag:nodeDoubleClicked'; taskId: string; workflowUri?: string }
   | { kind: 'dag:requestRefresh' }
   | { kind: 'dag:showActive' }
+  // A card's ⚠N badge was clicked — open the full pre-flight report.
+  | { kind: 'dag:openReport' }
+  // Empty-state actions — scaffold a workflow · open the walkthrough.
+  | { kind: 'dag:newWorkflow' }
+  | { kind: 'dag:openWalkthrough' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
-  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string }
+  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
+  // Canvas params bar — the model chip edits the YAML via QuickPick.
+  | { kind: 'dag:editModel'; taskId: string; workflowUri?: string }
+  // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
+  | { kind: 'dag:omni'; text: string; workflowUri?: string }
+  // Run controls — the canvas drives the run without leaving the panel.
+  | { kind: 'dag:runRequest'; preview?: boolean; workflowUri?: string }
+  | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
 
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
   WebviewToExtMessage,
-  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' }
+  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:editModel' | 'dag:omni' }
 >;
 
 // ─── Nonce Generator ─────────────────────────────────────────────────────────
@@ -77,6 +104,9 @@ export class DagPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private disposables: vscode.Disposable[] = [];
   private currentGraph: DagGraph | undefined;
+  /** A replay is showing — the webview holds the timeline (retainContext).
+   *  Guards the re-show handler from clobbering it with a stale dag:load. */
+  private replayActive = false;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -89,7 +119,62 @@ export class DagPanel implements vscode.Disposable {
       get(): vscode.ViewColumn | undefined;
       set(column: vscode.ViewColumn): void;
     },
+    /** Canvas run controls (▶/▶mock/■ in the panel toolbar). */
+    private readonly onRunRequest?: (preview: boolean, workflowUri?: string) => void,
+    private readonly onCancelRun?: () => void,
   ) {}
+
+  /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
+  private runState = false;
+
+  /** Called by the live runner at spawn/close — flips the toolbar ▶/■. */
+  public setRunState(running: boolean): void {
+    this.runState = running;
+    this.postMessage({ kind: 'run:state', running });
+  }
+
+  /** Load a recorded run into the webview scrubber (time-travel). */
+  public loadReplay(timeline: TimelineEntry[], label: string, speed: number): void {
+    this.replayActive = true;
+    this.postMessage({ kind: 'dag:replayLoad', timeline, label, speed });
+  }
+
+  /** The live/replay overlay ended — clear the replay guard. */
+  public endReplay(): void {
+    this.replayActive = false;
+    this.postMessage({ kind: 'dag:replayEnd' });
+  }
+
+  /** Push the static cost forecast for the run pill (null clears it). */
+  public costUpdate(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+    this.postMessage({ kind: 'dag:cost', forecast });
+  }
+
+  /** Push per-card audit badges from a completed check (⚠N). */
+  public auditUpdate(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+    if (this.currentGraph) {
+      const byId = new Map(audits.map((a) => [a.taskId, a]));
+      for (const node of this.currentGraph.nodes) {
+        const a = byId.get(node.id);
+        node.auditCount = a?.count;
+        node.auditWorst = a?.worst;
+      }
+    }
+    this.postMessage({ kind: 'dag:audit', audits });
+  }
+
+  /** Refresh stale badges in place (statuses stay painted post-run). */
+  public staleUpdate(stale: string[], direct: string[]): void {
+    if (this.currentGraph) {
+      const staleSet = new Set(stale);
+      const directSet = new Set(direct);
+      for (const node of this.currentGraph.nodes) {
+        node.stale = staleSet.has(node.id) ? true : undefined;
+        node.staleUpstream = node.stale && !directSet.has(node.id) ? true : undefined;
+      }
+    }
+    this.postMessage({ kind: 'dag:stale', stale, direct });
+  }
 
   // ─── Public API ──────────────────────────────────────────────────────────
 
@@ -196,7 +281,10 @@ export class DagPanel implements vscode.Disposable {
           hasBeenHidden = true;
           return;
         }
-        if (hasBeenHidden && this.currentGraph) {
+        // retainContextWhenHidden keeps the webview's state (including an
+        // open replay) alive while backgrounded — re-sending dag:load
+        // would close the replay and blank to the stale seed graph.
+        if (hasBeenHidden && this.currentGraph && !this.replayActive) {
           this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
         }
       }),
@@ -231,16 +319,17 @@ export class DagPanel implements vscode.Disposable {
     return this.panel !== undefined;
   }
 
+  /** Source workflow URI of the displayed graph (undefined when synthesized
+   *  from a bare trace) — guards check-driven pushes from landing on an
+   *  outgoing graph mid-switch · lets the overlay key its fold to the FILE. */
+  public currentWorkflowUri(): string | undefined {
+    return this.currentGraph?.workflowUri;
+  }
+
   /** Task ids of the currently loaded graph — overlap tests for live overlay. */
   public currentGraphIds(): Set<string> | undefined {
     if (!this.currentGraph) { return undefined; }
     return new Set(this.currentGraph.nodes.map((n) => n.id));
-  }
-
-  /** Source workflow URI of the displayed graph (undefined when synthesized
-   *  from a bare trace) — lets the overlay key its fold to the FILE. */
-  public currentWorkflowUri(): string | undefined {
-    return this.currentGraph?.workflowUri;
   }
 
   /** Load a new graph (replaces current) */
@@ -249,6 +338,9 @@ export class DagPanel implements vscode.Disposable {
     // A new graph orphans any queued timeline (the webview side also
     // deactivates its transport on dag:load).
     this.pendingTransport = undefined;
+    // A fresh graph supersedes any replay (the webview's dag:load handler
+    // closes the Replayer); keep the extension-side guard in step.
+    this.replayActive = false;
     if (this.panel?.visible) {
       this.postMessage({ kind: 'dag:load', graph });
     }
@@ -377,6 +469,10 @@ export class DagPanel implements vscode.Disposable {
           // After dag:load, in-order — the webview resyncs post-layout.
           this.postMessage({ kind: 'transport:load', ...this.pendingTransport });
         }
+        // A reloaded panel mid-run must keep showing the truthful ■.
+        if (this.runState) {
+          this.postMessage({ kind: 'run:state', running: true });
+        }
         break;
 
       case 'dag:nodeClicked':
@@ -402,6 +498,8 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:connect':
       case 'dag:disconnect':
       case 'dag:deleteTask':
+      case 'dag:editModel':
+      case 'dag:omni':
         this.onEditRequest?.(msg);
         break;
 
@@ -409,8 +507,31 @@ export class DagPanel implements vscode.Disposable {
         this.onShowActive?.();
         break;
 
+      case 'dag:openReport':
+        void vscode.commands.executeCommand('nika.showReport');
+        break;
+
+      case 'dag:newWorkflow':
+        void vscode.commands.executeCommand('nika.newWorkflow');
+        break;
+
+      case 'dag:openWalkthrough':
+        void vscode.commands.executeCommand(
+          'workbench.action.openWalkthrough',
+          'supernovae.nika-lang#nika.gettingStarted',
+        );
+        break;
+
       case 'dag:export':
         void this.saveExport(msg.format, msg.data, msg.name);
+        break;
+
+      case 'dag:runRequest':
+        this.onRunRequest?.(msg.preview === true, msg.workflowUri);
+        break;
+
+      case 'dag:cancelRun':
+        this.onCancelRun?.();
         break;
     }
   }
@@ -522,6 +643,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
       <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
+      <button id="zoom-pct" title="Current zoom — click to fit">100%</button>
     </div>
     <div class="tb-group">
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
@@ -545,14 +667,51 @@ export class DagPanel implements vscode.Disposable {
     <div class="es-card">
       <img class="es-mark logo-dark" src="${logoDark}" alt="Nika" width="34" height="34">
       <img class="es-mark logo-light" src="${logoLight}" alt="Nika" width="34" height="34">
-      <div class="es-title">No workflow loaded</div>
-      <div class="es-sub">Open a <code>.nika.yaml</code>, then —</div>
-      <button id="es-open" class="es-button">Show DAG for the active file</button>
-      <div class="es-hint">or <kbd>⇧⌘P</kbd> → <span>nika dag</span></div>
+      <div class="es-title">The workflow canvas</div>
+      <div class="es-sub">Open a <code>.nika.yaml</code> to see it audited, run and replayed here.</div>
+      <div class="es-actions">
+        <button id="es-open" class="es-button">Show the active file</button>
+        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
+      </div>
+      <div class="es-gestures">
+        <div class="es-gesture"><span class="es-g-key">▶</span> run live or preview with <code>mock/echo</code> — zero keys</div>
+        <div class="es-gesture"><span class="es-g-key">⤓</span> drag a port → a new pre-wired task · edits land in the YAML</div>
+        <div class="es-gesture"><span class="es-g-key">↻</span> scrub any recorded run · <kbd>Tab</kbd> walks the graph</div>
+      </div>
+      <button id="es-walkthrough" class="es-link">Get started with Nika →</button>
     </div>
   </div>
   <div id="explainer" hidden></div>
+  <div id="verb-cmdk" hidden role="listbox" aria-label="Pick the new task's verb">
+    <input id="cmdk-input" type="text" placeholder="verb…" aria-label="Filter verbs">
+    <div id="cmdk-list"></div>
+  </div>
   <div id="hover-card" role="tooltip"></div>
+  <div id="omnibar">
+    <div id="run-controls" role="toolbar" aria-label="Run controls">
+      <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
+      <span id="run-cost" hidden></span>
+      <span id="run-stale" hidden></span>
+      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
+      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
+    </div>
+    <div id="verb-palette" role="toolbar" aria-label="Add a task">
+      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)">◇</button>
+      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)">▷</button>
+      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)">◆</button>
+      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)">✦</button>
+    </div>
+    <input id="omni-input" type="text"
+           placeholder="+ infer after gather · / filter · or describe a workflow…"
+           aria-label="Canvas command bar">
+    <button id="omni-go" title="Run the command (Enter)">↵</button>
+  </div>
+  <div id="scrubber" hidden>
+    <button id="scrub-play" title="Play the run (Space)">▶</button>
+    <div id="scrub-track"><div id="scrub-fill"></div><div id="scrub-handle"></div></div>
+    <span id="scrub-time">0.0s</span>
+    <button id="scrub-close" title="Exit replay">✕</button>
+  </div>
   <div id="dag-legend">
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>

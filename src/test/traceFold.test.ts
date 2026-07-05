@@ -296,6 +296,23 @@ describe('streaming fold (the run --json live path)', () => {
     expect(last!.tasks.get('b')?.status).toBe('success');
   });
 
+  it('timeline is sorted by atMs even when concurrent writers interleave', () => {
+    // Fan-out: two parallel tasks' events land in the NDJSON out of strict
+    // time order (writer b's completion flushes before writer a's start).
+    const lines = [
+      diamondLine('workflow_started', { ts: 1000 }),
+      diamondLine('task_started', { task: 'b', ts: 1400 }),
+      diamondLine('task_started', { task: 'a', ts: 1200 }),   // out of order
+      diamondLine('task_completed', { task: 'b', ts: 2000 }),
+      diamondLine('task_completed', { task: 'a', ts: 1800 }), // out of order
+    ].join('\n') + '\n';
+    const model = foldTrace(lines);
+    const times = model.timeline.map((e) => e.atMs);
+    expect(times).toEqual([...times].sort((x, y) => x - y));
+    // The scrubber's ascending assumption (frameAt · timelineBounds) holds.
+    expect(times[0]).toBeLessThanOrEqual(times[times.length - 1]);
+  });
+
   it('a partial trailing line is ignored until the chunk completing it arrives', () => {
     const full = v2Line('task_completed', { task: 'a', ns: NS, fields: [{ key: 'duration_ms', value: 9 }] });
     const cut = Math.floor(full.length / 2);

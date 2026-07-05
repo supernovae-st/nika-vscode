@@ -15,6 +15,7 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
+  State,
   TransportKind,
 } from 'vscode-languageclient/node';
 import { execFile } from 'child_process';
@@ -22,6 +23,28 @@ import { DagPanel, TaskStatus } from './dagPanel';
 import { type LogFn } from './mcpConfig';
 
 export type { LogFn } from './mcpConfig';
+
+/**
+ * Stop the LSP client safely. `stop()` REJECTS when the client is still
+ * `Starting` (proven in the real extension host at teardown — a window
+ * closed mid-start throws "Client is not running and can't be stopped").
+ * Dispose() is synchronous-safe in every state; stop() only when Running.
+ */
+export async function safeStopClient(client: LanguageClient | undefined): Promise<void> {
+  if (!client) { return; }
+  try {
+    if (client.state === State.Running) {
+      await client.stop();
+    } else {
+      // Starting / Stopped: stop() would throw — dispose the transport
+      // instead (idempotent, state-independent).
+      await client.dispose();
+    }
+  } catch {
+    // A racing state change (Starting → Stopped) — the client is gone
+    // either way; a teardown must never surface an unhandled rejection.
+  }
+}
 
 /** Shared mutable state owned by extension.ts, passed by reference. */
 export interface ClientState {
@@ -234,10 +257,6 @@ export function startClient(
   });
 
   context.subscriptions.push({
-    dispose: () => {
-      if (state.client) {
-        state.client.stop();
-      }
-    },
+    dispose: () => { void safeStopClient(state.client); },
   });
 }

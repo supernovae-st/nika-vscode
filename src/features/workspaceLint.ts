@@ -99,17 +99,23 @@ export class WorkspaceLint implements vscode.Disposable {
       this.baseline = await this.loadBaseline();
       const files = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', MAX_FILES + 1);
       if (files.length > MAX_FILES) {
-        this.log('WARN', `workspace lint: ${files.length} workflows found — linting the first ${MAX_FILES} (cap)`);
+        // findFiles itself truncated at MAX+1 — the true total is unknown.
+        this.log('WARN', `workspace lint: ${MAX_FILES}+ workflows found — linting the first ${MAX_FILES} (cap)`);
         files.length = MAX_FILES;
       }
       const closed = files.filter((f) => !isOpen(f));
-      // Small rolling pool — never a spawn storm.
+      // Small rolling pool — never a spawn storm. One bad file must not
+      // kill the pool's Promise.all (unhandled rejection on shutdown).
       let next = 0;
       const worker = async (): Promise<void> => {
         while (next < closed.length && !this.disposed && this.enabled()) {
           const uri = closed[next];
           next += 1;
-          await this.lintOne(uri);
+          try {
+            await this.lintOne(uri);
+          } catch (err) {
+            this.log('WARN', `workspace lint failed for ${uri.fsPath}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
       };
       await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -134,9 +140,13 @@ export class WorkspaceLint implements vscode.Disposable {
     try {
       text = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
     } catch {
-      this.collection.delete(uri);
+      if (!this.disposed) { this.collection.delete(uri); }
       return;
     }
+    // Re-check AFTER the last await too: disposal mid-read would write to
+    // a disposed collection; a reopen mid-read would re-populate stale
+    // findings onto a file the live controller now owns.
+    if (this.disposed || isOpen(uri)) { return; }
     const lineOf = (offset: number): vscode.Range => {
       const pos = byteOffsetToPosition(text, offset);
       return new vscode.Range(pos.line, pos.character, pos.line, pos.character + 1);

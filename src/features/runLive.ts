@@ -15,11 +15,15 @@
 // state is exact regardless of chunk boundaries.
 
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { saveRunHashes } from '../core/canvasState';
+import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
 import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
+import { cancelActiveReplay } from './runsView';
 
 /** Min gap between intermediate store publishes — editor surfaces
  *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
@@ -44,6 +48,9 @@ export function cancelActiveRun(): void {
  * DAG live. The graph must already be loaded (the caller shows it for
  * the active document first) so the painted statuses land on real
  * nodes. Verdict + cost land in the activity feed on close.
+ *
+ * `opts.extraArgs` rides extra engine flags (the canvas preview run
+ * passes `--model mock/echo` — zero keys, zero network).
  */
 export function runWorkflowLive(
   service: NikaService,
@@ -53,6 +60,7 @@ export function runWorkflowLive(
   /** Scope the run to ONE task + its upstream cone (`--task` · the
    *  regenerate-one-block lens). Whole-workflow when absent. */
   onlyTask?: string,
+  opts?: { extraArgs?: string[]; onClose?: () => void },
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
@@ -64,11 +72,32 @@ export function runWorkflowLive(
   // the live present wins.
   cancelActiveRun();
   dagPanel.clearTransport();
-  dagPanel.note('▶', `run started · ${fsPath.split('/').pop() ?? fsPath}${onlyTask ? ` · --task ${onlyTask}` : ''}`, onlyTask, 'st-running');
+  cancelActiveReplay();
+  const preview = opts?.extraArgs?.includes('mock/echo') === true;
+  dagPanel.note(
+    '▶',
+    `run started${preview ? ' · preview (mock/echo)' : ''} · ${fsPath.split('/').pop() ?? fsPath}${onlyTask ? ` · --task ${onlyTask}` : ''}`,
+    onlyTask,
+    'st-running',
+  );
+  dagPanel.setRunState(true);
 
-  const child = spawn(binary, ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : [])], {
-    env: { ...process.env, NO_COLOR: '1' },
-  });
+  // Fingerprints of what actually RUNS, captured at spawn: an edit made
+  // mid-run must not be labeled "successfully ran" (dirty-nodes law).
+  let spawnFingerprints: Map<string, string> | undefined;
+  try {
+    spawnFingerprints = taskFingerprints(fs.readFileSync(fsPath, 'utf-8'));
+  } catch {
+    spawnFingerprints = undefined;
+  }
+
+  const child = spawn(
+    binary,
+    ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
+    {
+      env: { ...process.env, NO_COLOR: '1' },
+    },
+  );
   activeRun = { kill: () => child.kill() };
 
   let buffer = '';
@@ -112,11 +141,15 @@ export function runWorkflowLive(
 
   child.on('error', (err) => {
     activeRun = undefined;
+    dagPanel.setRunState(false);
     void vscode.window.showWarningMessage(`Nika: run failed to start — ${err.message}`);
   });
   child.on('close', (code) => {
     activeRun = undefined;
-    paint(); // final flush — the buffer now holds every complete line
+    paint(); // final flush FIRST — the buffer now holds every complete
+             // line; the last card must reach its terminal status before
+             // the pill flips to idle (else Run re-enables mid-glow).
+    dagPanel.setRunState(false);
     const model = foldTrace(buffer);
     // Final fold ALWAYS lands in the store (the throttle above may have
     // swallowed the last intermediate) — the badges' resting truth.
@@ -130,6 +163,18 @@ export function runWorkflowLive(
       // a workflow_failed event) — say so rather than imply success.
       log('WARN', `nika run exited ${code} without a terminal workflow event`);
     }
+    // Record the spawn-time fingerprints of every task that SUCCEEDED —
+    // per-task, so a partially failing run still clears its clean part.
+    // Preview runs count: mock/echo executed the same substance.
+    if (spawnFingerprints) {
+      const succeeded = new Map<string, string>();
+      for (const t of model.tasks.values()) {
+        const hash = spawnFingerprints.get(t.id);
+        if (t.status === 'success' && hash !== undefined) { succeeded.set(t.id, hash); }
+      }
+      saveRunHashes(fsPath, succeeded);
+    }
+    opts?.onClose?.();
   });
 }
 

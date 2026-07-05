@@ -374,5 +374,15 @@
       "        \\${{ with.b }}",
       "$0"
     ]
+  },
+  "Region marker": {
+    "prefix": [
+      "nika:region",
+      "region"
+    ],
+    "body": [
+      "# nika:region ${1:Name}"
+    ],
+    "description": "Group the tasks that follow into a labeled canvas region (engine ignores the comment)."
   }
 }

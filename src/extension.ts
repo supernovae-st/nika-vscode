@@ -10,6 +10,8 @@ import {
   WorkspaceEdit,
   env,
   languages,
+  QuickPickItemKind,
+  type QuickPickItem,
   type TextDocument,
 } from 'vscode';
 import * as fs from 'fs';
@@ -21,6 +23,7 @@ import {
   deleteTask,
   insertTaskSkeleton,
   removeDependsOn,
+  setTaskModel,
   type Verb,
 } from './core/structuralFixes';
 import {
@@ -34,6 +37,7 @@ import {
   startClient,
   getNikaPath,
   runNikaCommand,
+  safeStopClient,
   type ClientState,
 } from './lspClient';
 import {
@@ -57,7 +61,7 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
-import { RunsTreeProvider, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
+import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
@@ -65,11 +69,14 @@ import { registerLmTools } from './features/lmTools';
 import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
-import { countReportFindings } from './core/cliContract';
+import { collectFindings, countReportFindings, parseCheckReport } from './core/cliContract';
+import { auditByTask } from './core/auditByTask';
+import { costForecast } from './core/costForecast';
+import { computeDirty } from './core/dirtyNodes';
+import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
-import { collectFindings, parseCheckReport } from './core/cliContract';
 
 // ─── Shared mutable state ──────────────────────────────────────────────────
 // Owned here, passed by reference to module functions via ClientState.
@@ -129,6 +136,64 @@ async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument 
     void window.showWarningMessage('Open a .nika.yaml file first.');
   }
   return doc;
+}
+
+/**
+ * Two-step model picker for the canvas params bar: provider (grouped ·
+ * local/open-weight FIRST per the operator presentation-order lock) then
+ * the model name (current value prefilled). Returns `provider/model`.
+ */
+async function pickModel(
+  service: NikaService,
+  text: string,
+  taskId: string,
+): Promise<string | undefined> {
+  const providers = service.intel?.providers;
+  const wf = parseRichWorkflow(text);
+  const current = wf.tasks.find((t) => t.id === taskId)?.model ?? wf.defaultModel;
+
+  interface ProviderItem extends QuickPickItem { provider?: string }
+  const items: ProviderItem[] = [];
+  const push = (group: string, ids: string[]): void => {
+    if (ids.length === 0) { return; }
+    items.push({ label: group, kind: QuickPickItemKind.Separator });
+    for (const id of ids) {
+      items.push({ label: id, provider: id, description: current?.startsWith(`${id}/`) ? 'current' : undefined });
+    }
+  };
+  if (providers) {
+    // Presentation-order lock: local/open-weight first · mistral · then
+    // the rest of the cloud set alphabetically · test last.
+    const cloud = [...providers.cloud].sort((a, b) =>
+      (a === 'mistral' ? -1 : b === 'mistral' ? 1 : a.localeCompare(b)));
+    push('local — sovereign · zero-cloud', [...providers.local].sort());
+    push('cloud', cloud);
+    push('test — deterministic · zero keys', [...providers.test].sort());
+  }
+
+  let provider: string | undefined;
+  if (items.length > 0) {
+    const picked = await window.showQuickPick(items, {
+      title: `Model for \`${taskId}\` — provider`,
+      placeHolder: current ? `current: ${current}` : 'pick a provider',
+    });
+    if (!picked?.provider) { return undefined; }
+    provider = picked.provider;
+  }
+
+  const value = await window.showInputBox({
+    title: `Model for \`${taskId}\``,
+    prompt: 'provider/model — resolved by the engine at run time',
+    value: provider
+      ? (current?.startsWith(`${provider}/`) ? current : `${provider}/`)
+      : (current ?? ''),
+    valueSelection: provider && !current?.startsWith(`${provider}/`)
+      ? [provider.length + 1, provider.length + 1]
+      : undefined,
+    validateInput: (v) =>
+      /^[a-z0-9_-]+\/[A-Za-z0-9._:-]+$/.test(v.trim()) ? null : 'expected provider/model (e.g. ollama/llama3.2)',
+  });
+  return value?.trim() || undefined;
 }
 
 // ─── Activation ─────────────────────────────────────────────────────────────
@@ -317,7 +382,7 @@ export function activate(context: ExtensionContext): void {
       followTimer = setTimeout(async () => {
         dagWorkflowUri = doc.uri;
         lastHintedTask = null;
-        const graph = await service.dagForDocument(doc);
+        const graph = await loadGraphFor(doc);
         dagPanel.loadGraph(graph);
         dagPanel.note('⇄', `following ${workspace.asRelativePath(doc.uri)}`, undefined, 'st-note');
       }, 350);
@@ -331,7 +396,7 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       dagWorkflowUri = doc.uri;
-      const graph = await service.dagForDocument(doc);
+      const graph = await loadGraphFor(doc);
       dagPanel.show(graph);
       dagPanel.focusNode(taskId);
     }),
@@ -373,6 +438,41 @@ export function activate(context: ExtensionContext): void {
   // DAG webview panel — track the active workflow URI for node-click navigation
   let dagWorkflowUri: Uri | undefined;
 
+  // Graph + flight-recorder averages (mean success duration per task
+  // across recorded runs of this graph) — every canvas load rides this.
+  const loadGraphFor = async (doc: TextDocument) => {
+    const graph = await service.dagForDocument(doc);
+    try {
+      const avgs = await collectTaskAverages(new Set(graph.nodes.map((n) => n.id)));
+      for (const node of graph.nodes) {
+        const avg = avgs.get(node.id);
+        if (avg) {
+          node.avgMs = avg.avgMs;
+          node.avgRuns = avg.runs;
+        }
+      }
+    } catch {
+      // Averages are garnish — the graph must never fail on them.
+    }
+    try {
+      // Dirty-nodes: substance changed since the last SUCCESSFUL run
+      // (sidecar-recorded) — direct edits + their downstream cone.
+      if (doc.uri.scheme === 'file') {
+        const recorded = loadRecordedHashes(doc.uri.fsPath);
+        const dirty = computeDirty(doc.getText(), recorded);
+        for (const node of graph.nodes) {
+          if (dirty.stale.has(node.id)) {
+            node.stale = true;
+            node.staleUpstream = !dirty.direct.has(node.id);
+          }
+        }
+      }
+    } catch {
+      // Same law: staleness must never break a graph load.
+    }
+    return graph;
+  };
+
   // The message's workflowUri (persisted in the webview state) wins over
   // the closure — restored panels carry it where the closure is empty.
   const jumpToTask = (taskId: string, workflowUri?: string): void => {
@@ -392,6 +492,10 @@ export function activate(context: ExtensionContext): void {
   const applyDagEdit = async (request: DagEditRequest): Promise<void> => {
     const uri = request.workflowUri ? Uri.parse(request.workflowUri) : dagWorkflowUri;
     if (!uri) { return; }
+    // A restored panel's FIRST interaction can be a canvas edit before any
+    // URI-setting command runs — anchor the tracked workflow here so the
+    // audit/cost/stale pushes (guarded on dagWorkflowUri) aren't dropped.
+    dagWorkflowUri = uri;
     const doc = await workspace.openTextDocument(uri);
     const text = doc.getText();
     let newText: string | undefined;
@@ -399,28 +503,62 @@ export function activate(context: ExtensionContext): void {
 
     switch (request.kind) {
       case 'dag:addTask': {
-        // Detail line derives from the embedded schema (projection — a
-        // new verb field engine-side shows up here without a release).
-        const fieldsOf = (v: string): string => {
-          const fields = service.intel?.verbFields[v]?.map((f) => f.name) ?? [];
-          return fields.length > 0 ? `fields: ${fields.join(' · ')}` : '';
-        };
-        const verb = await window.showQuickPick(
-          [
-            { label: 'infer', description: 'LLM call', detail: fieldsOf('infer') },
-            { label: 'exec', description: 'subprocess (capability-gated)', detail: fieldsOf('exec') },
-            { label: 'invoke', description: 'builtin / MCP tool', detail: fieldsOf('invoke') },
-            { label: 'agent', description: 'agent loop · default-deny tools', detail: fieldsOf('agent') },
-          ],
-          { title: request.afterTaskId ? `New task after \`${request.afterTaskId}\`` : 'New task' },
-        );
-        if (!verb) { return; }
-        const res = insertTaskSkeleton(text, verb.label as Verb, request.afterTaskId ?? undefined);
+        // Verb preset (the canvas palette) skips the QuickPick; the bare
+        // ＋ Task button still asks. Detail line derives from the embedded
+        // schema (projection — a new verb field engine-side shows up here
+        // without a release).
+        const isVerb = (v: unknown): v is Verb =>
+          v === 'infer' || v === 'exec' || v === 'invoke' || v === 'agent';
+        let picked: Verb | undefined = isVerb(request.verb) ? request.verb : undefined;
+        if (!picked) {
+          const fieldsOf = (v: string): string => {
+            const fields = service.intel?.verbFields[v]?.map((f) => f.name) ?? [];
+            return fields.length > 0 ? `fields: ${fields.join(' · ')}` : '';
+          };
+          const verb = await window.showQuickPick(
+            [
+              { label: 'infer', description: 'LLM call', detail: fieldsOf('infer') },
+              { label: 'exec', description: 'subprocess (capability-gated)', detail: fieldsOf('exec') },
+              { label: 'invoke', description: 'builtin / MCP tool', detail: fieldsOf('invoke') },
+              { label: 'agent', description: 'agent loop · default-deny tools', detail: fieldsOf('agent') },
+            ],
+            { title: request.afterTaskId ? `New task after \`${request.afterTaskId}\`` : 'New task' },
+          );
+          if (!verb) { return; }
+          picked = verb.label as Verb;
+        }
+        const res = insertTaskSkeleton(text, picked, request.afterTaskId ?? undefined);
         if (res) {
           newText = res.text;
           revealTask = res.taskId;
         }
         break;
+      }
+      case 'dag:editModel': {
+        const model = await pickModel(service, text, request.taskId);
+        if (!model) { return; }
+        newText = setTaskModel(text, request.taskId, model);
+        if (newText === undefined) {
+          void window.showWarningMessage(`Nika: could not set the model on \`${request.taskId}\` (unknown task or bad provider/model shape).`);
+          return;
+        }
+        revealTask = request.taskId;
+        break;
+      }
+      case 'dag:omni': {
+        // `+ verb [after id]` adds a task deterministically; anything
+        // else routes to the oracle-checked generate pipeline.
+        const add = request.text.match(/^\+\s*(infer|exec|invoke|agent)(?:\s+after\s+([a-z][a-z0-9_]*))?\s*$/i);
+        if (add) {
+          const res = insertTaskSkeleton(text, add[1].toLowerCase() as Verb, add[2] ?? undefined);
+          if (res) {
+            newText = res.text;
+            revealTask = res.taskId;
+          }
+          break;
+        }
+        await commands.executeCommand('nika.generateWorkflow', request.text);
+        return;
       }
       case 'dag:connect':
         // Edge from → to means « to depends_on from ». Idempotent.
@@ -458,7 +596,7 @@ export function activate(context: ExtensionContext): void {
     // Refresh the projection from the edited (dirty) document.
     service.invalidate(uri.toString());
     const fresh = await workspace.openTextDocument(uri);
-    const graph = await service.dagForDocument(fresh);
+    const graph = await loadGraphFor(fresh);
     dagPanel.loadGraph(graph);
     if (revealTask) { dagPanel.focusNode(revealTask); }
 
@@ -476,6 +614,24 @@ export function activate(context: ExtensionContext): void {
       case 'dag:deleteTask':
         dagPanel.note('✕', `task deleted · ${request.taskId}`, undefined, 'st-note');
         break;
+      case 'dag:editModel':
+        dagPanel.note('⌁', `model changed · ${request.taskId}`, request.taskId, 'st-note');
+        break;
+      case 'dag:omni':
+        dagPanel.note('＋', `task added from the bar${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
+        break;
+    }
+  };
+
+  // Post-run stale refresh: recompute against the just-updated sidecar
+  // and repaint BADGES only (the run's painted statuses must survive).
+  const refreshStaleBadges = (fsPath: string): void => {
+    try {
+      const text = fs.readFileSync(fsPath, 'utf-8');
+      const dirty = computeDirty(text, loadRecordedHashes(fsPath));
+      dagPanel.staleUpdate([...dirty.stale], [...dirty.direct]);
+    } catch {
+      // Garnish law.
     }
   };
 
@@ -489,6 +645,34 @@ export function activate(context: ExtensionContext): void {
       get: () => context.workspaceState.get<number>('nika.dagColumn'),
       set: (column) => { void context.workspaceState.update('nika.dagColumn', column); },
     },
+    // Canvas ▶/▶mock — preview streams `run --model mock/echo` (zero
+    // keys); a normal run rides the full capability-gated command.
+    (preview, workflowUri) => {
+      void (async () => {
+        const doc = await requireNikaDocument(workflowUri ?? dagWorkflowUri);
+        if (!doc) { return; }
+        if (!preview) {
+          await commands.executeCommand('nika.runWorkflow', doc.uri);
+          return;
+        }
+        if (!service.caps.run) {
+          void window.showInformationMessage('Nika: this binary predates `run` — update it to preview workflows.');
+          return;
+        }
+        if (doc.uri.scheme !== 'file') { return; }
+        // Preview runs the file on disk too — save so mock lights the
+        // graph the editor shows, and fingerprints match what ran.
+        if (doc.isDirty) { await doc.save(); }
+        dagWorkflowUri = doc.uri;
+        const graph = await loadGraphFor(doc);
+        dagPanel.show(graph);
+        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+          extraArgs: ['--model', 'mock/echo'],
+          onClose: () => refreshStaleBadges(doc.uri.fsPath),
+        });
+      })();
+    },
+    () => cancelActiveRun(),
   );
   state.activeDagPanel = dagPanel;
 
@@ -499,8 +683,23 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     service.onDidUpdateDocument((uriString) => {
       if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
+      // Mid-switch TOCTOU: dagWorkflowUri is reassigned BEFORE the new
+      // graph reaches the panel (loadGraphFor is async) — without this,
+      // the incoming file's audit/cost would paint the OUTGOING graph.
+      const shown = dagPanel.currentWorkflowUri();
+      if (shown !== undefined && shown !== uriString) { return; }
       const report = service.peekCheck(uriString)?.report;
       if (!report) { return; }
+      // Per-card audit badges: the static-check moat surfaced on the
+      // cards (⚠N · worst severity · click → report). Pushed on every
+      // check completion, even a clean one (clears stale badges).
+      const rollup = auditByTask(collectFindings(report));
+      dagPanel.auditUpdate(
+        [...rollup].map(([taskId, a]) => ({ taskId, count: a.count, worst: a.worst })),
+      );
+      // Static cost forecast on the run pill (forecasting on the wire —
+      // audited before a token is spent · honest about unbounded).
+      dagPanel.costUpdate(costForecast(report.cost) ?? null);
       const findings = countReportFindings(report);
       const verdict = `${uriString}#${findings}`;
       if (verdict === lastCheckNote) { return; }
@@ -548,6 +747,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
+      // The engine runs the file on disk — save first so it runs what the
+      // editor (and the DAG) shows, and so the run's fingerprints record
+      // the content that actually ran (not stale on-disk text).
+      if (doc.isDirty) { await doc.save(); }
       if (service.caps.run) {
         // Live: paint `run --json`'s event stream onto the DAG in real
         // time (the overlay the panel was built for). A plain terminal
@@ -555,9 +758,11 @@ export function activate(context: ExtensionContext): void {
         if (doc.uri.scheme === 'file'
           && workspace.getConfiguration('nika').get<boolean>('run.liveDag', true)) {
           dagWorkflowUri = doc.uri;
-          const graph = await service.dagForDocument(doc);
+          const graph = await loadGraphFor(doc);
           dagPanel.show(graph);
-          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log);
+          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+            onClose: () => refreshStaleBadges(doc.uri.fsPath),
+          });
           return;
         }
         runNikaCommand(state.resolvedServerPath, 'run', doc.uri.fsPath);
@@ -663,6 +868,20 @@ export function activate(context: ExtensionContext): void {
       if (!name) { return; }
       const filePath = Uri.joinPath(folder.uri, `${name}.nika.yaml`);
 
+      // Never silently clobber an existing workflow (a raw fs.writeFile
+      // has no undo) — typing an existing name must be an explicit choice.
+      try {
+        await workspace.fs.stat(filePath);
+        const overwrite = await window.showWarningMessage(
+          `${name}.nika.yaml already exists — overwrite it?`,
+          { modal: true },
+          'Overwrite',
+        );
+        if (overwrite !== 'Overwrite') { return; }
+      } catch {
+        // stat threw → the file doesn't exist → free to create.
+      }
+
       const templates = await service.templatesList();
       if (templates.length > 0) {
         const picked = await window.showQuickPick(
@@ -704,7 +923,7 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       dagWorkflowUri = doc.uri;
-      const graph = await service.dagForDocument(doc);
+      const graph = await loadGraphFor(doc);
       dagPanel.show(graph);
     }),
   );
@@ -932,7 +1151,7 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.restartServer', async () => {
       if (state.client) {
-        await state.client.stop();
+        await safeStopClient(state.client);
         state.client = undefined;
       }
       if (service.caps.lsp) {
@@ -1083,5 +1302,6 @@ export function deactivate(): Thenable<void> | undefined {
   if (!state.client) {
     return undefined;
   }
-  return state.client.stop();
+  // safeStopClient guards the Starting-state reject the real host surfaced.
+  return safeStopClient(state.client);
 }

@@ -261,41 +261,6 @@ body {
           drop-shadow(0 3px 10px rgba(0, 0, 0, 0.3));
 }
 
-.dag-node .node-label {
-  fill: var(--nk-ink);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  font-family: var(--nk-mono);
-}
-
-.dag-node .node-subtitle {
-  fill: var(--nk-ink-dim);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-.dag-node .node-icon {
-  font-size: 12px;
-  fill: var(--nk-ink-dim);
-}
-
-/* The verb chip — tinted square the icon sits in. */
-.dag-node .node-icon-chip {
-  fill: color-mix(in srgb, var(--nk-ink-dim) 10%, transparent);
-  stroke: color-mix(in srgb, var(--nk-ink-dim) 16%, transparent);
-  stroke-width: 1;
-}
-
-.dag-node .node-icon-chip,
-.dag-node.verb-infer .node-icon-chip,
-.dag-node.verb-exec .node-icon-chip,
-.dag-node.verb-invoke .node-icon-chip,
-.dag-node.verb-agent .node-icon-chip {
-  fill: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 14%, transparent);
-  stroke: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 30%, transparent);
-}
-
 /* Status bar (left edge) — default hidden */
 .dag-node .node-status-bar {
   fill: transparent;
@@ -315,14 +280,12 @@ body {
 
 .dag-node.status-pending .node-bg {
   fill: var(--nk-page);
-  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   opacity: 0.7;
 }
 
-.dag-node.status-pending .node-label,
-.dag-node.status-pending .node-subtitle,
-.dag-node.status-pending .node-icon {
-  opacity: 0.5;
+.dag-node.status-pending .nc {
+  opacity: 0.55;
 }
 
 /* ─── Status: Running ───────────────────────────────────────────────────── */
@@ -377,8 +340,8 @@ body {
   fill: var(--nk-st-success);
 }
 
-.dag-node.status-success .node-icon {
-  fill: var(--nk-st-success);
+.dag-node.status-success .nc-glyph {
+  color: var(--nk-st-success);
 }
 
 @keyframes success-flash {
@@ -404,12 +367,8 @@ body {
   animation: failed-blink 1s ease-in-out 3;
 }
 
-.dag-node.status-failed .node-label {
-  fill: var(--nk-st-failed);
-}
-
-.dag-node.status-failed .node-icon {
-  fill: var(--nk-st-failed);
+.dag-node.status-failed .nc-id {
+  color: var(--nk-st-failed);
 }
 
 @keyframes failed-blink {
@@ -425,14 +384,12 @@ body {
 /* ─── Status: Skipped ───────────────────────────────────────────────────── */
 
 .dag-node.status-skipped .node-bg {
-  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   stroke-dasharray: 4 3;
   opacity: 0.5;
 }
 
-.dag-node.status-skipped .node-label,
-.dag-node.status-skipped .node-subtitle,
-.dag-node.status-skipped .node-icon {
+.dag-node.status-skipped .nc {
   opacity: 0.4;
 }
 
@@ -453,18 +410,21 @@ body {
 /* ─── High Contrast Theme Overrides ─────────────────────────────────────── */
 
 @media (forced-colors: active) {
+  /* !important: the nika skin's body-scoped rules out-specify these —
+   * high contrast must win over BOTH skins (spec-sanctioned use). */
   .dag-node .node-bg {
-    stroke: ButtonText;
-    fill: Canvas;
+    stroke: ButtonText !important;
+    fill: Canvas !important;
   }
 
   .dag-node:hover .node-bg,
   .dag-node.selected .node-bg {
-    stroke: Highlight;
+    stroke: Highlight !important;
   }
 
-  .dag-node .node-label {
-    fill: CanvasText;
+  .dag-node .nc,
+  .dag-node .nc-id {
+    color: CanvasText;
   }
 
   .dag-edge.edge-data {
@@ -490,14 +450,6 @@ body {
     background: Highlight;
     border-color: Canvas;
   }
-}
-
-/* Static-audit badge (when-gate ⌁ · fan-out ×N) — engine facts, top-right */
-.node-badge {
-  font-size: 10px;
-  fill: var(--nk-ink-dim);
-  opacity: 0.85;
-  pointer-events: none;
 }
 
 /* ─── Wave bands · the parallelism explained ────────────────────────────── */
@@ -1780,4 +1732,867 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 @media (forced-colors: active) {
   .diff-badge { fill: CanvasText !important; stroke: Canvas !important; }
   .dag-node[data-diff='removed'] { opacity: 1 !important; }
+/* ═══ Canvas 2.0 · the content-first card (Flows anatomy) ═════════════════ */
+/* The SVG frame carries status/skin (ring · LED · spinner); the HTML body
+ * carries the substance — id, the prompt/command/args, the params bar. */
+
+.node-fo {
+  overflow: visible;
+  pointer-events: none; /* the group handles click/focus; chips opt back in */
+}
+
+.nc {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px 9px 10px;
+  height: 100%;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  user-select: none;
+}
+
+.nc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+.nc-glyph {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--dv-hue, var(--nk-ink-dim));
+}
+
+.nc-id {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nc-badge {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  padding-right: 12px; /* clear the spinner corner */
+}
+
+.nc-sub {
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-body {
+  font-size: 10px;
+  line-height: 15px;
+  color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.nc-body-cmd {
+  color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-ink));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.nc-body-args {
+  color: color-mix(in srgb, var(--nk-verb-invoke) 45%, var(--nk-ink));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.nc-params {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  min-height: 18px;
+}
+
+.nc-chip {
+  pointer-events: auto;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 7px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.nc-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+  color: var(--nk-accent);
+}
+
+.nc-chip:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.nc-fact {
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Ports — the visible connect affordance (drag out → card = depends_on). */
+.nc-port {
+  fill: var(--nk-page);
+  stroke: var(--nk-border);
+  stroke-width: 1.2;
+  opacity: 0;
+  transition: opacity 0.12s, stroke 0.12s, r 0.12s;
+}
+
+.dag-node:hover .nc-port,
+.dag-svg.connecting .nc-port {
+  opacity: 1;
+}
+
+.nc-port-out {
+  cursor: crosshair;
+}
+
+.nc-port-out:hover {
+  stroke: var(--nk-accent);
+  fill: color-mix(in srgb, var(--nk-accent) 30%, var(--nk-page));
+  r: 5.5;
+}
+
+/* ─── Semantic zoom · level-of-detail tiers ─────────────────────────────── */
+/* Far out the graph reads like a MAP: id + status only. Mid drops the
+ * params. Near shows the whole card. Class set by the zoom handler. */
+
+body.lod-mid .nc-params { visibility: hidden; }
+body.lod-far .nc-params,
+body.lod-far .nc-body,
+body.lod-far .nc-sub,
+body.lod-far .nc-badge { visibility: hidden; }
+body.lod-far .nc-id { font-size: 15px; }
+body.lod-far .nc-glyph { font-size: 14px; }
+body.lod-far .nc-port { opacity: 0 !important; }
+
+/* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
+
+#omnibar {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 44;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100vw - 220px));
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 4px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#verb-palette {
+  display: inline-flex;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+.vp-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-family: var(--nk-mono);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.vp-infer { color: var(--nk-verb-infer); }
+.vp-exec { color: var(--nk-verb-exec); }
+.vp-invoke { color: var(--nk-verb-invoke); }
+.vp-agent { color: var(--nk-verb-agent); }
+
+.vp-btn:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+
+#omni-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  font-size: 11.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+#omni-input::placeholder {
+  color: var(--nk-ink-dim);
+  opacity: 0.75;
+}
+
+#omni-go {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+#omni-go:hover {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
+}
+
+/* The legend slides under the omnibar — keep both readable. */
+#dag-legend {
+  bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  #omnibar { width: calc(100vw - 24px); }
+  #verb-palette { display: none; }
+}
+
+/* nika skin refinements for the card + bar */
+body[data-nk-theme='nika'] .nc-chip {
+  background: rgb(141 180 255 / 0.06);
+  border-color: rgb(140 170 255 / 0.16);
+}
+
+body[data-nk-theme='nika'] .nc-port {
+  fill: #0a0d12;
+  stroke: rgb(140 170 255 / 0.35);
+}
+
+body[data-nk-theme='nika'] #omnibar {
+  background: color-mix(in srgb, #0a0d12 92%, transparent);
+  border-color: rgb(140 170 255 / 0.14);
+}
+
+/* ─── Run controls · the pill's left wing ───────────────────────────────── */
+
+#run-controls {
+  display: inline-flex;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+#run-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-family: var(--nk-mono);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+}
+
+#run-controls button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The display rule above would defeat the hidden attribute (found by
+ * the harness screenshot — Stop showed at rest). */
+#run-controls button[hidden] {
+  display: none;
+}
+
+.rc-run {
+  color: #f4f5f7;
+  background: #2b62ea;
+  border: 1px solid rgb(140 170 255 / 0.25);
+}
+
+.rc-run:hover:not(:disabled) {
+  background: #2f6bff;
+}
+
+.rc-mock {
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border);
+}
+
+.rc-mock:hover:not(:disabled) {
+  color: var(--nk-ink);
+  border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
+}
+
+.rc-stop {
+  color: var(--nk-st-failed);
+  background: color-mix(in srgb, var(--nk-st-failed) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 40%, transparent);
+}
+
+.rc-stop:hover {
+  background: color-mix(in srgb, var(--nk-st-failed) 20%, transparent);
+}
+
+/* Optimistic queued pulse: the click answers instantly — pending cards
+ * shimmer until the first engine event lands (run:state clears it). */
+body.run-starting .dag-node.status-pending .node-bg {
+  animation: nk-queued 0.9s ease-in-out infinite;
+}
+
+@keyframes nk-queued {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.run-starting .dag-node.status-pending .node-bg {
+    animation: none;
+  }
+}
+
+/* ─── Perf containment (research: explicit-size cards, no escape) ───────── */
+
+.nc {
+  contain: layout paint;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  #run-controls .rc-mock { display: none; }
+}
+
+/* ─── Dirty-nodes · edited since the last successful run ────────────────── */
+
+.nc-stale {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 5px;
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.04em;
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.dag-node.is-stale .nc-stale {
+  display: inline-flex;
+}
+
+/* Inherited staleness whispers; the direct edit speaks. */
+.dag-node.stale-up .nc-stale {
+  opacity: 0.6;
+}
+
+/* LOD far: the chip yields with the rest of the header furniture. */
+body.lod-far .nc-stale {
+  display: none !important;
+}
+
+/* ─── Replay scrubber · time-travel over a recorded run ─────────────────── */
+
+#scrubber {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 34px;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 2px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#scrubber[hidden] {
+  display: none;
+}
+
+#scrub-play,
+#scrub-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+#scrub-play:hover {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
+}
+
+#scrub-close {
+  color: var(--nk-ink-dim);
+}
+
+#scrub-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  cursor: pointer;
+}
+
+#scrub-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--nk-accent);
+  pointer-events: none;
+}
+
+#scrub-handle {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--nk-accent);
+  border: 2px solid var(--nk-page);
+  box-shadow: var(--nk-shadow-1);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#scrub-time {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font-size: 10.5px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+}
+
+/* The legend gets out of the scrubber's way when it's up. */
+#scrubber:not([hidden]) ~ #dag-legend {
+  bottom: 68px;
+}
+
+/* ─── Author regions · # nika:region groupings ─────────────────────────── */
+
+.region-box {
+  fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 5%, transparent);
+  stroke: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 28%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.region-label {
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 70%, var(--nk-ink-dim));
+  pointer-events: none;
+}
+
+/* A restrained 6-hue cycle so adjacent regions read apart (the verb
+ * canon + two neutrals — never a rainbow). */
+.region-hue-0 { --region-hue: var(--nk-verb-infer); }
+.region-hue-1 { --region-hue: var(--nk-verb-exec); }
+.region-hue-2 { --region-hue: var(--nk-verb-invoke); }
+.region-hue-3 { --region-hue: var(--nk-verb-agent); }
+.region-hue-4 { --region-hue: var(--nk-accent); }
+.region-hue-5 { --region-hue: var(--nk-st-muted); }
+
+/* LOD far: regions stay (they ARE the map legend), labels shrink-hide. */
+body.lod-far .region-label { display: none; }
+
+@media (forced-colors: active) {
+  .region-box { stroke: GrayText !important; fill: transparent !important; }
+  .region-label { fill: GrayText !important; }
+}
+
+/* Run pill · stale count (dirty-nodes ↔ run) */
+#run-stale {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+#run-stale[hidden] {
+  display: none;
+}
+
+/* ─── Verb cmdk · the drop-a-port palette ───────────────────────────────── */
+
+#verb-cmdk {
+  position: fixed;
+  z-index: 52;
+  width: 220px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 2px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#verb-cmdk[hidden] {
+  display: none;
+}
+
+#cmdk-input {
+  width: 100%;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  outline: none;
+}
+
+#cmdk-input:focus {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+}
+
+.cmdk-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cmdk-row.active {
+  background: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 32%, transparent);
+}
+
+.cmdk-row.verb-infer { --dv-hue: var(--nk-verb-infer); }
+.cmdk-row.verb-exec { --dv-hue: var(--nk-verb-exec); }
+.cmdk-row.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
+.cmdk-row.verb-agent { --dv-hue: var(--nk-verb-agent); }
+
+.cmdk-glyph {
+  flex: 0 0 auto;
+  color: var(--dv-hue, var(--nk-ink-dim));
+  font-size: 12px;
+}
+
+.cmdk-name {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cmdk-blurb {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  text-align: right;
+}
+
+/* ─── Audit chip · the static-check moat on the card ────────────────────── */
+
+.nc-audit {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 5px;
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.03em;
+  color: var(--nk-st-failed);
+  background: color-mix(in srgb, var(--nk-st-failed) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 35%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+
+.dag-node.has-audit .nc-audit {
+  display: inline-flex;
+}
+
+.nc-audit:hover {
+  background: color-mix(in srgb, var(--nk-st-failed) 22%, transparent);
+}
+
+/* Worst-severity hue: error red · warning amber · info accent. */
+.dag-node.audit-warning .nc-audit {
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+}
+
+.dag-node.audit-info .nc-audit {
+  color: var(--nk-accent);
+  background: color-mix(in srgb, var(--nk-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent) 32%, transparent);
+}
+
+/* A failed-status card already reads red — let the node border carry the
+ * error; the chip stays as the count + click target. */
+body.lod-far .nc-audit { display: none !important; }
+
+/* Run pill · static cost forecast chip */
+#run-cost {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-st-success);
+  background: color-mix(in srgb, var(--nk-st-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-success) 32%, transparent);
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* Unbounded = a floor, not a ceiling — amber, not confident green. */
+#run-cost.unbounded {
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+}
+
+#run-cost[hidden] {
+  display: none;
+}
+
+/* ─── Empty-state · the first pixel (enriched onboarding) ────────────────── */
+
+.es-card {
+  max-width: 420px;
+}
+
+.es-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.es-button-ghost {
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border-color: var(--nk-border);
+}
+
+.es-button-ghost:hover {
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+}
+
+.es-gestures {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 18px 0 6px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--nk-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nk-accent) 3%, transparent);
+}
+
+.es-gesture {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 11.5px;
+  color: var(--nk-ink-dim);
+  line-height: 1.4;
+}
+
+.es-gesture code {
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.es-gesture kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  border: 1px solid var(--nk-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.es-g-key {
+  flex: 0 0 16px;
+  text-align: center;
+  font-family: var(--nk-mono);
+  color: var(--nk-accent);
+}
+
+.es-link {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--nk-accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.es-link:hover {
+  text-decoration: underline;
+}
+
+/* Ghost button must out-specify the nika-skin primary fill. */
+body[data-nk-theme='nika'] .es-button-ghost {
+  color: #f4f5f7;
+  background: rgb(141 180 255 / 0.08);
+  border-color: rgb(140 170 255 / 0.20);
+}
+
+body[data-nk-theme='nika'] .es-button-ghost:hover {
+  background: rgb(141 180 255 / 0.14);
+}
+
+/* ─── Forced-colors coverage for the new chips (F-8) ─────────────────────
+ * High Contrast collapses color-mix severity hues — re-assert the
+ * distinctions with system colors + weight, as .dag-node already does. */
+@media (forced-colors: active) {
+  #run-cost,
+  #run-stale,
+  .nc-audit,
+  .nc-stale {
+    background: Canvas !important;
+    color: CanvasText !important;
+    border: 1px solid CanvasText !important;
+    forced-color-adjust: none;
+  }
+
+  /* Severity survives as WEIGHT + a marker, not hue. */
+  #run-cost.unbounded,
+  .dag-node.audit-error .nc-audit {
+    color: Highlight !important;
+    border-color: Highlight !important;
+    font-weight: 700;
+  }
+
+  #scrubber,
+  #verb-cmdk {
+    background: Canvas !important;
+    border: 1px solid CanvasText !important;
+  }
+
+  #verb-cmdk .cmdk-row.active {
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+
+  #scrubber-track {
+    background: GrayText !important;
+  }
+
+  #scrubber-handle {
+    background: Highlight !important;
+    border-color: HighlightText !important;
+  }
+}
+
+/* ─── Selected must out-read dimmed (F-10) ───────────────────────────────
+ * Focus lineage ∧ filter compose as AND — but a focused node that fails
+ * the filter still carries the selection; keep its ring readable instead
+ * of sinking the whole group to 12%. */
+.dag-node.dimmed.selected {
+  opacity: 0.55;
 }

@@ -19,6 +19,11 @@ import { line, curveMonotoneY, type Line } from 'd3-shape';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
+import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
+import { runPlanSummary } from '../core/runPlan';
+import { nextFocus, type NavDir } from '../core/canvasNav';
+import { filterVerbs } from '../core/verbPalette';
+import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
@@ -64,6 +69,107 @@ async function inlineFontDataUri(): Promise<string | null> {
   }
 }
 
+// ─── Verb cmdk · the drop-a-port palette (opens at the cursor) ──────────────
+// A tiny command palette: 4 verbs, type-to-filter (filterVerbs ranks
+// them), ↑↓ to move, Enter to pick, Esc to cancel. The renderer opens it
+// on a port-drop onto empty canvas; the callback posts the pre-wired add.
+
+class VerbCmdk {
+  private readonly el = document.getElementById('verb-cmdk');
+  private readonly input = document.getElementById('cmdk-input') as HTMLInputElement | null;
+  private readonly list = document.getElementById('cmdk-list');
+  private items: ReturnType<typeof filterVerbs> = [];
+  private active = 0;
+  private onPick: ((verb: string) => void) | undefined;
+
+  constructor() {
+    this.input?.addEventListener('input', () => this.render());
+    this.input?.addEventListener('keydown', (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { this.close(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this.move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); this.pick(this.active); }
+    });
+    // A click outside the palette dismisses it.
+    document.addEventListener('mousedown', (e: MouseEvent) => {
+      if (this.isOpen && this.el && !this.el.contains(e.target as Node)) { this.close(); }
+    });
+  }
+
+  get isOpen(): boolean {
+    return this.el?.hasAttribute('hidden') === false;
+  }
+
+  open(clientX: number, clientY: number, onPick: (verb: string) => void): void {
+    if (!this.el || !this.input) { return; }
+    this.onPick = onPick;
+    // Clamp so the palette never spills past the viewport edges.
+    const W = 220, H = 190;
+    const x = Math.min(clientX, window.innerWidth - W - 8);
+    const y = Math.min(clientY, window.innerHeight - H - 8);
+    this.el.style.left = `${Math.max(8, x)}px`;
+    this.el.style.top = `${Math.max(8, y)}px`;
+    this.el.removeAttribute('hidden');
+    this.input.value = '';
+    this.active = 0;
+    this.render();
+    this.input.focus();
+  }
+
+  close(): void {
+    this.el?.setAttribute('hidden', '');
+    this.onPick = undefined;
+  }
+
+  private move(delta: number): void {
+    if (this.items.length === 0) { return; }
+    this.active = (this.active + delta + this.items.length) % this.items.length;
+    this.paintActive();
+  }
+
+  private pick(index: number): void {
+    const item = this.items[index];
+    if (!item) { return; }
+    const cb = this.onPick;
+    this.close();
+    cb?.(item.verb);
+  }
+
+  private render(): void {
+    if (!this.list) { return; }
+    this.items = filterVerbs(this.input?.value ?? '');
+    this.active = Math.min(this.active, Math.max(this.items.length - 1, 0));
+    this.list.replaceChildren();
+    this.items.forEach((item, i) => {
+      const row = document.createElement('button');
+      row.className = `cmdk-row verb-${item.verb}`;
+      row.dataset.i = String(i);
+      const glyph = document.createElement('span');
+      glyph.className = 'cmdk-glyph';
+      glyph.textContent = item.glyph;
+      const name = document.createElement('span');
+      name.className = 'cmdk-name';
+      name.textContent = item.verb;
+      const blurb = document.createElement('span');
+      blurb.className = 'cmdk-blurb';
+      blurb.textContent = item.blurb;
+      row.append(glyph, name, blurb);
+      row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
+      row.addEventListener('click', () => this.pick(i));
+      this.list!.appendChild(row);
+    });
+    this.paintActive();
+  }
+
+  private paintActive(): void {
+    const rows = this.list?.querySelectorAll('.cmdk-row');
+    rows?.forEach((r, i) => r.classList.toggle('active', i === this.active));
+  }
+}
+
+const verbCmdk = new VerbCmdk();
+
 // ─── Edge aurora · run-verdict signal (nika skin only) ──────────────────────
 // One bright hue-travel on a clean close, a red flash on failure — the
 // nika.sh drum, whispering. CSS owns the visuals; this only flips state.
@@ -102,6 +208,15 @@ interface DagNode {
   costMax?: number;
   dependsOn: string[];
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
+  promptPreview?: string;
+  commandPreview?: string;
+  argsPreview?: string;
+  avgMs?: number;
+  avgRuns?: number;
+  stale?: boolean;
+  staleUpstream?: boolean;
+  auditCount?: number;
+  auditWorst?: 'error' | 'warning' | 'info';
 }
 
 interface DagEdge {
@@ -113,11 +228,17 @@ interface DagEdge {
   ghost?: boolean;
 }
 
+interface DagRegion {
+  name: string;
+  taskIds: string[];
+}
+
 interface DagGraph {
   workflowName: string;
   workflowUri?: string;
   nodes: DagNode[];
   edges: DagEdge[];
+  regions?: DagRegion[];
 }
 
 type ExtToWebviewMessage =
@@ -134,7 +255,13 @@ type ExtToWebviewMessage =
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
   | { kind: 'transport:clear' }
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
-  | { kind: 'diff:clear' };
+  | { kind: 'diff:clear' }
+  | { kind: 'run:state'; running: boolean }
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
+  | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
+  | { kind: 'dag:replayEnd' };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -160,10 +287,51 @@ const vscode = acquireVsCodeApi();
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 56;
+const NODE_WIDTH = 248;
+const NODE_HEIGHT = 56; // minimum — content grows the card (Flows anatomy)
 const NODE_RADIUS = 8;
 const PADDING = 40;
+
+// Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
+// padding 8+9 · head 17 · sub 13 · 3px flex gaps · body 15/line · params 21).
+const CARD_PAD_Y = 8.5;
+const HEAD_H = 17;
+const SUB_H = 16;
+const BODY_LINE_H = 15;
+const PARAMS_H = 24;
+
+/** Body preview text for a node (verb decides which fact leads). */
+function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
+  if (node.promptPreview) { return { kind: 'prompt', text: node.promptPreview }; }
+  if (node.commandPreview) { return { kind: 'cmd', text: node.commandPreview }; }
+  if (node.argsPreview) { return { kind: 'args', text: node.argsPreview }; }
+  return undefined;
+}
+
+/** Whether the params row (model chip · cost · avg) has anything to show. */
+function hasParamsRow(node: DagNode): boolean {
+  return node.model !== undefined || node.tool !== undefined
+    || (node.costMin != null && node.costMax != null)
+    || node.avgMs !== undefined;
+}
+
+/** Card height from content — the layout must know the TRUE box. */
+function nodeHeightOf(node: DagNode): number {
+  let h = CARD_PAD_Y * 2 + HEAD_H + SUB_H;
+  const body = bodyTextOf(node);
+  if (body) {
+    const lines = body.kind === 'prompt'
+      ? Math.min(body.text.split('\n').length, 3)
+      : 1;
+    // Prompt wraps: budget by character count too (≈34 chars/line).
+    const wrapLines = body.kind === 'prompt'
+      ? Math.max(lines, Math.min(3, Math.ceil(body.text.replace(/\n/g, ' ').length / 34)))
+      : lines;
+    h += 3 + wrapLines * BODY_LINE_H;
+  }
+  if (hasParamsRow(node)) { h += 3 + PARAMS_H; }
+  return Math.max(h, NODE_HEIGHT);
+}
 
 /** Verb -> icon (simple Unicode — no font dependency) */
 // The nika.sh canon glyph set (still plain Unicode \u2014 no font dependency).
@@ -173,6 +341,14 @@ const VERB_ICONS: Record<Verb, string> = {
   invoke: '\u25C6', // \u25C6 filled diamond
   agent: '\u2726',  // \u2726 four-point star
 };
+
+/** ONE class string for a node group — status, verb, staleness. */
+function nodeClassOf(node: DagNode): string {
+  return `dag-node status-${node.status} verb-${node.verb}`
+    + (node.stale ? ' is-stale' : '')
+    + (node.staleUpstream ? ' stale-up' : '')
+    + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '');
+}
 
 function verbIcon(verb: string): string {
   return (VERB_ICONS as Record<string, string>)[verb] ?? '\u25CB'; // \u25CB unknown
@@ -206,7 +382,7 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
     children: graph.nodes.map((node) => ({
       id: node.id,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: nodeHeightOf(node),
     })),
     edges: graph.edges.map((edge) => ({
       id: edge.id,
@@ -224,6 +400,7 @@ class DagRenderer {
   private svg: Selection<SVGSVGElement, unknown, null, undefined>;
   private rootGroup: Selection<SVGGElement, unknown, null, undefined>;
   private bandGroup: Selection<SVGGElement, unknown, null, undefined>;
+  private regionGroup: Selection<SVGGElement, unknown, null, undefined>;
   private edgeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private nodeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private zoomBehavior: ZoomBehavior<SVGSVGElement, unknown>;
@@ -282,6 +459,8 @@ class DagRenderer {
     this.rootGroup = this.svg.append<SVGGElement>('g').attr('class', 'dag-root');
     // Wave bands at the very back — the parallelism explained visually
     this.bandGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-bands');
+    // Author regions above bands, still behind edges + nodes
+    this.regionGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-regions');
     // Edges below nodes
     this.edgeGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-edges');
     // Nodes on top
@@ -314,6 +493,20 @@ class DagRenderer {
           to,
           workflowUri: this.currentGraph?.workflowUri,
         });
+        return;
+      }
+      // Dropped on EMPTY canvas — the Flows gesture: open a verb cmdk AT
+      // the cursor to pick the new task's verb; insertTaskSkeleton then
+      // declares depends_on: [from] extension-side.
+      if (!targetEl) {
+        verbCmdk.open(event.clientX, event.clientY, (verb) => {
+          vscode.postMessage({
+            kind: 'dag:addTask',
+            verb,
+            afterTaskId: from,
+            workflowUri: this.currentGraph?.workflowUri,
+          });
+        });
       }
     });
 
@@ -325,6 +518,7 @@ class DagRenderer {
         this.currentTx = event.transform.x;
         this.currentTy = event.transform.y;
         this.updateMinimapViewport();
+        this.updateZoomChrome();
         this.rootGroup.attr('transform', event.transform.toString());
         this.saveState({
           zoom: event.transform.k,
@@ -455,6 +649,7 @@ class DagRenderer {
 
     // Wave bands at the back, then edges, then nodes.
     this.renderWaveBands(layoutResult.children ?? [], waves.length);
+    this.renderRegions();
     this.renderEdges(layoutResult.edges ?? [], graph.edges);
     this.renderNodes(layoutResult.children ?? [], graph.nodes);
 
@@ -462,6 +657,15 @@ class DagRenderer {
     // retarget) would dim the entire new graph — drop it.
     if (this.focusedId && !this.nodeMap.has(this.focusedId)) {
       this.focusedId = null;
+    }
+    // Same for the live filter: its match set points at the OLD graph's
+    // ids — recompute against the new one (the query survives, the
+    // stale set must not dim everything).
+    const search = document.getElementById('dag-search') as HTMLInputElement | null;
+    if (search && !search.hidden && search.value.trim().length > 0) {
+      this.applyFilter(search.value.trim());
+    } else {
+      this.filterMatches = null;
     }
     this.applyFocus(this.focusedId);
     this.updateEdgeFlow();
@@ -505,6 +709,46 @@ class DagRenderer {
     for (let i = 0; i + 1 < path.length; i++) {
       this.criticalEdges.add(`${path[i]}->${path[i + 1]}`);
     }
+  }
+
+  /**
+   * Author regions (`# nika:region`) as labeled background boxes behind
+   * the member cards — the bounding box of the region's laid-out nodes.
+   * A tiny palette cycles by index so adjacent regions read apart.
+   */
+  private renderRegions(): void {
+    this.regionGroup.selectAll('*').remove();
+    const regions = this.currentGraph?.regions;
+    if (!regions || regions.length === 0) { return; }
+    const PAD = 16;
+    const LABEL_H = 16;
+    regions.forEach((region, i) => {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let members = 0;
+      for (const id of region.taskIds) {
+        const b = this.layoutBox.get(id);
+        if (!b) { continue; }
+        members += 1;
+        minX = Math.min(minX, b.x);
+        minY = Math.min(minY, b.y);
+        maxX = Math.max(maxX, b.x + b.w);
+        maxY = Math.max(maxY, b.y + b.h);
+      }
+      if (members === 0) { return; }
+      const g = this.regionGroup.append('g').attr('class', `region region-hue-${i % 6}`);
+      g.append('rect')
+        .attr('class', 'region-box')
+        .attr('x', minX - PAD)
+        .attr('y', minY - PAD - LABEL_H)
+        .attr('width', maxX - minX + PAD * 2)
+        .attr('height', maxY - minY + PAD * 2 + LABEL_H)
+        .attr('rx', 10);
+      g.append('text')
+        .attr('class', 'region-label')
+        .attr('x', minX - PAD + 10)
+        .attr('y', minY - PAD - LABEL_H + 11)
+        .text(region.name);
+    });
   }
 
   /** Background bands per topological wave — parallelism made visible. */
@@ -551,6 +795,8 @@ class DagRenderer {
    */
   /** Focus lineage set (null = no focus) — one input to the dim truth. */
   private focusRelated: Set<string> | null = null;
+  /** The editor-caret hinted task — restored after any class rewrite. */
+  private cursorHintedId: string | null = null;
   /** Live `/`-filter matches (null = no filter) — the other input. */
   private filterMatches: Set<string> | null = null;
 
@@ -584,7 +830,11 @@ class DagRenderer {
       || (this.filterMatches !== null && !this.filterMatches.has(nid));
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('dimmed', (d) => dimNode(d.id))
-      .classed('selected', (d) => d.id === this.focusedId);
+      .classed('selected', (d) => d.id === this.focusedId)
+      // cursor-hint lives outside nodeClassOf; a class rewrite (audit ·
+      // status · frame) drops it — restore it here so the caret halo
+      // survives every refresh.
+      .classed('cursor-hint', (d) => d.id === this.cursorHintedId);
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('dimmed', (d) => {
         const ends = this.edgeEnds.get(d.id);
@@ -642,7 +892,7 @@ class DagRenderer {
     ];
   }
 
-  private startConnect(fromId: string): void {
+  startConnect(fromId: string): void {
     this.connectFrom = fromId;
     this.tempEdge = this.rootGroup.append<SVGPathElement>('path').attr('class', 'temp-edge');
     this.svg.classed('connecting', true);
@@ -736,9 +986,87 @@ class DagRenderer {
     vp.style.height = `${Math.max(h * s, 8)}px`;
   }
 
+  /**
+   * Scrubber frame: set every node to its status at the scrub instant —
+   * NO feed narration (scrubbing back and forth must not spam the feed).
+   * The graph-wide consequences (critical path · flow · legend) run once.
+   */
+  paintFrame(frames: FrameEntry[]): void {
+    for (const f of frames) {
+      const node = this.nodeMap.get(f.taskId);
+      if (!node) { continue; }
+      node.status = f.status as TaskStatus;
+      node.durationMs = f.durationMs;
+      const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
+      el.attr('class', nodeClassOf(node));
+      el.select('.nc-sub').text(this.getSubtitle(node));
+      document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(f.taskId)}"]`)
+        ?.setAttribute('class', `mm-node st-${f.status}`);
+    }
+    this.recomputeCritical();
+    this.updateEdgeFlow();
+    this.refreshDim();
+    this.updateStatusDisplay();
+  }
+
+  /** dag:audit — refresh the ⚠N chips in place (rebuild the card body). */
+  applyAudit(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+    const byId = new Map(audits.map((a) => [a.taskId, a]));
+    for (const node of this.nodeMap.values()) {
+      const a = byId.get(node.id);
+      node.auditCount = a?.count;
+      node.auditWorst = a?.worst;
+      const el = this.nodeGroup.select(`[data-id="${CSS.escape(node.id)}"]`);
+      el.attr('class', nodeClassOf(node));
+      const host = el.select<HTMLElement>('.nc').node();
+      if (host) { this.buildCardHtml(host, node); }
+    }
+    this.refreshDim();
+  }
+
+  /** dag:stale — refresh badges in place; run statuses stay painted. */
+  applyStale(stale: string[], direct: string[]): void {
+    const staleSet = new Set(stale);
+    const directSet = new Set(direct);
+    for (const node of this.nodeMap.values()) {
+      node.stale = staleSet.has(node.id) ? true : undefined;
+      node.staleUpstream = node.stale && !directSet.has(node.id) ? true : undefined;
+    }
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .attr('class', (d) => nodeClassOf(this.nodeMap.get(d.id) ?? d));
+    // attr('class') wiped the overlay classes — restore dim/selection.
+    this.refreshDim();
+    this.saveState({ graph: this.currentGraph });
+  }
+
+  /** Current graph's nodes (stale flags · the run pill chip reads these). */
+  currentNodes(): DagNode[] {
+    return this.currentGraph?.nodes ?? [];
+  }
+
+  /** Current graph's node ids — the scrubber seeds complete frames. */
+  nodeIds(): string[] {
+    return [...this.nodeMap.keys()];
+  }
+
   /** Re-measure + redraw the minimap (panel resize re-scales the card). */
   refreshMinimap(): void {
     this.renderMinimap();
+  }
+
+  /**
+   * Zoom-dependent chrome: the % chip + semantic level-of-detail. Far
+   * out, cards collapse to id+status (the graph reads like a map);
+   * mid drops the params row; near shows everything.
+   */
+  private updateZoomChrome(): void {
+    const pct = document.getElementById('zoom-pct');
+    if (pct) { pct.textContent = `${Math.round(this.currentZoom * 100)}%`; }
+    const lod = this.currentZoom < 0.55 ? 'lod-far' : this.currentZoom < 0.85 ? 'lod-mid' : 'lod-near';
+    if (!document.body.classList.contains(lod)) {
+      document.body.classList.remove('lod-far', 'lod-mid', 'lod-near');
+      document.body.classList.add(lod);
+    }
   }
 
   // ─── Image export · the WHOLE graph, styles + font embedded ──────────────
@@ -780,6 +1108,22 @@ class DagRenderer {
     if (nikaSkin) {
       css = css.replace(/body\[data-nk-theme=["']nika["']\]/g, ':root');
     }
+    // Bake the LIVE token values: the editor injects --vscode-* on a DOM
+    // ancestor that never travels with the file, so var() chains would
+    // collapse to their hardcoded fallbacks — the exported image must
+    // keep the user's actual theme.
+    const live = getComputedStyle(document.body);
+    const baked = [
+      'nk-accent', 'nk-data', 'nk-border', 'nk-surface', 'nk-page',
+      'nk-ink', 'nk-ink-dim', 'nk-mono', 'nk-st-running', 'nk-st-success',
+      'nk-st-failed', 'nk-st-retrying', 'nk-st-muted', 'nk-critical',
+      'nk-verb-infer', 'nk-verb-exec', 'nk-verb-invoke', 'nk-verb-agent',
+    ]
+      .map((t) => ({ t, v: live.getPropertyValue(`--${t}`).trim() }))
+      .filter(({ v }) => v.length > 0)
+      .map(({ t, v }) => `--${t}: ${v};`)
+      .join(' ');
+    css += `\n:root { ${baked} }`;
     const font = await inlineFontDataUri();
     if (font) {
       css += `@font-face{font-family:'Martian Mono';src:url('${font}') format('woff2');font-weight:100 800;}`;
@@ -820,14 +1164,25 @@ class DagRenderer {
       vscode.postMessage({ kind: 'dag:export', format: 'svg', data: svgText, name: `${name}.svg` });
       return;
     }
+    // Raster scale clamps to Chromium's safe canvas ceiling — a huge
+    // graph exports at reduced DPI instead of a silent blank PNG.
+    const scale = Math.min(2, 8192 / W, 8192 / H);
     const canvas = document.createElement('canvas');
-    canvas.width = W * 2;
-    canvas.height = H * 2;
+    canvas.width = Math.ceil(W * scale);
+    canvas.height = Math.ceil(H * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) { return; }
-    ctx.scale(2, 2);
+    ctx.scale(scale, scale);
     ctx.drawImage(img, 0, 0);
-    vscode.postMessage({ kind: 'dag:export', format, data: canvas.toDataURL('image/png'), name: `${name}.png` });
+    let data: string;
+    try {
+      data = canvas.toDataURL('image/png');
+    } catch {
+      // Rasterization refused (taint/size edge) — ship the vector form.
+      vscode.postMessage({ kind: 'dag:export', format: 'svg', data: svgText, name: `${name}.svg` });
+      return;
+    }
+    vscode.postMessage({ kind: 'dag:export', format, data, name: `${name}.png` });
   }
 
   /** Click the minimap → center the main view on that point. */
@@ -855,12 +1210,20 @@ class DagRenderer {
    * it just whispers « you are here ».
    */
   cursorHint(taskId: string | null): void {
+    this.cursorHintedId = taskId;
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('cursor-hint', (d) => taskId !== null && d.id === taskId);
   }
 
   /** Focus queued while ELK is still laying out (race: focus ≺ layout). */
   private pendingCenter: string | undefined;
+
+  /** Keyboard nav: move focus by direction over the DAG structure. */
+  navFocus(dir: NavDir): void {
+    if (!this.currentGraph) { return; }
+    const target = nextFocus(this.currentGraph.nodes, this.currentGraph.edges, this.focusedId ?? undefined, dir);
+    if (target) { this.focusAndCenter(target); }
+  }
 
   /** Editor-driven focus: light the lineage AND glide the node to center. */
   focusAndCenter(taskId: string): void {
@@ -909,91 +1272,75 @@ class DagRenderer {
       .attr('opacity', 0)
       .remove();
 
-    // ENTER
+    // ENTER — the Flows-grade card: an SVG frame (status ring · LED spine
+    // · spinner live in SVG so every status/skin rule keeps working) with
+    // a foreignObject body (real HTML: wrapping prompt text, chips, the
+    // model button). The node IS the content.
     const enter = groups
       .enter()
       .append('g')
-      .attr('class', (d) => `dag-node status-${d.status} verb-${d.verb}`)
+      .attr('class', (d) => nodeClassOf(d))
       .attr('data-id', (d) => d.id)
       .attr('opacity', 0);
 
-    // Node background rect
+    // Node background rect (variable height — the card grows with content)
     enter
       .append('rect')
       .attr('class', 'node-bg')
       .attr('width', NODE_WIDTH)
-      .attr('height', NODE_HEIGHT)
+      .attr('height', (d) => nodeHeightOf(d))
       .attr('rx', NODE_RADIUS)
       .attr('ry', NODE_RADIUS);
 
-    // Status indicator bar (left edge)
+    // Status/verb LED spine (left edge)
     enter
       .append('rect')
       .attr('class', 'node-status-bar')
       .attr('width', 4)
-      .attr('height', NODE_HEIGHT - 8)
+      .attr('height', (d) => nodeHeightOf(d) - 8)
       .attr('x', 4)
       .attr('y', 4)
       .attr('rx', 2)
       .attr('ry', 2);
 
-    // Verb icon chip (Raycast-style tinted square — the icon sits IN
-    // something, the one tasteful skeuomorphic cue per node)
+    // HTML card content
     enter
-      .append('rect')
-      .attr('class', 'node-icon-chip')
-      .attr('x', 12)
-      .attr('y', NODE_HEIGHT / 2 - 12)
-      .attr('width', 24)
-      .attr('height', 24)
-      .attr('rx', 6);
+      .append('foreignObject')
+      .attr('class', 'node-fo')
+      .attr('x', 8)
+      .attr('y', 0)
+      .attr('width', NODE_WIDTH - 14)
+      .attr('height', (d) => nodeHeightOf(d))
+      .append('xhtml:div')
+      .attr('class', 'nc')
+      .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
-    enter
-      .append('text')
-      .attr('class', 'node-icon')
-      .attr('x', 24)
-      .attr('y', NODE_HEIGHT / 2 + 1)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .text((d) => verbIcon(d.verb));
-
-    // Task ID label — long ids ellipsize (the hover card carries the full
-    // id); 17 chars is what fits before the spinner zone at 200px width.
-    const clipLabel = (s: string): string => (s.length > 17 ? `${s.slice(0, 16)}…` : s);
-    enter
-      .append('text')
-      .attr('class', 'node-label')
-      .attr('x', 44)
-      .attr('y', NODE_HEIGHT / 2 - 7)
-      .attr('dominant-baseline', 'central')
-      .text((d) => clipLabel(d.label));
-
-    // Subtitle (verb + provider/duration)
-    enter
-      .append('text')
-      .attr('class', 'node-subtitle')
-      .attr('x', 44)
-      .attr('y', NODE_HEIGHT / 2 + 11)
-      .attr('dominant-baseline', 'central')
-      .text((d) => this.getSubtitle(d));
-
-    // Running spinner (animated via CSS)
+    // Running spinner (animated via CSS) — header-right corner.
     enter
       .append('circle')
       .attr('class', 'node-spinner')
-      .attr('cx', NODE_WIDTH - 20)
-      .attr('cy', NODE_HEIGHT / 2)
+      .attr('cx', NODE_WIDTH - 18)
+      .attr('cy', 19)
       .attr('r', 6);
 
-    // Static-audit badge (top-right): when-gate · fan-out — engine facts.
+    // Ports — the visible connect affordance (drag out-port → card).
     enter
-      .append('text')
-      .attr('class', 'node-badge')
-      .attr('x', NODE_WIDTH - 8)
-      .attr('y', 12)
-      .attr('text-anchor', 'end')
-      .attr('dominant-baseline', 'central')
-      .text((d) => this.badgeText(d));
+      .append('circle')
+      .attr('class', 'nc-port nc-port-in')
+      .attr('cx', NODE_WIDTH / 2)
+      .attr('cy', 0)
+      .attr('r', 4);
+    enter
+      .append('circle')
+      .attr('class', 'nc-port nc-port-out')
+      .attr('cx', NODE_WIDTH / 2)
+      .attr('cy', (d) => nodeHeightOf(d))
+      .attr('r', 4)
+      .on('mousedown', (event: MouseEvent, d: DagNode) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.startConnect(d.id);
+      });
 
     // Alt-drag from a node = create a dependency edge (the n8n gesture).
     enter.on('mousedown', (event: MouseEvent, d: DagNode) => {
@@ -1055,12 +1402,108 @@ class DagRenderer {
         return elk ? `translate(${elk.x},${elk.y})` : '';
       });
 
-    // Update classes
-    merged.attr('class', (d) => `dag-node status-${d.status} verb-${d.verb}`);
+    // Update classes + dynamic card facts (status line · duration).
+    merged.attr('class', (d) => nodeClassOf(d));
+    merged.select('.nc-sub').text((d) => this.getSubtitle(d));
+  }
 
-    // Update dynamic text
-    merged.select('.node-subtitle').text((d) => this.getSubtitle(d));
-    merged.select('.node-badge').text((d) => this.badgeText(d));
+  /** Build the HTML card body (safe DOM construction — never innerHTML). */
+  private buildCardHtml(host: HTMLElement, node: DagNode): void {
+    host.replaceChildren();
+
+    const header = document.createElement('div');
+    header.className = 'nc-head';
+    const glyph = document.createElement('span');
+    glyph.className = 'nc-glyph';
+    glyph.textContent = verbIcon(node.verb);
+    const id = document.createElement('span');
+    id.className = 'nc-id';
+    id.textContent = node.label;
+    id.title = node.label;
+    // Stale chip pre-rendered ALWAYS, shown by the group's is-stale
+    // class — dag:stale refreshes badges without rebuilding cards.
+    const staleChip = document.createElement('span');
+    staleChip.className = 'nc-stale';
+    staleChip.textContent = '△ stale';
+    staleChip.title = 'Edited since its last successful run (or downstream of such an edit) — a run will re-execute this.';
+    // Audit chip — the static-check moat on the card (⚠N · worst
+    // severity via the group class · click → the pre-flight report).
+    const auditChip = document.createElement('button');
+    auditChip.className = 'nc-audit';
+    if (node.auditCount) {
+      auditChip.textContent = `⚠ ${node.auditCount}`;
+      auditChip.dataset.worst = node.auditWorst ?? 'error';
+      auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task — click for the pre-flight report`;
+    }
+    auditChip.addEventListener('mousedown', (e) => e.stopPropagation());
+    auditChip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      vscode.postMessage({ kind: 'dag:openReport' });
+    });
+    const badge = document.createElement('span');
+    badge.className = 'nc-badge';
+    badge.textContent = this.badgeText(node);
+    header.append(glyph, id, auditChip, staleChip, badge);
+    host.appendChild(header);
+
+    const sub = document.createElement('div');
+    sub.className = 'nc-sub';
+    sub.textContent = this.getSubtitle(node);
+    host.appendChild(sub);
+
+    const body = bodyTextOf(node);
+    if (body) {
+      const el = document.createElement('div');
+      el.className = `nc-body nc-body-${body.kind}`;
+      el.textContent = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
+      el.title = body.text;
+      host.appendChild(el);
+    }
+
+    if (hasParamsRow(node)) {
+      const params = document.createElement('div');
+      params.className = 'nc-params';
+      const target = node.model ?? node.tool;
+      if (target) {
+        // The model chip EDITS (the Flows params-bar gesture): click →
+        // provider/model QuickPick extension-side → YAML edit → reload.
+        const chip = document.createElement('button');
+        chip.className = 'nc-chip nc-model';
+        chip.textContent = target;
+        chip.title = node.model
+          ? 'Change this task\'s model (edits the YAML · ⌘Z undoes)'
+          : node.tool ?? '';
+        if (node.model) {
+          chip.addEventListener('mousedown', (e) => e.stopPropagation());
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({
+              kind: 'dag:editModel',
+              taskId: node.id,
+              workflowUri: this.currentGraph?.workflowUri,
+            });
+          });
+        } else {
+          chip.disabled = true;
+        }
+        params.appendChild(chip);
+      }
+      if (node.costMin != null && node.costMax != null) {
+        const cost = document.createElement('span');
+        cost.className = 'nc-fact';
+        cost.textContent = `${usd(node.costMin)}–${usd(node.costMax)}`;
+        cost.title = 'Static cost interval (min path → worst case) — audited before a single token is spent';
+        params.appendChild(cost);
+      }
+      if (node.avgMs !== undefined && node.avgRuns) {
+        const avg = document.createElement('span');
+        avg.className = 'nc-fact nc-avg';
+        avg.textContent = `⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`;
+        avg.title = `Mean success duration over ${node.avgRuns} recorded run${node.avgRuns === 1 ? '' : 's'} (flight recorder)`;
+        params.appendChild(avg);
+      }
+      host.appendChild(params);
+    }
   }
 
   // ─── Hover card (safe DOM construction · explication riche) ──────────────
@@ -1383,9 +1826,9 @@ class DagRenderer {
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
 
-    const el = this.nodeGroup.select(`[data-id="${taskId}"]`);
-    el.attr('class', `dag-node status-${status} verb-${node.verb}`);
-    el.select('.node-subtitle').text(this.getSubtitle(node));
+    const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
+    el.attr('class', nodeClassOf(node));
+    el.select('.nc-sub').text(this.getSubtitle(node));
 
     // The minimap mirrors the run live (class-only touch, no re-render).
     document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
@@ -1398,7 +1841,10 @@ class DagRenderer {
     // Durations refine the critical path; completion lights the edge flow.
     this.recomputeCritical();
     this.updateEdgeFlow();
-    if (this.focusedId) { this.applyFocus(this.focusedId); }
+    // applyStatus rewrote node classes, wiping .dimmed — refreshDim
+    // ALWAYS (a live run under a `/` filter with no focused node must
+    // keep filtered-out cards dimmed, matching applyStale/applyAudit).
+    if (this.focusedId) { this.applyFocus(this.focusedId); } else { this.refreshDim(); }
 
     this.saveState({ graph: this.currentGraph });
     this.updateStatusDisplay();
@@ -1464,6 +1910,7 @@ class DagRenderer {
 
   clear(): void {
     this.bandGroup.selectAll('*').remove();
+    this.regionGroup.selectAll('*').remove();
     this.edgeGroup.selectAll('*').remove();
     this.nodeGroup.selectAll('*').remove();
     this.currentGraph = undefined;
@@ -1527,9 +1974,11 @@ class DagRenderer {
     const total = this.currentGraph.nodes.length;
     const terminal = counts.success + counts.failed + counts.skipped + counts.cancelled;
 
-    // Run verdict → the aurora speaks once, at the live close.
+    // Run verdict → the aurora speaks once, at the LIVE close. A replay
+    // reaching its terminal frame (or a scrub crossing it) is not a live
+    // finish — never fire the verdict sweep/danger flash while scrubbing.
     const allTerminal = total > 0 && terminal === total;
-    if (allTerminal && !this.wasAllTerminal) {
+    if (allTerminal && !this.wasAllTerminal && !replayer.active) {
       auroraSignal(counts.failed > 0 ? 'danger' : 'sweep');
     }
     this.wasAllTerminal = allTerminal;
@@ -1711,7 +2160,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['F', 'fit'], ['W', 'waves'], ['+/−', 'zoom'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['F', 'fit'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -1808,6 +2257,121 @@ renderer.wireHoverCardPersistence();
 const transport = createTransport({
   applyStates: (updates) => renderer.batchUpdateStatus(updates),
 });
+// ─── Replay scrubber · time-travel over a recorded run ──────────────────────
+// The extension hands the whole timeline; the webview owns playback — the
+// handle position IS the truth, frameAt paints the DAG at that instant.
+
+class Replayer {
+  private timeline: TimelineEntry[] = [];
+  private startMs = 0;
+  private spanMs = 1;
+  private speed = 6;
+  private pos = 1; // 0..1 along the run
+  private playing = false;
+  private raf = 0;
+  private lastTick = 0;
+  private readonly el = document.getElementById('scrubber');
+  private readonly track = document.getElementById('scrub-track');
+  private readonly fill = document.getElementById('scrub-fill');
+  private readonly handle = document.getElementById('scrub-handle');
+  private readonly timeLabel = document.getElementById('scrub-time');
+  private readonly playBtn = document.getElementById('scrub-play');
+  private dragging = false;
+
+  constructor() {
+    this.playBtn?.addEventListener('click', () => this.toggle());
+    document.getElementById('scrub-close')?.addEventListener('click', () => {
+      this.close();
+      vscode.postMessage({ kind: 'dag:requestRefresh' });
+    });
+    this.track?.addEventListener('mousedown', (e: MouseEvent) => {
+      this.dragging = true;
+      this.pause();
+      this.seekToClientX(e.clientX);
+    });
+    window.addEventListener('mousemove', (e: MouseEvent) => {
+      if (this.dragging) { this.seekToClientX(e.clientX); }
+    });
+    window.addEventListener('mouseup', () => { this.dragging = false; });
+  }
+
+  get active(): boolean {
+    return this.el?.hasAttribute('hidden') === false;
+  }
+
+  load(timeline: TimelineEntry[], label: string, speed: number): void {
+    this.timeline = timeline;
+    this.speed = Math.max(speed, 1);
+    const b = timelineBounds(timeline);
+    this.startMs = b.startMs;
+    this.spanMs = Math.max(b.endMs - b.startMs, 1);
+    this.el?.removeAttribute('hidden');
+    const title = document.getElementById('dag-title');
+    if (title) { title.textContent = `↻ ${label}`; }
+    // Land on the FINAL state (the outcome), ready to scrub back or replay.
+    this.setPos(1);
+  }
+
+  close(): void {
+    this.pause();
+    this.el?.setAttribute('hidden', '');
+    this.timeline = [];
+  }
+
+  private seekToClientX(clientX: number): void {
+    const rect = this.track?.getBoundingClientRect();
+    if (!rect || rect.width === 0) { return; }
+    this.setPos((clientX - rect.left) / rect.width);
+  }
+
+  private setPos(pos: number): void {
+    this.pos = Math.min(1, Math.max(0, pos));
+    const pct = `${(this.pos * 100).toFixed(2)}%`;
+    if (this.fill) { this.fill.style.width = pct; }
+    if (this.handle) { this.handle.style.left = pct; }
+    const atMs = this.startMs + this.pos * this.spanMs;
+    if (this.timeLabel) {
+      const elapsed = this.pos * this.spanMs;
+      this.timeLabel.textContent = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(1)}s` : `${Math.round(elapsed)}ms`;
+    }
+    renderer.paintFrame(frameAt(this.timeline, atMs, renderer.nodeIds()));
+  }
+
+  toggle(): void {
+    if (this.playing) { this.pause(); } else { this.play(); }
+  }
+
+  private play(): void {
+    if (this.timeline.length === 0) { return; }
+    // Restart from the top when parked at the end.
+    if (this.pos >= 1) { this.setPos(0); }
+    this.playing = true;
+    if (this.playBtn) { this.playBtn.textContent = '⏸'; }
+    // Whole run in a watchable window (compressed by replay.speed-ish;
+    // clamp so a long run stays ≤ ~8s and a short one isn't a blink).
+    const budgetMs = Math.min(Math.max(this.spanMs / this.speed, 2500), 8000);
+    this.lastTick = performance.now();
+    const step = (now: number): void => {
+      if (!this.playing) { return; }
+      // rAF throttles/pauses while the panel is hidden — an unclamped dt
+      // after regaining visibility would snap the playhead to the end.
+      const dt = Math.min(now - this.lastTick, 100);
+      this.lastTick = now;
+      this.setPos(this.pos + dt / budgetMs);
+      if (this.pos >= 1) { this.pause(); return; }
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+
+  private pause(): void {
+    this.playing = false;
+    if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
+    if (this.playBtn) { this.playBtn.textContent = '▶'; }
+  }
+}
+
+const replayer = new Replayer();
 
 // Restore from webview state (e.g., after being hidden and re-shown)
 const savedState = vscode.getState();
@@ -1816,6 +2380,7 @@ if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.s
 if (savedState?.showFeed) { toggleActivity(); }
 if (savedState?.graph) {
   renderer.render(savedState.graph);
+  refreshStaleChip();
 } else {
   document.getElementById('empty-state')?.removeAttribute('hidden');
 }
@@ -1833,6 +2398,16 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       clearDiff();
       transport.deactivate();
       void renderer.render(msg.graph).then(() => transport.resync());
+      // Any graph load while a replay is up supersedes it (live run ·
+      // follow-mode retarget · normal show). The replay's OWN graph
+      // loads BEFORE the scrubber arms, so this never closes itself.
+      if (replayer.active) { replayer.close(); }
+      renderer.render(msg.graph);
+      refreshStaleChip();
+      // The cost chip is a singleton, not per-node data — a workflow
+      // switch must not keep showing the PREVIOUS file's forecast; the
+      // new file's check will re-push its own (dag:cost) when it lands.
+      applyCostChip(null);
       break;
     case 'dag:updateStatus':
       // The live present wins over any replay scrub (runsView law).
@@ -1863,8 +2438,30 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // CSS variables update automatically — nothing to do
       break;
     case 'theme:mode':
-      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload.
+      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload. A
+      // pending aurora must not replay when flipping BACK to nika.
       document.body.dataset.nkTheme = msg.mode;
+      if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = undefined; }
+      delete document.body.dataset.aurora;
+      break;
+    case 'run:state':
+      setRunUiState(msg.running);
+      break;
+    case 'dag:stale':
+      renderer.applyStale(msg.stale, msg.direct);
+      refreshStaleChip();
+      break;
+    case 'dag:audit':
+      renderer.applyAudit(msg.audits);
+      break;
+    case 'dag:cost':
+      applyCostChip(msg.forecast);
+      break;
+    case 'dag:replayLoad':
+      replayer.load(msg.timeline, msg.label, msg.speed);
+      break;
+    case 'dag:replayEnd':
+      replayer.close();
       break;
     case 'transport:load':
       transport.load(msg.timeline, { speed: msg.speed, autoPlay: msg.autoPlay });
@@ -1918,12 +2515,119 @@ function clearDiff(): void {
     el.remove();
   }
 }
+// ─── Run controls · the bottom-center pill (n8n/Windmill placement) ─────────
+
+/** Truthful lifecycle from the extension; also ends the optimistic pulse. */
+function setRunUiState(running: boolean): void {
+  document.body.classList.toggle('running', running);
+  document.body.classList.remove('run-starting');
+  const run = document.getElementById('btn-run') as HTMLButtonElement | null;
+  const mock = document.getElementById('btn-run-mock') as HTMLButtonElement | null;
+  const stop = document.getElementById('btn-stop');
+  if (run) { run.disabled = running; }
+  if (mock) { mock.disabled = running; }
+  stop?.toggleAttribute('hidden', !running);
+}
+
+function applyCostChip(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+  const chip = document.getElementById('run-cost');
+  if (!chip) { return; }
+  if (!forecast) {
+    chip.setAttribute('hidden', '');
+    return;
+  }
+  chip.textContent = forecast.label;
+  chip.title = forecast.tooltip;
+  chip.classList.toggle('unbounded', forecast.unbounded);
+  chip.removeAttribute('hidden');
+}
+
+function refreshStaleChip(): void {
+  const chip = document.getElementById('run-stale');
+  if (!chip) { return; }
+  const summary = runPlanSummary(renderer.currentNodes());
+  if (summary.total === 0) {
+    chip.setAttribute('hidden', '');
+    return;
+  }
+  chip.textContent = summary.label;
+  chip.title = summary.tooltip ?? '';
+  chip.removeAttribute('hidden');
+}
+
+function requestRun(preview: boolean): void {
+  // `running` = confirmed by run:state; `run-starting` = optimistic —
+  // both block re-entry, closing the double-click window before spawn.
+  if (document.body.classList.contains('running')
+    || document.body.classList.contains('run-starting')) { return; }
+  // Optimistic latency masking: the click has a visible consequence
+  // BEFORE the first engine event (pending cards shimmer) — cleared by
+  // the first run:state, or by a 4s safety in case the spawn dies.
+  document.body.classList.add('run-starting');
+  setTimeout(() => document.body.classList.remove('run-starting'), 4000);
+  vscode.postMessage({
+    kind: 'dag:runRequest',
+    preview,
+    workflowUri: vscode.getState()?.graph?.workflowUri,
+  });
+}
+
+document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
+document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
+document.getElementById('btn-stop')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:cancelRun' });
+});
 
 // ─── Toolbar Handlers ───────────────────────────────────────────────────────
 
 document.getElementById('btn-fit')?.addEventListener('click', () => renderer.fitToView());
 document.getElementById('btn-zoom-in')?.addEventListener('click', () => renderer.zoomIn());
 document.getElementById('btn-zoom-out')?.addEventListener('click', () => renderer.zoomOut());
+document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
+
+// ─── Verb palette + omnibar (the Flows bottom bar) ─────────────────────────
+
+for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.vp-btn'))) {
+  btn.addEventListener('click', () => {
+    vscode.postMessage({
+      kind: 'dag:addTask',
+      verb: btn.dataset.verb,
+      afterTaskId: renderer.focused,
+      workflowUri: vscode.getState()?.graph?.workflowUri,
+    });
+  });
+}
+
+const omniInput = document.getElementById('omni-input') as HTMLInputElement | null;
+
+function runOmni(): void {
+  const text = omniInput?.value.trim();
+  if (!text) { return; }
+  if (text.startsWith('/')) {
+    // Filter mode — route into the search affordance.
+    if (searchEl) {
+      searchEl.hidden = false;
+      searchEl.value = text.slice(1).trim();
+      renderer.applyFilter(searchEl.value || null);
+      searchEl.focus();
+    }
+    if (omniInput) { omniInput.value = ''; }
+    return;
+  }
+  vscode.postMessage({
+    kind: 'dag:omni',
+    text,
+    workflowUri: vscode.getState()?.graph?.workflowUri,
+  });
+  if (omniInput) { omniInput.value = ''; }
+}
+
+omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key === 'Enter') { runOmni(); }
+  if (e.key === 'Escape') { omniInput.blur(); }
+});
+document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
 const wavesBtn = document.getElementById('btn-waves');
 const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); };
@@ -2000,6 +2704,15 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     openSearch();
     return;
   }
+  // Keyboard-first canvas nav (a11y + power): Tab cycles the topological
+  // node order, ↑ walks to a dependency, ↓ to a dependent.
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    renderer.navFocus(e.shiftKey ? 'prev' : 'next');
+    return;
+  }
+  if (e.key === 'ArrowUp') { e.preventDefault(); renderer.navFocus('up'); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); renderer.navFocus('down'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
     if (renderer.cancelConnect()) { return; }
@@ -2010,6 +2723,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
+  if (e.key === ' ' && replayer.active) { e.preventDefault(); replayer.toggle(); }
   if (e.key === 'Delete' || e.key === 'Backspace') renderer.requestDeleteFocused();
   if (e.key === 'Enter' && renderer.focused) {
     // Open the YAML at the focused task — the graph hands you back to text.
@@ -2048,6 +2762,12 @@ window.addEventListener('mouseup', () => { minimapDragging = false; });
 document.getElementById('es-open')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:showActive' });
 });
+document.getElementById('es-new')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:newWorkflow' });
+});
+document.getElementById('es-walkthrough')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:openWalkthrough' });
+});
 
 // Panel resize re-scales the responsive minimap card (debounced).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -2072,8 +2792,13 @@ if (!vscode.getState()?.seenHint) {
     vscode.setState({ ...(vscode.getState() ?? {}), seenHint: true });
     window.removeEventListener('message', firstGraphListener);
   };
+  let hintScheduled = false;
   const firstGraphListener = (event: MessageEvent<ExtToWebviewMessage>): void => {
-    if (event.data.kind === 'dag:load') { setTimeout(onFirstGraph, 600); }
+    // Two dag:loads inside the 600ms window must not append two hints.
+    if (event.data.kind === 'dag:load' && !hintScheduled) {
+      hintScheduled = true;
+      setTimeout(onFirstGraph, 600);
+    }
   };
   window.addEventListener('message', firstGraphListener);
 }

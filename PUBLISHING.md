@@ -4,6 +4,71 @@
 > 2026-06-10). One artifact, two registries: VS Marketplace (VS Code) and
 > OpenVSX (Cursor · Windsurf · VSCodium). Status boxes reflect THIS repo.
 
+## Per-release readiness gate (run before ANY tag)
+
+The tag is the operator's call. Before it, walk this once — it's the
+confidence gate between "the pyramid is green" and "a stranger's first
+5 minutes won't embarrass us."
+
+```
+1. AUTOMATED   npm test         → vitest + parity + eslint all green
+               npm run test:integration → real VS Code host, 4/4
+               npx vsce package  → packages clean, size sane (<1 MB)
+2. CROSS-REVIEW a diff review of the release delta (adversarial · the
+               integration/compose bugs a single-feature test can't see)
+               — every verified finding fixed, not just filed
+3. MANUAL F5   the 20-min feel pass below (what automation can't judge)
+4. DOCS        CHANGELOG has the version's entry · README hero current ·
+               the demo GIF still reflects the UI
+5. VERSION     see the odd-minor trap below before choosing stable vs
+               --pre-release
+```
+
+### Manual F5 script · 20 min · the feel the smoke test can't judge
+
+`code .` in this repo → F5 (Run Extension). In the dev host:
+
+```
+□ EMPTY STATE   open the DAG panel with no file → the card pitches
+                (title · 2 buttons · 3-gesture crib · walkthrough link);
+                ＋ New workflow scaffolds; the link opens the walkthrough
+□ FIRST RUN     open a *.nika.yaml → Show DAG → cards render content-first
+                in the nika skin; ▶ mock lights the DAG wave-by-wave with
+                ZERO keys; aurora sweeps once on a clean close
+□ THEME         nika.dag.theme: editor → follows your theme; high
+                contrast still legible; toggle back to nika
+□ AUDIT READ    a bounded workflow shows a green cost chip on the pill;
+                drop a max_tokens → it flips amber `≥ $X`; introduce a
+                NIKA-DAG-003 (a ${{ tasks.x }} with no depends_on) → the
+                ⚠N card chip appears → click → the report opens
+□ EDIT LOOP     change a prompt → the △ stale badge + the pill △N; the
+                model chip edits (provider picker → one undoable edit);
+                drag a port onto empty canvas → the verb cmdk at the
+                cursor → pick → a pre-wired task lands in the YAML
+□ REPLAY        run for real (or mock) → open the run in the Runs view →
+                the scrubber; Space plays, drag scrubs, the DAG state
+                tracks the handle; scrubbing back never spams the feed
+□ KEYBOARD      Tab cycles cards · ↑↓ walk dependency/dependent · Enter
+                opens the YAML · / filters · Esc clears
+□ A11Y          a screen-reader pass on the panel; forced-colors mode
+□ CLOSE         close the window mid-LSP-start (no unhandled-rejection
+                popup — safeStopClient covers it)
+```
+
+If every box holds in BOTH skins, the feel is real. Tag when ready.
+
+### The odd-minor trap (choose before you tag)
+
+The version tracks the engine announce line. VS Marketplace's OFFICIAL
+pre-release convention is **odd-minor = pre-release**. `0.93.0` has an
+odd minor (93), so:
+- **Stable release** (recommended for the first public ship): publish
+  WITHOUT `--pre-release`. The odd minor is then cosmetic — the engine-
+  parity number wins; ignore the convention.
+- **Pre-release channel**: `vsce publish --pre-release` embraces the
+  odd-minor. Don't mix — a stable at an odd minor then a `--pre-release`
+  at the same minor confuses the channel. Pick one lane and stay in it.
+
 ## Blockers · accounts (do these FIRST · lead time)
 
 - [ ] **[VSM]** Publisher `supernovae` at marketplace.visualstudio.com/manage.
@@ -53,16 +118,17 @@
       prefer platform-specific VSIX (below) once the engine ships `run`
 - [x] No telemetry → nothing to declare (there is NO manifest telemetry
       field); README states it
-- [ ] Demo GIF in README (page-load friendly · the listing sells with it)
+- [x] Demo GIF in README (page-load friendly · the listing sells with it)
+      — the media pipeline embeds `media/dag-execution.gif` in the hero
 
 ## Version strategy
 
-`0.81.x` tracks the engine announce line. Note: the OFFICIAL pre-release
-convention is odd-minor = pre-release (`--pre-release` flag · no semver
-`-beta` tags supported). 81 is odd · if we ever ship Marketplace
-pre-releases, jump the channel split to engine-parity-compatible numbers
-or accept the flag without the convention. `vsce publish minor|patch`
-auto-bumps + tags.
+`0.93.x` tracks the engine announce line (was `0.81.x` pre-2026-07).
+See "The odd-minor trap" in the readiness gate above before choosing
+stable vs `--pre-release` — 93 is odd, so the convention reads it as a
+pre-release unless you publish stable and treat the minor as cosmetic.
+`vsce publish minor|patch` auto-bumps + tags; we bump by hand
+(`npm version`) to stay in engine-parity lockstep, so tag manually.
 
 ## Platform-specific VSIX (when the engine binary bundles)
 

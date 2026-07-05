@@ -14,3 +14,7 @@ scripts/**
 .github/**
 PUBLISHING.md
 media/**
+out-integration/**
+.vscode-test/**
+tsconfig.integration.json
+src/test-integration/**

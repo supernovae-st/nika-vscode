@@ -18,6 +18,30 @@ paints in the margin. Apache-2.0 spec · AGPL engine.
 *The diagnostics above are the real `nika check --json` output — codes,
 messages and positions come from the engine, not the extension.*
 
+## Install
+
+- **VS Code** · search **“Nika”** in Extensions, or
+  [Marketplace → supernovae.nika-lang](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+- **Cursor · Windsurf · VSCodium** · same search — they install from
+  [OpenVSX → supernovae/nika-lang](https://open-vsx.org/extension/supernovae/nika-lang)
+- **The engine** (optional but where the magic lives) ·
+  `brew install supernovae-st/tap/nika` — or let the extension offer a
+  verified download on first open (HTTPS + SHA-256 · explicit consent ·
+  [policy](https://github.com/supernovae-st/nika-vscode/blob/main/README.md)).
+  Without the binary you still get syntax, snippets, schema completions
+  and the client-side DAG.
+
+## 30 seconds to the wow
+
+1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
+2. **`Nika: Show Workflow DAG`** — the file becomes a content-first
+   canvas: prompts on infer cards, `$ commands` on exec cards.
+3. Press **▶ mock** on the run pill — the DAG lights up wave by wave with
+   `mock/echo`: **deterministic, zero API keys, zero network.**
+
+That's the whole loop: the same file then runs on any of the engine's
+providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
+
 ## Features
 
 ### The audit moat, in the editor
@@ -47,6 +71,17 @@ messages and positions come from the engine, not the extension.*
 - **Task rename & find-references** · hits all 4 syntactic homes
   (declaration · `depends_on` · `${{ tasks.X }}` islands · bare CEL in
   `when:`) and enforces the engine id grammar (snake_case · CEL-safe)
+- **Linked editing** · type in ANY home of a task id and every reference
+  follows live · **selection ranges** (word → line → task → tasks →
+  document smart-expand) · **task dependency hierarchy** in the native
+  Call Hierarchy UI (incoming = what it unlocks · outgoing = what it needs)
+- **Workspace-wide lint** · CLOSED `.nika.yaml` files ride `nika check`
+  into the Problems panel too (open files stay live) · per-code severity
+  remap (`nika.diagnostics.severity` · exact or `NIKA-SEC-*` globs · `off`
+  hides a code) · related-information walks you to both ends of a
+  missing wire
+- **Language status** · the `{}` flyout carries the engine version, the
+  ACTIVE file's check verdict (busy while a pass runs) and the LSP state
 - **Outline / breadcrumbs** · tasks with verb detail + the permits boundary
 - **Full LSP** (the day the binary ships `nika lsp`, it takes over
   automatically · the client declares which layers it keeps via
@@ -60,7 +95,49 @@ messages and positions come from the engine, not the extension.*
 
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
-  mermaid/dot export
+  mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
+- **Content-first canvas** · the node IS the content: infer cards show
+  their prompt, exec cards their `$ command`, invoke cards their tool +
+  args — before any run. The **model chip edits** (provider picker →
+  one undoable YAML edit), `⌀` badges carry the mean duration across
+  your recorded runs, ports appear on hover (drag out-port → card =
+  `depends_on`, or drop on empty canvas → a new pre-wired task), and a
+  **verb palette + omnibar** sits at the bottom: `+ infer after gather`
+  inserts deterministically, `/text` filters, a sentence routes to
+  oracle-checked generation. Semantic zoom keeps 100-task graphs
+  readable as a map
+- **Run from the canvas** · a **▶ Run / ▶ mock / ■ Stop** pill drives the
+  run without leaving the panel; **▶ mock** streams
+  `run --model mock/echo` (deterministic · zero keys · zero network).
+  The DAG lights live; the pill flips ▶/■ from the real spawn/close
+- **Time-travel replay** · click a recorded run and **scrub its whole
+  timeline** — play/pause (Space), drag the handle, the DAG state at any
+  instant computed locally. Replay re-renders, never re-executes
+- **Dirty-nodes** · a `△ stale` badge marks every task edited since its
+  last successful run (and its downstream cone) — you see what a run
+  will re-execute. The last-success state lives in a
+  `.nika/canvas-state.json` sidecar, never in your workflow YAML
+- **Regions** · a `# nika:region <name>` comment (ignored by the engine)
+  groups the tasks that follow it into a labeled box on the canvas —
+  logic grouping at zero cost to the YAML
+- **Audit before you run** · the moat, on the canvas. A **cost forecast**
+  rides the run pill — `$min–$max` when `nika check` can price it (a
+  ceiling), an honest amber `≥ $X` when an uncapped task makes it a
+  floor; **`⚠N` audit chips** on the cards surface the task's
+  `nika check` findings (secret-flow · permits · schema · unknown-tools),
+  click-through to the report; a **`△N` stale count** shows what a run
+  will re-execute. Every number is static — read before a token is spent
+- **Keyboard-drivable** · `Tab` / `⇧Tab` cycle the topological order, `↑`
+  walks to a dependency, `↓` to a dependent, `Enter` opens the YAML — the
+  whole canvas without the mouse
+- **The nika.sh skin** · the panel ships the landing page's design
+  language by default — engineered-black register, one blue accent, the
+  4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
+  Martian Mono, a full-spectrum edge aurora that sweeps once on a clean
+  run close and flashes red on failure · `nika.dag.theme: editor` follows
+  your theme instead · high contrast always wins
+- **`/` filter** · type to fade everything but matching tasks
+  (id · verb · model · tool · provider) · Enter cycles the matches
 - **The engineering read** · exact max parallelism (Dilworth antichain,
   with a witness set), speedup ceiling (work-span), k-worker wall-clock
   estimates (Graham-bounded list scheduling · measured milliseconds after
@@ -75,14 +152,31 @@ messages and positions come from the engine, not the extension.*
 - **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
   duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
-- **Validate / Inspect** from the editor, tasks + problem matcher
+- **Validate / Inspect** from the editor (`nika check` · `nika inspect`), tasks + problem matcher
+- **The 0.93 loop rides the integrated terminal** · launch inputs with
+  `nika run --var key=value` · pin the output contract with
+  `nika test <file> --update` and keep `nika test` as the offline CI gate
+  (the mock synthesizes schema-conformant output) · a run you killed —
+  or a durable `nika:prompt` pause (exit 4, journaled as
+  `workflow_paused`) — resumes with `nika run --resume <trace>`
+  (`--answer approve=true` re-arms the gate · cache hits stay visible) ·
+  every recorded run in the flight recorder doubles as that checkpoint ·
+  `nika trace show <run>` re-renders any of them in the terminal ·
+  scaffold from the same embedded corpus the snippets are tested against
+  (`nika examples` · `nika new --from <template>`) · any code explained:
+  `nika explain NIKA-XXXX`
 
 ### Agent-native
 - **LM tools** · `nika_check` / `nika_explain` / `nika_graph` registered as
   Language Model Tools · in-editor AI agents validate the workflows they
   write through the REAL oracle instead of guessing
-- **MCP + rules setup** · one command wires editor MCP config and Cursor rules;
-  `nika init` scaffolds the repo-local `AGENTS.md`
+- **MCP + rules setup** · one command wires editor MCP config and Cursor
+  rules — engine-canonical through `nika wire` when the binary ships it,
+  with a one-tap follow-up for codex/claude; `nika init` scaffolds the
+  repo-local `AGENTS.md`. On VS Code 1.101+ agent mode discovers
+  `nika mcp` natively (zero config files)
+- **Doctor** · `Nika: Doctor` runs the engine's own environment diagnosis
+  (binary · config · provider keys) — prints exact fixes, never mutates
 - **Works with your CLI agents too** · `nika wire cursor` / `claude` /
   `windsurf` / `codex` patches each client's MCP config (idempotent ·
   preserves your other servers) so Claude Code, Codex CLI and friends
@@ -122,6 +216,27 @@ tasks:
 
 `infer` (LLM) · `exec` (subprocess) · `invoke` (builtin/tool · HTTP fetch is the
 `nika:fetch` builtin here) · `agent` (agent loop · default-deny tools).
+
+### Canvas regions (editor-only · engine ignores it)
+
+A `# nika:region <name>` comment groups the tasks that follow it into a
+labeled box on the DAG canvas. It's a plain YAML comment — the engine
+never sees it, so it costs nothing at runtime:
+
+```yaml
+tasks:
+  # nika:region Ingest
+  - id: fetch_pr
+    invoke: { tool: "nika:fetch", args: { url: "${{ env.PR_URL }}" } }
+  - id: analyze_diff
+    depends_on: [fetch_pr]
+    infer: { prompt: "Plan the review of ${{ tasks.fetch_pr.output }}." }
+
+  # nika:region Ship
+  - id: post_comment
+    depends_on: [analyze_diff]
+    exec: { command: "gh pr comment $PR --body-file verdict.md" }
+```
 
 ## Links
 
