@@ -1804,7 +1804,8 @@ class DagRenderer {
       add('fan-out', live.fanOutCount != null ? `${live.fanOutKind} ×${live.fanOutCount}` : live.fanOutKind);
     }
     if (live.costMin != null && live.costMax != null) {
-      add('cost (static)', `$${live.costMin.toFixed(live.costMin < 0.1 ? 4 : 2)} → $${live.costMax.toFixed(live.costMax < 0.1 ? 4 : 2)}`);
+      // Short label — the k-column is narrow; the range IS the static read.
+      add('cost', `$${live.costMin.toFixed(live.costMin < 0.1 ? 4 : 2)} → $${live.costMax.toFixed(live.costMax < 0.1 ? 4 : 2)}`);
     }
     if (live.durationMs != null) {
       add('duration', live.durationMs >= 1000 ? `${(live.durationMs / 1000).toFixed(1)}s` : `${live.durationMs}ms`);
@@ -1822,7 +1823,7 @@ class DagRenderer {
     if (ins) {
       const blocks = ins.blastRadius.get(live.id) ?? 0;
       if (blocks > 0) {
-        add('on failure', `blocks ${blocks} downstream task${blocks === 1 ? '' : 's'}`);
+        add('blast', `blocks ${blocks} downstream task${blocks === 1 ? '' : 's'}`);
       }
       if (ins.pinchPoints.includes(live.id) && ins.nodeCount > 1) {
         add('pinch point', 'nothing else can run while this runs');
@@ -2324,7 +2325,17 @@ class DagRenderer {
     if (counts.cancelled > 0) parts.push(`${counts.cancelled} cancelled`);
 
     const statusEl = document.getElementById('dag-status');
-    if (statusEl) statusEl.textContent = parts.join(' \u00B7 ');
+    if (statusEl) {
+      // One aggregate dot leads the pill (the « • Active » chip read):
+      // failed > running/retrying > all-done > resting.
+      const agg = counts.failed > 0 ? 'failed'
+        : counts.running + counts.retrying > 0 ? 'running'
+        : allTerminal ? 'success' : 'idle';
+      statusEl.className = `agg-${agg}`;
+      const dot = document.createElement('span');
+      dot.className = 'agg-dot';
+      statusEl.replaceChildren(dot, document.createTextNode(parts.join(' \u00B7 ')));
+    }
 
     // Legend chips + completion progress (the run, summarized at a glance).
     const chips = document.getElementById('legend-chips');

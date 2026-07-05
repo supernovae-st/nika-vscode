@@ -664,10 +664,12 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-add-task" title="Add a task (wired after the focused one)">＋ Task</button>
     </div>
     <div class="tb-group">
-      <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
-      <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
       <button id="zoom-pct" title="Current zoom — click to fit">100%</button>
+      <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
+    </div>
+    <div class="tb-group">
+      <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
       <button id="btn-relayout" title="Auto-layout — drop the dragged card positions">⌗<kbd>A</kbd></button>
     </div>
     <div class="tb-group">

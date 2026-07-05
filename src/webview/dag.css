@@ -267,6 +267,20 @@ body {
   display: none;
 }
 
+#dag-status .agg-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--nk-st-muted);
+  vertical-align: 0;
+}
+
+#dag-status.agg-running .agg-dot { background: var(--nk-st-running); animation: nk-dot-pulse 1.1s ease-in-out infinite; }
+#dag-status.agg-failed .agg-dot { background: var(--nk-st-failed); }
+#dag-status.agg-success .agg-dot { background: var(--nk-st-success); }
+
 /* ─── SVG Container · dot-grid canvas (the Linear board feel) ───────────── */
 
 #dag-container {
@@ -904,9 +918,8 @@ body.vscode-light .logo-dark { display: none; }
   opacity: 1;
 }
 
-#minimap:empty,
-#minimap-svg:not(:has(rect)) {
-  /* No graph yet → the card hides itself. */
+#minimap:not(:has(.mm-node)) {
+  /* No graph yet → the card hides itself (the HOST fades, not the svg). */
   opacity: 0;
   pointer-events: none;
 }
@@ -1310,13 +1323,30 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 #activity-head {
-  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
   font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
+  font-family: var(--nk-mono);
   letter-spacing: 0.07em;
   color: var(--nk-ink-dim);
   border-bottom: 1px solid var(--nk-border);
+}
+
+/* The terminal chrome dots (the nika.sh run-panel read). */
+#activity-head::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nk-ink-dim);
+  opacity: 0.5;
+  box-shadow: 10px 0 0 color-mix(in srgb, var(--nk-ink-dim) 50%, transparent),
+              20px 0 0 color-mix(in srgb, var(--nk-ink-dim) 50%, transparent);
+  margin-right: 20px;
 }
 
 #activity-list {
@@ -1517,21 +1547,23 @@ body[data-nk-theme='nika'] {
   /* The brand AMBIANCE (DESIGN.md §4): blue-black, ONE blue accent,
    * Martian Mono, glow spent on running/selected/failed only. The card
    * itself is the calm two-zone surface — never the site's heavy slab. */
-  --nk-page: #0a0b10;
-  --nk-surface: #12141c;
-  --nk-card: #161a24;
-  --nk-card-border: rgb(140 170 255 / 0.16);
-  --nk-border: rgb(140 170 255 / 0.12);
-  --nk-border-strong: rgb(140 170 255 / 0.30);
-  --nk-border-soft: rgb(140 170 255 / 0.09);
+  /* THE reference background (operator lock): warm near-black, raised
+   * neutral cards — blue lives in accents/wires/verbs, never the page. */
+  --nk-page: #131313;
+  --nk-surface: #1b1b1e;
+  --nk-card: #1e1f23;
+  --nk-card-border: rgb(255 255 255 / 0.08);
+  --nk-border: rgb(255 255 255 / 0.09);
+  --nk-border-strong: rgb(255 255 255 / 0.2);
+  --nk-border-soft: rgb(255 255 255 / 0.06);
   --nk-card-shadow:
-    inset 0 1px 0 rgb(180 205 255 / 0.06),
-    0 1px 3px rgb(0 0 0 / 0.35),
-    0 14px 30px -20px rgb(20 50 160 / 0.4);
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 1px 3px rgb(0 0 0 / 0.32),
+    0 14px 30px -20px rgb(0 0 0 / 0.55);
   --nk-card-shadow-hover:
-    inset 0 1px 0 rgb(180 205 255 / 0.08),
-    0 2px 5px rgb(0 0 0 / 0.4),
-    0 20px 40px -20px rgb(20 50 160 / 0.5);
+    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    0 2px 5px rgb(0 0 0 / 0.38),
+    0 20px 40px -20px rgb(0 0 0 / 0.65);
   --nk-ink: #f4f5f7;
   --nk-ink-dim: #8a8f98;
   --nk-accent: #4f86ff;
@@ -1554,7 +1586,7 @@ body[data-nk-theme='nika'] {
 
 /* Canvas · faint blue survey crosses on the black pool. */
 body[data-nk-theme='nika'] {
-  --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%238db4ff' stroke-opacity='0.09'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
+  --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.055'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 body[data-nk-theme='nika'] #dag-container {
@@ -2030,11 +2062,11 @@ body.lod-far .dag-node:hover .nc {
 
 /* Ports — the visible connect affordance (drag out → card = depends_on). */
 .nc-port {
-  /* Resting endpoint dots (the Well read) — always present, quiet. */
-  fill: color-mix(in srgb, var(--nk-ink-dim) 70%, var(--nk-page));
+  /* Resting endpoint dots (the Well read) — always present, readable. */
+  fill: color-mix(in srgb, var(--nk-ink) 62%, var(--nk-page));
   stroke: var(--nk-page);
   stroke-width: 1.5;
-  opacity: 0.65;
+  opacity: 0.9;
   transition: opacity var(--nk-dur) var(--nk-ease), fill var(--nk-dur) var(--nk-ease), r var(--nk-dur) var(--nk-ease);
 }
 
@@ -2104,18 +2136,22 @@ body.lod-far .nc-port { opacity: 0 !important; }
 }
 
 .vp-btn {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   font-family: var(--nk-mono);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease), transform var(--nk-dur) var(--nk-ease);
+}
+
+.vp-btn:active {
+  transform: scale(0.94);
 }
 
 .vp-infer { color: var(--nk-verb-infer); }
