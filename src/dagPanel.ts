@@ -27,7 +27,8 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
-  | { kind: 'theme:changed' };
+  | { kind: 'theme:changed' }
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -100,6 +101,7 @@ export class DagPanel implements vscode.Disposable {
         localResourceRoots: [
           vscode.Uri.joinPath(this.extensionUri, 'out', 'webview'),
           vscode.Uri.joinPath(this.extensionUri, 'icons'),
+          vscode.Uri.joinPath(this.extensionUri, 'fonts'),
         ],
       },
     );
@@ -128,12 +130,13 @@ export class DagPanel implements vscode.Disposable {
     this.panel = panel;
 
     // Serializer-restored panels arrive with their ORIGINAL options —
-    // re-assert so the logo URIs stay readable after upgrades.
+    // re-assert so the logo/font URIs stay readable after upgrades.
     panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.extensionUri, 'out', 'webview'),
         vscode.Uri.joinPath(this.extensionUri, 'icons'),
+        vscode.Uri.joinPath(this.extensionUri, 'fonts'),
       ],
     };
 
@@ -192,6 +195,22 @@ export class DagPanel implements vscode.Disposable {
         this.postMessage({ kind: 'theme:changed' });
       }),
     );
+
+    // Skin flip is live — no panel reload needed.
+    this.disposables.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration('nika.dag.theme')) {
+          this.postMessage({ kind: 'theme:mode', mode: DagPanel.themeMode() });
+        }
+      }),
+    );
+  }
+
+  /** The configured webview skin — brand register or editor-adaptive. */
+  private static themeMode(): 'nika' | 'editor' {
+    return vscode.workspace.getConfiguration('nika').get<string>('dag.theme', 'nika') === 'editor'
+      ? 'editor'
+      : 'nika';
   }
 
   /** Whether a webview panel currently exists (visible or backgrounded). */
@@ -347,6 +366,12 @@ export class DagPanel implements vscode.Disposable {
     const logoLight = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'icons', 'nika-light.svg'),
     );
+    // Martian Mono variable (OFL · fonts/OFL.txt) — the brand mono for the
+    // nika skin; the editor skin keeps the user's editor font untouched.
+    const monoFont = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'fonts', 'martian-mono-variable.woff2'),
+    );
+    const themeMode = DagPanel.themeMode();
 
     // CSP: lock down everything except what we explicitly need.
     // - default-src 'none'          — block all by default
@@ -370,9 +395,21 @@ export class DagPanel implements vscode.Disposable {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
   <link rel="stylesheet" href="${styleUri}">
+  <style>
+    @font-face {
+      font-family: 'Martian Mono';
+      src: url('${monoFont}') format('woff2');
+      font-weight: 100 800;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
   <title>Nika DAG</title>
 </head>
-<body>
+<body data-nk-theme="${themeMode}">
+  <div id="aurora" aria-hidden="true"></div>
+  <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden
+         aria-label="Filter tasks">
   <div id="dag-toolbar">
     <span id="dag-mark" aria-hidden="true">
       <img class="logo-dark" src="${logoDark}" alt="" width="16" height="16">

@@ -30,6 +30,20 @@ const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').mat
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type D3ZoomCall = any;
 
+// ─── Edge aurora · run-verdict signal (nika skin only) ──────────────────────
+// One bright hue-travel on a clean close, a red flash on failure — the
+// nika.sh drum, whispering. CSS owns the visuals; this only flips state.
+let auroraTimer: ReturnType<typeof setTimeout> | undefined;
+function auroraSignal(kind: 'sweep' | 'danger'): void {
+  if (document.body.dataset.nkTheme !== 'nika') { return; }
+  if (auroraTimer) { clearTimeout(auroraTimer); }
+  document.body.dataset.aurora = kind;
+  auroraTimer = setTimeout(() => {
+    delete document.body.dataset.aurora;
+    auroraTimer = undefined;
+  }, REDUCED_MOTION ? 600 : 1500);
+}
+
 // ─── Types (mirrored from dagPanel.ts — no shared import in webview) ────────
 
 type TaskStatus = 'pending' | 'running' | 'retrying' | 'success' | 'failed' | 'skipped' | 'cancelled';
@@ -81,7 +95,8 @@ type ExtToWebviewMessage =
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
-  | { kind: 'theme:changed' };
+  | { kind: 'theme:changed' }
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -113,11 +128,12 @@ const NODE_RADIUS = 8;
 const PADDING = 40;
 
 /** Verb -> icon (simple Unicode — no font dependency) */
+// The nika.sh canon glyph set (still plain Unicode \u2014 no font dependency).
 const VERB_ICONS: Record<Verb, string> = {
-  infer: '\u2728', // sparkles
-  exec: '\u25B6',  // play triangle
-  invoke: '\u2699', // gear
-  agent: '\u267B',  // recycling (loop)
+  infer: '\u25C7',  // \u25C7 diamond outline
+  exec: '\u25B7',   // \u25B7 play triangle
+  invoke: '\u25C6', // \u25C6 filled diamond
+  agent: '\u2726',  // \u2726 four-point star
 };
 
 function verbIcon(verb: string): string {
@@ -190,6 +206,8 @@ class DagRenderer {
   /** Ghost edge ids (never flow · never critical · click = fix). */
   private ghostIds = new Set<string>();
   private focusedId: string | null = null;
+  /** All nodes terminal at last look — the aurora fires on the flip only. */
+  private wasAllTerminal = false;
   /** node id → wave index (entrance stagger + bands). */
   private waveOf = new Map<string, number>();
   /** node id → laid-out box (centerOn · editor-driven focus). */
@@ -366,6 +384,11 @@ class DagRenderer {
     this.waveOf.clear();
     const waves = topoWaves(graph.nodes, graph.edges);
     waves.forEach((wave, i) => wave.forEach((id) => this.waveOf.set(id, i)));
+    // A graph that ARRIVES complete (restored panel · finished trace) must
+    // not fire the aurora — only a LIVE transition to complete does.
+    this.wasAllTerminal = graph.nodes.length > 0 && graph.nodes.every(
+      (n) => n.status !== 'pending' && n.status !== 'running' && n.status !== 'retrying',
+    );
     this.recomputeCritical();
     // Structural read (width · pinch · blast radius) — durations don't
     // change structure, so this caches per load; the explainer recomputes
@@ -488,10 +511,17 @@ class DagRenderer {
    * upstream chain and downstream cone stay lit — « what feeds this ·
    * what it unlocks », the DAG explaining itself.
    */
+  /** Focus lineage set (null = no focus) — one input to the dim truth. */
+  private focusRelated: Set<string> | null = null;
+  /** Live `/`-filter matches (null = no filter) — the other input. */
+  private filterMatches: Set<string> | null = null;
+
   private applyFocus(id: string | null): void {
     this.focusedId = id;
-    const related = new Set<string>();
-    if (id) {
+    if (id === null) {
+      this.focusRelated = null;
+    } else {
+      const related = new Set<string>();
       const walk = (start: string, adj: Map<string, string[]>): void => {
         const queue = [start];
         while (queue.length > 0) {
@@ -504,17 +534,54 @@ class DagRenderer {
       related.add(id);
       walk(id, this.upstreamOf);
       walk(id, this.downstreamOf);
+      this.focusRelated = related;
     }
+    this.refreshDim();
+  }
 
+  /** Focus lineage ∧ filter matches — ONE dimming truth for nodes+edges. */
+  private refreshDim(): void {
+    const dimNode = (nid: string): boolean =>
+      (this.focusRelated !== null && !this.focusRelated.has(nid))
+      || (this.filterMatches !== null && !this.filterMatches.has(nid));
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
-      .classed('dimmed', (d) => id !== null && !related.has(d.id))
-      .classed('selected', (d) => d.id === id);
+      .classed('dimmed', (d) => dimNode(d.id))
+      .classed('selected', (d) => d.id === this.focusedId);
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('dimmed', (d) => {
-        if (id === null) { return false; }
         const ends = this.edgeEnds.get(d.id);
-        return !ends || !(related.has(ends.source) && related.has(ends.target));
+        if (!ends) { return this.focusRelated !== null || this.filterMatches !== null; }
+        return dimNode(ends.source) || dimNode(ends.target);
       });
+  }
+
+  /** Live text filter (`/`): non-matching fades; returns the match count. */
+  applyFilter(query: string | null): number {
+    if (!query || !this.currentGraph) {
+      this.filterMatches = null;
+      this.refreshDim();
+      return 0;
+    }
+    const q = query.toLowerCase();
+    this.filterMatches = new Set(
+      this.currentGraph.nodes
+        .filter((n) =>
+          n.id.toLowerCase().includes(q)
+          || n.verb.toLowerCase().includes(q)
+          || (n.model ?? '').toLowerCase().includes(q)
+          || (n.tool ?? '').toLowerCase().includes(q)
+          || (n.provider ?? '').toLowerCase().includes(q))
+        .map((n) => n.id),
+    );
+    this.refreshDim();
+    return this.filterMatches.size;
+  }
+
+  /** Current filter matches in node order (Enter cycles these). */
+  filteredIds(): string[] {
+    const matches = this.filterMatches;
+    if (!matches || !this.currentGraph) { return []; }
+    return this.currentGraph.nodes.filter((n) => matches.has(n.id)).map((n) => n.id);
   }
 
   /** Public escape hatch for the Esc key. */
@@ -1278,6 +1345,9 @@ class DagRenderer {
     this.criticalEdges.clear();
     this.waveOf.clear();
     this.focusedId = null;
+    this.focusRelated = null;
+    this.filterMatches = null;
+    this.wasAllTerminal = false;
     this.layoutBox.clear();
     this.hideHoverCard(true);
     document.getElementById('empty-state')?.removeAttribute('hidden');
@@ -1327,6 +1397,13 @@ class DagRenderer {
     }
     const total = this.currentGraph.nodes.length;
     const terminal = counts.success + counts.failed + counts.skipped + counts.cancelled;
+
+    // Run verdict → the aurora speaks once, at the live close.
+    const allTerminal = total > 0 && terminal === total;
+    if (allTerminal && !this.wasAllTerminal) {
+      auroraSignal(counts.failed > 0 ? 'danger' : 'sweep');
+    }
+    this.wasAllTerminal = allTerminal;
 
     const parts: string[] = [];
     if (counts.success > 0) parts.push(`${counts.success} done`);
@@ -1505,7 +1582,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['F', 'fit'], ['W', 'waves'], ['+/−', 'zoom'], ['Esc', 'clear focus'], ['?', 'this card']]) {
+  for (const [key, label] of [['F', 'fit'], ['W', 'waves'], ['+/−', 'zoom'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -1640,6 +1717,10 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'theme:changed':
       // CSS variables update automatically — nothing to do
       break;
+    case 'theme:mode':
+      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload.
+      document.body.dataset.nkTheme = msg.mode;
+      break;
   }
 });
 
@@ -1671,6 +1752,47 @@ curveBtn?.addEventListener('click', () => {
 });
 syncCurveBtn();
 
+// ─── Search / filter (`/`) ──────────────────────────────────────────────────
+
+const searchEl = document.getElementById('dag-search') as HTMLInputElement | null;
+let searchCycle = 0;
+
+function openSearch(): void {
+  if (!searchEl) { return; }
+  searchEl.hidden = false;
+  searchEl.focus();
+  searchEl.select();
+  const q = searchEl.value.trim();
+  if (q) { renderer.applyFilter(q); }
+}
+
+/** Close + clear the filter. Returns true when it WAS open (Esc laddering). */
+function closeSearch(): boolean {
+  if (!searchEl || searchEl.hidden) { return false; }
+  searchEl.hidden = true;
+  searchEl.value = '';
+  searchCycle = 0;
+  renderer.applyFilter(null);
+  return true;
+}
+
+searchEl?.addEventListener('input', () => {
+  searchCycle = 0;
+  renderer.applyFilter(searchEl.value.trim() || null);
+});
+
+searchEl?.addEventListener('keydown', (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key === 'Escape') { closeSearch(); }
+  if (e.key === 'Enter') {
+    const ids = renderer.filteredIds();
+    if (ids.length > 0) {
+      renderer.focusAndCenter(ids[searchCycle % ids.length]);
+      searchCycle += 1;
+    }
+  }
+});
+
 // Keyboard shortcuts
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   // Only handle if not in an input field
@@ -1678,7 +1800,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'f' || e.key === 'F') renderer.fitToView();
   if (e.key === '+' || e.key === '=') renderer.zoomIn();
   if (e.key === '-') renderer.zoomOut();
+  if (e.key === '/') {
+    e.preventDefault();
+    openSearch();
+    return;
+  }
   if (e.key === 'Escape') {
+    if (closeSearch()) { return; }
     if (renderer.cancelConnect()) { return; }
     const ex = document.getElementById('explainer');
     if (ex && !ex.hasAttribute('hidden')) { ex.setAttribute('hidden', ''); return; }

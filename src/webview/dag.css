@@ -19,19 +19,41 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--vscode-editor-background);
-  color: var(--vscode-editor-foreground);
-  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+  background: var(--nk-page);
+  color: var(--nk-ink);
+  font-family: var(--nk-ui-font);
   font-size: var(--vscode-font-size, 13px);
 }
 
 /* ─── Design tokens · the SuperNovae seam ───────────────────────────────── */
 
 :root {
+  /* Editor-adaptive defaults — the `nika` skin re-scopes every token below
+   * (body[data-nk-theme="nika"]) to the nika.sh register. Rules consume
+   * TOKENS, never raw --vscode-* — one seam, two skins. */
   --nk-accent: var(--vscode-charts-blue, #38bdf8);
+  --nk-data: var(--vscode-charts-blue, #3794ff);
   --nk-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   --nk-surface: var(--vscode-editorWidget-background);
+  --nk-page: var(--vscode-editor-background);
+  --nk-ink: var(--vscode-editor-foreground);
+  --nk-ink-dim: var(--vscode-descriptionForeground);
+  --nk-mono: var(--vscode-editor-font-family, 'Cascadia Code', 'Fira Code', monospace);
+  --nk-ui-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
   --nk-radius: 7px;
+  /* Run-state palette (LOCK-005 semantics — never brand-swapped). */
+  --nk-st-running: var(--vscode-charts-blue, #3794ff);
+  --nk-st-success: var(--vscode-charts-green, #89d185);
+  --nk-st-failed: var(--vscode-charts-red, #f14c4c);
+  --nk-st-retrying: var(--vscode-charts-yellow, #cca700);
+  --nk-st-muted: var(--vscode-editorLineNumber-foreground, #858585);
+  --nk-critical: var(--vscode-charts-yellow, #cca700);
+  /* The 4 verb hues — SEMANTIC canon (nika.sh tokens.css), same in both
+   * skins: a verb's color is language identity, not theme decoration. */
+  --nk-verb-infer: #5b8cff;
+  --nk-verb-exec: #ff7a3c;
+  --nk-verb-invoke: #22d3ee;
+  --nk-verb-agent: #b07bff;
   /* The one skeuomorphic constant: a 1px light catch on top edges. */
   --nk-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --nk-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.22);
@@ -39,6 +61,12 @@ body {
   /* Ultra-subtle grain — texture without noise-as-decoration. */
   --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
 }
+
+/* Per-node verb hue — every verb-tinted surface reads ONE custom property. */
+.dag-node.verb-infer, .hc-verb.verb-infer { --dv-hue: var(--nk-verb-infer); }
+.dag-node.verb-exec, .hc-verb.verb-exec { --dv-hue: var(--nk-verb-exec); }
+.dag-node.verb-invoke, .hc-verb.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
+.dag-node.verb-agent, .hc-verb.verb-agent { --dv-hue: var(--nk-verb-agent); }
 
 /* ─── Toolbar · glass rail ──────────────────────────────────────────────── */
 
@@ -68,7 +96,7 @@ body {
   font-weight: 600;
   font-size: 12.5px;
   letter-spacing: 0.01em;
-  color: var(--vscode-editor-foreground);
+  color: var(--nk-ink);
   flex: 0 0 auto;
 }
 
@@ -81,7 +109,7 @@ body {
 
 .tb-group {
   display: inline-flex;
-  background: color-mix(in srgb, var(--vscode-editor-background) 55%, transparent);
+  background: color-mix(in srgb, var(--nk-page) 55%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: 6px;
   box-shadow: var(--nk-bevel);
@@ -101,7 +129,7 @@ body {
   height: 26px;
   padding: 0 8px;
   background: transparent;
-  color: var(--vscode-foreground);
+  color: var(--nk-ink);
   border: none;
   font-size: 12px;
   font-family: inherit;
@@ -133,11 +161,11 @@ body {
   height: 15px;
   padding: 0 4px;
   font-size: 9.5px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  color: var(--vscode-descriptionForeground);
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
   background: linear-gradient(
-    color-mix(in srgb, var(--vscode-editor-foreground) 7%, var(--vscode-editor-background)),
-    var(--vscode-editor-background)
+    color-mix(in srgb, var(--nk-ink) 7%, var(--nk-page)),
+    var(--nk-page)
   );
   border: 1px solid var(--nk-border);
   border-bottom-width: 2px;
@@ -148,7 +176,7 @@ body {
   margin-left: auto;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   white-space: nowrap;
 }
 
@@ -160,7 +188,7 @@ body {
   overflow: hidden;
   background-image: radial-gradient(
     circle,
-    color-mix(in srgb, var(--vscode-editor-foreground) 7%, transparent) 1px,
+    color-mix(in srgb, var(--nk-ink) 7%, transparent) 1px,
     transparent 1px
   );
   background-size: 22px 22px;
@@ -186,23 +214,23 @@ body {
 }
 
 .dag-edge.edge-data {
-  stroke: var(--vscode-charts-blue, #3794ff);
+  stroke: var(--nk-data);
   stroke-width: 2;
 }
 
 .dag-edge.edge-dep {
-  stroke: var(--vscode-editorLineNumber-foreground, #858585);
+  stroke: var(--nk-st-muted);
   stroke-width: 1;
   stroke-dasharray: 6 3;
 }
 
 /* Arrow markers inherit from CSS */
 .arrow-data {
-  fill: var(--vscode-charts-blue, #3794ff);
+  fill: var(--nk-data);
 }
 
 .arrow-dep {
-  fill: var(--vscode-editorLineNumber-foreground, #858585);
+  fill: var(--nk-st-muted);
 }
 
 /* ─── Nodes — Base ──────────────────────────────────────────────────────── */
@@ -213,7 +241,7 @@ body {
 }
 
 .dag-node .node-bg {
-  fill: color-mix(in srgb, var(--nk-surface) 92%, var(--vscode-editor-background));
+  fill: color-mix(in srgb, var(--nk-surface) 92%, var(--nk-page));
   stroke: var(--nk-border);
   stroke-width: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
@@ -234,49 +262,38 @@ body {
 }
 
 .dag-node .node-label {
-  fill: var(--vscode-editor-foreground);
+  fill: var(--nk-ink);
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  font-family: var(--vscode-editor-font-family, 'Cascadia Code', 'Fira Code', monospace);
+  font-family: var(--nk-mono);
 }
 
 .dag-node .node-subtitle {
-  fill: var(--vscode-descriptionForeground);
+  fill: var(--nk-ink-dim);
   font-size: 10.5px;
   font-variant-numeric: tabular-nums;
 }
 
 .dag-node .node-icon {
   font-size: 12px;
-  fill: var(--vscode-descriptionForeground);
+  fill: var(--nk-ink-dim);
 }
 
 /* The verb chip — tinted square the icon sits in. */
 .dag-node .node-icon-chip {
-  fill: color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent);
-  stroke: color-mix(in srgb, var(--vscode-descriptionForeground) 16%, transparent);
+  fill: color-mix(in srgb, var(--nk-ink-dim) 10%, transparent);
+  stroke: color-mix(in srgb, var(--nk-ink-dim) 16%, transparent);
   stroke-width: 1;
 }
 
-.dag-node.verb-infer .node-icon-chip {
-  fill: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 14%, transparent);
-  stroke: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 30%, transparent);
-}
-
-.dag-node.verb-exec .node-icon-chip {
-  fill: color-mix(in srgb, var(--vscode-charts-green, #89d185) 14%, transparent);
-  stroke: color-mix(in srgb, var(--vscode-charts-green, #89d185) 30%, transparent);
-}
-
-.dag-node.verb-invoke .node-icon-chip {
-  fill: color-mix(in srgb, var(--nk-accent) 14%, transparent);
-  stroke: color-mix(in srgb, var(--nk-accent) 30%, transparent);
-}
-
+.dag-node .node-icon-chip,
+.dag-node.verb-infer .node-icon-chip,
+.dag-node.verb-exec .node-icon-chip,
+.dag-node.verb-invoke .node-icon-chip,
 .dag-node.verb-agent .node-icon-chip {
-  fill: color-mix(in srgb, var(--vscode-charts-orange, #d18616) 14%, transparent);
-  stroke: color-mix(in srgb, var(--vscode-charts-orange, #d18616) 30%, transparent);
+  fill: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 14%, transparent);
+  stroke: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 30%, transparent);
 }
 
 /* Status bar (left edge) — default hidden */
@@ -297,7 +314,7 @@ body {
 /* ─── Status: Pending ───────────────────────────────────────────────────── */
 
 .dag-node.status-pending .node-bg {
-  fill: var(--vscode-editor-background);
+  fill: var(--nk-page);
   stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
   opacity: 0.7;
 }
@@ -311,20 +328,20 @@ body {
 /* ─── Status: Running ───────────────────────────────────────────────────── */
 
 .dag-node.status-running .node-bg {
-  stroke: var(--vscode-charts-blue, #3794ff);
+  stroke: var(--nk-st-running);
   stroke-width: 2;
   filter: url(#glow-running);
   animation: running-pulse 2s ease-in-out infinite;
 }
 
 .dag-node.status-running .node-status-bar {
-  fill: var(--vscode-charts-blue, #3794ff);
+  fill: var(--nk-st-running);
 }
 
 .dag-node.status-running .node-spinner {
   opacity: 1;
   fill: transparent;
-  stroke: var(--vscode-charts-blue, #3794ff);
+  stroke: var(--nk-st-running);
   stroke-dasharray: 20 10;
   animation: spinner-rotate 1s linear infinite;
 }
@@ -351,17 +368,17 @@ body {
 /* ─── Status: Success ───────────────────────────────────────────────────── */
 
 .dag-node.status-success .node-bg {
-  stroke: var(--vscode-charts-green, #89d185);
+  stroke: var(--nk-st-success);
   stroke-width: 2;
   animation: success-flash 0.5s ease-out;
 }
 
 .dag-node.status-success .node-status-bar {
-  fill: var(--vscode-charts-green, #89d185);
+  fill: var(--nk-st-success);
 }
 
 .dag-node.status-success .node-icon {
-  fill: var(--vscode-charts-green, #89d185);
+  fill: var(--nk-st-success);
 }
 
 @keyframes success-flash {
@@ -378,21 +395,21 @@ body {
 /* ─── Status: Failed ────────────────────────────────────────────────────── */
 
 .dag-node.status-failed .node-bg {
-  stroke: var(--vscode-charts-red, #f14c4c);
+  stroke: var(--nk-st-failed);
   stroke-width: 2;
 }
 
 .dag-node.status-failed .node-status-bar {
-  fill: var(--vscode-charts-red, #f14c4c);
+  fill: var(--nk-st-failed);
   animation: failed-blink 1s ease-in-out 3;
 }
 
 .dag-node.status-failed .node-label {
-  fill: var(--vscode-charts-red, #f14c4c);
+  fill: var(--nk-st-failed);
 }
 
 .dag-node.status-failed .node-icon {
-  fill: var(--vscode-charts-red, #f14c4c);
+  fill: var(--nk-st-failed);
 }
 
 @keyframes failed-blink {
@@ -420,36 +437,17 @@ body {
 }
 
 .dag-node.status-skipped .node-status-bar {
-  fill: var(--vscode-editorLineNumber-foreground, #858585);
+  fill: var(--nk-st-muted);
   opacity: 0.4;
 }
 
 /* ─── Verb Accent Colors ────────────────────────────────────────────────── */
-/* Subtle tint on the node background per verb type */
+/* Subtle verb tint on active/finished nodes — one rule, the hue rides
+ * --dv-hue (the phantom `verb-fetch` rule died with the 4-verb lock). */
 
-.dag-node.verb-infer.status-success .node-bg,
-.dag-node.verb-infer.status-running .node-bg {
-  fill: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 8%, var(--vscode-editor-background));
-}
-
-.dag-node.verb-exec.status-success .node-bg,
-.dag-node.verb-exec.status-running .node-bg {
-  fill: color-mix(in srgb, var(--vscode-charts-green, #16a34a) 8%, var(--vscode-editor-background));
-}
-
-.dag-node.verb-fetch.status-success .node-bg,
-.dag-node.verb-fetch.status-running .node-bg {
-  fill: color-mix(in srgb, var(--vscode-charts-blue, #0891b2) 8%, var(--vscode-editor-background));
-}
-
-.dag-node.verb-invoke.status-success .node-bg,
-.dag-node.verb-invoke.status-running .node-bg {
-  fill: color-mix(in srgb, var(--vscode-charts-red, #db2778) 8%, var(--vscode-editor-background));
-}
-
-.dag-node.verb-agent.status-success .node-bg,
-.dag-node.verb-agent.status-running .node-bg {
-  fill: color-mix(in srgb, var(--vscode-charts-orange, #d97306) 8%, var(--vscode-editor-background));
+.dag-node.status-success .node-bg,
+.dag-node.status-running .node-bg {
+  fill: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 8%, var(--nk-page));
 }
 
 /* ─── High Contrast Theme Overrides ─────────────────────────────────────── */
@@ -481,7 +479,7 @@ body {
 /* Static-audit badge (when-gate ⌁ · fan-out ×N) — engine facts, top-right */
 .node-badge {
   font-size: 10px;
-  fill: var(--vscode-descriptionForeground, #999);
+  fill: var(--nk-ink-dim);
   opacity: 0.85;
   pointer-events: none;
 }
@@ -500,8 +498,8 @@ body {
 
 .wave-label {
   font-size: 10px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  fill: var(--vscode-descriptionForeground, #888);
+  font-family: var(--nk-mono);
+  fill: var(--nk-ink-dim);
   opacity: 0.7;
   pointer-events: none;
   text-transform: uppercase;
@@ -522,7 +520,7 @@ body {
 /* ─── Edge flow · data visibly travels once the source completed ────────── */
 
 .dag-edge.flowing {
-  stroke: var(--vscode-charts-green, #89d185);
+  stroke: var(--nk-st-success);
   stroke-dasharray: 7 5;
   animation: edge-flow 0.9s linear infinite;
 }
@@ -536,7 +534,7 @@ body {
 /* ─── Critical path · the chain that decides the wall-clock ─────────────── */
 
 .dag-edge.critical {
-  stroke: var(--vscode-charts-yellow, #cca700);
+  stroke: var(--nk-critical);
   stroke-width: 2.5;
   stroke-dasharray: none;
 }
@@ -556,7 +554,7 @@ body {
   background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--nk-surface)) 88%, transparent);
   background-image: var(--nk-grain);
   backdrop-filter: blur(14px) saturate(1.2);
-  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-editor-foreground));
+  color: var(--vscode-editorHoverWidget-foreground, var(--nk-ink));
   border: 1px solid var(--vscode-editorHoverWidget-border, var(--nk-border));
   border-radius: var(--nk-radius);
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
@@ -581,11 +579,11 @@ body {
 }
 
 .hc-chip {
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--nk-mono);
   font-size: 11px;
   padding: 1px 7px;
-  color: var(--vscode-foreground);
-  background: color-mix(in srgb, var(--vscode-editor-foreground) 6%, transparent);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: 9px;
   cursor: pointer;
@@ -609,7 +607,7 @@ body {
 
 .hc-id {
   font-weight: 600;
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--nk-mono);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -622,24 +620,20 @@ body {
   letter-spacing: 0.06em;
   padding: 1px 6px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 18%, transparent);
-  color: var(--vscode-charts-blue, #3794ff);
+  background: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 18%, transparent);
+  color: var(--dv-hue, var(--nk-accent));
 }
-
-.hc-verb.verb-infer { background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 18%, transparent); color: var(--vscode-charts-purple, #b180d7); }
-.hc-verb.verb-exec { background: color-mix(in srgb, var(--vscode-charts-green, #89d185) 18%, transparent); color: var(--vscode-charts-green, #89d185); }
-.hc-verb.verb-agent { background: color-mix(in srgb, var(--vscode-charts-orange, #d18616) 18%, transparent); color: var(--vscode-charts-orange, #d18616); }
 
 .hc-status {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
-.hc-status.st-running { color: var(--vscode-charts-blue, #3794ff); }
-.hc-status.st-success { color: var(--vscode-charts-green, #89d185); }
-.hc-status.st-failed { color: var(--vscode-charts-red, #f14c4c); }
+.hc-status.st-running { color: var(--nk-st-running); }
+.hc-status.st-success { color: var(--nk-st-success); }
+.hc-status.st-failed { color: var(--nk-st-failed); }
 
 .hc-row {
   display: flex;
@@ -648,11 +642,11 @@ body {
 
 .hc-k {
   flex: 0 0 76px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 .hc-v {
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--nk-mono);
   word-break: break-word;
 }
 
@@ -684,22 +678,22 @@ body {
   background: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 .legend-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--vscode-descriptionForeground);
+  background: var(--nk-ink-dim);
 }
 
-.legend-chip.st-running .legend-dot { background: var(--vscode-charts-blue, #3794ff); }
-.legend-chip.st-success .legend-dot { background: var(--vscode-charts-green, #89d185); }
-.legend-chip.st-failed .legend-dot { background: var(--vscode-charts-red, #f14c4c); }
-.legend-chip.st-skipped .legend-dot { background: var(--vscode-editorLineNumber-foreground, #858585); }
+.legend-chip.st-running .legend-dot { background: var(--nk-st-running); }
+.legend-chip.st-success .legend-dot { background: var(--nk-st-success); }
+.legend-chip.st-failed .legend-dot { background: var(--nk-st-failed); }
+.legend-chip.st-skipped .legend-dot { background: var(--nk-st-muted); }
 .legend-chip.st-pending .legend-dot { opacity: 0.4; }
-.legend-chip.st-critical .legend-dot { background: var(--vscode-charts-yellow, #cca700); }
+.legend-chip.st-critical .legend-dot { background: var(--nk-critical); }
 
 #progress-track {
   flex: 1;
@@ -713,12 +707,12 @@ body {
   height: 100%;
   width: 0;
   border-radius: 2px;
-  background: var(--vscode-charts-blue, #3794ff);
+  background: var(--nk-st-running);
   transition: width 0.4s ease-out, background 0.3s;
 }
 
-#progress-fill.complete { background: var(--vscode-charts-green, #89d185); }
-#progress-fill.has-failure { background: var(--vscode-charts-red, #f14c4c); }
+#progress-fill.complete { background: var(--nk-st-success); }
+#progress-fill.has-failure { background: var(--nk-st-failed); }
 
 /* ─── Toolbar toggle state ──────────────────────────────────────────────── */
 
@@ -792,13 +786,13 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .mm-node {
-  fill: var(--vscode-descriptionForeground);
+  fill: var(--nk-ink-dim);
   opacity: 0.55;
 }
 
-.mm-node.st-running { fill: var(--vscode-charts-blue, #3794ff); opacity: 0.95; }
-.mm-node.st-success { fill: var(--vscode-charts-green, #89d185); opacity: 0.85; }
-.mm-node.st-failed { fill: var(--vscode-charts-red, #f14c4c); opacity: 0.95; }
+.mm-node.st-running { fill: var(--nk-st-running); opacity: 0.95; }
+.mm-node.st-success { fill: var(--nk-st-success); opacity: 0.85; }
+.mm-node.st-failed { fill: var(--nk-st-failed); opacity: 0.95; }
 .mm-node.st-skipped { opacity: 0.3; }
 
 #minimap-viewport {
@@ -868,12 +862,12 @@ body.vscode-light .logo-dark { display: none; }
 
 .es-sub {
   font-size: 12px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 .es-sub code {
-  font-family: var(--vscode-editor-font-family, monospace);
-  background: color-mix(in srgb, var(--vscode-editor-foreground) 7%, transparent);
+  font-family: var(--nk-mono);
+  background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
   padding: 0 4px;
   border-radius: 3px;
 }
@@ -889,7 +883,7 @@ body.vscode-light .logo-dark { display: none; }
   justify-content: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 /* The empty state ACTS — its card is clickable, the rest stays inert. */
@@ -931,7 +925,7 @@ body.vscode-light .logo-dark { display: none; }
   gap: 6px;
   padding: 6px 14px;
   font-size: 11.5px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: 16px;
@@ -950,10 +944,10 @@ body.vscode-light .logo-dark { display: none; }
   height: 15px;
   padding: 0 4px;
   font-size: 9.5px;
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--nk-mono);
   background: linear-gradient(
-    color-mix(in srgb, var(--vscode-editor-foreground) 7%, var(--vscode-editor-background)),
-    var(--vscode-editor-background)
+    color-mix(in srgb, var(--nk-ink) 7%, var(--nk-page)),
+    var(--nk-page)
   );
   border: 1px solid var(--nk-border);
   border-bottom-width: 2px;
@@ -974,7 +968,7 @@ body.vscode-light .logo-dark { display: none; }
   align-items: flex-start;
   justify-content: flex-end;
   padding: 14px;
-  background: color-mix(in srgb, var(--vscode-editor-background) 35%, transparent);
+  background: color-mix(in srgb, var(--nk-page) 35%, transparent);
   backdrop-filter: blur(2px);
 }
 
@@ -1007,7 +1001,7 @@ body.vscode-light .logo-dark { display: none; }
   gap: 10px;
   align-items: baseline;
   margin-bottom: 8px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 /* The graph, measured — width · ceiling · pinch · k-worker wall-clock. */
@@ -1033,24 +1027,24 @@ body.vscode-light .logo-dark { display: none; }
 .ex-metric:last-child { margin-bottom: 0; }
 
 .ex-metric-k {
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   font-size: 11px;
 }
 
 .ex-metric-v {
-  color: var(--vscode-editor-foreground);
+  color: var(--nk-ink);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .ex-metric-hint {
   grid-column: 2;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   font-size: 10.5px;
 }
 
 .ex-row strong {
-  color: var(--vscode-editor-foreground);
+  color: var(--nk-ink);
   font-weight: 600;
 }
 
@@ -1061,10 +1055,10 @@ body.vscode-light .logo-dark { display: none; }
   align-self: center;
 }
 
-.ex-glyph-wave { background: color-mix(in srgb, var(--vscode-editor-foreground) 10%, transparent); }
-.ex-glyph-critical { background: var(--vscode-charts-yellow, #cca700); height: 3px; }
+.ex-glyph-wave { background: color-mix(in srgb, var(--nk-ink) 10%, transparent); }
+.ex-glyph-critical { background: var(--nk-critical); height: 3px; }
 .ex-glyph-flow {
-  background: repeating-linear-gradient(90deg, var(--vscode-charts-green, #89d185) 0 5px, transparent 5px 9px);
+  background: repeating-linear-gradient(90deg, var(--nk-st-success) 0 5px, transparent 5px 9px);
   height: 3px;
 }
 .ex-glyph-focus { border: 1.5px solid var(--nk-accent); background: transparent; }
@@ -1073,7 +1067,7 @@ body.vscode-light .logo-dark { display: none; }
   background: repeating-linear-gradient(90deg, var(--nk-accent) 0 5px, transparent 5px 9px);
   height: 3px;
 }
-.ex-glyph-add { border: 1.5px dashed var(--vscode-descriptionForeground); background: transparent; }
+.ex-glyph-add { border: 1.5px dashed var(--nk-ink-dim); background: transparent; }
 
 .ex-keys {
   display: flex;
@@ -1084,7 +1078,7 @@ body.vscode-light .logo-dark { display: none; }
   padding-top: 10px;
   border-top: 1px solid var(--nk-border);
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 .ex-keys kbd {
@@ -1095,14 +1089,14 @@ body.vscode-light .logo-dark { display: none; }
   margin-top: 10px;
   font-size: 10.5px;
   letter-spacing: 0.03em;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   opacity: 0.8;
 }
 
 /* ─── Ghost edges · the wire the author MEANT (DAG-003 · click to fix) ──── */
 
 .dag-edge.edge-ghost {
-  stroke: var(--vscode-charts-red, #f14c4c);
+  stroke: var(--nk-st-failed);
   stroke-width: 1.8;
   stroke-dasharray: 4 5;
   opacity: 0.75;
@@ -1122,7 +1116,7 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .ex-glyph-ghost {
-  background: repeating-linear-gradient(90deg, var(--vscode-charts-red, #f14c4c) 0 4px, transparent 4px 8px);
+  background: repeating-linear-gradient(90deg, var(--nk-st-failed) 0 4px, transparent 4px 8px);
   height: 3px;
 }
 
@@ -1130,17 +1124,17 @@ body.vscode-light .logo-dark { display: none; }
 
 .edge-label {
   font-size: 9.5px;
-  font-family: var(--vscode-editor-font-family, monospace);
-  fill: var(--vscode-charts-blue, #3794ff);
+  font-family: var(--nk-mono);
+  fill: var(--nk-data);
   paint-order: stroke;
-  stroke: var(--vscode-editor-background);
+  stroke: var(--nk-page);
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
   opacity: 0.95;
 }
 
-.ex-glyph-data { background: var(--vscode-charts-blue, #3794ff); height: 3px; }
+.ex-glyph-data { background: var(--nk-data); height: 3px; }
 
 /* ─── Hover-card wires (inputs · alias ← source.path) ───────────────────── */
 
@@ -1157,12 +1151,12 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .hc-wire-alias {
-  font-family: var(--vscode-editor-font-family, monospace);
-  color: var(--vscode-charts-blue, #3794ff);
+  font-family: var(--nk-mono);
+  color: var(--nk-data);
 }
 
 .hc-wire-arrow {
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
 }
 
 /* ─── Activity feed · the run, narrated ─────────────────────────────────── */
@@ -1195,7 +1189,7 @@ body.vscode-light .logo-dark { display: none; }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   border-bottom: 1px solid var(--nk-border);
 }
 
@@ -1212,9 +1206,9 @@ body.vscode-light .logo-dark { display: none; }
   padding: 2px 10px;
   background: transparent;
   border: none;
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--nk-mono);
   font-size: 10.5px;
-  color: var(--vscode-foreground);
+  color: var(--nk-ink);
   text-align: left;
   cursor: pointer;
   animation: act-in 0.18s ease-out;
@@ -1230,7 +1224,7 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .act-time {
-  color: var(--vscode-descriptionForeground);
+  color: var(--nk-ink-dim);
   font-size: 9.5px;
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
@@ -1238,10 +1232,10 @@ body.vscode-light .logo-dark { display: none; }
 
 .act-icon { flex: 0 0 12px; text-align: center; }
 
-.act-entry.st-running .act-icon { color: var(--vscode-charts-blue, #3794ff); }
-.act-entry.st-success .act-icon { color: var(--vscode-charts-green, #89d185); }
-.act-entry.st-failed .act-icon { color: var(--vscode-charts-red, #f14c4c); }
-.act-entry.st-skipped .act-icon { color: var(--vscode-descriptionForeground); }
+.act-entry.st-running .act-icon { color: var(--nk-st-running); }
+.act-entry.st-success .act-icon { color: var(--nk-st-success); }
+.act-entry.st-failed .act-icon { color: var(--nk-st-failed); }
+.act-entry.st-skipped .act-icon { color: var(--nk-ink-dim); }
 .act-entry.st-note .act-icon { color: var(--nk-accent); }
 .act-entry:disabled { cursor: default; }
 .act-entry:disabled:hover { background: transparent; }
@@ -1258,7 +1252,7 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 @keyframes feed-pulse {
-  0%, 100% { color: var(--vscode-foreground); }
+  0%, 100% { color: var(--nk-ink); }
   50% { color: var(--nk-accent); }
 }
 
@@ -1322,14 +1316,14 @@ body.vscode-light .logo-dark { display: none; }
    (dim · a decision, not a defect — NEVER red) ──────────────────────── */
 
 .dag-node.status-retrying .node-status-bar {
-  fill: var(--vscode-charts-yellow, #cca700);
+  fill: var(--nk-st-retrying);
   animation: running-pulse 1.4s ease-in-out infinite;
 }
 
 .dag-node.status-retrying .node-spinner {
   opacity: 1;
   fill: transparent;
-  stroke: var(--vscode-charts-yellow, #cca700);
+  stroke: var(--nk-st-retrying);
   stroke-dasharray: 20 10;
   animation: spinner-rotate 1s linear infinite;
 }
@@ -1339,20 +1333,20 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .dag-node.status-cancelled .node-status-bar {
-  fill: var(--vscode-editorLineNumber-foreground, #858585);
+  fill: var(--nk-st-muted);
 }
 
-.hc-status.st-retrying { color: var(--vscode-charts-yellow, #cca700); }
-.hc-status.st-cancelled { color: var(--vscode-descriptionForeground); }
+.hc-status.st-retrying { color: var(--nk-st-retrying); }
+.hc-status.st-cancelled { color: var(--nk-ink-dim); }
 
-.legend-chip.st-retrying .legend-dot { background: var(--vscode-charts-yellow, #cca700); }
+.legend-chip.st-retrying .legend-dot { background: var(--nk-st-retrying); }
 .legend-chip.st-cancelled .legend-dot {
-  background: var(--vscode-editorLineNumber-foreground, #858585);
+  background: var(--nk-st-muted);
   opacity: 0.6;
 }
 
-.act-entry.st-retrying .act-icon { color: var(--vscode-charts-yellow, #cca700); }
-.act-entry.st-cancelled .act-icon { color: var(--vscode-descriptionForeground); }
+.act-entry.st-retrying .act-icon { color: var(--nk-st-retrying); }
+.act-entry.st-cancelled .act-icon { color: var(--nk-ink-dim); }
 
 @media (prefers-reduced-motion: reduce) {
   .dag-node.status-retrying .node-status-bar,
@@ -1361,8 +1355,251 @@ body.vscode-light .logo-dark { display: none; }
   }
 }
 
-.mm-node.st-retrying { fill: var(--vscode-charts-yellow, #cca700); opacity: 0.95; }
+.mm-node.st-retrying { fill: var(--nk-st-retrying); opacity: 0.95; }
 .mm-node.st-cancelled {
-  fill: var(--vscode-editorLineNumber-foreground, #858585);
+  fill: var(--nk-st-muted);
   opacity: 0.35;
+}
+
+/* ═══ The nika skin · nika.sh design language (default) ═══════════════════ */
+/* Product frames read dark everywhere on nika.sh — the DAG pins the same
+ * engineered-black register. `nika.dag.theme: editor` restores full theme
+ * adaptivity; forced-colors (high contrast) wins over both skins. */
+
+body[data-nk-theme='nika'] {
+  --nk-page: #08090b;
+  --nk-surface: #0a0d12;
+  --nk-ink: #f4f5f7;
+  --nk-ink-dim: #8a8f98;
+  --nk-border: rgb(140 170 255 / 0.10);
+  --nk-accent: #4f86ff;
+  --nk-data: #4f86ff;
+  --nk-radius: 4px;
+  --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
+  --nk-ui-font: 'Martian Mono', var(--vscode-font-family, sans-serif);
+  --nk-st-running: #5b8cff;
+  --nk-st-success: #71e08a;
+  --nk-st-failed: #ff5d5d;
+  --nk-st-retrying: #e0b071;
+  --nk-st-muted: #5a606b;
+  --nk-critical: #e6b873;
+  --nk-shadow-1: 0 1px 3px rgb(0 0 0 / 0.35), 0 1px 2px -1px rgb(0 0 0 / 0.35);
+  --nk-shadow-2: 0 1px 3px rgb(0 0 0 / 0.35), 0 24px 48px -24px rgb(0 20 60 / 0.5);
+  /* Bayer 4×4 print-grain (BRAND-11 ditherpunk) — not turbulence noise. */
+  --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cg fill='%23ffffff'%3E%3Crect x='0' y='0' width='1' height='1' fill-opacity='0.05'/%3E%3Crect x='2' y='2' width='1' height='1' fill-opacity='0.05'/%3E%3Crect x='2' y='0' width='1' height='1' fill-opacity='0.022'/%3E%3Crect x='0' y='2' width='1' height='1' fill-opacity='0.022'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Canvas · faint blue survey dots on the black pool. */
+body[data-nk-theme='nika'] #dag-container {
+  background-color: var(--nk-page);
+  background-image: radial-gradient(circle, rgb(141 180 255 / 0.055) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Toolbar · flat machined titlebar, blue-tinted hairline. */
+body[data-nk-theme='nika'] #dag-toolbar {
+  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background-image: var(--nk-grain);
+  border-bottom-color: rgb(140 170 255 / 0.12);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+body[data-nk-theme='nika'] #dag-toolbar button:hover {
+  background: rgb(141 180 255 / 0.08);
+}
+
+/* Node card · deep-blue glass + hairline (dag-view.css recipe, SVG form). */
+body[data-nk-theme='nika'] .dag-node .node-bg {
+  fill: color-mix(in srgb, #111e44 46%, #0a0d12);
+  stroke: rgb(96 141 255 / 0.30);
+}
+
+body[data-nk-theme='nika'] .dag-node:hover .node-bg {
+  stroke: rgb(141 180 255 / 0.55);
+}
+
+/* The LEFT LED spine IS the verb (site language) — run state moves to
+ * ring · spinner · dim, never recolors the identity spine. */
+body[data-nk-theme='nika'] .dag-node .node-status-bar {
+  fill: var(--dv-hue, var(--nk-ink-dim));
+  animation: none;
+  opacity: 0.9;
+}
+
+body[data-nk-theme='nika'] .dag-node.status-pending .node-bg {
+  fill: color-mix(in srgb, #111e44 28%, #0a0d12);
+  stroke: rgb(96 141 255 / 0.18);
+}
+
+body[data-nk-theme='nika'] .dag-node.status-running .node-bg {
+  stroke: color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 65%, transparent);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 0 3px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 20%, transparent))
+          drop-shadow(0 0 12px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 30%, transparent));
+  animation: none;
+}
+
+body[data-nk-theme='nika'] .dag-node.status-running .node-spinner {
+  stroke: var(--dv-hue, var(--nk-st-running));
+}
+
+body[data-nk-theme='nika'] .dag-node.status-success .node-bg {
+  stroke: rgb(113 224 138 / 0.45);
+  animation: none;
+}
+
+body[data-nk-theme='nika'] .dag-node.status-failed .node-bg {
+  stroke: var(--nk-st-failed);
+  filter: drop-shadow(0 0 0 3px rgb(255 93 93 / 0.16));
+}
+
+/* Data circulation · sparse round dashes travelling the wire (dv-flow). */
+body[data-nk-theme='nika'] .dag-edge.flowing {
+  stroke: rgb(141 180 255 / 0.75);
+  stroke-linecap: round;
+  stroke-dasharray: 3 15;
+  animation: nk-edge-flow 1.5s linear infinite;
+}
+
+@keyframes nk-edge-flow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+/* Hover card + activity + minimap ride the re-scoped tokens; pin the
+ * hover-widget vars the editor would otherwise inject. */
+body[data-nk-theme='nika'] #hover-card {
+  background: color-mix(in srgb, #0a0d12 92%, transparent);
+  background-image: var(--nk-grain);
+  color: var(--nk-ink);
+  border-color: rgb(140 170 255 / 0.16);
+}
+
+body[data-nk-theme='nika'] .hc-head {
+  border-bottom-color: rgb(140 170 255 / 0.14);
+}
+
+body[data-nk-theme='nika'] .legend-chip {
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  border-color: rgb(140 170 255 / 0.14);
+}
+
+body[data-nk-theme='nika'] #progress-track {
+  background: rgb(140 170 255 / 0.14);
+}
+
+/* Empty-state CTA · the one solid accent fill (accent-cta). */
+body[data-nk-theme='nika'] .es-button {
+  color: #f4f5f7;
+  background: #2b62ea;
+  border-color: rgb(140 170 255 / 0.25);
+}
+
+body[data-nk-theme='nika'] .es-button:hover {
+  background: #2f6bff;
+}
+
+/* ─── Edge aurora · the drum (fx/edge-aurora.css, webview form) ─────────── */
+/* Mostly absent at rest; ONE bright hue-travel on a clean run close, a
+ * red flash on failure. nika skin only — the editor skin stays quiet. */
+
+#aurora {
+  display: none;
+}
+
+body[data-nk-theme='nika'] #aurora {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.045;
+  transition: opacity 0.9s ease-out;
+}
+
+body[data-nk-theme='nika'] #aurora::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 13px;
+  background: conic-gradient(from 210deg,
+    #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be,
+    #32ade6, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30);
+  filter: blur(26px) saturate(1.15);
+  /* Ring mask — compositing op stays INSIDE the shorthand (minifier-safe). */
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+body[data-nk-theme='nika'][data-aurora='sweep'] #aurora {
+  opacity: 0.5;
+  transition: opacity 0.22s ease-out;
+}
+
+body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
+  animation: nk-aurora-hue 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes nk-aurora-hue {
+  to {
+    filter: blur(26px) saturate(1.15) hue-rotate(360deg);
+  }
+}
+
+body[data-nk-theme='nika'][data-aurora='danger'] #aurora {
+  opacity: 0.55;
+  transition: opacity 0.15s ease-out;
+}
+
+body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
+  background: conic-gradient(from 210deg, #ff5d5d, #7a1622, #ff5d5d, #7a1622, #ff5d5d);
+}
+
+/* ─── Search / filter · `/` opens, Esc clears ───────────────────────────── */
+
+#dag-search {
+  position: fixed;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: min(340px, calc(100vw - 24px));
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
+  outline: none;
+}
+
+#dag-search::placeholder {
+  color: var(--nk-ink-dim);
+  opacity: 0.7;
+}
+
+#dag-search:focus {
+  border-color: color-mix(in srgb, var(--nk-accent) 60%, var(--nk-border));
+}
+
+#dag-search[hidden] {
+  display: none;
+}
+
+/* ─── Reduced motion · the nika-skin additions opt out too ──────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-nk-theme='nika'] .dag-edge.flowing,
+  body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
+    animation: none !important;
+  }
+
+  body[data-nk-theme='nika'] #aurora {
+    transition: none;
+  }
 }

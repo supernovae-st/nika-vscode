@@ -44,11 +44,13 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
 
 // ─── Verb gutter dots · the file scannable at a glance ──────────────────────
 
+// The 4 verb hues — nika.sh canon (same set as the DAG webview LEDs):
+// a verb's color is language identity, identical on every Nika surface.
 const VERB_DOT_COLORS: Record<string, string> = {
-  infer: '#b180d7',
-  exec: '#89d185',
-  invoke: '#38bdf8',
-  agent: '#d18616',
+  infer: '#5b8cff',
+  exec: '#ff7a3c',
+  invoke: '#22d3ee',
+  agent: '#b07bff',
 };
 
 function dotUri(color: string): vscode.Uri {
