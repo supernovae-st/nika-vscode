@@ -37,6 +37,7 @@ import {
   startClient,
   getNikaPath,
   runNikaCommand,
+  safeStopClient,
   type ClientState,
 } from './lspClient';
 import {
@@ -1036,7 +1037,7 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.restartServer', async () => {
       if (state.client) {
-        await state.client.stop();
+        await safeStopClient(state.client);
         state.client = undefined;
       }
       if (service.caps.lsp) {
@@ -1187,5 +1188,6 @@ export function deactivate(): Thenable<void> | undefined {
   if (!state.client) {
     return undefined;
   }
-  return state.client.stop();
+  // safeStopClient guards the Starting-state reject the real host surfaced.
+  return safeStopClient(state.client);
 }
