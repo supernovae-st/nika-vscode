@@ -103,7 +103,7 @@ messages and positions come from the engine, not the extension.*
 - **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
   duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
-- **Validate / Inspect** from the editor, tasks + problem matcher
+- **Validate / Inspect** from the editor (`nika check` · `nika inspect`), tasks + problem matcher
 - **The 0.93 loop rides the integrated terminal** · launch inputs with
   `nika run --var key=value` · pin the output contract with
   `nika test <file> --update` and keep `nika test` as the offline CI gate
