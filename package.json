@@ -229,6 +229,10 @@
         "icon": "$(diff)"
       },
       {
+        "command": "nika.captureLintBaseline",
+        "title": "Nika: Capture Lint Baseline (grandfather current findings)"
+      },
+      {
         "command": "nika.watchDemo",
         "title": "Nika: Watch Demo Replay"
       },

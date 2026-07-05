@@ -68,6 +68,8 @@ import { buildAuthoringPrompt } from './core/aiPrompt';
 import { countReportFindings } from './core/cliContract';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
+import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
+import { collectFindings, parseCheckReport } from './core/cliContract';
 
 // ─── Shared mutable state ──────────────────────────────────────────────────
 // Owned here, passed by reference to module functions via ClientState.
@@ -775,6 +777,37 @@ export function activate(context: ExtensionContext): void {
       if (!diffTracesOntoDag(dagPanel, base, compare.uri)) {
         void window.showInformationMessage('Nika: these traces do not match the workflow the DAG is showing.');
       }
+    }),
+    // Command: capture the lint ratchet baseline — records TODAY's findings
+    // as the grandfathered debt (.nika/lint-baseline.json). New findings
+    // stay loud; re-capture after cleanups burns the debt down.
+    commands.registerCommand('nika.captureLintBaseline', async () => {
+      const root = workspace.workspaceFolders?.[0]?.uri;
+      if (!root) {
+        void window.showInformationMessage('Nika: open a workspace folder first.');
+        return;
+      }
+      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 300);
+      const perFile = new Map<string, string[]>();
+      await window.withProgress(
+        { location: { viewId: 'nikaWorkflows' }, title: 'Nika: capturing lint baseline' },
+        async () => {
+          for (const f of files) {
+            const res = await service.runCli(['check', f.fsPath, '--json']);
+            const report = parseCheckReport(res.stdout);
+            if (!report) { continue; }
+            const codes = collectFindings(report).map((x) => x.code);
+            if (codes.length > 0) { perFile.set(workspace.asRelativePath(f, false), codes); }
+          }
+        },
+      );
+      const baseline = captureBaseline(perFile, new Date().toISOString().slice(0, 10));
+      const target = Uri.joinPath(root, BASELINE_REL_PATH);
+      await workspace.fs.writeFile(target, Buffer.from(`${JSON.stringify(baseline, null, 1)}\n`, 'utf-8'));
+      const total = Object.values(baseline.counts).reduce((a, b) => a + b, 0);
+      void window.showInformationMessage(
+        `Nika: baseline captured — ${total} finding(s) grandfathered across ${perFile.size} file(s). New findings stay loud.`,
+      );
     }),
   );
 
