@@ -3,6 +3,13 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [0.93.1] · 2026-07-05
+
+Release-infra only — no code change vs 0.93.0. The v0.93.0 tag's CI run
+failed at `npm ci` (a lockfile out of sync with a transitive esbuild
+bump from the run-in-editor merge); the lockfile is resynced and the
+identical content ships as 0.93.1.
+
 ## [0.93.0] · 2026-07-05
 
 The canvas becomes an operating surface: run it, watch it, replay it,
