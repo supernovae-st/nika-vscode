@@ -39,6 +39,12 @@ export interface StoredRedundant {
   range: vscode.Range;
 }
 
+/** Escape a client-parsed id for RegExp use — the loose parser accepts
+ * WIP garbage like `a(b)`, which must never throw out of the linter. */
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Range of `dep` inside `task`'s depends_on (inline item or block line). */
 function dependsOnEntryRange(
   doc: vscode.TextDocument,
@@ -55,7 +61,7 @@ function dependsOnEntryRange(
       if (idx !== -1) { return new vscode.Range(i, idx, i, idx + dep.length); }
       continue;
     }
-    const block = line.match(new RegExp(`^(\\s*-\\s*)(${dep})\\s*(#.*)?$`));
+    const block = line.match(new RegExp(`^(\\s*-\\s*)(${escapeRe(dep)})\\s*(#.*)?$`));
     if (block) {
       return new vscode.Range(i, block[1].length, i, block[1].length + dep.length);
     }
@@ -260,7 +266,7 @@ export class DiagnosticsController implements vscode.Disposable {
       for (const t of wf.tasks) {
         if (!dependedUpon.has(t.id)) { continue; } // sink — result carrier
         if (!shapes.has(t.id)) { continue; }
-        if (new RegExp(`\\btasks\\.${t.id}\\b`).test(text)) { continue; }
+        if (new RegExp(`\\btasks\\.${escapeRe(t.id)}\\b`).test(text)) { continue; }
         for (let i = t.line; i <= t.endLine && i < doc.lineCount; i++) {
           const m = doc.lineAt(i).text.match(/^(\s*)schema:/);
           if (!m) { continue; }

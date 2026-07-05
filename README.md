@@ -47,6 +47,17 @@ messages and positions come from the engine, not the extension.*
 - **Task rename & find-references** · hits all 4 syntactic homes
   (declaration · `depends_on` · `${{ tasks.X }}` islands · bare CEL in
   `when:`) and enforces the engine id grammar (snake_case · CEL-safe)
+- **Linked editing** · type in ANY home of a task id and every reference
+  follows live · **selection ranges** (word → line → task → tasks →
+  document smart-expand) · **task dependency hierarchy** in the native
+  Call Hierarchy UI (incoming = what it unlocks · outgoing = what it needs)
+- **Workspace-wide lint** · CLOSED `.nika.yaml` files ride `nika check`
+  into the Problems panel too (open files stay live) · per-code severity
+  remap (`nika.diagnostics.severity` · exact or `NIKA-SEC-*` globs · `off`
+  hides a code) · related-information walks you to both ends of a
+  missing wire
+- **Language status** · the `{}` flyout carries the engine version, the
+  ACTIVE file's check verdict (busy while a pass runs) and the LSP state
 - **Outline / breadcrumbs** · tasks with verb detail + the permits boundary
 - **Full LSP** (the day the binary ships `nika lsp`, it takes over
   automatically · the client declares which layers it keeps via
@@ -60,7 +71,24 @@ messages and positions come from the engine, not the extension.*
 
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
-  mermaid/dot export
+  mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
+- **Content-first canvas** · the node IS the content: infer cards show
+  their prompt, exec cards their `$ command`, invoke cards their tool +
+  args — before any run. The **model chip edits** (provider picker →
+  one undoable YAML edit), `⌀` badges carry the mean duration across
+  your recorded runs, ports appear on hover (drag out-port → card =
+  `depends_on`), and a **verb palette + omnibar** sits at the bottom:
+  `+ infer after gather` inserts deterministically, `/text` filters,
+  a sentence routes to oracle-checked generation. Semantic zoom keeps
+  100-task graphs readable as a map
+- **The nika.sh skin** · the panel ships the landing page's design
+  language by default — engineered-black register, one blue accent, the
+  4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
+  Martian Mono, a full-spectrum edge aurora that sweeps once on a clean
+  run close and flashes red on failure · `nika.dag.theme: editor` follows
+  your theme instead · high contrast always wins
+- **`/` filter** · type to fade everything but matching tasks
+  (id · verb · model · tool · provider) · Enter cycles the matches
 - **The engineering read** · exact max parallelism (Dilworth antichain,
   with a witness set), speedup ceiling (work-span), k-worker wall-clock
   estimates (Graham-bounded list scheduling · measured milliseconds after
@@ -81,8 +109,13 @@ messages and positions come from the engine, not the extension.*
 - **LM tools** · `nika_check` / `nika_explain` / `nika_graph` registered as
   Language Model Tools · in-editor AI agents validate the workflows they
   write through the REAL oracle instead of guessing
-- **MCP + rules setup** · one command wires editor MCP config and Cursor rules;
-  `nika init` scaffolds the repo-local `AGENTS.md`
+- **MCP + rules setup** · one command wires editor MCP config and Cursor
+  rules — engine-canonical through `nika wire` when the binary ships it,
+  with a one-tap follow-up for codex/claude; `nika init` scaffolds the
+  repo-local `AGENTS.md`. On VS Code 1.101+ agent mode discovers
+  `nika mcp` natively (zero config files)
+- **Doctor** · `Nika: Doctor` runs the engine's own environment diagnosis
+  (binary · config · provider keys) — prints exact fixes, never mutates
 - **Works with your CLI agents too** · `nika wire cursor` / `claude` /
   `windsurf` / `codex` patches each client's MCP config (idempotent ·
   preserves your other servers) so Claude Code, Codex CLI and friends

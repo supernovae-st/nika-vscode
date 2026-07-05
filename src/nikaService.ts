@@ -206,7 +206,12 @@ export class NikaService {
     const cached = this.checkCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
 
-    const flightKey = `${key}#${doc.version}`;
+    // Capture the version BEING checked: `doc` is a live reference, and
+    // stamping the cache with a re-read doc.version would label a stale
+    // result as current when the user typed mid-check (then every later
+    // call at that version cache-HITS the wrong content).
+    const checkedVersion = doc.version;
+    const flightKey = `${key}#${checkedVersion}`;
     const inFlight = this.checkInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
@@ -222,7 +227,7 @@ export class NikaService {
       } satisfies CheckOutcome;
     }).then((outcome) => {
       if (this.checkInFlight.get(flightKey) === promise) {
-        this.checkCache.set(key, { version: doc.version, value: outcome });
+        this.checkCache.set(key, { version: checkedVersion, value: outcome });
         this.updateEmitter.fire(key);
       }
       return outcome;
@@ -258,7 +263,9 @@ export class NikaService {
     const cached = this.graphCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
 
-    const flightKey = `${key}#${doc.version}`;
+    // Same captured-version discipline as checkDocument (stale-stamp race).
+    const checkedVersion = doc.version;
+    const flightKey = `${key}#${checkedVersion}`;
     const inFlight = this.graphInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
@@ -273,7 +280,7 @@ export class NikaService {
       }
     }).then((value) => {
       if (this.graphInFlight.get(flightKey) === promise) {
-        this.graphCache.set(key, { version: doc.version, value });
+        this.graphCache.set(key, { version: checkedVersion, value });
         this.updateEmitter.fire(key);
       }
       return value;

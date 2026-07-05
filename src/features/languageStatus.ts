@@ -107,11 +107,14 @@ export class NikaLanguageStatus implements vscode.Disposable {
     }
     this.checkItem.busy = this.running.has(uri.toString());
 
-    // Count OUR findings on the active file — both the client collection
-    // and the LSP-published ones ride languages.getDiagnostics.
+    // Count OUR findings on the active file — the client collection AND
+    // the LSP-published ones both ride languages.getDiagnostics. The
+    // server publishes source "nika" too (nika-lsp diagnostics.rs SOURCE
+    // const — 'nika-lsp' is only the CLIENT's collection label, never a
+    // wire value), so one source check + the code prefix covers all.
     const diags = vscode.languages.getDiagnostics(uri).filter((d) => {
       const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
-      return d.source === NIKA_DIAG_SOURCE || d.source === 'nika-lsp' || code.startsWith('NIKA-');
+      return d.source === NIKA_DIAG_SOURCE || code.startsWith('NIKA-');
     });
     if (diags.length === 0) {
       this.checkItem.text = '$(pass-filled) check: clean';

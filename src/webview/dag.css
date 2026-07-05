@@ -280,7 +280,7 @@ body {
 
 .dag-node.status-pending .node-bg {
   fill: var(--nk-page);
-  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   opacity: 0.7;
 }
 
@@ -384,7 +384,7 @@ body {
 /* ─── Status: Skipped ───────────────────────────────────────────────────── */
 
 .dag-node.status-skipped .node-bg {
-  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  stroke: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
   stroke-dasharray: 4 3;
   opacity: 0.5;
 }
@@ -410,14 +410,16 @@ body {
 /* ─── High Contrast Theme Overrides ─────────────────────────────────────── */
 
 @media (forced-colors: active) {
+  /* !important: the nika skin's body-scoped rules out-specify these —
+   * high contrast must win over BOTH skins (spec-sanctioned use). */
   .dag-node .node-bg {
-    stroke: ButtonText;
-    fill: Canvas;
+    stroke: ButtonText !important;
+    fill: Canvas !important;
   }
 
   .dag-node:hover .node-bg,
   .dag-node.selected .node-bg {
-    stroke: Highlight;
+    stroke: Highlight !important;
   }
 
   .dag-node .nc,

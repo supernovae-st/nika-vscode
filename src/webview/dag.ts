@@ -845,6 +845,22 @@ class DagRenderer {
     if (nikaSkin) {
       css = css.replace(/body\[data-nk-theme=["']nika["']\]/g, ':root');
     }
+    // Bake the LIVE token values: the editor injects --vscode-* on a DOM
+    // ancestor that never travels with the file, so var() chains would
+    // collapse to their hardcoded fallbacks — the exported image must
+    // keep the user's actual theme.
+    const live = getComputedStyle(document.body);
+    const baked = [
+      'nk-accent', 'nk-data', 'nk-border', 'nk-surface', 'nk-page',
+      'nk-ink', 'nk-ink-dim', 'nk-mono', 'nk-st-running', 'nk-st-success',
+      'nk-st-failed', 'nk-st-retrying', 'nk-st-muted', 'nk-critical',
+      'nk-verb-infer', 'nk-verb-exec', 'nk-verb-invoke', 'nk-verb-agent',
+    ]
+      .map((t) => ({ t, v: live.getPropertyValue(`--${t}`).trim() }))
+      .filter(({ v }) => v.length > 0)
+      .map(({ t, v }) => `--${t}: ${v};`)
+      .join(' ');
+    css += `\n:root { ${baked} }`;
     const font = await inlineFontDataUri();
     if (font) {
       css += `@font-face{font-family:'Martian Mono';src:url('${font}') format('woff2');font-weight:100 800;}`;
@@ -885,14 +901,25 @@ class DagRenderer {
       vscode.postMessage({ kind: 'dag:export', format: 'svg', data: svgText, name: `${name}.svg` });
       return;
     }
+    // Raster scale clamps to Chromium's safe canvas ceiling — a huge
+    // graph exports at reduced DPI instead of a silent blank PNG.
+    const scale = Math.min(2, 8192 / W, 8192 / H);
     const canvas = document.createElement('canvas');
-    canvas.width = W * 2;
-    canvas.height = H * 2;
+    canvas.width = Math.ceil(W * scale);
+    canvas.height = Math.ceil(H * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) { return; }
-    ctx.scale(2, 2);
+    ctx.scale(scale, scale);
     ctx.drawImage(img, 0, 0);
-    vscode.postMessage({ kind: 'dag:export', format, data: canvas.toDataURL('image/png'), name: `${name}.png` });
+    let data: string;
+    try {
+      data = canvas.toDataURL('image/png');
+    } catch {
+      // Rasterization refused (taint/size edge) — ship the vector form.
+      vscode.postMessage({ kind: 'dag:export', format: 'svg', data: svgText, name: `${name}.svg` });
+      return;
+    }
+    vscode.postMessage({ kind: 'dag:export', format, data, name: `${name}.png` });
   }
 
   /** Click the minimap → center the main view on that point. */
@@ -1972,8 +1999,11 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // CSS variables update automatically — nothing to do
       break;
     case 'theme:mode':
-      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload.
+      // Skin flip (nika ⇄ editor) — tokens re-scope, no reload. A
+      // pending aurora must not replay when flipping BACK to nika.
       document.body.dataset.nkTheme = msg.mode;
+      if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = undefined; }
+      delete document.body.dataset.aurora;
       break;
   }
 });

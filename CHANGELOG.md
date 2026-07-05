@@ -3,6 +3,112 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [0.92.0] · 2026-07-05
+
+The SOTA night: the linter grows Ruff-grade controls, the language
+surface gains the navigation providers reference extensions ship, and
+the DAG panel becomes a content-first canvas in the nika.sh design
+language.
+
+### Canvas 2.0 — the node IS the content
+- **Content-first cards** · variable-height nodes show the task's
+  SUBSTANCE: infer cards carry their prompt (3-line clamp), exec cards
+  their `$ command`, invoke cards their `tool + args` — read from the
+  YAML client-side, no run needed (the resting state already tells the
+  story, ElevenLabs-Flows style).
+- **The model chip edits** · click the model on any card → provider
+  picker (local/open-weight first · then mistral · then the rest) →
+  `provider/model` input → the YAML updates as one undoable edit.
+- **Honest averages** · `⌀ 2.1s` per task — the mean success duration
+  across the recorded flight-recorder runs of THIS graph (majority-
+  overlap gated, newest 12 traces).
+- **Ports** · in/out dots appear on hover; drag the out-port onto any
+  card to declare `depends_on` (the hidden ⌥drag, now discoverable).
+- **Verb palette + omnibar** · a floating bottom bar: ◇▷◆✦ one-click
+  task add; type `+ infer after gather` for a deterministic insert,
+  `/text` to filter, or describe a workflow — that routes into the
+  oracle-checked generate pipeline.
+- **Semantic zoom** · zoomed out, cards collapse to id + status so big
+  graphs read like a map; a zoom % chip sits in the toolbar.
+
+### The DAG speaks nika.sh (default skin `nika` · `nika.dag.theme`)
+- **The brand register** · engineered-black surfaces (`#08090b`/`#0a0d12`),
+  blue-tinted hairlines, 4px radii, Bayer print-grain, the seam/elevation
+  shadow kit, Martian Mono (variable · OFL · bundled) — the same product
+  frame the site pins dark everywhere. `editor` mode follows your theme;
+  forced-colors always wins over both.
+- **Verb identity everywhere** · the canon hues (infer `#5b8cff` ◇ ·
+  exec `#ff7a3c` ▷ · invoke `#22d3ee` ◆ · agent `#b07bff` ✦) drive node
+  LED spines, icon chips, hover pills AND the editor gutter dots — one
+  `--dv-hue` custom property, one vocabulary across every Nika surface.
+- **Run states, the site's way** · running = verb-tinted ring + spinner,
+  data circulation = sparse round dashes travelling completed wires,
+  cancelled stays a decision (dim, never red).
+- **Edge aurora verdict** · a full-spectrum ring hugs the viewport at
+  near-zero rest intensity; ONE bright hue-travel on a clean live close,
+  a red flash on failure. Never fires for graphs that arrive complete.
+- **`/` filter** · fades everything but matches (id · verb · model ·
+  tool · provider), Enter cycles them, Esc ladders out. Filter and
+  focus-lineage compose into one dimming truth.
+- **SVG/PNG export** · one click serializes the WHOLE graph with the
+  stylesheet + font embedded (PNG at 2×, falls back to SVG); the file
+  keeps whichever skin is active.
+- **Live minimap** · run statuses now mirror onto the minimap per
+  transition; the card re-measures on panel resize (it is responsive).
+
+### Linter depth (the Ruff/Biome bar)
+- **Per-code severity remap** · `nika.diagnostics.severity` maps exact
+  codes or glob families (`NIKA-SEC-*`) to error/warning/info/hint/off —
+  `off` hides the squiggle while quick fixes stay reachable.
+- **Workspace-wide lint** · closed `*.nika.yaml` files ride
+  `nika check --json` into the Problems panel (300-file cap · logged ·
+  ownership hands to the live controller on open and back on close ·
+  `nika.diagnostics.workspace` opts out).
+- **Related information** · NIKA-DAG-003 lights the producer's
+  declaration (both ends of the missing wire); redundant depends_on
+  points at its transitive source.
+- **Language status items** · the `{}` flyout carries engine
+  version/path, the active file's verdict (busy while a pass runs,
+  severity mirrors the worst finding), and LSP lifecycle with restart.
+
+### Language intelligence
+- **Linked editing** · task ids edit as one across all 4 syntactic homes.
+- **Selection ranges** · word → line → task block → tasks section →
+  document smart-expand.
+- **Task dependency hierarchy** · the native Call Hierarchy UI mapped
+  onto the DAG (incoming = dependents unlocked · outgoing = depends_on).
+- **Interactive inlay facts** · the cost part click-opens the pre-flight
+  report; when-gate and fan-out carry their own tooltips.
+- **Hover actions** · task cards gain Focus-in-DAG and Peek-references
+  command links.
+
+### Agent-native
+- **Engine-canonical wiring** · `Nika: Setup MCP + Agent Rules` delegates
+  to `nika wire <client>` when the binary ships it (idempotent · registry
+  SSOT) with a one-tap follow-up to also wire codex or claude; the
+  extension writers remain the older-binary fallback.
+- **Native MCP discovery** · on VS Code 1.101+ the extension registers a
+  server-definition provider, so `nika mcp` appears in agent mode with
+  zero config files (feature-detected; Cursor keeps the file path).
+- **`Nika: Doctor`** · the engine's diagnose-only environment check from
+  the palette/status menu.
+
+### Zero-bug ground pass
+- batchUpdateStatus recomputes critical-path/flow once per batch (was
+  once per task — O(n²) churn on live fan-outs).
+- The tar extractor now resolves only after the OS flushed the bytes —
+  the caller chmods and EXECUTES that file next (real race), and stops
+  decompressing once the target entry is written.
+- The hand-rolled TAR/ZIP extractors moved to pure `core/archive.ts`
+  with 10 adversarial tests (byte-exact extraction · unaligned sizes ·
+  directory decoys named like the target · stored+deflated members ·
+  unsupported methods · corrupt containers).
+- eslint 9 (typescript-eslint) rides `npm test`; 8 latent findings fixed.
+- fit/zoom transitions respect reduced-motion; the fix-all dead loop is
+  now the documented single pass; Windows stopped advertising a phantom
+  release artifact; `fmt` phantom dropped from task docs; the starter
+  comment is vendor-neutral.
+
 ## [0.90.2] · 2026-07-03
 
 Docs-only: the plugin install pointer moves to the lean

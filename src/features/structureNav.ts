@@ -104,7 +104,10 @@ interface TaskShape {
 function hierarchyItem(document: vscode.TextDocument, task: TaskShape): vscode.CallHierarchyItem {
   const declLine = Math.min(task.line, document.lineCount - 1);
   const lineText = document.lineAt(declLine).text;
-  const idCol = Math.max(lineText.indexOf(task.id), 0);
+  // Search AFTER the `id:` colon — a task literally named `id` would
+  // otherwise match the key token itself.
+  const colon = lineText.indexOf(':');
+  const idCol = Math.max(lineText.indexOf(task.id, colon + 1), 0);
   return new vscode.CallHierarchyItem(
     vscode.SymbolKind.Function,
     task.id,
