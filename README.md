@@ -18,6 +18,30 @@ paints in the margin. Apache-2.0 spec · AGPL engine.
 *The diagnostics above are the real `nika check --json` output — codes,
 messages and positions come from the engine, not the extension.*
 
+## Install
+
+- **VS Code** · search **“Nika”** in Extensions, or
+  [Marketplace → supernovae.nika-lang](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+- **Cursor · Windsurf · VSCodium** · same search — they install from
+  [OpenVSX → supernovae/nika-lang](https://open-vsx.org/extension/supernovae/nika-lang)
+- **The engine** (optional but where the magic lives) ·
+  `brew install supernovae-st/tap/nika` — or let the extension offer a
+  verified download on first open (HTTPS + SHA-256 · explicit consent ·
+  [policy](https://github.com/supernovae-st/nika-vscode/blob/main/README.md)).
+  Without the binary you still get syntax, snippets, schema completions
+  and the client-side DAG.
+
+## 30 seconds to the wow
+
+1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
+2. **`Nika: Show Workflow DAG`** — the file becomes a content-first
+   canvas: prompts on infer cards, `$ commands` on exec cards.
+3. Press **▶ mock** on the run pill — the DAG lights up wave by wave with
+   `mock/echo`: **deterministic, zero API keys, zero network.**
+
+That's the whole loop: the same file then runs on any of the engine's
+providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
+
 ## Features
 
 ### The audit moat, in the editor

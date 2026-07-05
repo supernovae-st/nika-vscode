@@ -1,7 +1,7 @@
 {
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
-  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). For VS Code, Cursor, Windsurf, VSCodium: check-as-you-type audit diagnostics, DAG view with live run and trace replay, cost inlay hints, schema-derived completions, agent tools.",
+  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
   "version": "0.93.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
@@ -15,7 +15,7 @@
     "url": "https://github.com/supernovae-st/nika-vscode/issues"
   },
   "galleryBanner": {
-    "color": "#0f172a",
+    "color": "#08090b",
     "theme": "dark"
   },
   "pricing": "Free",
@@ -38,7 +38,15 @@
     "cursor",
     "windsurf",
     "agent",
-    "lsp"
+    "lsp",
+    "dag",
+    "canvas",
+    "pipeline",
+    "orchestration",
+    "replay",
+    "audit",
+    "automation",
+    "linter"
   ],
   "activationEvents": [
     "onStartupFinished",
