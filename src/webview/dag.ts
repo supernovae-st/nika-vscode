@@ -15,6 +15,7 @@ import ELK, {
 import { select, type Selection } from 'd3-selection';
 import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent } from 'd3-zoom';
 import { line, curveMonotoneY, type Line } from 'd3-shape';
+import { easeCubicOut } from 'd3-ease';
 // Side-effect import: patches Selection.prototype with .transition()
 import 'd3-transition';
 
@@ -997,6 +998,7 @@ class DagRenderer {
       .scale(k);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 360)
+      .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
@@ -1661,6 +1663,7 @@ class DagRenderer {
     const t = zoomIdentity.translate(svgW / 2 - rootX * k, svgH / 2 - rootY * k).scale(k);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 240)
+      .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
@@ -1704,6 +1707,7 @@ class DagRenderer {
       .scale(k);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 420)
+      .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
@@ -1897,7 +1901,7 @@ class DagRenderer {
     merged
       .transition()
       .duration(REDUCED_MOTION ? 0 : 300)
-      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : (this.waveOf.get(d.id) ?? 0) * 80)
+      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : (this.waveOf.get(d.id) ?? 0) * 70)
       .attr('opacity', 1)
       .attr('transform', (d) => {
         const elk = elkMap.get(d.id);
@@ -2063,6 +2067,12 @@ class DagRenderer {
     // A pending delayed-hide (from leaving the PREVIOUS node) must not
     // kill the card we are about to show for this one.
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
+    // Already open → GLIDE to the next anchor (left/top transition);
+    // a fresh open snaps into place and rises (no cross-canvas flight).
+    this.hoverCard.classList.toggle(
+      'gliding',
+      this.hoverCard.classList.contains('visible'),
+    );
     const live = this.nodeMap.get(node.id) ?? node;
     this.hoverCard.replaceChildren();
 
@@ -2215,12 +2225,12 @@ class DagRenderer {
   private hideHoverCard(now = false): void {
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
     if (now) {
-      this.hoverCard?.classList.remove('visible');
+      this.hoverCard?.classList.remove('visible', 'gliding');
       return;
     }
     this.hideTimer = setTimeout(() => {
       if (!this.hoverCard?.matches(':hover')) {
-        this.hoverCard?.classList.remove('visible');
+        this.hoverCard?.classList.remove('visible', 'gliding');
       }
     }, 140);
   }
@@ -2545,6 +2555,7 @@ class DagRenderer {
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     this.svg
       .transition().duration(REDUCED_MOTION ? 0 : 500)
+      .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 

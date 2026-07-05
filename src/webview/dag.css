@@ -52,6 +52,10 @@ body {
    * state change shares this pair — the canvas feels like one instrument. */
   --nk-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nk-dur: 140ms;
+  /* The SPRING — a gentle ~4% overshoot for arrivals (entrances · pops ·
+   * the settle). A canonical linear() spring curve (Open Props family);
+   * browsers without linear() fall back to --nk-ease via @supports. */
+  --nk-spring: var(--nk-ease);
   /* The two-zone card surface (DESIGN.md §1) — skins retune VALUES only. */
   --nk-card: var(--vscode-editorWidget-background, #202020);
   --nk-card-border: var(--nk-border);
@@ -572,6 +576,11 @@ body.running .dag-edge.edge-dep {
   fill: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.06));
   opacity: 0.2;
   pointer-events: none;
+  animation: nk-band-in 0.5s ease-out backwards;
+}
+
+@keyframes nk-band-in {
+  from { opacity: 0; }
 }
 
 .wave-band.odd {
@@ -663,6 +672,17 @@ body.running .dag-edge.edge-dep {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto; /* needs/unlocks chips are clickable */
+}
+
+/* While OPEN the card GLIDES between anchors (left/top join the
+ * transition) — moving card-to-card slides the inspector instead of
+ * re-popping it (the shared-tooltip grammar). Entrance keeps its own
+ * rise (left/top snap while hidden — the transition only runs visible). */
+#hover-card.visible.gliding {
+  transition:
+    left 0.19s var(--nk-ease),
+    top 0.19s var(--nk-ease),
+    opacity 0.13s ease-out;
 }
 
 .hc-chips {
@@ -1002,6 +1022,7 @@ body.vscode-light .logo-dark { display: none; }
   stroke-width: calc(1px * var(--zoom-comp, 1));
   stroke-dasharray: 4 4;
   pointer-events: none;
+  transition: opacity 0.12s ease-out;
 }
 
 .dag-svg.connecting {
@@ -1696,6 +1717,14 @@ body.vscode-light .logo-dark { display: none; }
   .dag-node:hover .nc {
     transform: none;
   }
+
+  .wave-band {
+    animation: none !important;
+  }
+
+  #hover-card.visible.gliding {
+    transition: opacity 0.01s linear;
+  }
 }
 
 .mm-node.st-retrying { fill: var(--nk-st-retrying); opacity: 0.95; }
@@ -2342,6 +2371,12 @@ body.heatmap .nc {
     var(--nk-st-failed) calc(var(--heat, 0) * 26%),
     var(--nk-card)
   );
+  /* The tint MORPHS as durations land / the toggle flips — never snaps. */
+  transition:
+    background 0.4s var(--nk-ease),
+    border-color var(--nk-dur) var(--nk-ease),
+    box-shadow var(--nk-dur) var(--nk-ease),
+    transform var(--nk-dur) var(--nk-ease);
 }
 
 body.heatmap .dag-node:hover .nc {
@@ -3394,4 +3429,32 @@ body.vscode-high-contrast .dag-node.dimmed {
 body.vscode-high-contrast .dag-edge.edge-dep,
 body.vscode-high-contrast .dag-edge.edge-data {
   animation: none !important;
+}
+
+
+/* ═══ The spring · linear() where supported (DESIGN.md §6) ════════════════ */
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --nk-spring: linear(
+      0, 0.0088 1.05%, 0.0357 2.19%, 0.1443 4.71%, 0.549 11.36%, 0.6979,
+      0.8228 17.35%, 0.9256 20.68%, 0.9756 22.85%, 1.0156 25.15%,
+      1.0451 27.63%, 1.0619 30.35%, 1.0669 33.44%, 1.0603 37.15%,
+      1.0203 46.15%, 1.0035 51.85%, 0.9948 58.31%, 0.9989 76.51%, 1
+    );
+  }
+}
+
+/* Arrivals ride the spring: the card entrance + the verdict pop. */
+.nc-enter {
+  animation-timing-function: var(--nk-spring);
+}
+
+.dag-node.status-success .nc-sub-v,
+.dag-node.status-failed .nc-sub-v {
+  animation-timing-function: var(--nk-spring);
+}
+
+.nc-body.nc-body-live {
+  animation-timing-function: var(--nk-spring);
 }

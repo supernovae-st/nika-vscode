@@ -62,6 +62,13 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **The smooth pass** — arrivals ride a real `linear()` SPRING (~4%
+  overshoot: entrances · verdict pops · the output line; safe fallback
+  via `@supports`), every camera move speaks ease-out (fit/center/
+  wave/minimap), the hover inspector GLIDES between cards while open
+  instead of re-popping, the heatmap tint MORPHS (0.4s) as durations
+  land, wave bands fade in, alignment guides fade out, and the two
+  entrance stagger clocks (SVG 80ms vs CSS 70ms) became one.
 - **Run from here** — the hover card grew a `▶ run` action: ONE task
   and its upstream cone through the same `nika run --task` flow the
   CodeLens uses — the n8n partial-execution move without leaving the

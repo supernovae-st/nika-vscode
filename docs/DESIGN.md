@@ -136,8 +136,14 @@ body class — hard 2px borders, zero shadows/grain/loops).
 ## 6 · Motion
 
 One signature ease `cubic-bezier(0.22, 1, 0.36, 1)` @140ms for every
-hover/focus/state; slower orchestrated moments keep their own timings.
-Compositor props only. `prefers-reduced-motion` disables every loop.
+hover/focus/state. ARRIVALS ride the SPRING — a canonical `linear()`
+curve with ~4% overshoot (`--nk-spring` · falls back to the ease via
+`@supports`): card entrances, verdict pops, the output line. The
+CAMERA speaks ease-out (every d3 zoom transition: fit 460ms · center
+420ms · wave 360ms · minimap 240ms — the canvas-tool standard, never
+symmetric in/out). The hover inspector GLIDES between anchors while
+open (left/top transition 190ms) instead of re-popping. Compositor
+props only. `prefers-reduced-motion` disables every loop.
 
 The orchestrated moments (each spent exactly once, where it means):
 - **Entrance** — cards rise in staggered by wave (70ms/wave · 0.32s),
