@@ -77,6 +77,7 @@ export class NikaStatusBar implements vscode.Disposable {
     add(caps.schema, { label: '$(json) Open JSON schema', command: 'nika.openSchema' });
     add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'deterministic template→check→repair protocol', command: 'nika.copyAiPrompt' });
     add(true, { label: '$(plug) Setup MCP + agent rules', command: 'nika.setupMcp' });
+    add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · provider keys · never mutates', command: 'nika.doctor' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
     add(true, { label: '$(verified) Verify engine binary', command: 'nika.checkBinary' });
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });

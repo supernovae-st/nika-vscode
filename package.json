@@ -266,6 +266,17 @@
       {
         "command": "nika.peekTaskRefs",
         "title": "Nika: Peek Task References"
+      },
+      {
+        "command": "nika.doctor",
+        "title": "Nika: Doctor (diagnose environment)",
+        "icon": "$(pulse)"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "nika.mcp",
+        "label": "Nika workflow oracle"
       }
     ],
     "configuration": {

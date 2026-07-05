@@ -25,6 +25,8 @@ export interface CapabilitySet {
   run: boolean;
   lsp: boolean;
   mcp: boolean;
+  wire: boolean;
+  doctor: boolean;
 }
 
 /** Parse the clap `--help` output into the set of subcommand names. */
@@ -70,6 +72,8 @@ export function buildCapabilities(helpText: string, versionText: string): Capabi
     run: commands.has('run'),
     lsp: commands.has('lsp'),
     mcp: commands.has('mcp'),
+    wire: commands.has('wire'),
+    doctor: commands.has('doctor'),
   };
 }
 

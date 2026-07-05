@@ -60,6 +60,7 @@ import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
 import { registerLmTools } from './features/lmTools';
+import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
 import { countReportFindings } from './core/cliContract';
@@ -356,6 +357,10 @@ export function activate(context: ExtensionContext): void {
 
   // AI agents inside the editor call the oracle natively.
   registerLmTools(context, service, log);
+
+  // VS Code ≥1.101 agent mode discovers `nika mcp` with zero config;
+  // Cursor/older hosts silently keep the file-based wiring.
+  registerMcpDefinitionProvider(context, service, log);
 
   // Intent → checked workflow (best-of-N · oracle-scored · bounded repair).
   registerGenerate(context, service, log);
@@ -780,7 +785,8 @@ export function activate(context: ExtensionContext): void {
   // Command: Wire MCP + agent rules for the current client (consent via command).
   context.subscriptions.push(
     commands.registerCommand('nika.setupMcp', async () => {
-      if (!workspace.workspaceFolders?.[0]) {
+      const folder = workspace.workspaceFolders?.[0];
+      if (!folder) {
         window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
         return;
       }
@@ -794,8 +800,7 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       if (service.caps.init) {
-        const folderPath = workspace.workspaceFolders[0].uri.fsPath;
-        const init = await service.runCli(['init', folderPath], 30000);
+        const init = await service.runCli(['init', folder.uri.fsPath], 30000);
         if (init.code !== 0) {
           log('WARN', `nika init failed during agent setup (${init.code}): ${init.stderr || init.stdout}`);
           window.showWarningMessage('Nika: `nika init` failed; MCP wiring skipped. See the Nika output channel.');
@@ -804,7 +809,41 @@ export function activate(context: ExtensionContext): void {
       } else {
         window.showInformationMessage('Nika: this binary has no `init`; wiring MCP only.');
       }
+      // The engine's own idempotent writer is canonical when present
+      // (registry SSOT, covers cursor·vscode·windsurf·claude·codex) —
+      // the extension's hand-writers stay as the older-binary fallback.
+      if (service.caps.wire) {
+        const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
+        const res = await service.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
+        if (res.code === 0) {
+          const extra = await window.showInformationMessage(
+            `Nika: MCP + agent rules wired for ${target} (engine-canonical).`,
+            'Also wire codex',
+            'Also wire claude',
+          );
+          if (extra) {
+            const t2 = extra.endsWith('codex') ? 'codex' : 'claude';
+            const r2 = await service.runCli(['wire', t2, '--dir', folder.uri.fsPath], 30000);
+            if (r2.code === 0) {
+              window.showInformationMessage(`Nika: ${t2} wired — its agent now calls the same oracle.`);
+            } else {
+              log('WARN', `nika wire ${t2} failed (${r2.code}): ${r2.stderr || r2.stdout}`);
+              window.showWarningMessage(`Nika: wire ${t2} failed — see the output channel.`);
+            }
+          }
+          return;
+        }
+        log('WARN', `nika wire ${target} failed (${res.code}): ${res.stderr || res.stdout} — falling back to extension writers`);
+      }
       await configureMcpForHost(state.resolvedServerPath, service.intel?.providers);
+    }),
+  );
+
+  // Command: Doctor — the engine diagnoses its own environment (terminal
+  // keeps the exact fix commands + colors; diagnose-only, never mutates).
+  context.subscriptions.push(
+    commands.registerCommand('nika.doctor', () => {
+      runNikaCommand(state.resolvedServerPath, 'doctor', '');
     }),
   );
 
