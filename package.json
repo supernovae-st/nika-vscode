@@ -229,6 +229,11 @@
         "icon": "$(diff)"
       },
       {
+        "command": "nika.rerunTask",
+        "title": "Nika: Re-run Task (and its upstream)",
+        "icon": "$(debug-restart)"
+      },
+      {
         "command": "nika.captureLintBaseline",
         "title": "Nika: Capture Lint Baseline (grandfather current findings)"
       },

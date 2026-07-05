@@ -50,6 +50,9 @@ export function runWorkflowLive(
   dagPanel: DagPanel,
   fsPath: string,
   log: (level: string, msg: string) => void,
+  /** Scope the run to ONE task + its upstream cone (`--task` · the
+   *  regenerate-one-block lens). Whole-workflow when absent. */
+  onlyTask?: string,
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
@@ -61,9 +64,9 @@ export function runWorkflowLive(
   // the live present wins.
   cancelActiveRun();
   dagPanel.clearTransport();
-  dagPanel.note('▶', `run started · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
+  dagPanel.note('▶', `run started · ${fsPath.split('/').pop() ?? fsPath}${onlyTask ? ` · --task ${onlyTask}` : ''}`, onlyTask, 'st-running');
 
-  const child = spawn(binary, ['run', fsPath, '--json', '--no-color'], {
+  const child = spawn(binary, ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : [])], {
     env: { ...process.env, NO_COLOR: '1' },
   });
   activeRun = { kill: () => child.kill() };

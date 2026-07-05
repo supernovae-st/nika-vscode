@@ -534,6 +534,17 @@ export function activate(context: ExtensionContext): void {
 
   // Command: Run current workflow (capability-gated · honest when pending)
   context.subscriptions.push(
+    // Command: re-run ONE task + its upstream cone (the CodeLens lever ·
+    // engine `run --task` — the full-file audit still happens engine-side).
+    commands.registerCommand('nika.rerunTask', async (uri: Uri | string, taskId: string) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (doc.isDirty) { await doc.save(); }
+      dagWorkflowUri = doc.uri;
+      const graph = await service.dagForDocument(doc);
+      dagPanel.show(graph);
+      runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, taskId);
+    }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
