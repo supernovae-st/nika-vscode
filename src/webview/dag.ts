@@ -2670,6 +2670,12 @@ window.addEventListener('mouseup', () => { minimapDragging = false; });
 document.getElementById('es-open')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:showActive' });
 });
+document.getElementById('es-new')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:newWorkflow' });
+});
+document.getElementById('es-walkthrough')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:openWalkthrough' });
+});
 
 // Panel resize re-scales the responsive minimap card (debounced).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;

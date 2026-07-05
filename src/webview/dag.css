@@ -2241,3 +2241,131 @@ body.lod-far .region-label { display: none; }
 /* A failed-status card already reads red — let the node border carry the
  * error; the chip stays as the count + click target. */
 body.lod-far .nc-audit { display: none !important; }
+
+/* Run pill · static cost forecast chip */
+#run-cost {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-st-success);
+  background: color-mix(in srgb, var(--nk-st-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-success) 32%, transparent);
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* Unbounded = a floor, not a ceiling — amber, not confident green. */
+#run-cost.unbounded {
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+}
+
+#run-cost[hidden] {
+  display: none;
+}
+
+/* ─── Empty-state · the first pixel (enriched onboarding) ────────────────── */
+
+.es-card {
+  max-width: 420px;
+}
+
+.es-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.es-button-ghost {
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border-color: var(--nk-border);
+}
+
+.es-button-ghost:hover {
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+}
+
+.es-gestures {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 18px 0 6px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid var(--nk-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nk-accent) 3%, transparent);
+}
+
+.es-gesture {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 11.5px;
+  color: var(--nk-ink-dim);
+  line-height: 1.4;
+}
+
+.es-gesture code {
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.es-gesture kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  border: 1px solid var(--nk-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
+
+.es-g-key {
+  flex: 0 0 16px;
+  text-align: center;
+  font-family: var(--nk-mono);
+  color: var(--nk-accent);
+}
+
+.es-link {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--nk-accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.es-link:hover {
+  text-decoration: underline;
+}
+
+/* Ghost button must out-specify the nika-skin primary fill. */
+body[data-nk-theme='nika'] .es-button-ghost {
+  color: #f4f5f7;
+  background: rgb(141 180 255 / 0.08);
+  border-color: rgb(140 170 255 / 0.20);
+}
+
+body[data-nk-theme='nika'] .es-button-ghost:hover {
+  background: rgb(141 180 255 / 0.14);
+}

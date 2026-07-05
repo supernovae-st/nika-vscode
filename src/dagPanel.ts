@@ -57,6 +57,9 @@ export type WebviewToExtMessage =
   | { kind: 'dag:showActive' }
   // A card's ⚠N badge was clicked — open the full pre-flight report.
   | { kind: 'dag:openReport' }
+  // Empty-state actions — scaffold a workflow · open the walkthrough.
+  | { kind: 'dag:newWorkflow' }
+  | { kind: 'dag:openWalkthrough' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
   | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
@@ -430,6 +433,17 @@ export class DagPanel implements vscode.Disposable {
         void vscode.commands.executeCommand('nika.showReport');
         break;
 
+      case 'dag:newWorkflow':
+        void vscode.commands.executeCommand('nika.newWorkflow');
+        break;
+
+      case 'dag:openWalkthrough':
+        void vscode.commands.executeCommand(
+          'workbench.action.openWalkthrough',
+          'supernovae.nika-lang#nika.gettingStarted',
+        );
+        break;
+
       case 'dag:export':
         void this.saveExport(msg.format, msg.data, msg.name);
         break;
@@ -575,10 +589,18 @@ export class DagPanel implements vscode.Disposable {
     <div class="es-card">
       <img class="es-mark logo-dark" src="${logoDark}" alt="Nika" width="34" height="34">
       <img class="es-mark logo-light" src="${logoLight}" alt="Nika" width="34" height="34">
-      <div class="es-title">No workflow loaded</div>
-      <div class="es-sub">Open a <code>.nika.yaml</code>, then —</div>
-      <button id="es-open" class="es-button">Show DAG for the active file</button>
-      <div class="es-hint">or <kbd>⇧⌘P</kbd> → <span>nika dag</span></div>
+      <div class="es-title">The workflow canvas</div>
+      <div class="es-sub">Open a <code>.nika.yaml</code> to see it audited, run and replayed here.</div>
+      <div class="es-actions">
+        <button id="es-open" class="es-button">Show the active file</button>
+        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
+      </div>
+      <div class="es-gestures">
+        <div class="es-gesture"><span class="es-g-key">▶</span> run live or preview with <code>mock/echo</code> — zero keys</div>
+        <div class="es-gesture"><span class="es-g-key">⤓</span> drag a port → a new pre-wired task · edits land in the YAML</div>
+        <div class="es-gesture"><span class="es-g-key">↻</span> scrub any recorded run · <kbd>Tab</kbd> walks the graph</div>
+      </div>
+      <button id="es-walkthrough" class="es-link">Get started with Nika →</button>
     </div>
   </div>
   <div id="explainer" hidden></div>
