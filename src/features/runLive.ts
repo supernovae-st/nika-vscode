@@ -20,7 +20,6 @@ import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
 import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
-import { cancelActiveReplay } from './runsView';
 
 /** Min gap between intermediate store publishes — editor surfaces
  *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
@@ -53,10 +52,10 @@ export function runWorkflowLive(
     return;
   }
 
-  // A fresh run supersedes any prior run AND any replay animation —
+  // A fresh run supersedes any prior run AND any replay transport —
   // the live present wins.
   cancelActiveRun();
-  cancelActiveReplay();
+  dagPanel.clearTransport();
   dagPanel.note('▶', `run started · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
 
   const child = spawn(binary, ['run', fsPath, '--json', '--no-color'], {

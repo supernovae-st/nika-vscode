@@ -14,6 +14,7 @@ import * as crypto from 'crypto';
 // `graph --format json` adapter, this panel, and the webview mirror).
 
 import type { DagGraph, TaskStatus } from './core/cliContract';
+import type { TraceTimeline } from './core/traceTimeline';
 
 export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract';
 
@@ -28,7 +29,11 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  // The platine: a normalized trace timeline the webview transport
+  // plays/scrubs LOCALLY — zero round-trips per frame.
+  | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
+  | { kind: 'transport:clear' };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -172,6 +177,7 @@ export class DagPanel implements vscode.Disposable {
       // A focus queued for THIS panel must not replay on the next one
       // (close → reopen would zoom to a task the user left behind).
       this.pendingFocus = undefined;
+      this.pendingTransport = undefined;
       const toDispose = this.disposables;
       this.disposables = [];
       toDispose.forEach((d) => d.dispose());
@@ -235,6 +241,9 @@ export class DagPanel implements vscode.Disposable {
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
+    // A new graph orphans any queued timeline (the webview side also
+    // deactivates its transport on dag:load).
+    this.pendingTransport = undefined;
     if (this.panel?.visible) {
       this.postMessage({ kind: 'dag:load', graph });
     }
@@ -242,6 +251,7 @@ export class DagPanel implements vscode.Disposable {
 
   /** Update a single task's status (during execution) */
   public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number): void {
+    this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       const node = this.currentGraph.nodes.find((n) => n.id === taskId);
       if (node) {
@@ -254,6 +264,7 @@ export class DagPanel implements vscode.Disposable {
 
   /** Batch update multiple task statuses at once */
   public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }>): void {
+    this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
         const node = this.currentGraph.nodes.find((n) => n.id === u.taskId);
@@ -264,6 +275,31 @@ export class DagPanel implements vscode.Disposable {
       }
     }
     this.postMessage({ kind: 'dag:batchUpdateStatus', updates });
+  }
+
+  private pendingTransport:
+    | { timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
+    | undefined;
+
+  /**
+   * Hand a normalized trace timeline to the webview transport (the
+   * platine). Queued like pendingFocus: a freshly created panel loses
+   * messages posted before its script runs — dag:ready re-sends.
+   */
+  public loadTransport(timeline: TraceTimeline, opts?: { speed?: number; autoPlay?: boolean }): void {
+    this.pendingTransport = { timeline, speed: opts?.speed, autoPlay: opts?.autoPlay };
+    this.postMessage({
+      kind: 'transport:load',
+      timeline,
+      speed: opts?.speed,
+      autoPlay: opts?.autoPlay,
+    });
+  }
+
+  /** Drop any replay transport — a live run supersedes the platine. */
+  public clearTransport(): void {
+    this.pendingTransport = undefined;
+    this.postMessage({ kind: 'transport:clear' });
   }
 
   /** Fit the view to show all nodes */
@@ -321,6 +357,10 @@ export class DagPanel implements vscode.Disposable {
         if (this.pendingFocus) {
           this.postMessage({ kind: 'dag:focus', taskId: this.pendingFocus });
           this.pendingFocus = undefined;
+        }
+        if (this.pendingTransport) {
+          // After dag:load, in-order — the webview resyncs post-layout.
+          this.postMessage({ kind: 'transport:load', ...this.pendingTransport });
         }
         break;
 
@@ -501,6 +541,15 @@ export class DagPanel implements vscode.Disposable {
   <div id="dag-legend">
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>
+  </div>
+  <div id="transport" hidden>
+    <button id="tr-play" aria-label="Play" title="Play / Pause — Space">▶</button>
+    <div id="tr-track">
+      <div id="tr-ticks" aria-hidden="true"></div>
+      <input id="tr-scrub" type="range" min="0" max="1000" step="1" value="0"
+             aria-label="Trace timeline — arrows snap between events, Home/End jump">
+    </div>
+    <span id="tr-time">0:00.0 / 0:00.0</span>
   </div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

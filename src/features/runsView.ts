@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace, summarizeRun, type RunModel } from '../core/traceFold';
+import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
@@ -120,15 +121,6 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
   }
 }
 
-// One replay at a time: starting a new one cancels the previous timers —
-// otherwise two replays interleave status updates on the same panel.
-let activeReplayTimers: Array<ReturnType<typeof setTimeout>> = [];
-
-export function cancelActiveReplay(): void {
-  for (const t of activeReplayTimers) { clearTimeout(t); }
-  activeReplayTimers = [];
-}
-
 /**
  * LIVE overlay: fold the (growing) trace and paint current statuses onto
  * the open DAG — no animation, the trace IS the present. Fired by the
@@ -151,8 +143,8 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
   const overlap = [...model.tasks.keys()].filter((id) => ids.has(id)).length;
   if (overlap < Math.ceil(model.tasks.size / 2)) { return false; }
 
-  // Live state wins over any replay animation in progress.
-  cancelActiveReplay();
+  // Live state wins over any replay transport in progress.
+  dagPanel.clearTransport();
   dagPanel.batchUpdateStatus(
     [...model.tasks.values()].map((t) => ({
       taskId: t.id,
@@ -171,9 +163,11 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
 }
 
 /**
- * Animate a folded run through the DAG panel. Timeline timestamps are
- * compressed by `speed` (engine default: 6× faster than recorded) and the
- * whole replay is clamped to ~20s so giant runs stay watchable.
+ * Replay a folded run through the DAG panel via the webview transport
+ * (the platine): the trace is normalized once (core/traceTimeline) and
+ * shipped whole — the webview plays/scrubs it LOCALLY, zero round-trips
+ * per frame. Recorded time is compressed by `speed` (engine default 6×,
+ * capped ~20s) at playback; every displayed fact stays the recorded one.
  */
 export async function replayIntoDag(
   dagPanel: DagPanel,
@@ -211,23 +205,23 @@ export async function replayIntoDag(
     edges: [],
   };
 
-  // Reset all node states to pending, show, then drive the timeline.
-  cancelActiveReplay();
+  // Reset all node states to pending, show, then hand over the timeline.
   for (const n of graph.nodes) { n.status = 'pending'; n.durationMs = undefined; }
   dagPanel.show(graph);
 
-  const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
-  const entries = model.timeline;
-  if (entries.length === 0) { return; }
-
-  const t0 = entries[0].atMs;
-  const span = Math.max(entries[entries.length - 1].atMs - t0, 1);
-  const budgetMs = Math.min(span / Math.max(speed, 1), 20000);
-
-  for (const entry of entries) {
-    const delay = ((entry.atMs - t0) / span) * budgetMs;
-    activeReplayTimers.push(setTimeout(() => {
-      dagPanel.updateTaskStatus(entry.taskId, entry.status as TaskStatus, entry.durationMs);
-    }, delay));
+  const timeline = buildTraceTimeline(model);
+  if (!timeline) {
+    // No usable real clock in the trace — paint the verdict directly.
+    dagPanel.batchUpdateStatus(
+      [...model.tasks.values()].map((t) => ({
+        taskId: t.id,
+        status: t.status as TaskStatus,
+        durationMs: t.durationMs,
+      })),
+    );
+    return;
   }
+
+  const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
+  dagPanel.loadTransport(timeline, { speed, autoPlay: true });
 }

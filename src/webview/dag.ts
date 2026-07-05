@@ -20,6 +20,8 @@ import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
+import type { TraceTimeline } from '../core/traceTimeline';
+import { createTransport } from './transport';
 
 // Every animation in this view is gated on the user's motion preference.
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -128,7 +130,9 @@ type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
+  | { kind: 'transport:clear' };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -1797,6 +1801,12 @@ function toggleExplainer(): void {
 const renderer = new DagRenderer('dag-container');
 renderer.wireHoverCardPersistence();
 
+// The platine — paints trace instants through the SAME batch path as
+// live runs (states/classes only, never a relayout).
+const transport = createTransport({
+  applyStates: (updates) => renderer.batchUpdateStatus(updates),
+});
+
 // Restore from webview state (e.g., after being hidden and re-shown)
 const savedState = vscode.getState();
 if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showWaves; }
@@ -1814,12 +1824,19 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
   const msg = event.data;
   switch (msg.kind) {
     case 'dag:load':
-      renderer.render(msg.graph);
+      // A new graph invalidates any loaded timeline; transport:load (if
+      // this is a replay) follows in-order and re-arms it. The resync
+      // covers the race where the timeline lands while ELK is laying out.
+      transport.deactivate();
+      void renderer.render(msg.graph).then(() => transport.resync());
       break;
     case 'dag:updateStatus':
+      // The live present wins over any replay scrub (runsView law).
+      transport.deactivate();
       renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs);
       break;
     case 'dag:batchUpdateStatus':
+      transport.deactivate();
       renderer.batchUpdateStatus(msg.updates);
       break;
     case 'dag:focus':
@@ -1832,6 +1849,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       pushActivityLine(msg.icon, msg.text, msg.cls ?? 'st-note', msg.taskId);
       break;
     case 'dag:clear':
+      transport.deactivate();
       renderer.clear();
       break;
     case 'dag:fitToView':
@@ -1843,6 +1861,12 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'theme:mode':
       // Skin flip (nika ⇄ editor) — tokens re-scope, no reload.
       document.body.dataset.nkTheme = msg.mode;
+      break;
+    case 'transport:load':
+      transport.load(msg.timeline, { speed: msg.speed, autoPlay: msg.autoPlay });
+      break;
+    case 'transport:clear':
+      transport.deactivate();
       break;
   }
 });
