@@ -26,6 +26,7 @@ import {
   parseCheckReport,
 } from '../core/cliContract';
 import { generateWorkflow, type GenCheckOutcome, type GenResult } from '../core/generatePipeline';
+import { refinedIntent, slugifyIntent } from '../core/generateStaging';
 import { rankBm25, type RankDoc } from '../core/intentRank';
 import type { NikaService } from '../nikaService';
 
@@ -301,19 +302,106 @@ export function registerGenerate(
             return;
           }
 
-          const doc = await vscode.workspace.openTextDocument({ content: result.yaml, language: 'nika' });
-          await vscode.window.showTextDocument(doc, { preview: false });
-          if (result.clean) {
-            void vscode.window.showInformationMessage(
-              `Nika: workflow generated — passes \`nika check\` (${result.candidatesTried} candidate(s) · ${result.roundsUsed} repair round(s)). Save as *.nika.yaml.`,
-            );
-          } else {
-            void vscode.window.showWarningMessage(
-              `Nika: best draft still has ${result.findings} finding(s) after ${result.roundsUsed} repair round(s) — the diagnostics will guide the rest (try Fix All).`,
-            );
-          }
+          // Ghost-stage: the candidate opens as an UNTITLED doc — the
+          // applied-but-not-committed state (nothing written to disk).
+          // Save commits it · Refine re-runs the SAME pipeline with an
+          // added instruction · Discard drops it. Never a silent write.
+          await stageGeneratedWorkflow(service, result, intent, {
+            llm,
+            check: makeCheckSeam(service),
+            reground,
+            onProgress: (line) => progress.report({ message: line }),
+          }, log);
         },
       );
     }),
   );
+}
+
+/** The Save / Refine / Discard review loop over a generated candidate. */
+async function stageGeneratedWorkflow(
+  service: NikaService,
+  first: GenResult,
+  baseIntent: string,
+  seams: Parameters<typeof generateWorkflow>[1],
+  log: (level: string, msg: string) => void,
+): Promise<void> {
+  let result = first;
+  // The staged editor: replaced in place on each Refine.
+  let doc = await vscode.workspace.openTextDocument({ content: result.yaml, language: 'nika' });
+  let editor = await vscode.window.showTextDocument(doc, { preview: false });
+
+  for (;;) {
+    const summary = result.clean
+      ? `Nika: draft ready — passes \`nika check\` (${result.candidatesTried} candidate(s) · ${result.roundsUsed} repair round(s)).`
+      : `Nika: best draft still has ${result.findings} finding(s) after ${result.roundsUsed} repair round(s).`;
+    const choice = await vscode.window.showInformationMessage(
+      summary,
+      'Save workflow',
+      'Refine',
+      'Discard',
+    );
+
+    if (choice === 'Save workflow') {
+      const folder = vscode.workspace.workspaceFolders?.[0];
+      if (!folder) {
+        void vscode.window.showWarningMessage('Nika: open a folder to save the workflow (or Save As from the editor).');
+        continue;
+      }
+      const name = await vscode.window.showInputBox({
+        title: 'Nika: save generated workflow',
+        prompt: 'Filename (without extension)',
+        value: slugifyIntent(baseIntent),
+        validateInput: (v) => /^[a-z0-9-]+$/.test(v) ? null : 'Use lowercase letters, numbers, hyphens',
+      });
+      if (!name) { continue; }
+      const target = vscode.Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      // Persist the CURRENT staged text (the user may have hand-edited).
+      await vscode.workspace.fs.writeFile(target, Buffer.from(doc.getText(), 'utf-8'));
+      const saved = await vscode.workspace.openTextDocument(target);
+      await vscode.window.showTextDocument(saved, { preview: false });
+      void vscode.window.showInformationMessage(`Nika: saved ${name}.nika.yaml — it flows into check + DAG now.`);
+      return;
+    }
+
+    if (choice === 'Refine') {
+      const refinement = await vscode.window.showInputBox({
+        title: 'Nika: refine the workflow',
+        prompt: 'What should change? (the whole intent stays in view)',
+        placeHolder: 'add a step that writes the digest to a file',
+      });
+      if (!refinement || refinement.trim().length === 0) { continue; }
+      const refined = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'Nika: refining', cancellable: false },
+        async () => {
+          const corpus = await buildCorpus(service);
+          const grounding = await buildGrounding(service, refinedIntent(baseIntent, refinement), corpus);
+          return generateWorkflow(grounding.prompt, seams, { candidates: 3, repairRounds: 2 });
+        },
+      );
+      if (!refined) {
+        void vscode.window.showWarningMessage('Nika: refinement produced no usable YAML — the current draft is unchanged.');
+        continue;
+      }
+      result = refined;
+      log('INFO', `generate refine: clean=${refined.clean} findings=${refined.findings}`);
+      // Replace the staged text in place (the editor keeps its position).
+      const full = new vscode.Range(0, 0, doc.lineCount, 0);
+      await editor.edit((b) => b.replace(full, refined.yaml));
+      doc = editor.document;
+      continue;
+    }
+
+    if (choice === 'Discard') {
+      // Explicit only — a dismissed notification must NOT eat the draft.
+      if (editor.document.isUntitled) {
+        await vscode.window.showTextDocument(doc, { preview: false });
+        await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+      }
+      return;
+    }
+
+    // Dismissed / timed out — leave the staged draft open, lose nothing.
+    return;
+  }
 }
