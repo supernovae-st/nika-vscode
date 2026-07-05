@@ -21,7 +21,7 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 
 // Extension -> Webview
 export type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
@@ -83,6 +83,7 @@ export type WebviewToExtMessage =
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
+  | { kind: 'dag:duplicateTask'; taskId: string; workflowUri?: string }
   // Canvas params bar — the model chip edits the YAML via QuickPick.
   | { kind: 'dag:editModel'; taskId: string; workflowUri?: string }
   // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
@@ -103,7 +104,7 @@ export type WebviewToExtMessage =
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
   WebviewToExtMessage,
-  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:editModel' | 'dag:omni' }
+  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:duplicateTask' | 'dag:editModel' | 'dag:omni' }
 >;
 
 // ─── Nonce Generator ─────────────────────────────────────────────────────────
@@ -319,7 +320,7 @@ export class DagPanel implements vscode.Disposable {
         // open replay) alive while backgrounded — re-sending dag:load
         // would close the replay and blank to the stale seed graph.
         if (hasBeenHidden && this.currentGraph && !this.replayActive) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
+          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
         }
       }),
     );
@@ -367,6 +368,14 @@ export class DagPanel implements vscode.Disposable {
     return new Set(this.currentGraph.nodes.map((n) => n.id));
   }
 
+  /** BARE builtin → category from `nika tools --json` — rides every
+   *  dag:load so the canvas glyphs speak the binary's vocabulary. */
+  private toolCats: Record<string, string> | undefined;
+
+  public setToolCats(cats: Record<string, string> | undefined): void {
+    this.toolCats = cats;
+  }
+
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
@@ -377,7 +386,7 @@ export class DagPanel implements vscode.Disposable {
     // closes the Replayer); keep the extension-side guard in step.
     this.replayActive = false;
     if (this.panel?.visible) {
-      this.postMessage({ kind: 'dag:load', graph });
+      this.postMessage({ kind: 'dag:load', graph, toolCats: this.toolCats });
     }
   }
 
@@ -505,7 +514,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:ready':
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
+          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
         } else {
           // Empty canvas → the welcome wants its resume list.
           this.onWelcomeReady?.();
@@ -535,7 +544,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:requestRefresh':
         // Extension can re-parse workflow and send updated graph
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
+          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
         }
         break;
 
@@ -547,6 +556,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:connect':
       case 'dag:disconnect':
       case 'dag:deleteTask':
+      case 'dag:duplicateTask':
       case 'dag:editModel':
       case 'dag:omni':
         this.onEditRequest?.(msg);

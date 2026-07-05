@@ -3,6 +3,7 @@ import {
   graphDocToDag,
   isGraphDoc,
   parseCheckReport,
+  parseToolCategories,
   collectFindings,
   byteOffsetToPosition,
   type GraphDoc,
@@ -151,6 +152,51 @@ describe('byteOffsetToPosition', () => {
 
 // ─── resume capability (ADR-099 · version-gated flag, not a subcommand) ─────
 import { buildCapabilities, versionAtLeast } from '../core/capabilities';
+
+describe('parseToolCategories (nika tools --json · v1 envelope)', () => {
+  it('maps BARE tool names → kebab category', () => {
+    const stdout = JSON.stringify({
+      tools_version: 1,
+      tools: [
+        { name: 'nika:log', category: 'core', description: 'x' },
+        { name: 'nika:image_generate', category: 'media' },
+        { name: 'nika:fetch', category: 'network' },
+      ],
+    });
+    expect(parseToolCategories(stdout)).toEqual({
+      log: 'core',
+      image_generate: 'media',
+      fetch: 'network',
+    });
+  });
+
+  it('skips entries without a string category (catalog gap → fallback)', () => {
+    const stdout = JSON.stringify({
+      tools_version: 1,
+      tools: [
+        { name: 'nika:log', category: 'core' },
+        { name: 'nika:mystery', category: null },
+      ],
+    });
+    expect(parseToolCategories(stdout)).toEqual({ log: 'core' });
+  });
+
+  it('is undefined on non-JSON, wrong envelope, or empty tools', () => {
+    expect(parseToolCategories('')).toBeUndefined();
+    expect(parseToolCategories('nika 0.92.0')).toBeUndefined();
+    expect(parseToolCategories('{"catalog_version":1}')).toBeUndefined();
+    expect(parseToolCategories('{"tools_version":1,"tools":[]}')).toBeUndefined();
+  });
+
+  it('ignores unknown fields (additive-only envelope contract)', () => {
+    const stdout = JSON.stringify({
+      tools_version: 1,
+      future_field: { x: 1 },
+      tools: [{ name: 'nika:jq', category: 'data', args: ['expression'], extra: true }],
+    });
+    expect(parseToolCategories(stdout)).toEqual({ jq: 'data' });
+  });
+});
 
 describe('resume capability gate', () => {
   const HELP = 'Commands:\n  run  Execute\n  check  Audit\n\nOptions:\n';

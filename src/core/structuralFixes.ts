@@ -259,6 +259,36 @@ export function deleteTask(
 }
 
 /**
+ * Duplicate a task's whole item span right after the original — the ⌘D
+ * move. The copy gets a fresh `<id>_copy` id (collision-suffixed); its
+ * inbound wiring (depends_on · with refs) is kept verbatim, downstream
+ * refs stay on the original. Undefined when the task is unknown.
+ */
+export function duplicateTask(
+  text: string,
+  taskId: string,
+): { text: string; taskId: string } | undefined {
+  const wf = parseRichWorkflow(text);
+  const task = wf.tasks.find((t) => t.id === taskId);
+  if (!task) { return undefined; }
+
+  const taken = new Set(wf.tasks.map((t) => t.id));
+  let newId = `${taskId}_copy`;
+  for (let n = 2; taken.has(newId); n++) { newId = `${taskId}_copy${n}`; }
+
+  const lines = text.split('\n');
+  const span = lines.slice(task.line, task.endLine + 1);
+  const idPattern = new RegExp(`^(\\s*-\\s*id:\\s*)${taskId}(\\s*(#.*)?)$`);
+  const idIdx = span.findIndex((l) => idPattern.test(l));
+  if (idIdx === -1) { return undefined; }
+  const copy = [...span];
+  copy[idIdx] = copy[idIdx].replace(idPattern, `$1${newId}$2`);
+
+  lines.splice(task.endLine + 1, 0, '', ...copy);
+  return { text: lines.join('\n'), taskId: newId };
+}
+
+/**
  * Declare `varName` under the top-level `vars:` block (creating the block
  * after the envelope when absent). Returns undefined when already declared.
  */

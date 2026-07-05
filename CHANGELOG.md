@@ -5,6 +5,19 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Canvas quick wins — duplicate ⌘D · the binary's own tool vocabulary
+
+- **Duplicate a task** — `⌘D`/`Ctrl+D` on the focused card, or the `⧉ dup`
+  button on the hover card (next to `▸ run`). The copy lands right after
+  the original with a fresh `<id>_copy` id; inbound wiring (`depends_on` ·
+  `with:` refs) is kept, downstream refs stay on the original — the n8n
+  most-loved move, now one key away.
+- **Canvas glyphs speak the binary's vocabulary** — the extension consumes
+  `nika tools --json` (engine ≥0.94 · E1) and pushes real
+  builtin→category mappings to the canvas on every graph load; the
+  hardcoded glyph map demotes to a fallback for older binaries. A future
+  engine category shows up on cards without an extension release.
+
 ### The welcome home — onboarding from the first pixel
 
 - **The empty canvas is the front door, not a void.** First open with no

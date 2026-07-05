@@ -21,6 +21,7 @@ import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addDependsOn,
   deleteTask,
+  duplicateTask,
   insertTaskSkeleton,
   removeDependsOn,
   setTaskModel,
@@ -610,6 +611,14 @@ export function activate(context: ExtensionContext): void {
         }
         break;
       }
+      case 'dag:duplicateTask': {
+        const res = duplicateTask(text, request.taskId);
+        if (res) {
+          newText = res.text;
+          revealTask = res.taskId;
+        }
+        break;
+      }
     }
     if (newText === undefined || newText === text) { return; }
 
@@ -637,6 +646,9 @@ export function activate(context: ExtensionContext): void {
         break;
       case 'dag:deleteTask':
         dagPanel.note('✕', `task deleted · ${request.taskId}`, undefined, 'st-note');
+        break;
+      case 'dag:duplicateTask':
+        dagPanel.note('⧉', `task duplicated · ${request.taskId} → ${revealTask ?? '?'}`, revealTask, 'st-note');
         break;
       case 'dag:editModel':
         dagPanel.note('⌁', `model changed · ${request.taskId}`, request.taskId, 'st-note');
@@ -733,6 +745,13 @@ export function activate(context: ExtensionContext): void {
     () => { void state.pushWelcomeData?.(); },
   );
   state.activeDagPanel = dagPanel;
+
+  // Canvas glyphs speak the binary's vocabulary (`nika tools --json`) —
+  // seeded now, refreshed whenever the service re-probes the binary.
+  dagPanel.setToolCats(service.toolCats);
+  context.subscriptions.push(service.onDidChange(() => {
+    dagPanel.setToolCats(service.toolCats);
+  }));
 
   // Recent workflows for the welcome (mtime-sorted · top 6 · rel labels).
   state.pushWelcomeData = async (): Promise<void> => {

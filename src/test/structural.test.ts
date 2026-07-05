@@ -4,6 +4,7 @@ import {
   addDependsOn,
   addVarDeclaration,
   deleteTask,
+  duplicateTask,
   insertTaskSkeleton,
   nextTaskId,
   parseDag003,
@@ -199,6 +200,44 @@ describe('graph editing backends (the n8n loop)', () => {
       const t = wf.tasks.find((x) => x.id === res.taskId)!;
       expect(t.verb).toBe(verb);
     }
+  });
+
+  it('duplicates a task right after the original — fresh id, same shape', () => {
+    const res = duplicateTask(DOC, 'second')!;
+    expect(res.taskId).toBe('second_copy');
+    const wf = parseRichWorkflow(res.text);
+    const order = wf.tasks.map((t) => t.id);
+    expect(order).toEqual(['first', 'second', 'second_copy', 'third', 'fourth']);
+    const copy = wf.tasks.find((t) => t.id === 'second_copy')!;
+    expect(copy.verb).toBe('infer');
+    // Inbound wiring survives the copy: the `with:` ref still reads first.
+    expect(res.text).toMatch(/second_copy[\s\S]*?\$\{\{ tasks\.first\.output \}\}/);
+  });
+
+  it('keeps declared depends_on on the copy (inbound edges duplicate)', () => {
+    const res = duplicateTask(DOC, 'third')!;
+    const wf = parseRichWorkflow(res.text);
+    expect(wf.tasks.find((t) => t.id === 'third_copy')?.dependsOn).toEqual(['first']);
+  });
+
+  it('mints collision-free copy ids on repeat', () => {
+    const once = duplicateTask(DOC, 'second')!;
+    const twice = duplicateTask(once.text, 'second')!;
+    expect(twice.taskId).toBe('second_copy2');
+  });
+
+  it('is undefined for an unknown task', () => {
+    expect(duplicateTask(DOC, 'ghost')).toBeUndefined();
+  });
+
+  it('leaves downstream refs on the ORIGINAL (no ref rewrite in the copy)', () => {
+    const res = duplicateTask(DOC, 'first')!;
+    const wf = parseRichWorkflow(res.text);
+    // third/fourth still depend on `first`, nobody on the copy.
+    expect(wf.tasks.find((t) => t.id === 'third')?.dependsOn).toEqual(['first']);
+    expect(wf.tasks.find((t) => t.id === 'fourth')?.dependsOn).toEqual(['first']);
+    const referenced = res.text.match(/first_copy/g) ?? [];
+    expect(referenced.length).toBe(1); // only its own `- id:` line
   });
 });
 

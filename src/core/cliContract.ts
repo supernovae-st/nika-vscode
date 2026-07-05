@@ -256,6 +256,30 @@ function normalizeCost(raw: unknown): CostCeiling {
   return { ...(c as object), tasks: Array.isArray(c.tasks) ? (c.tasks as TaskCost[]) : [] } as CostCeiling;
 }
 
+/**
+ * Parse `nika tools --json` (tools_version 1 · additive-only envelope)
+ * into a BARE-name → kebab-category map (`log → core`). Entries without
+ * a string category are skipped (catalog gap — the glyph fallback holds).
+ * Undefined on non-JSON, wrong envelope, or an empty map — callers keep
+ * their presentation fallback.
+ */
+export function parseToolCategories(stdout: string): Record<string, string> | undefined {
+  try {
+    const v = JSON.parse(stdout) as Record<string, unknown>;
+    if (typeof v !== 'object' || v === null || !Array.isArray(v.tools)) { return undefined; }
+    const cats: Record<string, string> = {};
+    for (const entry of v.tools as unknown[]) {
+      if (typeof entry !== 'object' || entry === null) { continue; }
+      const t = entry as Record<string, unknown>;
+      if (typeof t.name !== 'string' || typeof t.category !== 'string') { continue; }
+      cats[t.name.replace(/^nika:/, '')] = t.category;
+    }
+    return Object.keys(cats).length > 0 ? cats : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function parseCheckReport(jsonText: string): CheckReport | undefined {
   try {
     const v = JSON.parse(jsonText) as Record<string, unknown>;

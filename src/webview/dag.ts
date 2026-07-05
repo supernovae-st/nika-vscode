@@ -248,7 +248,7 @@ interface DagGraph {
 }
 
 type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
@@ -383,12 +383,15 @@ function usd(n: number): string {
   return `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
 }
 
-/** Category glyph per canonical builtin — a PRESENTATION fallback
- *  (fails soft to none on unknown names). The binary owns the
- *  vocabulary: when the extension consumes `nika tools --json`
- *  (engine E1, shipped), categories will ride the graph payload and
- *  retire this map. core ◦ · file ▤ · data ⧉ · network ⇄ ·
- *  introspection ⌕ · media ▣ */
+/** One glyph per builtin CATEGORY (`nika tools --json` vocabulary). */
+const CATEGORY_GLYPH: Record<string, string> = {
+  core: '◦', file: '▤', data: '⧉', network: '⇄', introspection: '⌕', media: '▣',
+};
+
+/** Category glyph per canonical builtin — the PRESENTATION FALLBACK for
+ *  binaries older than `nika tools --json` (engine E1). When the
+ *  extension feeds `toolCats` on dag:load, the binary's own vocabulary
+ *  wins and this map goes unread. */
 const BUILTIN_GLYPH: Record<string, string> = {
   log: '◦', emit: '◦', assert: '◦', prompt: '◦', done: '◦', wait: '◦',
   read: '▤', write: '▤', edit: '▤', glob: '▤', grep: '▤',
@@ -399,9 +402,14 @@ const BUILTIN_GLYPH: Record<string, string> = {
   image_generate: '▣',
 };
 
-/** `nika:fetch` → `⇄ nika:fetch` (glyph only for the canonical 24). */
+/** BARE name → category, pushed by the extension (undefined pre-E1). */
+let toolCatsMap: Record<string, string> | undefined;
+
+/** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
 function toolWithGlyph(tool: string): string {
-  const glyph = BUILTIN_GLYPH[tool.replace(/^nika:/, '')];
+  const bare = tool.replace(/^nika:/, '');
+  const cat = toolCatsMap?.[bare];
+  const glyph = (cat ? CATEGORY_GLYPH[cat] : undefined) ?? BUILTIN_GLYPH[bare];
   return glyph ? `${glyph} ${tool}` : tool;
 }
 
@@ -1445,6 +1453,16 @@ class DagRenderer {
     });
   }
 
+  /** ⌘D entry: duplicate the focused task (fresh id · inbound wiring kept). */
+  requestDuplicateFocused(): void {
+    if (!this.focusedId) { return; }
+    vscode.postMessage({
+      kind: 'dag:duplicateTask',
+      taskId: this.focusedId,
+      workflowUri: this.currentGraph?.workflowUri,
+    });
+  }
+
   // ─── Minimap ──────────────────────────────────────────────────────────────
 
   private renderMinimap(): void {
@@ -2180,7 +2198,22 @@ class DagRenderer {
         workflowUri: this.currentGraph?.workflowUri,
       });
     });
-    head.append(verb, id, status, runBtn);
+    // ⧉ duplicate — the n8n most-loved move, one click from the card.
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'hc-run';
+    dupBtn.textContent = '⧉ dup';
+    dupBtn.title = 'Duplicate this task (⌘D) — fresh id, inbound wiring kept';
+    dupBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    dupBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hideHoverCard(true);
+      vscode.postMessage({
+        kind: 'dag:duplicateTask',
+        taskId: live.id,
+        workflowUri: this.currentGraph?.workflowUri,
+      });
+    });
+    head.append(verb, id, status, dupBtn, runBtn);
     this.hoverCard.appendChild(head);
 
     const add = (label: string, value: string | undefined): void => {
@@ -3214,6 +3247,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // Close it BEFORE the ONE render — a second render here used to
       // race two async ELK layouts and double every entrance transition.
       if (replayer.active) { replayer.close(); }
+      if (msg.toolCats) { toolCatsMap = msg.toolCats; }
       void renderer.render(msg.graph).then(() => transport.resync());
       applyResumeCapable(msg.graph);
       refreshStaleChip();
@@ -3653,6 +3687,12 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
+  // ⌘D / Ctrl+D — duplicate the focused task (the n8n/Figma muscle).
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'd' || e.key === 'D')) {
+    e.preventDefault();
+    renderer.requestDuplicateFocused();
+    return;
+  }
   // Run keys — modifier-free only (⌘R must stay the browser/editor's).
   // requestRun's own re-entry guard makes repeats harmless.
   if (!e.metaKey && !e.ctrlKey && !e.altKey) {
