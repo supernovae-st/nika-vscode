@@ -23,7 +23,10 @@ export interface RunPlanSummary {
   tooltip?: string;
 }
 
-export function runPlanSummary(nodes: readonly StaleNode[]): RunPlanSummary {
+export function runPlanSummary(
+  nodes: readonly StaleNode[],
+  opts?: { partialRun?: boolean },
+): RunPlanSummary {
   let total = 0;
   let direct = 0;
   for (const n of nodes) {
@@ -36,10 +39,16 @@ export function runPlanSummary(nodes: readonly StaleNode[]): RunPlanSummary {
   const editedPhrase = direct === total
     ? `${direct} task${direct === 1 ? '' : 's'} edited since the last run`
     : `${direct} edited · ${total - direct} downstream`;
+  // Two honest worlds: with `--resume` (ADR-099 · 0.93+) ↻ re-runs only
+  // the stale set (unchanged tasks cache-hit their recorded output);
+  // without it, a run re-executes the whole graph.
+  const runPhrase = opts?.partialRun === true
+    ? `↻ re-runs ${total === 1 ? 'it' : 'them'} — unchanged tasks cache-hit their recorded output (engine --resume).`
+    : `a run re-executes ${total === 1 ? 'it' : 'them'} (whole-graph on this binary; partial needs the 0.93+ engine).`;
   return {
     total,
     direct,
     label: `△ ${total}`,
-    tooltip: `${editedPhrase} — a run re-executes ${total === 1 ? 'it' : 'them'} (whole-graph today; partial when the engine ships \`--from\`).`,
+    tooltip: `${editedPhrase} — ${runPhrase}`,
   };
 }

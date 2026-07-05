@@ -43,6 +43,12 @@ export interface FoldedTask {
    *  NIKA-XXX story) or `note` (the verb·tool descriptor) — hover context.
    *  Truncated to one badge-safe line at fold time. */
   preview?: string;
+  /** Resume cache hit (ADR-099): the task was NOT re-executed — its
+   *  recorded output was injected from the prior trace. */
+  cached?: boolean;
+  /** One badge-safe line of the task's recorded `output` (the v0.93 wire
+   *  carries it on task_completed AND task_cache_hit). */
+  outputPreview?: string;
   retries: number;
 }
 
@@ -51,6 +57,8 @@ export interface TimelineEntry {
   taskId: string;
   status: FoldedStatus;
   durationMs?: number;
+  /** ADR-099 — this transition is a cache-hit rehydration, not a run. */
+  cached?: boolean;
 }
 
 export interface RunModel {
@@ -77,6 +85,8 @@ interface NormalizedEvent {
   tokens?: number;
   /** `detail` (preferred — failure story) or `note` (verb·tool descriptor). */
   note?: string;
+  /** The recorded task output (v0.93 wire · task_completed/cache_hit). */
+  output?: string;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -139,6 +149,26 @@ function timestampToMs(ts: unknown): number | undefined {
   return undefined;
 }
 
+/** The wire's `output` is a string for text tasks, structured for JSON
+ *  captures — render either as ONE badge-safe line (the preview law). */
+function outputToString(v: unknown): string | undefined {
+  if (v === undefined || v === null) { return undefined; }
+  let s = typeof v === 'string' ? v : JSON.stringify(v);
+  if (s === undefined || s.length === 0) { return undefined; }
+  // Text outputs arrive double-encoded (`"…"` — the JSON form of the
+  // string, the real 0.93.1 wire): unwrap ONE layer so the preview reads
+  // as text, not encoding. Structured outputs keep their compact JSON.
+  if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+    try {
+      const parsed: unknown = JSON.parse(s);
+      if (typeof parsed === 'string') { s = parsed; }
+    } catch { /* not a JSON string — keep the raw text */ }
+  }
+  const oneLine = s.replace(/\s+/g, ' ').trim();
+  if (oneLine.length === 0) { return undefined; }
+  return oneLine.length > 160 ? `${oneLine.slice(0, 159)}…` : oneLine;
+}
+
 function snake(kind: string): string {
   return kind
     .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
@@ -172,6 +202,7 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       durationMs: asNumber(fields.get('duration_ms')),
       tokens: asNumber(fields.get('tokens')),
       note: typeof note === 'string' ? note : undefined,
+      output: outputToString(fields.get('output')),
     };
   }
 
@@ -198,6 +229,9 @@ const TASK_STATUS: Record<string, FoldedStatus> = {
   // §3.1: the attempt failed, the TASK has not — amber, not green-running.
   task_retrying: 'retrying',
   task_completed: 'success',
+  // ADR-099 resume: not re-executed — the recorded output was injected.
+  // Paints as success; `cached` carries the distinction.
+  task_cache_hit: 'success',
   task_failed: 'failed',
   // §3.1: a decision, not a defect — dim, NEVER red.
   task_cancelled: 'cancelled',
@@ -277,6 +311,10 @@ export function foldTrace(ndjson: string): RunModel {
     if (alreadyTerminal) { continue; }
 
     if (ev.kind === 'task_retrying') { task.retries += 1; }
+    if (ev.kind === 'task_cache_hit') { task.cached = true; }
+    if (ev.output !== undefined && TERMINAL.has(status)) {
+      task.outputPreview = ev.output;
+    }
     if (ev.kind === 'task_started' && task.startMs === undefined && ev.tsMs !== undefined) {
       task.startMs = ev.tsMs;
     }
@@ -312,7 +350,7 @@ export function foldTrace(ndjson: string): RunModel {
     }
     task.status = status;
     model.tasks.set(ev.taskId, task);
-    model.timeline.push({ atMs: at, taskId: ev.taskId, status, durationMs: task.durationMs });
+    model.timeline.push({ atMs: at, taskId: ev.taskId, status, durationMs: task.durationMs, cached: task.cached });
   }
 
   // A trace that never reached a terminal workflow event but has terminal
@@ -367,6 +405,9 @@ export function formatRunBadge(task: FoldedTask): string | undefined {
   const icon = BADGE_ICON[task.status];
   if (!icon) { return undefined; }
   const facts: string[] = [];
+  // ADR-099 rehydration — the ✓ stays (the task IS settled-success) but
+  // the badge must never read as a fresh execution ("cached", no clock).
+  if (task.cached === true) { facts.push('cached'); }
   if (task.durationMs !== undefined) { facts.push(humanizeDuration(task.durationMs)); }
   if (task.usd !== undefined) { facts.push(formatUsd(task.usd)); }
   return facts.length > 0 ? ` ${icon} ${facts.join(' · ')}` : ` ${icon}`;
@@ -380,6 +421,15 @@ export function summarizeRun(model: RunModel): string {
     : model.workflowStatus === 'cancelled' ? '◼'
     : '…';
   const parts = [`${icon} ${model.tasks.size} task${model.tasks.size === 1 ? '' : 's'}`];
+  // A resumed run's card says how much of it was rehydrated (ADR-099) —
+  // `✓ 3 tasks · ↻ 2 cached · …` reads at a glance in the Runs view.
+  let cachedCount = 0;
+  for (const t of model.tasks.values()) {
+    if (t.cached === true) { cachedCount += 1; }
+  }
+  if (cachedCount > 0) {
+    parts.push(`↻ ${cachedCount} cached`);
+  }
   if (model.startMs !== undefined && model.endMs !== undefined && model.endMs > model.startMs) {
     parts.push(`${((model.endMs - model.startMs) / 1000).toFixed(1)}s`);
   }

@@ -13,6 +13,8 @@ export interface FrameEntry {
   taskId: string;
   status: FoldedStatus;
   durationMs?: number;
+  /** ADR-099 — the status at this instant is a cache-hit rehydration. */
+  cached?: boolean;
 }
 
 /**
@@ -26,14 +28,14 @@ export function frameAt(
   atMs: number,
   allIds: readonly string[],
 ): FrameEntry[] {
-  const state = new Map<string, { status: FoldedStatus; durationMs?: number }>();
+  const state = new Map<string, { status: FoldedStatus; durationMs?: number; cached?: boolean }>();
   for (const id of allIds) { state.set(id, { status: 'pending' }); }
   // Timeline is time-ordered; the last entry ≤ atMs wins per task.
   for (const e of timeline) {
     if (e.atMs > atMs) { break; }
-    state.set(e.taskId, { status: e.status, durationMs: e.durationMs });
+    state.set(e.taskId, { status: e.status, durationMs: e.durationMs, cached: e.cached });
   }
-  return [...state].map(([taskId, s]) => ({ taskId, status: s.status, durationMs: s.durationMs }));
+  return [...state].map(([taskId, s]) => ({ taskId, status: s.status, durationMs: s.durationMs, cached: s.cached }));
 }
 
 /** The scrubber track bounds — [firstMs, lastMs] over the timeline. */

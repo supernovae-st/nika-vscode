@@ -22,8 +22,8 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 // Extension -> Webview
 export type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
@@ -81,7 +81,7 @@ export type WebviewToExtMessage =
   // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
   | { kind: 'dag:omni'; text: string; workflowUri?: string }
   // Run controls — the canvas drives the run without leaving the panel.
-  | { kind: 'dag:runRequest'; preview?: boolean; workflowUri?: string }
+  | { kind: 'dag:runRequest'; preview?: boolean; resume?: boolean; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
@@ -120,7 +120,7 @@ export class DagPanel implements vscode.Disposable {
       set(column: vscode.ViewColumn): void;
     },
     /** Canvas run controls (▶/▶mock/■ in the panel toolbar). */
-    private readonly onRunRequest?: (preview: boolean, workflowUri?: string) => void,
+    private readonly onRunRequest?: (preview: boolean, workflowUri?: string, resume?: boolean) => void,
     private readonly onCancelRun?: () => void,
   ) {}
 
@@ -347,20 +347,24 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Update a single task's status (during execution) */
-  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number): void {
+  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       const node = this.currentGraph.nodes.find((n) => n.id === taskId);
       if (node) {
         node.status = status;
         node.durationMs = durationMs;
+        // Assign, never accumulate — a fresh run's paint must clear the
+        // ↻ a previous resume left on the mirrored graph (ADR-099).
+        node.cached = cached === true;
+        node.outputPreview = outputPreview;
       }
     }
-    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs });
+    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs, cached, outputPreview });
   }
 
   /** Batch update multiple task statuses at once */
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
@@ -368,6 +372,8 @@ export class DagPanel implements vscode.Disposable {
         if (node) {
           node.status = u.status;
           node.durationMs = u.durationMs;
+          node.cached = u.cached === true;
+          node.outputPreview = u.outputPreview;
         }
       }
     }
@@ -527,7 +533,7 @@ export class DagPanel implements vscode.Disposable {
         break;
 
       case 'dag:runRequest':
-        this.onRunRequest?.(msg.preview === true, msg.workflowUri);
+        this.onRunRequest?.(msg.preview === true, msg.workflowUri, msg.resume === true);
         break;
 
       case 'dag:cancelRun':
@@ -692,6 +698,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
+      <button id="btn-run-resume" class="rc-resume" title="Re-run what changed — unchanged tasks cache-hit their recorded output (engine --resume)" hidden>↻ changed</button>
       <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
       <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
     </div>

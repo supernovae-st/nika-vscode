@@ -63,6 +63,7 @@ import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
+import { latestTraceFor } from './core/tracePersist';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
 import { registerLmTools } from './features/lmTools';
@@ -442,6 +443,8 @@ export function activate(context: ExtensionContext): void {
   // across recorded runs of this graph) — every canvas load rides this.
   const loadGraphFor = async (doc: TextDocument) => {
     const graph = await service.dagForDocument(doc);
+    // The ↻ re-run-changed affordance rides the binary's ADR-099 surface.
+    graph.resumeCapable = service.caps.resume;
     try {
       const avgs = await collectTaskAverages(new Set(graph.nodes.map((n) => n.id)));
       for (const node of graph.nodes) {
@@ -647,10 +650,32 @@ export function activate(context: ExtensionContext): void {
     },
     // Canvas ▶/▶mock — preview streams `run --model mock/echo` (zero
     // keys); a normal run rides the full capability-gated command.
-    (preview, workflowUri) => {
+    (preview, workflowUri, resume) => {
       void (async () => {
         const doc = await requireNikaDocument(workflowUri ?? dagWorkflowUri);
         if (!doc) { return; }
+        if (resume) {
+          // ↻ re-run what changed: `--resume <last trace>` (ADR-099) —
+          // the ENGINE decides the dirty slice by def_hash/input_hash;
+          // unchanged tasks cache-hit their recorded output.
+          if (!service.caps.resume) { return; }
+          if (doc.isDirty) { await doc.save(); }
+          if (doc.uri.scheme !== 'file') { return; }
+          const trace = latestTraceFor(doc.uri.fsPath);
+          if (!trace) {
+            void window.showInformationMessage('Nika: no recorded run to resume from — running the whole workflow.');
+            await commands.executeCommand('nika.runWorkflow', doc.uri);
+            return;
+          }
+          dagWorkflowUri = doc.uri;
+          const graph = await loadGraphFor(doc);
+          dagPanel.show(graph);
+          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+            extraArgs: ['--resume', trace],
+            onClose: () => refreshStaleBadges(doc.uri.fsPath),
+          });
+          return;
+        }
         if (!preview) {
           await commands.executeCommand('nika.runWorkflow', doc.uri);
           return;

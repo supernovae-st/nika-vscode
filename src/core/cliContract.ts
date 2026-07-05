@@ -60,6 +60,11 @@ export interface DagNode {
   verb: string;
   status: TaskStatus;
   durationMs?: number;
+  /** ADR-099 resume — settled from the recorded output, NOT re-executed
+   *  (paints success; this flag keeps the story honest on every surface). */
+  cached?: boolean;
+  /** One badge-safe line of the recorded output (hover-card fact). */
+  outputPreview?: string;
   provider?: string;
   model?: string;
   tool?: string;
@@ -112,6 +117,9 @@ export interface DagRegion {
 }
 
 export interface DagGraph {
+  /** The resolved binary ships `run --resume` (ADR-099) — the canvas may
+   *  offer the re-run-changed affordance. Stamped at graph load. */
+  resumeCapable?: boolean;
   workflowName: string;
   /**
    * Source document URI (vscode Uri string). Persisted into the webview

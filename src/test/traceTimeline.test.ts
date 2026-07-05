@@ -178,3 +178,17 @@ describe('formatClock', () => {
     expect(formatClock(0, 7)).toBe('0ms');
   });
 });
+
+// ─── Resume replay (ADR-099 · the ↻ survives the platine) ───────────────────
+
+describe('resume timeline (real 0.93.1 resume-mixed fixture)', () => {
+  it('statesAt(1) hands the cached flag with the settled state', () => {
+    const { tl } = fixtureTimeline('resume-mixed.ndjson');
+    const end = statesAt(tl, 1);
+    expect(end.get('seed')).toMatchObject({ status: 'success', cached: true });
+    expect(end.get('side')).toMatchObject({ status: 'success', cached: true });
+    // The re-executed task scrubs back to a plain success — no ↻.
+    expect(end.get('expand')?.status).toBe('success');
+    expect(end.get('expand')?.cached).toBeUndefined();
+  });
+});

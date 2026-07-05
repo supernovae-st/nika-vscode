@@ -2596,3 +2596,40 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 .dag-node.dimmed.selected {
   opacity: 0.55;
 }
+
+/* Run pill · ↻ re-run-changed (ADR-099 resume · shown when the binary ships it) */
+.rc-resume {
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border);
+}
+
+.rc-resume:hover:not(:disabled) {
+  color: var(--nk-ink);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 45%, var(--nk-border));
+}
+
+#run-controls .rc-resume[hidden] {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  #run-controls .rc-resume { display: none; }
+}
+
+/* Cache-hit cards (ADR-099 resume) — a rehydrated success must read ↻,
+ * never fresh-green: no celebration flash (nothing executed), dashed
+ * stroke (reconstructed, not run), softened bar + glyph. The subtitle
+ * carries the words (`verb · ↻ cached`); this is the at-a-glance layer. */
+.dag-node.is-cached.status-success .node-bg {
+  animation: none;
+  stroke-dasharray: 6 3;
+}
+
+.dag-node.is-cached.status-success .node-status-bar {
+  opacity: 0.6;
+}
+
+.dag-node.is-cached.status-success .nc-glyph {
+  opacity: 0.75;
+}

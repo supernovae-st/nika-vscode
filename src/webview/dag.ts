@@ -198,6 +198,10 @@ interface DagNode {
   verb: string;
   status: TaskStatus;
   durationMs?: number;
+  /** ADR-099 resume — settled from the recorded output, NOT re-executed. */
+  cached?: boolean;
+  /** One badge-safe line of the recorded output (hover-card fact). */
+  outputPreview?: string;
   provider?: string;
   model?: string;
   tool?: string;
@@ -234,6 +238,7 @@ interface DagRegion {
 }
 
 interface DagGraph {
+  resumeCapable?: boolean;
   workflowName: string;
   workflowUri?: string;
   nodes: DagNode[];
@@ -243,8 +248,8 @@ interface DagGraph {
 
 type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
@@ -347,6 +352,7 @@ function nodeClassOf(node: DagNode): string {
   return `dag-node status-${node.status} verb-${node.verb}`
     + (node.stale ? ' is-stale' : '')
     + (node.staleUpstream ? ' stale-up' : '')
+    + (node.cached ? ' is-cached' : '')
     + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '');
 }
 
@@ -997,6 +1003,10 @@ class DagRenderer {
       if (!node) { continue; }
       node.status = f.status as TaskStatus;
       node.durationMs = f.durationMs;
+      // Scrub = status time-travel: the ↻ follows the frame; the output
+      // fact is a resting truth (live/overlay), not a scrub-frame one.
+      node.cached = f.cached === true;
+      node.outputPreview = undefined;
       const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
       el.attr('class', nodeClassOf(node));
       el.select('.nc-sub').text(this.getSubtitle(node));
@@ -1558,6 +1568,10 @@ class DagRenderer {
     if (live.durationMs != null) {
       add('duration', live.durationMs >= 1000 ? `${(live.durationMs / 1000).toFixed(1)}s` : `${live.durationMs}ms`);
     }
+    if (live.cached) {
+      add('resume', '↻ cache hit — recorded output reused, not re-executed');
+    }
+    add('output', live.outputPreview);
     const wave = this.waveOf.get(live.id);
     if (wave !== undefined && this.waveOf.size > 0) {
       add('wave', `${wave + 1} of ${1 + Math.max(...this.waveOf.values())}`);
@@ -1816,15 +1830,19 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
 
     if (node.status !== status) {
-      appendActivity(taskId, status, durationMs);
+      appendActivity(taskId, status, durationMs, cached);
     }
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
+    // Assign, never accumulate — a fresh run's running-paint must CLEAR
+    // the ↻ (and the output fact) a previous resume left on the card.
+    node.cached = cached === true;
+    node.outputPreview = outputPreview;
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', nodeClassOf(node));
@@ -1850,15 +1868,15 @@ class DagRenderer {
     this.updateStatusDisplay();
   }
 
-  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number): void {
-    if (!this.applyStatus(taskId, status, durationMs)) return;
+  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
+    if (!this.applyStatus(taskId, status, durationMs, cached, outputPreview)) return;
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }>): void {
     let touched = false;
     for (const u of updates) {
-      touched = this.applyStatus(u.taskId, u.status, u.durationMs) || touched;
+      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview) || touched;
     }
     if (touched) { this.afterStatusChange(); }
   }
@@ -1940,6 +1958,9 @@ class DagRenderer {
 
   private getSubtitle(node: DagNode): string {
     if (node.status === 'running') return `${node.verb} ...`;
+    // ADR-099 rehydration — no clock fact exists (nothing executed);
+    // the ↻ + word pairing is unambiguous vs retrying (glyph-only).
+    if (node.cached) return `${node.verb} · ↻ cached`;
     if (node.durationMs != null) {
       const dur = node.durationMs >= 1000
         ? `${(node.durationMs / 1000).toFixed(1)}s`
@@ -2090,7 +2111,12 @@ function pushActivityLine(icon: string, text: string, cls: string, taskId?: stri
   }
 }
 
-function appendActivity(taskId: string, status: TaskStatus, durationMs?: number): void {
+function appendActivity(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean): void {
+  if (cached === true) {
+    // ADR-099 rehydration — the feed must not read as a fresh success.
+    pushActivityLine('↻', `${taskId} cached · recorded output reused`, 'st-success', taskId);
+    return;
+  }
   const dur = durationMs != null
     ? ` · ${durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`}`
     : '';
@@ -2373,6 +2399,13 @@ class Replayer {
 
 const replayer = new Replayer();
 
+// The resolved binary ships --resume (stamped on the graph at load) —
+// gates the ↻ affordance + the honest stale-chip tooltip. Declared
+// BEFORE the restore bootstrap below: refreshStaleChip reads it (and
+// applyResumeCapable assigns it) during restore — a later `let` is a
+// temporal-dead-zone ReferenceError on every panel revival.
+let resumeCapable = false;
+
 // Restore from webview state (e.g., after being hidden and re-shown)
 const savedState = vscode.getState();
 if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showWaves; }
@@ -2380,6 +2413,7 @@ if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.s
 if (savedState?.showFeed) { toggleActivity(); }
 if (savedState?.graph) {
   renderer.render(savedState.graph);
+  applyResumeCapable(savedState.graph);
   refreshStaleChip();
 } else {
   document.getElementById('empty-state')?.removeAttribute('hidden');
@@ -2403,6 +2437,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // loads BEFORE the scrubber arms, so this never closes itself.
       if (replayer.active) { replayer.close(); }
       renderer.render(msg.graph);
+      applyResumeCapable(msg.graph);
       refreshStaleChip();
       // The cost chip is a singleton, not per-node data — a workflow
       // switch must not keep showing the PREVIOUS file's forecast; the
@@ -2412,7 +2447,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:updateStatus':
       // The live present wins over any replay scrub (runsView law).
       transport.deactivate();
-      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs);
+      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview);
       break;
     case 'dag:batchUpdateStatus':
       transport.deactivate();
@@ -2526,6 +2561,8 @@ function setRunUiState(running: boolean): void {
   const stop = document.getElementById('btn-stop');
   if (run) { run.disabled = running; }
   if (mock) { mock.disabled = running; }
+  const resumeBtn = document.getElementById('btn-run-resume') as HTMLButtonElement | null;
+  if (resumeBtn) { resumeBtn.disabled = running; }
   stop?.toggleAttribute('hidden', !running);
 }
 
@@ -2545,7 +2582,7 @@ function applyCostChip(forecast: { label: string; tooltip: string; unbounded: bo
 function refreshStaleChip(): void {
   const chip = document.getElementById('run-stale');
   if (!chip) { return; }
-  const summary = runPlanSummary(renderer.currentNodes());
+  const summary = runPlanSummary(renderer.currentNodes(), { partialRun: resumeCapable });
   if (summary.total === 0) {
     chip.setAttribute('hidden', '');
     return;
@@ -2555,7 +2592,14 @@ function refreshStaleChip(): void {
   chip.removeAttribute('hidden');
 }
 
-function requestRun(preview: boolean): void {
+// `resumeCapable` is declared ABOVE the restore bootstrap (TDZ) — this
+// helper just applies a loaded graph's stamp to the flag + the button.
+function applyResumeCapable(graph: DagGraph | undefined): void {
+  resumeCapable = graph?.resumeCapable === true;
+  document.getElementById('btn-run-resume')?.toggleAttribute('hidden', !resumeCapable);
+}
+
+function requestRun(preview: boolean, resume = false): void {
   // `running` = confirmed by run:state; `run-starting` = optimistic —
   // both block re-entry, closing the double-click window before spawn.
   if (document.body.classList.contains('running')
@@ -2568,12 +2612,14 @@ function requestRun(preview: boolean): void {
   vscode.postMessage({
     kind: 'dag:runRequest',
     preview,
+    resume,
     workflowUri: vscode.getState()?.graph?.workflowUri,
   });
 }
 
 document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
 document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
+document.getElementById('btn-run-resume')?.addEventListener('click', () => requestRun(false, true));
 document.getElementById('btn-stop')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:cancelRun' });
 });

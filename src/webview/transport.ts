@@ -35,7 +35,7 @@ type TransportStatus =
 export interface TransportHost {
   /** Wired to renderer.batchUpdateStatus — the one visual seam. */
   applyStates(
-    updates: Array<{ taskId: string; status: TransportStatus; durationMs?: number }>,
+    updates: Array<{ taskId: string; status: TransportStatus; durationMs?: number; cached?: boolean }>,
   ): void;
 }
 
@@ -80,12 +80,12 @@ export function createTransport(host: TransportHost): Transport {
     p = clamp01(next);
 
     const states = statesAt(tl, p);
-    const updates: Array<{ taskId: string; status: TransportStatus; durationMs?: number }> = [];
+    const updates: Array<{ taskId: string; status: TransportStatus; durationMs?: number; cached?: boolean }> = [];
     for (const [taskId, s] of states) {
       const sig = `${s.status}|${s.durationMs ?? ''}`;
       if (painted.get(taskId) !== sig) {
         painted.set(taskId, sig);
-        updates.push({ taskId, status: s.status, durationMs: s.durationMs });
+        updates.push({ taskId, status: s.status, durationMs: s.durationMs, cached: s.cached });
       }
     }
     if (updates.length > 0) { host.applyStates(updates); }

@@ -27,6 +27,18 @@ export interface CapabilitySet {
   mcp: boolean;
   wire: boolean;
   doctor: boolean;
+  /** `run --resume <trace>` + `--from <task>` (ADR-099 · the 0.93 line):
+   *  engine-side dirty-slice — unchanged tasks cache-hit with their
+   *  recorded output, edited tasks + their cone re-run. */
+  resume: boolean;
+}
+
+/** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
+export function versionAtLeast(versionText: string, major: number, minor: number): boolean {
+  const m = versionText.match(/(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (!m) { return false; }
+  const [maj, min] = [Number(m[1]), Number(m[2])];
+  return maj > major || (maj === major && min >= minor);
 }
 
 /** Parse the clap `--help` output into the set of subcommand names. */
@@ -74,6 +86,10 @@ export function buildCapabilities(helpText: string, versionText: string): Capabi
     mcp: commands.has('mcp'),
     wire: commands.has('wire'),
     doctor: commands.has('doctor'),
+    // A flag, not a subcommand — the top-level help can't carry it, so
+    // the gate is the release line that shipped ADR-099. A custom build
+    // reporting an older version just keeps the affordance hidden.
+    resume: commands.has('run') && versionAtLeast(versionText, 0, 93),
   };
 }
 

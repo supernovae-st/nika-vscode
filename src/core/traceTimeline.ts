@@ -27,6 +27,8 @@ export interface TimelineTask {
   status: FoldedStatus;
   /** Authoritative recorded duration (terminal tasks — badge fact). */
   durationMs?: number;
+  /** ADR-099 — the settle was a cache-hit rehydration, not a run. */
+  cached?: boolean;
 }
 
 export interface TraceTimeline {
@@ -43,6 +45,8 @@ export interface TraceTimeline {
 export interface TaskStateAt {
   status: FoldedStatus;
   durationMs?: number;
+  /** ADR-099 — the settled state shown is a cache-hit rehydration. */
+  cached?: boolean;
 }
 
 export const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
@@ -92,6 +96,7 @@ export function buildTraceTimeline(model: RunModel): TraceTimeline | undefined {
       endFrac,
       status: task.status,
       durationMs: task.durationMs,
+      cached: task.cached,
     });
     // Ticks mark REAL running onsets — a task that never started
     // (skipped/cancelled while pending) leaves no tick.
@@ -120,7 +125,7 @@ export function statesAt(tl: TraceTimeline, p: number): Map<string, TaskStateAt>
   const out = new Map<string, TaskStateAt>();
   for (const t of tl.tasks) {
     if (cp > 0 && cp >= t.endFrac) {
-      out.set(t.id, { status: t.status, durationMs: t.durationMs });
+      out.set(t.id, { status: t.status, durationMs: t.durationMs, cached: t.cached });
     } else if (cp > 0 && cp >= t.startFrac) {
       out.set(t.id, { status: 'running' });
     } else {

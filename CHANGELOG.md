@@ -3,6 +3,31 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [Unreleased]
+
+### ↻ Re-run what changed (engine `run --resume` · ADR-099)
+- **↻ changed** joins the run pill — visible when the resolved binary
+  ships the 0.93 resume line. It re-runs only the dirty slice: the
+  ENGINE decides by `def_hash`/`input_hash` (never an editor guess);
+  unchanged tasks cache-hit their recorded output from the newest
+  persisted trace. No trace yet → an honest notice and a whole run.
+- **Live runs persist their stream** to `.nika/traces/` (newest 10 per
+  workflow, exact-stamp filenames so sibling workflows never collide) —
+  the Runs view lights up for canvas runs and the resume substrate is
+  always at hand. Failed runs are kept on purpose: resuming after a
+  crash skips the part that succeeded.
+- **Cache hits are legible everywhere** — a rehydrated success must
+  never read as a fresh execution: dashed card stroke + no success
+  flash, `verb · ↻ cached` subtitle, `resume`/`output` rows on the
+  hover card, ` ✓ cached` end-of-line editor badge, feed narrates
+  "cached · recorded output reused", run verdicts and Runs-view cards
+  count `↻ N cached`, and the replay platine scrubs the ↻ honestly.
+- **Recorded outputs land on the canvas** — terminal events' `output`
+  (v0.93 wire) folds into a one-line preview surfaced on the hover
+  card, decoded as text (never its JSON encoding).
+- The stale chip's tooltip now tells the per-binary truth: whole-graph
+  below 0.93, cache-hit slice with `--resume` at 0.93+.
+
 ## [0.93.1] · 2026-07-05
 
 Release-infra only — no code change vs 0.93.0. The v0.93.0 tag's CI run

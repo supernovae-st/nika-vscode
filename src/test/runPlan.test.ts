@@ -34,7 +34,14 @@ describe('runPlanSummary (the run pill stale chip)', () => {
     expect(runPlanSummary([{ stale: true }, { stale: true }]).tooltip).toContain('re-executes them');
   });
 
-  it('names the honest partial-run limit (--from)', () => {
-    expect(runPlanSummary([{ stale: true }]).tooltip).toContain('--from');
+  it('names the honest partial-run limit without the capability', () => {
+    expect(runPlanSummary([{ stale: true }]).tooltip).toContain('whole-graph');
+  });
+
+  it('flips to the resume story when the engine ships it', () => {
+    const t = runPlanSummary([{ stale: true }], { partialRun: true }).tooltip;
+    expect(t).toContain('cache-hit');
+    expect(t).toContain('--resume');
+    expect(t).not.toContain('whole-graph');
   });
 });

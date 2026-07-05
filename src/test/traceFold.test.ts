@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { foldTrace, normalizeEventLine, summarizeRun } from '../core/traceFold';
+import { foldTrace, formatRunBadge, normalizeEventLine, summarizeRun } from '../core/traceFold';
 
 // Real nika 0.92.0 flight-recorder captures (signature-demo · 4 verbs ·
 // mock/echo offline) — the wire as the engine actually writes it.
@@ -351,5 +351,70 @@ describe('signature fixtures (real 0.92.0 · agent events on the wire)', () => {
     // a green task keeps its verb·tool descriptor note.
     const green = [...model.tasks.values()].find((t) => t.status === 'success');
     expect(green?.preview).toMatch(/·/);
+  });
+});
+
+// ─── Resume wire (ADR-099 · REAL 0.93.1 capture · resume-after-edit) ────────
+// resume-mixed.ndjson: `--resume` after editing `expand` — seed+side
+// cache-hit with their recorded output, expand actually re-ran.
+
+describe('resume wire (task_cache_hit + output · real 0.93.1 fixture)', () => {
+  it('cache hits paint success, carry cached=true AND the recorded output', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    expect(model.workflowStatus).toBe('completed');
+    const seed = model.tasks.get('seed');
+    expect(seed?.status).toBe('success');
+    expect(seed?.cached).toBe(true);
+    expect(seed?.outputPreview).toBeTruthy();
+    const side = model.tasks.get('side');
+    expect(side?.cached).toBe(true);
+  });
+
+  it('a re-executed task is NOT marked cached and carries its fresh output', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    const expand = model.tasks.get('expand');
+    expect(expand?.status).toBe('success');
+    expect(expand?.cached).toBeUndefined();
+    expect(expand?.outputPreview).toBeTruthy();
+  });
+
+  it('output preview is one badge-safe line (≤160 chars · no newlines)', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    for (const t of model.tasks.values()) {
+      if (t.outputPreview === undefined) { continue; }
+      expect(t.outputPreview.length).toBeLessThanOrEqual(160);
+      expect(t.outputPreview).not.toMatch(/\n/);
+    }
+  });
+
+  it('unwraps the double-encoded text output — the text, not its JSON form', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    expect(model.tasks.get('seed')?.outputPreview).toBe('mock(echo) · Name three colors.');
+    expect(model.tasks.get('side')?.outputPreview).toBe('side-effect-ran');
+    expect(model.tasks.get('expand')?.outputPreview)
+      .toBe('mock(echo) · Elaborate on mock(echo) · Name three colors. briefly.');
+  });
+
+  it('summarizeRun counts the rehydrated slice (`↻ N cached`)', () => {
+    expect(summarizeRun(fixtureFold('resume-mixed.ndjson'))).toContain('↻ 2 cached');
+    // A run with zero cache hits keeps its unchanged card line.
+    expect(summarizeRun(fixtureFold('sig-run-a.ndjson'))).not.toContain('cached');
+  });
+
+  it('the editor badge says cached — never a bare fresh-success glyph', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    const seed = model.tasks.get('seed');
+    expect(seed && formatRunBadge(seed)).toBe(' ✓ cached');
+    // A re-executed task keeps its clock fact, no cached word.
+    const expand = model.tasks.get('expand');
+    expect(expand && formatRunBadge(expand)).toBe(' ✓ 13ms');
+  });
+
+  it('the fold timeline carries the cached flag (replay honesty)', () => {
+    const model = fixtureFold('resume-mixed.ndjson');
+    const seedSettle = model.timeline.find((e) => e.taskId === 'seed' && e.status === 'success');
+    expect(seedSettle?.cached).toBe(true);
+    const expandSettle = model.timeline.find((e) => e.taskId === 'expand' && e.status === 'success');
+    expect(expandSettle?.cached).toBeUndefined();
   });
 });

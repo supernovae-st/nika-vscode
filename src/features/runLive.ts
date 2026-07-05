@@ -20,6 +20,7 @@ import * as vscode from 'vscode';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
+import { persistTrace } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
@@ -118,6 +119,8 @@ export function runWorkflowLive(
         taskId: t.id,
         status: t.status as TaskStatus,
         durationMs: t.durationMs,
+        cached: t.cached,
+        outputPreview: t.outputPreview,
       })),
     );
     // Narrate only NEW terminal transitions (the feed is a story, not
@@ -126,7 +129,13 @@ export function runWorkflowLive(
       const key = `${t.id}:${t.status}`;
       if (TERMINAL.has(t.status) && !lastPainted.includes(`|${key}|`)) {
         lastPainted += `|${key}|`;
-        dagPanel.note(FEED_ICON[t.status] ?? '·', `${t.id} ${t.status}`, t.id, `st-${t.status}`);
+        if (t.cached === true) {
+          // ADR-099 rehydration — the story must never read as if the
+          // task re-executed; ↻ + "cached", not a plain green success.
+          dagPanel.note('↻', `${t.id} cached · recorded output reused`, t.id, 'st-success');
+        } else {
+          dagPanel.note(FEED_ICON[t.status] ?? '·', `${t.id} ${t.status}`, t.id, `st-${t.status}`);
+        }
       }
     }
   };
@@ -158,6 +167,11 @@ export function runWorkflowLive(
     const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';
     const cls = verdict === 'completed' ? 'st-success' : verdict === 'cancelled' ? 'st-cancelled' : 'st-failed';
     dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
+    // Only meaningful runs land (≥1 task event) — a spawn that died
+    // before any task event has nothing worth resuming from.
+    if (model.tasks.size > 0 && buffer.length > 0) {
+      persistTrace(fsPath, buffer);
+    }
     if (code !== 0 && code !== null && verdict !== 'failed' && verdict !== 'cancelled') {
       // Exited non-zero but the stream did not explain why (crash before
       // a workflow_failed event) — say so rather than imply success.
