@@ -287,6 +287,7 @@ interface WebviewState {
   smoothEdges?: boolean;
   showFeed?: boolean;
   seenHint?: boolean;
+  heatmap?: boolean;
   /** Hand-dragged card positions per workflow (uri → id → root coords).
    *  Presentation ONLY — the YAML stays the single truth; positions live
    *  in webview state, never in the file. Bounded to the last 6 flows. */
@@ -458,6 +459,11 @@ class DagRenderer {
   private hoverCard: HTMLElement | null;
   /** Use smooth curves instead of orthogonal segments for edges */
   public smoothEdges = false;
+  /** Heatmap overlay — tint cards by run duration (else static cost). */
+  public heatmapOn = false;
+  /** Alignment guide lines (lazy — exist only mid-drag). */
+  private guideV: Selection<SVGLineElement, unknown, null, undefined> | null = null;
+  private guideH: Selection<SVGLineElement, unknown, null, undefined> | null = null;
   /** Wave bands (topological levels) visible */
   public showWaves = true;
   /** Adjacency for focus mode + edge flow (edge id → endpoints). */
@@ -803,6 +809,8 @@ class DagRenderer {
 
     this.renderMinimap();
 
+    this.applyHeatmap();
+
     // A focus request that raced the layout replays now that boxes exist.
     if (this.pendingCenter) {
       const target = this.pendingCenter;
@@ -1127,6 +1135,34 @@ class DagRenderer {
     ];
   }
 
+  // ─── Heatmap · tint by measured time, else by static cost ────────────────
+  // A projection toggle (LangSmith/Insights read): where does the run
+  // SPEND? Live durations win; before any run the static cost ceiling
+  // speaks. Normalized to the graph's max — the red IS the hotspot.
+
+  applyHeatmap(): void {
+    const nodes = [...this.nodeMap.values()];
+    document.body.classList.toggle('heatmap', this.heatmapOn);
+    if (!this.heatmapOn || nodes.length === 0) {
+      this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+        .each(function () {
+          const nc = this.querySelector<HTMLElement>('.nc');
+          nc?.style.removeProperty('--heat');
+        });
+      return;
+    }
+    const timed = nodes.some((n) => n.durationMs != null || n.avgMs != null);
+    const metric = (n: DagNode): number => timed
+      ? (n.durationMs ?? n.avgMs ?? 0)
+      : (n.costMax ?? 0);
+    const max = Math.max(...nodes.map(metric), 1e-9);
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .each(function (d) {
+        const nc = this.querySelector<HTMLElement>('.nc');
+        nc?.style.setProperty('--heat', (metric(d) / max).toFixed(3));
+      });
+  }
+
   // ─── Card drag · move the node, the wires follow (n8n-grade) ─────────────
 
   /** Drag hot path: past a 4px threshold the card follows the pointer.
@@ -1141,7 +1177,20 @@ class DagRenderer {
       this.hideHoverCard(true);
       this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', true);
     }
-    this.dragLast = { x: drag.origX + (rx - drag.startX), y: drag.origY + (ry - drag.startY) };
+    let nx = drag.origX + (rx - drag.startX);
+    let ny = drag.origY + (ry - drag.startY);
+    // Magnetic alignment (the Figma/helper-lines read): edges + centers
+    // of OTHER cards attract within 6 root-px; guides draw the agreement.
+    // Alt bypasses (precision drag) — the convention everywhere.
+    if (!event.altKey) {
+      const snapped = this.snapToPeers(drag.id, nx, ny);
+      nx = snapped.x;
+      ny = snapped.y;
+      this.showGuides(snapped.gx, snapped.gy);
+    } else {
+      this.showGuides(null, null);
+    }
+    this.dragLast = { x: nx, y: ny };
     if (this.dragRaf) { return; }
     this.dragRaf = requestAnimationFrame(() => {
       this.dragRaf = 0;
@@ -1178,12 +1227,83 @@ class DagRenderer {
     }
   }
 
+  /** Edge/center magnetism against every OTHER card (O(N) per frame,
+   *  rAF-coalesced — fine to a few hundred cards). Returns the snapped
+   *  position + the agreed guide coordinates (null = no snap). */
+  private snapToPeers(
+    id: string, x: number, y: number,
+  ): { x: number; y: number; gx: number | null; gy: number | null } {
+    const box = this.layoutBox.get(id);
+    if (!box) { return { x, y, gx: null, gy: null }; }
+    const SNAP = 6;
+    let bestDx = SNAP + 1;
+    let snapX = x;
+    let gx: number | null = null;
+    let bestDy = SNAP + 1;
+    let snapY = y;
+    let gy: number | null = null;
+    const myXs = (px: number): number[] => [px, px + box.w / 2, px + box.w];
+    const myYs = (py: number): number[] => [py, py + box.h / 2, py + box.h];
+    for (const [oid, b] of this.layoutBox) {
+      if (oid === id) { continue; }
+      for (const target of [b.x, b.x + b.w / 2, b.x + b.w]) {
+        myXs(x).forEach((mine, i) => {
+          const d = target - mine;
+          if (Math.abs(d) < Math.abs(bestDx)) {
+            bestDx = d;
+            snapX = x + d;
+            gx = i === 0 ? target : i === 1 ? target : target;
+          }
+        });
+      }
+      for (const target of [b.y, b.y + b.h / 2, b.y + b.h]) {
+        myYs(y).forEach((mine, i) => {
+          const d = target - mine;
+          if (Math.abs(d) < Math.abs(bestDy)) {
+            bestDy = d;
+            snapY = y + d;
+            gy = i === 0 ? target : i === 1 ? target : target;
+          }
+        });
+      }
+    }
+    return {
+      x: Math.abs(bestDx) <= SNAP ? snapX : x,
+      y: Math.abs(bestDy) <= SNAP ? snapY : y,
+      gx: Math.abs(bestDx) <= SNAP ? gx : null,
+      gy: Math.abs(bestDy) <= SNAP ? gy : null,
+    };
+  }
+
+  /** Draw/hide the alignment guides (two lazy lines, topmost). */
+  private showGuides(gx: number | null, gy: number | null): void {
+    if (gx != null) {
+      this.guideV ??= this.rootGroup.append('line').attr('class', 'align-guide');
+      this.guideV
+        .attr('x1', gx).attr('x2', gx)
+        .attr('y1', -PADDING).attr('y2', this.graphH + PADDING)
+        .attr('opacity', 1);
+    } else {
+      this.guideV?.attr('opacity', 0);
+    }
+    if (gy != null) {
+      this.guideH ??= this.rootGroup.append('line').attr('class', 'align-guide');
+      this.guideH
+        .attr('y1', gy).attr('y2', gy)
+        .attr('x1', -PADDING).attr('x2', this.graphW + PADDING)
+        .attr('opacity', 1);
+    } else {
+      this.guideH?.attr('opacity', 0);
+    }
+  }
+
   /** Settle a drag: persist the pin, refresh bands/regions/minimap. */
   private dragEnd(): void {
     const drag = this.dragging;
     this.dragging = null;
     if (!drag?.moved) { return; }
     this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', false);
+    this.showGuides(null, null);
     this.suppressClick = true; // the click firing on mouseup is the drop
     this.persistManualLayout();
     this.renderWaveBands(this.waveCount);
@@ -2346,6 +2466,7 @@ class DagRenderer {
 
     this.saveState({ graph: this.currentGraph });
     this.updateStatusDisplay();
+    if (this.heatmapOn) { this.applyHeatmap(); }
   }
 
   updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
@@ -2716,7 +2837,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -2957,6 +3078,7 @@ const savedState = vscode.getState();
 if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showWaves; }
 if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.smoothEdges; }
 if (savedState?.showFeed) { toggleActivity(); }
+if (savedState?.heatmap) { renderer.heatmapOn = true; }
 if (savedState?.graph) {
   renderer.render(savedState.graph);
   applyResumeCapable(savedState.graph);
@@ -3306,6 +3428,17 @@ wavesBtn?.addEventListener('click', () => {
 });
 syncWavesBtn();
 
+const heatBtn = document.getElementById('btn-heat');
+const syncHeatBtn = (): void => { heatBtn?.classList.toggle('active', renderer.heatmapOn); };
+function toggleHeatmap(): void {
+  renderer.heatmapOn = !renderer.heatmapOn;
+  syncHeatBtn();
+  renderer.applyHeatmap();
+  vscode.setState({ ...(vscode.getState() ?? {}), heatmap: renderer.heatmapOn });
+}
+heatBtn?.addEventListener('click', toggleHeatmap);
+syncHeatBtn();
+
 const curveBtn = document.getElementById('btn-curve');
 const syncCurveBtn = (): void => { curveBtn?.classList.toggle('active', renderer.smoothEdges); };
 curveBtn?.addEventListener('click', () => {
@@ -3388,6 +3521,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'a' || e.key === 'A') { void resetLayout(); }
+  if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
   // Run keys — modifier-free only (⌘R must stay the browser/editor's).

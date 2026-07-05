@@ -163,6 +163,18 @@ The orchestrated moments (each spent exactly once, where it means):
   skin · two custom props per frame, paint-only).
 - **Close** — the aurora speaks once at a live run's end (nika skin).
 
+## 6b · Projections & drag intelligence (research-ranked, 2026)
+
+- **Heatmap (H)** — cards tint by measured duration (else static cost
+  ceiling), normalized to the graph max: the red IS the hotspot
+  (the LangSmith/Insights read). Recomputed live as durations land.
+- **Alignment magnetism** — dragging snaps to other cards' edges and
+  centers within 6px; accent guides draw the agreement; Alt bypasses
+  (the Figma/helper-lines convention).
+- Researched next (extension/engine-side, ranked): run-from-here on a
+  card (the resume substrate exists) · duplicate node (⌘D) · insert
+  node on edge (+) · pin node outputs (n8n's most-loved dev feature).
+
 ## 7 · Rules that keep it SOTA
 
 1. Tokens or nothing — a rule reading a raw color is a bug.

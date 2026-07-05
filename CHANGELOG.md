@@ -62,6 +62,13 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **The heatmap (H)** — one keystroke tints every card by where the
+  run actually spends (measured durations; the static cost ceiling
+  before any run), normalized to the graph's max. The hotspot is
+  simply red. Live: the tint follows durations as they land.
+- **Drag magnetism** — cards snap to other cards' edges and centers
+  (6px), accent guide-lines draw the agreement, Alt bypasses — the
+  helper-lines grammar of Figma/React Flow.
 - **The whole language, visible** (the Socratic pass): `when:` gates
   wear a dashed amber chip on the card (conditional execution was a
   near-invisible glyph), fan-out tasks wear a stacked DECK (map ×N

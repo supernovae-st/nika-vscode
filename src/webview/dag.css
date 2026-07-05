@@ -973,6 +973,15 @@ body.vscode-light .logo-dark { display: none; }
   animation: edge-flow 0.7s linear infinite;
 }
 
+/* Alignment guides — the agreement line while a drag snaps (Figma red;
+ * ours speaks accent, zoom-compensated hairline). */
+.align-guide {
+  stroke: color-mix(in srgb, var(--nk-accent) 75%, transparent);
+  stroke-width: calc(1px * var(--zoom-comp, 1));
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
 .dag-svg.connecting {
   cursor: crosshair;
 }
@@ -2299,6 +2308,26 @@ body.running .dag-node.status-success .nc::after {
   stroke: var(--nk-page);
   fill: var(--nk-accent);
   r: 7;
+}
+
+/* ─── Heatmap · where does the run spend? (toggle H) ────────────────────── */
+/* --heat ∈ [0,1] per card (renderer-normalized) — the hotspot reads red
+ * through the card surface; everything else stays calm. */
+
+body.heatmap .nc {
+  background: color-mix(
+    in srgb,
+    var(--nk-st-failed) calc(var(--heat, 0) * 26%),
+    var(--nk-card)
+  );
+}
+
+body.heatmap .dag-node:hover .nc {
+  background: color-mix(
+    in srgb,
+    var(--nk-st-failed) calc(var(--heat, 0) * 30%),
+    var(--nk-card)
+  );
 }
 
 /* ─── Semantic zoom · level-of-detail tiers ─────────────────────────────── */
