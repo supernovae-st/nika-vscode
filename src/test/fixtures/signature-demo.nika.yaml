@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json
+#
+# SIGNATURE DEMO · release-notes-i18n — the 60-second wow workflow.
+# Deep chain × wide fanout · all four verbs (infer · exec · invoke · agent) ·
+# CEL gate + jq fan-in · runs OFFLINE on mock/echo (zero key · zero network).
+nika: v1
+workflow: release-notes-i18n
+description: "digest local changes · draft release notes · translate ×4 locales · agent-verify · publish"
+
+model: mock/echo
+
+vars:
+  changes_dir: "./items"
+  locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]
+
+tasks:
+  - id: discover
+    invoke:
+      tool: "nika:glob"
+      args: { pattern: "${{ vars.changes_dir }}/*.md" }
+
+  - id: digest
+    depends_on: [discover]
+    exec:
+      command: ["cat", "items/item-1.md", "items/item-2.md", "items/item-3.md", "items/item-4.md", "items/item-5.md"]
+
+  - id: stats
+    depends_on: [discover]
+    invoke:
+      tool: "nika:jq"
+      args:
+        input: ${{ tasks.discover.output }}
+        expression: "{ files: length }"
+
+  - id: draft
+    depends_on: [digest]
+    infer:
+      max_tokens: 400
+      prompt: |
+        Draft concise release notes from these changes:
+        ${{ tasks.digest.output }}
+
+  - id: translate
+    depends_on: [draft]
+    for_each: ${{ vars.locales }}
+    max_parallel: 4
+    fail_fast: false
+    timeout: "60s"
+    retry:
+      max_attempts: 2
+      backoff_strategy: exponential
+      jitter: true
+    on_error:
+      recover: null
+    infer:
+      max_tokens: 400
+      prompt: |
+        Translate these release notes to ${{ item }}:
+        ${{ tasks.draft.output }}
+
+  - id: survivors
+    depends_on: [translate]
+    invoke:
+      tool: "nika:jq"
+      args:
+        input: ${{ tasks.translate.output }}
+        expression: "[ .[] | select(. != null) ]"
+
+  - id: verify
+    depends_on: [survivors]
+    agent:
+      max_tokens_total: 2000
+      prompt: |
+        Review these localized release notes for coverage and consistency.
+        Reply APPROVED if every locale is present.
+        ${{ tasks.survivors.output }}
+
+  - id: publish
+    depends_on: [verify, survivors]
+    when: ${{ tasks.survivors.output.size() > 0 }}
+    exec:
+      command: ["printf", "%s", "published: release notes ready"]
+
+  - id: report
+    depends_on: [publish, stats]
+    infer:
+      max_tokens: 120
+      prompt: |
+        One-line ship report for the team (files: ${{ tasks.stats.output }}):
+        ${{ tasks.publish.output }}
+
+outputs:
+  notes: ${{ tasks.report.output }}

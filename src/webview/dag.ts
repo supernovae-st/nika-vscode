@@ -25,6 +25,8 @@ import { nextFocus, type NavDir } from '../core/canvasNav';
 import { filterVerbs } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
+import type { TraceTimeline } from '../core/traceTimeline';
+import { createTransport } from './transport';
 
 // Every animation in this view is gated on the user's motion preference.
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -250,6 +252,10 @@ type ExtToWebviewMessage =
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
+  | { kind: 'transport:clear' }
+  | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
+  | { kind: 'diff:clear' }
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
@@ -2246,6 +2252,11 @@ function toggleExplainer(): void {
 const renderer = new DagRenderer('dag-container');
 renderer.wireHoverCardPersistence();
 
+// The platine — paints trace instants through the SAME batch path as
+// live runs (states/classes only, never a relayout).
+const transport = createTransport({
+  applyStates: (updates) => renderer.batchUpdateStatus(updates),
+});
 // ─── Replay scrubber · time-travel over a recorded run ──────────────────────
 // The extension hands the whole timeline; the webview owns playback — the
 // handle position IS the truth, frameAt paints the DAG at that instant.
@@ -2380,6 +2391,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
   const msg = event.data;
   switch (msg.kind) {
     case 'dag:load':
+      // A new graph invalidates any loaded timeline; transport:load (if
+      // this is a replay) follows in-order and re-arms it. The resync
+      // covers the race where the timeline lands while ELK is laying out.
+      // A diff paints the PREVIOUS graph's story — drop it too.
+      clearDiff();
+      transport.deactivate();
+      void renderer.render(msg.graph).then(() => transport.resync());
       // Any graph load while a replay is up supersedes it (live run ·
       // follow-mode retarget · normal show). The replay's OWN graph
       // loads BEFORE the scrubber arms, so this never closes itself.
@@ -2392,9 +2410,12 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       applyCostChip(null);
       break;
     case 'dag:updateStatus':
+      // The live present wins over any replay scrub (runsView law).
+      transport.deactivate();
       renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs);
       break;
     case 'dag:batchUpdateStatus':
+      transport.deactivate();
       renderer.batchUpdateStatus(msg.updates);
       break;
     case 'dag:focus':
@@ -2407,6 +2428,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       pushActivityLine(msg.icon, msg.text, msg.cls ?? 'st-note', msg.taskId);
       break;
     case 'dag:clear':
+      transport.deactivate();
       renderer.clear();
       break;
     case 'dag:fitToView':
@@ -2441,9 +2463,58 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:replayEnd':
       replayer.close();
       break;
+    case 'transport:load':
+      transport.load(msg.timeline, { speed: msg.speed, autoPlay: msg.autoPlay });
+      break;
+    case 'transport:clear':
+      transport.deactivate();
+      break;
+    case 'diff:load':
+      applyDiff(msg.entries);
+      break;
+    case 'diff:clear':
+      clearDiff();
+      break;
   }
 });
 
+// ─── Run-diff paint ─────────────────────────────────────────────────────────
+// Verdicts ride DATA attributes on the node <g>, never its class attr —
+// updateStatus rewrites `class` wholesale on every live event and must
+// not wipe a diff mid-run. The badge is an SVG <text> appended inside
+// the group (the cards are pure SVG · CSS pseudo-elements don't exist
+// there), anchored to the node-bg's top-right corner: zero change to
+// the card metrics the layout was computed from (anatomy law).
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function applyDiff(entries: Array<{ taskId: string; verdict: string; badge: string }>): void {
+  clearDiff();
+  for (const e of entries) {
+    const g = document.querySelector(`.dag-node[data-id="${CSS.escape(e.taskId)}"]`);
+    if (!g) { continue; }
+    g.setAttribute('data-diff', e.verdict);
+    if (!e.badge) { continue; }
+    const bg = g.querySelector('.node-bg');
+    const width = bg ? Number(bg.getAttribute('width') ?? 0) : 0;
+    const badge = document.createElementNS(SVG_NS, 'text');
+    badge.setAttribute('class', 'diff-badge');
+    badge.setAttribute('x', String(width > 0 ? width - 8 : 0));
+    badge.setAttribute('y', '-6');
+    badge.setAttribute('text-anchor', 'end');
+    badge.textContent = e.badge;
+    g.appendChild(badge);
+  }
+}
+
+function clearDiff(): void {
+  for (const el of Array.from(document.querySelectorAll('.dag-node[data-diff]'))) {
+    el.removeAttribute('data-diff');
+  }
+  for (const el of Array.from(document.querySelectorAll('.diff-badge'))) {
+    el.remove();
+  }
+}
 // ─── Run controls · the bottom-center pill (n8n/Windmill placement) ─────────
 
 /** Truthful lifecycle from the extension; also ends the optimistic pulse. */

@@ -232,6 +232,20 @@
         "icon": "$(history)"
       },
       {
+        "command": "nika.diffTraces",
+        "title": "Nika: Diff Two Runs on the DAG",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "nika.rerunTask",
+        "title": "Nika: Re-run Task (and its upstream)",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "nika.captureLintBaseline",
+        "title": "Nika: Capture Lint Baseline (grandfather current findings)"
+      },
+      {
         "command": "nika.watchDemo",
         "title": "Nika: Watch Demo Replay"
       },
@@ -416,6 +430,11 @@
           "default": true,
           "description": "Verb-tinted gutter dots on each task line — the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet)."
         },
+        "nika.editor.runDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "End-of-line run badges per task after a run (✓ duration · cost — failed in red): the run lives in the editor."
+        },
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
@@ -489,6 +508,13 @@
           "command": "nika.newWorkflow",
           "when": "view == 'nikaWorkflows'",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "nika.diffTraces",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "inline"
         }
       ]
     },

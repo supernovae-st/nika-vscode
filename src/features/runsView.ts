@@ -8,7 +8,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { foldTrace, summarizeRun, type RunModel } from '../core/traceFold';
+import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
+import { buildTraceTimeline } from '../core/traceTimeline';
+import { traceStore } from '../core/traceStore';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 
@@ -175,8 +178,12 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
   }
 }
 
-// One replay at a time: starting a new one cancels the previous timers —
-// otherwise two replays interleave status updates on the same panel.
+/**
+ * LIVE overlay: fold the (growing) trace and paint current statuses onto
+ * the open DAG — no animation, the trace IS the present. Fired by the
+ * traces watcher while an engine writes a run. Returns false when the
+ * trace does not match the displayed graph (majority-id overlap rule).
+ */
 let activeReplayTimers: Array<ReturnType<typeof setTimeout>> = [];
 
 export function cancelActiveReplay(): void {
@@ -184,12 +191,6 @@ export function cancelActiveReplay(): void {
   activeReplayTimers = [];
 }
 
-/**
- * LIVE overlay: fold the (growing) trace and paint current statuses onto
- * the open DAG — no animation, the trace IS the present. Fired by the
- * traces watcher while an engine writes a run. Returns false when the
- * trace does not match the displayed graph (majority-id overlap rule).
- */
 export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): boolean {
   if (!dagPanel.hasPanel) { return false; }
   const ids = dagPanel.currentGraphIds();
@@ -206,6 +207,8 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
   const overlap = [...model.tasks.keys()].filter((id) => ids.has(id)).length;
   if (overlap < Math.ceil(model.tasks.size / 2)) { return false; }
 
+  // Live state wins over any replay transport in progress.
+  dagPanel.clearTransport();
   // Live state wins over any replay in progress. cancelActiveReplay()
   // only stops the legacy extension-driven step timers — the webview's
   // own Replayer (the scrubber) must be ended too, or the next rAF tick
@@ -219,13 +222,22 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
       durationMs: t.durationMs,
     })),
   );
+  // The overlap gate just PROVED this trace belongs to the displayed
+  // workflow — feed the editor surfaces the same fold, keyed on the file.
+  // (Synthesized graphs carry no URI and publish nothing.)
+  const workflowUri = dagPanel.currentWorkflowUri();
+  if (workflowUri) {
+    traceStore.set(vscode.Uri.parse(workflowUri).fsPath, model);
+  }
   return true;
 }
 
 /**
- * Animate a folded run through the DAG panel. Timeline timestamps are
- * compressed by `speed` (engine default: 6× faster than recorded) and the
- * whole replay is clamped to ~20s so giant runs stay watchable.
+ * Replay a folded run through the DAG panel via the webview transport
+ * (the platine): the trace is normalized once (core/traceTimeline) and
+ * shipped whole — the webview plays/scrubs it LOCALLY, zero round-trips
+ * per frame. Recorded time is compressed by `speed` (engine default 6×,
+ * capped ~20s) at playback; every displayed fact stays the recorded one.
  */
 export async function replayIntoDag(
   dagPanel: DagPanel,
@@ -263,6 +275,7 @@ export async function replayIntoDag(
     edges: [],
   };
 
+  // Reset all node states to pending, show, then hand over the timeline.
   // Reset all node states to pending, show, then hand the timeline to
   // the webview SCRUBBER: the user scrubs/plays (LangGraph time-travel),
   // the DAG state at any instant computed locally — no timer round-trips.
@@ -270,10 +283,99 @@ export async function replayIntoDag(
   for (const n of graph.nodes) { n.status = 'pending'; n.durationMs = undefined; }
   dagPanel.show(graph);
 
-  if (model.timeline.length === 0) {
-    void vscode.window.showWarningMessage('Nika: this trace has no timeline to replay.');
+  const timeline = buildTraceTimeline(model);
+  if (!timeline) {
+    // No usable real clock in the trace — paint the verdict directly.
+    dagPanel.batchUpdateStatus(
+      [...model.tasks.values()].map((t) => ({
+        taskId: t.id,
+        status: t.status as TaskStatus,
+        durationMs: t.durationMs,
+      })),
+    );
     return;
   }
+
   const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
-  dagPanel.loadReplay(model.timeline, path.basename(traceUri.fsPath).replace(/\.ndjson$/, ''), speed);
+  dagPanel.loadTransport(timeline, { speed, autoPlay: true });
+}
+
+/**
+ * Compare two recorded runs and paint the verdict on the DAG — the
+ * "why is this run 3x slower" answer. BASE is the reference (usually
+ * older), COMPARE is the run under scrutiny; badges read as
+ * compare-vs-base. Same majority-overlap gate as the overlay: the diff
+ * paints the graph the panel is SHOWING or nothing at all.
+ */
+export function diffTracesOntoDag(
+  dagPanel: DagPanel,
+  baseUri: vscode.Uri,
+  compareUri: vscode.Uri,
+): boolean {
+  if (!dagPanel.hasPanel) { return false; }
+  const ids = dagPanel.currentGraphIds();
+  if (!ids || ids.size === 0) { return false; }
+
+  let base: RunModel;
+  let compare: RunModel;
+  try {
+    base = foldTrace(fs.readFileSync(baseUri.fsPath, 'utf-8'));
+    compare = foldTrace(fs.readFileSync(compareUri.fsPath, 'utf-8'));
+  } catch {
+    return false;
+  }
+  if (base.tasks.size === 0 || compare.tasks.size === 0) { return false; }
+
+  const seen = new Set([...base.tasks.keys(), ...compare.tasks.keys()]);
+  const overlap = [...seen].filter((id) => ids.has(id)).length;
+  if (overlap < Math.ceil(seen.size / 2)) { return false; }
+
+  const diff = diffRuns(base, compare);
+
+  // The COMPARE run's statuses become the painted state (its story), the
+  // badges carry the movement vs base.
+  dagPanel.clearTransport();
+  dagPanel.batchUpdateStatus(
+    [...compare.tasks.values()].map((t) => ({
+      taskId: t.id,
+      status: t.status as TaskStatus,
+      durationMs: t.durationMs,
+    })),
+  );
+  dagPanel.loadDiff(
+    diff.tasks
+      .filter((t) => t.kind !== 'same')
+      .map((t) => ({ taskId: t.id, verdict: t.kind, badge: diffBadge(t) })),
+  );
+
+  const baseName = path.basename(baseUri.fsPath);
+  const compareName = path.basename(compareUri.fsPath);
+  dagPanel.note('Δ', `diff ${compareName} vs ${baseName} — ${summarizeDiff(diff)}`, undefined, 'st-note');
+  // Narrate the top movers (the sorted head IS the ranking).
+  for (const t of diff.tasks.slice(0, 3)) {
+    if (t.kind === 'same') { break; }
+    dagPanel.note('·', `${t.id} ${diffBadge(t)}`, t.id, 'st-note');
+  }
+  return true;
+}
+
+function diffBadge(t: TaskDiff): string {
+  switch (t.kind) {
+    case 'slower':
+      return t.deltaPct !== undefined
+        ? `+${Math.round(t.deltaPct)}%`
+        : `+${humanizeDuration(t.deltaMs ?? 0)}`;
+    case 'faster':
+      return t.deltaPct !== undefined
+        ? `${Math.round(t.deltaPct)}%`
+        : `-${humanizeDuration(Math.abs(t.deltaMs ?? 0))}`;
+    case 'status-changed':
+      return `${t.statusFrom} to ${t.statusTo}`;
+    case 'added':
+      return 'new';
+    case 'removed':
+      return 'gone';
+    default:
+      return '';
+  }
 }

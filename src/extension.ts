@@ -58,8 +58,10 @@ import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActio
 import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
+import { RunDecorations } from './features/runDecorations';
+import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
-import { RunsTreeProvider, collectTaskAverages, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
+import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
@@ -67,13 +69,14 @@ import { registerLmTools } from './features/lmTools';
 import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
-import { collectFindings, countReportFindings } from './core/cliContract';
+import { collectFindings, countReportFindings, parseCheckReport } from './core/cliContract';
 import { auditByTask } from './core/auditByTask';
 import { costForecast } from './core/costForecast';
 import { computeDirty } from './core/dirtyNodes';
 import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
+import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 // ─── Shared mutable state ──────────────────────────────────────────────────
 // Owned here, passed by reference to module functions via ClientState.
@@ -333,6 +336,7 @@ export function activate(context: ExtensionContext): void {
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
     new VerbGutterDecorations(),
+    new RunDecorations(),
     workspace.onDidSaveTextDocument((doc) => {
       if (NIKA_FILE_RE.test(doc.fileName)) { inlayProvider.refresh(); }
     }),
@@ -662,7 +666,7 @@ export function activate(context: ExtensionContext): void {
         dagWorkflowUri = doc.uri;
         const graph = await loadGraphFor(doc);
         dagPanel.show(graph);
-        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, {
+        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
           extraArgs: ['--model', 'mock/echo'],
           onClose: () => refreshStaleBadges(doc.uri.fsPath),
         });
@@ -708,6 +712,7 @@ export function activate(context: ExtensionContext): void {
     }),
   );
   context.subscriptions.push(dagPanel);
+  context.subscriptions.push(new LiveDag(service, dagPanel));
   // A live run must never paint a disposed panel (or outlive the session).
   context.subscriptions.push({ dispose: () => cancelActiveRun() });
   context.subscriptions.push(
@@ -728,6 +733,17 @@ export function activate(context: ExtensionContext): void {
 
   // Command: Run current workflow (capability-gated · honest when pending)
   context.subscriptions.push(
+    // Command: re-run ONE task + its upstream cone (the CodeLens lever ·
+    // engine `run --task` — the full-file audit still happens engine-side).
+    commands.registerCommand('nika.rerunTask', async (uri: Uri | string, taskId: string) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (doc.isDirty) { await doc.save(); }
+      dagWorkflowUri = doc.uri;
+      const graph = await service.dagForDocument(doc);
+      dagPanel.show(graph);
+      runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, taskId);
+    }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
@@ -744,7 +760,7 @@ export function activate(context: ExtensionContext): void {
           dagWorkflowUri = doc.uri;
           const graph = await loadGraphFor(doc);
           dagPanel.show(graph);
-          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, {
+          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
             onClose: () => refreshStaleBadges(doc.uri.fsPath),
           });
           return;
@@ -958,6 +974,70 @@ export function activate(context: ExtensionContext): void {
     }),
     commands.registerCommand('nika.watchDemo', () => {
       runNikaCommand(state.resolvedServerPath, 'trace replay --demo', '');
+    }),
+    // Command: diff two recorded runs on the DAG ("why is this run 3x
+    // slower"). First pick = BASE (reference) · second = COMPARE (under
+    // scrutiny). Paints compare's statuses + movement badges vs base.
+    commands.registerCommand('nika.diffTraces', async (uri?: Uri) => {
+      const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+      const files = await workspace.findFiles(glob, '**/node_modules/**', 50);
+      if (files.length < 2) {
+        void window.showInformationMessage('Nika: need at least two traces to diff.');
+        return;
+      }
+      const items = files
+        .map((f) => ({ label: path.basename(f.fsPath), description: workspace.asRelativePath(f), uri: f, mtime: fs.statSync(f.fsPath).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      let base = uri;
+      if (!base) {
+        const picked = await window.showQuickPick(items, { title: 'Diff runs 1/2 — the BASE (reference) run' });
+        if (!picked) { return; }
+        base = picked.uri;
+      }
+      const rest = items.filter((i) => i.uri.toString() !== base?.toString());
+      const compare = await window.showQuickPick(rest, { title: 'Diff runs 2/2 — the run to compare against it' });
+      if (!compare) { return; }
+      // The diff paints the SHOWING graph — load the active workflow first
+      // when the panel is empty (same ritual as replay).
+      const active = activeNikaDocument();
+      if (active && dagWorkflowUri?.toString() !== active.uri.toString()) {
+        dagWorkflowUri = active.uri;
+        dagPanel.loadGraph(await service.dagForDocument(active));
+      }
+      if (!diffTracesOntoDag(dagPanel, base, compare.uri)) {
+        void window.showInformationMessage('Nika: these traces do not match the workflow the DAG is showing.');
+      }
+    }),
+    // Command: capture the lint ratchet baseline — records TODAY's findings
+    // as the grandfathered debt (.nika/lint-baseline.json). New findings
+    // stay loud; re-capture after cleanups burns the debt down.
+    commands.registerCommand('nika.captureLintBaseline', async () => {
+      const root = workspace.workspaceFolders?.[0]?.uri;
+      if (!root) {
+        void window.showInformationMessage('Nika: open a workspace folder first.');
+        return;
+      }
+      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 300);
+      const perFile = new Map<string, string[]>();
+      await window.withProgress(
+        { location: { viewId: 'nikaWorkflows' }, title: 'Nika: capturing lint baseline' },
+        async () => {
+          for (const f of files) {
+            const res = await service.runCli(['check', f.fsPath, '--json']);
+            const report = parseCheckReport(res.stdout);
+            if (!report) { continue; }
+            const codes = collectFindings(report).map((x) => x.code);
+            if (codes.length > 0) { perFile.set(workspace.asRelativePath(f, false), codes); }
+          }
+        },
+      );
+      const baseline = captureBaseline(perFile, new Date().toISOString().slice(0, 10));
+      const target = Uri.joinPath(root, BASELINE_REL_PATH);
+      await workspace.fs.writeFile(target, Buffer.from(`${JSON.stringify(baseline, null, 1)}\n`, 'utf-8'));
+      const total = Object.values(baseline.counts).reduce((a, b) => a + b, 0);
+      void window.showInformationMessage(
+        `Nika: baseline captured — ${total} finding(s) grandfathered across ${perFile.size} file(s). New findings stay loud.`,
+      );
     }),
   );
 

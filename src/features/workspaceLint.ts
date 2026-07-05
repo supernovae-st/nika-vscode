@@ -13,6 +13,7 @@ import {
   parseCheckReport,
 } from '../core/cliContract';
 import { applySeverityRemap, NIKA_DIAG_SOURCE } from './diagnostics';
+import { BASELINE_REL_PATH, grandfatherMask, parseBaseline, type LintBaseline } from '../core/lintBaseline';
 import type { NikaService } from '../nikaService';
 
 /** Hard cap per sweep — logged when hit, never silently truncated. */
@@ -91,6 +92,11 @@ export class WorkspaceLint implements vscode.Disposable {
     }
     this.sweeping = true;
     try {
+      // The grandfathered-debt ratchet: an optional workspace baseline
+      // (.nika/lint-baseline.json) demotes KNOWN findings to Information —
+      // adopting nika on a legacy workspace must not train people to
+      // ignore the Problems panel. Loaded once per sweep (cheap · fresh).
+      this.baseline = await this.loadBaseline();
       const files = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', MAX_FILES + 1);
       if (files.length > MAX_FILES) {
         // findFiles itself truncated at MAX+1 — the true total is unknown.
@@ -160,12 +166,22 @@ export class WorkspaceLint implements vscode.Disposable {
       if (applySeverityRemap(d)) { diagnostics.push(d); }
     }
     if (report) {
-      for (const f of collectFindings(report)) {
+      const findings = collectFindings(report);
+      // Grandfather mask in DOCUMENT ORDER (findings arrive span-ordered):
+      // the first N occurrences of a (file::code) are the recorded debt.
+      const mask = grandfatherMask(
+        vscode.workspace.asRelativePath(uri, false),
+        findings.map((f) => f.code),
+        this.baseline,
+      );
+      findings.forEach((f, i) => {
         const range = f.span ? lineOf(f.span.start) : new vscode.Range(0, 0, 0, 1);
+        const grandfathered = mask[i];
         const d = new vscode.Diagnostic(
           range,
-          f.message,
-          f.severity === 'error' ? vscode.DiagnosticSeverity.Error
+          grandfathered ? `${f.message} (grandfathered)` : f.message,
+          grandfathered ? vscode.DiagnosticSeverity.Information
+            : f.severity === 'error' ? vscode.DiagnosticSeverity.Error
             : f.severity === 'warning' ? vscode.DiagnosticSeverity.Warning
             : vscode.DiagnosticSeverity.Information,
         );
@@ -174,9 +190,23 @@ export class WorkspaceLint implements vscode.Disposable {
           ? { value: f.code, target: vscode.Uri.parse(`https://nika.sh/errors/${f.code}`) }
           : f.code;
         if (applySeverityRemap(d)) { diagnostics.push(d); }
-      }
+      });
     }
     this.collection.set(uri, diagnostics);
+  }
+
+  private baseline: LintBaseline | undefined;
+
+  /** Read the optional workspace ratchet file — absent = everything loud. */
+  private async loadBaseline(): Promise<LintBaseline | undefined> {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!root) { return undefined; }
+    try {
+      const raw = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(root, BASELINE_REL_PATH));
+      return parseBaseline(Buffer.from(raw).toString('utf-8'));
+    } catch {
+      return undefined;
+    }
   }
 
   dispose(): void {

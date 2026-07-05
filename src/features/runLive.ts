@@ -20,12 +20,22 @@ import * as vscode from 'vscode';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
+import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 import { cancelActiveReplay } from './runsView';
 
+/** Min gap between intermediate store publishes — editor surfaces
+ *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
+const STORE_THROTTLE_MS = 500;
+
 /** A live run handle — cancellable, one at a time per panel. */
 let activeRun: { kill: () => void } | undefined;
+
+/** True while a spawned `nika run` drives the DAG (liveDag suspends). */
+export function isRunActive(): boolean {
+  return activeRun !== undefined;
+}
 
 /** Stop any live run in flight (a new run, or panel dispose). */
 export function cancelActiveRun(): void {
@@ -47,6 +57,9 @@ export function runWorkflowLive(
   dagPanel: DagPanel,
   fsPath: string,
   log: (level: string, msg: string) => void,
+  /** Scope the run to ONE task + its upstream cone (`--task` · the
+   *  regenerate-one-block lens). Whole-workflow when absent. */
+  onlyTask?: string,
   opts?: { extraArgs?: string[]; onClose?: () => void },
 ): void {
   const binary = service.binaryPath;
@@ -55,12 +68,18 @@ export function runWorkflowLive(
     return;
   }
 
-  // A fresh run supersedes any prior run AND any replay animation —
+  // A fresh run supersedes any prior run AND any replay transport —
   // the live present wins.
   cancelActiveRun();
+  dagPanel.clearTransport();
   cancelActiveReplay();
   const preview = opts?.extraArgs?.includes('mock/echo') === true;
-  dagPanel.note('▶', `run started${preview ? ' · preview (mock/echo)' : ''} · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
+  dagPanel.note(
+    '▶',
+    `run started${preview ? ' · preview (mock/echo)' : ''} · ${fsPath.split('/').pop() ?? fsPath}${onlyTask ? ` · --task ${onlyTask}` : ''}`,
+    onlyTask,
+    'st-running',
+  );
   dagPanel.setRunState(true);
 
   // Fingerprints of what actually RUNS, captured at spawn: an edit made
@@ -72,16 +91,28 @@ export function runWorkflowLive(
     spawnFingerprints = undefined;
   }
 
-  const child = spawn(binary, ['run', fsPath, '--json', '--no-color', ...(opts?.extraArgs ?? [])], {
-    env: { ...process.env, NO_COLOR: '1' },
-  });
+  const child = spawn(
+    binary,
+    ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
+    {
+      env: { ...process.env, NO_COLOR: '1' },
+    },
+  );
   activeRun = { kill: () => child.kill() };
 
   let buffer = '';
   let lastPainted = '';
+  let lastStorePublish = 0;
   const paint = (): void => {
     const model = foldTrace(buffer);
     if (model.tasks.size === 0) { return; }
+    // Editor surfaces read the SAME fold through the store — throttled
+    // here (the close handler publishes the exact final unconditionally).
+    const now = Date.now();
+    if (now - lastStorePublish >= STORE_THROTTLE_MS) {
+      lastStorePublish = now;
+      traceStore.set(fsPath, model);
+    }
     dagPanel.batchUpdateStatus(
       [...model.tasks.values()].map((t) => ({
         taskId: t.id,
@@ -120,6 +151,9 @@ export function runWorkflowLive(
              // the pill flips to idle (else Run re-enables mid-glow).
     dagPanel.setRunState(false);
     const model = foldTrace(buffer);
+    // Final fold ALWAYS lands in the store (the throttle above may have
+    // swallowed the last intermediate) — the badges' resting truth.
+    if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
     const verdict = model.workflowStatus;
     const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';
     const cls = verdict === 'completed' ? 'st-success' : verdict === 'cancelled' ? 'st-cancelled' : 'st-failed';

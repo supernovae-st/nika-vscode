@@ -329,7 +329,7 @@ async function stageGeneratedWorkflow(
   let result = first;
   // The staged editor: replaced in place on each Refine.
   let doc = await vscode.workspace.openTextDocument({ content: result.yaml, language: 'nika' });
-  let editor = await vscode.window.showTextDocument(doc, { preview: false });
+  const editor = await vscode.window.showTextDocument(doc, { preview: false });
 
   for (;;) {
     const summary = result.clean

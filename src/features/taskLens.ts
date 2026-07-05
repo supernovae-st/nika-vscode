@@ -32,6 +32,12 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
         ? `$(target) graph · ${refs.length} ref${refs.length === 1 ? '' : 's'}`
         : '$(target) graph';
       lenses.push(new vscode.CodeLens(range, {
+        command: 'nika.rerunTask',
+        title: '$(debug-restart) re-run',
+        tooltip: 'Run THIS task and its upstream cone only (nika run --task) — the regenerate-one-block move',
+        arguments: [document.uri, task.id],
+      }));
+      lenses.push(new vscode.CodeLens(range, {
         command: 'nika.focusTaskInDag',
         title,
         tooltip: 'Focus this task in the DAG (lineage lit) — ⇧F12 peeks its references',

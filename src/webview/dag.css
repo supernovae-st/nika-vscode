@@ -434,6 +434,22 @@ body {
   .dag-edge.edge-dep {
     stroke: GrayText;
   }
+
+  /* Transport chrome — !important beats the nika skin's body-scoped
+     specificity (high contrast wins over BOTH skins, always). */
+  #transport {
+    background: Canvas !important;
+    border-color: ButtonText !important;
+  }
+
+  .tr-tick { background: ButtonText !important; }
+
+  #tr-scrub::-webkit-slider-runnable-track { background: ButtonText; }
+
+  #tr-scrub::-webkit-slider-thumb {
+    background: Highlight;
+    border-color: Canvas;
+  }
 }
 
 /* ─── Wave bands · the parallelism explained ────────────────────────────── */
@@ -665,6 +681,119 @@ body {
 
 #progress-fill.complete { background: var(--nk-st-success); }
 #progress-fill.has-failure { background: var(--nk-st-failed); }
+
+/* ─── Transport · the platine (trace play/pause/scrub) ──────────────────
+   Visible only while a replay timeline is loaded. Sits on the minimap's
+   baseline, to its left; ticks mark the recorded task_started onsets;
+   the fill tracks p via --tr-p (a style write only — scrubbing never
+   touches layout). */
+
+#transport {
+  position: fixed;
+  left: 12px;
+  right: 172px; /* clears the minimap card (148px + gutter) */
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  box-shadow: var(--nk-shadow-1);
+  z-index: 6;
+}
+
+#transport[hidden] { display: none; }
+
+#tr-play {
+  flex: none;
+  width: 28px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) - 2px);
+  background: transparent;
+  color: var(--nk-ink);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#tr-play:hover { background: color-mix(in srgb, var(--nk-accent) 14%, transparent); }
+#tr-play:focus-visible { outline: 1px solid var(--nk-accent); outline-offset: 1px; }
+
+#tr-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+#tr-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tr-tick {
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  background: var(--nk-ink-dim);
+  opacity: 0.5;
+}
+
+#tr-scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+#tr-scrub::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--nk-accent) calc(var(--tr-p, 0) * 100%),
+    color-mix(in srgb, var(--nk-ink-dim) 35%, transparent) 0
+  );
+}
+
+#tr-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--nk-accent);
+  border: 2px solid var(--nk-page);
+  box-shadow: var(--nk-shadow-1);
+}
+
+#tr-scrub:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+#tr-time {
+  flex: none;
+  font-family: var(--nk-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+  white-space: nowrap;
+}
 
 /* ─── Toolbar toggle state ──────────────────────────────────────────────── */
 
@@ -1222,6 +1351,8 @@ body.vscode-light .logo-dark { display: none; }
   #activity { width: 180px; max-height: 120px; }
   #minimap { width: 110px; height: 72px; }
   .legend-chip { font-size: 10px; padding: 1px 6px; }
+  #transport { right: 134px; } /* the minimap narrows with it */
+  #tr-time { display: none; }
 }
 
 @media (max-width: 420px) {
@@ -1229,11 +1360,13 @@ body.vscode-light .logo-dark { display: none; }
   #dag-title { display: none; }
   .ex-card { width: calc(100vw - 28px); }
   #hover-card { max-width: calc(100vw - 24px); }
+  #transport { right: 12px; } /* minimap gone — take the full row */
 }
 
 @media (max-height: 420px) {
   #activity { max-height: 90px; }
   #dag-legend { display: none; }
+  #transport { bottom: 8px; } /* legend gone — hug the floor */
 }
 
 /* ─── Reduced motion · every animation opt-outs ─────────────────────────── */
@@ -1359,6 +1492,22 @@ body[data-nk-theme='nika'] #dag-toolbar {
 
 body[data-nk-theme='nika'] #dag-toolbar button:hover {
   background: rgb(141 180 255 / 0.08);
+}
+
+/* Transport · machined deck — grain + blue hairline, Martian readout
+   (already via --nk-mono). Ticks pick up the survey-dot blue. */
+body[data-nk-theme='nika'] #transport {
+  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background-image: var(--nk-grain);
+  border-color: rgb(140 170 255 / 0.12);
+}
+
+body[data-nk-theme='nika'] #tr-play:hover {
+  background: rgb(141 180 255 / 0.08);
+}
+
+body[data-nk-theme='nika'] .tr-tick {
+  background: rgb(141 180 255 / 0.45);
 }
 
 /* Node card · deep-blue glass + hairline (dag-view.css recipe, SVG form). */
@@ -1556,6 +1705,33 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   }
 }
 
+/* ── Run-diff paint ──────────────────────────────────────────────────────
+   Verdicts ride data-attrs on the node <g> (class-rewrite-proof); the
+   badge is an SVG <text> anchored above the card's top-right corner —
+   card metrics never move (anatomy law). Semantic hues through the
+   --nk-* seam, identical in both skins; paint-order strokes the page
+   color under the glyphs so badges stay legible over edges. */
+.diff-badge {
+  font-family: var(--nk-mono, ui-monospace, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  fill: var(--nk-fg-mute, #8a93a6);
+  stroke: var(--nk-page, #101418);
+  stroke-width: 3px;
+  paint-order: stroke;
+  pointer-events: none;
+}
+.dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-ok, #3fb950); }
+.dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-err, #f85149); }
+.dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying, #d29922); }
+.dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
+.dag-node[data-diff='removed'] { opacity: 0.55; }
+.dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-fg-mute, #8a93a6); }
+
+@media (forced-colors: active) {
+  .diff-badge { fill: CanvasText !important; stroke: Canvas !important; }
+  .dag-node[data-diff='removed'] { opacity: 1 !important; }
 /* ═══ Canvas 2.0 · the content-first card (Flows anatomy) ═════════════════ */
 /* The SVG frame carries status/skin (ring · LED · spinner); the HTML body
  * carries the substance — id, the prompt/command/args, the params bar. */

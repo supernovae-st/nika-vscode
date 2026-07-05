@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: Apache-2.0
+# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json
+#
+# TEMPLATE · fanout — discover a collection, process every item in
+# parallel (with a leash), merge the results.
+# The default shape for « N pages / N files / N records » jobs.
+#
+# Instantiate · copy → fill `# SLOT:` → `nika check` → repair → re-check.
+# The leash (pattern 4 · ALWAYS set all three) ·
+#   max_parallel  cap concurrency (APIs rate-limit · GPUs thrash)
+#   fail_fast: false + on_error recover: null — one bad item yields null
+#     at its index (order preserved) · the batch lives · filter downstream
+#   per-iteration retry/timeout · the flaky world is normal
+nika: v1
+workflow: fanout-template           # SLOT: kebab-case workflow id
+description: "discover N items · process in parallel · merge"   # SLOT
+
+model: mock/echo
+
+vars:
+  collection_source: "./items"      # SLOT: where the collection comes from
+
+tasks:
+  - id: discover
+    invoke:                         # SLOT: glob / fetch sitemap / exec + jq split
+      tool: "nika:glob"
+      args: { pattern: "${{ vars.collection_source }}/*.md" }
+
+  - id: process
+    depends_on: [discover]
+    for_each: ${{ tasks.discover.output }}
+    max_parallel: 4                 # SLOT: the polite ceiling
+    fail_fast: false
+    timeout: "60s"                  # SLOT: per-iteration bound
+    retry:
+      max_attempts: 3
+      backoff_strategy: exponential
+      jitter: true
+    on_error:
+      recover: null                 # a failed item yields null at its index · the batch lives
+    infer:                          # SLOT: the per-item job (any verb)
+      prompt: |
+        Process this item · ${{ item }}
+
+  - id: survivors
+    depends_on: [process]
+    invoke:                         # the null-aware fan-in · order preserved
+      tool: "nika:jq"
+      args:
+        input: ${{ tasks.process.output }}
+        expression: "[ .[] | select(. != null) ]"
+
+
+  - id: merge
+    depends_on: [survivors]
+    infer:
+      prompt: |
+        # SLOT: the fan-in · the survivors array (failed items filtered)
+        Merge these results into one report · ${{ tasks.survivors.output }}
+
+outputs:
+  report: ${{ tasks.merge.output }}

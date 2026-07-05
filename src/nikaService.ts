@@ -27,6 +27,7 @@ import {
   type DagGraph,
   type GraphDoc,
 } from './core/cliContract';
+import { clientDagFor } from './core/clientDag';
 import { annotateDataFlow } from './core/dataflow';
 import { collectBodyFacts } from './core/bodyFacts';
 import { parseRegions } from './core/regions';
@@ -321,6 +322,7 @@ export class NikaService {
       return dag;
     }
 
+    return clientDagFor(text, doc.uri.toString(), path.basename(doc.uri.fsPath ?? 'workflow'));
     const wf = parseRichWorkflow(text);
     const base: DagGraph = {
       workflowName: wf.name ?? path.basename(doc.uri.fsPath ?? 'workflow'),

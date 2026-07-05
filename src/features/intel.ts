@@ -14,6 +14,8 @@ import { completionContextAt, refAt, scanRefs } from '../core/expr';
 import { findTaskRefs, isValidTaskId } from '../core/renameRefs';
 import { fieldInScope, type FieldDoc, type SchemaIntel } from '../core/schemaIntel';
 import { collectShapes, fieldsAt, renderShape, shapeAt } from '../core/schemaShape';
+import { formatUsd, humanizeDuration } from '../core/traceFold';
+import { traceStore } from '../core/traceStore';
 import { yamlContextAt } from '../core/yamlContext';
 import { parseRichWorkflow, taskAtLine, type RichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
@@ -177,6 +179,22 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
           }
         } else if (shape) {
           md.appendMarkdown(`  \n**output shape** \`${renderShape(shape)}\``);
+        }
+
+        // Last run — the traceStore fold for THIS document (live runner or
+        // trace overlay). No entry / never-moved task → the card is exactly
+        // what it always was.
+        const lastRun = traceStore.get(document.uri.fsPath)?.fold.tasks.get(task.id);
+        if (lastRun && lastRun.status !== 'pending') {
+          const runFacts = [`**${lastRun.status}**`];
+          if (lastRun.durationMs !== undefined) { runFacts.push(humanizeDuration(lastRun.durationMs)); }
+          if (lastRun.usd !== undefined) { runFacts.push(formatUsd(lastRun.usd)); }
+          md.appendMarkdown(`\n\n$(history) Last run · ${runFacts.join(' · ')}`);
+          if (lastRun.preview) {
+            // One settle-line of story (error detail on ✗ · verb·tool note
+            // otherwise) — backticks swapped so the code span can't break.
+            md.appendMarkdown(`  \n\`${lastRun.preview.replace(/`/g, '´')}\``);
+          }
         }
         return new vscode.Hover(md);
       }

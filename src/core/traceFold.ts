@@ -37,6 +37,12 @@ export interface FoldedTask {
   startMs?: number;
   endMs?: number;
   durationMs?: number;
+  /** Per-task spend — rides the terminal event on the v2 wire (`cost_usd`). */
+  usd?: number;
+  /** First line of the terminal event's `detail` (failure detail — the
+   *  NIKA-XXX story) or `note` (the verb·tool descriptor) — hover context.
+   *  Truncated to one badge-safe line at fold time. */
+  preview?: string;
   retries: number;
 }
 
@@ -69,6 +75,8 @@ interface NormalizedEvent {
   /** Authoritative clock-derived duration (runtime v2 terminal events). */
   durationMs?: number;
   tokens?: number;
+  /** `detail` (preferred — failure story) or `note` (verb·tool descriptor). */
+  note?: string;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -151,6 +159,9 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
   if (typeof rec.kind === 'string') {
     const fields = fieldsToMap(rec.fields);
     const taskId = (fields.get('task') ?? fields.get('task_id')) as string | undefined;
+    // `detail` outranks `note`: on task_failed the wire puts the whole
+    // NIKA-XXX story in detail while note stays the verb·tool descriptor.
+    const note = fields.get('detail') ?? fields.get('note');
     return {
       kind: snake(rec.kind),
       taskId: typeof taskId === 'string' ? taskId : undefined,
@@ -160,6 +171,7 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       usd: asNumber(fields.get('cost_usd') ?? fields.get('usd')),
       durationMs: asNumber(fields.get('duration_ms')),
       tokens: asNumber(fields.get('tokens')),
+      note: typeof note === 'string' ? note : undefined,
     };
   }
 
@@ -283,9 +295,16 @@ export function foldTrace(ndjson: string): RunModel {
       ) {
         task.durationMs = task.endMs - task.startMs;
       }
-      // Per-task spend rides terminal events on the v2 wire.
+      // Per-task spend rides terminal events on the v2 wire. The task
+      // settles exactly once (frozen above), so assign — never sum.
       if (ev.usd !== undefined) {
+        task.usd = ev.usd;
         model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
+      }
+      // The settle line's story, one hover-safe line of it.
+      if (ev.note !== undefined) {
+        const firstLine = ev.note.split('\n')[0].trim();
+        task.preview = firstLine.length > 160 ? `${firstLine.slice(0, 159)}…` : firstLine;
       }
       if (ev.tokens !== undefined) {
         model.totalTokens = (model.totalTokens ?? 0) + ev.tokens;
@@ -310,6 +329,47 @@ export function foldTrace(ndjson: string): RunModel {
   model.timeline.sort((a, b) => a.atMs - b.atMs);
 
   return model;
+}
+
+/** `999ms` · `1.2s` · `2m03` — badge-terse duration ladder. Minute spans
+ *  round via total seconds so 119 950ms reads `2m00`, never `1m60`. */
+export function humanizeDuration(ms: number): string {
+  if (ms < 1000) { return `${Math.round(ms)}ms`; }
+  if (ms < 60_000) { return `${(ms / 1000).toFixed(1)}s`; }
+  const totalS = Math.round(ms / 1000);
+  return `${Math.floor(totalS / 60)}m${String(totalS % 60).padStart(2, '0')}`;
+}
+
+/** `$0.003` — ≤4 decimals, trailing zeros trimmed (a badge, not an invoice). */
+export function formatUsd(usd: number): string {
+  const trimmed = usd.toFixed(4).replace(/\.?0+$/, '');
+  return `$${trimmed}`;
+}
+
+// Status → badge glyph. §3.1 vocabulary honored: cancelled is a decision
+// (◼ dim, never red) · retrying is the attempt failing, not the task.
+const BADGE_ICON: Partial<Record<FoldedStatus, string>> = {
+  success: '✓',
+  failed: '✗',
+  skipped: '⊘',
+  cancelled: '◼',
+  retrying: '↻',
+  running: '…',
+};
+
+/**
+ * End-of-line editor badge for one folded task: ` ✓ 1.2s · $0.003` —
+ * glyph, then only the PROVABLE facts (duration · spend). `pending` gets
+ * no badge (a task that never moved is noise, not signal). The leading
+ * space is part of the contract — it pads the badge off the line's text.
+ */
+export function formatRunBadge(task: FoldedTask): string | undefined {
+  const icon = BADGE_ICON[task.status];
+  if (!icon) { return undefined; }
+  const facts: string[] = [];
+  if (task.durationMs !== undefined) { facts.push(humanizeDuration(task.durationMs)); }
+  if (task.usd !== undefined) { facts.push(formatUsd(task.usd)); }
+  return facts.length > 0 ? ` ${icon} ${facts.join(' · ')}` : ` ${icon}`;
 }
 
 /** Human card line: `✓ 5 tasks · 2.3s · $0.04` (whatever is provable). */
