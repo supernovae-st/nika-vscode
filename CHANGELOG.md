@@ -5,6 +5,38 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The canvas design system — two registers, one grammar
+- **`docs/DESIGN.md`** is now the visual contract: one two-zone card
+  anatomy, two skins, a locked status grammar, one motion language —
+  studied against ElevenLabs Flows (floating chrome · canvas craft),
+  Well-class workflow boards (two-zone cards · dotted wires) and n8n
+  (icon-tile identity), with nika.sh contributing the ambiance.
+- **The two-zone card**: a verb TILE (tinted rounded square — identity
+  at every zoom) + task id + a STATUS DOT pinned right (resting gray ·
+  running verb-pulse · success green · failed red · cached hollow),
+  a full-bleed hairline, then the fact zone (mechanism line · preview ·
+  params). Settled tasks swap the mechanism for the run line —
+  `✓ 2.3s` green, `✗ 4.1s` red — after a run the fact IS the outcome.
+- **Pending is calm.** Cards at rest look normal; running lights a
+  verb-hued ring, failed screams, success is a quiet green fact — the
+  canvas is no longer a field of ghosts before the first run.
+- **Dependency wires are dotted bead chains** (round caps), data wires
+  stay solid with their alias label — order vs data readable at a
+  glance. Ports became resting endpoint dots that grow on approach.
+- **Chrome floats**: the toolbar dissolved into floating pills over an
+  edge-to-edge canvas (title pill · action groups · status pill);
+  fit-to-view clears both the top rail and the bottom dock.
+- **Wave captions speak the plan grammar** — `[ 01 ]  start ·
+  run together ×N · then` (always on; the W toggle now governs only
+  the band fills). Region fills died — territory reads at the border
+  + label, never as a colored floor.
+- **Light themes are first-class**: white cards, layered soft shadows,
+  raised-contrast hovers, amber critical path — the editor skin's
+  light mode finally matches its dark mode in craft. High-contrast
+  overrides retargeted to the new card surface.
+- Semantic-zoom thresholds recalibrated (the default fit always shows
+  full cards; far is a deliberate map read: big tile + id + dot).
+
 ## [0.94.0] · 2026-07-05
 
 ### The canvas becomes yours — drag & drop

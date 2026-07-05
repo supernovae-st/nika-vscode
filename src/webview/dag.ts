@@ -299,17 +299,23 @@ const vscode = acquireVsCodeApi();
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const NODE_WIDTH = 248;
-const NODE_HEIGHT = 56; // minimum — content grows the card (Flows anatomy)
-const NODE_RADIUS = 8;
+const NODE_HEIGHT = 72; // minimum — content grows the card (two-zone anatomy)
+const NODE_RADIUS = 10;
 const PADDING = 40;
+/** Floating top rail clearance — fit parks the graph below it. */
+const TOP_INSET = 54;
 
 // Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
-// padding 8+9 · head 17 · sub 13 · 3px flex gaps · body 15/line · params 21).
-const CARD_PAD_Y = 8.5;
-const HEAD_H = 17;
-const SUB_H = 16;
+// DESIGN.md §1 — pad 10 · head 22 · divider 12 · sub 15 · body 15/line
+// (+4 gap) · params 24 (+6 gap)).
+const CARD_PAD_Y = 10;
+const HEAD_H = 22;
+const DIVIDER_H = 12;
+const SUB_H = 15;
 const BODY_LINE_H = 15;
+const BODY_GAP = 4;
 const PARAMS_H = 24;
+const PARAMS_GAP = 6;
 
 /** Body preview text for a node (verb decides which fact leads). */
 function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
@@ -328,21 +334,21 @@ function hasParamsRow(node: DagNode): boolean {
 
 /** Card height from content — the layout must know the TRUE box. */
 function nodeHeightOf(node: DagNode): number {
-  let h = CARD_PAD_Y * 2 + HEAD_H + SUB_H;
+  let h = CARD_PAD_Y * 2 + HEAD_H + DIVIDER_H + SUB_H;
   const body = bodyTextOf(node);
   if (body) {
     const lines = body.kind === 'prompt'
       ? Math.min(body.text.split('\n').length, 3)
       : 1;
     // Prompt wraps: budget by character count too (≈31 chars/line at
-    // 10px Martian Mono in the 214px content column — the conservative
-    // figure; an optimistic 34 clipped the third line mid-glyph).
+    // 10px Martian Mono in the ~220px content column — conservative;
+    // an optimistic 34 clipped the third line mid-glyph).
     const wrapLines = body.kind === 'prompt'
       ? Math.max(lines, Math.min(3, Math.ceil(body.text.replace(/\n/g, ' ').length / 31)))
       : lines;
-    h += 3 + wrapLines * BODY_LINE_H;
+    h += BODY_GAP + wrapLines * BODY_LINE_H;
   }
-  if (hasParamsRow(node)) { h += 3 + PARAMS_H; }
+  if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
   return Math.max(h, NODE_HEIGHT);
 }
 
@@ -826,7 +832,7 @@ class DagRenderer {
    *  Reads the LIVE layout boxes so bands follow hand-dragged cards. */
   private renderWaveBands(waveCount: number): void {
     this.bandGroup.selectAll('*').remove();
-    if (!this.showWaves || waveCount < 2) { return; }
+    if (waveCount < 2) { return; }
 
     const byWave = new Map<number, { top: number; bottom: number }>();
     let maxX = 0;
@@ -843,20 +849,37 @@ class DagRenderer {
       maxX = Math.max(maxX, b.x + b.w);
     }
 
+    // Per-wave member counts — the caption speaks the site's grammar.
+    const countOf = new Map<number, number>();
+    for (const w of this.waveOf.values()) {
+      countOf.set(w, (countOf.get(w) ?? 0) + 1);
+    }
+
     for (const [wave, ext] of byWave) {
       const band = this.bandGroup.append('g').attr('class', 'wave-band-group');
-      band.append('rect')
+      // The caption is permanent plan grammar; the FILL is the W toggle.
+      if (this.showWaves) {
+        band.append('rect')
         .attr('class', `wave-band ${wave % 2 === 0 ? 'even' : 'odd'}`)
         .attr('x', -PADDING / 2)
         .attr('y', ext.top - 10)
         .attr('width', maxX + PADDING)
         .attr('height', ext.bottom - ext.top + 20)
         .attr('rx', 6);
-      band.append('text')
+      }
+      // The nika.sh dv-cap grammar: `[ 01 ]  start · run together ×N · then`.
+      const n = countOf.get(wave) ?? 0;
+      const caption = n > 1 ? `run together ×${n}` : wave === 0 ? 'start' : 'then';
+      const label = band.append('text')
         .attr('class', 'wave-label')
         .attr('x', -PADDING / 2 + 8)
-        .attr('y', ext.top + 4)
-        .text(`wave ${wave + 1}`);
+        .attr('y', ext.top - 7); // above the band — the site's dv-cap position
+      label.append('tspan')
+        .attr('class', 'wave-label-n')
+        .text(`[ ${String(wave + 1).padStart(2, '0')} ]`);
+      label.append('tspan')
+        .attr('dx', 7)
+        .text(caption);
     }
   }
 
@@ -1212,9 +1235,10 @@ class DagRenderer {
   private updateZoomChrome(): void {
     const pct = document.getElementById('zoom-pct');
     if (pct) { pct.textContent = `${Math.round(this.currentZoom * 100)}%`; }
-    // Thresholds sit BELOW the typical fit zoom (~0.5): the first paint
-    // reads mid (id + fact + body), far is a deliberate zoom-out to map.
-    const lod = this.currentZoom < 0.45 ? 'lod-far' : this.currentZoom < 0.7 ? 'lod-mid' : 'lod-near';
+    // Thresholds sit BELOW the typical fit zoom (~0.42): the first paint
+    // shows the FULL card (refs show content at overview zoom); far is a
+    // deliberate deep zoom-out to the map read.
+    const lod = this.currentZoom < 0.3 ? 'lod-far' : this.currentZoom < 0.42 ? 'lod-mid' : 'lod-near';
     if (!document.body.classList.contains(lod)) {
       document.body.classList.remove('lod-far', 'lod-mid', 'lod-near');
       document.body.classList.add(lod);
@@ -1270,6 +1294,8 @@ class DagRenderer {
       'nk-ink', 'nk-ink-dim', 'nk-mono', 'nk-st-running', 'nk-st-success',
       'nk-st-failed', 'nk-st-retrying', 'nk-st-muted', 'nk-critical',
       'nk-verb-infer', 'nk-verb-exec', 'nk-verb-invoke', 'nk-verb-agent',
+      'nk-card', 'nk-card-border', 'nk-card-shadow', 'nk-border-strong',
+      'nk-border-soft', 'nk-radius-card',
     ]
       .map((t) => ({ t, v: live.getPropertyValue(`--${t}`).trim() }))
       .filter(({ v }) => v.length > 0)
@@ -1435,7 +1461,9 @@ class DagRenderer {
       .attr('data-id', (d) => d.id)
       .attr('opacity', 0);
 
-    // Node background rect (variable height — the card grows with content)
+    // Node hit/status rect — geometry only: the .nc div paints the card
+    // (background · border · shadows); this rect keeps the hit area, the
+    // export frame and a mount for status rings (DESIGN.md §1).
     enter
       .append('rect')
       .attr('class', 'node-bg')
@@ -1444,36 +1472,28 @@ class DagRenderer {
       .attr('rx', NODE_RADIUS)
       .attr('ry', NODE_RADIUS);
 
-    // Status/verb LED spine (left edge)
-    enter
-      .append('rect')
-      .attr('class', 'node-status-bar')
-      .attr('width', 4)
-      .attr('height', (d) => nodeHeightOf(d) - 8)
-      .attr('x', 4)
-      .attr('y', 4)
-      .attr('rx', 2)
-      .attr('ry', 2);
-
-    // HTML card content
+    // HTML card content — the .nc div IS the card surface (background ·
+    // border · shadows · the verb LED as an inset). Full-bleed over the
+    // rect, which stays as the hit/status geometry (DESIGN.md §1).
     enter
       .append('foreignObject')
       .attr('class', 'node-fo')
-      .attr('x', 8)
+      .attr('x', 0)
       .attr('y', 0)
-      .attr('width', NODE_WIDTH - 14)
+      .attr('width', NODE_WIDTH)
       .attr('height', (d) => nodeHeightOf(d))
       .append('xhtml:div')
       .attr('class', 'nc')
       .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
-    // Running spinner (animated via CSS) — header-right corner.
+    // Running spinner — a thin ring orbiting the status DOT (the dot is
+    // flex-pinned to the head's right edge, so its center is fixed).
     enter
       .append('circle')
       .attr('class', 'node-spinner')
-      .attr('cx', NODE_WIDTH - 18)
-      .attr('cy', 19)
-      .attr('r', 6);
+      .attr('cx', NODE_WIDTH - 15.5)
+      .attr('cy', CARD_PAD_Y + HEAD_H / 2)
+      .attr('r', 7);
 
     // Ports — the visible connect affordance (drag out-port → card).
     enter
@@ -1481,13 +1501,13 @@ class DagRenderer {
       .attr('class', 'nc-port nc-port-in')
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', 0)
-      .attr('r', 5);
+      .attr('r', 3.5);
     enter
       .append('circle')
       .attr('class', 'nc-port nc-port-out')
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', (d) => nodeHeightOf(d))
-      .attr('r', 5)
+      .attr('r', 3.5)
       .on('mousedown', (event: MouseEvent, d: DagNode) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1583,9 +1603,12 @@ class DagRenderer {
 
     const header = document.createElement('div');
     header.className = 'nc-head';
+    // The verb TILE (n8n identity read · DESIGN.md §1): a tinted square
+    // carrying the verb glyph — THE mark that survives every zoom.
     const glyph = document.createElement('span');
-    glyph.className = 'nc-glyph';
+    glyph.className = 'nc-tile';
     glyph.textContent = verbIcon(node.verb);
+    glyph.title = node.verb;
     const id = document.createElement('span');
     id.className = 'nc-id';
     id.textContent = node.label;
@@ -1613,8 +1636,18 @@ class DagRenderer {
     const badge = document.createElement('span');
     badge.className = 'nc-badge';
     badge.textContent = this.badgeText(node);
-    header.append(glyph, id, auditChip, staleChip, badge);
+    // The status DOT (Well grammar · DESIGN.md §1) — resting gray ·
+    // running verb-pulse · success green · failed red. Class-driven by
+    // the group's status-* class; readable where text is not.
+    const dot = document.createElement('span');
+    dot.className = 'nc-dot';
+    header.append(glyph, id, auditChip, staleChip, badge, dot);
     host.appendChild(header);
+
+    // Full-bleed hairline between the identity zone and the fact zone.
+    const divider = document.createElement('div');
+    divider.className = 'nc-div';
+    host.appendChild(divider);
 
     const sub = document.createElement('div');
     sub.className = 'nc-sub';
@@ -2087,10 +2120,10 @@ class DagRenderer {
     const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
     if (svgW === 0 || svgH === 0) return;
 
-    // The bottom dock (omnibar · legend) floats OVER the canvas — the fit
-    // must park the graph in the visible pool above it, or the last wave
-    // hides under the run pill forever.
-    const usableH = Math.max(svgH - 92, 160);
+    // Chrome floats OVER the canvas (top rail · omnibar · legend) — the
+    // fit parks the graph in the visible pool between them, or cards hide
+    // under pills forever.
+    const usableH = Math.max(svgH - TOP_INSET - 96, 160);
 
     let graphW: number;
     let graphH: number;
@@ -2118,7 +2151,7 @@ class DagRenderer {
 
     const scale = Math.min(svgW / graphW, usableH / graphH, 1.5);
     const tx = (svgW - graphW * scale) / 2;
-    const ty = (usableH - graphH * scale) / 2;
+    const ty = TOP_INSET + (usableH - graphH * scale) / 2;
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     this.svg
@@ -2173,12 +2206,17 @@ class DagRenderer {
     // ADR-099 rehydration — no clock fact exists (nothing executed);
     // the ↻ + word pairing is unambiguous vs retrying (glyph-only).
     if (node.cached) return `${node.verb} · ↻ cached`;
+    // Terminal + clocked -> the run line REPLACES the static fact
+    // (DESIGN.md §1): after a run the dominant fact IS the outcome.
     if (node.durationMs != null) {
       const dur = node.durationMs >= 1000
         ? `${(node.durationMs / 1000).toFixed(1)}s`
         : `${node.durationMs}ms`;
+      if (node.status === 'success') { return `\u2713 ${dur}`; }
+      if (node.status === 'failed') { return `\u2717 ${dur}`; }
       return `${node.verb} \u00B7 ${dur}`;
     }
+    if (node.status === 'failed') { return '\u2717 failed'; }
     // Static facts ladder: tool (invoke) > provider > cost interval.
     if (node.tool) return `${node.verb} \u00B7 ${node.tool}`;
     if (node.provider) return `${node.verb} \u00B7 ${node.provider}`;
