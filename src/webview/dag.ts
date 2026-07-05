@@ -105,6 +105,8 @@ interface DagNode {
   argsPreview?: string;
   avgMs?: number;
   avgRuns?: number;
+  stale?: boolean;
+  staleUpstream?: boolean;
 }
 
 interface DagEdge {
@@ -134,7 +136,8 @@ type ExtToWebviewMessage =
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
-  | { kind: 'run:state'; running: boolean };
+  | { kind: 'run:state'; running: boolean }
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -214,6 +217,13 @@ const VERB_ICONS: Record<Verb, string> = {
   invoke: '\u25C6', // \u25C6 filled diamond
   agent: '\u2726',  // \u2726 four-point star
 };
+
+/** ONE class string for a node group — status, verb, staleness. */
+function nodeClassOf(node: DagNode): string {
+  return `dag-node status-${node.status} verb-${node.verb}`
+    + (node.stale ? ' is-stale' : '')
+    + (node.staleUpstream ? ' stale-up' : '');
+}
 
 function verbIcon(verb: string): string {
   return (VERB_ICONS as Record<string, string>)[verb] ?? '\u25CB'; // \u25CB unknown
@@ -798,6 +808,21 @@ class DagRenderer {
     vp.style.height = `${Math.max(h * s, 8)}px`;
   }
 
+  /** dag:stale — refresh badges in place; run statuses stay painted. */
+  applyStale(stale: string[], direct: string[]): void {
+    const staleSet = new Set(stale);
+    const directSet = new Set(direct);
+    for (const node of this.nodeMap.values()) {
+      node.stale = staleSet.has(node.id) ? true : undefined;
+      node.staleUpstream = node.stale && !directSet.has(node.id) ? true : undefined;
+    }
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .attr('class', (d) => nodeClassOf(this.nodeMap.get(d.id) ?? d));
+    // attr('class') wiped the overlay classes — restore dim/selection.
+    this.refreshDim();
+    this.saveState({ graph: this.currentGraph });
+  }
+
   /** Re-measure + redraw the minimap (panel resize re-scales the card). */
   refreshMinimap(): void {
     this.renderMinimap();
@@ -1020,7 +1045,7 @@ class DagRenderer {
     const enter = groups
       .enter()
       .append('g')
-      .attr('class', (d) => `dag-node status-${d.status} verb-${d.verb}`)
+      .attr('class', (d) => nodeClassOf(d))
       .attr('data-id', (d) => d.id)
       .attr('opacity', 0);
 
@@ -1144,7 +1169,7 @@ class DagRenderer {
       });
 
     // Update classes + dynamic card facts (status line · duration).
-    merged.attr('class', (d) => `dag-node status-${d.status} verb-${d.verb}`);
+    merged.attr('class', (d) => nodeClassOf(d));
     merged.select('.nc-sub').text((d) => this.getSubtitle(d));
   }
 
@@ -1161,10 +1186,16 @@ class DagRenderer {
     id.className = 'nc-id';
     id.textContent = node.label;
     id.title = node.label;
+    // Stale chip pre-rendered ALWAYS, shown by the group's is-stale
+    // class — dag:stale refreshes badges without rebuilding cards.
+    const staleChip = document.createElement('span');
+    staleChip.className = 'nc-stale';
+    staleChip.textContent = '△ stale';
+    staleChip.title = 'Edited since its last successful run (or downstream of such an edit) — a run will re-execute this.';
     const badge = document.createElement('span');
     badge.className = 'nc-badge';
     badge.textContent = this.badgeText(node);
-    header.append(glyph, id, badge);
+    header.append(glyph, id, staleChip, badge);
     host.appendChild(header);
 
     const sub = document.createElement('div');
@@ -1548,7 +1579,7 @@ class DagRenderer {
     if (durationMs != null) node.durationMs = durationMs;
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
-    el.attr('class', `dag-node status-${status} verb-${node.verb}`);
+    el.attr('class', nodeClassOf(node));
     el.select('.nc-sub').text(this.getSubtitle(node));
 
     // The minimap mirrors the run live (class-only touch, no re-render).
@@ -2019,6 +2050,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'run:state':
       setRunUiState(msg.running);
+      break;
+    case 'dag:stale':
+      renderer.applyStale(msg.stale, msg.direct);
       break;
   }
 });

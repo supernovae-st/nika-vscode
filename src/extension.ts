@@ -67,6 +67,8 @@ import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
 import { countReportFindings } from './core/cliContract';
+import { computeDirty } from './core/dirtyNodes';
+import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
 
@@ -445,6 +447,22 @@ export function activate(context: ExtensionContext): void {
     } catch {
       // Averages are garnish — the graph must never fail on them.
     }
+    try {
+      // Dirty-nodes: substance changed since the last SUCCESSFUL run
+      // (sidecar-recorded) — direct edits + their downstream cone.
+      if (doc.uri.scheme === 'file') {
+        const recorded = loadRecordedHashes(doc.uri.fsPath);
+        const dirty = computeDirty(doc.getText(), recorded);
+        for (const node of graph.nodes) {
+          if (dirty.stale.has(node.id)) {
+            node.stale = true;
+            node.staleUpstream = !dirty.direct.has(node.id);
+          }
+        }
+      }
+    } catch {
+      // Same law: staleness must never break a graph load.
+    }
     return graph;
   };
 
@@ -594,6 +612,18 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
+  // Post-run stale refresh: recompute against the just-updated sidecar
+  // and repaint BADGES only (the run's painted statuses must survive).
+  const refreshStaleBadges = (fsPath: string): void => {
+    try {
+      const text = fs.readFileSync(fsPath, 'utf-8');
+      const dirty = computeDirty(text, loadRecordedHashes(fsPath));
+      dagPanel.staleUpdate([...dirty.stale], [...dirty.direct]);
+    } catch {
+      // Garnish law.
+    }
+  };
+
   const dagPanel = new DagPanel(
     context.extensionUri,
     jumpToTask,
@@ -622,7 +652,10 @@ export function activate(context: ExtensionContext): void {
         dagWorkflowUri = doc.uri;
         const graph = await loadGraphFor(doc);
         dagPanel.show(graph);
-        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, { extraArgs: ['--model', 'mock/echo'] });
+        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, {
+          extraArgs: ['--model', 'mock/echo'],
+          onClose: () => refreshStaleBadges(doc.uri.fsPath),
+        });
       })();
     },
     () => cancelActiveRun(),
@@ -682,7 +715,9 @@ export function activate(context: ExtensionContext): void {
           dagWorkflowUri = doc.uri;
           const graph = await loadGraphFor(doc);
           dagPanel.show(graph);
-          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log);
+          runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, {
+            onClose: () => refreshStaleBadges(doc.uri.fsPath),
+          });
           return;
         }
         runNikaCommand(state.resolvedServerPath, 'run', doc.uri.fsPath);

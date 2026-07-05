@@ -15,7 +15,10 @@
 // state is exact regardless of chunk boundaries.
 
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { saveRunHashes } from '../core/canvasState';
+import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
@@ -44,7 +47,7 @@ export function runWorkflowLive(
   dagPanel: DagPanel,
   fsPath: string,
   log: (level: string, msg: string) => void,
-  opts?: { extraArgs?: string[] },
+  opts?: { extraArgs?: string[]; onClose?: () => void },
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
@@ -59,6 +62,15 @@ export function runWorkflowLive(
   const preview = opts?.extraArgs?.includes('mock/echo') === true;
   dagPanel.note('▶', `run started${preview ? ' · preview (mock/echo)' : ''} · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
   dagPanel.setRunState(true);
+
+  // Fingerprints of what actually RUNS, captured at spawn: an edit made
+  // mid-run must not be labeled "successfully ran" (dirty-nodes law).
+  let spawnFingerprints: Map<string, string> | undefined;
+  try {
+    spawnFingerprints = taskFingerprints(fs.readFileSync(fsPath, 'utf-8'));
+  } catch {
+    spawnFingerprints = undefined;
+  }
 
   const child = spawn(binary, ['run', fsPath, '--json', '--no-color', ...(opts?.extraArgs ?? [])], {
     env: { ...process.env, NO_COLOR: '1' },
@@ -115,6 +127,18 @@ export function runWorkflowLive(
       // a workflow_failed event) — say so rather than imply success.
       log('WARN', `nika run exited ${code} without a terminal workflow event`);
     }
+    // Record the spawn-time fingerprints of every task that SUCCEEDED —
+    // per-task, so a partially failing run still clears its clean part.
+    // Preview runs count: mock/echo executed the same substance.
+    if (spawnFingerprints) {
+      const succeeded = new Map<string, string>();
+      for (const t of model.tasks.values()) {
+        const hash = spawnFingerprints.get(t.id);
+        if (t.status === 'success' && hash !== undefined) { succeeded.set(t.id, hash); }
+      }
+      saveRunHashes(fsPath, succeeded);
+    }
+    opts?.onClose?.();
   });
 }
 

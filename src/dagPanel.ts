@@ -31,7 +31,9 @@ export type ExtToWebviewMessage =
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
   // Live-run lifecycle — the toolbar flips ▶/■ on this (replayed on
   // dag:ready so a reloaded panel keeps the truthful state).
-  | { kind: 'run:state'; running: boolean };
+  | { kind: 'run:state'; running: boolean }
+  // Dirty-nodes refresh (badges only — run statuses stay painted).
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -101,6 +103,19 @@ export class DagPanel implements vscode.Disposable {
   public setRunState(running: boolean): void {
     this.runState = running;
     this.postMessage({ kind: 'run:state', running });
+  }
+
+  /** Refresh stale badges in place (statuses stay painted post-run). */
+  public staleUpdate(stale: string[], direct: string[]): void {
+    if (this.currentGraph) {
+      const staleSet = new Set(stale);
+      const directSet = new Set(direct);
+      for (const node of this.currentGraph.nodes) {
+        node.stale = staleSet.has(node.id) ? true : undefined;
+        node.staleUpstream = node.stale && !directSet.has(node.id) ? true : undefined;
+      }
+    }
+    this.postMessage({ kind: 'dag:stale', stale, direct });
   }
 
   // ─── Public API ──────────────────────────────────────────────────────────

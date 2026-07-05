@@ -1927,3 +1927,34 @@ body.run-starting .dag-node.status-pending .node-bg {
 @media (max-width: 760px) {
   #run-controls .rc-mock { display: none; }
 }
+
+/* ─── Dirty-nodes · edited since the last successful run ────────────────── */
+
+.nc-stale {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 5px;
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.04em;
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.dag-node.is-stale .nc-stale {
+  display: inline-flex;
+}
+
+/* Inherited staleness whispers; the direct edit speaks. */
+.dag-node.stale-up .nc-stale {
+  opacity: 0.6;
+}
+
+/* LOD far: the chip yields with the rest of the header furniture. */
+body.lod-far .nc-stale {
+  display: none !important;
+}

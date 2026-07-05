@@ -81,6 +81,10 @@ export interface DagNode {
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */
   avgRuns?: number;
+  /** Edited since its last successful run (dirty cone included). */
+  stale?: boolean;
+  /** The stale flag is inherited from an edited upstream task. */
+  staleUpstream?: boolean;
 }
 
 export interface DagEdge {
