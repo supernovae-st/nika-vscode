@@ -5,6 +5,37 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.94.0] · 2026-07-05
+
+### The canvas becomes yours — drag & drop
+- **Drag any task card** — a 4px threshold keeps clicks as clicks; the
+  card lifts under the pointer and **every wire follows live** as a
+  direct curve (binding labels ride along). Positions **persist per
+  workflow** (presentation only — the YAML stays the single truth) and
+  survive panel reloads. `⌗` in the toolbar (or `A`) drops the pins and
+  returns to the auto-layout. The `?` explainer teaches both gestures.
+- Dragging a card never pans the canvas (the zoom gesture refuses card
+  mousedowns), tooltips hold their tongue mid-drag, and nothing on the
+  canvas is text-selectable during the move.
+
+### The visual refit the screenshots demanded
+- **Fixed: the entire card styling could vanish** — a stray brace in the
+  high-contrast CSS block swallowed every rule after it (cards rendered
+  as raw unstyled text spilling past their frames, hidden run bar).
+  Found by a headless-browser screenshot harness; a double render on
+  every graph load (two ELK layouts racing) died in the same pass.
+- **Fit-to-view respects the bottom dock** — the last wave no longer
+  hides under the run pill; fit reads the live card boxes, so dragged
+  layouts fit correctly too.
+- **Semantic zoom recalibrated** — the default fit shows full cards
+  (id · fact · body); far out reads like a map: id + glyph centered
+  large, never a big empty box with a whisper in a corner.
+- Quieter furniture: wave bands and regions at a whisper, slimmer
+  arrowheads, the progress bar hides until a run starts, and the dock
+  un-stacks into two floors on narrow panels — zero overlap down to
+  420px. Focus rings on every control; connect ports grew to a
+  comfortable hit size.
+
 ### ↻ Re-run what changed (engine `run --resume` · ADR-099)
 - **↻ changed** joins the run pill — visible when the resolved binary
   ships the 0.93 resume line. It re-runs only the dirty slice: the
