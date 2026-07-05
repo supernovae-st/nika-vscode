@@ -65,6 +65,8 @@ import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceO
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
+import { costDelta } from './core/costDelta';
+import { CostBaselineTracker } from './features/costBaseline';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
 import { registerLmTools } from './features/lmTools';
@@ -718,6 +720,7 @@ export function activate(context: ExtensionContext): void {
   // panel shows THIS workflow). onDidUpdateDocument fires for BOTH check
   // and graph completions — dedupe on the verdict so one edit narrates once.
   let lastCheckNote = '';
+  const costBaselines = new CostBaselineTracker(service);
   context.subscriptions.push(
     service.onDidUpdateDocument((uriString) => {
       if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
@@ -737,7 +740,25 @@ export function activate(context: ExtensionContext): void {
       );
       // Static cost forecast on the run pill (forecasting on the wire —
       // audited before a token is spent · honest about unbounded).
-      dagPanel.costUpdate(costForecast(report.cost) ?? null);
+      const forecast = costForecast(report.cost);
+      dagPanel.costUpdate(forecast ?? null);
+      // Enrichment pass (Infracost lesson): the CHANGE vs the last commit
+      // is the review signal. Async — the chip lands instantly above, the
+      // delta rides in when the git baseline resolves (cached per HEAD).
+      if (forecast && uriString.startsWith('file:')) {
+        void (async () => {
+          const fsPath = Uri.parse(uriString).fsPath;
+          const delta = costDelta(report.cost, await costBaselines.baselineFor(fsPath));
+          if (!delta) { return; }
+          // Re-check the guards — the panel may have switched files (or
+          // a newer check may have landed) while the baseline resolved.
+          if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
+          const nowShown = dagPanel.currentWorkflowUri();
+          if (nowShown !== undefined && nowShown !== uriString) { return; }
+          if (service.peekCheck(uriString)?.report !== report) { return; }
+          dagPanel.costUpdate({ ...forecast, delta });
+        })();
+      }
       const findings = countReportFindings(report);
       const verdict = `${uriString}#${findings}`;
       if (verdict === lastCheckNote) { return; }
@@ -785,6 +806,19 @@ export function activate(context: ExtensionContext): void {
     // Command: ↻ resume — the palette twin of the canvas button (ADR-099).
     commands.registerCommand('nika.resumeWorkflow', async (uri?: Uri) => {
       await resumeWorkflowFlow(uri);
+    }),
+    // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
+    // A human surface (the engine refuses it with --json), so it rides the
+    // terminal: audit → PLAN → mock → run → resume, the full ladder.
+    commands.registerCommand('nika.dryRunWorkflow', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (!service.caps.run) {
+        void window.showInformationMessage('Nika: this binary predates `run` — update it to preview the execution plan.');
+        return;
+      }
+      if (doc.isDirty) { await doc.save(); }
+      runNikaCommand(state.resolvedServerPath, 'run --dry-run', doc.uri.fsPath);
     }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);

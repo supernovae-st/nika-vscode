@@ -264,7 +264,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
-  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' };
 
@@ -2566,16 +2566,19 @@ function setRunUiState(running: boolean): void {
   stop?.toggleAttribute('hidden', !running);
 }
 
-function applyCostChip(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+function applyCostChip(forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null): void {
   const chip = document.getElementById('run-cost');
   if (!chip) { return; }
   if (!forecast) {
     chip.setAttribute('hidden', '');
     return;
   }
-  chip.textContent = forecast.label;
-  chip.title = forecast.tooltip;
+  // The delta (vs the last commit) is the review signal — it rides the
+  // chip as a suffix and tints it only when the ceiling went UP.
+  chip.textContent = forecast.delta ? `${forecast.label} · ${forecast.delta.label}` : forecast.label;
+  chip.title = forecast.delta ? `${forecast.tooltip}\n${forecast.delta.tooltip}` : forecast.tooltip;
   chip.classList.toggle('unbounded', forecast.unbounded);
+  chip.classList.toggle('cost-up', forecast.delta?.up === true);
   chip.removeAttribute('hidden');
 }
 

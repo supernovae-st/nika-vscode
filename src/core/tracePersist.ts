@@ -5,6 +5,17 @@
 // = ISO seconds with `:`/`.` dashed — stamps sort lexically, so "newest"
 // is a plain sort. The tail match is EXACT: workflow `a` must never pick
 // up — or, worse, PRUNE — sibling `a-b`'s traces (the prefix trap).
+//
+// Forward-compat (engine spec §3.3 · the 0.93 run journal): the engine
+// itself writes `.nika/traces/<ISO>Z-<4hex>.ndjson` (cwd-relative · NO
+// workflow slug — membership needs the runsView overlap gate, not a
+// name). Neither matcher here can touch those files, so the two writers
+// coexist safely. Resuming from an older extension trace stays CORRECT
+// either way: the engine recomputes def_hash/input_hash per task and
+// runs live on any mismatch — a stale trace only caches less, never lies.
+// When the 0.93 journal is the installed reality, the planned handoff is
+// to adopt the engine's file as the canonical substrate (and stop teeing
+// our own copy) — tracked in the workflow-intelligence master plan.
 
 import * as fs from 'fs';
 import * as path from 'path';

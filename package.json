@@ -163,6 +163,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "nika.dryRunWorkflow",
+        "title": "Nika: Dry-Run (show the plan · zero effects)",
+        "icon": "$(checklist)"
+      },
+      {
         "command": "nika.checkWorkflow",
         "title": "Nika: Validate Current Workflow",
         "icon": "$(check)"

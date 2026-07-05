@@ -48,7 +48,7 @@ export type ExtToWebviewMessage =
   // Per-card audit rollup from a completed check (⚠N badges).
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
   // Static cost forecast for the run pill (label · tooltip · unbounded).
-  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   // Time-travel: hand the whole timeline to the webview scrubber (it
   // computes DAG state at any instant locally — 60fps, zero round-trips).
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
@@ -145,8 +145,11 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'dag:replayEnd' });
   }
 
-  /** Push the static cost forecast for the run pill (null clears it). */
-  public costUpdate(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+  /** Push the static cost forecast for the run pill (null clears it).
+   *  `delta` (optional) rides the Infracost lesson: the CHANGE vs the
+   *  last commit is the review signal — pushed as a second enrichment
+   *  pass once the git baseline resolves. */
+  public costUpdate(forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null): void {
     this.postMessage({ kind: 'dag:cost', forecast });
   }
 

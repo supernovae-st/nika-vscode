@@ -31,6 +31,20 @@ announce line (forever-v0.x).
   twin (one shared flow · the same honest notices on an older binary or
   a first run).
 
+### Cost delta on the run pill (the Infracost lesson)
+- The cost chip now shows the **change vs the last commit** beside the
+  ceiling (`$0.07 · Δ +$0.02`, amber when it grew) — at review time the
+  delta is the signal, the total is trivia. Honest by construction: it
+  only speaks when both sides are bounded (a floor vs a ceiling is not a
+  delta), the file is tracked, and the movement clears rounding dust.
+  One baseline check per commit (cached per HEAD sha) — keystrokes never
+  re-price history.
+
+### Dry-run from the palette
+- **`Nika: Dry-Run (show the plan · zero effects)`** — the engine's
+  static plan (spec §10) in a terminal. The pre-flight ladder is now
+  complete in the editor: audit → **plan** → mock → run → resume.
+
 ### Explain Workflow (deterministic · offline)
 - **`Nika: Explain Workflow`** renders the workflow as a readable story —
   wave-by-wave narration (parallelism · when-gates · fan-outs), the cost
