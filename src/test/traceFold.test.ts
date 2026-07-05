@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { foldTrace, normalizeEventLine, summarizeRun } from '../core/traceFold';
+
+// Real nika 0.92.0 flight-recorder captures (signature-demo · 4 verbs ·
+// mock/echo offline) — the wire as the engine actually writes it.
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
+const fixtureFold = (name: string): ReturnType<typeof foldTrace> =>
+  foldTrace(fs.readFileSync(path.join(FIXTURES, name), 'utf-8'));
 
 function diamondLine(kind: string, opts: { task?: string; ts?: number; usd?: number } = {}): string {
   const fields: Array<{ key: string; value: unknown }> = [];
@@ -296,5 +305,34 @@ describe('streaming fold (the run --json live path)', () => {
     // The completing chunk arrives — the whole line now folds.
     const complete = foldTrace(full);
     expect(complete.tasks.get('a')?.durationMs).toBe(9);
+  });
+});
+
+// ─── Signature captures · the richest real wire (9 tasks · 4 verbs) ─────────
+
+describe('signature fixtures (real 0.92.0 · agent events on the wire)', () => {
+  it('tolerates agent_* observability kinds without polluting tasks', () => {
+    // agent_tools_selected / agent_budget_checkpoint CARRY a `task` field
+    // but are not status transitions — the fold must skip them as known-
+    // shape non-status lines: zero unknownLines, zero phantom tasks.
+    const model = fixtureFold('sig-run-a.ndjson');
+    expect(model.unknownLines).toBe(0);
+    expect(model.tasks.size).toBe(9);
+    expect(model.workflowStatus).toBe('completed');
+    for (const t of model.tasks.values()) { expect(t.status).toBe('success'); }
+  });
+
+  it('captures the settle-line preview: detail on ✗, note elsewhere', () => {
+    const model = fixtureFold('sig-run-failed.ndjson');
+    expect(model.workflowStatus).toBe('failed');
+    // failed publish — detail outranks note (the NIKA-XXX story wins).
+    expect(model.tasks.get('publish')?.status).toBe('failed');
+    expect(model.tasks.get('publish')?.preview).toMatch(/^NIKA-EXEC-001/);
+    // cancelled report — the wire says why: upstream failed.
+    expect(model.tasks.get('report')?.status).toBe('cancelled');
+    expect(model.tasks.get('report')?.preview).toBe('upstream failed');
+    // a green task keeps its verb·tool descriptor note.
+    const green = [...model.tasks.values()].find((t) => t.status === 'success');
+    expect(green?.preview).toMatch(/·/);
   });
 });

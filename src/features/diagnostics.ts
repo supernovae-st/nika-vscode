@@ -1,7 +1,11 @@
 // diagnostics.ts — `nika check --json` → editor diagnostics (client path).
 //
-// Active whenever the LSP is NOT running or unavailable from the selected
-// binary: the conformance oracle itself paints the squiggles.
+// Two ownership modes, ONE visible source either way:
+//   · no LSP — the conformance oracle itself paints the squiggles.
+//   · LSP running — the server paints check squiggles; the check STILL
+//     runs here (version-cached spawn, shared with the audit lens) but
+//     publishes NOTHING — it only feeds the findings store so quick fixes
+//     stay alive. Zero duplicate squiggles by construction.
 // Findings keep their machine-applicable `fix` — the code-action provider
 // reads them back from this controller. The local secrets lint rides the
 // same collection (its findings exist BEFORE a secret is ever declared).
@@ -108,7 +112,9 @@ export class DiagnosticsController implements vscode.Disposable {
   /** Fires around each lint pass — the language status busy indicator. */
   private readonly runStateEmitter = new vscode.EventEmitter<{ uri: string; running: boolean }>();
   readonly onDidRunState = this.runStateEmitter.event;
-  /** When true, the LSP owns check diagnostics — only the secrets lint runs. */
+  /** When true, the LSP owns VISIBLE check diagnostics — the client check
+   *  still runs to feed the quick-fix findings store, but publishes only
+   *  the local lints (secrets · redundant-dep · unused-schema). */
   lspOwnsDiagnostics = false;
 
   constructor(private readonly service: NikaService) {
@@ -277,11 +283,15 @@ export class DiagnosticsController implements vscode.Disposable {
       }
     }
 
-    // 2 · the conformance oracle (skipped when the LSP owns diagnostics)
+    // 2 · the conformance oracle. Runs in BOTH ownership modes — when the
+    // LSP owns the squiggles the outcome only feeds the findings store
+    // (quick fixes), and nothing below reaches the collection: the server
+    // stays the one visible source, zero duplicate squiggles.
+    const lspOwns = this.lspOwnsDiagnostics;
     const stored: StoredFinding[] = [];
-    if (!this.lspOwnsDiagnostics && this.service.caps.check) {
+    if (this.service.caps.check) {
       const outcome = await this.service.checkDocument(doc);
-      if (outcome && !outcome.report && outcome.exit !== 0) {
+      if (!lspOwns && outcome && !outcome.report && outcome.exit !== 0) {
         // Hard parse failures bypass the JSON report (`PARSE ✗ …` lines).
         // The WORST error class must not be the only one without a
         // squiggle — surface the raw first line at the document top.
@@ -300,6 +310,10 @@ export class DiagnosticsController implements vscode.Disposable {
         const taskLine = new Map(wf.tasks.map((t) => [t.id, t.line]));
         for (const f of collectFindings(outcome.report)) {
           const range = this.rangeFor(doc, text, f, taskLine);
+          // Stored regardless — quick fixes outlive a silenced squiggle
+          // AND survive server-owned mode (the whole point of the store).
+          stored.push({ finding: f, range });
+          if (lspOwns) { continue; } // the server paints these
           const d = new vscode.Diagnostic(range, f.message, severityOf(f));
           d.source = NIKA_DIAG_SOURCE;
           d.code = f.code.startsWith('NIKA-')
@@ -318,8 +332,6 @@ export class DiagnosticsController implements vscode.Disposable {
             }
           }
           if (applySeverityRemap(d)) { diagnostics.push(d); }
-          // Stored regardless — quick fixes outlive a silenced squiggle.
-          stored.push({ finding: f, range });
         }
       }
     }

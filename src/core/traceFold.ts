@@ -39,6 +39,10 @@ export interface FoldedTask {
   durationMs?: number;
   /** Per-task spend — rides the terminal event on the v2 wire (`cost_usd`). */
   usd?: number;
+  /** First line of the terminal event's `detail` (failure detail — the
+   *  NIKA-XXX story) or `note` (the verb·tool descriptor) — hover context.
+   *  Truncated to one badge-safe line at fold time. */
+  preview?: string;
   retries: number;
 }
 
@@ -71,6 +75,8 @@ interface NormalizedEvent {
   /** Authoritative clock-derived duration (runtime v2 terminal events). */
   durationMs?: number;
   tokens?: number;
+  /** `detail` (preferred — failure story) or `note` (verb·tool descriptor). */
+  note?: string;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -153,6 +159,9 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
   if (typeof rec.kind === 'string') {
     const fields = fieldsToMap(rec.fields);
     const taskId = (fields.get('task') ?? fields.get('task_id')) as string | undefined;
+    // `detail` outranks `note`: on task_failed the wire puts the whole
+    // NIKA-XXX story in detail while note stays the verb·tool descriptor.
+    const note = fields.get('detail') ?? fields.get('note');
     return {
       kind: snake(rec.kind),
       taskId: typeof taskId === 'string' ? taskId : undefined,
@@ -162,6 +171,7 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       usd: asNumber(fields.get('cost_usd') ?? fields.get('usd')),
       durationMs: asNumber(fields.get('duration_ms')),
       tokens: asNumber(fields.get('tokens')),
+      note: typeof note === 'string' ? note : undefined,
     };
   }
 
@@ -290,6 +300,11 @@ export function foldTrace(ndjson: string): RunModel {
       if (ev.usd !== undefined) {
         task.usd = ev.usd;
         model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
+      }
+      // The settle line's story, one hover-safe line of it.
+      if (ev.note !== undefined) {
+        const firstLine = ev.note.split('\n')[0].trim();
+        task.preview = firstLine.length > 160 ? `${firstLine.slice(0, 159)}…` : firstLine;
       }
       if (ev.tokens !== undefined) {
         model.totalTokens = (model.totalTokens ?? 0) + ev.tokens;
