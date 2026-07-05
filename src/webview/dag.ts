@@ -21,6 +21,7 @@ import 'd3-transition';
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
+import { nextFocus, type NavDir } from '../core/canvasNav';
 import { filterVerbs } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
@@ -1203,6 +1204,13 @@ class DagRenderer {
   /** Focus queued while ELK is still laying out (race: focus ≺ layout). */
   private pendingCenter: string | undefined;
 
+  /** Keyboard nav: move focus by direction over the DAG structure. */
+  navFocus(dir: NavDir): void {
+    if (!this.currentGraph) { return; }
+    const target = nextFocus(this.currentGraph.nodes, this.currentGraph.edges, this.focusedId ?? undefined, dir);
+    if (target) { this.focusAndCenter(target); }
+  }
+
   /** Editor-driven focus: light the lineage AND glide the node to center. */
   focusAndCenter(taskId: string): void {
     if (!this.nodeMap.has(taskId)) { return; }
@@ -2133,7 +2141,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['F', 'fit'], ['W', 'waves'], ['+/−', 'zoom'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['F', 'fit'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -2587,6 +2595,15 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     openSearch();
     return;
   }
+  // Keyboard-first canvas nav (a11y + power): Tab cycles the topological
+  // node order, ↑ walks to a dependency, ↓ to a dependent.
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    renderer.navFocus(e.shiftKey ? 'prev' : 'next');
+    return;
+  }
+  if (e.key === 'ArrowUp') { e.preventDefault(); renderer.navFocus('up'); return; }
+  if (e.key === 'ArrowDown') { e.preventDefault(); renderer.navFocus('down'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
     if (renderer.cancelConnect()) { return; }
