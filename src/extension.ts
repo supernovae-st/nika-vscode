@@ -69,6 +69,7 @@ import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
 import { collectFindings, countReportFindings } from './core/cliContract';
 import { auditByTask } from './core/auditByTask';
+import { costForecast } from './core/costForecast';
 import { computeDirty } from './core/dirtyNodes';
 import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
@@ -680,6 +681,9 @@ export function activate(context: ExtensionContext): void {
       dagPanel.auditUpdate(
         [...rollup].map(([taskId, a]) => ({ taskId, count: a.count, worst: a.worst })),
       );
+      // Static cost forecast on the run pill (forecasting on the wire —
+      // audited before a token is spent · honest about unbounded).
+      dagPanel.costUpdate(costForecast(report.cost) ?? null);
       const findings = countReportFindings(report);
       const verdict = `${uriString}#${findings}`;
       if (verdict === lastCheckNote) { return; }

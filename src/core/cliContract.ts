@@ -199,6 +199,8 @@ export interface CostCeiling {
   tasks: TaskCost[];
   bounded_total_usd?: number;
   min_path_total_usd?: number;
+  /** True when ≥1 priced task has no token limit — the total is a FLOOR. */
+  has_unbounded?: boolean;
   [key: string]: unknown;
 }
 

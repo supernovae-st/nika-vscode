@@ -37,6 +37,8 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   // Per-card audit rollup from a completed check (⚠N badges).
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  // Static cost forecast for the run pill (label · tooltip · unbounded).
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
   // Time-travel: hand the whole timeline to the webview scrubber (it
   // computes DAG state at any instant locally — 60fps, zero round-trips).
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
@@ -118,6 +120,11 @@ export class DagPanel implements vscode.Disposable {
   /** Load a recorded run into the webview scrubber (time-travel). */
   public loadReplay(timeline: TimelineEntry[], label: string, speed: number): void {
     this.postMessage({ kind: 'dag:replayLoad', timeline, label, speed });
+  }
+
+  /** Push the static cost forecast for the run pill (null clears it). */
+  public costUpdate(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+    this.postMessage({ kind: 'dag:cost', forecast });
   }
 
   /** Push per-card audit badges from a completed check (⚠N). */
@@ -583,6 +590,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
+      <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
       <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
       <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>

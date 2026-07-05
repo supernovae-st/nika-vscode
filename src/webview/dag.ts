@@ -253,6 +253,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean } | null }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' };
 
@@ -2413,6 +2414,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:audit':
       renderer.applyAudit(msg.audits);
       break;
+    case 'dag:cost':
+      applyCostChip(msg.forecast);
+      break;
     case 'dag:replayLoad':
       replayer.load(msg.timeline, msg.label, msg.speed);
       break;
@@ -2434,6 +2438,19 @@ function setRunUiState(running: boolean): void {
   if (run) { run.disabled = running; }
   if (mock) { mock.disabled = running; }
   stop?.toggleAttribute('hidden', !running);
+}
+
+function applyCostChip(forecast: { label: string; tooltip: string; unbounded: boolean } | null): void {
+  const chip = document.getElementById('run-cost');
+  if (!chip) { return; }
+  if (!forecast) {
+    chip.setAttribute('hidden', '');
+    return;
+  }
+  chip.textContent = forecast.label;
+  chip.title = forecast.tooltip;
+  chip.classList.toggle('unbounded', forecast.unbounded);
+  chip.removeAttribute('hidden');
 }
 
 function refreshStaleChip(): void {
