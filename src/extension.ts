@@ -82,6 +82,24 @@ import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
+/** The ONLY commands the welcome surface may execute (webview input —
+ *  a compromised webview must not become an executeCommand oracle). */
+const WELCOME_COMMANDS = new Set([
+  'nika.newWorkflow', 'nika.browseExamples', 'nika.replayTrace',
+  'nika.showMenu', 'nika.checkWorkflow', 'nika.showReport',
+  'nika.inspectWorkflow', 'nika.inferPermits', 'nika.explainWorkflow',
+  'nika.openSpec', 'nika.copyAiPrompt', 'nika.setupMcp',
+]);
+
+/** Coarse relative-time label for the welcome's recent list. */
+function relTime(mtime: number): string {
+  const s = Math.max(1, Math.round((Date.now() - mtime) / 1000));
+  if (s < 3600) { return `${Math.max(1, Math.round(s / 60))}m ago`; }
+  if (s < 86400) { return `${Math.round(s / 3600)}h ago`; }
+  if (s < 86400 * 30) { return `${Math.round(s / 86400)}d ago`; }
+  return `${Math.round(s / (86400 * 30))}mo ago`;
+}
+
 // ─── Shared mutable state ──────────────────────────────────────────────────
 // Owned here, passed by reference to module functions via ClientState.
 const state: ClientState = {
@@ -692,8 +710,56 @@ export function activate(context: ExtensionContext): void {
         taskId,
       );
     },
+    // The welcome surface (empty canvas) — open recent · WHITELISTED
+    // command · describe → the oracle-checked generate flow.
+    (msg) => {
+      void (async () => {
+        if (msg.kind === 'welcome:open') {
+          const doc = await workspace.openTextDocument(Uri.parse(msg.uri));
+          await window.showTextDocument(doc, { preview: false });
+          await commands.executeCommand('nika.showDag');
+          return;
+        }
+        if (msg.kind === 'welcome:describe') {
+          await commands.executeCommand('nika.generateWorkflow', msg.text);
+          return;
+        }
+        if (WELCOME_COMMANDS.has(msg.command)) {
+          await commands.executeCommand(msg.command);
+        }
+      })();
+    },
+    // Empty canvas shown → push the recent list (async, degrades silent).
+    () => { void state.pushWelcomeData?.(); },
   );
   state.activeDagPanel = dagPanel;
+
+  // Recent workflows for the welcome (mtime-sorted · top 6 · rel labels).
+  state.pushWelcomeData = async (): Promise<void> => {
+    try {
+      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 30);
+      const stats = await Promise.all(files.map(async (f) => {
+        try {
+          const st = await workspace.fs.stat(f);
+          return { uri: f, mtime: st.mtime };
+        } catch {
+          return undefined;
+        }
+      }));
+      const recent = stats
+        .filter((v): v is { uri: Uri; mtime: number } => v !== undefined)
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 6)
+        .map((v) => ({
+          name: v.uri.path.split('/').pop() ?? v.uri.path,
+          uri: v.uri.toString(),
+          rel: relTime(v.mtime),
+        }));
+      dagPanel.welcomeData(recent);
+    } catch {
+      // The welcome degrades to actions-only — never an error surface.
+    }
+  };
 
   // ↻ re-run what changed — `run --resume <newest trace>` (ADR-099). The
   // ENGINE decides the dirty slice by def_hash/input_hash; unchanged

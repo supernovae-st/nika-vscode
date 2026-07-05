@@ -58,7 +58,9 @@ export type ExtToWebviewMessage =
   // computes DAG state at any instant locally — 60fps, zero round-trips).
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
-  | { kind: 'dag:replayEnd' };
+  | { kind: 'dag:replayEnd' }
+  // The welcome (empty canvas): recent workflows for the resume list.
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }> };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -91,7 +93,12 @@ export type WebviewToExtMessage =
   | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
-  | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
+  | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string }
+  // The welcome surface — open a recent file · run a WHITELISTED nika
+  // command · describe → the oracle-checked generate flow.
+  | { kind: 'welcome:open'; uri: string }
+  | { kind: 'welcome:cmd'; command: string }
+  | { kind: 'welcome:describe'; text: string };
 
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
@@ -131,6 +138,11 @@ export class DagPanel implements vscode.Disposable {
     private readonly onCancelRun?: () => void,
     /** Hover-card ▶ — run ONE task + its upstream cone (`run --task`). */
     private readonly onRunTask?: (taskId: string, workflowUri?: string) => void,
+    /** Welcome surface — open recent · whitelisted command · describe. */
+    private readonly onWelcome?: (msg: Extract<WebviewToExtMessage,
+      { kind: 'welcome:open' | 'welcome:cmd' | 'welcome:describe' }>) => void,
+    /** Empty canvas became visible — refresh the welcome's recent list. */
+    private readonly onWelcomeReady?: () => void,
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -438,6 +450,11 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'transport:clear' });
   }
 
+  /** Recent workflows for the welcome (empty canvas resume list). */
+  public welcomeData(recent: Array<{ name: string; uri: string; rel: string }>): void {
+    this.postMessage({ kind: 'welcome:data', recent });
+  }
+
   /** Fit the view to show all nodes */
   public fitToView(): void {
     this.postMessage({ kind: 'dag:fitToView' });
@@ -489,6 +506,9 @@ export class DagPanel implements vscode.Disposable {
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
           this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
+        } else {
+          // Empty canvas → the welcome wants its resume list.
+          this.onWelcomeReady?.();
         }
         if (this.pendingFocus) {
           this.postMessage({ kind: 'dag:focus', taskId: this.pendingFocus });
@@ -561,6 +581,12 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:runTask':
         this.onRunTask?.(msg.taskId, msg.workflowUri);
+        break;
+
+      case 'welcome:open':
+      case 'welcome:cmd':
+      case 'welcome:describe':
+        this.onWelcome?.(msg);
         break;
 
       case 'dag:cancelRun':
@@ -703,18 +729,38 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="empty-state" hidden>
     <div class="es-card">
-      <img class="es-mark logo-dark" src="${logoDark}" alt="Nika" width="34" height="34">
-      <img class="es-mark logo-light" src="${logoLight}" alt="Nika" width="34" height="34">
-      <div class="es-title">The workflow canvas</div>
-      <div class="es-sub">Open a <code>.nika.yaml</code> to see it audited, run and replayed here.</div>
-      <div class="es-actions">
-        <button id="es-open" class="es-button">Show the active file</button>
-        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
+      <div class="es-hero">
+        <img class="es-mark logo-dark" src="${logoDark}" alt="" width="44" height="44">
+        <img class="es-mark logo-light" src="${logoLight}" alt="" width="44" height="44">
+        <div class="es-word">Nika</div>
+        <div class="es-tag">The workflow canvas — audited before a token is spent.</div>
       </div>
-      <div class="es-gestures">
-        <div class="es-gesture"><span class="es-g-key">▶</span> run live or preview with <code>mock/echo</code> — zero keys</div>
-        <div class="es-gesture"><span class="es-g-key">⤓</span> drag a port → a new pre-wired task · edits land in the YAML</div>
-        <div class="es-gesture"><span class="es-g-key">↻</span> scrub any recorded run · <kbd>Tab</kbd> walks the graph</div>
+      <form id="es-describe" autocomplete="off">
+        <input id="es-describe-input" type="text"
+               placeholder="Describe your workflow — “fetch HN, rank, post the brief to Slack”…"
+               aria-label="Describe the workflow to generate">
+        <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">✨</button>
+      </form>
+      <div class="es-actions" role="toolbar" aria-label="Start">
+        <button id="es-new" class="es-button">＋ New workflow</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">▤ Examples</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">↻ Replay a trace</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
+      </div>
+      <div id="es-recent" hidden>
+        <div class="es-sec">Recent in this workspace</div>
+        <div id="es-recent-list"></div>
+      </div>
+      <div class="es-sec">What Nika does here</div>
+      <div class="es-caps">
+        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check — static pre-flight</button>
+        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>≣</span>Pre-flight report</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>
+        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span>¶</span>Explain the workflow</button>
+        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span>§</span>Embedded spec</button>
+        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⧉</span>Copy AI authoring prompt</button>
+        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>◇</span>Setup MCP + agent rules</button>
       </div>
       <button id="es-walkthrough" class="es-link">Get started with Nika →</button>
     </div>

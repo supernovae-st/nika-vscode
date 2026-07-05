@@ -5,6 +5,27 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The welcome home — onboarding from the first pixel
+
+- **The empty canvas is the front door, not a void.** First open with no
+  workflow shows the welcome home: the Nika mark + wordmark + tagline, a
+  **describe → generate** bar (type a sentence, ✨ feeds
+  `nika.generateWorkflow`), the start actions (＋ New · ▤ Examples ·
+  ↻ Replay a trace · ⌘ All commands), **recent `*.nika.yaml`** from the
+  workspace (mtime-sorted, click opens file + canvas), and the capability
+  map — eight one-line commands (check · report · inspect · permits ·
+  explain · spec · AI prompt · MCP setup) each wired to its real command.
+- **Chrome retracts in welcome mode** — toolbar, omnibar, minimap, legend
+  and activity feed hide while no graph is loaded (no dead controls over
+  the door); the grid and aurora stay. Everything returns on load.
+- **The sidebar tree greets too** — a native `viewsWelcome` teaches the
+  same three verbs (new · describe → generate · examples) + the palette
+  hint when the workflows view is empty, so first contact lands in either
+  surface.
+- Webview → extension commands are gated by an explicit whitelist
+  (`WELCOME_COMMANDS`); recent files are pushed by the extension
+  (`welcome:data`), the webview never touches the filesystem.
+
 ### The canvas design system — two registers, one grammar
 - **`docs/DESIGN.md`** is now the visual contract: one two-zone card
   anatomy, two skins, a locked status grammar, one motion language —

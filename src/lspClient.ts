@@ -52,6 +52,8 @@ export interface ClientState {
   statusBarItem: import('vscode').StatusBarItem | undefined;
   statusPollInterval: ReturnType<typeof setInterval> | undefined;
   activeDagPanel: DagPanel | undefined;
+  /** Welcome refresh (recent workflows) — wired by extension.ts. */
+  pushWelcomeData?: () => Promise<void>;
   resolvedServerPath: string | undefined;
   /** Lifecycle sink for the status bar (extension.ts wires it). */
   statusSink?: (state: 'starting' | 'running' | 'failed') => void;

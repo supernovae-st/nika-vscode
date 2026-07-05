@@ -3090,17 +3090,214 @@ body.lod-far .nc-audit { display: none !important; }
   display: none;
 }
 
-/* ─── Empty-state · the first pixel (enriched onboarding) ────────────────── */
+/* ─── The welcome · the canvas home (DESIGN.md §3b) ─────────────────────── */
 
 .es-card {
-  max-width: 420px;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  text-align: center;
+}
+
+.es-card::-webkit-scrollbar { display: none; }
+
+.es-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.es-word {
+  font-family: var(--nk-mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--nk-ink);
+}
+
+.es-tag {
+  font-size: 11.5px;
+  color: var(--nk-ink-dim);
+}
+
+/* Describe → generate: the ONE input, center stage (the panel read). */
+#es-describe {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 5px 6px;
+  background: color-mix(in srgb, var(--nk-page) 60%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 10px;
+  transition: border-color var(--nk-dur) var(--nk-ease), box-shadow var(--nk-dur) var(--nk-ease);
+}
+
+#es-describe:focus-within {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nk-accent) 12%, transparent);
+}
+
+#es-describe-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+#es-describe-input::placeholder {
+  color: var(--nk-ink-dim);
+  opacity: 0.7;
+}
+
+#es-describe-go {
+  flex: none;
+  width: 32px;
+  border: 1px solid color-mix(in srgb, var(--nk-cta) 40%, var(--nk-border));
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 48%),
+    var(--nk-cta);
+  color: var(--nk-cta-ink);
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
+  transition: transform 90ms var(--nk-ease), box-shadow 90ms var(--nk-ease);
+}
+
+#es-describe-go:active {
+  transform: translateY(1.5px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0.5px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
 }
 
 .es-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: center;
-  margin-top: 14px;
+  margin-top: 2px;
+}
+
+/* Section labels + the resume list (the sidebar-sessions read). */
+.es-sec {
+  margin: 16px 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nk-ink-dim);
+  text-align: left;
+}
+
+#es-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.es-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  font-family: var(--nk-mono);
+  font-size: 11.5px;
+  color: var(--nk-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+}
+
+.es-row:hover {
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border-color: var(--nk-border);
+}
+
+.es-row:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 1px;
+}
+
+.es-row-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-row-rel {
+  flex: none;
+  font-size: 10px;
+  color: var(--nk-ink-dim);
+}
+
+/* The capability grid — what Nika DOES, each row executable. */
+.es-caps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+}
+
+.es-cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  font-size: 11px;
+  font-family: var(--nk-ui-font);
+  color: var(--nk-ink-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--nk-dur) var(--nk-ease), background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+}
+
+.es-cap span {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-family: var(--nk-mono);
+  color: var(--nk-accent);
+}
+
+.es-cap:hover {
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border-color: var(--nk-border);
+}
+
+.es-cap:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 460px) {
+  .es-caps { grid-template-columns: 1fr; }
+  .es-actions .es-button-ghost { padding: 5px 10px; }
+}
+
+/* Welcome mode: the canvas chrome retracts — no graph, no dead controls.
+   The grid backdrop and aurora stay (the room is lit, the desk is clear). */
+body.welcome #dag-toolbar,
+body.welcome #omnibar,
+body.welcome #minimap,
+body.welcome #dag-legend,
+body.welcome #activity,
+body.welcome #dag-status {
+  display: none;
 }
 
 .es-button-ghost {

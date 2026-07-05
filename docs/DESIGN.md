@@ -86,6 +86,27 @@ optional chip yields, F still fits); ≤460px height gives the floor
 back to the canvas (minimap/legend/hint yield). The status pill
 ellipsizes — chrome never clips.
 
+## 3b · The welcome home (first open · no workflow)
+
+The empty canvas is not an error — it's the front door. One card on
+the grid answers the three first-minute questions in order: *where am
+I* (hero: the mark, the wordmark, one honest tagline), *how do I
+start* (a describe→generate bar — type a sentence, ✨ hands it to
+`nika.generateWorkflow` — then New / Examples / Replay / All
+commands), *what can this do* (recent `*.nika.yaml` from the
+workspace by mtime, then the capability map: eight one-line commands
+— check · report · inspect · permits · explain · spec · AI prompt ·
+MCP setup — every button a real `nika.*` command).
+
+Rules: the canvas chrome RETRACTS (`body.welcome` hides toolbar,
+omnibar, minimap, legend, activity — no dead controls over the door;
+grid + aurora stay). The webview never names a command the extension
+didn't whitelist (`WELCOME_COMMANDS`). Recent rows come from the
+extension (`welcome:data`), never from webview fs access. Both skins,
+scrollable card, single-column ≤460px. The sidebar tree mirrors the
+same door natively via `viewsWelcome` — logo-less, three verbs and
+the palette hint — so the first click can happen in either surface.
+
 ## 4 · The two registers
 
 ### `nika` (default · the brand ambiance · always dark)

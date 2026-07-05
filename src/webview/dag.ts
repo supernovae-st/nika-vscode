@@ -269,7 +269,8 @@ type ExtToWebviewMessage =
   | { kind: 'run:progress'; done: number; total: number }
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
-  | { kind: 'dag:replayEnd' };
+  | { kind: 'dag:replayEnd' }
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }> };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -778,8 +779,9 @@ class DagRenderer {
     const titleEl = document.getElementById('dag-title');
     if (titleEl) titleEl.textContent = graph.workflowName;
 
-    // Loaded → the empty state yields to the canvas.
+    // Loaded → the empty state yields to the canvas, chrome comes back.
     document.getElementById('empty-state')?.setAttribute('hidden', '');
+    document.body.classList.remove('welcome');
 
     // Remember laid-out boxes for editor-driven centerOn.
     this.layoutBox.clear();
@@ -2670,6 +2672,7 @@ class DagRenderer {
     document.getElementById('plan-rail')?.setAttribute('hidden', '');
     document.body.classList.remove('has-rail');
     document.getElementById('empty-state')?.removeAttribute('hidden');
+    document.body.classList.add('welcome');
 
     const titleEl = document.getElementById('dag-title');
     if (titleEl) titleEl.textContent = '';
@@ -3190,6 +3193,7 @@ if (savedState?.graph) {
   refreshStaleChip();
 } else {
   document.getElementById('empty-state')?.removeAttribute('hidden');
+  document.body.classList.add('welcome');
 }
 
 // ─── Message Handler ────────────────────────────────────────────────────────
@@ -3294,6 +3298,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'diff:clear':
       clearDiff();
+      break;
+    case 'welcome:data':
+      renderWelcomeRecent(msg.recent);
       break;
   }
 });
@@ -3691,15 +3698,59 @@ window.addEventListener('mousemove', (e: MouseEvent) => {
 });
 window.addEventListener('mouseup', () => { minimapDragging = false; });
 
-document.getElementById('es-open')?.addEventListener('click', () => {
-  vscode.postMessage({ kind: 'dag:showActive' });
-});
 document.getElementById('es-new')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:newWorkflow' });
 });
 document.getElementById('es-walkthrough')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:openWalkthrough' });
 });
+
+// ─── The welcome · describe → generate · actions → whitelisted commands ─────
+
+document.getElementById('es-describe')?.addEventListener('submit', (e: Event) => {
+  e.preventDefault();
+  const input = document.getElementById('es-describe-input') as HTMLInputElement | null;
+  const text = input?.value.trim();
+  if (!text) { input?.focus(); return; }
+  vscode.postMessage({ kind: 'welcome:describe', text });
+  if (input) { input.value = ''; }
+});
+
+for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.es-cmd'))) {
+  btn.addEventListener('click', () => {
+    const command = btn.dataset.cmd;
+    if (command) { vscode.postMessage({ kind: 'welcome:cmd', command }); }
+  });
+}
+
+/** The resume list — recent workflows, the sidebar-sessions read. */
+function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: string }>): void {
+  const host = document.getElementById('es-recent-list');
+  const section = document.getElementById('es-recent');
+  if (!host || !section) { return; }
+  host.replaceChildren();
+  if (recent.length === 0) {
+    section.setAttribute('hidden', '');
+    return;
+  }
+  for (const r of recent) {
+    const row = document.createElement('button');
+    row.className = 'es-row';
+    const name = document.createElement('span');
+    name.className = 'es-row-name';
+    name.textContent = r.name;
+    name.title = r.name;
+    const rel = document.createElement('span');
+    rel.className = 'es-row-rel';
+    rel.textContent = r.rel;
+    row.append(name, rel);
+    row.addEventListener('click', () => {
+      vscode.postMessage({ kind: 'welcome:open', uri: r.uri });
+    });
+    host.appendChild(row);
+  }
+  section.removeAttribute('hidden');
+}
 
 // Cursor spotlight (nika skin) — two custom props written at most once
 // per frame; the CSS overlay does the painting. Pointer-leave fades out.

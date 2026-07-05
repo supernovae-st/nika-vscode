@@ -713,6 +713,12 @@
           }
         ]
       }
+    ],
+    "viewsWelcome": [
+      {
+        "view": "nikaWorkflows",
+        "contents": "No workflows in this folder yet.\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+      }
     ]
   },
   "scripts": {
