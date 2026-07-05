@@ -55,6 +55,7 @@ import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
+import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
@@ -510,6 +511,7 @@ export function activate(context: ExtensionContext): void {
     }),
   );
   context.subscriptions.push(dagPanel);
+  context.subscriptions.push(new LiveDag(service, dagPanel));
   // A live run must never paint a disposed panel (or outlive the session).
   context.subscriptions.push({ dispose: () => cancelActiveRun() });
   context.subscriptions.push(

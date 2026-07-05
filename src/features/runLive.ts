@@ -28,6 +28,11 @@ const STORE_THROTTLE_MS = 500;
 /** A live run handle — cancellable, one at a time per panel. */
 let activeRun: { kill: () => void } | undefined;
 
+/** True while a spawned `nika run` drives the DAG (liveDag suspends). */
+export function isRunActive(): boolean {
+  return activeRun !== undefined;
+}
+
 /** Stop any live run in flight (a new run, or panel dispose). */
 export function cancelActiveRun(): void {
   activeRun?.kill();

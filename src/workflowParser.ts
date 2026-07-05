@@ -249,3 +249,17 @@ export function parseRichWorkflow(content: string): RichWorkflow {
 export function taskAtLine(wf: RichWorkflow, line: number): RichTask | undefined {
   return wf.tasks.find((t) => line >= t.line && line <= t.endLine);
 }
+
+/**
+ * Stable topology fingerprint of a workflow — the anti-flicker gate for
+ * the keystroke DAG (liveDag). Two texts with the same key have the same
+ * GRAPH (ids, verbs, tools, dependency edges, in document order); typing
+ * inside a prompt, a `with:` block or a comment must not move it.
+ * Deliberately EXCLUDES models/params: those change card cosmetics, not
+ * topology, and a keystroke reload for them would fight the editor.
+ */
+export function topoKey(wf: RichWorkflow): string {
+  return wf.tasks
+    .map((t) => `${t.id}${t.verb}${t.tool ?? ''}${t.dependsOn.join(',')}`)
+    .join('');
+}

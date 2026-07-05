@@ -27,9 +27,9 @@ import {
   type DagGraph,
   type GraphDoc,
 } from './core/cliContract';
+import { clientDagFor } from './core/clientDag';
 import { annotateDataFlow } from './core/dataflow';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
-import { parseRichWorkflow } from './workflowParser';
 
 export interface CliResult {
   code: number;
@@ -297,32 +297,7 @@ export class NikaService {
       return dag;
     }
 
-    const wf = parseRichWorkflow(text);
-    const base: DagGraph = {
-      workflowName: wf.name ?? path.basename(doc.uri.fsPath ?? 'workflow'),
-      workflowUri: doc.uri.toString(),
-      nodes: wf.tasks.map((t) => ({
-        id: t.id,
-        label: t.id,
-        verb: t.verb,
-        status: 'pending' as const,
-        model: t.model ?? wf.defaultModel,
-        tool: t.tool,
-        dependsOn: t.dependsOn,
-      })),
-      edges: wf.tasks.flatMap((t) =>
-        t.dependsOn.map((dep) => ({
-          id: `${dep}->${t.id}`,
-          source: dep,
-          target: t.id,
-          isDataEdge: false,
-        })),
-      ),
-    };
-    const flow = annotateDataFlow(text, base.nodes, base.edges);
-    base.nodes = flow.nodes;
-    base.edges = [...flow.edges, ...flow.ghosts];
-    return base;
+    return clientDagFor(text, doc.uri.toString(), path.basename(doc.uri.fsPath ?? 'workflow'));
   }
 
   async graphFormat(doc: TextDocument, format: 'mermaid' | 'dot'): Promise<string | undefined> {
