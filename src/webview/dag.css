@@ -397,6 +397,16 @@ body.running .dag-edge.edge-dep {
   stroke: none;
 }
 
+/* Fan-out deck — the ghost sheets behind a map ×N card. */
+.dag-node .node-stack {
+  fill: var(--nk-card);
+  stroke: var(--nk-card-border);
+  stroke-width: 1;
+}
+
+.dag-node .node-stack-5 { opacity: 0.5; }
+.dag-node .node-stack-10 { opacity: 0.24; }
+
 /* Spinner — a thin ring orbiting the status dot, running only. */
 .dag-node .node-spinner {
   fill: transparent;
@@ -1268,6 +1278,23 @@ body.vscode-light .logo-dark { display: none; }
   height: 3px;
 }
 .ex-glyph-add { border: 1.5px dashed var(--nk-ink-dim); background: transparent; }
+.ex-glyph-stack {
+  background:
+    linear-gradient(var(--nk-ink-dim), var(--nk-ink-dim)) 4px 4px / 14px 6px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--nk-ink-dim) 50%, transparent), color-mix(in srgb, var(--nk-ink-dim) 50%, transparent)) 7px 1px / 14px 6px no-repeat;
+  border: none;
+}
+.ex-glyph-gate {
+  border: 1.5px dashed var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 10%, transparent);
+}
+.ex-glyph-rail {
+  background:
+    linear-gradient(var(--nk-accent), var(--nk-accent)) 0 1px / 4px 8px no-repeat,
+    linear-gradient(var(--nk-ink-dim), var(--nk-ink-dim)) 7px 2px / 12px 2px no-repeat,
+    linear-gradient(var(--nk-ink-dim), var(--nk-ink-dim)) 7px 7px / 12px 2px no-repeat;
+  border: none;
+}
 .ex-glyph-drag {
   border: 1.5px solid var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 8%, transparent);
@@ -2171,6 +2198,13 @@ body.running .dag-node.status-success .nc::after {
   display: block;
 }
 
+/* The recorded output ON the card (success + preview) — the data the
+ * task produced, where its prompt was; rises in like the verdict. */
+.nc-body.nc-body-live {
+  color: color-mix(in srgb, var(--nk-st-success) 60%, var(--nk-ink));
+  animation: nc-pop 0.24s var(--nk-ease);
+}
+
 .nc-params {
   display: flex;
   align-items: center;
@@ -2212,6 +2246,23 @@ body.running .dag-node.status-success .nc::after {
   color: var(--nk-ink-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* The when: GATE — conditional execution wears a dashed amber chip
+ * (dashed = « maybe », the same vocabulary as cached's dashed border). */
+.nc-gate {
+  flex: 0 0 auto;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 9%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--nk-st-retrying) 45%, transparent);
+  border-radius: 4px;
 }
 
 /* Ports — the visible connect affordance (drag out → card = depends_on). */

@@ -325,9 +325,10 @@ function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: str
   return undefined;
 }
 
-/** Whether the params row (model chip · cost · avg) has anything to show. */
+/** Whether the params row (gate · model chip · cost · avg) shows. */
 function hasParamsRow(node: DagNode): boolean {
   return node.model !== undefined || node.tool !== undefined
+    || node.when !== undefined
     || (node.costMin != null && node.costMax != null)
     || node.avgMs !== undefined;
 }
@@ -376,6 +377,28 @@ function verbIcon(verb: string): string {
 
 function usd(n: number): string {
   return `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
+}
+
+/** Category glyph per canonical builtin — a PRESENTATION fallback
+ *  (fails soft to none on unknown names). The binary owns the
+ *  vocabulary: when the extension consumes `nika tools --json`
+ *  (engine E1, shipped), categories will ride the graph payload and
+ *  retire this map. core ◦ · file ▤ · data ⧉ · network ⇄ ·
+ *  introspection ⌕ · media ▣ */
+const BUILTIN_GLYPH: Record<string, string> = {
+  log: '◦', emit: '◦', assert: '◦', prompt: '◦', done: '◦', wait: '◦',
+  read: '▤', write: '▤', edit: '▤', glob: '▤', grep: '▤',
+  jq: '⧉', json_diff: '⧉', validate: '⧉', json_merge_patch: '⧉',
+  convert: '⧉', uuid: '⧉', date: '⧉', hash: '⧉',
+  fetch: '⇄', notify: '⇄',
+  inspect: '⌕', compose: '⌕',
+  image_generate: '▣',
+};
+
+/** `nika:fetch` → `⇄ nika:fetch` (glyph only for the canonical 24). */
+function toolWithGlyph(tool: string): string {
+  const glyph = BUILTIN_GLYPH[tool.replace(/^nika:/, '')];
+  return glyph ? `${glyph} ${tool}` : tool;
 }
 
 /** Storage key for a workflow's hand-dragged layout (uri, else name). */
@@ -1601,6 +1624,20 @@ class DagRenderer {
       .attr('data-id', (d) => d.id)
       .attr('opacity', 0);
 
+    // Fan-out DECK — a map ×N task reads as a stack of sheets (two ghost
+    // layers behind the card · the parallel copies made visible).
+    for (const off of [10, 5]) {
+      enter.filter((d) => Boolean(d.fanOutKind))
+        .append('rect')
+        .attr('class', `node-stack node-stack-${off}`)
+        .attr('x', off)
+        .attr('y', off)
+        .attr('width', NODE_WIDTH)
+        .attr('height', (d) => nodeHeightOf(d))
+        .attr('rx', NODE_RADIUS)
+        .attr('ry', NODE_RADIUS);
+    }
+
     // Node hit/status rect — geometry only: the .nc div paints the card
     // (background · border · shadows); this rect keeps the hit area, the
     // export frame and a mount for status rings (DESIGN.md §1).
@@ -1808,21 +1845,35 @@ class DagRenderer {
     if (body) {
       const el = document.createElement('div');
       el.className = `nc-body nc-body-${body.kind}`;
-      el.textContent = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
+      const shown = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
+      el.textContent = shown;
       el.title = body.text;
+      // The resting text — a success swaps in the RECORDED OUTPUT (the
+      // data on the canvas); a re-run restores this base (DESIGN.md §1).
+      el.dataset.base = shown;
       host.appendChild(el);
     }
 
     if (hasParamsRow(node)) {
       const params = document.createElement('div');
       params.className = 'nc-params';
+      // The when: GATE leads the row — conditional execution is a
+      // language pillar, not a footnote (DESIGN.md §1).
+      if (node.when) {
+        const gate = document.createElement('span');
+        gate.className = 'nc-gate';
+        const expr = node.when.length > 18 ? `${node.when.slice(0, 17)}\u2026` : node.when;
+        gate.textContent = `\u2301 ${expr}`;
+        gate.title = `Runs only when: ${node.when}`;
+        params.appendChild(gate);
+      }
       const target = node.model ?? node.tool;
       if (target) {
         // The model chip EDITS (the Flows params-bar gesture): click →
         // provider/model QuickPick extension-side → YAML edit → reload.
         const chip = document.createElement('button');
         chip.className = 'nc-chip nc-model';
-        chip.textContent = target;
+        chip.textContent = node.model ? target : toolWithGlyph(target);
         chip.title = node.model
           ? 'Change this task\'s model (edits the YAML · ⌘Z undoes)'
           : node.tool ?? '';
@@ -2248,6 +2299,23 @@ class DagRenderer {
     el.attr('class', nodeClassOf(node));
     el.select('.nc-sub-v').text(this.subValue(node));
 
+    // The recorded output lands ON the card once the task settles ✓ —
+    // the run shows its data where the prompt was; any other state
+    // restores the resting text (re-run · scrub · pending).
+    const bodyEl = el.select<HTMLElement>('.nc-body');
+    const bodyNode = bodyEl.node();
+    if (bodyNode) {
+      if (status === 'success' && outputPreview) {
+        bodyNode.textContent = `\u2192 ${outputPreview}`;
+        bodyNode.title = outputPreview;
+        bodyNode.classList.add('nc-body-live');
+      } else if (bodyNode.classList.contains('nc-body-live')) {
+        bodyNode.textContent = bodyNode.dataset.base ?? '';
+        bodyNode.title = bodyNode.dataset.base ?? '';
+        bodyNode.classList.remove('nc-body-live');
+      }
+    }
+
     // The minimap mirrors the run live (class-only touch, no re-render).
     document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
       ?.setAttribute('class', `mm-node st-${status}`);
@@ -2378,7 +2446,7 @@ class DagRenderer {
 
   /** Left half of the fact row — the STATIC mechanism (never repaints). */
   private subMechanism(node: DagNode): string {
-    if (node.tool) return `${node.verb} \u00B7 ${node.tool}`;
+    if (node.tool) return `${node.verb} \u00B7 ${toolWithGlyph(node.tool)}`;
     if (node.provider) return `${node.verb} \u00B7 ${node.provider}`;
     if (node.model) return `${node.verb} \u00B7 ${node.model.split('/')[0]}`;
     return node.verb;
@@ -2405,10 +2473,12 @@ class DagRenderer {
   }
 
   private badgeText(node: DagNode): string {
-    const parts: string[] = [];
-    if (node.when) parts.push('\u2301');
-    if (node.fanOutKind) parts.push(node.fanOutCount != null ? `\u00D7${node.fanOutCount}` : '\u00D7n');
-    return parts.join(' ');
+    // when: speaks through the gate chip now; ×N speaks through the
+    // deck + this badge (the count survives at LOD-mid).
+    if (node.fanOutKind) {
+      return node.fanOutCount != null ? `\u00D7${node.fanOutCount}` : '\u00D7n';
+    }
+    return '';
   }
 
   private updateStatusDisplay(): void {
@@ -2610,6 +2680,9 @@ function buildExplainer(): void {
     ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
     ['ex-glyph-hover', 'Hover a node', 'the full story — model · gates · fan-out · static cost · needs/unlocks (clickable)'],
+    ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) — the deck IS the parallel copies; the badge counts them'],
+    ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
+    ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — the wires follow, positions stick per workflow · A returns to the auto-layout'],
     ['ex-glyph-connect', '⌥ drag node → node', 'create a dependency — the YAML gets the depends_on (⌘Z undoes) · ⌥click an edge removes it'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],

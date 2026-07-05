@@ -47,6 +47,16 @@ every visible pixel.
 - Ports: always-visible 3.5px dots on the top/bottom edge midpoints
   (the Well endpoint dots), growing to 6.5px on approach; drag out =
   new wired task.
+- **Every language feature is visible** (the Socratic rule — if the
+  language knows it, the canvas shows it): a `when:` gate wears a
+  dashed amber chip (`⌁ vars.publish` — dashed = maybe, the cached
+  vocabulary); a fan-out task wears a DECK (two ghost sheets — the
+  parallel copies) plus the ×N badge; builtin tools carry their
+  category glyph (core ◦ · file ▤ · data ⧉ · network ⇄ ·
+  introspection ⌕ · media ▣ — a presentation fallback until the
+  extension feeds categories from `nika tools --json`); and a settled
+  task's RECORDED OUTPUT lands on the card (`→ …`, green-tinted) where
+  its prompt was — the run shows its data, a re-run restores the rest.
 
 ## 2 · Wires
 

@@ -62,6 +62,14 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **The whole language, visible** (the Socratic pass): `when:` gates
+  wear a dashed amber chip on the card (conditional execution was a
+  near-invisible glyph), fan-out tasks wear a stacked DECK (map ×N
+  reads as the parallel copies it is), builtin tools carry their
+  category glyph (◦ ▤ ⧉ ⇄ ⌕ ▣), and a settled task's recorded output
+  lands ON the card (`→ 5 stories selected…`) where its prompt was —
+  the run shows its data on the canvas; re-runs restore the prompt.
+  The `?` explainer teaches all three new marks.
 - **The plan rail** — wide panels' empty left flank now carries the
   execution plan itself: every wave as a clickable pill row
   (`[ 01 ] ×2 · [ 02 ] then…`), the viewport's wave highlighted live,
