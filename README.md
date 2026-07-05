@@ -1,5 +1,9 @@
 # Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
 
+[![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-install-2b62ea)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+[![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika-lang?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika-lang)
+[![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika-lang?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika-lang)
+
 > One extension, every VS Code-compatible editor. `nika-vscode` is the
 > repo name because that's the extension *platform* (like `vscode-eslint`)
 > · it ships to the **VS Code Marketplace** AND **OpenVSX**, so Cursor,
