@@ -52,4 +52,15 @@ describe('costForecast (the run pill cost chip)', () => {
     expect(costForecast(cost({ bounded_total_usd: 0.0075, min_path_total_usd: 0.0075, tasks: [t('a', 0.0075)] }))?.label).toBe('$0.0075');
     expect(costForecast(cost({ bounded_total_usd: 1.5, min_path_total_usd: 1.5, tasks: [t('a', 1.5)] }))?.label).toBe('$1.50');
   });
+
+  it('does not throw when a real report omits or nulls `tasks`', () => {
+    // A cost object can arrive unbounded-only with no `tasks` key — the
+    // type claims TaskCost[] but the wire doesn't guarantee it.
+    const noTasks = { bounded_total_usd: 0, has_unbounded: true } as unknown as CostCeiling;
+    expect(() => costForecast(noTasks)).not.toThrow();
+    expect(costForecast(noTasks)?.label).toBe('unbounded');
+    const nullTasks = { bounded_total_usd: 0.02, has_unbounded: true, tasks: null } as unknown as CostCeiling;
+    expect(() => costForecast(nullTasks)).not.toThrow();
+    expect(costForecast(nullTasks)?.label).toBe('≥ $0.0200');
+  });
 });

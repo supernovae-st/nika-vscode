@@ -34,7 +34,10 @@ export function costForecast(cost: CostCeiling | undefined): CostForecast | unde
   const bounded = cost.bounded_total_usd ?? 0;
   const minPath = cost.min_path_total_usd ?? bounded;
   const unbounded = cost.has_unbounded === true;
-  const uncapped = cost.tasks.filter((t) => t.usd === null || t.usd === undefined).length;
+  // A real report can omit `tasks` (unbounded-only) despite the type —
+  // guard rather than trust, this is called in a listener with no catch.
+  const tasks = Array.isArray(cost.tasks) ? cost.tasks : [];
+  const uncapped = tasks.filter((t) => t.usd === null || t.usd === undefined).length;
 
   if (!unbounded) {
     if (bounded <= 0) { return undefined; } // no priced work — no chip

@@ -237,6 +237,17 @@ export interface CheckReport {
   analysis?: ReportDagAnalysis;
 }
 
+/**
+ * Normalize the `cost` block so `cost.tasks` is ALWAYS an array — a real
+ * report can carry a `cost` object with no `tasks` key (unbounded-only),
+ * and the type claims `TaskCost[]`, so unchecked consumers would throw.
+ */
+function normalizeCost(raw: unknown): CostCeiling {
+  if (typeof raw !== 'object' || raw === null) { return { tasks: [] }; }
+  const c = raw as Record<string, unknown>;
+  return { ...(c as object), tasks: Array.isArray(c.tasks) ? (c.tasks as TaskCost[]) : [] } as CostCeiling;
+}
+
 export function parseCheckReport(jsonText: string): CheckReport | undefined {
   try {
     const v = JSON.parse(jsonText) as Record<string, unknown>;
@@ -248,7 +259,7 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
       clean: typeof v.clean === 'boolean' ? v.clean : undefined,
       conformance: arr('conformance') as ConformanceViolation[],
       waves: arr('waves') as number[][],
-      cost: (typeof v.cost === 'object' && v.cost !== null ? v.cost : { tasks: [] }) as CostCeiling,
+      cost: normalizeCost(v.cost),
       secret_leaks: arr('secret_leaks') as SecretLeak[],
       secret_egresses: arr('secret_egresses') as SecretEgress[],
       capability_escapes: arr('capability_escapes') as CapabilityEscape[],
