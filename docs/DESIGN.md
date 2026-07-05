@@ -171,9 +171,13 @@ The orchestrated moments (each spent exactly once, where it means):
 - **Alignment magnetism** — dragging snaps to other cards' edges and
   centers within 6px; accent guides draw the agreement; Alt bypasses
   (the Figma/helper-lines convention).
-- Researched next (extension/engine-side, ranked): run-from-here on a
-  card (the resume substrate exists) · duplicate node (⌘D) · insert
-  node on edge (+) · pin node outputs (n8n's most-loved dev feature).
+- **Run from here (▶ on the hover card)** — ONE task + its upstream
+  cone through the extension's `rerunTask` flow (engine `run --task`);
+  upstream cache-hits stay cache-hits. The n8n partial-execution move,
+  reachable without leaving the canvas.
+- Researched next (extension/engine-side, ranked): duplicate node
+  (⌘D) · insert node on edge (+) · pin node outputs (n8n's most-loved
+  dev feature).
 
 ## 7 · Rules that keep it SOTA
 

@@ -2077,7 +2077,23 @@ class DagRenderer {
     const status = document.createElement('span');
     status.className = `hc-status st-${live.status}`;
     status.textContent = live.status;
-    head.append(verb, id, status);
+    // ▶ run from here — ONE task + its upstream cone (engine `run
+    // --task` through the extension's rerunTask flow · research #2).
+    const runBtn = document.createElement('button');
+    runBtn.className = 'hc-run';
+    runBtn.textContent = '\u25B8 run';
+    runBtn.title = 'Run THIS task and its upstream cone only (nika run --task) — upstream cache-hits stay cache-hits';
+    runBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    runBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hideHoverCard(true);
+      vscode.postMessage({
+        kind: 'dag:runTask',
+        taskId: live.id,
+        workflowUri: this.currentGraph?.workflowUri,
+      });
+    });
+    head.append(verb, id, status, runBtn);
     this.hoverCard.appendChild(head);
 
     const add = (label: string, value: string | undefined): void => {

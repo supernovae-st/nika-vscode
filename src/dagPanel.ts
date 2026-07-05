@@ -87,6 +87,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:omni'; text: string; workflowUri?: string }
   // Run controls — the canvas drives the run without leaving the panel.
   | { kind: 'dag:runRequest'; preview?: boolean; resume?: boolean; workflowUri?: string }
+  // Run ONE task + its upstream cone (hover-card ▶ · engine `run --task`).
+  | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
@@ -127,6 +129,8 @@ export class DagPanel implements vscode.Disposable {
     /** Canvas run controls (▶/▶mock/■ in the panel toolbar). */
     private readonly onRunRequest?: (preview: boolean, workflowUri?: string, resume?: boolean) => void,
     private readonly onCancelRun?: () => void,
+    /** Hover-card ▶ — run ONE task + its upstream cone (`run --task`). */
+    private readonly onRunTask?: (taskId: string, workflowUri?: string) => void,
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -553,6 +557,10 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:runRequest':
         this.onRunRequest?.(msg.preview === true, msg.workflowUri, msg.resume === true);
+        break;
+
+      case 'dag:runTask':
+        this.onRunTask?.(msg.taskId, msg.workflowUri);
         break;
 
       case 'dag:cancelRun':

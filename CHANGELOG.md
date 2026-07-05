@@ -62,6 +62,10 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **Run from here** — the hover card grew a `▶ run` action: ONE task
+  and its upstream cone through the same `nika run --task` flow the
+  CodeLens uses — the n8n partial-execution move without leaving the
+  canvas. Upstream cache-hits stay cache-hits.
 - **The heatmap (H)** — one keystroke tints every card by where the
   run actually spends (measured durations; the static cost ceiling
   before any run), normalized to the graph's max. The hotspot is

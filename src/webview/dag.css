@@ -724,6 +724,28 @@ body.running .dag-edge.edge-dep {
   color: var(--nk-ink-dim);
 }
 
+.hc-run {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background var(--nk-dur) var(--nk-ease);
+}
+
+.hc-run:hover {
+  background: var(--nk-cta-hover);
+}
+
+.hc-run:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 1px;
+}
+
 .hc-status.st-running { color: var(--nk-st-running); }
 .hc-status.st-success { color: var(--nk-st-success); }
 .hc-status.st-failed { color: var(--nk-st-failed); }

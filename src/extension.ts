@@ -683,6 +683,15 @@ export function activate(context: ExtensionContext): void {
       })();
     },
     () => cancelActiveRun(),
+    // Hover-card ▶ — the CodeLens lever, reachable from the canvas: ONE
+    // task + its upstream cone through the same rerunTask flow.
+    (taskId, workflowUri) => {
+      void commands.executeCommand(
+        'nika.rerunTask',
+        workflowUri ?? dagWorkflowUri,
+        taskId,
+      );
+    },
   );
   state.activeDagPanel = dagPanel;
 
