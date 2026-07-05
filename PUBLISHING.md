@@ -11,7 +11,11 @@ confidence gate between "the pyramid is green" and "a stranger's first
 5 minutes won't embarrass us."
 
 ```
-1. AUTOMATED   npm test         → vitest + parity + eslint all green
+1. AUTOMATED   npm ci            → the lockfile IS in sync (the exact CI
+                                   gate — v0.93.0 died here in 16s: a
+                                   feature-branch merge moved a transitive
+                                   esbuild without regenerating the lock)
+               npm test         → vitest + parity + eslint all green
                npm run test:integration → real VS Code host, 4/4
                npx vsce package  → packages clean, size sane (<1 MB)
 2. CROSS-REVIEW a diff review of the release delta (adversarial · the
