@@ -62,6 +62,11 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **The plan rail** — wide panels' empty left flank now carries the
+  execution plan itself: every wave as a clickable pill row
+  (`[ 01 ] ×2 · [ 02 ] then…`), the viewport's wave highlighted live,
+  click glides the canvas to that wave; in-canvas captions yield to it
+  and fit-to-view reserves the column. Composition over void.
 - **Every editor, every theme, every panel**: the adaptive skin now
   adopts YOUR theme's voice (`focusBorder` → accent, `textLink` → data
   wires, `button-*` → the Run CTA — a purple theme purples the canvas);

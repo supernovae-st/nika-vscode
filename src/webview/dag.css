@@ -1715,8 +1715,8 @@ body[data-nk-theme='nika'] #dag-container::after {
   opacity: var(--spot-on, 0);
   transition: opacity 0.4s ease-out;
   background: radial-gradient(
-    560px circle at var(--spot-x, 50%) var(--spot-y, 40%),
-    rgb(79 134 255 / 0.05),
+    680px circle at var(--spot-x, 50%) var(--spot-y, 40%),
+    rgb(79 134 255 / 0.06),
     transparent 70%
   );
 }
@@ -3150,6 +3150,94 @@ body[data-nk-theme='editor'].vscode-dark {
     0 18px 36px -18px rgb(0 0 0 / 0.6);
 }
 
+
+/* ─── The plan rail · the left column IS the execution plan (§3) ────────── */
+
+#plan-rail {
+  position: fixed;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 6px;
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid var(--nk-border);
+  border-radius: 10px;
+  box-shadow: var(--nk-shadow-1);
+}
+
+#plan-rail[hidden] { display: none; }
+#plan-rail::-webkit-scrollbar { display: none; }
+
+.pr-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 4px 9px;
+  font-family: var(--nk-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--nk-ink-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--nk-dur) var(--nk-ease), background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+}
+
+.pr-n {
+  color: color-mix(in srgb, var(--nk-ink-dim) 55%, transparent);
+}
+
+.pr-cap {
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-row:hover {
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+}
+
+.pr-row.active {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--nk-accent) 10%, transparent);
+}
+
+.pr-row.active .pr-n {
+  color: color-mix(in srgb, var(--nk-accent) 70%, transparent);
+}
+
+.pr-row:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 1px;
+}
+
+/* The rail REPLACES the in-canvas captions (never both). */
+body.has-rail .wave-label { display: none; }
+
+/* The rail earns its column only where slack exists. */
+@media (max-width: 999px), (max-height: 460px) {
+  #plan-rail { display: none !important; }
+  body.has-rail .wave-label { display: block; }
+}
+
+/* Under the rail the pool catches a soft left light (nika) — the void
+ * becomes depth, the rail sits on it. Vignette + bloom in one layer. */
+body[data-nk-theme='nika'].has-rail #dag-container::before {
+  background:
+    linear-gradient(90deg, rgb(79 134 255 / 0.045), transparent 240px),
+    radial-gradient(120% 100% at 50% 38%, transparent 55%, rgb(0 0 0 / 0.3) 100%);
+}
 
 /* ═══ VS Code high-contrast THEMES (hc body class · DESIGN.md §4) ═════════ */
 /* OS forced-colors is handled above; VS Code's own HC themes only stamp a

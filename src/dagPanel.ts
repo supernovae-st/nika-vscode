@@ -686,6 +686,7 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-status"></span>
   </div>
   <div id="dag-container"></div>
+  <nav id="plan-rail" hidden aria-label="Execution plan"></nav>
   <div id="minimap"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
   <div id="activity" hidden>
     <div id="activity-head">Activity</div>

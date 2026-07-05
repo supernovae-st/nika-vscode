@@ -483,6 +483,8 @@ class DagRenderer {
   private suppressClick = false;
   /** Wave count of the current graph (post-drag band refresh). */
   private waveCount = 0;
+  /** Per-wave vertical extents + member counts (the plan rail reads these). */
+  private waveExtents = new Map<number, { top: number; bottom: number; count: number }>();
 
   constructor(containerId: string) {
     this.container = document.getElementById(containerId)!;
@@ -877,6 +879,13 @@ class DagRenderer {
       countOf.set(w, (countOf.get(w) ?? 0) + 1);
     }
 
+    // Publish extents for the plan rail + wave centering.
+    this.waveExtents.clear();
+    for (const [w, ext] of byWave) {
+      this.waveExtents.set(w, { top: ext.top, bottom: ext.bottom, count: countOf.get(w) ?? 0 });
+    }
+    this.buildPlanRail();
+
     for (const [wave, ext] of byWave) {
       const band = this.bandGroup.append('g').attr('class', 'wave-band-group');
       // The caption is permanent plan grammar; the FILL is the W toggle.
@@ -903,6 +912,80 @@ class DagRenderer {
         .attr('dx', 7)
         .text(caption);
     }
+  }
+
+  // ─── The plan rail · the left column IS the execution plan ──────────────
+  // Wide panels leave dead flanks around portrait DAGs; the rail fills
+  // the left one with the graph's own story — every wave as a clickable
+  // row, the viewport's wave tracked live (composition, not decoration).
+
+  /** Rebuild the rail rows (called per render). */
+  private buildPlanRail(): void {
+    const rail = document.getElementById('plan-rail');
+    if (!rail) { return; }
+    rail.replaceChildren();
+    if (this.waveExtents.size < 3) {
+      rail.setAttribute('hidden', '');
+      document.body.classList.remove('has-rail');
+      return;
+    }
+    const waves = [...this.waveExtents.entries()].sort((a, b) => a[0] - b[0]);
+    for (const [w, ext] of waves) {
+      const row = document.createElement('button');
+      row.className = 'pr-row';
+      row.dataset.wave = String(w);
+      const n = document.createElement('span');
+      n.className = 'pr-n';
+      n.textContent = `[ ${String(w + 1).padStart(2, '0')} ]`;
+      const cap = document.createElement('span');
+      cap.className = 'pr-cap';
+      cap.textContent = ext.count > 1 ? `×${ext.count}` : w === 0 ? 'start' : 'then';
+      row.append(n, cap);
+      row.title = ext.count > 1
+        ? `wave ${w + 1} — ${ext.count} tasks run together · click to center`
+        : `wave ${w + 1} · click to center`;
+      row.addEventListener('click', () => this.centerWave(w));
+      rail.appendChild(row);
+    }
+    rail.removeAttribute('hidden');
+    document.body.classList.add('has-rail');
+    this.syncRailActive();
+  }
+
+  /** Glide the viewport to a wave's vertical center (zoom preserved). */
+  private centerWave(wave: number): void {
+    const ext = this.waveExtents.get(wave);
+    const svgEl = this.svg.node();
+    if (!ext || !svgEl) { return; }
+    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const k = this.currentZoom;
+    const cx = this.graphW / 2;
+    const cy = (ext.top + ext.bottom) / 2;
+    const t = zoomIdentity
+      .translate(svgW / 2 - cx * k, svgH / 2 - cy * k)
+      .scale(k);
+    this.svg
+      .transition().duration(REDUCED_MOTION ? 0 : 360)
+      .call(this.zoomBehavior.transform as D3ZoomCall, t);
+  }
+
+  /** Track which wave owns the viewport center (rail active state). */
+  private syncRailActive(): void {
+    if (!document.body.classList.contains('has-rail')) { return; }
+    const svgEl = this.svg.node();
+    if (!svgEl) { return; }
+    const { height: svgH } = svgEl.getBoundingClientRect();
+    const centerY = (svgH / 2 - this.currentTy) / this.currentZoom;
+    let best = -1;
+    let bestDist = Infinity;
+    for (const [w, ext] of this.waveExtents) {
+      const mid = (ext.top + ext.bottom) / 2;
+      const dist = centerY >= ext.top && centerY <= ext.bottom ? 0 : Math.abs(centerY - mid);
+      if (dist < bestDist) { bestDist = dist; best = w; }
+    }
+    document.querySelectorAll<HTMLElement>('#plan-rail .pr-row').forEach((row) => {
+      row.classList.toggle('active', Number(row.dataset.wave) === best);
+    });
   }
 
   /**
@@ -1278,6 +1361,7 @@ class DagRenderer {
       '--zoom-comp',
       String(Math.min(Math.max(1 / this.currentZoom, 1), 3)),
     );
+    this.syncRailActive();
     // Thresholds sit BELOW the typical fit zoom (~0.42): the first paint
     // shows the FULL card (refs show content at overview zoom); far is a
     // deliberate deep zoom-out to the map read.
@@ -2206,10 +2290,12 @@ class DagRenderer {
     const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
     if (svgW === 0 || svgH === 0) return;
 
-    // Chrome floats OVER the canvas (top rail · omnibar · legend) — the
-    // fit parks the graph in the visible pool between them, or cards hide
-    // under pills forever.
+    // Chrome floats OVER the canvas (top rail · omnibar · legend · the
+    // plan rail's left column) — the fit parks the graph in the visible
+    // pool between them, or cards hide under pills forever.
+    const leftInset = document.body.classList.contains('has-rail') ? 132 : 0;
     const usableH = Math.max(svgH - TOP_INSET - 96, 160);
+    const usableW = Math.max(svgW - leftInset, 240);
 
     let graphW: number;
     let graphH: number;
@@ -2235,8 +2321,8 @@ class DagRenderer {
       graphH = bbox.height + PADDING * 2;
     }
 
-    const scale = Math.min(svgW / graphW, usableH / graphH, 1.5);
-    const tx = (svgW - graphW * scale) / 2;
+    const scale = Math.min(usableW / graphW, usableH / graphH, 1.5);
+    const tx = leftInset + (usableW - graphW * scale) / 2;
     const ty = TOP_INSET + (usableH - graphH * scale) / 2;
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
@@ -2275,6 +2361,9 @@ class DagRenderer {
     this.wasAllTerminal = false;
     this.layoutBox.clear();
     this.hideHoverCard(true);
+    this.waveExtents.clear();
+    document.getElementById('plan-rail')?.setAttribute('hidden', '');
+    document.body.classList.remove('has-rail');
     document.getElementById('empty-state')?.removeAttribute('hidden');
 
     const titleEl = document.getElementById('dag-title');

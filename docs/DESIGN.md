@@ -66,6 +66,11 @@ bottom-center (run · cost Δ · verb palette · command input), minimap
 bottom-right, legend chips bottom-left. Fit-to-view accounts for the
 top rail AND the bottom dock — the graph never hides under chrome.
 On narrow panels the dock un-stacks into two floors; nothing overlaps.
+On WIDE panels the left flank carries the **plan rail** — every wave as
+a clickable row (`[ 01 ] ×2 · [ 02 ] then …`), the viewport's wave
+tracked live, click glides to it; the in-canvas captions yield to it
+(≥1000×461 · ≥3 waves; fit reserves the column). The void becomes the
+plan.
 Sidebar-dock tiers: ≤380px keeps run + command line + zoom (every
 optional chip yields, F still fits); ≤460px height gives the floor
 back to the canvas (minimap/legend/hint yield). The status pill
