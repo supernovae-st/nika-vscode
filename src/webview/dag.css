@@ -2057,3 +2057,38 @@ body.lod-far .nc-stale {
 #scrubber:not([hidden]) ~ #dag-legend {
   bottom: 68px;
 }
+
+/* ─── Author regions · # nika:region groupings ─────────────────────────── */
+
+.region-box {
+  fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 5%, transparent);
+  stroke: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 28%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 5 4;
+}
+
+.region-label {
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 70%, var(--nk-ink-dim));
+  pointer-events: none;
+}
+
+/* A restrained 6-hue cycle so adjacent regions read apart (the verb
+ * canon + two neutrals — never a rainbow). */
+.region-hue-0 { --region-hue: var(--nk-verb-infer); }
+.region-hue-1 { --region-hue: var(--nk-verb-exec); }
+.region-hue-2 { --region-hue: var(--nk-verb-invoke); }
+.region-hue-3 { --region-hue: var(--nk-verb-agent); }
+.region-hue-4 { --region-hue: var(--nk-accent); }
+.region-hue-5 { --region-hue: var(--nk-st-muted); }
+
+/* LOD far: regions stay (they ARE the map legend), labels shrink-hide. */
+body.lod-far .region-label { display: none; }
+
+@media (forced-colors: active) {
+  .region-box { stroke: GrayText !important; fill: transparent !important; }
+  .region-label { fill: GrayText !important; }
+}

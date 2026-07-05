@@ -120,11 +120,17 @@ interface DagEdge {
   ghost?: boolean;
 }
 
+interface DagRegion {
+  name: string;
+  taskIds: string[];
+}
+
 interface DagGraph {
   workflowName: string;
   workflowUri?: string;
   nodes: DagNode[];
   edges: DagEdge[];
+  regions?: DagRegion[];
 }
 
 type ExtToWebviewMessage =
@@ -279,6 +285,7 @@ class DagRenderer {
   private svg: Selection<SVGSVGElement, unknown, null, undefined>;
   private rootGroup: Selection<SVGGElement, unknown, null, undefined>;
   private bandGroup: Selection<SVGGElement, unknown, null, undefined>;
+  private regionGroup: Selection<SVGGElement, unknown, null, undefined>;
   private edgeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private nodeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private zoomBehavior: ZoomBehavior<SVGSVGElement, unknown>;
@@ -337,6 +344,8 @@ class DagRenderer {
     this.rootGroup = this.svg.append<SVGGElement>('g').attr('class', 'dag-root');
     // Wave bands at the very back — the parallelism explained visually
     this.bandGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-bands');
+    // Author regions above bands, still behind edges + nodes
+    this.regionGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-regions');
     // Edges below nodes
     this.edgeGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-edges');
     // Nodes on top
@@ -522,6 +531,7 @@ class DagRenderer {
 
     // Wave bands at the back, then edges, then nodes.
     this.renderWaveBands(layoutResult.children ?? [], waves.length);
+    this.renderRegions();
     this.renderEdges(layoutResult.edges ?? [], graph.edges);
     this.renderNodes(layoutResult.children ?? [], graph.nodes);
 
@@ -581,6 +591,46 @@ class DagRenderer {
     for (let i = 0; i + 1 < path.length; i++) {
       this.criticalEdges.add(`${path[i]}->${path[i + 1]}`);
     }
+  }
+
+  /**
+   * Author regions (`# nika:region`) as labeled background boxes behind
+   * the member cards — the bounding box of the region's laid-out nodes.
+   * A tiny palette cycles by index so adjacent regions read apart.
+   */
+  private renderRegions(): void {
+    this.regionGroup.selectAll('*').remove();
+    const regions = this.currentGraph?.regions;
+    if (!regions || regions.length === 0) { return; }
+    const PAD = 16;
+    const LABEL_H = 16;
+    regions.forEach((region, i) => {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let members = 0;
+      for (const id of region.taskIds) {
+        const b = this.layoutBox.get(id);
+        if (!b) { continue; }
+        members += 1;
+        minX = Math.min(minX, b.x);
+        minY = Math.min(minY, b.y);
+        maxX = Math.max(maxX, b.x + b.w);
+        maxY = Math.max(maxY, b.y + b.h);
+      }
+      if (members === 0) { return; }
+      const g = this.regionGroup.append('g').attr('class', `region region-hue-${i % 6}`);
+      g.append('rect')
+        .attr('class', 'region-box')
+        .attr('x', minX - PAD)
+        .attr('y', minY - PAD - LABEL_H)
+        .attr('width', maxX - minX + PAD * 2)
+        .attr('height', maxY - minY + PAD * 2 + LABEL_H)
+        .attr('rx', 10);
+      g.append('text')
+        .attr('class', 'region-label')
+        .attr('x', minX - PAD + 10)
+        .attr('y', minY - PAD - LABEL_H + 11)
+        .text(region.name);
+    });
   }
 
   /** Background bands per topological wave — parallelism made visible. */
@@ -1691,6 +1741,7 @@ class DagRenderer {
 
   clear(): void {
     this.bandGroup.selectAll('*').remove();
+    this.regionGroup.selectAll('*').remove();
     this.edgeGroup.selectAll('*').remove();
     this.nodeGroup.selectAll('*').remove();
     this.currentGraph = undefined;

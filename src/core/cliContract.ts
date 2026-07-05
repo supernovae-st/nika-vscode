@@ -101,6 +101,12 @@ export interface DagEdge {
   ghost?: boolean;
 }
 
+/** Author-declared task grouping (`# nika:region <name>`). */
+export interface DagRegion {
+  name: string;
+  taskIds: string[];
+}
+
 export interface DagGraph {
   workflowName: string;
   /**
@@ -110,6 +116,8 @@ export interface DagGraph {
   workflowUri?: string;
   nodes: DagNode[];
   edges: DagEdge[];
+  /** Author-declared regions (background groupings) — optional. */
+  regions?: DagRegion[];
 }
 
 export function isGraphDoc(value: unknown): value is GraphDoc {

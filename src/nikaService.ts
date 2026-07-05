@@ -29,6 +29,7 @@ import {
 } from './core/cliContract';
 import { annotateDataFlow } from './core/dataflow';
 import { collectBodyFacts } from './core/bodyFacts';
+import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
 import { parseRichWorkflow } from './workflowParser';
 
@@ -315,6 +316,8 @@ export class NikaService {
       dag.nodes = flow.nodes;
       dag.edges = [...flow.edges, ...flow.ghosts];
       mergeBodyFacts(text, dag.nodes);
+      const regions = parseRegions(text);
+      if (regions.length > 0) { dag.regions = regions; }
       return dag;
     }
 
@@ -344,6 +347,8 @@ export class NikaService {
     base.nodes = flow.nodes;
     base.edges = [...flow.edges, ...flow.ghosts];
     mergeBodyFacts(text, base.nodes);
+    const regions = parseRegions(text);
+    if (regions.length > 0) { base.regions = regions; }
     return base;
   }
 
