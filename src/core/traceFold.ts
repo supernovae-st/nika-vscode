@@ -37,6 +37,8 @@ export interface FoldedTask {
   startMs?: number;
   endMs?: number;
   durationMs?: number;
+  /** Per-task spend — rides the terminal event on the v2 wire (`cost_usd`). */
+  usd?: number;
   retries: number;
 }
 
@@ -283,8 +285,10 @@ export function foldTrace(ndjson: string): RunModel {
       ) {
         task.durationMs = task.endMs - task.startMs;
       }
-      // Per-task spend rides terminal events on the v2 wire.
+      // Per-task spend rides terminal events on the v2 wire. The task
+      // settles exactly once (frozen above), so assign — never sum.
       if (ev.usd !== undefined) {
+        task.usd = ev.usd;
         model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
       }
       if (ev.tokens !== undefined) {
@@ -304,6 +308,47 @@ export function foldTrace(ndjson: string): RunModel {
   }
 
   return model;
+}
+
+/** `999ms` · `1.2s` · `2m03` — badge-terse duration ladder. Minute spans
+ *  round via total seconds so 119 950ms reads `2m00`, never `1m60`. */
+export function humanizeDuration(ms: number): string {
+  if (ms < 1000) { return `${Math.round(ms)}ms`; }
+  if (ms < 60_000) { return `${(ms / 1000).toFixed(1)}s`; }
+  const totalS = Math.round(ms / 1000);
+  return `${Math.floor(totalS / 60)}m${String(totalS % 60).padStart(2, '0')}`;
+}
+
+/** `$0.003` — ≤4 decimals, trailing zeros trimmed (a badge, not an invoice). */
+export function formatUsd(usd: number): string {
+  const trimmed = usd.toFixed(4).replace(/\.?0+$/, '');
+  return `$${trimmed}`;
+}
+
+// Status → badge glyph. §3.1 vocabulary honored: cancelled is a decision
+// (◼ dim, never red) · retrying is the attempt failing, not the task.
+const BADGE_ICON: Partial<Record<FoldedStatus, string>> = {
+  success: '✓',
+  failed: '✗',
+  skipped: '⊘',
+  cancelled: '◼',
+  retrying: '↻',
+  running: '…',
+};
+
+/**
+ * End-of-line editor badge for one folded task: ` ✓ 1.2s · $0.003` —
+ * glyph, then only the PROVABLE facts (duration · spend). `pending` gets
+ * no badge (a task that never moved is noise, not signal). The leading
+ * space is part of the contract — it pads the badge off the line's text.
+ */
+export function formatRunBadge(task: FoldedTask): string | undefined {
+  const icon = BADGE_ICON[task.status];
+  if (!icon) { return undefined; }
+  const facts: string[] = [];
+  if (task.durationMs !== undefined) { facts.push(humanizeDuration(task.durationMs)); }
+  if (task.usd !== undefined) { facts.push(formatUsd(task.usd)); }
+  return facts.length > 0 ? ` ${icon} ${facts.join(' · ')}` : ` ${icon}`;
 }
 
 /** Human card line: `✓ 5 tasks · 2.3s · $0.04` (whatever is provable). */

@@ -54,6 +54,7 @@ import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActio
 import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
+import { RunDecorations } from './features/runDecorations';
 import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
@@ -267,6 +268,7 @@ export function activate(context: ExtensionContext): void {
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
     new VerbGutterDecorations(),
+    new RunDecorations(),
     workspace.onDidSaveTextDocument((doc) => {
       if (NIKA_FILE_RE.test(doc.fileName)) { inlayProvider.refresh(); }
     }),

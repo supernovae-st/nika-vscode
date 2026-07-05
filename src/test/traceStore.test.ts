@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { foldTrace } from '../core/traceFold';
 import { normalizeWorkflowKey, TraceStore } from '../core/traceStore';
 
-/** A real fold (not a hand-built stub) — the store carries RunModel verbatim. */
-function fold(taskId = 'a'): ReturnType<typeof foldTrace> {
-  return foldTrace([
-    JSON.stringify({ timestamp: { unix_ms: 0 }, kind: 'task_started', fields: [{ key: 'task', value: taskId }] }),
-    JSON.stringify({ timestamp: { unix_ms: 100 }, kind: 'task_completed', fields: [{ key: 'task', value: taskId }] }),
-  ].join('\n'));
-}
+// Real nika 0.92.0 flight-recorder captures (mock/echo · offline · the
+// fanout-template demo, source in fixtures/demo.nika.yaml): the store
+// carries EXACTLY what the engine writes — no invented event shapes.
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
+const fixtureFold = (name: string): ReturnType<typeof foldTrace> =>
+  foldTrace(fs.readFileSync(path.join(FIXTURES, name), 'utf-8'));
 
 const P = (...segs: string[]): string => path.join(path.sep, ...segs);
 
@@ -27,12 +28,14 @@ describe('normalizeWorkflowKey', () => {
 });
 
 describe('TraceStore', () => {
-  it('set/get round-trips the fold with a publish timestamp', () => {
+  it('set/get round-trips a real green fold with a publish timestamp', () => {
     const store = new TraceStore();
     const before = Date.now();
-    store.set(P('ws', 'flow.nika.yaml'), fold());
-    const rec = store.get(P('ws', 'flow.nika.yaml'));
-    expect(rec?.fold.tasks.get('a')?.status).toBe('success');
+    store.set(P('ws', 'demo.nika.yaml'), fixtureFold('fixture-run-a.ndjson'));
+    const rec = store.get(P('ws', 'demo.nika.yaml'));
+    expect(rec?.fold.workflowStatus).toBe('completed');
+    expect(rec?.fold.tasks.size).toBe(4);
+    expect(rec?.fold.tasks.get('discover')?.status).toBe('success');
     expect(rec?.at.getTime()).toBeGreaterThanOrEqual(before);
   });
 
@@ -42,18 +45,18 @@ describe('TraceStore', () => {
 
   it('reads back through a cosmetically different path (normalized key)', () => {
     const store = new TraceStore();
-    store.set(P('ws', '.', 'flow.nika.yaml'), fold());
-    expect(store.get(P('ws', 'flow.nika.yaml'))).toBeDefined();
+    store.set(P('ws', '.', 'demo.nika.yaml'), fixtureFold('fixture-run-b.ndjson'));
+    expect(store.get(P('ws', 'demo.nika.yaml'))).toBeDefined();
   });
 
-  it('latest write wins and refreshes `at`', () => {
+  it('latest write wins: a failed run replaces the green one, `at` refreshes', () => {
     const store = new TraceStore();
-    store.set(P('ws', 'flow.nika.yaml'), fold('a'));
-    const first = store.get(P('ws', 'flow.nika.yaml'));
-    store.set(P('ws', 'flow.nika.yaml'), fold('b'));
-    const second = store.get(P('ws', 'flow.nika.yaml'));
-    expect(second?.fold.tasks.has('b')).toBe(true);
-    expect(second?.fold.tasks.has('a')).toBe(false);
+    store.set(P('ws', 'demo.nika.yaml'), fixtureFold('fixture-run-a.ndjson'));
+    const first = store.get(P('ws', 'demo.nika.yaml'));
+    store.set(P('ws', 'demo.nika.yaml'), fixtureFold('fixture-run-failed.ndjson'));
+    const second = store.get(P('ws', 'demo.nika.yaml'));
+    expect(second?.fold.workflowStatus).toBe('failed');
+    expect(second?.fold.tasks.get('survivors')?.status).toBe('failed');
     expect(second?.at.getTime()).toBeGreaterThanOrEqual(first?.at.getTime() ?? Infinity);
   });
 
@@ -61,10 +64,10 @@ describe('TraceStore', () => {
     const store = new TraceStore();
     const seen: string[] = [];
     const sub = store.onDidUpdate((key) => seen.push(key));
-    store.set(P('ws', '.', 'flow.nika.yaml'), fold());
-    expect(seen).toEqual([P('ws', 'flow.nika.yaml')]);
+    store.set(P('ws', '.', 'demo.nika.yaml'), fixtureFold('fixture-run-a.ndjson'));
+    expect(seen).toEqual([P('ws', 'demo.nika.yaml')]);
     sub.dispose();
-    store.set(P('ws', 'flow.nika.yaml'), fold());
+    store.set(P('ws', 'demo.nika.yaml'), fixtureFold('fixture-run-b.ndjson'));
     expect(seen).toHaveLength(1);
   });
 
@@ -73,7 +76,7 @@ describe('TraceStore', () => {
     const seen: string[] = [];
     const first = store.onDidUpdate(() => { seen.push('first'); first.dispose(); });
     store.onDidUpdate(() => seen.push('second'));
-    store.set(P('ws', 'flow.nika.yaml'), fold());
+    store.set(P('ws', 'demo.nika.yaml'), fixtureFold('fixture-run-a.ndjson'));
     expect(seen).toEqual(['first', 'second']);
   });
 });

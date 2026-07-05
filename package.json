@@ -408,6 +408,11 @@
           "default": true,
           "description": "Verb-tinted gutter dots on each task line — the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet)."
         },
+        "nika.editor.runDecorations": {
+          "type": "boolean",
+          "default": true,
+          "description": "End-of-line run badges per task after a run (✓ duration · cost — failed in red): the run lives in the editor."
+        },
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
