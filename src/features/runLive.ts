@@ -104,9 +104,21 @@ export function runWorkflowLive(
   let buffer = '';
   let lastPainted = '';
   let lastStorePublish = 0;
+  let lastProgress = '';
   const paint = (): void => {
     const model = foldTrace(buffer);
     if (model.tasks.size === 0) { return; }
+    // The stop button's heartbeat: `■ 3/7` — settled over scheduled.
+    // Posted only on change (settling is the only thing that moves it).
+    let settled = 0;
+    for (const t of model.tasks.values()) {
+      if (TERMINAL.has(t.status)) { settled += 1; }
+    }
+    const progressKey = `${settled}/${model.tasks.size}`;
+    if (progressKey !== lastProgress) {
+      lastProgress = progressKey;
+      dagPanel.runProgress(settled, model.tasks.size);
+    }
     // Editor surfaces read the SAME fold through the store — throttled
     // here (the close handler publishes the exact final unconditionally).
     const now = Date.now();
@@ -167,6 +179,9 @@ export function runWorkflowLive(
     const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';
     const cls = verdict === 'completed' ? 'st-success' : verdict === 'cancelled' ? 'st-cancelled' : 'st-failed';
     dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
+    // The verdict banner — the same summary, visible WITHOUT opening the
+    // feed (summarizeRun leads with its own icon; the banner owns it).
+    dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}`, cls);
     // Only meaningful runs land (≥1 task event) — a spawn that died
     // before any task event has nothing worth resuming from.
     if (model.tasks.size > 0 && buffer.length > 0) {

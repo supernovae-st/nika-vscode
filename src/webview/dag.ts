@@ -265,6 +265,8 @@ type ExtToWebviewMessage =
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
+  | { kind: 'run:progress'; done: number; total: number }
+  | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' };
 
@@ -2186,7 +2188,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['F', 'fit'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['W', 'waves'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -2443,6 +2445,8 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // switch must not keep showing the PREVIOUS file's forecast; the
       // new file's check will re-push its own (dag:cost) when it lands.
       applyCostChip(null);
+      // A verdict is per-run, per-file — never carry it across a switch.
+      hideRunVerdict();
       break;
     case 'dag:updateStatus':
       // The live present wins over any replay scrub (runsView law).
@@ -2481,6 +2485,12 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'run:state':
       setRunUiState(msg.running);
+      break;
+    case 'run:progress':
+      applyRunProgress(msg.done, msg.total);
+      break;
+    case 'run:verdict':
+      showRunVerdict(msg.icon, msg.text, msg.cls);
       break;
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);
@@ -2564,7 +2574,55 @@ function setRunUiState(running: boolean): void {
   const resumeBtn = document.getElementById('btn-run-resume') as HTMLButtonElement | null;
   if (resumeBtn) { resumeBtn.disabled = running; }
   stop?.toggleAttribute('hidden', !running);
+  if (running) {
+    // A fresh run resets the heartbeat label and claims the verdict spot.
+    if (stop) { stop.textContent = '■ Stop'; }
+    hideRunVerdict();
+  }
 }
+
+/** `■ 3/7` — settled over scheduled, the run's glanceable heartbeat. */
+function applyRunProgress(done: number, total: number): void {
+  const stop = document.getElementById('btn-stop');
+  if (stop && total > 0) { stop.textContent = `■ ${done}/${total}`; }
+}
+
+// ─── Verdict banner · the run's close, visible without the feed ─────────────
+
+let verdictTimer: ReturnType<typeof setTimeout> | undefined;
+
+function hideRunVerdict(): void {
+  if (verdictTimer) { clearTimeout(verdictTimer); verdictTimer = undefined; }
+  const el = document.getElementById('run-verdict');
+  el?.classList.remove('rv-in');
+  el?.setAttribute('hidden', '');
+}
+
+function showRunVerdict(icon: string, text: string, cls: string): void {
+  const el = document.getElementById('run-verdict');
+  if (!el) { return; }
+  if (verdictTimer) { clearTimeout(verdictTimer); }
+  el.className = cls; // st-success · st-failed · st-cancelled — one tint
+  el.replaceChildren();
+  const iconEl = document.createElement('span');
+  iconEl.className = 'rv-icon';
+  iconEl.textContent = icon;
+  const textEl = document.createElement('span');
+  textEl.textContent = text;
+  el.append(iconEl, textEl);
+  el.title = 'Click for the full run story (activity feed)';
+  el.removeAttribute('hidden');
+  // Double-rAF so the transition runs on reveal (hidden → visible needs a
+  // painted frame in between); reduced-motion gets no slide via CSS.
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('rv-in')));
+  verdictTimer = setTimeout(hideRunVerdict, 8000);
+}
+
+document.getElementById('run-verdict')?.addEventListener('click', () => {
+  hideRunVerdict();
+  const feed = document.getElementById('activity');
+  if (feed?.hasAttribute('hidden')) { toggleActivity(); }
+});
 
 function applyCostChip(forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null): void {
   const chip = document.getElementById('run-cost');
@@ -2772,6 +2830,15 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
+  // Run keys — modifier-free only (⌘R must stay the browser/editor's).
+  // requestRun's own re-entry guard makes repeats harmless.
+  if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (e.key === 'r' || e.key === 'R') requestRun(false);
+    if (e.key === 'm' || e.key === 'M') requestRun(true);
+    if ((e.key === 's' || e.key === 'S') && document.body.classList.contains('running')) {
+      vscode.postMessage({ kind: 'dag:cancelRun' });
+    }
+  }
   if (e.key === ' ' && replayer.active) { e.preventDefault(); replayer.toggle(); }
   if (e.key === 'Delete' || e.key === 'Backspace') renderer.requestDeleteFocused();
   if (e.key === 'Enter' && renderer.focused) {

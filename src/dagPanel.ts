@@ -40,6 +40,11 @@ export type ExtToWebviewMessage =
   // extension-side -- the webview stays dumb about diff semantics.
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
   | { kind: 'diff:clear' }
+  // Live-run heartbeat — `■ 3/7` on the stop button while tasks settle.
+  | { kind: 'run:progress'; done: number; total: number }
+  // Run close — the verdict banner (the summary made visible without
+  // opening the feed): icon + one summarizeRun line + status class.
+  | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   // Live-run lifecycle — the toolbar flips ▶/■ on this (replayed on
   // dag:ready so a reloaded panel keeps the truthful state).
   | { kind: 'run:state'; running: boolean }
@@ -131,6 +136,16 @@ export class DagPanel implements vscode.Disposable {
   public setRunState(running: boolean): void {
     this.runState = running;
     this.postMessage({ kind: 'run:state', running });
+  }
+
+  /** Live-run heartbeat: `done` settled of `total` scheduled tasks. */
+  public runProgress(done: number, total: number): void {
+    this.postMessage({ kind: 'run:progress', done, total });
+  }
+
+  /** Run-close verdict banner — the summary, visible without the feed. */
+  public runVerdict(icon: string, text: string, cls: string): void {
+    this.postMessage({ kind: 'run:verdict', icon, text, cls });
   }
 
   /** Load a recorded run into the webview scrubber (time-travel). */
@@ -696,6 +711,7 @@ export class DagPanel implements vscode.Disposable {
     <div id="cmdk-list"></div>
   </div>
   <div id="hover-card" role="tooltip"></div>
+  <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>

@@ -31,6 +31,18 @@ announce line (forever-v0.x).
   twin (one shared flow · the same honest notices on an older binary or
   a first run).
 
+### The run lifecycle, made visible
+- **Verdict banner** — the run's close lands top-center on the canvas
+  (`✓ run completed · 3 tasks · 2.3s · $0.04 · ↻ 2 cached`), one status
+  tint, slides in, self-dismisses, click opens the full story in the
+  feed. The aurora says *something ended*; the banner says **what** —
+  no more opening the activity feed to learn the verdict.
+- **Heartbeat on ■** — the Stop button counts settled tasks live
+  (`■ 3/7`) while the run flows; resets honestly on every new run.
+- **Run keys** — `R` run · `M` mock preview · `S` stop, on the canvas
+  (modifier-free only; the `?` explainer teaches them). The whole run
+  loop is now keyboard-drivable.
+
 ### Cost delta on the run pill (the Infracost lesson)
 - The cost chip now shows the **change vs the last commit** beside the
   ceiling (`$0.07 · Δ +$0.02`, amber when it grew) — at review time the

@@ -2625,6 +2625,66 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   #run-controls .rc-resume { display: none; }
 }
 
+/* ─── Verdict banner · the run's close, visible without the feed ──────────
+ * Top-center, one status tint, slides in on close and self-dismisses —
+ * the aurora says "something ended", THIS says what. Click → the feed. */
+#run-verdict {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translate(-50%, -8px);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(72vw, 640px);
+  height: 30px;
+  padding: 0 14px;
+  font-size: 11px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-bg) 88%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 7px;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.22s ease-out, transform 0.22s ease-out;
+  pointer-events: auto;
+}
+
+#run-verdict.rv-in {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+#run-verdict[hidden] {
+  display: none;
+}
+
+#run-verdict .rv-icon {
+  font-size: 12px;
+}
+
+/* One tint per §3.1 verdict — the icon carries the color, the border a
+ * whisper of it; the body stays readable ink (a banner, not an alarm). */
+#run-verdict.st-success .rv-icon { color: var(--nk-st-success); }
+#run-verdict.st-success { border-color: color-mix(in srgb, var(--nk-st-success) 40%, var(--nk-border)); }
+#run-verdict.st-failed .rv-icon { color: var(--nk-st-failed); }
+#run-verdict.st-failed { border-color: color-mix(in srgb, var(--nk-st-failed) 45%, var(--nk-border)); }
+#run-verdict.st-cancelled .rv-icon { color: var(--nk-ink-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  #run-verdict {
+    transform: translate(-50%, 0);
+    transition: opacity 0.01s linear;
+  }
+}
+
 /* Cache-hit cards (ADR-099 resume) — a rehydrated success must read ↻,
  * never fresh-green: no celebration flash (nothing executed), dashed
  * stroke (reconstructed, not run), softened bar + glyph. The subtitle
