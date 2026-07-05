@@ -62,6 +62,15 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **The material register** — the canvas answers « what is it made
+  of? »: a modular synth rack. Status dots became LEDs (glass-dome
+  specular · lit states bloom), verb tiles became keycaps (light
+  catch · seated lip · hue backlight), ports became patch-bay jacks
+  (dark bore · machined collar that lights on hover), Run/Stop became
+  machine keys that physically PRESS (1.5px travel · lip compression),
+  nika cards became module faces (grain + faint convexity) and the
+  floating pills sit on extruded lips. Semantics untouched; light skin
+  keeps it at a whisper; high contrast strips every material.
 - **Follow the run (G)** — a camera mode no workflow tool ships: the
   viewport tracks the frontier, gliding only when a starting task
   leaves the comfort band, and any human pan instantly yields the

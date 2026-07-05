@@ -121,6 +121,29 @@ High contrast wins over both skins TWICE: the OS `forced-colors`
 media query AND VS Code's own hc themes (`.vscode-high-contrast`
 body class — hard 2px borders, zero shadows/grain/loops).
 
+## 4b · The material register (skeuomorphism 2040)
+
+The Socratic question: **what is this canvas MADE of?** Answer: a
+modular synth rack — a DAG of signal flow is literally what a modular
+synthesizer is. Material honesty, never 2010 leather:
+
+- **Cards are MODULES** — machined faces (grain print + a barely-there
+  vertical convexity, nika skin); the deck pills carry an extruded
+  bottom lip (they sit ON the surface).
+- **Ports are patch-bay JACKS** — dark bore + machined collar; hover
+  lights the collar. The wire plugs INTO the module.
+- **Status dots are LEDs** — glass-dome specular up-left, color core,
+  dark rim seat; LIT states bloom (running/failed 6px halo, success
+  5px). Cached = an unlit dome behind a green ring.
+- **Verb tiles are KEYCAPS** — top light catch, seated bottom lip, the
+  verb hue as backlight glow through the glyph.
+- **Run/Stop are MACHINE KEYS** — extruded (2px lip + drop), and they
+  PRESS: 1.5px travel with lip compression at 90ms.
+
+Rules: semantics are never material-swapped (LOCK-005 hues untouched);
+the editor-light skin keeps materials at a whisper; high contrast
+strips every material (flat system colors).
+
 ## 5 · Status grammar (LOCK-005 · never brand-swapped)
 
 | state | card | dot | sub line |
