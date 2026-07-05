@@ -54,6 +54,14 @@ announce line (forever-v0.x).
 - **Drag got faster**: pointer moves are rAF-coalesced and wire re-routes
   write through an id→element cache — O(touched wires) per frame, no
   edge-list scans mid-drag.
+- **Research-grounded motion** (n8n source · React Flow · tldraw ·
+  Vercel motion notes): running cards wear the n8n dual-arc ring
+  (1.5s), retrying the same ring at 4.5s (backoff made visible), the
+  settle ripple breathes once on live ✓, a faint lamp follows the
+  pointer (nika), data edges animate on the live frontier ONLY (settled
+  edges rest as a quiet success tint), and the selection halo is
+  zoom-compensated so it reads at every zoom. Focus dim recalibrated
+  to keep context readable (25%).
 - **The reference background**: the nika skin's page went warm
   near-black (blue now lives only in accents, wires, verbs and the
   aurora), the activity feed became the nika.sh terminal card (chrome

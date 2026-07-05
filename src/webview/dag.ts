@@ -1272,6 +1272,12 @@ class DagRenderer {
   private updateZoomChrome(): void {
     const pct = document.getElementById('zoom-pct');
     if (pct) { pct.textContent = `${Math.round(this.currentZoom * 100)}%`; }
+    // Zoom-compensated chrome (selection halo): same OPTICAL weight at
+    // every zoom, clamped so far-out never grows comedy halos.
+    document.body.style.setProperty(
+      '--zoom-comp',
+      String(Math.min(Math.max(1 / this.currentZoom, 1), 3)),
+    );
     // Thresholds sit BELOW the typical fit zoom (~0.42): the first paint
     // shows the FULL card (refs show content at overview zoom); far is a
     // deliberate deep zoom-out to the map read.
@@ -1462,13 +1468,26 @@ class DagRenderer {
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
-  /** Data flows: edges whose source completed get the animated current. */
+  /** Edge life (the live-frontier discipline · DESIGN.md §6): an edge
+   *  ANIMATES only while data travels NOW (source settled → target
+   *  running/retrying); both-settled edges rest as a quiet success tint.
+   *  Never the whole graph. */
   private updateEdgeFlow(): void {
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('flowing', (d) => {
         if (this.ghostIds.has(d.id)) { return false; } // nothing crosses a missing wire
         const ends = this.edgeEnds.get(d.id);
-        return ends ? this.nodeMap.get(ends.source)?.status === 'success' : false;
+        if (!ends) { return false; }
+        const tgt = this.nodeMap.get(ends.target)?.status;
+        return this.nodeMap.get(ends.source)?.status === 'success'
+          && (tgt === 'running' || tgt === 'retrying');
+      })
+      .classed('done', (d) => {
+        if (this.ghostIds.has(d.id)) { return false; }
+        const ends = this.edgeEnds.get(d.id);
+        if (!ends) { return false; }
+        return this.nodeMap.get(ends.source)?.status === 'success'
+          && this.nodeMap.get(ends.target)?.status === 'success';
       })
       .classed('critical', (d) => this.criticalEdges.has(d.id));
   }

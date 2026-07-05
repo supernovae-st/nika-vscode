@@ -71,12 +71,12 @@ On narrow panels the dock un-stacks into two floors; nothing overlaps.
 
 ### `nika` (default · the brand ambiance · always dark)
 
-Blue-black, ONE blue accent family, Martian Mono, the aurora at run
-close. Page `#0a0b10`, survey dots `rgb(141 180 255 / 0.05)` @22px.
-Cards `#14171f` with blue-tinted hairlines `rgb(140 170 255 / 0.14)`,
-soft tight+ambient shadow, seam highlight inside the top edge. Focus
-and selection glow accent `#4f86ff`. Quiet by default — glow is spent
-on running/selected/failed only.
+THE reference background (operator lock): warm near-black page
+`#131313` with white `+` survey crosses @40px, raised NEUTRAL cards
+(`#1e1f23` · white hairlines 0.08) — **blue lives only in accents**:
+data wires, verb tiles, selection, the pointer lamp, the aurora.
+Martian Mono everywhere. Quiet by default — glow is spent on
+running/selected/failed only.
 
 ### `editor` (adaptive · `nika.dag.theme: "editor"`)
 
@@ -115,15 +115,22 @@ The orchestrated moments (each spent exactly once, where it means):
 - **Entrance** — cards rise in staggered by wave (70ms/wave · 0.32s),
   wires fade in just after their source card's wave: the DAG performs
   its own execution order on load.
-- **« AI is working »** — running cards wear a slow verb-hued comet
-  orbiting the border (conic ring, animated `@property` angle, 2.6s) —
-  the 2026 streaming signature. Failed keeps the static red ring.
+- **« AI is working »** — running cards wear the n8n ring (verbatim
+  spec from their canvas source): two bright verb-hued arcs bridged at
+  20% alpha, orbiting on an animated `@property` angle at **1.5s**;
+  RETRYING wears the same ring at **4.5s** — slower reads as holding,
+  the backoff made visible. Failed keeps the static red ring.
 - **Settle** — the moment a task lands ✓ in a LIVE run, one soft green
   ring breathes out of the card (0.7s, once); the verdict value pops in.
   A loaded finished graph stays still — motion narrates change, never
   state.
 - **The plan breathes** — dependency bead-chains march only while a run
-  is live; the progress fill carries a light sweep.
+  is live; the progress fill carries a light sweep. Data edges animate
+  on the LIVE FRONTIER only (source settled → target running); a
+  both-settled edge rests as a quiet success tint — never the whole
+  graph (the React Flow discipline).
+- **Selection is zoom-compensated** — the halo keeps one optical weight
+  at every zoom (`calc(2.5px * var(--zoom-comp))`, clamped ×3).
 - **Depth** — a faint blue lamp follows the pointer over the pool (nika
   skin · two custom props per frame, paint-only).
 - **Close** — the aurora speaks once at a live run's end (nika skin).

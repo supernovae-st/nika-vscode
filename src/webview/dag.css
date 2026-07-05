@@ -414,25 +414,33 @@ body.running .dag-edge.edge-dep {
     0 0 0 3px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 12%, transparent);
 }
 
-/* The 2026 « AI is working » signature: a slow verb-hued comet orbiting
- * the card border (conic ring masked to a 1.5px rim). Compositor-only
- * (an animated @property angle), one per running card. */
-.dag-node.status-running .nc::before {
+/* The 2026 « AI is working » signature — the n8n running ring, verbatim
+ * spec (two bright arcs · dim bridge · animated @property angle), masked
+ * to a 1.5px rim, verb-hued, compositor-only. Running spins at 1.5s;
+ * RETRYING wears the SAME ring at 4.5s — slower reads as « holding »
+ * (the backoff made visible), the n8n waiting semantics. */
+.dag-node.status-running .nc::before,
+.dag-node.status-retrying .nc::before {
   content: '';
   position: absolute;
-  inset: -1.5px;
+  inset: -2px;
   border-radius: inherit;
   padding: 1.5px;
   background: conic-gradient(
     from var(--nk-angle),
-    transparent 0deg 300deg,
-    var(--dv-hue, var(--nk-st-running)) 340deg,
-    transparent 360deg
+    var(--dv-hue, var(--nk-st-running)) 0% 20%,
+    color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 20%, transparent) 35% 65%,
+    var(--dv-hue, var(--nk-st-running)) 90% 100%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation: nk-orbit 2.6s linear infinite;
+  animation: nk-orbit 1.5s linear infinite;
   pointer-events: none;
+}
+
+.dag-node.status-retrying .nc::before {
+  --dv-hue: var(--nk-st-retrying);
+  animation-duration: 4.5s;
 }
 
 @keyframes nk-orbit {
@@ -555,20 +563,28 @@ body.running .dag-edge.edge-dep {
 /* ─── Focus mode · lineage stays lit, the rest fades ────────────────────── */
 
 .dag-node.dimmed {
-  opacity: 0.12;
+  opacity: 0.25;
   pointer-events: auto;
 }
 
 .dag-edge.dimmed {
-  opacity: 0.06;
+  opacity: 0.1;
 }
 
-/* ─── Edge flow · data visibly travels once the source completed ────────── */
+/* ─── Edge flow · the LIVE FRONTIER only (React Flow discipline) ──────────
+   An edge animates while data is travelling NOW (source settled → target
+   running); a fully settled edge rests as a quiet success tint. Never
+   the whole graph. */
 
 .dag-edge.flowing {
   stroke: var(--nk-st-success);
   stroke-dasharray: 7 5;
   animation: edge-flow 0.9s linear infinite;
+}
+
+.dag-edge.done {
+  stroke: color-mix(in srgb, var(--nk-st-success) 55%, var(--nk-st-muted));
+  opacity: 0.85;
 }
 
 @keyframes edge-flow {
@@ -1527,10 +1543,7 @@ body.vscode-light .logo-dark { display: none; }
    (dim · a decision, not a defect — NEVER red) ──────────────────────── */
 
 .dag-node.status-retrying .nc {
-  border-color: color-mix(in srgb, var(--nk-st-retrying) 55%, var(--nk-card-border));
-  box-shadow:
-    var(--nk-card-shadow),
-    0 0 0 3px color-mix(in srgb, var(--nk-st-retrying) 13%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 40%, var(--nk-card-border));
 }
 
 .dag-node.status-retrying .node-spinner {
@@ -1569,7 +1582,8 @@ body.vscode-light .logo-dark { display: none; }
     animation: none !important;
   }
 
-  .dag-node.status-running .nc::before {
+  .dag-node.status-running .nc::before,
+  .dag-node.status-retrying .nc::before {
     display: none;
   }
 
@@ -1923,12 +1937,13 @@ body.lod-far .dag-node:hover .nc {
   transform: none;
 }
 
-/* Selection: accent ring + gap (Linear focus grammar). */
+/* Selection: accent halo, ZOOM-COMPENSATED (n8n) — the ring stays the
+ * same optical weight at every zoom instead of vanishing when far out. */
 .dag-node.selected .nc {
   border-color: var(--nk-accent);
   box-shadow:
     var(--nk-card-shadow-hover),
-    0 0 0 2.5px color-mix(in srgb, var(--nk-accent) 28%, transparent);
+    0 0 0 calc(2.5px * var(--zoom-comp, 1)) color-mix(in srgb, var(--nk-accent) 28%, transparent);
 }
 
 .nc-head {
