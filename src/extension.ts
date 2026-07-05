@@ -64,6 +64,7 @@ import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
+import { explainWorkflow } from './core/explainWorkflow';
 import { registerNikaTaskProvider } from './features/taskProvider';
 import { NikaDocProvider, SCHEME as DOC_SCHEME, openNikaDoc } from './features/virtualDocs';
 import { registerLmTools } from './features/lmTools';
@@ -859,6 +860,30 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       runNikaCommand(state.resolvedServerPath, 'inspect', doc.uri.fsPath);
+    }),
+    // Command: deterministic workflow explanation (offline · zero LLM) —
+    // the engine's graph+check projections composed into a readable
+    // story: waves · cost ceiling · what it touches · structural risks.
+    commands.registerCommand('nika.explainWorkflow', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      let graph;
+      try {
+        graph = await service.dagForDocument(doc);
+      } catch {
+        graph = undefined;
+      }
+      if (!graph || graph.nodes.length === 0) {
+        void window.showWarningMessage('Nika: cannot explain — the graph did not parse (fix conformance findings first).');
+        return;
+      }
+      const md = explainWorkflow(graph, service.peekCheck(doc.uri.toString())?.report);
+      const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
+      try {
+        await commands.executeCommand('markdown.showPreview', preview.uri);
+      } catch {
+        await window.showTextDocument(preview, { preview: true });
+      }
     }),
   );
 

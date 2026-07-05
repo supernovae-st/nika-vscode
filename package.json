@@ -215,6 +215,11 @@
         "icon": "$(list-tree)"
       },
       {
+        "command": "nika.explainWorkflow",
+        "title": "Nika: Explain Workflow (deterministic · offline)",
+        "icon": "$(book)"
+      },
+      {
         "command": "nika.inferPermits",
         "title": "Nika: Insert Inferred Permits Boundary",
         "icon": "$(shield)"

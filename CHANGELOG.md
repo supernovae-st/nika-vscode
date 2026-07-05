@@ -31,6 +31,16 @@ announce line (forever-v0.x).
   twin (one shared flow · the same honest notices on an older binary or
   a first run).
 
+### Explain Workflow (deterministic · offline)
+- **`Nika: Explain Workflow`** renders the workflow as a readable story —
+  wave-by-wave narration (parallelism · when-gates · fan-outs), the cost
+  ceiling before a token is spent (honest about FLOOR when unbounded),
+  what it touches (models · tools · secret flow), and the structural
+  risks (pinch points · blast radius · ghost edges · cycles). Composed
+  strictly from the engine's `graph` + `check` projections: zero LLM,
+  zero invention, works offline — the floor of truth an agent-enriched
+  explanation can build on, never replace.
+
 ## [0.93.1] · 2026-07-05
 
 Release-infra only — no code change vs 0.93.0. The v0.93.0 tag's CI run
