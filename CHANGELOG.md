@@ -42,6 +42,34 @@ group it — the node stays the content, the YAML stays the truth.
   groups the tasks that follow it into a labeled background box on the
   canvas — n8n-style logic grouping, zero-cost on the YAML.
 
+### Audit before you run (the moat, on the canvas)
+- **Cost forecast** on the run pill · `nika check` prices the workflow
+  statically when tasks declare `max_tokens`; the pill shows `$min–$max`
+  (a true ceiling, green) or — honestly — `≥ $X` (amber) when an
+  uncapped task makes it a floor, never implying a ceiling the engine
+  didn't prove. Audited before a token is spent.
+- **Audit chips** on the cards · a `⚠N` chip surfaces the task-attributed
+  `nika check` findings (conformance · secret-flow · permits · schema ·
+  unknown-tools), tinted by worst severity, click-through to the full
+  pre-flight report.
+- **Stale count** on the run pill · a `△N` chip summarises what a run
+  will re-execute (edited tasks + their downstream cone), with an honest
+  note that a run re-executes them whole-graph today (partial when the
+  engine ships `--from`).
+
+### Move without the mouse
+- **Drop-a-port cmdk** · dragging a node's out-port onto empty canvas
+  opens a small verb palette AT the cursor (type-to-filter · ↑↓ · Enter);
+  pick a verb → a pre-wired task lands in the YAML.
+- **Keyboard navigation** · Tab / Shift-Tab cycle the topological node
+  order, ↑ walks to a dependency, ↓ to a dependent, Enter opens the YAML
+  — the canvas is fully keyboard-drivable.
+
+### The first pixel
+- **Onboarding empty-state** · with no workflow open the panel pitches
+  itself: what the canvas does, Show-active / ＋New-workflow buttons, a
+  3-gesture crib, and a link into the getting-started walkthrough.
+
 ### Generation, staged
 - **Ghost-stage generate** · a generated workflow opens as an untitled
   draft (nothing on disk) with an explicit **Save workflow / Refine /
@@ -53,9 +81,15 @@ group it — the node stays the content, the YAML stays the truth.
 ### Proof
 - The live-run wire is pinned against the REAL engine (fan-out folds to
   the exact terminal state · chunk-boundary-independent on the real
-  stream · failure verdict · mock override of a cloud model). Every
-  canvas change is proven on a Playwright/Chrome harness in BOTH skins.
-  Suite: 276 tests across 21 files, parity gate green.
+  stream · failure verdict · mock override of a cloud model).
+- A **real-host smoke suite** (`@vscode/test-electron`) launches an
+  actual VS Code and asserts activation · command registration · the
+  language binding · the CSP webview load — the layer the unit + pixel
+  harnesses can't reach (`npm run test:integration`). It found a real
+  teardown bug: the LSP client's `stop()` rejects when called while
+  starting; `safeStopClient` now guards a window closed mid-LSP-start.
+- Every canvas change is proven on a Playwright/Chrome harness in BOTH
+  skins. Suite: 304 tests across 26 files, parity gate green.
 
 ## [0.92.0] · 2026-07-05
 
