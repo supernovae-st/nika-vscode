@@ -3,6 +3,60 @@
 All notable changes to the extension. Versions track the engine's
 announce line (forever-v0.x).
 
+## [0.93.0] · 2026-07-05
+
+The canvas becomes an operating surface: run it, watch it, replay it,
+group it — the node stays the content, the YAML stays the truth.
+
+### Run from the canvas
+- **Run pill** (bottom-center · the 2026 canvas placement) · **▶ Run**
+  rides the full capability-gated run · **▶ mock** streams
+  `run --model mock/echo` (deterministic · zero keys · zero network —
+  the onboarding wow) · **■ Stop** appears only while running (graceful
+  cancel). The lifecycle is truthful: the toolbar flips ▶/■ from the
+  actual spawn/close, replayed on panel reload so a backgrounded run
+  keeps its honest ■. The click shimmers pending cards before the first
+  engine event (optimistic latency masking).
+- **Port-drop create** · drag a node's out-port onto empty canvas to
+  create the next task pre-wired (`depends_on` declared) — the Flows
+  gesture, discoverable.
+
+### Time-travel replay
+- **Replay scrubber** · a recorded run's whole timeline goes to the
+  webview; the handle position IS the truth and the DAG state at any
+  instant is computed locally (60fps · no round-trips). Play/pause
+  (Space), scrub the track, read the elapsed time; scrubbing back and
+  forth never spams the activity feed. `nika.replay.speed` feeds the
+  playback budget.
+
+### Edited-since-run awareness
+- **Dirty-nodes** · a `△ stale` badge marks every task whose substance
+  changed since its last successful run, and its downstream cone.
+  Fingerprints are reformat-stable (indent · blanks · comments · key
+  order never dirty) and record at spawn time (an edit mid-run is not
+  "successfully ran"); the last-success state lives in a
+  `.nika/canvas-state.json` sidecar, never in the workflow YAML.
+
+### Grouping
+- **Regions** · a `# nika:region <name>` comment (ignored by the engine)
+  groups the tasks that follow it into a labeled background box on the
+  canvas — n8n-style logic grouping, zero-cost on the YAML.
+
+### Generation, staged
+- **Ghost-stage generate** · a generated workflow opens as an untitled
+  draft (nothing on disk) with an explicit **Save workflow / Refine /
+  Discard** loop; Refine re-runs the same oracle-checked pipeline with
+  an added instruction; Discard is explicit-only (a dismissed prompt
+  loses nothing). The pipeline (best-of-N · scoring · repair) is
+  untouched.
+
+### Proof
+- The live-run wire is pinned against the REAL engine (fan-out folds to
+  the exact terminal state · chunk-boundary-independent on the real
+  stream · failure verdict · mock override of a cloud model). Every
+  canvas change is proven on a Playwright/Chrome harness in BOTH skins.
+  Suite: 276 tests across 21 files, parity gate green.
+
 ## [0.92.0] · 2026-07-05
 
 The SOTA night: the linter grows Ruff-grade controls, the language

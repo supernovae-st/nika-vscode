@@ -77,10 +77,25 @@ messages and positions come from the engine, not the extension.*
   args — before any run. The **model chip edits** (provider picker →
   one undoable YAML edit), `⌀` badges carry the mean duration across
   your recorded runs, ports appear on hover (drag out-port → card =
-  `depends_on`), and a **verb palette + omnibar** sits at the bottom:
-  `+ infer after gather` inserts deterministically, `/text` filters,
-  a sentence routes to oracle-checked generation. Semantic zoom keeps
-  100-task graphs readable as a map
+  `depends_on`, or drop on empty canvas → a new pre-wired task), and a
+  **verb palette + omnibar** sits at the bottom: `+ infer after gather`
+  inserts deterministically, `/text` filters, a sentence routes to
+  oracle-checked generation. Semantic zoom keeps 100-task graphs
+  readable as a map
+- **Run from the canvas** · a **▶ Run / ▶ mock / ■ Stop** pill drives the
+  run without leaving the panel; **▶ mock** streams
+  `run --model mock/echo` (deterministic · zero keys · zero network).
+  The DAG lights live; the pill flips ▶/■ from the real spawn/close
+- **Time-travel replay** · click a recorded run and **scrub its whole
+  timeline** — play/pause (Space), drag the handle, the DAG state at any
+  instant computed locally. Replay re-renders, never re-executes
+- **Dirty-nodes** · a `△ stale` badge marks every task edited since its
+  last successful run (and its downstream cone) — you see what a run
+  will re-execute. The last-success state lives in a
+  `.nika/canvas-state.json` sidecar, never in your workflow YAML
+- **Regions** · a `# nika:region <name>` comment (ignored by the engine)
+  groups the tasks that follow it into a labeled box on the canvas —
+  logic grouping at zero cost to the YAML
 - **The nika.sh skin** · the panel ships the landing page's design
   language by default — engineered-black register, one blue accent, the
   4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
@@ -167,6 +182,27 @@ tasks:
 
 `infer` (LLM) · `exec` (subprocess) · `invoke` (builtin/tool · HTTP fetch is the
 `nika:fetch` builtin here) · `agent` (agent loop · default-deny tools).
+
+### Canvas regions (editor-only · engine ignores it)
+
+A `# nika:region <name>` comment groups the tasks that follow it into a
+labeled box on the DAG canvas. It's a plain YAML comment — the engine
+never sees it, so it costs nothing at runtime:
+
+```yaml
+tasks:
+  # nika:region Ingest
+  - id: fetch_pr
+    invoke: { tool: "nika:fetch", args: { url: "${{ env.PR_URL }}" } }
+  - id: analyze_diff
+    depends_on: [fetch_pr]
+    infer: { prompt: "Plan the review of ${{ tasks.fetch_pr.output }}." }
+
+  # nika:region Ship
+  - id: post_comment
+    depends_on: [analyze_diff]
+    exec: { command: "gh pr comment $PR --body-file verdict.md" }
+```
 
 ## Links
 
