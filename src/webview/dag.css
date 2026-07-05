@@ -34,10 +34,10 @@ body {
   --nk-accent: var(--vscode-charts-blue, #38bdf8);
   --nk-data: var(--vscode-charts-blue, #3794ff);
   --nk-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(127, 127, 127, 0.28)));
-  --nk-surface: var(--vscode-editorWidget-background);
-  --nk-page: var(--vscode-editor-background);
-  --nk-ink: var(--vscode-editor-foreground);
-  --nk-ink-dim: var(--vscode-descriptionForeground);
+  --nk-surface: var(--vscode-editorWidget-background, #252526);
+  --nk-page: var(--vscode-editor-background, #1f1f1f);
+  --nk-ink: var(--vscode-editor-foreground, #cccccc);
+  --nk-ink-dim: var(--vscode-descriptionForeground, #9d9d9d);
   --nk-mono: var(--vscode-editor-font-family, 'Cascadia Code', 'Fira Code', monospace);
   --nk-ui-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
   --nk-radius: 7px;

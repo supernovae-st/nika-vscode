@@ -45,7 +45,9 @@ export type WebviewToExtMessage =
   | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
-  | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string };
+  | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
+  // Image export — the webview serializes (styles embedded), we save.
+  | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
 
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
@@ -345,6 +347,38 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:showActive':
         this.onShowActive?.();
         break;
+
+      case 'dag:export':
+        void this.saveExport(msg.format, msg.data, msg.name);
+        break;
+    }
+  }
+
+  /** Save a webview-serialized image (SVG text or PNG data URL) to disk. */
+  private async saveExport(format: 'svg' | 'png', data: string, name: string): Promise<void> {
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const target = await vscode.window.showSaveDialog({
+      defaultUri: folder ? vscode.Uri.joinPath(folder, name) : undefined,
+      filters: format === 'png' ? { 'PNG image': ['png'] } : { 'SVG image': ['svg'] },
+      title: `Export DAG as ${format.toUpperCase()}`,
+    });
+    if (!target) { return; }
+    try {
+      const bytes = format === 'png'
+        ? Buffer.from(data.slice(data.indexOf(',') + 1), 'base64')
+        : Buffer.from(data, 'utf-8');
+      await vscode.workspace.fs.writeFile(target, bytes);
+      const choice = await vscode.window.showInformationMessage(
+        `Nika: DAG exported → ${vscode.workspace.asRelativePath(target)}`,
+        'Reveal',
+      );
+      if (choice === 'Reveal') {
+        await vscode.commands.executeCommand('revealFileInOS', target);
+      }
+    } catch (err) {
+      void vscode.window.showErrorMessage(
+        `Nika: DAG export failed — ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -386,6 +420,9 @@ export class DagPanel implements vscode.Disposable {
       `script-src 'nonce-${nonce}'`,
       `img-src ${webview.cspSource} data:`,
       `font-src ${webview.cspSource}`,
+      // Image export inlines the bundled font into the serialized SVG —
+      // the ONLY fetch target is our own extension assets.
+      `connect-src ${webview.cspSource}`,
     ].join('; ');
 
     return /* html */ `<!DOCTYPE html>
@@ -430,6 +467,10 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-curve" title="Smooth edges">∿</button>
       <button id="btn-feed" title="Activity feed — every status transition, live">≣<kbd>L</kbd></button>
       <button id="btn-help" title="What am I looking at?">?<kbd>?</kbd></button>
+    </div>
+    <div class="tb-group">
+      <button id="btn-export-svg" title="Export the graph as SVG (styles embedded)">⤓ svg</button>
+      <button id="btn-export-png" title="Export the graph as PNG (2× raster)">⤓ png</button>
     </div>
     <span id="dag-status"></span>
   </div>

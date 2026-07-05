@@ -30,6 +30,38 @@ const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').mat
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type D3ZoomCall = any;
 
+// ─── Export helpers ─────────────────────────────────────────────────────────
+
+/** The bundled font as a data URI, fetched once (CSP: our assets only). */
+let fontDataUri: string | null = null;
+async function inlineFontDataUri(): Promise<string | null> {
+  if (fontDataUri) { return fontDataUri; }
+  const face = Array.from(document.styleSheets)
+    .flatMap((s) => {
+      try {
+        return Array.from(s.cssRules);
+      } catch {
+        return [];
+      }
+    })
+    .find((r): r is CSSFontFaceRule => r instanceof CSSFontFaceRule);
+  const url = face?.style.getPropertyValue('src').match(/url\("?([^")]+)"?\)/)?.[1];
+  if (!url) { return null; }
+  try {
+    const buf = await (await fetch(url)).arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    fontDataUri = `data:font/woff2;base64,${btoa(bin)}`;
+    return fontDataUri;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Edge aurora · run-verdict signal (nika skin only) ──────────────────────
 // One bright hue-travel on a clean close, a red flash on failure — the
 // nika.sh drum, whispering. CSS owns the visuals; this only flips state.
@@ -703,6 +735,95 @@ class DagRenderer {
     this.renderMinimap();
   }
 
+  // ─── Image export · the WHOLE graph, styles + font embedded ──────────────
+
+  async exportImage(format: 'svg' | 'png'): Promise<void> {
+    const svgEl = this.svg.node();
+    if (!svgEl || !this.currentGraph || this.layoutBox.size === 0) { return; }
+
+    // Export frame = the graph extent, never the live viewport.
+    let maxX = 1;
+    let maxY = 1;
+    for (const b of this.layoutBox.values()) {
+      maxX = Math.max(maxX, b.x + b.w);
+      maxY = Math.max(maxY, b.y + b.h);
+    }
+    const W = Math.ceil(maxX + PADDING);
+    const H = Math.ceil(maxY + PADDING);
+
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', String(W));
+    clone.setAttribute('height', String(H));
+    clone.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    clone.querySelector('g.dag-root')?.removeAttribute('transform');
+
+    // Styles travel INSIDE the file; skin rules re-anchor on :root so the
+    // exported image keeps the active register.
+    const nikaSkin = document.body.dataset.nkTheme === 'nika';
+    let css = '';
+    for (const sheet of Array.from(document.styleSheets)) {
+      let rules: CSSRule[];
+      try {
+        rules = Array.from(sheet.cssRules);
+      } catch {
+        continue;
+      }
+      for (const r of rules) { css += `${r.cssText}\n`; }
+    }
+    if (nikaSkin) {
+      css = css.replace(/body\[data-nk-theme=["']nika["']\]/g, ':root');
+    }
+    const font = await inlineFontDataUri();
+    if (font) {
+      css += `@font-face{font-family:'Martian Mono';src:url('${font}') format('woff2');font-weight:100 800;}`;
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    const style = document.createElementNS(ns, 'style');
+    style.textContent = css;
+    clone.insertBefore(style, clone.firstChild);
+
+    // Background plate — the pool behind the graph.
+    const bg = document.createElementNS(ns, 'rect');
+    bg.setAttribute('x', '0');
+    bg.setAttribute('y', '0');
+    bg.setAttribute('width', String(W));
+    bg.setAttribute('height', String(H));
+    bg.setAttribute('fill', getComputedStyle(document.body).backgroundColor);
+    clone.insertBefore(bg, style.nextSibling);
+
+    const svgText = new XMLSerializer().serializeToString(clone);
+    const name = `${this.currentGraph.workflowName || 'workflow'}-dag`;
+    if (format === 'svg') {
+      vscode.postMessage({ kind: 'dag:export', format, data: svgText, name: `${name}.svg` });
+      return;
+    }
+
+    // PNG · rasterize at 2× through an image element (data: URL — the CSP
+    // allows data: images; blob: would be refused).
+    const img = new Image();
+    const loaded = new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('svg rasterization failed'));
+    });
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+    try {
+      await loaded;
+    } catch {
+      // Fall back to the vector form rather than failing the gesture.
+      vscode.postMessage({ kind: 'dag:export', format: 'svg', data: svgText, name: `${name}.svg` });
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = W * 2;
+    canvas.height = H * 2;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { return; }
+    ctx.scale(2, 2);
+    ctx.drawImage(img, 0, 0);
+    vscode.postMessage({ kind: 'dag:export', format, data: canvas.toDataURL('image/png'), name: `${name}.png` });
+  }
+
   /** Click the minimap → center the main view on that point. */
   minimapNavigate(clientX: number, clientY: number): void {
     const mm = document.getElementById('minimap-svg');
@@ -830,14 +951,16 @@ class DagRenderer {
       .attr('dominant-baseline', 'central')
       .text((d) => verbIcon(d.verb));
 
-    // Task ID label
+    // Task ID label — long ids ellipsize (the hover card carries the full
+    // id); 17 chars is what fits before the spinner zone at 200px width.
+    const clipLabel = (s: string): string => (s.length > 17 ? `${s.slice(0, 16)}…` : s);
     enter
       .append('text')
       .attr('class', 'node-label')
       .attr('x', 44)
       .attr('y', NODE_HEIGHT / 2 - 7)
       .attr('dominant-baseline', 'central')
-      .text((d) => d.label);
+      .text((d) => clipLabel(d.label));
 
     // Subtitle (verb + provider/duration)
     enter
@@ -1828,6 +1951,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
 document.getElementById('btn-help')?.addEventListener('click', () => toggleExplainer());
 document.getElementById('btn-feed')?.addEventListener('click', () => toggleActivity());
+document.getElementById('btn-export-svg')?.addEventListener('click', () => { void renderer.exportImage('svg'); });
+document.getElementById('btn-export-png')?.addEventListener('click', () => { void renderer.exportImage('png'); });
 document.getElementById('btn-add-task')?.addEventListener('click', () => {
   vscode.postMessage({
     kind: 'dag:addTask',
