@@ -20,6 +20,7 @@ import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
+import { runPlanSummary } from '../core/runPlan';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 
@@ -898,6 +899,11 @@ class DagRenderer {
     // attr('class') wiped the overlay classes — restore dim/selection.
     this.refreshDim();
     this.saveState({ graph: this.currentGraph });
+  }
+
+  /** Current graph's nodes (stale flags · the run pill chip reads these). */
+  currentNodes(): DagNode[] {
+    return this.currentGraph?.nodes ?? [];
   }
 
   /** Current graph's node ids — the scrubber seeds complete frames. */
@@ -2202,6 +2208,7 @@ if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.s
 if (savedState?.showFeed) { toggleActivity(); }
 if (savedState?.graph) {
   renderer.render(savedState.graph);
+  refreshStaleChip();
 } else {
   document.getElementById('empty-state')?.removeAttribute('hidden');
 }
@@ -2217,6 +2224,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // loads BEFORE the scrubber arms, so this never closes itself.
       if (replayer.active) { replayer.close(); }
       renderer.render(msg.graph);
+      refreshStaleChip();
       break;
     case 'dag:updateStatus':
       renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs);
@@ -2254,6 +2262,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);
+      refreshStaleChip();
       break;
     case 'dag:replayLoad':
       replayer.load(msg.timeline, msg.label, msg.speed);
@@ -2276,6 +2285,19 @@ function setRunUiState(running: boolean): void {
   if (run) { run.disabled = running; }
   if (mock) { mock.disabled = running; }
   stop?.toggleAttribute('hidden', !running);
+}
+
+function refreshStaleChip(): void {
+  const chip = document.getElementById('run-stale');
+  if (!chip) { return; }
+  const summary = runPlanSummary(renderer.currentNodes());
+  if (summary.total === 0) {
+    chip.setAttribute('hidden', '');
+    return;
+  }
+  chip.textContent = summary.label;
+  chip.title = summary.tooltip ?? '';
+  chip.removeAttribute('hidden');
 }
 
 function requestRun(preview: boolean): void {

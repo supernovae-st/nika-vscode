@@ -2092,3 +2092,24 @@ body.lod-far .region-label { display: none; }
   .region-box { stroke: GrayText !important; fill: transparent !important; }
   .region-label { fill: GrayText !important; }
 }
+
+/* Run pill · stale count (dirty-nodes ↔ run) */
+#run-stale {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+#run-stale[hidden] {
+  display: none;
+}

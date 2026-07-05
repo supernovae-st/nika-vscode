@@ -558,6 +558,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
+      <span id="run-stale" hidden></span>
       <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
       <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
     </div>
