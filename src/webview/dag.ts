@@ -19,6 +19,8 @@ import { line, curveMonotoneY, type Line } from 'd3-shape';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
+import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
+import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 
 // Every animation in this view is gated on the user's motion preference.
@@ -137,7 +139,9 @@ type ExtToWebviewMessage =
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
   | { kind: 'run:state'; running: boolean }
-  | { kind: 'dag:stale'; stale: string[]; direct: string[] };
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
+  | { kind: 'dag:replayEnd' };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -808,6 +812,29 @@ class DagRenderer {
     vp.style.height = `${Math.max(h * s, 8)}px`;
   }
 
+  /**
+   * Scrubber frame: set every node to its status at the scrub instant —
+   * NO feed narration (scrubbing back and forth must not spam the feed).
+   * The graph-wide consequences (critical path · flow · legend) run once.
+   */
+  paintFrame(frames: FrameEntry[]): void {
+    for (const f of frames) {
+      const node = this.nodeMap.get(f.taskId);
+      if (!node) { continue; }
+      node.status = f.status as TaskStatus;
+      node.durationMs = f.durationMs;
+      const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
+      el.attr('class', nodeClassOf(node));
+      el.select('.nc-sub').text(this.getSubtitle(node));
+      document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(f.taskId)}"]`)
+        ?.setAttribute('class', `mm-node st-${f.status}`);
+    }
+    this.recomputeCritical();
+    this.updateEdgeFlow();
+    this.refreshDim();
+    this.updateStatusDisplay();
+  }
+
   /** dag:stale — refresh badges in place; run statuses stay painted. */
   applyStale(stale: string[], direct: string[]): void {
     const staleSet = new Set(stale);
@@ -821,6 +848,11 @@ class DagRenderer {
     // attr('class') wiped the overlay classes — restore dim/selection.
     this.refreshDim();
     this.saveState({ graph: this.currentGraph });
+  }
+
+  /** Current graph's node ids — the scrubber seeds complete frames. */
+  nodeIds(): string[] {
+    return [...this.nodeMap.keys()];
   }
 
   /** Re-measure + redraw the minimap (panel resize re-scales the card). */
@@ -1998,6 +2030,120 @@ function toggleExplainer(): void {
 const renderer = new DagRenderer('dag-container');
 renderer.wireHoverCardPersistence();
 
+// ─── Replay scrubber · time-travel over a recorded run ──────────────────────
+// The extension hands the whole timeline; the webview owns playback — the
+// handle position IS the truth, frameAt paints the DAG at that instant.
+
+class Replayer {
+  private timeline: TimelineEntry[] = [];
+  private startMs = 0;
+  private spanMs = 1;
+  private speed = 6;
+  private pos = 1; // 0..1 along the run
+  private playing = false;
+  private raf = 0;
+  private lastTick = 0;
+  private readonly el = document.getElementById('scrubber');
+  private readonly track = document.getElementById('scrub-track');
+  private readonly fill = document.getElementById('scrub-fill');
+  private readonly handle = document.getElementById('scrub-handle');
+  private readonly timeLabel = document.getElementById('scrub-time');
+  private readonly playBtn = document.getElementById('scrub-play');
+  private dragging = false;
+
+  constructor() {
+    this.playBtn?.addEventListener('click', () => this.toggle());
+    document.getElementById('scrub-close')?.addEventListener('click', () => {
+      this.close();
+      vscode.postMessage({ kind: 'dag:requestRefresh' });
+    });
+    this.track?.addEventListener('mousedown', (e: MouseEvent) => {
+      this.dragging = true;
+      this.pause();
+      this.seekToClientX(e.clientX);
+    });
+    window.addEventListener('mousemove', (e: MouseEvent) => {
+      if (this.dragging) { this.seekToClientX(e.clientX); }
+    });
+    window.addEventListener('mouseup', () => { this.dragging = false; });
+  }
+
+  get active(): boolean {
+    return this.el?.hasAttribute('hidden') === false;
+  }
+
+  load(timeline: TimelineEntry[], label: string, speed: number): void {
+    this.timeline = timeline;
+    this.speed = Math.max(speed, 1);
+    const b = timelineBounds(timeline);
+    this.startMs = b.startMs;
+    this.spanMs = Math.max(b.endMs - b.startMs, 1);
+    this.el?.removeAttribute('hidden');
+    const title = document.getElementById('dag-title');
+    if (title) { title.textContent = `↻ ${label}`; }
+    // Land on the FINAL state (the outcome), ready to scrub back or replay.
+    this.setPos(1);
+  }
+
+  close(): void {
+    this.pause();
+    this.el?.setAttribute('hidden', '');
+    this.timeline = [];
+  }
+
+  private seekToClientX(clientX: number): void {
+    const rect = this.track?.getBoundingClientRect();
+    if (!rect || rect.width === 0) { return; }
+    this.setPos((clientX - rect.left) / rect.width);
+  }
+
+  private setPos(pos: number): void {
+    this.pos = Math.min(1, Math.max(0, pos));
+    const pct = `${(this.pos * 100).toFixed(2)}%`;
+    if (this.fill) { this.fill.style.width = pct; }
+    if (this.handle) { this.handle.style.left = pct; }
+    const atMs = this.startMs + this.pos * this.spanMs;
+    if (this.timeLabel) {
+      const elapsed = this.pos * this.spanMs;
+      this.timeLabel.textContent = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(1)}s` : `${Math.round(elapsed)}ms`;
+    }
+    renderer.paintFrame(frameAt(this.timeline, atMs, renderer.nodeIds()));
+  }
+
+  toggle(): void {
+    if (this.playing) { this.pause(); } else { this.play(); }
+  }
+
+  private play(): void {
+    if (this.timeline.length === 0) { return; }
+    // Restart from the top when parked at the end.
+    if (this.pos >= 1) { this.setPos(0); }
+    this.playing = true;
+    if (this.playBtn) { this.playBtn.textContent = '⏸'; }
+    // Whole run in a watchable window (compressed by replay.speed-ish;
+    // clamp so a long run stays ≤ ~8s and a short one isn't a blink).
+    const budgetMs = Math.min(Math.max(this.spanMs / this.speed, 2500), 8000);
+    this.lastTick = performance.now();
+    const step = (now: number): void => {
+      if (!this.playing) { return; }
+      const dt = now - this.lastTick;
+      this.lastTick = now;
+      this.setPos(this.pos + dt / budgetMs);
+      if (this.pos >= 1) { this.pause(); return; }
+      this.raf = requestAnimationFrame(step);
+    };
+    this.raf = requestAnimationFrame(step);
+  }
+
+  private pause(): void {
+    this.playing = false;
+    if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
+    if (this.playBtn) { this.playBtn.textContent = '▶'; }
+  }
+}
+
+const replayer = new Replayer();
+
 // Restore from webview state (e.g., after being hidden and re-shown)
 const savedState = vscode.getState();
 if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showWaves; }
@@ -2015,6 +2161,10 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
   const msg = event.data;
   switch (msg.kind) {
     case 'dag:load':
+      // Any graph load while a replay is up supersedes it (live run ·
+      // follow-mode retarget · normal show). The replay's OWN graph
+      // loads BEFORE the scrubber arms, so this never closes itself.
+      if (replayer.active) { replayer.close(); }
       renderer.render(msg.graph);
       break;
     case 'dag:updateStatus':
@@ -2053,6 +2203,12 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);
+      break;
+    case 'dag:replayLoad':
+      replayer.load(msg.timeline, msg.label, msg.speed);
+      break;
+    case 'dag:replayEnd':
+      replayer.close();
       break;
   }
 });
@@ -2227,6 +2383,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
+  if (e.key === ' ' && replayer.active) { e.preventDefault(); replayer.toggle(); }
   if (e.key === 'Delete' || e.key === 'Backspace') renderer.requestDeleteFocused();
   if (e.key === 'Enter' && renderer.focused) {
     // Open the YAML at the focused task — the graph hands you back to text.

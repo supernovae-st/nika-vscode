@@ -14,6 +14,7 @@ import * as crypto from 'crypto';
 // `graph --format json` adapter, this panel, and the webview mirror).
 
 import type { DagGraph, TaskStatus } from './core/cliContract';
+import type { TimelineEntry } from './core/traceFold';
 
 export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract';
 
@@ -33,7 +34,12 @@ export type ExtToWebviewMessage =
   // dag:ready so a reloaded panel keeps the truthful state).
   | { kind: 'run:state'; running: boolean }
   // Dirty-nodes refresh (badges only — run statuses stay painted).
-  | { kind: 'dag:stale'; stale: string[]; direct: string[] };
+  | { kind: 'dag:stale'; stale: string[]; direct: string[] }
+  // Time-travel: hand the whole timeline to the webview scrubber (it
+  // computes DAG state at any instant locally — 60fps, zero round-trips).
+  | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
+  // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
+  | { kind: 'dag:replayEnd' };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -103,6 +109,11 @@ export class DagPanel implements vscode.Disposable {
   public setRunState(running: boolean): void {
     this.runState = running;
     this.postMessage({ kind: 'run:state', running });
+  }
+
+  /** Load a recorded run into the webview scrubber (time-travel). */
+  public loadReplay(timeline: TimelineEntry[], label: string, speed: number): void {
+    this.postMessage({ kind: 'dag:replayLoad', timeline, label, speed });
   }
 
   /** Refresh stale badges in place (statuses stay painted post-run). */
@@ -560,6 +571,12 @@ export class DagPanel implements vscode.Disposable {
            placeholder="+ infer after gather · / filter · or describe a workflow…"
            aria-label="Canvas command bar">
     <button id="omni-go" title="Run the command (Enter)">↵</button>
+  </div>
+  <div id="scrubber" hidden>
+    <button id="scrub-play" title="Play the run (Space)">▶</button>
+    <div id="scrub-track"><div id="scrub-fill"></div><div id="scrub-handle"></div></div>
+    <span id="scrub-time">0.0s</span>
+    <button id="scrub-close" title="Exit replay">✕</button>
   </div>
   <div id="dag-legend">
     <div id="legend-chips"></div>

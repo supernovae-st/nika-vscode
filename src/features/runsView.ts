@@ -259,23 +259,17 @@ export async function replayIntoDag(
     edges: [],
   };
 
-  // Reset all node states to pending, show, then drive the timeline.
+  // Reset all node states to pending, show, then hand the timeline to
+  // the webview SCRUBBER: the user scrubs/plays (LangGraph time-travel),
+  // the DAG state at any instant computed locally — no timer round-trips.
   cancelActiveReplay();
   for (const n of graph.nodes) { n.status = 'pending'; n.durationMs = undefined; }
   dagPanel.show(graph);
 
-  const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
-  const entries = model.timeline;
-  if (entries.length === 0) { return; }
-
-  const t0 = entries[0].atMs;
-  const span = Math.max(entries[entries.length - 1].atMs - t0, 1);
-  const budgetMs = Math.min(span / Math.max(speed, 1), 20000);
-
-  for (const entry of entries) {
-    const delay = ((entry.atMs - t0) / span) * budgetMs;
-    activeReplayTimers.push(setTimeout(() => {
-      dagPanel.updateTaskStatus(entry.taskId, entry.status as TaskStatus, entry.durationMs);
-    }, delay));
+  if (model.timeline.length === 0) {
+    void vscode.window.showWarningMessage('Nika: this trace has no timeline to replay.');
+    return;
   }
+  const speed = vscode.workspace.getConfiguration('nika').get<number>('replay.speed', 6);
+  dagPanel.loadReplay(model.timeline, path.basename(traceUri.fsPath).replace(/\.ndjson$/, ''), speed);
 }

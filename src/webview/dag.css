@@ -1958,3 +1958,102 @@ body.run-starting .dag-node.status-pending .node-bg {
 body.lod-far .nc-stale {
   display: none !important;
 }
+
+/* ─── Replay scrubber · time-travel over a recorded run ─────────────────── */
+
+#scrubber {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 34px;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 2px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#scrubber[hidden] {
+  display: none;
+}
+
+#scrub-play,
+#scrub-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+#scrub-play:hover {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
+}
+
+#scrub-close {
+  color: var(--nk-ink-dim);
+}
+
+#scrub-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  cursor: pointer;
+}
+
+#scrub-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--nk-accent);
+  pointer-events: none;
+}
+
+#scrub-handle {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--nk-accent);
+  border: 2px solid var(--nk-page);
+  box-shadow: var(--nk-shadow-1);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+#scrub-time {
+  flex: 0 0 auto;
+  min-width: 42px;
+  text-align: right;
+  font-size: 10.5px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+}
+
+/* The legend gets out of the scrubber's way when it's up. */
+#scrubber:not([hidden]) ~ #dag-legend {
+  bottom: 68px;
+}
