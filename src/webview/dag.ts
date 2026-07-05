@@ -289,6 +289,7 @@ interface WebviewState {
   showFeed?: boolean;
   seenHint?: boolean;
   heatmap?: boolean;
+  followRun?: boolean;
   /** Hand-dragged card positions per workflow (uri → id → root coords).
    *  Presentation ONLY — the YAML stays the single truth; positions live
    *  in webview state, never in the file. Bounded to the last 6 flows. */
@@ -462,6 +463,11 @@ class DagRenderer {
   public smoothEdges = false;
   /** Heatmap overlay — tint cards by run duration (else static cost). */
   public heatmapOn = false;
+  /** Follow-the-run — the camera tracks the frontier (G · a user pan
+   *  pauses it for the session: the human hand always outranks). */
+  public followRun = false;
+  /** Throttle: at most one follow glide per 400ms (parallel starts). */
+  private lastFollowTs = 0;
   /** Alignment guide lines (lazy — exist only mid-drag). */
   private guideV: Selection<SVGLineElement, unknown, null, undefined> | null = null;
   private guideH: Selection<SVGLineElement, unknown, null, undefined> | null = null;
@@ -590,6 +596,12 @@ class DagRenderer {
     this.zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
+        // A HUMAN gesture (sourceEvent set) while following → the camera
+        // yields for the rest of the run; re-toggle G to re-arm.
+        if (event.sourceEvent && this.followRun) {
+          this.followRun = false;
+          document.getElementById('btn-follow')?.classList.remove('active');
+        }
         this.currentZoom = event.transform.k;
         this.currentTx = event.transform.x;
         this.currentTy = event.transform.y;
@@ -1135,6 +1147,69 @@ class DagRenderer {
       (clientX - rect.left - this.currentTx) / this.currentZoom,
       (clientY - rect.top - this.currentTy) / this.currentZoom,
     ];
+  }
+
+  // ─── Follow the run · the camera tracks the frontier (2040 gaze) ─────────
+
+  /** Glide to a newly-running task IF it left the comfortable band —
+   *  never recenter what the eye already holds. */
+  private maybeFollow(taskId: string): void {
+    if (!this.followRun || REDUCED_MOTION) { return; }
+    const now = performance.now();
+    if (now - this.lastFollowTs < 400) { return; }
+    const box = this.layoutBox.get(taskId);
+    const svgEl = this.svg.node();
+    if (!box || !svgEl) { return; }
+    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const k = this.currentZoom;
+    const sx = (box.x + box.w / 2) * k + this.currentTx;
+    const sy = (box.y + box.h / 2) * k + this.currentTy;
+    // The middle 60% is the comfort band — inside it, hold still.
+    const inBand = sx > svgW * 0.2 && sx < svgW * 0.8
+      && sy > svgH * 0.2 && sy < svgH * 0.8;
+    if (inBand) { return; }
+    this.lastFollowTs = now;
+    const t = zoomIdentity
+      .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
+      .scale(k);
+    this.svg
+      .transition().duration(560)
+      .ease(easeCubicOut)
+      .call(this.zoomBehavior.transform as D3ZoomCall, t);
+  }
+
+  // ─── Failure shockwave · causality made physical ──────────────────────────
+
+  /** A LIVE failure ripples its blast cone: every downstream card takes
+   *  a transient hit, staggered by graph distance — you SEE what the
+   *  failure just doomed, before the engine even reports the skips. */
+  private failureShockwave(fromId: string): void {
+    if (REDUCED_MOTION || !document.body.classList.contains('running')) { return; }
+    const depth = new Map<string, number>();
+    const queue: string[] = [fromId];
+    depth.set(fromId, 0);
+    while (queue.length > 0) {
+      const cur = queue.shift();
+      if (cur === undefined) { break; }
+      const d = depth.get(cur) ?? 0;
+      for (const next of this.downstreamOf.get(cur) ?? []) {
+        if (!depth.has(next)) {
+          depth.set(next, d + 1);
+          queue.push(next);
+        }
+      }
+    }
+    for (const [id, d] of depth) {
+      if (id === fromId) { continue; }
+      const el = document.querySelector<SVGGElement>(
+        `.dag-node[data-id="${CSS.escape(id)}"]`,
+      );
+      const nc = el?.querySelector<HTMLElement>('.nc');
+      if (!el || !nc) { continue; }
+      nc.style.setProperty('--shock-delay', `${d * 70}ms`);
+      el.classList.add('shock');
+      setTimeout(() => el.classList.remove('shock'), d * 70 + 700);
+    }
   }
 
   // ─── Heatmap · tint by measured time, else by static cost ────────────────
@@ -2445,6 +2520,8 @@ class DagRenderer {
 
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs, cached);
+      if (status === 'running') { this.maybeFollow(taskId); }
+      if (status === 'failed') { this.failureShockwave(taskId); }
     }
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
@@ -2864,7 +2941,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['/', 'filter'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -3106,6 +3183,7 @@ if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showW
 if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.smoothEdges; }
 if (savedState?.showFeed) { toggleActivity(); }
 if (savedState?.heatmap) { renderer.heatmapOn = true; }
+if (savedState?.followRun) { renderer.followRun = true; }
 if (savedState?.graph) {
   renderer.render(savedState.graph);
   applyResumeCapable(savedState.graph);
@@ -3455,6 +3533,16 @@ wavesBtn?.addEventListener('click', () => {
 });
 syncWavesBtn();
 
+const followBtn = document.getElementById('btn-follow');
+const syncFollowBtn = (): void => { followBtn?.classList.toggle('active', renderer.followRun); };
+function toggleFollow(): void {
+  renderer.followRun = !renderer.followRun;
+  syncFollowBtn();
+  vscode.setState({ ...(vscode.getState() ?? {}), followRun: renderer.followRun });
+}
+followBtn?.addEventListener('click', toggleFollow);
+syncFollowBtn();
+
 const heatBtn = document.getElementById('btn-heat');
 const syncHeatBtn = (): void => { heatBtn?.classList.toggle('active', renderer.heatmapOn); };
 function toggleHeatmap(): void {
@@ -3549,6 +3637,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'a' || e.key === 'A') { void resetLayout(); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
+  if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }
+  // K (or ⌘K) — the command muscle: focus the omnibar input.
+  if (e.key === 'k' || e.key === 'K') {
+    e.preventDefault();
+    (document.getElementById('omni-input') as HTMLInputElement | null)?.focus();
+    return;
+  }
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
   // Run keys — modifier-free only (⌘R must stay the browser/editor's).

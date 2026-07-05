@@ -2361,6 +2361,30 @@ body.running .dag-node.status-success .nc::after {
   r: 7;
 }
 
+/* ─── Failure shockwave · causality made physical ───────────────────────── */
+/* A LIVE failure ripples downstream: each doomed card takes one transient
+ * hit (red ring breath + dip), staggered by graph distance — the blast
+ * cone tells its story before the engine reports the skips. */
+
+.dag-node.shock .nc {
+  animation: nk-shock 0.6s var(--nk-ease) var(--shock-delay, 0ms) both;
+}
+
+@keyframes nk-shock {
+  0% { box-shadow: var(--nk-card-shadow); opacity: 1; }
+  35% {
+    box-shadow:
+      var(--nk-card-shadow),
+      0 0 0 3px color-mix(in srgb, var(--nk-st-failed) 28%, transparent);
+    opacity: 0.75;
+  }
+  100% { box-shadow: var(--nk-card-shadow); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dag-node.shock .nc { animation: none !important; }
+}
+
 /* ─── Heatmap · where does the run spend? (toggle H) ────────────────────── */
 /* --heat ∈ [0,1] per card (renderer-normalized) — the hotspot reads red
  * through the card surface; everything else stays calm. */
@@ -3165,7 +3189,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
  * the aurora says "something ended", THIS says what. Click → the feed. */
 #run-verdict {
   position: fixed;
-  top: 14px;
+  top: 54px; /* below the floating top rail — never over the pills */
   left: 50%;
   transform: translate(-50%, -8px);
   z-index: 60;

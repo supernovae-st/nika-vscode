@@ -62,6 +62,17 @@ announce line (forever-v0.x).
   edges rest as a quiet success tint), and the selection halo is
   zoom-compensated so it reads at every zoom. Focus dim recalibrated
   to keep context readable (25%).
+- **Follow the run (G)** — a camera mode no workflow tool ships: the
+  viewport tracks the frontier, gliding only when a starting task
+  leaves the comfort band, and any human pan instantly yields the
+  camera for the rest of the run. Watch a 40-task workflow execute
+  without touching the trackpad.
+- **The failure shockwave** — when a task fails LIVE, its blast cone
+  ripples: every downstream card takes a transient red breath,
+  staggered by graph distance — you see what the failure doomed
+  before the engine reports the skips.
+- **K focuses the command bar** (⌘K muscle memory); the verdict banner
+  moved below the floating rail (it used to overlap the pills).
 - **The smooth pass** — arrivals ride a real `linear()` SPRING (~4%
   overshoot: entrances · verdict pops · the output line; safe fallback
   via `@supports`), every camera move speaks ease-out (fit/center/

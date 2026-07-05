@@ -167,6 +167,16 @@ The orchestrated moments (each spent exactly once, where it means):
   at every zoom (`calc(2.5px * var(--zoom-comp))`, clamped ×3).
 - **Depth** — a faint blue lamp follows the pointer over the pool (nika
   skin · two custom props per frame, paint-only).
+- **Follow the run (G · ⌖)** — the camera tracks the frontier: when a
+  task starts OUTSIDE the middle-60% comfort band, one 560ms ease-out
+  glide recenters it (throttled to 1/400ms). Any HUMAN pan/zoom while
+  following yields the camera for the rest of the run — the hand
+  always outranks the director. Off by default, persisted.
+- **Failure shockwave** — a LIVE failure ripples its blast cone: every
+  downstream card takes one transient hit (red ring breath + dip,
+  0.6s), staggered 70ms per graph hop — causality made physical,
+  before the engine even reports the skips. Live runs only; a loaded
+  failed graph stays still.
 - **Close** — the aurora speaks once at a live run's end (nika skin).
 
 ## 6b · Projections & drag intelligence (research-ranked, 2026)
