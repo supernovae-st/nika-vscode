@@ -104,6 +104,18 @@ messages and positions come from the engine, not the extension.*
   duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
 - **Validate / Inspect** from the editor, tasks + problem matcher
+- **The 0.93 loop rides the integrated terminal** · launch inputs with
+  `nika run --var key=value` · pin the output contract with
+  `nika test <file> --update` and keep `nika test` as the offline CI gate
+  (the mock synthesizes schema-conformant output) · a run you killed —
+  or a durable `nika:prompt` pause (exit 4, journaled as
+  `workflow_paused`) — resumes with `nika run --resume <trace>`
+  (`--answer approve=true` re-arms the gate · cache hits stay visible) ·
+  every recorded run in the flight recorder doubles as that checkpoint ·
+  `nika trace show <run>` re-renders any of them in the terminal ·
+  scaffold from the same embedded corpus the snippets are tested against
+  (`nika examples` · `nika new --from <template>`) · any code explained:
+  `nika explain NIKA-XXXX`
 
 ### Agent-native
 - **LM tools** · `nika_check` / `nika_explain` / `nika_graph` registered as
