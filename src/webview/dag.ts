@@ -1953,6 +1953,14 @@ class DagRenderer {
         return meta?.ghost ? '' : `url(#arrow-${meta?.isDataEdge ? 'data' : 'dep'})`;
       })
       .attr('opacity', 0);
+    // Wires join the entrance choreography: each fades in just after its
+    // SOURCE card's wave (REDUCED_MOTION collapses the stagger to zero).
+    const enteringEdgeIds = new Set(enter.data().map((d) => d.id));
+    const edgeDelay = (d: ElkExtendedEdge): number => {
+      if (REDUCED_MOTION || !enteringEdgeIds.has(d.id)) { return 0; }
+      const src = this.edgeEnds.get(d.id)?.source;
+      return (src ? (this.waveOf.get(src) ?? 0) : 0) * 70 + 160;
+    };
 
     // Edge clicks: GHOST = one click declares the missing depends_on (the
     // beginner's #1 error becomes a repair gesture) · real edge ⌥click
@@ -2014,6 +2022,7 @@ class DagRenderer {
     enter
       .merge(paths)
       .transition().duration(300)
+      .delay(edgeDelay)
       .attr('opacity', 1)
       .attr('d', (d) => this.edgePathFor(d));
 
@@ -3223,6 +3232,28 @@ document.getElementById('es-new')?.addEventListener('click', () => {
 document.getElementById('es-walkthrough')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:openWalkthrough' });
 });
+
+// Cursor spotlight (nika skin) — two custom props written at most once
+// per frame; the CSS overlay does the painting. Pointer-leave fades out.
+{
+  const container = document.getElementById('dag-container');
+  let spotRaf = 0;
+  let spotEvt: { x: number; y: number } | null = null;
+  container?.addEventListener('pointermove', (e: PointerEvent) => {
+    spotEvt = { x: e.clientX, y: e.clientY };
+    if (spotRaf) { return; }
+    spotRaf = requestAnimationFrame(() => {
+      spotRaf = 0;
+      if (!spotEvt || !container) { return; }
+      container.style.setProperty('--spot-x', `${spotEvt.x}px`);
+      container.style.setProperty('--spot-y', `${spotEvt.y}px`);
+      container.style.setProperty('--spot-on', '1');
+    });
+  });
+  container?.addEventListener('pointerleave', () => {
+    container.style.setProperty('--spot-on', '0');
+  });
+}
 
 // Panel resize re-scales the responsive minimap card (debounced).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;

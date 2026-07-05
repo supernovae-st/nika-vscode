@@ -108,9 +108,25 @@ High contrast (`forced-colors`) overrides both skins.
 ## 6 · Motion
 
 One signature ease `cubic-bezier(0.22, 1, 0.36, 1)` @140ms for every
-hover/focus/state; slower orchestrated moments (wave-staggered
-entrance · fit glide · the aurora) keep their own timings. Compositor
-props only. `prefers-reduced-motion` disables every loop.
+hover/focus/state; slower orchestrated moments keep their own timings.
+Compositor props only. `prefers-reduced-motion` disables every loop.
+
+The orchestrated moments (each spent exactly once, where it means):
+- **Entrance** — cards rise in staggered by wave (70ms/wave · 0.32s),
+  wires fade in just after their source card's wave: the DAG performs
+  its own execution order on load.
+- **« AI is working »** — running cards wear a slow verb-hued comet
+  orbiting the border (conic ring, animated `@property` angle, 2.6s) —
+  the 2026 streaming signature. Failed keeps the static red ring.
+- **Settle** — the moment a task lands ✓ in a LIVE run, one soft green
+  ring breathes out of the card (0.7s, once); the verdict value pops in.
+  A loaded finished graph stays still — motion narrates change, never
+  state.
+- **The plan breathes** — dependency bead-chains march only while a run
+  is live; the progress fill carries a light sweep.
+- **Depth** — a faint blue lamp follows the pointer over the pool (nika
+  skin · two custom props per frame, paint-only).
+- **Close** — the aurora speaks once at a live run's end (nika skin).
 
 ## 7 · Rules that keep it SOTA
 

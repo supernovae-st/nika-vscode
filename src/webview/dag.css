@@ -284,6 +284,7 @@ body {
 /* ─── SVG Container · dot-grid canvas (the Linear board feel) ───────────── */
 
 #dag-container {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -400,20 +401,42 @@ body.running .dag-edge.edge-dep {
 /* A card at rest looks normal (the Well read): running lights up, failed
  * screams, success is a quiet green fact — never a canvas of ghosts. */
 
-.dag-node.status-running .nc {
-  border-color: color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 55%, var(--nk-card-border));
-  box-shadow:
-    var(--nk-card-shadow),
-    0 0 0 3px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 14%, transparent);
-  animation: nk-ring-pulse 1.6s var(--nk-ease) infinite;
+@property --nk-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
 }
 
-@keyframes nk-ring-pulse {
-  50% {
-    box-shadow:
-      var(--nk-card-shadow),
-      0 0 0 5px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 8%, transparent);
-  }
+.dag-node.status-running .nc {
+  border-color: color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 40%, var(--nk-card-border));
+  box-shadow:
+    var(--nk-card-shadow),
+    0 0 0 3px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 12%, transparent);
+}
+
+/* The 2026 « AI is working » signature: a slow verb-hued comet orbiting
+ * the card border (conic ring masked to a 1.5px rim). Compositor-only
+ * (an animated @property angle), one per running card. */
+.dag-node.status-running .nc::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--nk-angle),
+    transparent 0deg 300deg,
+    var(--dv-hue, var(--nk-st-running)) 340deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: nk-orbit 2.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes nk-orbit {
+  to { --nk-angle: 360deg; }
 }
 
 .dag-node.status-running .node-spinner {
@@ -731,11 +754,27 @@ body.running .dag-edge.edge-dep {
 }
 
 #progress-fill {
+  position: relative;
   height: 100%;
   width: 0;
   border-radius: 2px;
   background: var(--nk-st-running);
   transition: width 0.4s ease-out, background 0.3s;
+  overflow: hidden;
+}
+
+/* A light sweep travels the fill while the run is live. */
+body.running #progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  transform: translateX(-100%);
+  animation: nk-sweep 1.6s var(--nk-ease) infinite;
+}
+
+@keyframes nk-sweep {
+  to { transform: translateX(100%); }
 }
 
 #progress-fill.complete { background: var(--nk-st-success); }
@@ -1518,6 +1557,9 @@ body.vscode-light .logo-dark { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .dag-node.status-running .nc,
+  .dag-node.status-running .nc::before,
+  body.running .dag-node.status-success .nc::after,
+  body.running #progress-fill::after,
   .dag-node.status-retrying .node-spinner,
   .dag-node.status-running .node-spinner,
   .nc-enter,
@@ -1525,6 +1567,14 @@ body.vscode-light .logo-dark { display: none; }
   .dag-node .nc-dot,
   body.running .dag-edge.edge-dep {
     animation: none !important;
+  }
+
+  .dag-node.status-running .nc::before {
+    display: none;
+  }
+
+  body[data-nk-theme='nika'] #dag-container::after {
+    display: none;
   }
 
   .dag-node:hover .nc {
@@ -1591,6 +1641,23 @@ body[data-nk-theme='nika'] {
 
 body[data-nk-theme='nika'] #dag-container {
   background-color: var(--nk-page);
+}
+
+/* A faint blue lamp follows the pointer over the pool (Linear-class
+ * depth cue). One fixed overlay, two custom props written per frame —
+ * paint-only, zero layout. Hidden when the pointer leaves. */
+body[data-nk-theme='nika'] #dag-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--spot-on, 0);
+  transition: opacity 0.4s ease-out;
+  background: radial-gradient(
+    560px circle at var(--spot-x, 50%) var(--spot-y, 40%),
+    rgb(79 134 255 / 0.05),
+    transparent 70%
+  );
 }
 
 /* Toolbar pills · machined, blue-tinted hairline, mono tracking. */
@@ -1814,6 +1881,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 }
 
 .nc {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1914,6 +1982,24 @@ body.lod-far .dag-node:hover .nc {
 }
 
 .dag-node.status-success .nc-dot { background: var(--nk-st-success); opacity: 1; }
+
+/* Settle ripple: one soft ring breathes out of the card the moment it
+ * lands ✓ — LIVE runs only (a loaded finished graph must stay still). */
+body.running .dag-node.status-success .nc::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1.5px solid var(--nk-st-success);
+  opacity: 0;
+  animation: nk-settle 0.7s var(--nk-ease);
+  pointer-events: none;
+}
+
+@keyframes nk-settle {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.035); }
+}
 .dag-node.status-failed .nc-dot { background: var(--nk-st-failed); opacity: 1; }
 .dag-node.is-cached.status-success .nc-dot {
   background: transparent;
@@ -2174,6 +2260,14 @@ body.lod-far .nc-port { opacity: 0 !important; }
   background: transparent;
   border: none;
   outline: none;
+}
+
+/* The whole bar answers focus — accent hairline + a breath of glow. */
+#omnibar:focus-within {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+  box-shadow:
+    var(--nk-shadow-2),
+    0 0 0 3px color-mix(in srgb, var(--nk-accent) 12%, transparent);
 }
 
 #omni-input::placeholder {
