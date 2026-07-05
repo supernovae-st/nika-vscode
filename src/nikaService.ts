@@ -28,8 +28,21 @@ import {
   type GraphDoc,
 } from './core/cliContract';
 import { annotateDataFlow } from './core/dataflow';
+import { collectBodyFacts } from './core/bodyFacts';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
 import { parseRichWorkflow } from './workflowParser';
+
+/** Card substance (prompt · command · args) onto the graph nodes. */
+function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNode[]): void {
+  const facts = collectBodyFacts(text);
+  for (const node of nodes) {
+    const f = facts.get(node.id);
+    if (!f) { continue; }
+    node.promptPreview = f.prompt;
+    node.commandPreview = f.command;
+    node.argsPreview = f.args;
+  }
+}
 
 export interface CliResult {
   code: number;
@@ -294,6 +307,7 @@ export class NikaService {
       const flow = annotateDataFlow(text, dag.nodes, dag.edges);
       dag.nodes = flow.nodes;
       dag.edges = [...flow.edges, ...flow.ghosts];
+      mergeBodyFacts(text, dag.nodes);
       return dag;
     }
 
@@ -322,6 +336,7 @@ export class NikaService {
     const flow = annotateDataFlow(text, base.nodes, base.edges);
     base.nodes = flow.nodes;
     base.edges = [...flow.edges, ...flow.ghosts];
+    mergeBodyFacts(text, base.nodes);
     return base;
   }
 

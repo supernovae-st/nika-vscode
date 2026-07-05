@@ -100,6 +100,11 @@ interface DagNode {
   costMax?: number;
   dependsOn: string[];
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
+  promptPreview?: string;
+  commandPreview?: string;
+  argsPreview?: string;
+  avgMs?: number;
+  avgRuns?: number;
 }
 
 interface DagEdge {
@@ -154,10 +159,51 @@ const vscode = acquireVsCodeApi();
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 56;
+const NODE_WIDTH = 248;
+const NODE_HEIGHT = 56; // minimum — content grows the card (Flows anatomy)
 const NODE_RADIUS = 8;
 const PADDING = 40;
+
+// Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
+// padding 8+9 · head 17 · sub 13 · 3px flex gaps · body 15/line · params 21).
+const CARD_PAD_Y = 8.5;
+const HEAD_H = 17;
+const SUB_H = 16;
+const BODY_LINE_H = 15;
+const PARAMS_H = 24;
+
+/** Body preview text for a node (verb decides which fact leads). */
+function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
+  if (node.promptPreview) { return { kind: 'prompt', text: node.promptPreview }; }
+  if (node.commandPreview) { return { kind: 'cmd', text: node.commandPreview }; }
+  if (node.argsPreview) { return { kind: 'args', text: node.argsPreview }; }
+  return undefined;
+}
+
+/** Whether the params row (model chip · cost · avg) has anything to show. */
+function hasParamsRow(node: DagNode): boolean {
+  return node.model !== undefined || node.tool !== undefined
+    || (node.costMin != null && node.costMax != null)
+    || node.avgMs !== undefined;
+}
+
+/** Card height from content — the layout must know the TRUE box. */
+function nodeHeightOf(node: DagNode): number {
+  let h = CARD_PAD_Y * 2 + HEAD_H + SUB_H;
+  const body = bodyTextOf(node);
+  if (body) {
+    const lines = body.kind === 'prompt'
+      ? Math.min(body.text.split('\n').length, 3)
+      : 1;
+    // Prompt wraps: budget by character count too (≈34 chars/line).
+    const wrapLines = body.kind === 'prompt'
+      ? Math.max(lines, Math.min(3, Math.ceil(body.text.replace(/\n/g, ' ').length / 34)))
+      : lines;
+    h += 3 + wrapLines * BODY_LINE_H;
+  }
+  if (hasParamsRow(node)) { h += 3 + PARAMS_H; }
+  return Math.max(h, NODE_HEIGHT);
+}
 
 /** Verb -> icon (simple Unicode — no font dependency) */
 // The nika.sh canon glyph set (still plain Unicode \u2014 no font dependency).
@@ -200,7 +246,7 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
     children: graph.nodes.map((node) => ({
       id: node.id,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: nodeHeightOf(node),
     })),
     edges: graph.edges.map((edge) => ({
       id: edge.id,
@@ -319,6 +365,7 @@ class DagRenderer {
         this.currentTx = event.transform.x;
         this.currentTy = event.transform.y;
         this.updateMinimapViewport();
+        this.updateZoomChrome();
         this.rootGroup.attr('transform', event.transform.toString());
         this.saveState({
           zoom: event.transform.k,
@@ -456,6 +503,15 @@ class DagRenderer {
     // retarget) would dim the entire new graph — drop it.
     if (this.focusedId && !this.nodeMap.has(this.focusedId)) {
       this.focusedId = null;
+    }
+    // Same for the live filter: its match set points at the OLD graph's
+    // ids — recompute against the new one (the query survives, the
+    // stale set must not dim everything).
+    const search = document.getElementById('dag-search') as HTMLInputElement | null;
+    if (search && !search.hidden && search.value.trim().length > 0) {
+      this.applyFilter(search.value.trim());
+    } else {
+      this.filterMatches = null;
     }
     this.applyFocus(this.focusedId);
     this.updateEdgeFlow();
@@ -636,7 +692,7 @@ class DagRenderer {
     ];
   }
 
-  private startConnect(fromId: string): void {
+  startConnect(fromId: string): void {
     this.connectFrom = fromId;
     this.tempEdge = this.rootGroup.append<SVGPathElement>('path').attr('class', 'temp-edge');
     this.svg.classed('connecting', true);
@@ -733,6 +789,21 @@ class DagRenderer {
   /** Re-measure + redraw the minimap (panel resize re-scales the card). */
   refreshMinimap(): void {
     this.renderMinimap();
+  }
+
+  /**
+   * Zoom-dependent chrome: the % chip + semantic level-of-detail. Far
+   * out, cards collapse to id+status (the graph reads like a map);
+   * mid drops the params row; near shows everything.
+   */
+  private updateZoomChrome(): void {
+    const pct = document.getElementById('zoom-pct');
+    if (pct) { pct.textContent = `${Math.round(this.currentZoom * 100)}%`; }
+    const lod = this.currentZoom < 0.55 ? 'lod-far' : this.currentZoom < 0.85 ? 'lod-mid' : 'lod-near';
+    if (!document.body.classList.contains(lod)) {
+      document.body.classList.remove('lod-far', 'lod-mid', 'lod-near');
+      document.body.classList.add(lod);
+    }
   }
 
   // ─── Image export · the WHOLE graph, styles + font embedded ──────────────
@@ -903,7 +974,10 @@ class DagRenderer {
       .attr('opacity', 0)
       .remove();
 
-    // ENTER
+    // ENTER — the Flows-grade card: an SVG frame (status ring · LED spine
+    // · spinner live in SVG so every status/skin rule keeps working) with
+    // a foreignObject body (real HTML: wrapping prompt text, chips, the
+    // model button). The node IS the content.
     const enter = groups
       .enter()
       .append('g')
@@ -911,83 +985,64 @@ class DagRenderer {
       .attr('data-id', (d) => d.id)
       .attr('opacity', 0);
 
-    // Node background rect
+    // Node background rect (variable height — the card grows with content)
     enter
       .append('rect')
       .attr('class', 'node-bg')
       .attr('width', NODE_WIDTH)
-      .attr('height', NODE_HEIGHT)
+      .attr('height', (d) => nodeHeightOf(d))
       .attr('rx', NODE_RADIUS)
       .attr('ry', NODE_RADIUS);
 
-    // Status indicator bar (left edge)
+    // Status/verb LED spine (left edge)
     enter
       .append('rect')
       .attr('class', 'node-status-bar')
       .attr('width', 4)
-      .attr('height', NODE_HEIGHT - 8)
+      .attr('height', (d) => nodeHeightOf(d) - 8)
       .attr('x', 4)
       .attr('y', 4)
       .attr('rx', 2)
       .attr('ry', 2);
 
-    // Verb icon chip (Raycast-style tinted square — the icon sits IN
-    // something, the one tasteful skeuomorphic cue per node)
+    // HTML card content
     enter
-      .append('rect')
-      .attr('class', 'node-icon-chip')
-      .attr('x', 12)
-      .attr('y', NODE_HEIGHT / 2 - 12)
-      .attr('width', 24)
-      .attr('height', 24)
-      .attr('rx', 6);
+      .append('foreignObject')
+      .attr('class', 'node-fo')
+      .attr('x', 8)
+      .attr('y', 0)
+      .attr('width', NODE_WIDTH - 14)
+      .attr('height', (d) => nodeHeightOf(d))
+      .append('xhtml:div')
+      .attr('class', 'nc')
+      .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
-    enter
-      .append('text')
-      .attr('class', 'node-icon')
-      .attr('x', 24)
-      .attr('y', NODE_HEIGHT / 2 + 1)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'central')
-      .text((d) => verbIcon(d.verb));
-
-    // Task ID label — long ids ellipsize (the hover card carries the full
-    // id); 17 chars is what fits before the spinner zone at 200px width.
-    const clipLabel = (s: string): string => (s.length > 17 ? `${s.slice(0, 16)}…` : s);
-    enter
-      .append('text')
-      .attr('class', 'node-label')
-      .attr('x', 44)
-      .attr('y', NODE_HEIGHT / 2 - 7)
-      .attr('dominant-baseline', 'central')
-      .text((d) => clipLabel(d.label));
-
-    // Subtitle (verb + provider/duration)
-    enter
-      .append('text')
-      .attr('class', 'node-subtitle')
-      .attr('x', 44)
-      .attr('y', NODE_HEIGHT / 2 + 11)
-      .attr('dominant-baseline', 'central')
-      .text((d) => this.getSubtitle(d));
-
-    // Running spinner (animated via CSS)
+    // Running spinner (animated via CSS) — header-right corner.
     enter
       .append('circle')
       .attr('class', 'node-spinner')
-      .attr('cx', NODE_WIDTH - 20)
-      .attr('cy', NODE_HEIGHT / 2)
+      .attr('cx', NODE_WIDTH - 18)
+      .attr('cy', 19)
       .attr('r', 6);
 
-    // Static-audit badge (top-right): when-gate · fan-out — engine facts.
+    // Ports — the visible connect affordance (drag out-port → card).
     enter
-      .append('text')
-      .attr('class', 'node-badge')
-      .attr('x', NODE_WIDTH - 8)
-      .attr('y', 12)
-      .attr('text-anchor', 'end')
-      .attr('dominant-baseline', 'central')
-      .text((d) => this.badgeText(d));
+      .append('circle')
+      .attr('class', 'nc-port nc-port-in')
+      .attr('cx', NODE_WIDTH / 2)
+      .attr('cy', 0)
+      .attr('r', 4);
+    enter
+      .append('circle')
+      .attr('class', 'nc-port nc-port-out')
+      .attr('cx', NODE_WIDTH / 2)
+      .attr('cy', (d) => nodeHeightOf(d))
+      .attr('r', 4)
+      .on('mousedown', (event: MouseEvent, d: DagNode) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.startConnect(d.id);
+      });
 
     // Alt-drag from a node = create a dependency edge (the n8n gesture).
     enter.on('mousedown', (event: MouseEvent, d: DagNode) => {
@@ -1049,12 +1104,88 @@ class DagRenderer {
         return elk ? `translate(${elk.x},${elk.y})` : '';
       });
 
-    // Update classes
+    // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => `dag-node status-${d.status} verb-${d.verb}`);
+    merged.select('.nc-sub').text((d) => this.getSubtitle(d));
+  }
 
-    // Update dynamic text
-    merged.select('.node-subtitle').text((d) => this.getSubtitle(d));
-    merged.select('.node-badge').text((d) => this.badgeText(d));
+  /** Build the HTML card body (safe DOM construction — never innerHTML). */
+  private buildCardHtml(host: HTMLElement, node: DagNode): void {
+    host.replaceChildren();
+
+    const header = document.createElement('div');
+    header.className = 'nc-head';
+    const glyph = document.createElement('span');
+    glyph.className = 'nc-glyph';
+    glyph.textContent = verbIcon(node.verb);
+    const id = document.createElement('span');
+    id.className = 'nc-id';
+    id.textContent = node.label;
+    id.title = node.label;
+    const badge = document.createElement('span');
+    badge.className = 'nc-badge';
+    badge.textContent = this.badgeText(node);
+    header.append(glyph, id, badge);
+    host.appendChild(header);
+
+    const sub = document.createElement('div');
+    sub.className = 'nc-sub';
+    sub.textContent = this.getSubtitle(node);
+    host.appendChild(sub);
+
+    const body = bodyTextOf(node);
+    if (body) {
+      const el = document.createElement('div');
+      el.className = `nc-body nc-body-${body.kind}`;
+      el.textContent = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
+      el.title = body.text;
+      host.appendChild(el);
+    }
+
+    if (hasParamsRow(node)) {
+      const params = document.createElement('div');
+      params.className = 'nc-params';
+      const target = node.model ?? node.tool;
+      if (target) {
+        // The model chip EDITS (the Flows params-bar gesture): click →
+        // provider/model QuickPick extension-side → YAML edit → reload.
+        const chip = document.createElement('button');
+        chip.className = 'nc-chip nc-model';
+        chip.textContent = target;
+        chip.title = node.model
+          ? 'Change this task\'s model (edits the YAML · ⌘Z undoes)'
+          : node.tool ?? '';
+        if (node.model) {
+          chip.addEventListener('mousedown', (e) => e.stopPropagation());
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({
+              kind: 'dag:editModel',
+              taskId: node.id,
+              workflowUri: this.currentGraph?.workflowUri,
+            });
+          });
+        } else {
+          chip.disabled = true;
+        }
+        params.appendChild(chip);
+      }
+      if (node.costMin != null && node.costMax != null) {
+        const cost = document.createElement('span');
+        cost.className = 'nc-fact';
+        cost.textContent = `${usd(node.costMin)}–${usd(node.costMax)}`;
+        cost.title = 'Static cost interval (min path → worst case) — audited before a single token is spent';
+        params.appendChild(cost);
+      }
+      if (node.avgMs !== undefined && node.avgRuns) {
+        const avg = document.createElement('span');
+        avg.className = 'nc-fact nc-avg';
+        avg.textContent = `⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`;
+        avg.title = `Mean success duration over ${node.avgRuns} recorded run${node.avgRuns === 1 ? '' : 's'} (flight recorder)`;
+        params.appendChild(avg);
+      }
+      host.appendChild(params);
+    }
   }
 
   // ─── Hover card (safe DOM construction · explication riche) ──────────────
@@ -1377,9 +1508,9 @@ class DagRenderer {
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
 
-    const el = this.nodeGroup.select(`[data-id="${taskId}"]`);
+    const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', `dag-node status-${status} verb-${node.verb}`);
-    el.select('.node-subtitle').text(this.getSubtitle(node));
+    el.select('.nc-sub').text(this.getSubtitle(node));
 
     // The minimap mirrors the run live (class-only touch, no re-render).
     document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
@@ -1852,6 +1983,51 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
 document.getElementById('btn-fit')?.addEventListener('click', () => renderer.fitToView());
 document.getElementById('btn-zoom-in')?.addEventListener('click', () => renderer.zoomIn());
 document.getElementById('btn-zoom-out')?.addEventListener('click', () => renderer.zoomOut());
+document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
+
+// ─── Verb palette + omnibar (the Flows bottom bar) ─────────────────────────
+
+for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.vp-btn'))) {
+  btn.addEventListener('click', () => {
+    vscode.postMessage({
+      kind: 'dag:addTask',
+      verb: btn.dataset.verb,
+      afterTaskId: renderer.focused,
+      workflowUri: vscode.getState()?.graph?.workflowUri,
+    });
+  });
+}
+
+const omniInput = document.getElementById('omni-input') as HTMLInputElement | null;
+
+function runOmni(): void {
+  const text = omniInput?.value.trim();
+  if (!text) { return; }
+  if (text.startsWith('/')) {
+    // Filter mode — route into the search affordance.
+    if (searchEl) {
+      searchEl.hidden = false;
+      searchEl.value = text.slice(1).trim();
+      renderer.applyFilter(searchEl.value || null);
+      searchEl.focus();
+    }
+    if (omniInput) { omniInput.value = ''; }
+    return;
+  }
+  vscode.postMessage({
+    kind: 'dag:omni',
+    text,
+    workflowUri: vscode.getState()?.graph?.workflowUri,
+  });
+  if (omniInput) { omniInput.value = ''; }
+}
+
+omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key === 'Enter') { runOmni(); }
+  if (e.key === 'Escape') { omniInput.blur(); }
+});
+document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
 const wavesBtn = document.getElementById('btn-waves');
 const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); };

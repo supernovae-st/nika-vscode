@@ -151,6 +151,33 @@ export function insertTaskSkeleton(
 }
 
 /**
+ * Set (or insert) a task-level `model:` — the canvas params-bar edit.
+ * Replace when the task already declares one; else insert right under
+ * the `- id:` line at task-property indent. Undefined when the task is
+ * unknown or the value fails the provider/model shape.
+ */
+export function setTaskModel(text: string, taskId: string, model: string): string | undefined {
+  if (!/^[a-z0-9_-]+\/[A-Za-z0-9._:-]+$/.test(model)) { return undefined; }
+  const wf = parseRichWorkflow(text);
+  const task = wf.tasks.find((t) => t.id === taskId);
+  if (!task) { return undefined; }
+  const lines = text.split('\n');
+
+  for (let i = task.line; i <= task.endLine && i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)model:\s*.*$/);
+    if (m) {
+      lines[i] = `${m[1]}model: ${model}`;
+      return lines.join('\n');
+    }
+  }
+  const itemIndent = lines[task.line].indexOf('-');
+  if (itemIndent < 0) { return undefined; }
+  const fieldIndent = ' '.repeat(itemIndent + 2);
+  lines.splice(task.line + 1, 0, `${fieldIndent}model: ${model}`);
+  return lines.join('\n');
+}
+
+/**
  * Remove `dep` from `taskId`'s depends_on (inline or block form). Drops
  * the whole key when the list empties. Undefined when not present.
  */

@@ -42,17 +42,21 @@ export type WebviewToExtMessage =
   | { kind: 'dag:showActive' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
-  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string }
+  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
+  // Canvas params bar — the model chip edits the YAML via QuickPick.
+  | { kind: 'dag:editModel'; taskId: string; workflowUri?: string }
+  // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
+  | { kind: 'dag:omni'; text: string; workflowUri?: string }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
 
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
   WebviewToExtMessage,
-  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' }
+  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:editModel' | 'dag:omni' }
 >;
 
 // ─── Nonce Generator ─────────────────────────────────────────────────────────
@@ -341,6 +345,8 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:connect':
       case 'dag:disconnect':
       case 'dag:deleteTask':
+      case 'dag:editModel':
+      case 'dag:omni':
         this.onEditRequest?.(msg);
         break;
 
@@ -461,6 +467,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
       <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
+      <button id="zoom-pct" title="Current zoom — click to fit">100%</button>
     </div>
     <div class="tb-group">
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
@@ -492,6 +499,18 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="explainer" hidden></div>
   <div id="hover-card" role="tooltip"></div>
+  <div id="omnibar">
+    <div id="verb-palette" role="toolbar" aria-label="Add a task">
+      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)">◇</button>
+      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)">▷</button>
+      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)">◆</button>
+      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)">✦</button>
+    </div>
+    <input id="omni-input" type="text"
+           placeholder="+ infer after gather · / filter · or describe a workflow…"
+           aria-label="Canvas command bar">
+    <button id="omni-go" title="Run the command (Enter)">↵</button>
+  </div>
   <div id="dag-legend">
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>

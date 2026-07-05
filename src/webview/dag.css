@@ -261,41 +261,6 @@ body {
           drop-shadow(0 3px 10px rgba(0, 0, 0, 0.3));
 }
 
-.dag-node .node-label {
-  fill: var(--nk-ink);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  font-family: var(--nk-mono);
-}
-
-.dag-node .node-subtitle {
-  fill: var(--nk-ink-dim);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-}
-
-.dag-node .node-icon {
-  font-size: 12px;
-  fill: var(--nk-ink-dim);
-}
-
-/* The verb chip — tinted square the icon sits in. */
-.dag-node .node-icon-chip {
-  fill: color-mix(in srgb, var(--nk-ink-dim) 10%, transparent);
-  stroke: color-mix(in srgb, var(--nk-ink-dim) 16%, transparent);
-  stroke-width: 1;
-}
-
-.dag-node .node-icon-chip,
-.dag-node.verb-infer .node-icon-chip,
-.dag-node.verb-exec .node-icon-chip,
-.dag-node.verb-invoke .node-icon-chip,
-.dag-node.verb-agent .node-icon-chip {
-  fill: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 14%, transparent);
-  stroke: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 30%, transparent);
-}
-
 /* Status bar (left edge) — default hidden */
 .dag-node .node-status-bar {
   fill: transparent;
@@ -319,10 +284,8 @@ body {
   opacity: 0.7;
 }
 
-.dag-node.status-pending .node-label,
-.dag-node.status-pending .node-subtitle,
-.dag-node.status-pending .node-icon {
-  opacity: 0.5;
+.dag-node.status-pending .nc {
+  opacity: 0.55;
 }
 
 /* ─── Status: Running ───────────────────────────────────────────────────── */
@@ -377,8 +340,8 @@ body {
   fill: var(--nk-st-success);
 }
 
-.dag-node.status-success .node-icon {
-  fill: var(--nk-st-success);
+.dag-node.status-success .nc-glyph {
+  color: var(--nk-st-success);
 }
 
 @keyframes success-flash {
@@ -404,12 +367,8 @@ body {
   animation: failed-blink 1s ease-in-out 3;
 }
 
-.dag-node.status-failed .node-label {
-  fill: var(--nk-st-failed);
-}
-
-.dag-node.status-failed .node-icon {
-  fill: var(--nk-st-failed);
+.dag-node.status-failed .nc-id {
+  color: var(--nk-st-failed);
 }
 
 @keyframes failed-blink {
@@ -430,9 +389,7 @@ body {
   opacity: 0.5;
 }
 
-.dag-node.status-skipped .node-label,
-.dag-node.status-skipped .node-subtitle,
-.dag-node.status-skipped .node-icon {
+.dag-node.status-skipped .nc {
   opacity: 0.4;
 }
 
@@ -463,8 +420,9 @@ body {
     stroke: Highlight;
   }
 
-  .dag-node .node-label {
-    fill: CanvasText;
+  .dag-node .nc,
+  .dag-node .nc-id {
+    color: CanvasText;
   }
 
   .dag-edge.edge-data {
@@ -474,14 +432,6 @@ body {
   .dag-edge.edge-dep {
     stroke: GrayText;
   }
-}
-
-/* Static-audit badge (when-gate ⌁ · fan-out ×N) — engine facts, top-right */
-.node-badge {
-  font-size: 10px;
-  fill: var(--nk-ink-dim);
-  opacity: 0.85;
-  pointer-events: none;
 }
 
 /* ─── Wave bands · the parallelism explained ────────────────────────────── */
@@ -1602,4 +1552,284 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   body[data-nk-theme='nika'] #aurora {
     transition: none;
   }
+}
+
+/* ═══ Canvas 2.0 · the content-first card (Flows anatomy) ═════════════════ */
+/* The SVG frame carries status/skin (ring · LED · spinner); the HTML body
+ * carries the substance — id, the prompt/command/args, the params bar. */
+
+.node-fo {
+  overflow: visible;
+  pointer-events: none; /* the group handles click/focus; chips opt back in */
+}
+
+.nc {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px 9px 10px;
+  height: 100%;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  user-select: none;
+}
+
+.nc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+.nc-glyph {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--dv-hue, var(--nk-ink-dim));
+}
+
+.nc-id {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nc-badge {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  padding-right: 12px; /* clear the spinner corner */
+}
+
+.nc-sub {
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-body {
+  font-size: 10px;
+  line-height: 15px;
+  color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.nc-body-cmd {
+  color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-ink));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.nc-body-args {
+  color: color-mix(in srgb, var(--nk-verb-invoke) 45%, var(--nk-ink));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.nc-params {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  min-height: 18px;
+}
+
+.nc-chip {
+  pointer-events: auto;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 7px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.nc-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+  color: var(--nk-accent);
+}
+
+.nc-chip:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.nc-fact {
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Ports — the visible connect affordance (drag out → card = depends_on). */
+.nc-port {
+  fill: var(--nk-page);
+  stroke: var(--nk-border);
+  stroke-width: 1.2;
+  opacity: 0;
+  transition: opacity 0.12s, stroke 0.12s, r 0.12s;
+}
+
+.dag-node:hover .nc-port,
+.dag-svg.connecting .nc-port {
+  opacity: 1;
+}
+
+.nc-port-out {
+  cursor: crosshair;
+}
+
+.nc-port-out:hover {
+  stroke: var(--nk-accent);
+  fill: color-mix(in srgb, var(--nk-accent) 30%, var(--nk-page));
+  r: 5.5;
+}
+
+/* ─── Semantic zoom · level-of-detail tiers ─────────────────────────────── */
+/* Far out the graph reads like a MAP: id + status only. Mid drops the
+ * params. Near shows the whole card. Class set by the zoom handler. */
+
+body.lod-mid .nc-params { visibility: hidden; }
+body.lod-far .nc-params,
+body.lod-far .nc-body,
+body.lod-far .nc-sub,
+body.lod-far .nc-badge { visibility: hidden; }
+body.lod-far .nc-id { font-size: 15px; }
+body.lod-far .nc-glyph { font-size: 14px; }
+body.lod-far .nc-port { opacity: 0 !important; }
+
+/* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
+
+#omnibar {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  z-index: 44;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100vw - 220px));
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 4px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#verb-palette {
+  display: inline-flex;
+  gap: 2px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+.vp-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-family: var(--nk-mono);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.vp-infer { color: var(--nk-verb-infer); }
+.vp-exec { color: var(--nk-verb-exec); }
+.vp-invoke { color: var(--nk-verb-invoke); }
+.vp-agent { color: var(--nk-verb-agent); }
+
+.vp-btn:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+
+#omni-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  font-size: 11.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+#omni-input::placeholder {
+  color: var(--nk-ink-dim);
+  opacity: 0.75;
+}
+
+#omni-go {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+#omni-go:hover {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
+}
+
+/* The legend slides under the omnibar — keep both readable. */
+#dag-legend {
+  bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  #omnibar { width: calc(100vw - 24px); }
+  #verb-palette { display: none; }
+}
+
+/* nika skin refinements for the card + bar */
+body[data-nk-theme='nika'] .nc-chip {
+  background: rgb(141 180 255 / 0.06);
+  border-color: rgb(140 170 255 / 0.16);
+}
+
+body[data-nk-theme='nika'] .nc-port {
+  fill: #0a0d12;
+  stroke: rgb(140 170 255 / 0.35);
+}
+
+body[data-nk-theme='nika'] #omnibar {
+  background: color-mix(in srgb, #0a0d12 92%, transparent);
+  border-color: rgb(140 170 255 / 0.14);
 }

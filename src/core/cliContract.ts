@@ -71,6 +71,16 @@ export interface DagNode {
   dependsOn: string[];
   /** Inbound data bindings (alias ← from.path) — the wires, named. */
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
+  /** Card body — what the task SAYS (client YAML read · ≤3 lines). */
+  promptPreview?: string;
+  /** Card body — the exec command line (client YAML read). */
+  commandPreview?: string;
+  /** Card body — invoke args summary `k: v · k: v` (client YAML read). */
+  argsPreview?: string;
+  /** Mean success duration across recorded traces (flight recorder). */
+  avgMs?: number;
+  /** How many recorded runs back that mean (0/undefined = none). */
+  avgRuns?: number;
 }
 
 export interface DagEdge {

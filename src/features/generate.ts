@@ -217,18 +217,22 @@ export function registerGenerate(
   log: (level: string, msg: string) => void,
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('nika.generateWorkflow', async () => {
+    vscode.commands.registerCommand('nika.generateWorkflow', async (prefilled?: string) => {
       if (!service.available) {
         void vscode.window.showWarningMessage(
           'Nika: the engine binary is required — generation grounds every candidate through `nika check`.',
         );
         return;
       }
-      const intent = await vscode.window.showInputBox({
-        title: 'Nika: generate a workflow from intent',
-        prompt: 'Describe what the workflow should do',
-        placeHolder: 'fetch the top HN stories, summarize each in parallel, write a digest file',
-      });
+      // The canvas omnibar passes the intent directly; the palette path
+      // still asks. Either way the SAME oracle-checked pipeline runs.
+      const intent = typeof prefilled === 'string' && prefilled.trim().length > 0
+        ? prefilled
+        : await vscode.window.showInputBox({
+          title: 'Nika: generate a workflow from intent',
+          prompt: 'Describe what the workflow should do',
+          placeHolder: 'fetch the top HN stories, summarize each in parallel, write a digest file',
+        });
       if (!intent || intent.trim().length === 0) { return; }
 
       await vscode.window.withProgress(
