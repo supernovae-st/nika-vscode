@@ -37,6 +37,24 @@ announce line (forever-v0.x).
 - Semantic-zoom thresholds recalibrated (the default fit always shows
   full cards; far is a deliberate map read: big tile + id + dot).
 
+### The canvas breathes — gestures, motion, speed
+- **Modern trackpad gestures**: plain scroll/two-finger PANS the canvas,
+  pinch (or ⌘/Ctrl+scroll) ZOOMS — the Figma/n8n gesture set replaces
+  wheel-always-zooms.
+- **The fact row went two-column** (the Well key→value read): mechanism
+  left (`invoke · nika:fetch`), live verdict right-aligned — `✓ 640ms`
+  green · `✗ 4.1s` red · `running…` verb-hued · `↻ cached`. The verdict
+  pops in with a soft rise when a task settles.
+- **The plan breathes while it runs**: dependency bead-chains march
+  during a live run only (30 marching wires at rest would be noise);
+  wires answer hover; cards rise in on load, staggered by wave; hover
+  lifts the card 1px. Every loop honors reduced-motion.
+- **The survey grid**: faint `+` marks at 40px intersections replace the
+  dot grid (the blueprint read) — retuned per skin (white/black/blue ink).
+- **Drag got faster**: pointer moves are rAF-coalesced and wire re-routes
+  write through an id→element cache — O(touched wires) per frame, no
+  edge-list scans mid-drag.
+
 ## [0.94.0] · 2026-07-05
 
 ### The canvas becomes yours — drag & drop

@@ -468,6 +468,12 @@ class DagRenderer {
   private manualPos = new Map<string, { x: number; y: number }>();
   /** node id → edge ids touching it (live re-route on the drag hot path). */
   private nodeEdges = new Map<string, string[]>();
+  /** edge id → live DOM elements (drag hot path — zero d3 scans per move). */
+  private edgePathEl = new Map<string, SVGPathElement>();
+  private edgeLabelEl = new Map<string, SVGTextElement>();
+  /** rAF coalescing for the drag hot path (mousemove can outrun frames). */
+  private dragRaf = 0;
+  private dragLast: { x: number; y: number } | null = null;
   /** In-flight card drag (null = none). Threshold guards click vs drag. */
   private dragging: {
     id: string; startX: number; startY: number;
@@ -572,18 +578,34 @@ class DagRenderer {
       });
 
     // Dragging a CARD moves the card, never the canvas: pan only starts
-    // on background mousedown (wheel-zoom keeps working everywhere).
-    // Mirrors d3's default filter for the button/ctrl semantics.
+    // on background mousedown. Wheel semantics are the MODERN canvas
+    // gesture set (n8n/Figma): plain wheel/two-finger = PAN, pinch (which
+    // Chromium reports as ctrlKey wheel) or ⌘wheel = ZOOM.
     this.zoomBehavior.filter((event: MouseEvent | WheelEvent) => {
       if (event.type === 'mousedown'
         && (event.target as Element | null)?.closest?.('.dag-node')) {
         return false;
       }
-      return (!event.ctrlKey || event.type === 'wheel')
+      if (event.type === 'wheel') {
+        return event.ctrlKey || event.metaKey;
+      }
+      return !event.ctrlKey
         && !('button' in event && (event as MouseEvent).button);
     });
 
     this.svg.call(this.zoomBehavior);
+
+    // Plain wheel pans (the zoom filter above refused it) — screen-space
+    // deltas divided by the live scale so panning speed feels 1:1.
+    this.svg.on('wheel.pan', (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) { return; }
+      event.preventDefault();
+      this.zoomBehavior.translateBy(
+        this.svg as D3ZoomCall,
+        -event.deltaX / this.currentZoom,
+        -event.deltaY / this.currentZoom,
+      );
+    });
 
     // Card drag: move + settle (namespaced — never collides with connect).
     this.svg.on('mousemove.carddrag', (event: MouseEvent) => this.dragMove(event));
@@ -989,7 +1011,8 @@ class DagRenderer {
 
   // ─── Card drag · move the node, the wires follow (n8n-grade) ─────────────
 
-  /** Drag hot path: past a 4px threshold the card follows the pointer. */
+  /** Drag hot path: past a 4px threshold the card follows the pointer.
+   *  Coalesced to one move per animation frame (mousemove outruns 60Hz). */
   private dragMove(event: MouseEvent): void {
     const drag = this.dragging;
     if (!drag) { return; }
@@ -1000,7 +1023,14 @@ class DagRenderer {
       this.hideHoverCard(true);
       this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', true);
     }
-    this.moveCard(drag.id, drag.origX + (rx - drag.startX), drag.origY + (ry - drag.startY));
+    this.dragLast = { x: drag.origX + (rx - drag.startX), y: drag.origY + (ry - drag.startY) };
+    if (this.dragRaf) { return; }
+    this.dragRaf = requestAnimationFrame(() => {
+      this.dragRaf = 0;
+      const last = this.dragLast;
+      const live = this.dragging;
+      if (last && live?.moved) { this.moveCard(live.id, last.x, last.y); }
+    });
   }
 
   /** Reposition one card + live re-route every wire touching it. */
@@ -1012,15 +1042,22 @@ class DagRenderer {
     this.manualPos.set(id, { x, y }); // direct-curve routing reads this mid-drag
     this.nodeGroup.select(`[data-id="${CSS.escape(id)}"]`)
       .attr('transform', `translate(${x},${y})`);
-    const touched = new Set(this.nodeEdges.get(id) ?? []);
-    if (touched.size === 0) { return; }
-    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
-      .filter((d) => touched.has(d.id))
-      .attr('d', (d) => this.edgePathFor(d));
-    this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
-      .filter((d) => touched.has(d.id))
-      .attr('x', (d) => this.edgeLabelPoint(d)[0])
-      .attr('y', (d) => this.edgeLabelPoint(d)[1] - 5);
+    // Direct element writes through the id→element caches — the drag hot
+    // path never scans the edge list (O(touched), not O(E) per frame).
+    for (const eid of this.nodeEdges.get(id) ?? []) {
+      const path = this.edgePathEl.get(eid);
+      if (path) {
+        const datum = select<SVGPathElement, ElkExtendedEdge>(path).datum();
+        path.setAttribute('d', this.edgePathFor(datum));
+      }
+      const label = this.edgeLabelEl.get(eid);
+      if (label) {
+        const datum = select<SVGTextElement, ElkExtendedEdge>(label).datum();
+        const [lx, ly] = this.edgeLabelPoint(datum);
+        label.setAttribute('x', String(lx));
+        label.setAttribute('y', String(ly - 5));
+      }
+    }
   }
 
   /** Settle a drag: persist the pin, refresh bands/regions/minimap. */
@@ -1172,7 +1209,7 @@ class DagRenderer {
       node.outputPreview = undefined;
       const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
       el.attr('class', nodeClassOf(node));
-      el.select('.nc-sub').text(this.getSubtitle(node));
+      el.select('.nc-sub-v').text(this.subValue(node));
       document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(f.taskId)}"]`)
         ?.setAttribute('class', `mm-node st-${f.status}`);
     }
@@ -1483,7 +1520,10 @@ class DagRenderer {
       .attr('width', NODE_WIDTH)
       .attr('height', (d) => nodeHeightOf(d))
       .append('xhtml:div')
-      .attr('class', 'nc')
+      .attr('class', 'nc nc-enter')
+      // Entrance choreography: the card rises in, staggered by wave —
+      // the DAG performs its own execution order (reduced-motion: none).
+      .style('animation-delay', (d) => `${(this.waveOf.get(d.id) ?? 0) * 70}ms`)
       .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
     // Running spinner — a thin ring orbiting the status DOT (the dot is
@@ -1594,7 +1634,7 @@ class DagRenderer {
 
     // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => nodeClassOf(d));
-    merged.select('.nc-sub').text((d) => this.getSubtitle(d));
+    merged.select('.nc-sub-v').text((d) => this.subValue(d));
   }
 
   /** Build the HTML card body (safe DOM construction — never innerHTML). */
@@ -1649,9 +1689,16 @@ class DagRenderer {
     divider.className = 'nc-div';
     host.appendChild(divider);
 
+    // The fact row (Well key→value): mechanism left, live verdict right.
     const sub = document.createElement('div');
     sub.className = 'nc-sub';
-    sub.textContent = this.getSubtitle(node);
+    const subK = document.createElement('span');
+    subK.className = 'nc-sub-k';
+    subK.textContent = this.subMechanism(node);
+    const subV = document.createElement('span');
+    subV.className = 'nc-sub-v';
+    subV.textContent = this.subValue(node);
+    sub.append(subK, subV);
     host.appendChild(sub);
 
     const body = bodyTextOf(node);
@@ -1968,6 +2015,16 @@ class DagRenderer {
       .transition().duration(300)
       .attr('opacity', 1)
       .attr('d', (d) => this.edgePathFor(d));
+
+    // Refresh the id→element caches (the drag hot path reads these).
+    this.edgePathEl.clear();
+    this.edgeLabelEl.clear();
+    const pathEls = this.edgePathEl;
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.dag-edge')
+      .each(function (d) { pathEls.set(d.id, this); });
+    const labelEls = this.edgeLabelEl;
+    this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
+      .each(function (d) { labelEls.set(d.id, this); });
   }
 
   /** Path for one edge — a direct curve when an endpoint is hand-pinned
@@ -2076,7 +2133,7 @@ class DagRenderer {
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', nodeClassOf(node));
-    el.select('.nc-sub').text(this.getSubtitle(node));
+    el.select('.nc-sub-v').text(this.subValue(node));
 
     // The minimap mirrors the run live (class-only touch, no re-render).
     document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
@@ -2201,29 +2258,32 @@ class DagRenderer {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  private getSubtitle(node: DagNode): string {
-    if (node.status === 'running') return `${node.verb} ...`;
-    // ADR-099 rehydration — no clock fact exists (nothing executed);
-    // the ↻ + word pairing is unambiguous vs retrying (glyph-only).
-    if (node.cached) return `${node.verb} · ↻ cached`;
-    // Terminal + clocked -> the run line REPLACES the static fact
-    // (DESIGN.md §1): after a run the dominant fact IS the outcome.
+  /** Left half of the fact row — the STATIC mechanism (never repaints). */
+  private subMechanism(node: DagNode): string {
+    if (node.tool) return `${node.verb} \u00B7 ${node.tool}`;
+    if (node.provider) return `${node.verb} \u00B7 ${node.provider}`;
+    if (node.model) return `${node.verb} \u00B7 ${node.model.split('/')[0]}`;
+    return node.verb;
+  }
+
+  /** Right half — the LIVE verdict (Well's value column · DESIGN.md §1). */
+  private subValue(node: DagNode): string {
+    if (node.status === 'running') return 'running\u2026';
+    if (node.status === 'retrying') return 'retry\u2026';
+    // ADR-099 rehydration — no clock fact exists (nothing executed).
+    if (node.cached) return '\u21BB cached';
     if (node.durationMs != null) {
       const dur = node.durationMs >= 1000
         ? `${(node.durationMs / 1000).toFixed(1)}s`
         : `${node.durationMs}ms`;
       if (node.status === 'success') { return `\u2713 ${dur}`; }
       if (node.status === 'failed') { return `\u2717 ${dur}`; }
-      return `${node.verb} \u00B7 ${dur}`;
+      return dur;
     }
     if (node.status === 'failed') { return '\u2717 failed'; }
-    // Static facts ladder: tool (invoke) > provider > cost interval.
-    if (node.tool) return `${node.verb} \u00B7 ${node.tool}`;
-    if (node.provider) return `${node.verb} \u00B7 ${node.provider}`;
-    if (node.costMin != null && node.costMax != null) {
-      return `${node.verb} \u00B7 ${usd(node.costMin)}\u2013${usd(node.costMax)}`;
-    }
-    return node.verb;
+    if (node.status === 'skipped') { return 'skipped'; }
+    if (node.status === 'cancelled') { return 'cancelled'; }
+    return '';
   }
 
   private badgeText(node: DagNode): string {
