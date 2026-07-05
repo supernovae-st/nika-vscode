@@ -21,6 +21,7 @@ import 'd3-transition';
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
+import { filterVerbs } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 
@@ -64,6 +65,107 @@ async function inlineFontDataUri(): Promise<string | null> {
     return null;
   }
 }
+
+// ─── Verb cmdk · the drop-a-port palette (opens at the cursor) ──────────────
+// A tiny command palette: 4 verbs, type-to-filter (filterVerbs ranks
+// them), ↑↓ to move, Enter to pick, Esc to cancel. The renderer opens it
+// on a port-drop onto empty canvas; the callback posts the pre-wired add.
+
+class VerbCmdk {
+  private readonly el = document.getElementById('verb-cmdk');
+  private readonly input = document.getElementById('cmdk-input') as HTMLInputElement | null;
+  private readonly list = document.getElementById('cmdk-list');
+  private items: ReturnType<typeof filterVerbs> = [];
+  private active = 0;
+  private onPick: ((verb: string) => void) | undefined;
+
+  constructor() {
+    this.input?.addEventListener('input', () => this.render());
+    this.input?.addEventListener('keydown', (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { this.close(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this.move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); this.pick(this.active); }
+    });
+    // A click outside the palette dismisses it.
+    document.addEventListener('mousedown', (e: MouseEvent) => {
+      if (this.isOpen && this.el && !this.el.contains(e.target as Node)) { this.close(); }
+    });
+  }
+
+  get isOpen(): boolean {
+    return this.el?.hasAttribute('hidden') === false;
+  }
+
+  open(clientX: number, clientY: number, onPick: (verb: string) => void): void {
+    if (!this.el || !this.input) { return; }
+    this.onPick = onPick;
+    // Clamp so the palette never spills past the viewport edges.
+    const W = 220, H = 190;
+    const x = Math.min(clientX, window.innerWidth - W - 8);
+    const y = Math.min(clientY, window.innerHeight - H - 8);
+    this.el.style.left = `${Math.max(8, x)}px`;
+    this.el.style.top = `${Math.max(8, y)}px`;
+    this.el.removeAttribute('hidden');
+    this.input.value = '';
+    this.active = 0;
+    this.render();
+    this.input.focus();
+  }
+
+  close(): void {
+    this.el?.setAttribute('hidden', '');
+    this.onPick = undefined;
+  }
+
+  private move(delta: number): void {
+    if (this.items.length === 0) { return; }
+    this.active = (this.active + delta + this.items.length) % this.items.length;
+    this.paintActive();
+  }
+
+  private pick(index: number): void {
+    const item = this.items[index];
+    if (!item) { return; }
+    const cb = this.onPick;
+    this.close();
+    cb?.(item.verb);
+  }
+
+  private render(): void {
+    if (!this.list) { return; }
+    this.items = filterVerbs(this.input?.value ?? '');
+    this.active = Math.min(this.active, Math.max(this.items.length - 1, 0));
+    this.list.replaceChildren();
+    this.items.forEach((item, i) => {
+      const row = document.createElement('button');
+      row.className = `cmdk-row verb-${item.verb}`;
+      row.dataset.i = String(i);
+      const glyph = document.createElement('span');
+      glyph.className = 'cmdk-glyph';
+      glyph.textContent = item.glyph;
+      const name = document.createElement('span');
+      name.className = 'cmdk-name';
+      name.textContent = item.verb;
+      const blurb = document.createElement('span');
+      blurb.className = 'cmdk-blurb';
+      blurb.textContent = item.blurb;
+      row.append(glyph, name, blurb);
+      row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
+      row.addEventListener('click', () => this.pick(i));
+      this.list!.appendChild(row);
+    });
+    this.paintActive();
+  }
+
+  private paintActive(): void {
+    const rows = this.list?.querySelectorAll('.cmdk-row');
+    rows?.forEach((r, i) => r.classList.toggle('active', i === this.active));
+  }
+}
+
+const verbCmdk = new VerbCmdk();
 
 // ─── Edge aurora · run-verdict signal (nika skin only) ──────────────────────
 // One bright hue-travel on a clean close, a red flash on failure — the
@@ -381,14 +483,17 @@ class DagRenderer {
         });
         return;
       }
-      // Dropped on EMPTY canvas — the Flows gesture: create the next
-      // task pre-wired (the verb QuickPick opens extension-side and
-      // insertTaskSkeleton declares depends_on: [from]).
+      // Dropped on EMPTY canvas — the Flows gesture: open a verb cmdk AT
+      // the cursor to pick the new task's verb; insertTaskSkeleton then
+      // declares depends_on: [from] extension-side.
       if (!targetEl) {
-        vscode.postMessage({
-          kind: 'dag:addTask',
-          afterTaskId: from,
-          workflowUri: this.currentGraph?.workflowUri,
+        verbCmdk.open(event.clientX, event.clientY, (verb) => {
+          vscode.postMessage({
+            kind: 'dag:addTask',
+            verb,
+            afterTaskId: from,
+            workflowUri: this.currentGraph?.workflowUri,
+          });
         });
       }
     });

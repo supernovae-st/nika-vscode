@@ -554,6 +554,10 @@ export class DagPanel implements vscode.Disposable {
     </div>
   </div>
   <div id="explainer" hidden></div>
+  <div id="verb-cmdk" hidden role="listbox" aria-label="Pick the new task's verb">
+    <input id="cmdk-input" type="text" placeholder="verb…" aria-label="Filter verbs">
+    <div id="cmdk-list"></div>
+  </div>
   <div id="hover-card" role="tooltip"></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">

@@ -2113,3 +2113,86 @@ body.lod-far .region-label { display: none; }
 #run-stale[hidden] {
   display: none;
 }
+
+/* ─── Verb cmdk · the drop-a-port palette ───────────────────────────────── */
+
+#verb-cmdk {
+  position: fixed;
+  z-index: 52;
+  width: 220px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 2px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+#verb-cmdk[hidden] {
+  display: none;
+}
+
+#cmdk-input {
+  width: 100%;
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 5px;
+  outline: none;
+}
+
+#cmdk-input:focus {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
+}
+
+.cmdk-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cmdk-row.active {
+  background: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 32%, transparent);
+}
+
+.cmdk-row.verb-infer { --dv-hue: var(--nk-verb-infer); }
+.cmdk-row.verb-exec { --dv-hue: var(--nk-verb-exec); }
+.cmdk-row.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
+.cmdk-row.verb-agent { --dv-hue: var(--nk-verb-agent); }
+
+.cmdk-glyph {
+  flex: 0 0 auto;
+  color: var(--dv-hue, var(--nk-ink-dim));
+  font-size: 12px;
+}
+
+.cmdk-name {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cmdk-blurb {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9.5px;
+  color: var(--nk-ink-dim);
+  text-align: right;
+}
