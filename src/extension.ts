@@ -604,6 +604,28 @@ export function activate(context: ExtensionContext): void {
       get: () => context.workspaceState.get<number>('nika.dagColumn'),
       set: (column) => { void context.workspaceState.update('nika.dagColumn', column); },
     },
+    // Canvas ▶/▶mock — preview streams `run --model mock/echo` (zero
+    // keys); a normal run rides the full capability-gated command.
+    (preview, workflowUri) => {
+      void (async () => {
+        const doc = await requireNikaDocument(workflowUri ?? dagWorkflowUri);
+        if (!doc) { return; }
+        if (!preview) {
+          await commands.executeCommand('nika.runWorkflow', doc.uri);
+          return;
+        }
+        if (!service.caps.run) {
+          void window.showInformationMessage('Nika: this binary predates `run` — update it to preview workflows.');
+          return;
+        }
+        if (doc.uri.scheme !== 'file') { return; }
+        dagWorkflowUri = doc.uri;
+        const graph = await loadGraphFor(doc);
+        dagPanel.show(graph);
+        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, { extraArgs: ['--model', 'mock/echo'] });
+      })();
+    },
+    () => cancelActiveRun(),
   );
   state.activeDagPanel = dagPanel;
 

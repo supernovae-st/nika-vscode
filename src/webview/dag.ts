@@ -133,7 +133,8 @@ type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  | { kind: 'run:state'; running: boolean };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -352,6 +353,17 @@ class DagRenderer {
           kind: 'dag:connect',
           from,
           to,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+        return;
+      }
+      // Dropped on EMPTY canvas — the Flows gesture: create the next
+      // task pre-wired (the verb QuickPick opens extension-side and
+      // insertTaskSkeleton declares depends_on: [from]).
+      if (!targetEl) {
+        vscode.postMessage({
+          kind: 'dag:addTask',
+          afterTaskId: from,
           workflowUri: this.currentGraph?.workflowUri,
         });
       }
@@ -2005,7 +2017,44 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = undefined; }
       delete document.body.dataset.aurora;
       break;
+    case 'run:state':
+      setRunUiState(msg.running);
+      break;
   }
+});
+
+// ─── Run controls · the bottom-center pill (n8n/Windmill placement) ─────────
+
+/** Truthful lifecycle from the extension; also ends the optimistic pulse. */
+function setRunUiState(running: boolean): void {
+  document.body.classList.toggle('running', running);
+  document.body.classList.remove('run-starting');
+  const run = document.getElementById('btn-run') as HTMLButtonElement | null;
+  const mock = document.getElementById('btn-run-mock') as HTMLButtonElement | null;
+  const stop = document.getElementById('btn-stop');
+  if (run) { run.disabled = running; }
+  if (mock) { mock.disabled = running; }
+  stop?.toggleAttribute('hidden', !running);
+}
+
+function requestRun(preview: boolean): void {
+  if (document.body.classList.contains('running')) { return; }
+  // Optimistic latency masking: the click has a visible consequence
+  // BEFORE the first engine event (pending cards shimmer) — cleared by
+  // the first run:state, or by a 4s safety in case the spawn dies.
+  document.body.classList.add('run-starting');
+  setTimeout(() => document.body.classList.remove('run-starting'), 4000);
+  vscode.postMessage({
+    kind: 'dag:runRequest',
+    preview,
+    workflowUri: vscode.getState()?.graph?.workflowUri,
+  });
+}
+
+document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
+document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
+document.getElementById('btn-stop')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:cancelRun' });
 });
 
 // ─── Toolbar Handlers ───────────────────────────────────────────────────────

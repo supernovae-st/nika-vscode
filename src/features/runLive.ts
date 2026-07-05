@@ -35,12 +35,16 @@ export function cancelActiveRun(): void {
  * DAG live. The graph must already be loaded (the caller shows it for
  * the active document first) so the painted statuses land on real
  * nodes. Verdict + cost land in the activity feed on close.
+ *
+ * `opts.extraArgs` rides extra engine flags (the canvas preview run
+ * passes `--model mock/echo` — zero keys, zero network).
  */
 export function runWorkflowLive(
   service: NikaService,
   dagPanel: DagPanel,
   fsPath: string,
   log: (level: string, msg: string) => void,
+  opts?: { extraArgs?: string[] },
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
@@ -52,9 +56,11 @@ export function runWorkflowLive(
   // the live present wins.
   cancelActiveRun();
   cancelActiveReplay();
-  dagPanel.note('▶', `run started · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
+  const preview = opts?.extraArgs?.includes('mock/echo') === true;
+  dagPanel.note('▶', `run started${preview ? ' · preview (mock/echo)' : ''} · ${fsPath.split('/').pop() ?? fsPath}`, undefined, 'st-running');
+  dagPanel.setRunState(true);
 
-  const child = spawn(binary, ['run', fsPath, '--json', '--no-color'], {
+  const child = spawn(binary, ['run', fsPath, '--json', '--no-color', ...(opts?.extraArgs ?? [])], {
     env: { ...process.env, NO_COLOR: '1' },
   });
   activeRun = { kill: () => child.kill() };
@@ -92,10 +98,12 @@ export function runWorkflowLive(
 
   child.on('error', (err) => {
     activeRun = undefined;
+    dagPanel.setRunState(false);
     void vscode.window.showWarningMessage(`Nika: run failed to start — ${err.message}`);
   });
   child.on('close', (code) => {
     activeRun = undefined;
+    dagPanel.setRunState(false);
     paint(); // final flush — the buffer now holds every complete line
     const model = foldTrace(buffer);
     const verdict = model.workflowStatus;

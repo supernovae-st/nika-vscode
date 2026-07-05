@@ -1835,3 +1835,95 @@ body[data-nk-theme='nika'] #omnibar {
   background: color-mix(in srgb, #0a0d12 92%, transparent);
   border-color: rgb(140 170 255 / 0.14);
 }
+
+/* ─── Run controls · the pill's left wing ───────────────────────────────── */
+
+#run-controls {
+  display: inline-flex;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+#run-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-family: var(--nk-mono);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+}
+
+#run-controls button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The display rule above would defeat the hidden attribute (found by
+ * the harness screenshot — Stop showed at rest). */
+#run-controls button[hidden] {
+  display: none;
+}
+
+.rc-run {
+  color: #f4f5f7;
+  background: #2b62ea;
+  border: 1px solid rgb(140 170 255 / 0.25);
+}
+
+.rc-run:hover:not(:disabled) {
+  background: #2f6bff;
+}
+
+.rc-mock {
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border);
+}
+
+.rc-mock:hover:not(:disabled) {
+  color: var(--nk-ink);
+  border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
+}
+
+.rc-stop {
+  color: var(--nk-st-failed);
+  background: color-mix(in srgb, var(--nk-st-failed) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 40%, transparent);
+}
+
+.rc-stop:hover {
+  background: color-mix(in srgb, var(--nk-st-failed) 20%, transparent);
+}
+
+/* Optimistic queued pulse: the click answers instantly — pending cards
+ * shimmer until the first engine event lands (run:state clears it). */
+body.run-starting .dag-node.status-pending .node-bg {
+  animation: nk-queued 0.9s ease-in-out infinite;
+}
+
+@keyframes nk-queued {
+  0%, 100% { stroke-opacity: 1; }
+  50% { stroke-opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.run-starting .dag-node.status-pending .node-bg {
+    animation: none;
+  }
+}
+
+/* ─── Perf containment (research: explicit-size cards, no escape) ───────── */
+
+.nc {
+  contain: layout paint;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  #run-controls .rc-mock { display: none; }
+}

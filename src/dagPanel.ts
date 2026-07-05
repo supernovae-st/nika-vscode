@@ -28,7 +28,10 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' };
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' }
+  // Live-run lifecycle — the toolbar flips ▶/■ on this (replayed on
+  // dag:ready so a reloaded panel keeps the truthful state).
+  | { kind: 'run:state'; running: boolean };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -50,6 +53,9 @@ export type WebviewToExtMessage =
   | { kind: 'dag:editModel'; taskId: string; workflowUri?: string }
   // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
   | { kind: 'dag:omni'; text: string; workflowUri?: string }
+  // Run controls — the canvas drives the run without leaving the panel.
+  | { kind: 'dag:runRequest'; preview?: boolean; workflowUri?: string }
+  | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string };
 
@@ -83,7 +89,19 @@ export class DagPanel implements vscode.Disposable {
       get(): vscode.ViewColumn | undefined;
       set(column: vscode.ViewColumn): void;
     },
+    /** Canvas run controls (▶/▶mock/■ in the panel toolbar). */
+    private readonly onRunRequest?: (preview: boolean, workflowUri?: string) => void,
+    private readonly onCancelRun?: () => void,
   ) {}
+
+  /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
+  private runState = false;
+
+  /** Called by the live runner at spawn/close — flips the toolbar ▶/■. */
+  public setRunState(running: boolean): void {
+    this.runState = running;
+    this.postMessage({ kind: 'run:state', running });
+  }
 
   // ─── Public API ──────────────────────────────────────────────────────────
 
@@ -320,6 +338,10 @@ export class DagPanel implements vscode.Disposable {
           this.postMessage({ kind: 'dag:focus', taskId: this.pendingFocus });
           this.pendingFocus = undefined;
         }
+        // A reloaded panel mid-run must keep showing the truthful ■.
+        if (this.runState) {
+          this.postMessage({ kind: 'run:state', running: true });
+        }
         break;
 
       case 'dag:nodeClicked':
@@ -356,6 +378,14 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:export':
         void this.saveExport(msg.format, msg.data, msg.name);
+        break;
+
+      case 'dag:runRequest':
+        this.onRunRequest?.(msg.preview === true, msg.workflowUri);
+        break;
+
+      case 'dag:cancelRun':
+        this.onCancelRun?.();
         break;
     }
   }
@@ -500,6 +530,11 @@ export class DagPanel implements vscode.Disposable {
   <div id="explainer" hidden></div>
   <div id="hover-card" role="tooltip"></div>
   <div id="omnibar">
+    <div id="run-controls" role="toolbar" aria-label="Run controls">
+      <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
+      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
+      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
+    </div>
     <div id="verb-palette" role="toolbar" aria-label="Add a task">
       <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)">◇</button>
       <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)">▷</button>
