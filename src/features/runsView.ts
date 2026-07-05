@@ -206,8 +206,12 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
   const overlap = [...model.tasks.keys()].filter((id) => ids.has(id)).length;
   if (overlap < Math.ceil(model.tasks.size / 2)) { return false; }
 
-  // Live state wins over any replay animation in progress.
+  // Live state wins over any replay in progress. cancelActiveReplay()
+  // only stops the legacy extension-driven step timers — the webview's
+  // own Replayer (the scrubber) must be ended too, or the next rAF tick
+  // clobbers the live status back to the historical frame.
   cancelActiveReplay();
+  dagPanel.endReplay();
   dagPanel.batchUpdateStatus(
     [...model.tasks.values()].map((t) => ({
       taskId: t.id,

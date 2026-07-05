@@ -94,6 +94,9 @@ export class DagPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private disposables: vscode.Disposable[] = [];
   private currentGraph: DagGraph | undefined;
+  /** A replay is showing — the webview holds the timeline (retainContext).
+   *  Guards the re-show handler from clobbering it with a stale dag:load. */
+  private replayActive = false;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -122,7 +125,14 @@ export class DagPanel implements vscode.Disposable {
 
   /** Load a recorded run into the webview scrubber (time-travel). */
   public loadReplay(timeline: TimelineEntry[], label: string, speed: number): void {
+    this.replayActive = true;
     this.postMessage({ kind: 'dag:replayLoad', timeline, label, speed });
+  }
+
+  /** The live/replay overlay ended — clear the replay guard. */
+  public endReplay(): void {
+    this.replayActive = false;
+    this.postMessage({ kind: 'dag:replayEnd' });
   }
 
   /** Push the static cost forecast for the run pill (null clears it). */
@@ -260,7 +270,10 @@ export class DagPanel implements vscode.Disposable {
           hasBeenHidden = true;
           return;
         }
-        if (hasBeenHidden && this.currentGraph) {
+        // retainContextWhenHidden keeps the webview's state (including an
+        // open replay) alive while backgrounded — re-sending dag:load
+        // would close the replay and blank to the stale seed graph.
+        if (hasBeenHidden && this.currentGraph && !this.replayActive) {
           this.postMessage({ kind: 'dag:load', graph: this.currentGraph });
         }
       }),
@@ -304,6 +317,9 @@ export class DagPanel implements vscode.Disposable {
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
+    // A fresh graph supersedes any replay (the webview's dag:load handler
+    // closes the Replayer); keep the extension-side guard in step.
+    this.replayActive = false;
     if (this.panel?.visible) {
       this.postMessage({ kind: 'dag:load', graph });
     }

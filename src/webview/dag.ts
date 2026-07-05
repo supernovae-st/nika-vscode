@@ -1835,7 +1835,10 @@ class DagRenderer {
     // Durations refine the critical path; completion lights the edge flow.
     this.recomputeCritical();
     this.updateEdgeFlow();
-    if (this.focusedId) { this.applyFocus(this.focusedId); }
+    // applyStatus rewrote node classes, wiping .dimmed — refreshDim
+    // ALWAYS (a live run under a `/` filter with no focused node must
+    // keep filtered-out cards dimmed, matching applyStale/applyAudit).
+    if (this.focusedId) { this.applyFocus(this.focusedId); } else { this.refreshDim(); }
 
     this.saveState({ graph: this.currentGraph });
     this.updateStatusDisplay();
@@ -1965,9 +1968,11 @@ class DagRenderer {
     const total = this.currentGraph.nodes.length;
     const terminal = counts.success + counts.failed + counts.skipped + counts.cancelled;
 
-    // Run verdict → the aurora speaks once, at the live close.
+    // Run verdict → the aurora speaks once, at the LIVE close. A replay
+    // reaching its terminal frame (or a scrub crossing it) is not a live
+    // finish — never fire the verdict sweep/danger flash while scrubbing.
     const allTerminal = total > 0 && terminal === total;
-    if (allTerminal && !this.wasAllTerminal) {
+    if (allTerminal && !this.wasAllTerminal && !replayer.active) {
       auroraSignal(counts.failed > 0 ? 'danger' : 'sweep');
     }
     this.wasAllTerminal = allTerminal;
