@@ -356,6 +356,18 @@ async function stageGeneratedWorkflow(
       });
       if (!name) { continue; }
       const target = vscode.Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      // Never silently clobber an existing workflow — the slug default
+      // makes a collision easy and a raw fs.writeFile has no undo.
+      let exists = false;
+      try { await vscode.workspace.fs.stat(target); exists = true; } catch { /* free */ }
+      if (exists) {
+        const overwrite = await vscode.window.showWarningMessage(
+          `${name}.nika.yaml already exists — overwrite it?`,
+          { modal: true },
+          'Overwrite',
+        );
+        if (overwrite !== 'Overwrite') { continue; } // back to the stage loop
+      }
       // Persist the CURRENT staged text (the user may have hand-edited).
       await vscode.workspace.fs.writeFile(target, Buffer.from(doc.getText(), 'utf-8'));
       const saved = await vscode.workspace.openTextDocument(target);

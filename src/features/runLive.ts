@@ -115,8 +115,10 @@ export function runWorkflowLive(
   });
   child.on('close', (code) => {
     activeRun = undefined;
+    paint(); // final flush FIRST — the buffer now holds every complete
+             // line; the last card must reach its terminal status before
+             // the pill flips to idle (else Run re-enables mid-glow).
     dagPanel.setRunState(false);
-    paint(); // final flush — the buffer now holds every complete line
     const model = foldTrace(buffer);
     const verdict = model.workflowStatus;
     const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';

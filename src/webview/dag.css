@@ -2369,3 +2369,54 @@ body[data-nk-theme='nika'] .es-button-ghost {
 body[data-nk-theme='nika'] .es-button-ghost:hover {
   background: rgb(141 180 255 / 0.14);
 }
+
+/* ─── Forced-colors coverage for the new chips (F-8) ─────────────────────
+ * High Contrast collapses color-mix severity hues — re-assert the
+ * distinctions with system colors + weight, as .dag-node already does. */
+@media (forced-colors: active) {
+  #run-cost,
+  #run-stale,
+  .nc-audit,
+  .nc-stale {
+    background: Canvas !important;
+    color: CanvasText !important;
+    border: 1px solid CanvasText !important;
+    forced-color-adjust: none;
+  }
+
+  /* Severity survives as WEIGHT + a marker, not hue. */
+  #run-cost.unbounded,
+  .dag-node.audit-error .nc-audit {
+    color: Highlight !important;
+    border-color: Highlight !important;
+    font-weight: 700;
+  }
+
+  #scrubber,
+  #verb-cmdk {
+    background: Canvas !important;
+    border: 1px solid CanvasText !important;
+  }
+
+  #verb-cmdk .cmdk-row.active {
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+
+  #scrubber-track {
+    background: GrayText !important;
+  }
+
+  #scrubber-handle {
+    background: Highlight !important;
+    border-color: HighlightText !important;
+  }
+}
+
+/* ─── Selected must out-read dimmed (F-10) ───────────────────────────────
+ * Focus lineage ∧ filter compose as AND — but a focused node that fails
+ * the filter still carries the selection; keep its ring readable instead
+ * of sinking the whole group to 12%. */
+.dag-node.dimmed.selected {
+  opacity: 0.55;
+}

@@ -2342,7 +2342,9 @@ class Replayer {
     this.lastTick = performance.now();
     const step = (now: number): void => {
       if (!this.playing) { return; }
-      const dt = now - this.lastTick;
+      // rAF throttles/pauses while the panel is hidden — an unclamped dt
+      // after regaining visibility would snap the playhead to the end.
+      const dt = Math.min(now - this.lastTick, 100);
       this.lastTick = now;
       this.setPos(this.pos + dt / budgetMs);
       if (this.pos >= 1) { this.pause(); return; }
@@ -2384,6 +2386,10 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       if (replayer.active) { replayer.close(); }
       renderer.render(msg.graph);
       refreshStaleChip();
+      // The cost chip is a singleton, not per-node data — a workflow
+      // switch must not keep showing the PREVIOUS file's forecast; the
+      // new file's check will re-push its own (dag:cost) when it lands.
+      applyCostChip(null);
       break;
     case 'dag:updateStatus':
       renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs);
@@ -2479,7 +2485,10 @@ function refreshStaleChip(): void {
 }
 
 function requestRun(preview: boolean): void {
-  if (document.body.classList.contains('running')) { return; }
+  // `running` = confirmed by run:state; `run-starting` = optimistic —
+  // both block re-entry, closing the double-click window before spawn.
+  if (document.body.classList.contains('running')
+    || document.body.classList.contains('run-starting')) { return; }
   // Optimistic latency masking: the click has a visible consequence
   // BEFORE the first engine event (pending cards shimmer) — cleared by
   // the first run:state, or by a 4s safety in case the spawn dies.
@@ -2712,8 +2721,13 @@ if (!vscode.getState()?.seenHint) {
     vscode.setState({ ...(vscode.getState() ?? {}), seenHint: true });
     window.removeEventListener('message', firstGraphListener);
   };
+  let hintScheduled = false;
   const firstGraphListener = (event: MessageEvent<ExtToWebviewMessage>): void => {
-    if (event.data.kind === 'dag:load') { setTimeout(onFirstGraph, 600); }
+    // Two dag:loads inside the 600ms window must not append two hints.
+    if (event.data.kind === 'dag:load' && !hintScheduled) {
+      hintScheduled = true;
+      setTimeout(onFirstGraph, 600);
+    }
   };
   window.addEventListener('message', firstGraphListener);
 }

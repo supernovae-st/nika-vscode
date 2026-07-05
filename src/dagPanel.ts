@@ -308,6 +308,12 @@ export class DagPanel implements vscode.Disposable {
     return this.panel !== undefined;
   }
 
+  /** The workflow the panel currently displays — guards check-driven
+   *  pushes (audit · cost) from landing on an outgoing graph mid-switch. */
+  public currentWorkflowUri(): string | undefined {
+    return this.currentGraph?.workflowUri;
+  }
+
   /** Task ids of the currently loaded graph — overlap tests for live overlay. */
   public currentGraphIds(): Set<string> | undefined {
     if (!this.currentGraph) { return undefined; }

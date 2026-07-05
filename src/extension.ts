@@ -488,6 +488,10 @@ export function activate(context: ExtensionContext): void {
   const applyDagEdit = async (request: DagEditRequest): Promise<void> => {
     const uri = request.workflowUri ? Uri.parse(request.workflowUri) : dagWorkflowUri;
     if (!uri) { return; }
+    // A restored panel's FIRST interaction can be a canvas edit before any
+    // URI-setting command runs — anchor the tracked workflow here so the
+    // audit/cost/stale pushes (guarded on dagWorkflowUri) aren't dropped.
+    dagWorkflowUri = uri;
     const doc = await workspace.openTextDocument(uri);
     const text = doc.getText();
     let newText: string | undefined;
@@ -652,6 +656,9 @@ export function activate(context: ExtensionContext): void {
           return;
         }
         if (doc.uri.scheme !== 'file') { return; }
+        // Preview runs the file on disk too — save so mock lights the
+        // graph the editor shows, and fingerprints match what ran.
+        if (doc.isDirty) { await doc.save(); }
         dagWorkflowUri = doc.uri;
         const graph = await loadGraphFor(doc);
         dagPanel.show(graph);
@@ -672,6 +679,11 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     service.onDidUpdateDocument((uriString) => {
       if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
+      // Mid-switch TOCTOU: dagWorkflowUri is reassigned BEFORE the new
+      // graph reaches the panel (loadGraphFor is async) — without this,
+      // the incoming file's audit/cost would paint the OUTGOING graph.
+      const shown = dagPanel.currentWorkflowUri();
+      if (shown !== undefined && shown !== uriString) { return; }
       const report = service.peekCheck(uriString)?.report;
       if (!report) { return; }
       // Per-card audit badges: the static-check moat surfaced on the
@@ -719,6 +731,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
+      // The engine runs the file on disk — save first so it runs what the
+      // editor (and the DAG) shows, and so the run's fingerprints record
+      // the content that actually ran (not stale on-disk text).
+      if (doc.isDirty) { await doc.save(); }
       if (service.caps.run) {
         // Live: paint `run --json`'s event stream onto the DAG in real
         // time (the overlay the panel was built for). A plain terminal
@@ -835,6 +851,20 @@ export function activate(context: ExtensionContext): void {
       });
       if (!name) { return; }
       const filePath = Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+
+      // Never silently clobber an existing workflow (a raw fs.writeFile
+      // has no undo) — typing an existing name must be an explicit choice.
+      try {
+        await workspace.fs.stat(filePath);
+        const overwrite = await window.showWarningMessage(
+          `${name}.nika.yaml already exists — overwrite it?`,
+          { modal: true },
+          'Overwrite',
+        );
+        if (overwrite !== 'Overwrite') { return; }
+      } catch {
+        // stat threw → the file doesn't exist → free to create.
+      }
 
       const templates = await service.templatesList();
       if (templates.length > 0) {

@@ -303,6 +303,12 @@ export function foldTrace(ndjson: string): RunModel {
     model.workflowStatus = 'running';
   }
 
+  // The scrubber (frameAt · timelineBounds) assumes ascending atMs; a
+  // fan-out trace's NDJSON can interleave concurrent writers out of
+  // strict time order. Array.prototype.sort is stable, so same-timestamp
+  // entries keep line order (last-write-wins per frameAt's contract).
+  model.timeline.sort((a, b) => a.atMs - b.atMs);
+
   return model;
 }
 
