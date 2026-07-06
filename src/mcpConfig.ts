@@ -111,7 +111,7 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
     '- Secrets via ${{ env.KEY }} — NEVER literal keys in YAML',
     '- output: named jq bindings · outputs: = the workflow return value',
     '- when: CEL conditional · retry: { max_attempts, backoff } · on_error: recover:',
-    '- After editing, run `nika check <file>` and fix diagnostics. Unknown code → `nika explain NIKA-XXXX`.',
+    '- After writing or editing any *.nika.yaml, ALWAYS run `nika check <file> --json` and fix every finding before finishing. Never declare the task done while findings remain. Unknown code → `nika explain NIKA-XXXX`.',
     '',
     ...providerLines,
     '',

@@ -555,7 +555,7 @@
         "displayName": "Nika Check",
         "toolReferenceName": "nikaCheck",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. Call this after every edit to a .nika.yaml file and repair until clean.",
+        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. You MUST call this after EVERY create or edit of a .nika.yaml file, and fix every finding before declaring the task done — never report success while findings remain. Not for generic YAML or GitHub Actions files.",
         "inputSchema": {
           "type": "object",
           "properties": {
