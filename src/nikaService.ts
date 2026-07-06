@@ -2,13 +2,11 @@
 //
 // Every feature consumes the engine through this service: it resolves the
 // binary, probes its REAL capability surface (`--help` · never a hardcoded
-// matrix), caches per-document check/graph results, and supports dirty
-// buffers via tmp files. Vocabulary lives in the binary (spec · schema ·
+// matrix), caches per-document check/graph results, and pipes dirty
+// buffers over stdin (`check -` · engine #190) — tmp files only as the
+// pre-dash fallback. Vocabulary lives in the binary (spec · schema ·
 // templates · examples) — the extension projects, never duplicates.
 
-import { execFile } from 'child_process';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { EventEmitter, type Event, type TextDocument } from 'vscode';
@@ -35,7 +33,10 @@ import { annotateDataFlow } from './core/dataflow';
 import { collectBodyFacts } from './core/bodyFacts';
 import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
+import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
 import { parseRichWorkflow } from './workflowParser';
+
+export type { CliResult } from './core/spawn';
 
 /** Card substance (prompt · command · args) onto the graph nodes. */
 function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNode[]): void {
@@ -47,12 +48,6 @@ function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNod
     node.commandPreview = f.command;
     node.argsPreview = f.args;
   }
-}
-
-export interface CliResult {
-  code: number;
-  stdout: string;
-  stderr: string;
 }
 
 export interface CheckOutcome {
@@ -82,7 +77,6 @@ export class NikaService {
   // one spawn instead of racing on the same tmp file.
   private readonly checkInFlight = new Map<string, Promise<CheckOutcome>>();
   private readonly graphInFlight = new Map<string, Promise<GraphDoc | undefined>>();
-  private tmpSeq = 0;
 
   get binaryPath(): string | undefined {
     return this.binary;
@@ -135,11 +129,19 @@ export class NikaService {
       this.changeEmitter.fire();
       return;
     }
-    const [help, version] = await Promise.all([
-      this.spawnCli(binaryPath, ['--help'], 5000),
-      this.spawnCli(binaryPath, ['--version'], 5000),
+    // `check --help` rides along for the dash probe (engine #190): on a
+    // binary without check, clap errors and the empty stdout keeps the
+    // gate off — no conditional second round-trip.
+    const [help, version, checkHelp] = await Promise.all([
+      spawnCli(binaryPath, ['--help'], 5000),
+      spawnCli(binaryPath, ['--version'], 5000),
+      spawnCli(binaryPath, ['check', '--help'], 5000),
     ]);
-    this.capsValue = buildCapabilities(help.stdout, version.stdout || version.stderr);
+    this.capsValue = buildCapabilities(
+      help.stdout,
+      version.stdout || version.stderr,
+      checkHelp.stdout,
+    );
     this.changeEmitter.fire();
 
     // Load the schema/canon-derived vocabulary (async — providers pick it
@@ -147,8 +149,8 @@ export class NikaService {
     this.intelValue = undefined;
     if (this.capsValue.schema && this.capsValue.spec) {
       const [schemaRes, canonRes] = await Promise.all([
-        this.spawnCli(binaryPath, ['schema'], 10000),
-        this.spawnCli(binaryPath, ['spec', '--canon'], 10000),
+        spawnCli(binaryPath, ['schema'], 10000),
+        spawnCli(binaryPath, ['spec', '--canon'], 10000),
       ]);
       try {
         this.intelValue = buildSchemaIntel(JSON.parse(schemaRes.stdout), canonRes.stdout);
@@ -164,8 +166,8 @@ export class NikaService {
     this.toolCatsValue = undefined;
     this.catalogModelsValue = undefined;
     const [toolsRes, catalogRes] = await Promise.all([
-      this.spawnCli(binaryPath, ['tools', '--json'], 10000),
-      this.spawnCli(binaryPath, ['catalog', '--json'], 10000),
+      spawnCli(binaryPath, ['tools', '--json'], 10000),
+      spawnCli(binaryPath, ['catalog', '--json'], 10000),
     ]);
     if (toolsRes.code === 0) {
       this.toolCatsValue = parseToolCategories(toolsRes.stdout);
@@ -190,50 +192,24 @@ export class NikaService {
     }
   }
 
-  runCli(args: string[], timeoutMs = 30000): Promise<CliResult> {
+  runCli(args: string[], timeoutMs = 30000, stdin?: string): Promise<CliResult> {
     if (!this.binary) {
       return Promise.resolve({ code: EXIT.ENV, stdout: '', stderr: 'nika binary not resolved' });
     }
-    return this.spawnCli(this.binary, args, timeoutMs);
+    return spawnCli(this.binary, args, timeoutMs, stdin);
   }
 
-  private spawnCli(bin: string, args: string[], timeoutMs: number): Promise<CliResult> {
-    return new Promise((resolve) => {
-      execFile(
-        bin,
-        args,
-        { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
-        (error, stdout, stderr) => {
-          let code = 0;
-          if (error) {
-            const ec = (error as NodeJS.ErrnoException & { code?: unknown }).code;
-            code = typeof ec === 'number' ? ec : EXIT.ENV;
-          }
-          resolve({ code, stdout: stdout ?? '', stderr: stderr ?? '' });
-        },
-      );
-    });
-  }
-
-  /** Run `fn` against a real file for `doc` — tmp copy when dirty/untitled. */
-  private async withDocFile<T>(doc: TextDocument, fn: (fsPath: string) => Promise<T>): Promise<T> {
+  /** Run a CLI verb against `doc` — real path when saved, otherwise the
+   *  text leg (stdin dash · tmp fallback on pre-dash binaries). */
+  private runDocCli(
+    doc: TextDocument,
+    args: (file: string) => string[],
+    timeoutMs = 30000,
+  ): Promise<CliResult> {
     if (!doc.isDirty && doc.uri.scheme === 'file') {
-      return fn(doc.uri.fsPath);
+      return this.runCli(args(doc.uri.fsPath), timeoutMs);
     }
-    // Unique per invocation (digest + version + pid + seq): two concurrent
-    // calls must never share a tmp path — one would unlink it mid-read.
-    const digest = crypto.createHash('sha256').update(doc.uri.toString()).digest('hex').slice(0, 12);
-    this.tmpSeq += 1;
-    const tmp = path.join(
-      os.tmpdir(),
-      `nika-ext-${digest}-v${doc.version}-${process.pid}-${this.tmpSeq}.nika.yaml`,
-    );
-    fs.writeFileSync(tmp, doc.getText(), 'utf-8');
-    try {
-      return await fn(tmp);
-    } finally {
-      fs.unlink(tmp, () => undefined);
-    }
+    return runCliOnText(this, args, doc.getText(), timeoutMs, 'doc');
   }
 
   // ─── check ────────────────────────────────────────────────────────────────
@@ -256,8 +232,7 @@ export class NikaService {
     // The cache stamp is GUARDED on still being the registered flight:
     // invalidate()/setBinary() detach flights, and a detached result must
     // not re-stamp a deliberately cleared cache.
-    const promise: Promise<CheckOutcome> = this.withDocFile(doc, async (fsPath) => {
-      const res = await this.runCli(['check', fsPath, '--json']);
+    const promise: Promise<CheckOutcome> = this.runDocCli(doc, (file) => ['check', file, '--json']).then((res) => {
       return {
         exit: res.code,
         report: parseCheckReport(res.stdout),
@@ -286,9 +261,7 @@ export class NikaService {
   /** `check --infer-permits` — the inferred boundary YAML, when derivable. */
   async inferPermits(doc: TextDocument): Promise<string | undefined> {
     if (!this.caps.check) { return undefined; }
-    const res = await this.withDocFile(doc, (fsPath) =>
-      this.runCli(['check', fsPath, '--infer-permits', '--no-color']),
-    );
+    const res = await this.runDocCli(doc, (file) => ['check', file, '--infer-permits', '--no-color']);
     const text = res.stdout.trim();
     return text.includes('permits:') ? text : undefined;
   }
@@ -307,8 +280,7 @@ export class NikaService {
     const inFlight = this.graphInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
-    const promise: Promise<GraphDoc | undefined> = this.withDocFile(doc, async (fsPath) => {
-      const res = await this.runCli(['graph', fsPath, '--format', 'json']);
+    const promise: Promise<GraphDoc | undefined> = this.runDocCli(doc, (file) => ['graph', file, '--format', 'json']).then((res) => {
       if (res.code !== EXIT.OK) { return undefined; }
       try {
         const parsed: unknown = JSON.parse(res.stdout);
@@ -392,9 +364,7 @@ export class NikaService {
 
   async graphFormat(doc: TextDocument, format: 'mermaid' | 'dot'): Promise<string | undefined> {
     if (!this.caps.graph) { return undefined; }
-    const res = await this.withDocFile(doc, (fsPath) =>
-      this.runCli(['graph', fsPath, '--format', format]),
-    );
+    const res = await this.runDocCli(doc, (file) => ['graph', file, '--format', format]);
     return res.code === EXIT.OK ? res.stdout : undefined;
   }
 
