@@ -5,6 +5,21 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The user-POV review pass + the retry ladder
+
+- **The retry ladder.** Failures grow their per-attempt story (each
+  retry's NIKA-code detail and clock, then the terminal word) — in the
+  Runs-view task tooltip and the run report. A single clean attempt
+  tells no story.
+- Eight review fixes from walking the shipped arcs as a user: replay of
+  a trace-synthesized graph no longer highlights unrelated YAML files;
+  closing a replay clears its source highlight; Runs-view artifacts
+  resolve against the run's cwd and say « missing on disk » honestly;
+  a preflight that could not check keys says « · preflight », never a
+  green ✓; x-ray hints land after `}}`; missing-env marks skip comments
+  and clear on edit; the flight-plan command reuses the catalog memo;
+  gallery URLs survive paths with spaces.
+
 ### The P1 arc, second wave — Test Explorer · missing-env marks · est badges · the gallery
 
 - **Test Explorer.** Golden-backed workflows (`<file>.golden.json`
