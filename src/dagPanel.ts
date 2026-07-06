@@ -26,6 +26,7 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
+  | { kind: 'dag:lineage'; taskId: string | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
@@ -483,6 +484,11 @@ export class DagPanel implements vscode.Disposable {
   /** Soft cursor-position hint (editor caret inside a task · null clears). */
   public cursorHint(taskId: string | null): void {
     this.postMessage({ kind: 'dag:cursorHint', taskId });
+  }
+
+  /** Data-lineage illumination (caret inside `${{ tasks.X… }}` · null clears). */
+  public lineage(taskId: string | null): void {
+    this.postMessage({ kind: 'dag:lineage', taskId });
   }
 
   /** Session narration line for the activity feed (check · edits · …). */

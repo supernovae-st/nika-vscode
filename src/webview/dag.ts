@@ -28,6 +28,7 @@ import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
+import { lineageOf, type LineageView } from '../core/lineage';
 
 // Every animation in this view is gated on the user's motion preference.
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -253,6 +254,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
+  | { kind: 'dag:lineage'; taskId: string | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
@@ -812,9 +814,14 @@ class DagRenderer {
     this.renderNodes(layoutResult.children ?? [], graph.nodes);
 
     // A focus carried over from a DIFFERENT workflow (follow-mode
-    // retarget) would dim the entire new graph — drop it.
+    // retarget) would dim the entire new graph — drop it (lineage too:
+    // its sets point at the old graph's ids).
     if (this.focusedId && !this.nodeMap.has(this.focusedId)) {
       this.focusedId = null;
+    }
+    if (this.lineage && !this.nodeMap.has(this.lineage.focus)) {
+      this.lineage = null;
+      this.lineageFromEditor = false;
     }
     // Same for the live filter: its match set points at the OLD graph's
     // ids — recompute against the new one (the query survives, the
@@ -1065,8 +1072,10 @@ class DagRenderer {
    * upstream chain and downstream cone stay lit — « what feeds this ·
    * what it unlocks », the DAG explaining itself.
    */
-  /** Focus lineage set (null = no focus) — one input to the dim truth. */
-  private focusRelated: Set<string> | null = null;
+  /** Active lineage illumination (click-focus OR editor caret) — one input to the dim truth. */
+  private lineage: LineageView | null = null;
+  /** True when the caret (not a click) set the lineage — cleared on caret exit. */
+  private lineageFromEditor = false;
   /** The editor-caret hinted task — restored after any class rewrite. */
   private cursorHintedId: string | null = null;
   /** Live `/`-filter matches (null = no filter) — the other input. */
@@ -1074,35 +1083,41 @@ class DagRenderer {
 
   private applyFocus(id: string | null): void {
     this.focusedId = id;
-    if (id === null) {
-      this.focusRelated = null;
-    } else {
-      const related = new Set<string>();
-      const walk = (start: string, adj: Map<string, string[]>): void => {
-        const queue = [start];
-        while (queue.length > 0) {
-          const cur = queue.pop()!;
-          for (const next of adj.get(cur) ?? []) {
-            if (!related.has(next)) { related.add(next); queue.push(next); }
-          }
-        }
-      };
-      related.add(id);
-      walk(id, this.upstreamOf);
-      walk(id, this.downstreamOf);
-      this.focusRelated = related;
-    }
+    this.lineage = id === null ? null : lineageOf(this.currentGraph?.edges ?? [], id);
+    this.lineageFromEditor = false;
     this.refreshDim();
   }
 
-  /** Focus lineage ∧ filter matches — ONE dimming truth for nodes+edges. */
+  /**
+   * Editor-driven lineage: the caret sits inside `${{ tasks.X… }}` —
+   * trace X's data story WITHOUT stealing the selection or moving the
+   * camera. An explicit canvas click is a stronger intent and wins.
+   */
+  editorLineage(taskId: string | null): void {
+    if (this.focusedId !== null) { return; }
+    const valid = taskId !== null && this.nodeMap.has(taskId) ? taskId : null;
+    if (valid === null && !this.lineageFromEditor && this.lineage !== null) { return; }
+    this.lineage = valid === null ? null : lineageOf(this.currentGraph?.edges ?? [], valid);
+    this.lineageFromEditor = valid !== null;
+    this.refreshDim();
+  }
+
+  /** Lineage illumination ∧ filter matches — ONE dimming truth for nodes+edges. */
   private refreshDim(): void {
+    const lin = this.lineage;
+    const lit = lin === null ? null : new Set(lin.lit);
+    const direct = lin === null ? null : new Set([...lin.upDirect, ...lin.downDirect]);
+    const litEdges = lin === null ? null : new Set(lin.litEdges);
     const dimNode = (nid: string): boolean =>
-      (this.focusRelated !== null && !this.focusRelated.has(nid))
+      (lit !== null && !lit.has(nid))
       || (this.filterMatches !== null && !this.filterMatches.has(nid));
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('dimmed', (d) => dimNode(d.id))
       .classed('selected', (d) => d.id === this.focusedId)
+      .classed('lin-focus', (d) => lin !== null && d.id === lin.focus)
+      .classed('lin-direct', (d) => direct !== null && direct.has(d.id))
+      .classed('lin-cone', (d) =>
+        lin !== null && lit!.has(d.id) && d.id !== lin.focus && !direct!.has(d.id))
       // cursor-hint lives outside nodeClassOf; a class rewrite (audit ·
       // status · frame) drops it — restore it here so the caret halo
       // survives every refresh.
@@ -1110,8 +1125,13 @@ class DagRenderer {
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('dimmed', (d) => {
         const ends = this.edgeEnds.get(d.id);
-        if (!ends) { return this.focusRelated !== null || this.filterMatches !== null; }
+        if (!ends) { return lit !== null || this.filterMatches !== null; }
         return dimNode(ends.source) || dimNode(ends.target);
+      })
+      .classed('lin-path', (d) => {
+        if (litEdges === null) { return false; }
+        const ends = this.edgeEnds.get(d.id);
+        return ends !== undefined && litEdges.has(`${ends.source}->${ends.target}`);
       });
   }
 
@@ -2810,7 +2830,8 @@ class DagRenderer {
     this.criticalEdges.clear();
     this.waveOf.clear();
     this.focusedId = null;
-    this.focusRelated = null;
+    this.lineage = null;
+    this.lineageFromEditor = false;
     this.filterMatches = null;
     this.wasAllTerminal = false;
     this.layoutBox.clear();
@@ -3085,6 +3106,7 @@ function buildExplainer(): void {
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here (the label is the binding alias) — gray dashed edges are ordering only'],
+    ['ex-glyph-data', 'Lineage — follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades — Esc clears'],
     ['ex-glyph-ghost', 'Red dashed edges', 'a task READS another without declaring depends_on (NIKA-DAG-003) — click the edge to declare it'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read — cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
   ];
@@ -3400,6 +3422,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'dag:cursorHint':
       renderer.cursorHint(msg.taskId);
+      break;
+    case 'dag:lineage':
+      renderer.editorLineage(msg.taskId);
       break;
     case 'dag:note':
       pushActivityLine(msg.icon, msg.text, msg.cls ?? 'st-note', msg.taskId);

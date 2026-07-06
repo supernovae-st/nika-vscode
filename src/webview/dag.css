@@ -624,6 +624,41 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   opacity: 0.1;
 }
 
+/* ─── Lineage illumination · follow the data ──────────────────────────────
+   Click a card (or caret inside `${{ tasks.x… }}`): the data story lights —
+   direct neighbors read louder than the transitive cone, the wires ON the
+   path saturate, everything else falls to the shared .dimmed truth.
+   Class flips only — zero animation (reduced-motion safe by construction). */
+
+.dag-node.lin-direct .node-bg {
+  stroke: var(--nk-accent, #5b8cff);
+  stroke-opacity: 0.5;
+}
+
+.dag-node.lin-cone {
+  opacity: 0.92;
+}
+
+.dag-edge.lin-path {
+  stroke-opacity: 1;
+}
+
+.dag-edge.lin-path.edge-data {
+  stroke: var(--nk-accent, #5b8cff);
+  stroke-width: 2;
+}
+
+@media (forced-colors: active) {
+  .dag-node.lin-direct .node-bg {
+    stroke: Highlight !important;
+  }
+
+  .dag-edge.lin-path.edge-data {
+    stroke: Highlight !important;
+    stroke-width: 2 !important;
+  }
+}
+
 /* ─── Edge flow · the LIVE FRONTIER only (React Flow discipline) ──────────
    An edge animates while data is travelling NOW (source settled → target
    running); a fully settled edge rests as a quiet success tint. Never

@@ -82,6 +82,7 @@ import { computeDirty } from './core/dirtyNodes';
 import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
+import { refAt } from './core/expr';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -421,6 +422,7 @@ export function activate(context: ExtensionContext): void {
   // graph (throttled · visible-panel-gated · same-workflow-gated).
   let cursorSyncTimer: ReturnType<typeof setTimeout> | undefined;
   let lastHintedTask: string | null = null;
+  let lastLineageTask: string | null = null;
   context.subscriptions.push(
     window.onDidChangeTextEditorSelection((e) => {
       if (!dagPanel.isVisible) { return; }
@@ -430,12 +432,22 @@ export function activate(context: ExtensionContext): void {
       if (dagWorkflowUri?.toString() !== doc.uri.toString()) { return; }
       if (cursorSyncTimer) { clearTimeout(cursorSyncTimer); }
       cursorSyncTimer = setTimeout(() => {
-        const wf = parseRichWorkflow(doc.getText());
-        const task = taskAtLine(wf, e.selections[0]?.active.line ?? 0);
+        const text = doc.getText();
+        const wf = parseRichWorkflow(text);
+        const pos = e.selections[0]?.active;
+        const task = taskAtLine(wf, pos?.line ?? 0);
         const id = task?.id ?? null;
         if (id !== lastHintedTask) {
           lastHintedTask = id;
           dagPanel.cursorHint(id);
+        }
+        // Caret INSIDE `${{ tasks.X… }}` → trace X's data lineage on the
+        // canvas (producers + consumers lit, rest dims) — brief couche 3.
+        const ref = pos ? refAt(text, doc.offsetAt(pos)) : undefined;
+        const lin = ref?.root === 'tasks' && ref.path.length > 0 ? ref.path[0] : null;
+        if (lin !== lastLineageTask) {
+          lastLineageTask = lin;
+          dagPanel.lineage(lin);
         }
       }, 120);
     }),
