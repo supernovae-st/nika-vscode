@@ -5,6 +5,20 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.96.0] · 2026-07-06
+
+### The tmp-file dance dies — dirty buffers ride the dash
+
+- **Dirty and untitled buffers now pipe straight into the binary**
+  (`nika check/graph -` · engine #190) instead of the
+  write-tmp-spawn-unlink dance — diagnostics, the canvas, the permits
+  lens, the cost-delta baseline and the generate oracle all take the
+  stdin leg on a dash-capable engine.
+- **Capability-probed, never version-gated**: the extension reads the
+  binary's own `check --help` for the dash (dev builds from engine main
+  carry it while still reporting an older version). Pre-dash binaries
+  keep the tmp-file fallback — nothing changes for them.
+
 ## [0.95.2] · 2026-07-06
 
 Version-number burn only: a cancelled release run had half-published
