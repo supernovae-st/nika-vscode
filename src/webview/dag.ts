@@ -2984,6 +2984,14 @@ function pushActivityLine(icon: string, text: string, cls: string, taskId?: stri
   const time = document.createElement('span');
   time.className = 'act-time';
   time.textContent = new Date().toLocaleTimeString(undefined, { hour12: false });
+  // A burst lands many entries in the same second — repeating the
+  // timestamp five times is noise, not information. The first entry of
+  // each second keeps the ink; repeats dim to a whisper (the value
+  // stays in the DOM — hover/copy still read it).
+  const prevTime = host.lastElementChild?.querySelector<HTMLElement>('.act-time');
+  if (prevTime && prevTime.textContent === time.textContent) {
+    time.classList.add('act-time-rep');
+  }
 
   const iconEl = document.createElement('span');
   iconEl.className = 'act-icon';
@@ -3241,6 +3249,7 @@ class Replayer {
     this.startMs = b.startMs;
     this.spanMs = Math.max(b.endMs - b.startMs, 1);
     this.el?.removeAttribute('hidden');
+    document.body.classList.add('replaying');
     const title = document.getElementById('dag-title');
     if (title) { title.textContent = `↻ ${label}`; }
     // Land on the FINAL state (the outcome), ready to scrub back or replay.
@@ -3250,6 +3259,7 @@ class Replayer {
   close(): void {
     this.pause();
     this.el?.setAttribute('hidden', '');
+    document.body.classList.remove('replaying');
     this.timeline = [];
   }
 

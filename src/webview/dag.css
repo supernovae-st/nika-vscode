@@ -1570,6 +1570,8 @@ body.vscode-light .logo-dark { display: none; }
   background: color-mix(in srgb, var(--nk-accent) 10%, transparent);
 }
 
+.act-time-rep { opacity: 0.28; }
+
 .act-time {
   color: var(--nk-ink-dim);
   font-size: 9.5px;
@@ -3017,10 +3019,13 @@ body.lod-far .nc-stale {
   color: var(--nk-ink-dim);
 }
 
-/* The legend gets out of the scrubber's way when it's up. */
-#scrubber:not([hidden]) ~ #dag-legend {
-  bottom: 68px;
-}
+/* The scrubber owns the bottom floor (the dock-tier pattern): status
+ * chips + progress yield — they describe the LIVE canvas, and the
+ * scrubber is a time machine over a RECORDED one; the minimap steps
+ * up one floor and keeps navigating. */
+body.replaying #dag-legend { display: none; }
+body.replaying #omnibar { display: none; }
+body.replaying #minimap { bottom: 74px; }
 
 /* ─── Author regions · # nika:region groupings ─────────────────────────── */
 

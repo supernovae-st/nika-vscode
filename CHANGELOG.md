@@ -5,6 +5,22 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.95.1] · 2026-07-06
+
+### The replay owns its floor — the mega e2e review
+
+- **Time-travel had a chrome collision** (the end-to-end journey review
+  caught it): with the scrubber open, the status chips and progress bar
+  sat half-buried in its floor and the omnibar poked out from under it.
+  The scrubber now owns the bottom floor (`body.replaying`, the
+  dock-tier pattern): chips + progress + omnibar yield — they describe
+  a LIVE canvas, the scrubber time-travels a RECORDED one — and the
+  minimap steps up one floor and keeps navigating.
+- **The activity feed stopped repeating itself** — a burst lands many
+  entries in the same second; the first entry of each second keeps the
+  timestamp ink, repeats dim to a whisper (the value stays for
+  hover/copy).
+
 ## [0.95.0] · 2026-07-06
 
 ### Heatmap 2.0 — a reading mode, not a one-card show
