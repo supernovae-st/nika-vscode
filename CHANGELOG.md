@@ -5,6 +5,13 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.95.2] · 2026-07-06
+
+Version-number burn only: a cancelled release run had half-published
+0.95.1 to OpenVSX (inactive · invisible) before the cancel landed, and
+the registry refuses the number twice. 0.95.2 IS 0.95.1 — no code
+change.
+
 ## [0.95.1] · 2026-07-06
 
 ### The replay owns its floor — the mega e2e review
