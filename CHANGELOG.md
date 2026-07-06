@@ -5,6 +5,21 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.96.1] · 2026-07-06
+
+### The three blind finding families — a clean badge told a lie
+
+- **`missing_args` · `unknown_args` · `gate_findings` now surface
+  everywhere** (tree badge · canvas audit · workspace lint · diagnostics
+  · the AI-generate gate). The engine fails `nika check` on a missing
+  required tool arg, a typo'd arg key, or a provably dead `when:` gate —
+  the extension used to paint those files CLEAN.
+- **The AI-generate loop trusts the binary's exit code**: a draft only
+  ships as clean when `nika check` itself exits 0 — a future finding
+  family can never slip a dirty draft through again.
+- **Paused runs read as paused** (ADR-099 `nika:prompt`): ⏸ card and
+  pause icon in the Runs view instead of a forever-live pulse.
+
 ## [0.96.0] · 2026-07-06
 
 ### The tmp-file dance dies — dirty buffers ride the dash
