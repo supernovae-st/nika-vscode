@@ -5,6 +5,17 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The human-gate, answered
+
+- **Paused runs ask — you answer — they finish.** A `nika:prompt` task
+  pauses the run (exit 4, ADR-099): the verdict goes amber ⏸ with the
+  question itself (a pause is not a failure), a notification offers
+  « Answer… », and the control matches the mode (confirm → Yes/No ·
+  choice → the workflow's own options · input → a box). The answer
+  resumes the exact journal the engine wrote, downstream runs live on
+  the canvas. Wired at every run gesture (run · mock · rerun · resume ·
+  fork). Proven pause → answer → completed on a real 0.94 engine.
+
 ### Diff v2 · the cross-run grid · housekeeping
 
 - **Diff v2 — output changes + the first divergence.** The run diff now
