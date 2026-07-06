@@ -5,6 +5,15 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+- **Preflight rates** (nika ≥ 0.96) — every model row in the flight plan
+  shows what it will pay per token (`$2/$10 per 1M`, from the engine's
+  vendored 602-model catalog) beside its key verdict. An UNKNOWN price
+  renders nothing — never $0.
+- **The AI authoring prompt teaches proof** — agents are now told to
+  quote trace evidence (`trace outputs` · `trace peek --raw` · replay
+  under `nika dap` · `trace export` to OTel), not vibes.
+- **Runs view: the time-travel action rides inline** — the ▷ debug icon
+  sits on every recorded run beside diff.
 - **Fix: F5 via the generated launch.json snippet** — the snippet's
   `replay: ""` beat the trace the provider had just resolved (first F5
   died on `cannot read journal ''`). Resolved paths now win over
