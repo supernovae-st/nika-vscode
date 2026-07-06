@@ -99,6 +99,40 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **Syntax + snippets + semantic scopes** for the 4-verb surface · every
   snippet is own-corpus tested against `nika check`
 
+### Understand before it runs · prove after it ran
+
+- **Preflight — the flight plan before any token** · `Nika: Preflight`
+  composes what nothing else shows pre-run: every infer/agent model
+  resolved against the engine catalog's key requirements (local
+  providers marked sovereign · mock marked zero-spend), secrets and env
+  reads checked against your actual environment (`env`-sourced
+  verified; vault/file say *declared*, never *verified*), permits +
+  capability escapes + secret flows, the wave-by-wave plan, and the
+  cost ceiling. A **verdict chip on the run pill** keeps it glanceable
+  (`✗ 2 missing` · `⚠ flows` · `✓ preflight`) — click it for the doc
+- **Lineage — follow the data** · click a card, or put the caret inside
+  `${{ tasks.x… }}` in the YAML: the producer and every consumer stay
+  lit (direct neighbors louder than the transitive cone), the data
+  wires saturate, everything else fades. Esc clears
+- **Source-bound run highlight** · while a run executes or a replay
+  scrubs, the YAML spans of the RUNNING tasks glow — the source *is*
+  the timeline
+- **X-ray ghost values** · every `${{ tasks.x… }}` shows what it
+  resolved to in the last matching recorded run, inline (` = "Hello
+  HN"` · full value on hover). No recorded value → no hint
+- **Fork-from-step** · pick a task in a recorded run (⑂ in the Runs
+  view): it and its downstream re-execute, everything upstream
+  rehydrates from the trace — counterfactual iteration without
+  re-spending the cone above
+- **Run report** · one markdown per recorded run — verdict, per-task
+  table, **artifacts with provenance** (image outputs render inline),
+  failures with their **retry ladder** (each attempt's NIKA-code and
+  clock). Every line is the trace's own events; gaps are stated, never
+  filled
+- **Test Explorer** · golden-backed workflows (`<file>.golden.json`)
+  run in the native testing UI — the failure message IS the engine's
+  per-path diff; a second profile re-pins the golden explicitly
+
 ### See the run
 
 ![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)

@@ -229,6 +229,9 @@ class ArtifactItem extends vscode.TreeItem {
 export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.emitter.event;
+  /** fsPath → parsed trace, keyed by mtime — a tree refresh must not
+   *  re-read and re-fold every journal on disk (3 passes × N traces). */
+  private readonly parsed = new Map<string, TraceFile>();
 
   refresh(): void {
     this.emitter.fire();
@@ -260,20 +263,33 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
     );
     const files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 100);
     const traces: TraceFile[] = [];
+    const seen = new Set<string>();
     for (const uri of files) {
       try {
         const stat = fs.statSync(uri.fsPath);
+        seen.add(uri.fsPath);
+        const cached = this.parsed.get(uri.fsPath);
+        if (cached && cached.mtimeMs === stat.mtimeMs) {
+          traces.push(cached);
+          continue;
+        }
         const content = fs.readFileSync(uri.fsPath, 'utf-8');
-        traces.push({
+        const entry: TraceFile = {
           uri,
           mtimeMs: stat.mtimeMs,
           model: foldTrace(content),
           artifacts: extractRunArtifacts(content),
           ladders: attemptLadders(content),
-        });
+        };
+        this.parsed.set(uri.fsPath, entry);
+        traces.push(entry);
       } catch {
         // unreadable trace — skip, never fail the tree
       }
+    }
+    // Deleted traces must not pin their parse forever.
+    for (const key of [...this.parsed.keys()]) {
+      if (!seen.has(key)) { this.parsed.delete(key); }
     }
     traces.sort((a, b) => b.mtimeMs - a.mtimeMs);
     if (traces.length === 0) {
