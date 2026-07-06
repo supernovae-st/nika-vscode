@@ -24,6 +24,8 @@ export interface CapabilitySet {
   trace: boolean;
   run: boolean;
   lsp: boolean;
+  /** `nika dap` — the replay debugger (0.96+). */
+  dap: boolean;
   mcp: boolean;
   wire: boolean;
   doctor: boolean;
@@ -96,6 +98,7 @@ export function buildCapabilities(
     trace: commands.has('trace'),
     run: commands.has('run'),
     lsp: commands.has('lsp'),
+    dap: commands.has('dap'),
     mcp: commands.has('mcp'),
     wire: commands.has('wire'),
     doctor: commands.has('doctor'),

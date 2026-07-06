@@ -17,12 +17,24 @@ import { foldTrace } from '../core/traceFold';
 
 /** The engine binary serves the session: `nika dap` over stdio. */
 class NikaDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
-  constructor(private readonly binary: () => string | undefined) {}
+  constructor(
+    private readonly binary: () => string | undefined,
+    private readonly hasDap: () => boolean,
+  ) {}
 
   createDebugAdapterDescriptor(): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const bin = this.binary();
     if (!bin) {
       void vscode.window.showErrorMessage('Nika: no engine binary — install nika to debug runs.');
+      return undefined;
+    }
+    // Probed from the binary's own --help (never a version table): an
+    // engine without `nika dap` gets one clear sentence, not VS Code's
+    // "adapter process terminated unexpectedly".
+    if (!this.hasDap()) {
+      void vscode.window.showErrorMessage(
+        'Nika: this engine has no `dap` command — time-travel debugging needs nika ≥ 0.96 (brew upgrade nika).',
+      );
       return undefined;
     }
     return new vscode.DebugAdapterExecutable(bin, ['dap']);
@@ -92,9 +104,10 @@ function safeRead(p: string): string | undefined {
 export function registerDebugReplay(
   context: vscode.ExtensionContext,
   binary: () => string | undefined,
+  hasDap: () => boolean,
 ): void {
   context.subscriptions.push(
-    vscode.debug.registerDebugAdapterDescriptorFactory('nika', new NikaDebugAdapterFactory(binary)),
+    vscode.debug.registerDebugAdapterDescriptorFactory('nika', new NikaDebugAdapterFactory(binary, hasDap)),
     vscode.debug.registerDebugConfigurationProvider('nika', new NikaDebugConfigProvider()),
 
     // Runs view: debug THIS run — match the journal's workflow name back

@@ -306,7 +306,7 @@ export function activate(context: ExtensionContext): void {
   // F5 over a recorded run — the DAP replay wiring (factory · config
   // provider · the Runs-view "Debug this run" action). The adapter IS
   // the engine: `nika dap` over stdio.
-  registerDebugReplay(context, () => service.binaryPath);
+  registerDebugReplay(context, () => service.binaryPath, () => service.caps.dap);
   const statusBar = new NikaStatusBar(service);
   context.subscriptions.push(statusBar);
   // statusSink is (re)assigned below once the language-status items exist —
