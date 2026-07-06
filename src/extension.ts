@@ -96,6 +96,8 @@ import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
 import { renderRunReport } from './core/runReport';
 import { XrayInlayProvider } from './features/xray';
+import { registerTestExplorer } from './features/testExplorer';
+import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
@@ -419,6 +421,25 @@ export function activate(context: ExtensionContext): void {
   // Audit lenses — inlay cost/when/fan-out + the header audit card.
   const inlayProvider = new AuditInlayHintsProvider(service);
   const xrayProvider = new XrayInlayProvider();
+  // Est-vs-actual: until a run exists, the check report's static per-task
+  // cost holds the badge slot in gray italic (`est …`); a real run
+  // replaces it with the solid actual through the same decorations.
+  const runDecor = new RunDecorations((uriString) => {
+    const report = service.peekCheck(uriString)?.report;
+    if (!report) { return undefined; }
+    const out = new Map<string, string>();
+    for (const t of report.cost.tasks ?? []) {
+      if (typeof t.usd === 'number' && t.usd > 0) {
+        const amount = t.usd.toFixed(t.usd < 0.1 ? 4 : 2).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+        out.set(t.task, ` est ${t.max_tokens ? '' : '\u2265 '}$${amount}`);
+      }
+    }
+    return out.size > 0 ? out : undefined;
+  });
+  const registerSecretsDecorDisposable = (): { dispose(): void } => {
+    registerSecretsDecor(context);
+    return { dispose: () => undefined };
+  };
 
   // Catalog key-story memo (env_var · requires_key · local per provider) —
   // one spawn per binary, shared by the preflight chip and the doc.
@@ -446,7 +467,8 @@ export function activate(context: ExtensionContext): void {
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
     new VerbGutterDecorations(),
-    new RunDecorations(),
+    runDecor,
+    registerSecretsDecorDisposable(),
     workspace.onDidSaveTextDocument((doc) => {
       if (NIKA_FILE_RE.test(doc.fileName)) { inlayProvider.refresh(); }
     }),
@@ -1020,6 +1042,8 @@ export function activate(context: ExtensionContext): void {
         });
         dagPanel.preflightUpdate(preflightChipModel(model));
       })();
+      // The check refreshed static costs → est badges may have changed.
+      runDecor.repaint();
       // Enrichment pass (Infracost lesson): the CHANGE vs the last commit
       // is the review signal. Async — the chip lands instantly above, the
       // delta rides in when the git baseline resolves (cached per HEAD).
@@ -1480,10 +1504,26 @@ export function activate(context: ExtensionContext): void {
         void window.showWarningMessage('Nika: this trace is unreadable.');
         return;
       }
+      // Artifact paths in the journal are as-recorded (often run-cwd
+      // relative). Resolve honestly: absolute-and-exists, or workspace-
+      // root join that exists, or the trace dir's grandparent (the run
+      // cwd for `.nika/traces/x.ndjson`) — otherwise no inline preview.
+      const traceDir = path.dirname(target.fsPath);
+      const runCwd = path.dirname(path.dirname(traceDir));
+      const resolvePath = (p: string): string | undefined => {
+        const candidates = path.isAbsolute(p)
+          ? [p]
+          : [
+            path.join(runCwd, p),
+            ...(workspace.workspaceFolders ?? []).map((f) => path.join(f.uri.fsPath, p)),
+          ];
+        return candidates.find((c) => { try { return fs.existsSync(c); } catch { return false; } });
+      };
       const md = renderRunReport({
         traceName: path.basename(target.fsPath).replace(/\.ndjson$/, ''),
         model: foldTrace(ndjson),
         artifacts: extractRunArtifacts(ndjson),
+        resolvePath,
       });
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {
@@ -1719,6 +1759,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.testWorkflow', (uri?: Uri) => runGoldenTest(uri, false)),
     commands.registerCommand('nika.testUpdate', (uri?: Uri) => runGoldenTest(uri, true)),
   );
+
+  // Test Explorer — golden-backed workflows in the native testing UI
+  // (per-file run · re-pin profile · engine diff as the message).
+  registerTestExplorer(context, service);
 
   // Command: Restart language server
   context.subscriptions.push(

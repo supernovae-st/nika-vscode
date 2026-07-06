@@ -5,6 +5,26 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The P1 arc, second wave — Test Explorer · missing-env marks · est badges · the gallery
+
+- **Test Explorer.** Golden-backed workflows (`<file>.golden.json`
+  beside them) appear in the native testing UI: Run executes the
+  engine's own harness (mock/echo · offline), the failure message IS
+  the engine's per-path diff, and a second profile re-pins the golden —
+  explicit, never silent. Discovery follows goldens as they appear.
+- **Missing-env marks.** A red « ✗ not set » rides the first occurrence
+  of every `${{ env.X }}` the environment cannot satisfy (workflow-
+  defined keys count as satisfied). Only problems speak — the green
+  story stays in the preflight chip.
+- **Est badges.** Until a run exists, the check report's static
+  per-task cost holds the badge slot in gray italic (` est $0.004` ·
+  ` est ≥ $…` when unbounded); a real run replaces it with the solid
+  actual in the same place.
+- **The gallery.** Image artifacts the run report can resolve on disk
+  render INLINE in the report preview, each captioned with its
+  producing task.
+- X-ray lookups are now memoized (the disk walk was not keystroke-cheap).
+
 ### The P1 arc — fork · report · x-ray · the chip
 
 - **Fork-from-step.** Pick a task in a recorded run (Runs-view ⑂ or the

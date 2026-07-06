@@ -15,6 +15,10 @@ export interface RunReportInputs {
   traceName: string;
   model: RunModel;
   artifacts: Map<string, RunArtifact[]>;
+  /** Resolve a recorded (possibly relative) path to an absolute file
+   *  that EXISTS — image artifacts it resolves render inline in the
+   *  report preview (the gallery). Unresolvable stays a plain line. */
+  resolvePath?: (p: string) => string | undefined;
 }
 
 const usd = (n: number): string =>
@@ -90,6 +94,14 @@ export function renderRunReport(inputs: RunReportInputs): string {
           a.model ? `${a.provider ? `${a.provider}/` : ''}${a.model}` : undefined,
         ].filter(Boolean).join(' · ');
         out.push(`- \`${a.path}\` — ${facts} · produced by \`${taskId}\``);
+        if (a.kind === 'image') {
+          const abs = inputs.resolvePath?.(a.path);
+          if (abs !== undefined) {
+            out.push('');
+            out.push(`  ![${a.label ?? 'image'} — ${taskId}](file://${abs})`);
+            out.push('');
+          }
+        }
       }
     }
     out.push('');

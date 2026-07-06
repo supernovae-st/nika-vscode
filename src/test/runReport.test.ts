@@ -45,4 +45,19 @@ describe('renderRunReport', () => {
     expect(md).toContain('## Artifacts');
     expect(md).toContain('`out/a.png` — image · 2 KB · openai/gpt-image-1 · produced by `render`');
   });
+
+  it('resolved images render inline (the gallery); unresolved stay lines', () => {
+    const model = foldTrace(fs.readFileSync(FIXTURE, 'utf-8'));
+    const artifacts = new Map([[
+      'render',
+      [{ taskId: 'render', path: 'out/a.png', kind: 'image' as const }],
+    ]]);
+    const withResolver = renderRunReport({
+      traceName: 'x', model, artifacts,
+      resolvePath: (p) => `/abs/${p}`,
+    });
+    expect(withResolver).toContain('![image — render](file:///abs/out/a.png)');
+    const without = renderRunReport({ traceName: 'x', model, artifacts });
+    expect(without).not.toContain('![');
+  });
 });

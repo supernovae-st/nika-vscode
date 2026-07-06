@@ -27,7 +27,12 @@ export class RunDecorations implements vscode.Disposable {
   });
   private readonly disposables: vscode.Disposable[] = [];
 
-  constructor() {
+  constructor(
+    /** Pre-run per-task estimate labels (from the check report) — painted
+     *  gray-italic in the SAME slot until a real run replaces them with
+     *  solid actuals (the est-vs-actual law: same place, honest weight). */
+    private readonly estimates?: (docUriString: string) => Map<string, string> | undefined,
+  ) {
     this.disposables.push(
       // A fold landed — repaint iff it belongs to the active document.
       traceStore.onDidUpdate((key) => {
@@ -58,7 +63,7 @@ export class RunDecorations implements vscode.Disposable {
     }
     const record = traceStore.get(editor.document.uri.fsPath);
     if (!record) {
-      editor.setDecorations(this.type, []);
+      this.applyEstimates(editor);
       return;
     }
 
@@ -78,6 +83,40 @@ export class RunDecorations implements vscode.Disposable {
             color: new vscode.ThemeColor(
               folded.status === 'failed' ? 'errorForeground' : 'editorCodeLens.foreground',
             ),
+            margin: '0 0 0 1rem',
+          },
+        },
+      });
+    }
+    editor.setDecorations(this.type, decorations);
+  }
+
+  /** A check landed — estimates may have changed (no-run docs only). */
+  repaint(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) { this.apply(editor); }
+  }
+
+  /** No run yet: the static forecast holds the slot, visibly tentative. */
+  private applyEstimates(editor: vscode.TextEditor): void {
+    const est = this.estimates?.(editor.document.uri.toString());
+    if (!est || est.size === 0) {
+      editor.setDecorations(this.type, []);
+      return;
+    }
+    const wf = parseRichWorkflow(editor.document.getText());
+    const decorations: vscode.DecorationOptions[] = [];
+    for (const task of wf.tasks) {
+      const contentText = est.get(task.id);
+      if (contentText === undefined) { continue; }
+      const eol = editor.document.lineAt(Math.min(task.line, editor.document.lineCount - 1)).range.end;
+      decorations.push({
+        range: new vscode.Range(eol, eol),
+        renderOptions: {
+          after: {
+            contentText,
+            color: new vscode.ThemeColor('editorCodeLens.foreground'),
+            fontStyle: 'italic',
             margin: '0 0 0 1rem',
           },
         },

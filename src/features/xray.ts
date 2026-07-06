@@ -21,9 +21,12 @@ export class XrayInlayProvider implements vscode.InlayHintsProvider {
   readonly onDidChangeInlayHints = this.emitter.event;
   /** doc fsPath → parsed outputs of its newest matching trace. */
   private readonly cache = new Map<string, CacheEntry>();
+  /** doc fsPath → last full lookup (findFiles is NOT keystroke-cheap). */
+  private readonly lookupMemo = new Map<string, { at: number; outputs: Map<string, unknown> | undefined }>();
 
   /** A finished run changed the recorded truth — re-pull the hints. */
   refresh(): void {
+    this.lookupMemo.clear();
     this.emitter.fire();
   }
 
@@ -48,6 +51,10 @@ export class XrayInlayProvider implements vscode.InlayHintsProvider {
 
   /** Newest trace whose tasks majority-overlap THIS doc (the replay law). */
   private async outputsFor(doc: vscode.TextDocument): Promise<Map<string, unknown> | undefined> {
+    // Inlay providers fire near-keystroke — the disk walk is memoized
+    // and only re-runs every few seconds (or when a run lands · refresh).
+    const memo = this.lookupMemo.get(doc.uri.fsPath);
+    if (memo && Date.now() - memo.at < 4000) { return memo.outputs; }
     const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
     if (ids.size === 0) { return undefined; }
     const glob = vscode.workspace.getConfiguration('nika').get<string>(
@@ -90,8 +97,10 @@ export class XrayInlayProvider implements vscode.InlayHintsProvider {
         mtimeMs: f.mtimeMs,
         outputs,
       });
+      this.lookupMemo.set(doc.uri.fsPath, { at: Date.now(), outputs });
       return outputs;
     }
+    this.lookupMemo.set(doc.uri.fsPath, { at: Date.now(), outputs: undefined });
     return undefined;
   }
 }
