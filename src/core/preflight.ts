@@ -10,6 +10,7 @@
 // « verified »).
 
 import { parseRichWorkflow } from '../workflowParser';
+import { scanRefs } from './expr';
 import type { CheckReport } from './cliContract';
 
 // ─── Static facts read from the YAML ────────────────────────────────────────
@@ -24,8 +25,10 @@ export interface SecretFact {
 
 export interface PreflightFacts {
   secrets: SecretFact[];
-  /** Top-level `env:` block keys. */
-  envKeys: string[];
+  /** Keys DEFINED by the envelope `env:` block (values live in the YAML). */
+  envDefined: string[];
+  /** Env vars the body actually READS (`${{ env.X }}`) — the requirements. */
+  envRefs: string[];
   /** model id → task ids that will call it (infer/agent only). */
   models: Map<string, string[]>;
   /** Declared `permits:` categories (fs · net · exec · tools). */
@@ -40,7 +43,7 @@ export interface PreflightFacts {
 export function collectPreflightFacts(text: string): PreflightFacts {
   const lines = text.split('\n');
   const secrets: SecretFact[] = [];
-  const envKeys: string[] = [];
+  const envDefined: string[] = [];
   const permitCategories: string[] = [];
   let permitsDeclared = false;
 
@@ -65,7 +68,7 @@ export function collectPreflightFacts(text: string): PreflightFacts {
         current = { name: key2[1], source: 'vault' };
         secrets.push(current);
       } else if (block === 'env') {
-        envKeys.push(key2[1]);
+        envDefined.push(key2[1]);
       } else {
         permitCategories.push(key2[1]);
       }
@@ -89,7 +92,15 @@ export function collectPreflightFacts(text: string): PreflightFacts {
     (models.get(model) ?? models.set(model, []).get(model)!).push(task.id);
   }
 
-  return { secrets, envKeys, models, permitCategories, permitsDeclared };
+  // Requirements = what the body READS: `${{ env.X }}` refs (a key merely
+  // defined in the envelope is configuration, not a requirement).
+  const envRefs = [...new Set(
+    scanRefs(text)
+      .filter((r) => r.root === 'env' && r.path.length > 0)
+      .map((r) => r.path[0]),
+  )];
+
+  return { secrets, envDefined, envRefs, models, permitCategories, permitsDeclared };
 }
 
 // ─── Catalog: provider → key requirements ───────────────────────────────────
@@ -159,7 +170,7 @@ export interface PreflightModel {
   findings: number;
   waves: string[][];
   secretRows: SecretRow[];
-  envRows: Array<{ name: string; present: boolean }>;
+  envRows: Array<{ name: string; status: 'defined' | 'present' | 'missing' }>;
   modelRows: ModelRow[];
   permits: { declared: boolean; categories: string[]; escapes: number; leaks: number; egresses: number };
   cost: { label: string; unbounded: boolean; topTasks: Array<{ task: string; label: string }> };
@@ -223,7 +234,14 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     };
   });
 
-  const envRows = facts.envKeys.map((name) => ({ name, present: envPresent(name) }));
+  const envRows = facts.envRefs.map((name) => {
+    if (facts.envDefined.includes(name)) {
+      return { name, status: 'defined' as const };
+    }
+    const present = envPresent(name);
+    if (!present) { blockers.push(`env \`${name}\`: read by the workflow, not set, no workflow default`); }
+    return { name, status: present ? ('present' as const) : ('missing' as const) };
+  });
 
   const modelRows: ModelRow[] = [...facts.models.entries()].map(([model, tasks]) => {
     const provider = model.includes('/') ? model.slice(0, model.indexOf('/')) : model;
@@ -353,7 +371,11 @@ export function renderPreflight(m: PreflightModel): string {
       out.push(`- ${icon} secret \`${s.name}\` (${s.source}) — ${s.detail}`);
     }
     for (const e of m.envRows) {
-      out.push(`- ${mark(e.present)} env \`${e.name}\` — ${e.present ? 'set' : 'NOT set'}`);
+      const icon = e.status === 'missing' ? '✗' : '✓';
+      const detail = e.status === 'defined' ? 'defined in the workflow `env:` block'
+        : e.status === 'present' ? 'process env set'
+          : 'NOT set (and no workflow default)';
+      out.push(`- ${icon} env \`${e.name}\` — ${detail}`);
     }
   }
   out.push('');

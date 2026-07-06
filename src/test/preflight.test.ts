@@ -29,7 +29,7 @@ tasks:
   - id: digest
     depends_on: [fetch]
     infer:
-      prompt: "Summarize \${{ tasks.fetch.output }}"
+      prompt: "Summarize \${{ tasks.fetch.output }} for \${{ env.REGION }} org \${{ env.GITHUB_ORG }}"
   - id: local_pass
     depends_on: [fetch]
     infer:
@@ -71,7 +71,8 @@ describe('collectPreflightFacts', () => {
       { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
       { name: 'vault_pass', source: 'vault' },
     ]);
-    expect(f.envKeys).toEqual(['REGION']);
+    expect(f.envDefined).toEqual(['REGION']);
+    expect(f.envRefs).toEqual(['REGION', 'GITHUB_ORG']);
     expect(f.permitsDeclared).toBe(true);
     expect(f.permitCategories).toEqual(['net', 'exec']);
     // digest inherits the workflow default; local_pass overrides; fetch (invoke) has none.
@@ -107,7 +108,7 @@ describe('buildPreflight + renderPreflight', () => {
   };
 
   it('happy path: keys present → READY, waves narrated, local marked sovereign', () => {
-    const env = new Set(['GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'REGION']);
+    const env = new Set(['GITHUB_TOKEN', 'ANTHROPIC_API_KEY', 'GITHUB_ORG']);
     const m = buildPreflight({
       workflowName: 'release-notes',
       facts: collectPreflightFacts(YAML),
@@ -119,10 +120,17 @@ describe('buildPreflight + renderPreflight', () => {
     expect(m.blockers).toEqual([]);
     expect(m.waves).toEqual([['fetch'], ['digest', 'local_pass']]);
     expect(m.modelRows.find((r) => r.model === 'ollama/qwen3.5')?.status).toBe('local');
+    // REGION is read AND defined in the workflow env: block — covered, no
+    // process-env check; GITHUB_ORG is read-only → process env verified.
+    expect(m.envRows).toEqual([
+      { name: 'REGION', status: 'defined' },
+      { name: 'GITHUB_ORG', status: 'present' },
+    ]);
     const md = renderPreflight(m);
     expect(md).toContain('**READY**');
     expect(md).toContain('$0.04 – $0.12');
     expect(md).toContain('run together');
+    expect(md).toContain('defined in the workflow `env:` block');
   });
 
   it('missing env secret + missing model key → blockers, never a fake green', () => {
@@ -134,11 +142,17 @@ describe('buildPreflight + renderPreflight', () => {
       catalog: parseCatalogProviders(CATALOG),
       envPresent: () => false,
     });
-    expect(m.blockers.length).toBe(2);
+    // 3 blockers: env secret + model key + the read-but-unset GITHUB_ORG.
+    // REGION is workflow-defined → NEVER a blocker even with empty env.
+    expect(m.blockers.length).toBe(3);
+    expect(m.envRows).toEqual([
+      { name: 'REGION', status: 'defined' },
+      { name: 'GITHUB_ORG', status: 'missing' },
+    ]);
     expect(m.secretRows[0].status).toBe('missing');
     expect(m.secretRows[1].status).toBe('declared'); // vault: never fake-verified
     const md = renderPreflight(m);
-    expect(md).toContain('**BLOCKED — 2 missing requirements:**');
+    expect(md).toContain('**BLOCKED — 3 missing requirements:**');
     expect(md).toContain('GITHUB_TOKEN');
     expect(md).toContain('not statically verifiable');
   });
