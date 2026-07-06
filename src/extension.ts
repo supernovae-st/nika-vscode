@@ -84,7 +84,14 @@ import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
 import { refAt } from './core/expr';
-import { buildPreflight, collectPreflightFacts, parseCatalogProviders, renderPreflight } from './core/preflight';
+import {
+  buildPreflight,
+  collectPreflightFacts,
+  parseCatalogProviders,
+  preflightChipModel,
+  renderPreflight,
+  type ProviderKeyInfo,
+} from './core/preflight';
 import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
 import { renderRunReport } from './core/runReport';
@@ -412,6 +419,23 @@ export function activate(context: ExtensionContext): void {
   // Audit lenses — inlay cost/when/fan-out + the header audit card.
   const inlayProvider = new AuditInlayHintsProvider(service);
   const xrayProvider = new XrayInlayProvider();
+
+  // Catalog key-story memo (env_var · requires_key · local per provider) —
+  // one spawn per binary, shared by the preflight chip and the doc.
+  let catalogKeyCache: { binary: string | undefined; map: Record<string, ProviderKeyInfo> | undefined } | undefined;
+  const catalogKeys = async (): Promise<Record<string, ProviderKeyInfo> | undefined> => {
+    const bin = service.binaryPath;
+    if (catalogKeyCache && catalogKeyCache.binary === bin) { return catalogKeyCache.map; }
+    let map: Record<string, ProviderKeyInfo> | undefined;
+    try {
+      const res = await service.runCli(['catalog', '--json'], 10000);
+      map = res.code === 0 ? parseCatalogProviders(res.stdout) : undefined;
+    } catch {
+      map = undefined;
+    }
+    catalogKeyCache = { binary: bin, map };
+    return map;
+  };
   const lensProvider = new AuditCodeLensProvider(service);
   context.subscriptions.push(
     inlayProvider,
@@ -882,6 +906,10 @@ export function activate(context: ExtensionContext): void {
     const uri = dagPanel.currentWorkflowUri();
     paintRunningSpans(uri ? Uri.parse(uri).fsPath : undefined, running);
   };
+  // The preflight chip's click → the full flight-plan document.
+  dagPanel.onOpenPreflight = () => {
+    void commands.executeCommand('nika.preflightWorkflow', dagWorkflowUri);
+  };
 
   // Canvas glyphs speak the binary's vocabulary (`nika tools --json`) —
   // seeded now, refreshed whenever the service re-probes the binary.
@@ -973,6 +1001,25 @@ export function activate(context: ExtensionContext): void {
       // audited before a token is spent · honest about unbounded).
       const forecast = costForecast(report.cost);
       dagPanel.costUpdate(forecast ?? null);
+      // Preflight verdict chip — the glanceable half of the flight plan
+      // (missing keys/secrets = red · flows = amber · ready = green).
+      // Async only for the catalog memo; same TOCTOU re-guards as delta.
+      void (async () => {
+        const docText = workspace.textDocuments
+          .find((d) => d.uri.toString() === uriString)?.getText();
+        if (docText === undefined) { return; }
+        const catalog = await catalogKeys();
+        if (!dagPanel.hasPanel || dagWorkflowUri?.toString() !== uriString) { return; }
+        if (service.peekCheck(uriString)?.report !== report) { return; }
+        const model = buildPreflight({
+          workflowName: '',
+          facts: collectPreflightFacts(docText),
+          report,
+          catalog,
+          envPresent: (n) => (process.env[n] ?? '').length > 0,
+        });
+        dagPanel.preflightUpdate(preflightChipModel(model));
+      })();
       // Enrichment pass (Infracost lesson): the CHANGE vs the last commit
       // is the review signal. Async — the chip lands instantly above, the
       // delta rides in when the git baseline resolves (cached per HEAD).

@@ -27,6 +27,7 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
+  | { kind: 'dag:preflight'; chip: { text: string; cls: string; tip: string } | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
@@ -80,6 +81,7 @@ export type WebviewToExtMessage =
   | { kind: 'dag:openWalkthrough' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   | { kind: 'transport:tick'; running: string[] }
+  | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
   | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
@@ -492,6 +494,11 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'dag:lineage', taskId });
   }
 
+  /** Preflight verdict chip on the run pill (null hides). */
+  public preflightUpdate(chip: { text: string; cls: string; tip: string } | null): void {
+    this.postMessage({ kind: 'dag:preflight', chip });
+  }
+
   /** Session narration line for the activity feed (check · edits · …). */
   public note(icon: string, text: string, taskId?: string, cls?: string): void {
     this.postMessage({ kind: 'dag:note', icon, text, taskId, cls });
@@ -521,11 +528,16 @@ export class DagPanel implements vscode.Disposable {
 
   /** Fires when the webview's running-task set changes (live · replay). */
   public onTransportTick?: (running: string[]) => void;
+  /** Fires when the preflight chip is clicked (→ open the flight plan). */
+  public onOpenPreflight?: () => void;
 
   private handleMessage(msg: WebviewToExtMessage): void {
     switch (msg.kind) {
       case 'transport:tick':
         this.onTransportTick?.(msg.running);
+        break;
+      case 'dag:openPreflight':
+        this.onOpenPreflight?.();
         break;
       case 'dag:ready':
         // Webview has initialized — send the graph if we have one
@@ -809,6 +821,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow — the DAG lights live">▶ Run</button>
+      <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
       <button id="btn-run-resume" class="rc-resume" title="Re-run what changed — unchanged tasks cache-hit their recorded output (engine --resume)" hidden>↻ changed</button>

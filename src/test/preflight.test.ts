@@ -193,3 +193,22 @@ describe('buildPreflight + renderPreflight', () => {
     expect(m.blockers).toEqual([]);
   });
 });
+
+describe('preflightChipModel', () => {
+  const base = (over: Record<string, unknown>) => ({
+    workflowName: 'x', clean: true, findings: 0, waves: [],
+    secretRows: [], envRows: [], modelRows: [],
+    permits: { declared: true, categories: [], escapes: 0, leaks: 0, egresses: 0 },
+    cost: { label: '', unbounded: false, topTasks: [] },
+    blockers: [],
+    ...over,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as any;
+
+  it('blockers headline red; flows amber; ready green', async () => {
+    const { preflightChipModel } = await import('../core/preflight');
+    expect(preflightChipModel(base({ blockers: ['a', 'b'] }))).toMatchObject({ cls: 'bad', text: '✗ 2 missing' });
+    expect(preflightChipModel(base({ permits: { declared: true, categories: [], escapes: 1, leaks: 0, egresses: 0 } })).cls).toBe('warn');
+    expect(preflightChipModel(base({}))).toMatchObject({ cls: 'ok', text: '✓ preflight' });
+  });
+});

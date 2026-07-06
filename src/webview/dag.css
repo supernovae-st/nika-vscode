@@ -3286,6 +3286,40 @@ body.lod-far .nc-audit { display: none !important; }
   display: none;
 }
 
+/* Preflight verdict chip — same family as #run-cost, but it ACTS
+ * (click = the flight-plan document), so it's a button. */
+#run-preflight {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--nk-st-success);
+  background: color-mix(in srgb, var(--nk-st-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-st-success) 32%, transparent);
+}
+
+#run-preflight.warn {
+  color: var(--nk-st-retrying);
+  background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
+}
+
+#run-preflight.bad {
+  color: var(--nk-st-failed);
+  background: color-mix(in srgb, var(--nk-st-failed) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nk-st-failed) 38%, transparent);
+}
+
+#run-preflight[hidden] {
+  display: none;
+}
+
 /* ─── The welcome · the canvas home (DESIGN.md §3b) ─────────────────────── */
 
 .es-card {

@@ -308,6 +308,44 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
   };
 }
 
+// ─── The pill chip (glanceable verdict · click = the full flight plan) ──────
+
+export interface PreflightChip {
+  text: string;
+  cls: 'ok' | 'warn' | 'bad';
+  tip: string;
+}
+
+export function preflightChipModel(m: PreflightModel): PreflightChip {
+  if (m.blockers.length > 0) {
+    return {
+      text: `✗ ${m.blockers.length} missing`,
+      cls: 'bad',
+      tip: `${m.blockers.join('\n')}\n\nClick for the flight plan.`,
+    };
+  }
+  const flows = m.permits.leaks + m.permits.egresses;
+  if (m.permits.escapes > 0 || flows > 0) {
+    const bits: string[] = [];
+    if (m.permits.escapes > 0) { bits.push(`${m.permits.escapes} capability escape(s)`); }
+    if (flows > 0) { bits.push(`${flows} secret flow(s)`); }
+    return {
+      text: '⚠ flows',
+      cls: 'warn',
+      tip: `${bits.join(' · ')} — review before running.\n\nClick for the flight plan.`,
+    };
+  }
+  const facts: string[] = [];
+  if (m.modelRows.length > 0) { facts.push(`${m.modelRows.length} model${m.modelRows.length > 1 ? 's' : ''} ok`); }
+  if (m.secretRows.length > 0) { facts.push(`${m.secretRows.length} secret${m.secretRows.length > 1 ? 's' : ''}`); }
+  facts.push(m.permits.declared ? 'boundary declared' : 'engine-floor permits');
+  return {
+    text: '✓ preflight',
+    cls: 'ok',
+    tip: `${facts.join(' · ')}\n\nClick for the flight plan.`,
+  };
+}
+
 // ─── Markdown rendering (the flight-plan document) ──────────────────────────
 
 export function renderPreflight(m: PreflightModel): string {

@@ -255,6 +255,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
+  | { kind: 'dag:preflight'; chip: { text: string; cls: string; tip: string } | null }
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
@@ -3445,6 +3446,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:lineage':
       renderer.editorLineage(msg.taskId);
       break;
+    case 'dag:preflight':
+      applyPreflightChip(msg.chip);
+      break;
     case 'dag:note':
       pushActivityLine(msg.icon, msg.text, msg.cls ?? 'st-note', msg.taskId);
       break;
@@ -3633,6 +3637,25 @@ function applyCostChip(forecast: { label: string; tooltip: string; unbounded: bo
   chip.classList.toggle('cost-up', forecast.delta?.up === true);
   chip.removeAttribute('hidden');
 }
+
+/** Preflight verdict on the pill: ready ✓ · flows ⚠ · missing ✗ — the
+ *  glanceable half of the flight plan; the click opens the whole doc. */
+function applyPreflightChip(chip: { text: string; cls: string; tip: string } | null): void {
+  const el = document.getElementById('run-preflight');
+  if (!el) { return; }
+  if (!chip) {
+    el.setAttribute('hidden', '');
+    return;
+  }
+  el.textContent = chip.text;
+  el.title = chip.tip;
+  el.classList.remove('ok', 'warn', 'bad');
+  el.classList.add(chip.cls);
+  el.removeAttribute('hidden');
+}
+document.getElementById('run-preflight')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:openPreflight' });
+});
 
 function refreshStaleChip(): void {
   const chip = document.getElementById('run-stale');
