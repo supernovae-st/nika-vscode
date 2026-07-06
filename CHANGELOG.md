@@ -5,6 +5,30 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Understandable before it runs · provable after (P0 of the IDE-experience arc)
+
+- **Lineage mode — follow the data.** Click a card, or put the caret
+  inside `${{ tasks.x… }}` in the YAML: the producer and every consumer
+  stay lit (direct neighbors louder than the transitive cone), the data
+  wires on the path saturate, everything else fades. Ghost wires
+  (NIKA-DAG-003) count as real consumption. Esc clears; an explicit
+  click wins over the caret.
+- **`Nika: Preflight` — the flight plan before any token.** One command
+  renders cost (ceiling · unbounded stays a loud floor), every
+  infer/agent model resolved against the catalog's key requirements
+  (local providers marked sovereign · mock marked zero-spend), secrets
+  and env checked against the actual environment (`env` sources
+  verified; vault/file say « declared », never « verified »), permits +
+  capability escapes + secret flows, and the wave-by-wave plan. Missing
+  requirements headline as blockers.
+- **Artifacts in the flight recorder.** Task rows in the Runs view grow
+  children for media/file outputs recovered from the trace (images ·
+  audio with duration · manifest sidecars) — click opens, the tooltip
+  carries artifact ↔ producing task ↔ provider/model.
+- **The agent gate line.** Generated `.cursor/rules` and the
+  `nika_check` tool description now carry the imperative: always check
+  after every edit, never done while findings remain.
+
 ## [0.96.1] · 2026-07-06
 
 ### The three blind finding families — a clean badge told a lie
