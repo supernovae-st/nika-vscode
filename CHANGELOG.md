@@ -5,6 +5,23 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Readable at every distance — semantic zoom + insert-on-edge
+
+- **The far zoom is a real map now** (DESIGN.md §6c). Below ~30% the
+  card becomes a map tile — verb tile + id + status dot, dead-center,
+  **zoom-compensated**: the pieces scale against the zoom so the id
+  holds one optical size instead of shrinking into 5px lint. Ids clip
+  at the START (`…ard_7`, not eight identical `shard…`) — fan-out ids
+  differ at the tail. Tier boundaries are hysteresis bands (a pinch
+  resting on a threshold never flaps the canvas); the geometry never
+  moves, wires stay pinned.
+- **Insert a task INTO a wire** — hovering a dependency edge mounts a
+  floating + at its midpoint (riding an invisible 16px hit twin — a
+  2px stroke is not a click target). Click → pick the verb → the task
+  splices in: skeleton after the upstream end, the wire reroutes
+  through it (`depends_on` rewired, data refs untouched). Dep wires
+  only, by design.
+
 ### The engine's word on findings — severity + docs_url (E4 wire)
 
 - `check --json` conformance findings from engine ≥0.94 stamp their own

@@ -22,6 +22,7 @@ import {
   addDependsOn,
   deleteTask,
   duplicateTask,
+  insertBetween,
   insertTaskSkeleton,
   removeDependsOn,
   setTaskModel,
@@ -526,33 +527,48 @@ export function activate(context: ExtensionContext): void {
     let newText: string | undefined;
     let revealTask: string | undefined;
 
+    // Verb QuickPick shared by add-task and insert-on-edge. Detail line
+    // derives from the embedded schema (projection — a new verb field
+    // engine-side shows up here without a release).
+    const pickVerb = async (title: string): Promise<Verb | undefined> => {
+      const fieldsOf = (v: string): string => {
+        const fields = service.intel?.verbFields[v]?.map((f) => f.name) ?? [];
+        return fields.length > 0 ? `fields: ${fields.join(' · ')}` : '';
+      };
+      const verb = await window.showQuickPick(
+        [
+          { label: 'infer', description: 'LLM call', detail: fieldsOf('infer') },
+          { label: 'exec', description: 'subprocess (capability-gated)', detail: fieldsOf('exec') },
+          { label: 'invoke', description: 'builtin / MCP tool', detail: fieldsOf('invoke') },
+          { label: 'agent', description: 'agent loop · default-deny tools', detail: fieldsOf('agent') },
+        ],
+        { title },
+      );
+      return verb?.label as Verb | undefined;
+    };
+
     switch (request.kind) {
       case 'dag:addTask': {
         // Verb preset (the canvas palette) skips the QuickPick; the bare
-        // ＋ Task button still asks. Detail line derives from the embedded
-        // schema (projection — a new verb field engine-side shows up here
-        // without a release).
+        // ＋ Task button still asks.
         const isVerb = (v: unknown): v is Verb =>
           v === 'infer' || v === 'exec' || v === 'invoke' || v === 'agent';
         let picked: Verb | undefined = isVerb(request.verb) ? request.verb : undefined;
-        if (!picked) {
-          const fieldsOf = (v: string): string => {
-            const fields = service.intel?.verbFields[v]?.map((f) => f.name) ?? [];
-            return fields.length > 0 ? `fields: ${fields.join(' · ')}` : '';
-          };
-          const verb = await window.showQuickPick(
-            [
-              { label: 'infer', description: 'LLM call', detail: fieldsOf('infer') },
-              { label: 'exec', description: 'subprocess (capability-gated)', detail: fieldsOf('exec') },
-              { label: 'invoke', description: 'builtin / MCP tool', detail: fieldsOf('invoke') },
-              { label: 'agent', description: 'agent loop · default-deny tools', detail: fieldsOf('agent') },
-            ],
-            { title: request.afterTaskId ? `New task after \`${request.afterTaskId}\`` : 'New task' },
-          );
-          if (!verb) { return; }
-          picked = verb.label as Verb;
-        }
+        picked ??= await pickVerb(
+          request.afterTaskId ? `New task after \`${request.afterTaskId}\`` : 'New task',
+        );
+        if (!picked) { return; }
         const res = insertTaskSkeleton(text, picked, request.afterTaskId ?? undefined);
+        if (res) {
+          newText = res.text;
+          revealTask = res.taskId;
+        }
+        break;
+      }
+      case 'dag:insertOnEdge': {
+        const picked = await pickVerb(`Insert between \`${request.from}\` → \`${request.to}\``);
+        if (!picked) { return; }
+        const res = insertBetween(text, request.from, request.to, picked);
         if (res) {
           newText = res.text;
           revealTask = res.taskId;
@@ -649,6 +665,9 @@ export function activate(context: ExtensionContext): void {
         break;
       case 'dag:duplicateTask':
         dagPanel.note('⧉', `task duplicated · ${request.taskId} → ${revealTask ?? '?'}`, revealTask, 'st-note');
+        break;
+      case 'dag:insertOnEdge':
+        dagPanel.note('＋', `${revealTask ?? '?'} spliced into ${request.from} → ${request.to}`, revealTask, 'st-note');
         break;
       case 'dag:editModel':
         dagPanel.note('⌁', `model changed · ${request.taskId}`, request.taskId, 'st-note');

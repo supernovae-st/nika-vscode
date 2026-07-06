@@ -223,6 +223,22 @@ The orchestrated moments (each spent exactly once, where it means):
   failed graph stays still.
 - **Close** — the aurora speaks once at a live run's end (nika skin).
 
+## 6c · Semantic zoom — readable at every distance
+
+The Socratic rule: **if the map isn't readable, it isn't a map.** The
+canvas has three LOD tiers driven by zoom (hysteresis bands — enter
+low, leave high — so a pinch resting on a boundary never flaps):
+- **near** (≳0.42) — the whole two-zone anatomy.
+- **mid** (0.30–0.42) — the params row yields.
+- **far** (≲0.30) — the card becomes a MAP TILE: verb tile + id +
+  status dot, dead-center, **zoom-compensated** (the Figma read — the
+  pieces ride `--zoom-comp` so the id holds one optical size on screen
+  instead of shrinking into lint). The id clips at the START
+  (ellipsis-start via RTL): fan-out ids differ at the TAIL, so
+  `shard_1…shard_8` read `…ard_1`/`…ard_8`, never eight identical
+  `shard…`. Ports, edge labels, badges and region labels yield; the
+  geometry never moves — wires stay pinned.
+
 ## 6b · Projections & drag intelligence (research-ranked, 2026)
 
 - **Heatmap (H)** — cards tint by measured duration (else static cost
@@ -235,9 +251,16 @@ The orchestrated moments (each spent exactly once, where it means):
   cone through the extension's `rerunTask` flow (engine `run --task`);
   upstream cache-hits stay cache-hits. The n8n partial-execution move,
   reachable without leaving the canvas.
-- Researched next (extension/engine-side, ranked): duplicate node
-  (⌘D) · insert node on edge (+) · pin node outputs (n8n's most-loved
-  dev feature).
+- **Duplicate (⌘D · `⧉ dup` on the hover card)** — the copy lands
+  under the original with a fresh `_copy` id; inbound wiring kept,
+  downstream refs stay on the original.
+- **Insert on edge (+)** — hovering a DEPENDENCY wire mounts one
+  floating machine button at its midpoint (zoom-compensated, a real
+  finger target riding an invisible 16px hit twin — a 2px stroke is
+  not a target). Click → verb pick → the task SPLICES in: skeleton
+  after the upstream end, the wire reroutes through it. Dep wires
+  only — a data edge's binding is a ref, never rewritten.
+- Researched next: pin node outputs (n8n's most-loved dev feature).
 
 ## 7 · Rules that keep it SOTA
 

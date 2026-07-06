@@ -259,6 +259,30 @@ export function deleteTask(
 }
 
 /**
+ * Splice a new task INTO an edge (the n8n insert-on-edge move): the
+ * skeleton lands right after `from` wired `depends_on: [from]`, and the
+ * edge REROUTES — `to` drops its `from` dependency (when declared; a
+ * data-only edge has none) and gains the spliced task. Data refs are
+ * never rewritten. Undefined when either end is unknown.
+ */
+export function insertBetween(
+  text: string,
+  from: string,
+  to: string,
+  verb: Verb,
+): { text: string; taskId: string } | undefined {
+  const wf = parseRichWorkflow(text);
+  if (!wf.tasks.some((t) => t.id === from) || !wf.tasks.some((t) => t.id === to)) {
+    return undefined;
+  }
+  const ins = insertTaskSkeleton(text, verb, from);
+  if (!ins) { return undefined; }
+  let out = removeDependsOn(ins.text, to, from) ?? ins.text;
+  out = addDependsOn(out, to, ins.taskId) ?? out;
+  return { text: out, taskId: ins.taskId };
+}
+
+/**
  * Duplicate a task's whole item span right after the original — the ⌘D
  * move. The copy gets a fresh `<id>_copy` id (collision-suffixed); its
  * inbound wiring (depends_on · with refs) is kept verbatim, downstream

@@ -2467,15 +2467,81 @@ body.lod-far .nc-sub,
 body.lod-far .nc-div,
 body.lod-far .nc-badge { display: none; }
 /* Far out the card IS a map tile: tile + id + status dot, dead-center,
- * large — never a big empty box with a whisper in one corner. */
+ * large — never a big empty box with a whisper in one corner. The
+ * pieces are ZOOM-COMPENSATED (the Figma read): --zoom-comp ≈ 1/k
+ * (clamped ×3 canvas-wide), so the id holds ~one optical size on
+ * screen instead of shrinking into 5px lint. Clamps differ per piece —
+ * the tile may grow bolder than the text without eating the row. */
 body.lod-far .nc { justify-content: center; }
-body.lod-far .nc-head { flex: 0 0 auto; }
-body.lod-far .nc-id { font-size: 16px; }
-body.lod-far .nc-tile { width: 26px; height: 26px; font-size: 13px; border-radius: 7px; }
-body.lod-far .nc-dot { width: 9px; height: 9px; }
+body.lod-far .nc-head { flex: 0 0 auto; gap: calc(6px * min(var(--zoom-comp, 1), 2.2)); }
+/* .nc-head in every selector: the compensation must OUTRANK the skin
+ * scopes' own .nc-id/.nc-tile sizes (equal specificity + later in the
+ * file used to win — the light skin rendered far ids at 12.5px). */
+body.lod-far .nc-head .nc-id {
+  font-size: calc(14px * min(var(--zoom-comp, 1), 2.2));
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  /* Ellipsis-start: the TAIL is the discriminant of fan-out ids
+   * (shard_1…shard_8 all read « shard… » with the default end clip);
+   * RTL flips the clip side → « …ard_7 ». Task ids are ^[a-z][a-z0-9_]*$
+   * — pure LTR glyphs, so only the ellipsis position changes. */
+  direction: rtl;
+  text-align: left;
+}
+body.lod-far .nc-head .nc-tile {
+  width: calc(18px * min(var(--zoom-comp, 1), 2.4));
+  height: calc(18px * min(var(--zoom-comp, 1), 2.4));
+  font-size: calc(9.5px * min(var(--zoom-comp, 1), 2.4));
+  border-radius: calc(5px * min(var(--zoom-comp, 1), 2.4));
+}
+body.lod-far .nc-head .nc-dot {
+  width: calc(7px * min(var(--zoom-comp, 1), 2.4));
+  height: calc(7px * min(var(--zoom-comp, 1), 2.4));
+}
 body.lod-far .nc-port { opacity: 0 !important; }
+/* The map-read morph rides the signature ease at the tier crossing. */
+.nc-id, .nc-tile, .nc-dot {
+  transition:
+    font-size 160ms var(--nk-ease),
+    width 160ms var(--nk-ease),
+    height 160ms var(--nk-ease),
+    border-radius 160ms var(--nk-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nc-id, .nc-tile, .nc-dot { transition: none; }
+}
 /* Edge alias labels yield when the map read takes over. */
 body.lod-far .edge-label { display: none; }
+
+/* ─── Insert-on-edge · the + riding a hovered dep wire (§6b) ────────────── */
+/* One floating machine button (DESIGN.md §4b): a keycap face on a rim,
+ * zoom-compensated by the renderer (scale on the group). Dep wires
+ * only — a data edge's binding is a ref, never rewritten. */
+/* The invisible wide twin that actually catches the pointer. */
+.edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+}
+body.lod-far .edge-hit { pointer-events: none; }
+
+.edge-plus { cursor: pointer; pointer-events: all; }
+.edge-plus .edge-plus-rim {
+  fill: var(--nk-card);
+  stroke: var(--nk-accent);
+  stroke-width: 1.25;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.35));
+}
+.edge-plus .edge-plus-glyph {
+  stroke: var(--nk-accent);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  fill: none;
+}
+.edge-plus:hover .edge-plus-rim { fill: var(--nk-accent); }
+.edge-plus:hover .edge-plus-glyph { stroke: var(--nk-card); }
+.vscode-high-contrast .edge-plus .edge-plus-rim { filter: none; }
 
 /* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
 

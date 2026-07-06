@@ -84,6 +84,9 @@ export type WebviewToExtMessage =
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:duplicateTask'; taskId: string; workflowUri?: string }
+  // Insert-on-edge (the + riding a hovered dependency wire): splice a
+  // new task INTO from→to — skeleton after `from`, edge rerouted.
+  | { kind: 'dag:insertOnEdge'; from: string; to: string; workflowUri?: string }
   // Canvas params bar — the model chip edits the YAML via QuickPick.
   | { kind: 'dag:editModel'; taskId: string; workflowUri?: string }
   // Omnibar — `+ verb [after id]` adds; anything else routes to generate.
@@ -104,7 +107,7 @@ export type WebviewToExtMessage =
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
   WebviewToExtMessage,
-  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:duplicateTask' | 'dag:editModel' | 'dag:omni' }
+  { kind: 'dag:addTask' | 'dag:connect' | 'dag:disconnect' | 'dag:deleteTask' | 'dag:duplicateTask' | 'dag:insertOnEdge' | 'dag:editModel' | 'dag:omni' }
 >;
 
 // ─── Nonce Generator ─────────────────────────────────────────────────────────
@@ -557,6 +560,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:disconnect':
       case 'dag:deleteTask':
       case 'dag:duplicateTask':
+      case 'dag:insertOnEdge':
       case 'dag:editModel':
       case 'dag:omni':
         this.onEditRequest?.(msg);

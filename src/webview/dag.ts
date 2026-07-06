@@ -499,6 +499,10 @@ class DagRenderer {
   private layoutBox = new Map<string, { x: number; y: number; w: number; h: number }>();
   /** Live zoom transform (kept to preserve scale while centering). */
   private currentZoom = 1;
+  /** The one floating + riding a hovered dependency wire (insert-on-edge). */
+  private edgePlus: Selection<SVGGElement, unknown, null, undefined> | null = null;
+  private edgePlusEnds: { from: string; to: string } | null = null;
+  private edgePlusHideTimer: number | undefined;
   private currentTx = 0;
   private currentTy = 0;
   /** Graph extent in root coords (minimap scale). */
@@ -516,6 +520,7 @@ class DagRenderer {
   /** edge id → live DOM elements (drag hot path — zero d3 scans per move). */
   private edgePathEl = new Map<string, SVGPathElement>();
   private edgeLabelEl = new Map<string, SVGTextElement>();
+  private edgeHitEl = new Map<string, SVGPathElement>();
   /** rAF coalescing for the drag hot path (mousemove can outrun frames). */
   private dragRaf = 0;
   private dragLast: { x: number; y: number } | null = null;
@@ -1302,7 +1307,9 @@ class DagRenderer {
       const path = this.edgePathEl.get(eid);
       if (path) {
         const datum = select<SVGPathElement, ElkExtendedEdge>(path).datum();
-        path.setAttribute('d', this.edgePathFor(datum));
+        const d = this.edgePathFor(datum);
+        path.setAttribute('d', d);
+        this.edgeHitEl.get(eid)?.setAttribute('d', d);
       }
       const label = this.edgeLabelEl.get(eid);
       if (label) {
@@ -1427,6 +1434,64 @@ class DagRenderer {
     this.connectFrom = fromId;
     this.tempEdge = this.rootGroup.append<SVGPathElement>('path').attr('class', 'temp-edge');
     this.svg.classed('connecting', true);
+  }
+
+  /** Lazily build the ONE floating + that rides a hovered dep wire. */
+  private ensureEdgePlus(): Selection<SVGGElement, unknown, null, undefined> {
+    if (this.edgePlus) { return this.edgePlus; }
+    const g = this.rootGroup.append<SVGGElement>('g')
+      .attr('class', 'edge-plus')
+      .attr('display', 'none');
+    g.append('circle').attr('class', 'edge-plus-rim').attr('r', 9.5);
+    g.append('path')
+      .attr('class', 'edge-plus-glyph')
+      .attr('d', 'M -4.5 0 H 4.5 M 0 -4.5 V 4.5');
+    g.append('title').text('Insert a task INTO this edge — the wire reroutes through it');
+    g.on('mouseenter', () => { window.clearTimeout(this.edgePlusHideTimer); });
+    g.on('mouseleave', () => this.hideEdgePlus());
+    g.on('mousedown', (e: MouseEvent) => e.stopPropagation());
+    g.on('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      if (!this.edgePlusEnds) { return; }
+      vscode.postMessage({
+        kind: 'dag:insertOnEdge',
+        from: this.edgePlusEnds.from,
+        to: this.edgePlusEnds.to,
+        workflowUri: this.currentGraph?.workflowUri,
+      });
+      this.hideEdgePlus(true);
+    });
+    this.edgePlus = g;
+    return g;
+  }
+
+  /** Park the + at a hovered dep edge's midpoint (rootGroup space —
+   *  the paths live there too, so no coordinate mapping). Scale is
+   *  zoom-compensated: one FINGER-SIZED target at every distance. */
+  private showEdgePlus(pathEl: SVGPathElement, from: string, to: string): void {
+    if (document.body.classList.contains('lod-far')) { return; }
+    window.clearTimeout(this.edgePlusHideTimer);
+    const g = this.ensureEdgePlus();
+    const mid = pathEl.getPointAtLength(pathEl.getTotalLength() / 2);
+    const comp = Math.min(1 / this.currentZoom, 1.8);
+    g.attr('transform', `translate(${mid.x}, ${mid.y}) scale(${comp})`)
+      .attr('display', null);
+    this.edgePlusEnds = { from, to };
+  }
+
+  /** Retire the + — after a grace lap unless immediate (the pointer
+   *  needs time to travel from the wire onto the button). */
+  private hideEdgePlus(immediate = false): void {
+    window.clearTimeout(this.edgePlusHideTimer);
+    if (immediate) {
+      this.edgePlus?.attr('display', 'none');
+      this.edgePlusEnds = null;
+      return;
+    }
+    this.edgePlusHideTimer = window.setTimeout(() => {
+      this.edgePlus?.attr('display', 'none');
+      this.edgePlusEnds = null;
+    }, 260);
   }
 
   private endConnect(): void {
@@ -1614,13 +1679,27 @@ class DagRenderer {
       String(Math.min(Math.max(1 / this.currentZoom, 1), 3)),
     );
     this.syncRailActive();
-    // Thresholds sit BELOW the typical fit zoom (~0.42): the first paint
-    // shows the FULL card (refs show content at overview zoom); far is a
-    // deliberate deep zoom-out to the map read.
-    const lod = this.currentZoom < 0.3 ? 'lod-far' : this.currentZoom < 0.42 ? 'lod-mid' : 'lod-near';
-    if (!document.body.classList.contains(lod)) {
-      document.body.classList.remove('lod-far', 'lod-mid', 'lod-near');
-      document.body.classList.add(lod);
+    this.applyLod(this.currentZoom);
+  }
+
+  /** Semantic zoom (DESIGN.md §6c). Thresholds sit BELOW the typical
+   *  fit zoom (~0.42) — the first paint shows the FULL card; far is a
+   *  deliberate zoom-out to the map read. Each boundary is a hysteresis
+   *  BAND (enter low · leave high) so a pinch resting on a threshold
+   *  never flaps the whole canvas. */
+  private applyLod(k: number): void {
+    const cls = document.body.classList;
+    const state = cls.contains('lod-far') ? 'far' : cls.contains('lod-mid') ? 'mid' : 'near';
+    let next: 'far' | 'mid' | 'near';
+    if (k < (state === 'far' ? 0.34 : 0.3)) { next = 'far'; }
+    else if (k < (state === 'mid' ? 0.46 : 0.42)) { next = 'mid'; }
+    else { next = 'near'; }
+    if (next !== state) {
+      cls.remove('lod-far', 'lod-mid', 'lod-near');
+      cls.add(`lod-${next}`);
+      // The far read hides ports and shrinks hit surfaces — a hovered +
+      // would float over a gesture that no longer exists.
+      if (next === 'far') { this.hideEdgePlus(true); }
     }
   }
 
@@ -2448,15 +2527,44 @@ class DagRenderer {
       .attr('opacity', 1)
       .attr('d', (d) => this.edgePathFor(d));
 
+    // Hover twins for DEP wires — a 2px stroke is an undiscoverable hit
+    // target; each dep edge gets an invisible 16px-wide twin carrying
+    // the insert-on-edge gesture (the n8n/React Flow hit convention).
+    // Splicing reroutes depends_on, so data/ghost edges get NO twin (a
+    // binding is a ref, never rewritten — DESIGN.md §6b).
+    const hits = this.edgeGroup
+      .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-hit')
+      .data(elkEdges.filter((e) => {
+        const meta = dagEdgeMap.get(e.id);
+        return meta !== undefined && !meta.ghost && !meta.isDataEdge;
+      }), (d) => d.id);
+    hits.exit().remove();
+    hits
+      .enter()
+      .append('path')
+      .attr('class', 'edge-hit')
+      .on('mouseenter', (event: MouseEvent, d: ElkExtendedEdge) => {
+        const ends = this.edgeEnds.get(d.id);
+        if (!ends) { return; }
+        this.showEdgePlus(event.currentTarget as SVGPathElement, ends.source, ends.target);
+      })
+      .on('mouseleave', () => this.hideEdgePlus())
+      .merge(hits)
+      .attr('d', (d) => this.edgePathFor(d));
+
     // Refresh the id→element caches (the drag hot path reads these).
     this.edgePathEl.clear();
     this.edgeLabelEl.clear();
+    this.edgeHitEl.clear();
     const pathEls = this.edgePathEl;
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.dag-edge')
       .each(function (d) { pathEls.set(d.id, this); });
     const labelEls = this.edgeLabelEl;
     this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
       .each(function (d) { labelEls.set(d.id, this); });
+    const hitEls = this.edgeHitEl;
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-hit')
+      .each(function (d) { hitEls.set(d.id, this); });
   }
 
   /** Path for one edge — a direct curve when an endpoint is hand-pinned

@@ -5,6 +5,7 @@ import {
   addVarDeclaration,
   deleteTask,
   duplicateTask,
+  insertBetween,
   insertTaskSkeleton,
   nextTaskId,
   parseDag003,
@@ -238,6 +239,33 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(wf.tasks.find((t) => t.id === 'fourth')?.dependsOn).toEqual(['first']);
     const referenced = res.text.match(/first_copy/g) ?? [];
     expect(referenced.length).toBe(1); // only its own `- id:` line
+  });
+
+  it('splices a task INTO a dependency edge (insert-on-edge)', () => {
+    const res = insertBetween(DOC, 'first', 'third', 'exec')!;
+    const wf = parseRichWorkflow(res.text);
+    const spliced = wf.tasks.find((t) => t.id === res.taskId)!;
+    expect(spliced.verb).toBe('exec');
+    expect(spliced.dependsOn).toEqual(['first']);
+    // The edge is REROUTED: third now waits on the spliced task, not first.
+    expect(wf.tasks.find((t) => t.id === 'third')?.dependsOn).toEqual([res.taskId]);
+    // Anchored right after the upstream end.
+    const order = wf.tasks.map((t) => t.id);
+    expect(order.indexOf(res.taskId)).toBe(order.indexOf('first') + 1);
+  });
+
+  it('splice on a data-only edge keeps the ref, adds the ordering', () => {
+    // second reads tasks.first via with: but declares NO depends_on.
+    const res = insertBetween(DOC, 'first', 'second', 'invoke')!;
+    const wf = parseRichWorkflow(res.text);
+    expect(wf.tasks.find((t) => t.id === 'second')?.dependsOn).toEqual([res.taskId]);
+    // The data ref is untouched (refs are never rewritten).
+    expect(res.text).toContain('${{ tasks.first.output }}');
+  });
+
+  it('is undefined when either end is unknown', () => {
+    expect(insertBetween(DOC, 'ghost', 'third', 'exec')).toBeUndefined();
+    expect(insertBetween(DOC, 'first', 'ghost', 'exec')).toBeUndefined();
   });
 });
 
