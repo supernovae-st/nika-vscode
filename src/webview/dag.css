@@ -588,6 +588,10 @@ body.running .dag-edge.edge-dep {
   animation: nk-band-in 0.5s ease-out backwards;
 }
 
+/* The deep pool swallowed the 0.2 band — one compensating step. */
+body[data-nk-theme='nika'] .wave-band { opacity: 0.3; }
+body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
+
 @keyframes nk-band-in {
   from { opacity: 0; }
 }
@@ -2486,7 +2490,7 @@ body.running .dag-node.status-success .nc::after {
 body.heatmap .nc {
   background: color-mix(
     in srgb,
-    var(--nk-st-failed) calc(var(--heat, 0) * 26%),
+    var(--nk-st-failed) calc(var(--heat, 0) * 34%),
     var(--nk-card)
   );
   /* The tint MORPHS as durations land / the toggle flips — never snaps. */
@@ -2496,6 +2500,43 @@ body.heatmap .nc {
     box-shadow var(--nk-dur) var(--nk-ease),
     transform var(--nk-dur) var(--nk-ease);
 }
+
+/* READING MODE — while H is down, everything that isn't the heat
+ * gradient steps back: wires go quiet, verb tiles desaturate, param
+ * chips dim. One toggle = one question = one view. */
+body.heatmap .dag-edge { stroke: color-mix(in srgb, var(--nk-ink) 18%, transparent) !important; }
+body.heatmap .edge-label { display: none; }
+body.heatmap .nc-tile { filter: grayscale(0.85); opacity: 0.6; }
+body.heatmap .nc-params { opacity: 0.4; }
+body.heatmap .nc-badge, body.heatmap .nc-audit, body.heatmap .nc-stale { opacity: 0.35; }
+
+/* One mode = one question: the critical-path chip describes a trace
+ * the reading mode just retired — it yields while H is down. */
+body.heatmap .legend-chip[data-kind='critical'] { display: none; }
+
+/* The legend key — visible only in heatmap mode, naming the metric. */
+#legend-heat { display: none; }
+body.heatmap #legend-heat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 10px;
+  font-size: 10.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-surface) 80%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 9px;
+}
+#legend-heat .lh-bar {
+  width: 54px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--nk-card), color-mix(in srgb, var(--nk-st-failed) 34%, var(--nk-card)), var(--nk-st-failed));
+  border: 1px solid var(--nk-border-soft);
+}
+body[data-heat-metric='measured time'] #legend-heat .lh-label::after { content: 'measured time'; }
+body[data-heat-metric='static cost'] #legend-heat .lh-label::after { content: 'static cost'; }
 
 body.heatmap .dag-node:hover .nc {
   background: color-mix(

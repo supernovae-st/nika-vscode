@@ -256,9 +256,13 @@ low, leave high — so a pinch resting on a boundary never flaps):
 
 ## 6b · Projections & drag intelligence (research-ranked, 2026)
 
-- **Heatmap (H)** — cards tint by measured duration (else static cost
-  ceiling), normalized to the graph max: the red IS the hotspot
-  (the LangSmith/Insights read). Recomputed live as durations land.
+- **Heatmap (H)** — a READING MODE, not an overlay: cards tint by
+  measured duration (else static cost ceiling) on a √ perceptual ramp
+  (long-tail metrics would crush a linear one into a one-card show),
+  while everything that isn't the gradient steps back — wires quiet,
+  verb tiles desaturate, chips dim, the critical-path chip yields. A
+  legend key names the metric in play (`measured time` / `static
+  cost`) beside a gradient bar. Recomputed live as durations land.
 - **Alignment magnetism** — dragging snaps to other cards' edges and
   centers within 6px; accent guides draw the agreement; Alt bypasses
   (the Figma/helper-lines convention).

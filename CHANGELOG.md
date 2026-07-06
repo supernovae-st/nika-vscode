@@ -5,6 +5,22 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Heatmap 2.0 — a reading mode, not a one-card show
+
+- **The √ perceptual ramp** — a long-tail metric (one 14s agent over
+  100ms tools) crushed the linear scale into a single red card with a
+  neutral graph around it. The ramp is now `√(metric/max)`: the
+  gradient READS across the whole graph while the max stays the
+  hotspot; tint ceiling raised for the deep pool.
+- **One toggle = one question = one view** — while H is down,
+  everything that isn't the heat gradient steps back: wires go quiet,
+  verb tiles desaturate, param chips dim, and the critical-path chip
+  (describing a trace the mode retired) yields.
+- **A legend key** appears with the mode: a gradient bar + the metric
+  actually in play (`measured time` once anything ran, `static cost`
+  before) — the map finally ships its key.
+- Wave bands re-tuned for the deep pool (they had sunk with the page).
+
 ### The deep register — darker pool, an intelligent background
 
 - **The nika skin falls to true near-black** (`#0d0d0e` page) while the

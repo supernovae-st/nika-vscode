@@ -1248,11 +1248,17 @@ class DagRenderer {
       ? (n.durationMs ?? n.avgMs ?? 0)
       : (n.costMax ?? 0);
     const max = Math.max(...nodes.map(metric), 1e-9);
+    // √ perceptual scale — long-tail metrics (one 14s agent over 100ms
+    // tools) crush a linear ramp into a one-card show; sqrt spreads the
+    // low end so the GRADIENT reads, while the max stays the hotspot.
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .each(function (d) {
         const nc = this.querySelector<HTMLElement>('.nc');
-        nc?.style.setProperty('--heat', (metric(d) / max).toFixed(3));
+        nc?.style.setProperty('--heat', Math.sqrt(metric(d) / max).toFixed(3));
       });
+    // The legend key names the metric in play (time once measured,
+    // static cost before) — CSS gates the chip on body.heatmap.
+    document.body.dataset.heatMetric = timed ? 'measured time' : 'static cost';
   }
 
   // ─── Card drag · move the node, the wires follow (n8n-grade) ─────────────
@@ -2924,6 +2930,7 @@ class DagRenderer {
       if (this.criticalEdges.size > 0) {
         const chip = document.createElement('span');
         chip.className = 'legend-chip st-critical';
+        chip.dataset.kind = 'critical';
         const dot = document.createElement('span');
         dot.className = 'legend-dot';
         const label = document.createElement('span');

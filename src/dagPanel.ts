@@ -820,6 +820,7 @@ export class DagPanel implements vscode.Disposable {
     <button id="scrub-close" title="Exit replay">✕</button>
   </div>
   <div id="dag-legend">
+    <span id="legend-heat" aria-hidden><i class="lh-bar"></i><span class="lh-label"></span></span>
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>
   </div>
