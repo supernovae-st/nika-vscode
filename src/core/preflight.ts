@@ -263,6 +263,18 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     return { name, status: present ? ('present' as const) : ('missing' as const) };
   });
 
+  // Engine rates (0.96+): model → "$in/$out per 1M" — appended to the
+  // row detail. An unpriced model shows nothing (never $0).
+  const rates = new Map<string, string>();
+  for (const row of report?.pricing?.models ?? []) {
+    if (row.input_per_million !== null && row.output_per_million !== null) {
+      rates.set(row.model, `$${row.input_per_million}/$${row.output_per_million} per 1M`);
+    }
+  }
+  const withRate = (model: string, detail: string): string => {
+    const rate = rates.get(model);
+    return rate ? `${detail} · ${rate}` : detail;
+  };
   const modelRows: ModelRow[] = [...facts.models.entries()].map(([model, tasks]) => {
     const provider = model.includes('/') ? model.slice(0, model.indexOf('/')) : model;
     if (provider === 'mock') {
@@ -270,10 +282,10 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     }
     const info = catalog?.[provider];
     if (!info) {
-      return { model, tasks, status: 'unknown', detail: 'provider not in catalog (older binary or custom) — key not checked' };
+      return { model, tasks, status: 'unknown', detail: withRate(model, 'provider not in catalog (older binary or custom) — key not checked') };
     }
     if (info.local || !info.requiresKey) {
-      return { model, tasks, status: 'local', detail: 'local · sovereign — no key needed' };
+      return { model, tasks, status: 'local', detail: withRate(model, 'local · sovereign — no key needed') };
     }
     const present = info.envVar !== undefined && envPresent(info.envVar);
     if (!present) {
@@ -283,7 +295,7 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
       model,
       tasks,
       status: present ? 'key-present' : 'key-missing',
-      detail: present ? `\`${info.envVar}\` is set` : `\`${info.envVar ?? '?'}\` is NOT set`,
+      detail: withRate(model, present ? `\`${info.envVar}\` is set` : `\`${info.envVar ?? '?'}\` is NOT set`),
     };
   });
 

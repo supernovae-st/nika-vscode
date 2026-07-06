@@ -275,6 +275,17 @@ export interface CheckReport {
   /** The caller contract (models · secrets · env split · required vars) —
    *  absent on pre-0.95 binaries; the client parser is the fallback. */
   requirements?: ReportRequirements;
+  /** Per-model rates from the engine's vendored catalog (0.96+) —
+   *  null rates mean UNKNOWN (never rendered as $0). */
+  pricing?: ReportPricing;
+}
+
+export interface ReportPricing {
+  models: Array<{
+    model: string;
+    input_per_million: number | null;
+    output_per_million: number | null;
+  }>;
 }
 
 /**
