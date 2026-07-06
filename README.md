@@ -171,6 +171,17 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   run projects its journal to OTLP/JSON lines — drag into Jaeger UI, or
   POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
   collector, zero vendor
+- **Paused runs ask — you answer — they finish** · a `nika:prompt` task
+  pauses the run (a pause is not a failure: the verdict goes amber ⏸
+  with the question itself), a notification offers **Answer…**, and the
+  control matches the mode — confirm → Yes/No, choice → the workflow's
+  own options, input → a box. The answer resumes the exact journal the
+  engine wrote: upstream cache-hits, the gated side effects run live
+- **The cross-run story** · `Nika: Run History` renders the last runs of
+  THIS workflow as a grid (rows = tasks · columns = runs) — flaky steps
+  are a recorded fact, not a guess; and **diff v2** compares any two
+  runs leading with the **first divergence** (the culprit task, centered
+  on the canvas), output changes and duration shifts after it
 - **Dirty-nodes** · a `△ stale` badge marks every task edited since its
   last successful run (and its downstream cone) — you see what a run
   will re-execute. The last-success state lives in a
