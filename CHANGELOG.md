@@ -28,6 +28,16 @@ announce line (forever-v0.x).
 - **The agent gate line.** Generated `.cursor/rules` and the
   `nika_check` tool description now carry the imperative: always check
   after every edit, never done while findings remain.
+- **Golden testing joins the menu** · `Nika: Golden Test` runs
+  `nika test <file>` (mock provider · offline) and `Update the Golden`
+  re-pins `<file>.golden.json` — capability-probed, lights up on any
+  engine whose `--help` lists `test`.
+- **Doctor + Ping** (0.94+) · opt-in TCP probe of the LOCAL provider
+  ports (loopback only · 300ms cap · nothing sent) from the status-bar
+  menu and the palette.
+- README: the audit family list is complete (arg typos with
+  did-you-mean · dead `when:` gates), the stdin dash and golden testing
+  documented.
 
 ## [0.96.1] · 2026-07-06
 

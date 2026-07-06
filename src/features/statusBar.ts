@@ -5,7 +5,7 @@
 // a quick-pick menu.
 
 import * as vscode from 'vscode';
-import { describeCapabilities } from '../core/capabilities';
+import { describeCapabilities, versionAtLeast } from '../core/capabilities';
 import type { NikaService } from '../nikaService';
 
 export class NikaStatusBar implements vscode.Disposable {
@@ -73,6 +73,8 @@ export class NikaStatusBar implements vscode.Disposable {
     add(caps.inspect, { label: '$(list-tree) Inspect anatomy', description: 'tasks · verbs · cost · permits', command: 'nika.inspectWorkflow' });
     add(caps.check, { label: '$(shield) Insert inferred permits boundary', command: 'nika.inferPermits' });
     add(caps.run, { label: '$(play) Run workflow', command: 'nika.runWorkflow' });
+    add(caps.test, { label: '$(beaker) Golden test', description: 'mock provider · offline · compares <file>.golden.json', command: 'nika.testWorkflow' });
+    add(caps.test, { label: '$(beaker) Update the golden', description: 'test --update — (re)writes <file>.golden.json from this run', command: 'nika.testUpdate' });
     add(!caps.run && caps.trace, { label: '$(play-circle) Watch demo replay', description: 'run ships with the L3 runtime', command: 'nika.watchDemo' });
     add(caps.trace, { label: '$(history) Replay a trace', command: 'nika.replayTrace' });
     add(true, { label: '$(new-file) New workflow', command: 'nika.newWorkflow' });
@@ -82,6 +84,7 @@ export class NikaStatusBar implements vscode.Disposable {
     add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'deterministic template→check→repair protocol', command: 'nika.copyAiPrompt' });
     add(true, { label: '$(plug) Setup MCP + agent rules', command: 'nika.setupMcp' });
     add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · provider keys · never mutates', command: 'nika.doctor' });
+    add(caps.doctor && versionAtLeast(caps.version, 0, 94), { label: '$(radio-tower) Doctor + ping local providers', description: 'opt-in TCP probe · loopback only · 300ms cap · nothing sent', command: 'nika.doctorPing' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
     add(true, { label: '$(verified) Verify engine binary', command: 'nika.checkBinary' });
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });

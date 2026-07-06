@@ -1478,6 +1478,34 @@ export function activate(context: ExtensionContext): void {
     }),
   );
 
+  // Command: Doctor --ping (0.94+) — opt-in TCP probe of the LOCAL
+  // provider ports only (loopback + configured URLs · 300ms cap ·
+  // nothing sent on the socket). The default doctor stays offline.
+  context.subscriptions.push(
+    commands.registerCommand('nika.doctorPing', () => {
+      runNikaCommand(state.resolvedServerPath, 'doctor --ping', '');
+    }),
+  );
+
+  // Command: Golden test — `nika test <file>` (mock provider · offline ·
+  // deterministic). The golden lives BESIDE the file (`<file>.golden.json`),
+  // so the engine refuses stdin here — the doc must be saved first.
+  const runGoldenTest = async (uri: Uri | undefined, update: boolean): Promise<void> => {
+    const doc = await requireNikaDocument(uri);
+    if (!doc) { return; }
+    if (!service.caps.test) {
+      if (!(await requireEngine(service, 'golden-testing a workflow'))) { return; }
+      void window.showWarningMessage('This engine has no `test` subcommand — golden testing ships with the 0.94 line.');
+      return;
+    }
+    if (doc.isDirty && !(await doc.save())) { return; }
+    runNikaCommand(state.resolvedServerPath, update ? 'test --update' : 'test', doc.uri.fsPath);
+  };
+  context.subscriptions.push(
+    commands.registerCommand('nika.testWorkflow', (uri?: Uri) => runGoldenTest(uri, false)),
+    commands.registerCommand('nika.testUpdate', (uri?: Uri) => runGoldenTest(uri, true)),
+  );
+
   // Command: Restart language server
   context.subscriptions.push(
     commands.registerCommand('nika.restartServer', async () => {

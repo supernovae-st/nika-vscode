@@ -48,8 +48,18 @@ describe('capabilities', () => {
     expect(caps.run).toBe(false);
     expect(caps.lsp).toBe(false);
     expect(caps.mcp).toBe(false);
+    expect(caps.test).toBe(false); // golden testing ships with the 0.94 line
     expect(caps.version).toBe('nika-cli 0.80.0');
     expect(describeCapabilities(caps)).toContain('static suite');
+  });
+
+  it('lights golden testing the day --help lists `test`', () => {
+    const withTest = CLAP_HELP.replace(
+      '  trace ',
+      '  test         Golden-test a workflow under the mock provider\n  trace ',
+    );
+    const caps = buildCapabilities(withTest, 'nika 0.94.0');
+    expect(caps.test).toBe(true);
   });
 
   it('lights run/lsp/mcp up the day --help lists them', () => {
