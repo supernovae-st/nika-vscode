@@ -431,3 +431,21 @@ describe('resume wire (task_cache_hit + output · real 0.93.1 fixture)', () => {
     expect(expandSettle?.cached).toBeUndefined();
   });
 });
+
+describe('workflow_paused (ADR-099 human-gate)', () => {
+  it('the fold carries the QUESTION: task · mode · message · choices', () => {
+    const ev = JSON.stringify({
+      id: { uuid: 'x' }, timestamp: 1, kind: 'workflow_paused', run: null, correlation: null,
+      fields: [
+        { key: 'workflow', value: 'wf' },
+        { key: 'task', value: 'approve' },
+        { key: 'mode', value: 'choice' },
+        { key: 'message', value: 'Ship it?' },
+        { key: 'choices', value: ['now', 'later'] },
+      ],
+    });
+    const model = foldTrace(ev);
+    expect(model.workflowStatus).toBe('paused');
+    expect(model.paused).toEqual({ task: 'approve', mode: 'choice', message: 'Ship it?', choices: ['now', 'later'] });
+  });
+});

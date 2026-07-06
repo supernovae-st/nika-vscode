@@ -131,6 +131,43 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
     }
   });
 
+  it('nika:prompt pauses with the QUESTION in the journal; --answer resumes and completes', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-pause-'));
+    try {
+      const wf = path.join(dir, 'gate.nika.yaml');
+      fs.writeFileSync(wf, [
+        'nika: v1',
+        'workflow: pause-e2e',
+        'tasks:',
+        '  - id: approve',
+        '    invoke:',
+        '      tool: "nika:prompt"',
+        '      args:',
+        '        message: "Ship it?"',
+        '  - id: after',
+        '    depends_on: [approve]',
+        '    exec:',
+        '      command: ["echo", "shipped"]',
+      ].join('\n'));
+      const paused = run(BIN!, dir, ['run', wf, '--json', '--no-color']);
+      expect(paused.code).toBe(4); // exit 4 = PAUSED, the human-gate
+      const t1 = traceFiles(dir);
+      expect(t1.length).toBeGreaterThan(0);
+      const fold = foldTrace(fs.readFileSync(t1[t1.length - 1], 'utf-8'));
+      expect(fold.workflowStatus).toBe('paused');
+      expect(fold.paused).toMatchObject({ task: 'approve', mode: 'confirm', message: 'Ship it?' });
+
+      const done = run(BIN!, dir, ['run', wf, '--resume', t1[t1.length - 1], '--answer', 'approve=true', '--json', '--no-color']);
+      expect(done.code).toBe(0);
+      const t2 = traceFiles(dir).filter((t) => !t1.includes(t));
+      const fold2 = foldTrace(fs.readFileSync(t2[t2.length - 1], 'utf-8'));
+      expect(fold2.workflowStatus).toBe('completed');
+      expect(fold2.tasks.get('after')?.status).toBe('success');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('journals follow the process CWD, not the workflow file (the spawn-cwd law)', () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-cwd-'));
     try {

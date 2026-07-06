@@ -73,6 +73,9 @@ export interface RunModel {
   timeline: TimelineEntry[];
   /** Lines that parsed as JSON but matched no known shape. */
   unknownLines: number;
+  /** ADR-099 human-gate: the run is waiting on a `nika:prompt` answer.
+   *  Fields ride the workflow_paused event — the QUESTION included. */
+  paused?: { task: string; mode: string; message?: string; choices?: string[] };
 }
 
 interface NormalizedEvent {
@@ -87,6 +90,12 @@ interface NormalizedEvent {
   note?: string;
   /** The recorded task output (v0.93 wire · task_completed/cache_hit). */
   output?: string;
+  /** workflow_paused only — prompt mode (confirm|input|choice). */
+  mode?: string;
+  /** workflow_paused only — the human question. */
+  message?: string;
+  /** workflow_paused only — choice-mode options. */
+  choices?: string[];
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -203,6 +212,11 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       tokens: asNumber(fields.get('tokens')),
       note: typeof note === 'string' ? note : undefined,
       output: outputToString(fields.get('output')),
+      mode: typeof fields.get('mode') === 'string' ? fields.get('mode') as string : undefined,
+      message: typeof fields.get('message') === 'string' ? fields.get('message') as string : undefined,
+      choices: Array.isArray(fields.get('choices'))
+        ? (fields.get('choices') as unknown[]).filter((c): c is string => typeof c === 'string')
+        : undefined,
     };
   }
 
@@ -287,6 +301,14 @@ export function foldTrace(ndjson: string): RunModel {
       // as live forever.
       case 'workflow_paused':
         model.workflowStatus = 'paused';
+        if (ev.taskId !== undefined) {
+          model.paused = {
+            task: ev.taskId,
+            mode: ev.mode ?? 'confirm',
+            message: ev.message,
+            choices: ev.choices,
+          };
+        }
         continue;
       case 'cost_incurred':
         if (ev.usd !== undefined) {

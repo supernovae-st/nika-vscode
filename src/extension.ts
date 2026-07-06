@@ -65,7 +65,7 @@ import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
-import { runWorkflowLive, cancelActiveRun } from './features/runLive';
+import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
 import { costDelta } from './core/costDelta';
@@ -863,6 +863,53 @@ export function activate(context: ExtensionContext): void {
 
   // Post-run stale refresh: recompute against the just-updated sidecar
   // and repaint BADGES only (the run's painted statuses must survive).
+  // ADR-099 answer flow: the paused run asked a question — ask the HUMAN
+  // with the right control for the mode (confirm → pick · choice → pick
+  // of the workflow's own options · input → box), then resume the exact
+  // journal the engine announced, injecting `--answer task=value`.
+  const answerPausedRun = async (
+    fsPath: string,
+    paused: { task: string; mode: string; message?: string; choices?: string[] },
+  ): Promise<void> => {
+    const question = paused.message ?? `Answer for task \`${paused.task}\``;
+    let value: string | undefined;
+    if (paused.mode === 'input') {
+      value = await window.showInputBox({ prompt: question, ignoreFocusOut: true });
+    } else if (paused.mode === 'choice' && (paused.choices?.length ?? 0) > 0) {
+      value = (await window.showQuickPick(paused.choices!, { placeHolder: question, ignoreFocusOut: true })) ?? undefined;
+    } else {
+      const pick = await window.showQuickPick(
+        [
+          { label: '$(check) Yes', value: 'true' },
+          { label: '$(x) No', value: 'false' },
+        ],
+        { placeHolder: question, ignoreFocusOut: true },
+      );
+      value = pick?.value;
+    }
+    if (value === undefined) { return; }
+    const trace = lastTracePathByWorkflow.get(fsPath);
+    if (!trace || !fs.existsSync(trace)) {
+      void window.showWarningMessage('Nika: the paused journal was not found — resume from the Runs view instead.');
+      return;
+    }
+    runWorkflowLive(service, dagPanel, fsPath, log, undefined, {
+      extraArgs: ['--resume', trace, '--answer', `${paused.task}=${value}`],
+      onClose: () => refreshStaleBadges(fsPath),
+      onPaused: (next) => { void onRunPaused(fsPath, next); },
+    });
+  };
+  // The pause NOTIFICATION — the question itself is the message; one
+  // button starts the answer flow (never a modal, never auto-answered).
+  const onRunPaused = async (
+    fsPath: string,
+    paused: { task: string; mode: string; message?: string; choices?: string[] },
+  ): Promise<void> => {
+    const q = paused.message ?? `task \`${paused.task}\` awaits an answer`;
+    const choice = await window.showInformationMessage(`Nika paused — ${q}`, 'Answer…');
+    if (choice === 'Answer…') { await answerPausedRun(fsPath, paused); }
+  };
+
   const refreshStaleBadges = (fsPath: string): void => {
     try {
       const text = fs.readFileSync(fsPath, 'utf-8');
@@ -911,6 +958,7 @@ export function activate(context: ExtensionContext): void {
         runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
           extraArgs: ['--model', 'mock/echo'],
           onClose: () => refreshStaleBadges(doc.uri.fsPath),
+          onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
         });
       })();
     },
@@ -1025,6 +1073,7 @@ export function activate(context: ExtensionContext): void {
     runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
       extraArgs: ['--resume', trace],
       onClose: () => refreshStaleBadges(doc.uri.fsPath),
+      onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
     });
   }
 
@@ -1134,7 +1183,9 @@ export function activate(context: ExtensionContext): void {
       dagWorkflowUri = doc.uri;
       const graph = await service.dagForDocument(doc);
       dagPanel.show(graph);
-      runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, taskId);
+      runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, taskId, {
+        onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
+      });
     }),
     // Command: ↻ resume — the palette twin of the canvas button (ADR-099).
     commands.registerCommand('nika.resumeWorkflow', async (uri?: Uri) => {
@@ -1233,6 +1284,7 @@ export function activate(context: ExtensionContext): void {
       runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
         extraArgs: ['--resume', traceUri.fsPath, '--from', taskId],
         onClose: () => refreshStaleBadges(doc.uri.fsPath),
+        onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
       });
     }),
     // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
@@ -1266,6 +1318,7 @@ export function activate(context: ExtensionContext): void {
           dagPanel.show(graph);
           runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
             onClose: () => refreshStaleBadges(doc.uri.fsPath),
+            onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
           });
           return;
         }

@@ -34,6 +34,10 @@ const STORE_THROTTLE_MS = 500;
 /** A live run handle — cancellable, one at a time per panel. */
 let activeRun: { kill: () => void } | undefined;
 
+/** workflow fsPath → the journal the engine last announced on stderr —
+ *  the exact file a paused run must be resumed FROM. */
+export const lastTracePathByWorkflow = new Map<string, string>();
+
 /** True while a spawned `nika run` drives the DAG (liveDag suspends). */
 export function isRunActive(): boolean {
   return activeRun !== undefined;
@@ -62,7 +66,12 @@ export function runWorkflowLive(
   /** Scope the run to ONE task + its upstream cone (`--task` · the
    *  regenerate-one-block lens). Whole-workflow when absent. */
   onlyTask?: string,
-  opts?: { extraArgs?: string[]; onClose?: () => void },
+  opts?: {
+    extraArgs?: string[];
+    onClose?: () => void;
+    /** The run hit an ADR-099 human-gate — the caller owns the answer UX. */
+    onPaused?: (paused: { task: string; mode: string; message?: string; choices?: string[] }) => void;
+  },
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
@@ -166,7 +175,11 @@ export function runWorkflowLive(
     paint();
   });
   child.stderr.setEncoding('utf-8');
-  child.stderr.on('data', (chunk: string) => log('WARN', `nika run: ${chunk.trim()}`));
+  child.stderr.on('data', (chunk: string) => {
+    const m = chunk.match(/trace: (\S+\.ndjson)/);
+    if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
+    log('WARN', `nika run: ${chunk.trim()}`);
+  });
 
   child.on('error', (err) => {
     activeRun = undefined;
@@ -184,12 +197,25 @@ export function runWorkflowLive(
     // swallowed the last intermediate) — the badges' resting truth.
     if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
     const verdict = model.workflowStatus;
-    const icon = verdict === 'completed' ? '✓' : verdict === 'cancelled' ? '◼' : '✗';
-    const cls = verdict === 'completed' ? 'st-success' : verdict === 'cancelled' ? 'st-cancelled' : 'st-failed';
-    dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
-    // The verdict banner — the same summary, visible WITHOUT opening the
-    // feed (summarizeRun leads with its own icon; the banner owns it).
-    dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}`, cls);
+    // ADR-099: paused is a QUESTION, not a failure — amber, the message
+    // itself, and the answer flow one click away (exit 4 · human-gate).
+    const icon = verdict === 'completed' ? '✓'
+      : verdict === 'cancelled' ? '◼'
+      : verdict === 'paused' ? '⏸' : '✗';
+    const cls = verdict === 'completed' ? 'st-success'
+      : verdict === 'cancelled' ? 'st-cancelled'
+      : verdict === 'paused' ? 'st-retrying' : 'st-failed';
+    if (verdict === 'paused' && model.paused) {
+      const q = model.paused.message ?? `task \`${model.paused.task}\` awaits an answer`;
+      dagPanel.note('⏸', `paused · ${model.paused.task} asks: ${q}`, model.paused.task, cls);
+      dagPanel.runVerdict('⏸', `paused — ${q}`, cls);
+      opts?.onPaused?.(model.paused);
+    } else {
+      dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
+      // The verdict banner — the same summary, visible WITHOUT opening the
+      // feed (summarizeRun leads with its own icon; the banner owns it).
+      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}`, cls);
+    }
     // Only meaningful runs land (≥1 task event) — a spawn that died
     // before any task event has nothing worth resuming from.
     if (model.tasks.size > 0 && buffer.length > 0) {
