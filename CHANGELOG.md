@@ -5,6 +5,24 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Time travel, for real
+
+- **F5 time-travel debugger** (nika ≥ 0.96) — breakpoints in your
+  `.nika.yaml`, F5 replays the newest recorded run of that workflow under
+  the real VS Code debugger: step forward AND backward through task
+  settles, recorded outputs in the Variables pane, `continue` runs to the
+  next breakpointed task. Replay never re-executes — stepping back is
+  free. Every run in the Runs view gains "Debug This Run (Replay · Time
+  Travel)" (journal→source matched by workflow name; QuickPick on
+  ambiguity). A walkthrough step teaches it.
+- **Export to OpenTelemetry** (nika ≥ 0.96) — a context action on any
+  recorded run projects its journal to OTLP/JSON lines: drag into Jaeger
+  UI, or POST to Aspire/Grafana/Langfuse (cost rides `gen_ai.usage.cost`).
+  Local file, zero collector. An engine older than the verb is told to
+  upgrade instead of a clap parrot.
+- **Runs view discoverability** — Run History and Diff join the view
+  title bar; Preflight and Run History join the welcome capabilities grid.
+
 ## [0.97.0] · 2026-07-06
 
 ### The human-gate, answered

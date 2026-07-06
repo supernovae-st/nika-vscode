@@ -160,6 +160,17 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **Time-travel replay** · click a recorded run and **scrub its whole
   timeline** — play/pause (Space), drag the handle, the DAG state at any
   instant computed locally. Replay re-renders, never re-executes
+- **F5 time-travel debugger** (nika ≥ 0.96) · set breakpoints in your
+  `.nika.yaml`, press **F5** — the engine's own DAP adapter replays a
+  recorded run under the real VS Code debugger: step **forward and
+  backward** through task settles, inspect every recorded output in the
+  Variables pane, `continue` runs to your next breakpointed task. Replay
+  never re-executes — which is why stepping back is free. Also on every
+  run in the Runs view: "Debug This Run (Replay · Time Travel)"
+- **Export to OpenTelemetry** (nika ≥ 0.96) · one action on any recorded
+  run projects its journal to OTLP/JSON lines — drag into Jaeger UI, or
+  POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
+  collector, zero vendor
 - **Dirty-nodes** · a `△ stale` badge marks every task edited since its
   last successful run (and its downstream cone) — you see what a run
   will re-execute. The last-success state lives in a

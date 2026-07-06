@@ -791,6 +791,17 @@
             ]
           },
           {
+            "id": "timetravel",
+            "title": "Time-travel a recorded run (F5)",
+            "description": "Set a breakpoint on any task line and press **F5** — the engine replays your latest recorded run under the debugger: step forward AND backward through settles, outputs in the Variables pane. Replay never re-executes.\n[Debug the latest run](command:workbench.action.debug.start)",
+            "media": {
+              "markdown": "walkthrough/05-dag.md"
+            },
+            "completionEvents": [
+              "onCommand:workbench.action.debug.start"
+            ]
+          },
+          {
             "id": "agents",
             "title": "Make your AI an expert",
             "description": "`nika init` writes schema wiring, AGENTS.md, and Cursor rules; this command wires MCP so agents can check workflows and explain failures through the real oracle.\n[Setup agents](command:nika.setupMcp)",
