@@ -262,6 +262,11 @@
         "icon": "$(debug-restart)"
       },
       {
+        "command": "nika.forkFromTask",
+        "title": "Nika: Fork From Task (upstream rehydrates from the trace)",
+        "icon": "$(repo-forked)"
+      },
+      {
         "command": "nika.captureLintBaseline",
         "title": "Nika: Capture Lint Baseline (grandfather current findings)"
       },
@@ -556,6 +561,11 @@
         {
           "command": "nika.diffTraces",
           "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "inline"
+        },
+        {
+          "command": "nika.forkFromTask",
+          "when": "view == nikaRuns && viewItem == nikaTraceTask",
           "group": "inline"
         }
       ]

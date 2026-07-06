@@ -86,6 +86,7 @@ import { parseRichWorkflow, taskAtLine } from './workflowParser';
 import { refAt } from './core/expr';
 import { buildPreflight, collectPreflightFacts, parseCatalogProviders, renderPreflight } from './core/preflight';
 import { traceStore } from './core/traceStore';
+import { foldTrace } from './core/traceFold';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -1030,6 +1031,77 @@ export function activate(context: ExtensionContext): void {
     // Command: ↻ resume — the palette twin of the canvas button (ADR-099).
     commands.registerCommand('nika.resumeWorkflow', async (uri?: Uri) => {
       await resumeWorkflowFlow(uri);
+    }),
+    // Command: ⑂ fork-from-step — re-run FROM a recorded task: everything
+    // upstream rehydrates from the trace (ADR-099 `--resume --from`), the
+    // task and its downstream re-execute. Counterfactual iteration without
+    // re-spending the cone above. Reached from a Runs-view task row or the
+    // palette (trace picker → task picker).
+    commands.registerCommand('nika.forkFromTask', async (item?: { traceUri?: Uri; taskId?: string }) => {
+      if (!(await requireEngine(service, 'forking a run'))) { return; }
+      let traceUri = item?.traceUri;
+      let taskId = item?.taskId;
+      if (!traceUri) {
+        const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+        const files = await workspace.findFiles(glob, '**/node_modules/**', 30);
+        const root = workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const sorted = files
+          .map((f) => { try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; } })
+          .filter((x): x is { f: Uri; m: number } => x !== undefined)
+          .sort((a, b) => b.m - a.m);
+        const pick = await window.showQuickPick(
+          sorted.map(({ f }) => ({
+            label: path.basename(f.fsPath),
+            description: path.relative(root, f.fsPath),
+            uri: f,
+          })),
+          { placeHolder: 'Fork from which recorded run?' },
+        );
+        if (!pick) { return; }
+        traceUri = pick.uri;
+      }
+      let fold;
+      try {
+        fold = foldTrace(fs.readFileSync(traceUri.fsPath, 'utf-8'));
+      } catch {
+        void window.showWarningMessage('Nika: this trace is unreadable.');
+        return;
+      }
+      if (!taskId) {
+        const pick = await window.showQuickPick(
+          [...fold.tasks.values()].map((t) => ({
+            label: t.id,
+            description: [t.status, t.durationMs !== undefined ? `${(t.durationMs / 1000).toFixed(1)}s` : undefined]
+              .filter(Boolean).join(' · '),
+          })),
+          { placeHolder: 'Fork from which task? It and its downstream re-run; upstream rehydrates from the trace.' },
+        );
+        if (!pick) { return; }
+        taskId = pick.label;
+      }
+      // The workflow this trace belongs to: the active nika doc, gated by
+      // the same majority-overlap law as replay — a fork against the
+      // WRONG workflow must refuse loudly, never run confusingly.
+      const doc = await requireNikaDocument(undefined);
+      if (!doc) { return; }
+      const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
+      const overlap = [...fold.tasks.keys()].filter((id) => ids.has(id)).length;
+      if (fold.tasks.size === 0 || overlap < Math.ceil(fold.tasks.size / 2)) {
+        void window.showWarningMessage('Nika: the active workflow does not match this trace — open the workflow the run came from.');
+        return;
+      }
+      if (!ids.has(taskId)) {
+        void window.showWarningMessage(`Nika: task \`${taskId}\` is not in the active workflow.`);
+        return;
+      }
+      if (doc.isDirty) { await doc.save(); }
+      dagWorkflowUri = doc.uri;
+      dagPanel.show(await service.dagForDocument(doc));
+      dagPanel.note('⑂', `fork from ${taskId} — upstream rehydrates from ${path.basename(traceUri.fsPath)}`, taskId, 'st-note');
+      runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+        extraArgs: ['--resume', traceUri.fsPath, '--from', taskId],
+        onClose: () => refreshStaleBadges(doc.uri.fsPath),
+      });
     }),
     // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
     // A human surface (the engine refuses it with --json), so it rides the

@@ -118,11 +118,13 @@ class TraceItem extends vscode.TreeItem {
 
 class TraceTaskItem extends vscode.TreeItem {
   constructor(
-    taskId: string,
+    readonly taskId: string,
     status: string,
     durationMs?: number,
     retries?: number,
     readonly artifacts: RunArtifact[] = [],
+    /** The trace this row belongs to — fork-from-step needs both halves. */
+    readonly traceUri?: vscode.Uri,
   ) {
     super(
       taskId,
@@ -141,6 +143,7 @@ class TraceTaskItem extends vscode.TreeItem {
     ]
       .filter(Boolean)
       .join(' · ');
+    this.contextValue = 'nikaTraceTask';
     this.iconPath = new vscode.ThemeIcon(
       status === 'success' ? 'check'
       : status === 'failed' ? 'x'
@@ -209,6 +212,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         (t) => new TraceTaskItem(
           t.id, t.status, t.durationMs, t.retries,
           element.trace.artifacts.get(t.id) ?? [],
+          element.trace.uri,
         ),
       );
     }
