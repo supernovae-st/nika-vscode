@@ -465,3 +465,31 @@ describe('workflow_sha256 (the run knows its source · 0.95+)', () => {
     expect(foldTrace(without).workflowSha256).toBeUndefined();
   });
 });
+
+describe('the skip/cancel WHY (0.95+ journals)', () => {
+  const ev = (kind: string, fields: Array<{ key: string; value: unknown }>): string =>
+    JSON.stringify({ id: { uuid: 'x' }, timestamp: 1, kind, run: null, correlation: null, fields });
+
+  it('when rides skipped · blocked_by rides cancelled · absent = silent', () => {
+    const trace = [
+      ev('task_skipped', [
+        { key: 'task', value: 'gated' },
+        { key: 'note', value: 'when: gate closed' },
+        { key: 'when', value: "${{ tasks.seed.status == 'failure' }}" },
+      ]),
+      ev('task_cancelled', [
+        { key: 'task', value: 'downstream' },
+        { key: 'note', value: 'upstream failed' },
+        { key: 'blocked_by', value: 'doomed' },
+      ]),
+      ev('task_skipped', [
+        { key: 'task', value: 'old_style' },
+        { key: 'note', value: 'when: gate closed' },
+      ]),
+    ].join('\n');
+    const m = foldTrace(trace);
+    expect(m.tasks.get('gated')?.whyWhen).toContain('tasks.seed.status');
+    expect(m.tasks.get('downstream')?.blockedBy).toBe('doomed');
+    expect(m.tasks.get('old_style')?.whyWhen).toBeUndefined();
+  });
+});

@@ -50,6 +50,10 @@ export interface FoldedTask {
    *  carries it on task_completed AND task_cache_hit). */
   outputPreview?: string;
   retries: number;
+  /** Gate-close skip (0.95+): the `when:` CEL text that evaluated false. */
+  whyWhen?: string;
+  /** Cascade cancel (0.95+): the first unsatisfied upstream dependency. */
+  blockedBy?: string;
 }
 
 export interface TimelineEntry {
@@ -102,6 +106,10 @@ interface NormalizedEvent {
   choices?: string[];
   /** workflow_started only — the run's source identity (sha256 hex). */
   workflowSha256?: string;
+  /** task_skipped only — the gate's CEL text (0.95+). */
+  whenExpr?: string;
+  /** task_cancelled only — the culprit upstream (0.95+). */
+  blockedBy?: string;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -221,6 +229,8 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       workflowSha256: typeof fields.get('workflow_sha256') === 'string'
         ? fields.get('workflow_sha256') as string
         : undefined,
+      whenExpr: typeof fields.get('when') === 'string' ? fields.get('when') as string : undefined,
+      blockedBy: typeof fields.get('blocked_by') === 'string' ? fields.get('blocked_by') as string : undefined,
       mode: typeof fields.get('mode') === 'string' ? fields.get('mode') as string : undefined,
       message: typeof fields.get('message') === 'string' ? fields.get('message') as string : undefined,
       choices: Array.isArray(fields.get('choices'))
@@ -352,6 +362,9 @@ export function foldTrace(ndjson: string): RunModel {
 
     if (ev.kind === 'task_retrying') { task.retries += 1; }
     if (ev.kind === 'task_cache_hit') { task.cached = true; }
+    // The WHY (0.95+ journals): the gate's CEL on skip · the culprit on cancel.
+    if (ev.kind === 'task_skipped' && ev.whenExpr !== undefined) { task.whyWhen = ev.whenExpr; }
+    if (ev.kind === 'task_cancelled' && ev.blockedBy !== undefined) { task.blockedBy = ev.blockedBy; }
     if (ev.output !== undefined && TERMINAL.has(status)) {
       task.outputPreview = ev.output;
     }

@@ -78,6 +78,8 @@ export function renderRunReport(inputs: RunReportInputs): string {
     const notes: string[] = [];
     if (t.cached) { notes.push('cache hit'); }
     if (t.retries > 0) { notes.push(`↻${t.retries}`); }
+    if (t.whyWhen !== undefined) { notes.push(`gate false: ${t.whyWhen.replace(/\|/g, '·')}`); }
+    if (t.blockedBy !== undefined) { notes.push(`blocked by \`${t.blockedBy}\``); }
     if (t.status === 'failed' && t.preview) { notes.push(t.preview.replace(/\|/g, '·')); }
     out.push(`| \`${t.id}\` | ${STATUS_ICON[t.status] ?? '·'} ${t.status} | ${t.durationMs !== undefined ? humanizeDuration(t.durationMs) : '—'} | ${t.usd !== undefined ? usd(t.usd) : '—'} | ${notes.join(' · ')} |`);
   }

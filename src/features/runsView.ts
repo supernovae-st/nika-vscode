@@ -132,6 +132,8 @@ class TraceTaskItem extends vscode.TreeItem {
     readonly traceUri?: vscode.Uri,
     /** The attempt story (retries · details) — tooltip when present. */
     ladder: Attempt[] = [],
+    /** The 0.95+ WHY: `gate false: <cel>` or `blocked by <id>`. */
+    why?: string,
   ) {
     super(
       taskId,
@@ -146,6 +148,7 @@ class TraceTaskItem extends vscode.TreeItem {
       status,
       dur,
       retries ? `↻${retries}` : undefined,
+      why,
       artifacts.length > 0 ? `${artifacts.length} artifact${artifacts.length > 1 ? 's' : ''}` : undefined,
     ]
       .filter(Boolean)
@@ -251,6 +254,8 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           element.trace.artifacts.get(t.id) ?? [],
           element.trace.uri,
           element.trace.ladders.get(t.id) ?? [],
+          t.whyWhen !== undefined ? `gate false: ${t.whyWhen}`
+            : t.blockedBy !== undefined ? `blocked by ${t.blockedBy}` : undefined,
         ),
       );
     }
