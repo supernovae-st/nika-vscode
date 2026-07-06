@@ -28,6 +28,16 @@ announce line (forever-v0.x).
 - **The agent gate line.** Generated `.cursor/rules` and the
   `nika_check` tool description now carry the imperative: always check
   after every edit, never done while findings remain.
+- **Source-bound run highlight — the YAML is the timeline.** While a
+  run executes or a replay scrubs, the YAML spans of the RUNNING tasks
+  glow (theme-safe, whole-line, ruler mark). Live batches, the platine
+  and the Replayer feed one seam; live runs paint with the panel closed
+  too. Opt-out: `nika.editor.runHighlight`.
+- **Preflight env semantics fixed in review**: requirements are the
+  `${{ env.X }}` refs the body reads — workflow-defined keys are
+  covered, read-but-unset keys block. Plus a self-skipping REAL-binary
+  e2e floor: a true run journal proves trace → artifact provenance, a
+  true catalog proves the key story (proven on a fresh 0.94 build).
 - **Golden testing joins the menu** · `Nika: Golden Test` runs
   `nika test <file>` (mock provider · offline) and `Update the Golden`
   re-pins `<file>.golden.json` — capability-probed, lights up on any
