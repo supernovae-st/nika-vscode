@@ -1,0 +1,34 @@
+name: ci
+
+# The PR gate the extension lacked: release.yml packages on tag, but
+# nothing checked a PR — a type error or a manifest/source parity drift
+# reached main unguarded. Mirrors the repo's own `npm test` contract.
+# No user-controlled input reaches the shell.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: typecheck · tests · parity · lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Compile (typecheck both passes + esbuild — parity needs out/)
+        run: npm run compile
+      - name: Tests + parity + lint (the repo's own contract)
+        run: npm test
+      - name: Snippets parse as strict JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('snippets/nika.code-snippets','utf8')); console.log('snippets OK')"
