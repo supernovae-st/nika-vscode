@@ -86,6 +86,8 @@ class TraceItem extends vscode.TreeItem {
       trace.model.workflowStatus === 'completed' ? 'pass-filled'
       : trace.model.workflowStatus === 'failed' ? 'error'
       : trace.model.workflowStatus === 'cancelled' ? 'circle-slash'
+      // ADR-099 durable pause — waiting on an answer, not live, not dead.
+      : trace.model.workflowStatus === 'paused' ? 'debug-pause'
       : 'pulse',
     );
     const md = new vscode.MarkdownString(undefined, true);

@@ -119,6 +119,19 @@ describe('foldTrace', () => {
     expect(card).toContain('2.3s');
     expect(card).not.toContain('$');
   });
+
+  it('folds workflow_paused (ADR-099 durable pause) — not running forever', () => {
+    // A run paused on `nika:prompt` writes workflow_paused and stops —
+    // without a mapping the Runs view shows it as live until deleted.
+    const paused = foldTrace([
+      diamondLine('workflow_started', { ts: 0 }),
+      diamondLine('task_started', { task: 'ask', ts: 10 }),
+      diamondLine('workflow_paused', { ts: 500 }),
+    ].join('\n'));
+    expect(paused.workflowStatus).toBe('paused');
+    expect(paused.unknownLines).toBe(0);
+    expect(summarizeRun(paused)).toContain('⏸');
+  });
 });
 
 // ─── The runtime-v2 REAL wire (§3.1 state machine · verified serde) ─────────

@@ -221,6 +221,16 @@ export interface SecretEgress { output: string; secret: string; trace: string }
 export interface CapabilityEscape { task: string; category: string; detail: string; fix?: string | null }
 export interface SchemaTypeFinding { site: string; reference: string; target: string; [key: string]: unknown }
 export interface UnknownTool { task: string; tool: string; suggestion?: string | null }
+export interface UnknownArg { task: string; tool: string; arg: string; suggestion?: string | null }
+export interface MissingArg { task: string; tool: string; arg: string }
+export interface GateFinding {
+  task: string;
+  /** `dead_task` | `bad_status_literal` (snake_case · non_exhaustive). */
+  kind: string;
+  detail: string;
+  fix?: string | null;
+  span?: ByteSpan | null;
+}
 export interface SchemaLintFinding { task: string; path: string; detail: string }
 export interface CheckHint { kind: string; task: string; advice: string }
 
@@ -243,6 +253,12 @@ export interface CheckReport {
   capability_escapes: CapabilityEscape[];
   schema_findings: SchemaTypeFinding[];
   unknown_tools: UnknownTool[];
+  /** `args:` keys the builtin does not declare (the jq data-vs-input class). */
+  unknown_args: UnknownArg[];
+  /** Required `args:` keys absent from the call — fails `nika check`. */
+  missing_args: MissingArg[];
+  /** `when:`-gate reachability (dead task · bad status literal). */
+  gate_findings: GateFinding[];
   schema_lints: SchemaLintFinding[];
   hints: CheckHint[];
   /** Engine DAG read (width · pinch · blast) — absent on older binaries. */
@@ -352,6 +368,9 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
       capability_escapes: arr('capability_escapes') as CapabilityEscape[],
       schema_findings: arr('schema_findings') as SchemaTypeFinding[],
       unknown_tools: arr('unknown_tools') as UnknownTool[],
+      unknown_args: arr('unknown_args') as UnknownArg[],
+      missing_args: arr('missing_args') as MissingArg[],
+      gate_findings: arr('gate_findings') as GateFinding[],
       schema_lints: arr('schema_lints') as SchemaLintFinding[],
       hints: arr('hints') as CheckHint[],
       analysis:
@@ -373,6 +392,9 @@ export type FindingSource =
   | 'capability-escape'
   | 'schema-type'
   | 'unknown-tool'
+  | 'unknown-arg'
+  | 'missing-arg'
+  | 'gate'
   | 'schema-lint'
   | 'hint';
 
@@ -396,7 +418,9 @@ export interface UnifiedFinding {
   docsUrl?: string;
 }
 
-/** Failure-class finding count (hints excluded — they never fail a check). */
+/** Failure-class finding count (hints excluded — they never fail a check).
+ *  Mirrors the engine's `CheckReport::is_clean` family list — a family
+ *  missing here paints a CLEAN badge on a file `nika check` exits 2 on. */
 export function countReportFindings(r: CheckReport): number {
   return (
     r.conformance.length +
@@ -405,6 +429,9 @@ export function countReportFindings(r: CheckReport): number {
     r.capability_escapes.length +
     r.schema_findings.length +
     r.unknown_tools.length +
+    r.unknown_args.length +
+    r.missing_args.length +
+    r.gate_findings.length +
     r.schema_lints.length
   );
 }
@@ -478,6 +505,36 @@ export function collectFindings(report: CheckReport): UnifiedFinding[] {
       severity: 'error',
       task: t.task,
       suggestion: t.suggestion ?? undefined,
+    });
+  }
+  for (const a of report.unknown_args) {
+    out.push({
+      source: 'unknown-arg',
+      code: 'nika.unknown-arg',
+      message: `\`${a.tool}\` has no arg \`${a.arg}\`${a.suggestion ? ` — did you mean \`${a.suggestion}\`?` : ''}`,
+      severity: 'error',
+      task: a.task,
+      suggestion: a.suggestion ?? undefined,
+    });
+  }
+  for (const m of report.missing_args) {
+    out.push({
+      source: 'missing-arg',
+      code: 'nika.missing-arg',
+      message: `\`${m.tool}\` is missing required arg \`${m.arg}\``,
+      severity: 'error',
+      task: m.task,
+    });
+  }
+  for (const g of report.gate_findings) {
+    out.push({
+      source: 'gate',
+      code: `nika.gate.${g.kind}`,
+      message: g.detail,
+      severity: 'error',
+      task: g.task,
+      span: g.span ?? undefined,
+      fix: g.fix ?? undefined,
     });
   }
   for (const s of report.schema_lints) {

@@ -142,6 +142,23 @@ describe('generatePipeline · the loop budget', () => {
       return { exit: 0, findings: 0, hints: 0, codes: [], parsed: true, ...(table[wf] ?? {}) };
     };
 
+  it('never declares clean when the binary exits non-zero — exit outranks the client count', async () => {
+    // The trap: a finding family the client does not fold yet (engine adds
+    // one behind report_version 1) → findings === 0 while `nika check`
+    // exits 2. The gate must trust the exit code, not the client's count.
+    let llmCalls = 0;
+    const result = await generateWorkflow(
+      'BASE',
+      {
+        llm: async () => { llmCalls += 1; return yamlAnswer(`c${llmCalls}`); },
+        check: checkBy({ c1: { exit: 2 }, c2: { exit: 2 }, c3: { exit: 2 }, c4: { exit: 2 }, c5: { exit: 2 } }),
+      },
+      { candidates: 3, repairRounds: 2 },
+    );
+    expect(result?.clean).toBe(false);
+    expect(result?.roundsUsed).toBe(2); // it kept trying — exit 2 is not done
+  });
+
   it('early-stops on a clean candidate — zero repair rounds', async () => {
     let llmCalls = 0;
     const result = await generateWorkflow(

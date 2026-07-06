@@ -6,6 +6,7 @@ import {
   parseCheckReport,
   parseToolCategories,
   collectFindings,
+  countReportFindings,
   byteOffsetToPosition,
   type GraphDoc,
 } from '../core/cliContract';
@@ -97,6 +98,11 @@ describe('parseCheckReport + collectFindings', () => {
     ],
     schema_findings: [{ site: 'tasks.use.prompt', reference: 'tasks.sum.output.titel', target: 'tasks.sum.schema' }],
     unknown_tools: [{ task: 'ship', tool: 'nika:fetchh', suggestion: 'nika:fetch' }],
+    unknown_args: [{ task: 'sum', tool: 'nika:jq', arg: 'data', suggestion: 'input' }],
+    missing_args: [{ task: 'ship', tool: 'nika:log', arg: 'message' }],
+    gate_findings: [
+      { task: 'never', kind: 'dead_task', detail: 'gate is unsatisfiable', fix: 'when: always', span: { start: 30, end: 42 } },
+    ],
     schema_lints: [{ task: 'sum', path: 'schema.required', detail: 'required name not in properties' }],
     hints: [{ kind: 'pin-max-tokens', task: 'sum', advice: 'set max_tokens to bound the ceiling' }],
   });
@@ -117,7 +123,7 @@ describe('parseCheckReport + collectFindings', () => {
   it('flattens every finding family with the right severity', () => {
     const report = parseCheckReport(REPORT);
     const findings = collectFindings(report!);
-    expect(findings).toHaveLength(8);
+    expect(findings).toHaveLength(11);
 
     const bySource = new Map(findings.map((f) => [f.source, f]));
     expect(bySource.get('conformance')?.code).toBe('NIKA-DAG-002');
@@ -126,8 +132,42 @@ describe('parseCheckReport + collectFindings', () => {
     expect(bySource.get('unknown-tool')?.suggestion).toBe('nika:fetch');
     expect(bySource.get('hint')?.severity).toBe('info');
 
+    // The three families the engine counts in `clean` (check/mod.rs
+    // is_clean) — a missing required arg fails `nika check`, so a client
+    // that skips these paints CLEAN on an exit-2 file.
+    const unknownArg = bySource.get('unknown-arg');
+    expect(unknownArg?.severity).toBe('error');
+    expect(unknownArg?.task).toBe('sum');
+    expect(unknownArg?.message).toContain('data');
+    expect(unknownArg?.suggestion).toBe('input');
+
+    const missingArg = bySource.get('missing-arg');
+    expect(missingArg?.severity).toBe('error');
+    expect(missingArg?.task).toBe('ship');
+    expect(missingArg?.message).toContain('message');
+
+    const gate = bySource.get('gate');
+    expect(gate?.severity).toBe('error');
+    expect(gate?.task).toBe('never');
+    expect(gate?.span).toEqual({ start: 30, end: 42 });
+    expect(gate?.fix).toBe('when: always');
+
     const errors = findings.filter((f) => f.severity === 'error');
-    expect(errors).toHaveLength(7); // everything except the hint
+    expect(errors).toHaveLength(10); // everything except the hint
+  });
+
+  it('counts the three arg/gate families as failure classes', () => {
+    const report = parseCheckReport(REPORT);
+    // 7 legacy families + unknown_args + missing_args + gate_findings.
+    expect(countReportFindings(report!)).toBe(10);
+  });
+
+  it('keeps the families absent-safe on older binaries', () => {
+    const report = parseCheckReport(JSON.stringify({ report_version: 1, cost: {} }));
+    expect(report?.unknown_args).toEqual([]);
+    expect(report?.missing_args).toEqual([]);
+    expect(report?.gate_findings).toEqual([]);
+    expect(countReportFindings(report!)).toBe(0);
   });
 
   it('prefers the engine-stamped severity + docs_url (E4 wire · ≥0.94)', () => {
