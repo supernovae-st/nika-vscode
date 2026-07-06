@@ -313,6 +313,21 @@
         "command": "nika.doctor",
         "title": "Nika: Doctor (diagnose environment)",
         "icon": "$(pulse)"
+      },
+      {
+        "command": "nika.doctorPing",
+        "title": "Nika: Doctor + Ping Local Providers (0.94+)",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "nika.testWorkflow",
+        "title": "Nika: Golden Test (mock provider · offline)",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "nika.testUpdate",
+        "title": "Nika: Golden Test — Update the Golden",
+        "icon": "$(beaker)"
       }
     ],
     "mcpServerDefinitionProviders": [

@@ -51,7 +51,13 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 ### The audit moat, in the editor
 - **Check-as-you-type** · `nika check --json` painted as diagnostics
   (conformance · secret leaks/egresses · permits escapes · schema findings ·
-  unknown tools · hints), with `NIKA-XXXX` codes linking to explanations
+  unknown tools · **typo'd or missing tool args with did-you-mean** ·
+  **provably dead `when:` gates** · hints), with `NIKA-XXXX` codes linking
+  to explanations — the full `is_clean` family list, so the editor's
+  verdict IS the binary's exit code
+- **No tmp-file dance** · dirty and untitled buffers pipe straight into
+  the binary over stdin (`nika check -` · 0.94+) — keystroke-fresh audits
+  without ever touching your disk; older engines keep the tmp fallback
 - **One-keystroke permits repair** · the engine's machine-applicable fix
   grammar (`add "X" to permits.<path>`) applied as a quick fix · the same
   convergence loop agents run in CI
@@ -162,6 +168,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
   duration · cost per run) and **animated trace replay** through the DAG;
   replay re-renders, never re-executes
+- **Golden test, one command** · `Nika: Golden Test` runs
+  `nika test <file>` (mock provider · offline · deterministic) against
+  `<file>.golden.json`, and `Update the Golden` re-pins it — the offline
+  CI gate without leaving the editor
 - **Validate / Inspect / Explain / Dry-run** from the editor —
   `nika check` diagnostics, `nika inspect` anatomy, a **deterministic
   Explain Workflow** (the story wave-by-wave · cost ceiling · what it
@@ -190,7 +200,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   repo-local `AGENTS.md`. On VS Code 1.101+ agent mode discovers
   `nika mcp` natively (zero config files)
 - **Doctor** · `Nika: Doctor` runs the engine's own environment diagnosis
-  (binary · config · provider keys) — prints exact fixes, never mutates
+  (binary · config · provider keys · image/tts planes) — prints exact
+  fixes, never mutates; **`Doctor + Ping`** (0.94+) opt-in TCP-probes your
+  LOCAL provider ports only (Ollama · LM Studio · llama.cpp · LocalAI ·
+  vLLM — loopback, 300ms cap, nothing sent on the socket)
 - **Works with your CLI agents too** · `nika wire cursor` / `claude` /
   `windsurf` / `codex` patches each client's MCP config (idempotent ·
   preserves your other servers) so Claude Code, Codex CLI and friends
@@ -220,7 +233,7 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 nika: v1
 workflow: hello
 
-model: mock/echo          # deterministic · swap for ollama/llama3.1 or any provider
+model: mock/echo          # deterministic · swap for ollama/qwen3.5:4b or any provider
 
 tasks:
   - id: greet

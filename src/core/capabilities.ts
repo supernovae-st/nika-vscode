@@ -27,6 +27,9 @@ export interface CapabilitySet {
   mcp: boolean;
   wire: boolean;
   doctor: boolean;
+  /** `nika test <file> [--update]` — golden testing under the mock
+   *  provider (offline · deterministic · the 0.94 line). */
+  test: boolean;
   /** `run --resume <trace>` + `--from <task>` (ADR-099 · the 0.93 line):
    *  engine-side dirty-slice — unchanged tasks cache-hit with their
    *  recorded output, edited tasks + their cone re-run. */
@@ -96,6 +99,7 @@ export function buildCapabilities(
     mcp: commands.has('mcp'),
     wire: commands.has('wire'),
     doctor: commands.has('doctor'),
+    test: commands.has('test'),
     // A flag, not a subcommand — the top-level help can't carry it, so
     // the gate is the release line that shipped ADR-099. A custom build
     // reporting an older version just keeps the affordance hidden.
