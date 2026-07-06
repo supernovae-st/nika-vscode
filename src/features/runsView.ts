@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { parseTraceOutputs } from '../core/xray';
 import { extractRunArtifacts, humanBytes, type RunArtifact } from '../core/artifacts';
 import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
@@ -443,9 +444,15 @@ export function diffTracesOntoDag(
 
   let base: RunModel;
   let compare: RunModel;
+  let baseOutputs: Map<string, unknown>;
+  let compareOutputs: Map<string, unknown>;
   try {
-    base = foldTrace(fs.readFileSync(baseUri.fsPath, 'utf-8'));
-    compare = foldTrace(fs.readFileSync(compareUri.fsPath, 'utf-8'));
+    const baseRaw = fs.readFileSync(baseUri.fsPath, 'utf-8');
+    const compareRaw = fs.readFileSync(compareUri.fsPath, 'utf-8');
+    base = foldTrace(baseRaw);
+    compare = foldTrace(compareRaw);
+    baseOutputs = parseTraceOutputs(baseRaw);
+    compareOutputs = parseTraceOutputs(compareRaw);
   } catch {
     return false;
   }
@@ -455,7 +462,7 @@ export function diffTracesOntoDag(
   const overlap = [...seen].filter((id) => ids.has(id)).length;
   if (overlap < Math.ceil(seen.size / 2)) { return false; }
 
-  const diff = diffRuns(base, compare);
+  const diff = diffRuns(base, compare, { base: baseOutputs, compare: compareOutputs });
 
   // The COMPARE run's statuses become the painted state (its story), the
   // badges carry the movement vs base.
@@ -476,6 +483,12 @@ export function diffTracesOntoDag(
   const baseName = path.basename(baseUri.fsPath);
   const compareName = path.basename(compareUri.fsPath);
   dagPanel.note('Δ', `diff ${compareName} vs ${baseName} — ${summarizeDiff(diff)}`, undefined, 'st-note');
+  // The debugging entry point: the FIRST task whose story changed —
+  // everything downstream of it is suspect. Named and centered.
+  if (diff.firstDivergentId !== undefined) {
+    dagPanel.note('⟂', `first divergence: ${diff.firstDivergentId} — downstream is suspect`, diff.firstDivergentId, 'st-note');
+    dagPanel.focusNode(diff.firstDivergentId);
+  }
   // Narrate the top movers (the sorted head IS the ranking).
   for (const t of diff.tasks.slice(0, 3)) {
     if (t.kind === 'same') { break; }
@@ -496,6 +509,8 @@ function diffBadge(t: TaskDiff): string {
         : `-${humanizeDuration(Math.abs(t.deltaMs ?? 0))}`;
     case 'status-changed':
       return `${t.statusFrom} to ${t.statusTo}`;
+    case 'output-changed':
+      return '≠ output';
     case 'added':
       return 'new';
     case 'removed':

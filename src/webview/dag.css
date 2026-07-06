@@ -2146,6 +2146,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 .dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-ok, #3fb950); }
 .dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-err, #f85149); }
 .dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying, #d29922); }
+.dag-node[data-diff='output-changed'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
 .dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
 .dag-node[data-diff='removed'] { opacity: 0.55; }
 .dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-fg-mute, #8a93a6); }

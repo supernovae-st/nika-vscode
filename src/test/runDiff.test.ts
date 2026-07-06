@@ -72,3 +72,53 @@ describe('diffRuns — synthetic added/removed/slower', () => {
     expect(diffRuns(mk([['a', 200]]), mk([['a', 260]])).tasks[0].kind).toBe('slower');
   });
 });
+
+describe('diffRuns v2 — outputs + first divergence', () => {
+  const model = (tasks: Array<[string, { status: string; startMs?: number; durationMs?: number }]>) => ({
+    tasks: new Map(tasks.map(([id, t]) => [id, { id, retries: 0, ...t }])),
+    unknownLines: 0,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as any;
+
+  it('same status but different recorded output → output-changed', () => {
+    const base = model([['a', { status: 'success', startMs: 0 }], ['b', { status: 'success', startMs: 10 }]]);
+    const compare = model([['a', { status: 'success', startMs: 0 }], ['b', { status: 'success', startMs: 10 }]]);
+    const diff = diffRuns(base, compare, {
+      base: new Map<string, unknown>([['a', { x: 1 }], ['b', 'same']]),
+      compare: new Map<string, unknown>([['a', { x: 2 }], ['b', 'same']]),
+    });
+    expect(diff.tasks.find((t) => t.id === 'a')?.kind).toBe('output-changed');
+    expect(diff.tasks.find((t) => t.id === 'b')?.kind).toBe('same');
+    expect(diff.counts.outputChanged).toBe(1);
+  });
+
+  it('key order never fakes a change; a missing record never claims one', () => {
+    const base = model([['a', { status: 'success' }], ['secretish', { status: 'success' }]]);
+    const compare = model([['a', { status: 'success' }], ['secretish', { status: 'success' }]]);
+    const diff = diffRuns(base, compare, {
+      base: new Map<string, unknown>([['a', { x: 1, y: 2 }]]),           // secretish: no record
+      compare: new Map<string, unknown>([['a', { y: 2, x: 1 }]]),        // same value, other order
+    });
+    expect(diff.tasks.find((t) => t.id === 'a')?.kind).toBe('same');
+    expect(diff.tasks.find((t) => t.id === 'secretish')?.outputChanged).toBeUndefined();
+  });
+
+  it('first divergence = execution order of the STORY changes, not timing', () => {
+    const base = model([
+      ['early_slow', { status: 'success', startMs: 0, durationMs: 100 }],
+      ['mid', { status: 'success', startMs: 50 }],
+      ['late', { status: 'success', startMs: 90 }],
+    ]);
+    const compare = model([
+      ['early_slow', { status: 'success', startMs: 0, durationMs: 900 }], // timing wobble — NOT divergence
+      ['mid', { status: 'success', startMs: 50 }],
+      ['late', { status: 'failed', startMs: 90 }],
+    ]);
+    const diff = diffRuns(base, compare, {
+      base: new Map<string, unknown>([['mid', 'v1']]),
+      compare: new Map<string, unknown>([['mid', 'v2']]),
+    });
+    // mid (start 50 · output change) beats late (start 90 · status flip).
+    expect(diff.firstDivergentId).toBe('mid');
+  });
+});

@@ -13,7 +13,7 @@ import type { RunModel } from './traceFold';
 export interface TaskDiff {
   id: string;
   /** The paint verdict — one class per node on the canvas. */
-  kind: 'faster' | 'slower' | 'same' | 'added' | 'removed' | 'status-changed';
+  kind: 'faster' | 'slower' | 'same' | 'added' | 'removed' | 'status-changed' | 'output-changed';
   baseMs?: number;
   compareMs?: number;
   deltaMs?: number;
@@ -22,6 +22,8 @@ export interface TaskDiff {
   deltaUsd?: number;
   statusFrom?: string;
   statusTo?: string;
+  /** Recorded outputs differ (comparable only when BOTH runs recorded one). */
+  outputChanged?: boolean;
 }
 
 export interface RunDiff {
@@ -30,7 +32,22 @@ export interface RunDiff {
   totalBaseMs?: number;
   totalCompareMs?: number;
   totalDeltaUsd?: number;
-  counts: { faster: number; slower: number; same: number; added: number; removed: number; statusChanged: number };
+  counts: { faster: number; slower: number; same: number; added: number; removed: number; statusChanged: number; outputChanged: number };
+  /** The FIRST task (compare-run execution order) whose STORY diverged —
+   *  status flip or output change, never a timing wobble. The debugging
+   *  entry point: everything downstream of it is suspect. */
+  firstDivergentId?: string;
+}
+
+/** Key-stable stringify — the journal's compact JSON key order is not a
+ *  contract, so semantic equality must not depend on it. */
+function stableStringify(v: unknown): string {
+  if (Array.isArray(v)) { return `[${v.map(stableStringify).join(',')}]`; }
+  if (typeof v === 'object' && v !== null) {
+    const keys = Object.keys(v as Record<string, unknown>).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify((v as Record<string, unknown>)[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(v) ?? 'null';
 }
 
 // Below BOTH thresholds a duration move is noise, not a story: mock runs
@@ -38,7 +55,11 @@ export interface RunDiff {
 const SAME_PCT = 5;
 const SAME_MS = 50;
 
-export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
+export function diffRuns(
+  base: RunModel,
+  compare: RunModel,
+  outputs?: { base: Map<string, unknown>; compare: Map<string, unknown> },
+): RunDiff {
   const ids = new Set<string>([...base.tasks.keys(), ...compare.tasks.keys()]);
   const tasks: TaskDiff[] = [];
 
@@ -64,9 +85,18 @@ export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
     if (b.usd !== undefined || c.usd !== undefined) {
       entry.deltaUsd = (c.usd ?? 0) - (b.usd ?? 0);
     }
+    // Output comparison: only when BOTH runs recorded one (a missing
+    // record — secret-tainted or pre-0.94 — can never claim a change).
+    if (outputs?.base.has(id) === true && outputs.compare.has(id)) {
+      entry.outputChanged =
+        stableStringify(outputs.base.get(id)) !== stableStringify(outputs.compare.get(id));
+    }
     if (b.status !== c.status) {
       // A status flip outranks any timing story (failed→success IS the news).
       entry.kind = 'status-changed';
+    } else if (entry.outputChanged === true) {
+      // Same status, different data — the semantic story beats timing.
+      entry.kind = 'output-changed';
     } else if (b.durationMs !== undefined && c.durationMs !== undefined) {
       entry.deltaMs = c.durationMs - b.durationMs;
       entry.deltaPct = b.durationMs > 0 ? (entry.deltaMs / b.durationMs) * 100 : undefined;
@@ -84,7 +114,8 @@ export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
   // otherwise), then adds/removes, stable by id for determinism.
   const rank = (t: TaskDiff): number => {
     switch (t.kind) {
-      case 'status-changed': return 3;
+      case 'status-changed': return 4;
+      case 'output-changed': return 3;
       case 'slower':
       case 'faster': return 2;
       case 'added':
@@ -100,11 +131,21 @@ export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
   const durationOf = (m: RunModel): number | undefined =>
     m.startMs !== undefined && m.endMs !== undefined ? m.endMs - m.startMs : undefined;
 
-  const counts = { faster: 0, slower: 0, same: 0, added: 0, removed: 0, statusChanged: 0 };
+  const counts = { faster: 0, slower: 0, same: 0, added: 0, removed: 0, statusChanged: 0, outputChanged: 0 };
   for (const t of tasks) {
     if (t.kind === 'status-changed') { counts.statusChanged++; }
+    else if (t.kind === 'output-changed') { counts.outputChanged++; }
     else { counts[t.kind]++; }
   }
+
+  // First divergence — compare-run EXECUTION order (traces carry the
+  // clock; the DAG is not needed): the earliest task whose STORY changed.
+  const divergent = tasks.filter((t) => t.kind === 'status-changed' || t.kind === 'output-changed');
+  const startOf = (id: string): number =>
+    compare.tasks.get(id)?.startMs ?? base.tasks.get(id)?.startMs ?? Number.MAX_SAFE_INTEGER;
+  const firstDivergentId = divergent.length > 0
+    ? divergent.reduce((min, t) => (startOf(t.id) < startOf(min.id) ? t : min)).id
+    : undefined;
 
   const totalDeltaUsd =
     base.totalUsd !== undefined || compare.totalUsd !== undefined
@@ -117,6 +158,7 @@ export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
     totalCompareMs: durationOf(compare),
     totalDeltaUsd,
     counts,
+    firstDivergentId,
   };
 }
 
@@ -124,6 +166,7 @@ export function diffRuns(base: RunModel, compare: RunModel): RunDiff {
 export function summarizeDiff(diff: RunDiff): string {
   const parts: string[] = [];
   if (diff.counts.statusChanged) { parts.push(`${diff.counts.statusChanged} status`); }
+  if (diff.counts.outputChanged) { parts.push(`${diff.counts.outputChanged} output`); }
   if (diff.counts.slower) { parts.push(`${diff.counts.slower} slower`); }
   if (diff.counts.faster) { parts.push(`${diff.counts.faster} faster`); }
   if (diff.counts.added) { parts.push(`${diff.counts.added} added`); }
