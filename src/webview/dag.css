@@ -1371,6 +1371,28 @@ body.vscode-light .logo-dark { display: none; }
   background: color-mix(in srgb, var(--nk-ink) 8%, transparent);
   box-shadow: 3px 3px 0 color-mix(in srgb, var(--nk-accent) 35%, transparent);
 }
+/* The + riding a wire: a dashed run with the accent button at center. */
+.ex-glyph-splice {
+  background:
+    radial-gradient(circle at 50% 50%, var(--nk-accent) 0 3.5px, transparent 4px),
+    repeating-linear-gradient(90deg, var(--nk-ink-dim) 0 4px, transparent 4px 8px) 0 50% / 100% 2px no-repeat;
+  border: none;
+  height: 10px;
+}
+/* Duplicate: the original + its offset copy. */
+.ex-glyph-dup {
+  background:
+    linear-gradient(color-mix(in srgb, var(--nk-ink-dim) 55%, transparent), color-mix(in srgb, var(--nk-ink-dim) 55%, transparent)) 6px 0 / 14px 6px no-repeat,
+    linear-gradient(var(--nk-accent), var(--nk-accent)) 2px 4px / 14px 6px no-repeat;
+  border: none;
+}
+/* Semantic zoom: a big tile beside a small one — the same mark, scaled. */
+.ex-glyph-zoom {
+  background:
+    linear-gradient(var(--nk-accent), var(--nk-accent)) 1px 1px / 8px 8px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--nk-accent) 45%, transparent), color-mix(in srgb, var(--nk-accent) 45%, transparent)) 14px 3px / 5px 5px no-repeat;
+  border: none;
+}
 
 .ex-keys {
   display: flex;
