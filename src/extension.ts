@@ -87,6 +87,8 @@ import { refAt } from './core/expr';
 import { buildPreflight, collectPreflightFacts, parseCatalogProviders, renderPreflight } from './core/preflight';
 import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
+import { renderRunReport } from './core/runReport';
+import { extractRunArtifacts } from './core/artifacts';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -1396,6 +1398,49 @@ export function activate(context: ExtensionContext): void {
 
   // Command: Replay a trace through the DAG (replay = re-render, never re-execute).
   context.subscriptions.push(
+    // Command: run report — the provable-after document: verdict · per-task
+    // table · artifacts with provenance · failures, all read from the trace
+    // (gaps stated, never filled). Local markdown, shareable by file.
+    commands.registerCommand('nika.runReport', async (arg?: Uri | { trace?: { uri: Uri } }) => {
+      let target = arg instanceof Uri ? arg : arg?.trace?.uri;
+      if (!target) {
+        const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+        const files = await workspace.findFiles(glob, '**/node_modules/**', 50);
+        if (files.length === 0) {
+          void window.showInformationMessage('Nika: no traces found (.nika/traces/*.ndjson).');
+          return;
+        }
+        const root = workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+        const picked = await window.showQuickPick(
+          files
+            .map((f) => { try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; } })
+            .filter((x): x is { f: Uri; m: number } => x !== undefined)
+            .sort((a, b) => b.m - a.m)
+            .map(({ f }) => ({ label: path.basename(f.fsPath), description: path.relative(root, f.fsPath), uri: f })),
+          { placeHolder: 'Report on which recorded run?' },
+        );
+        if (!picked) { return; }
+        target = picked.uri;
+      }
+      let ndjson: string;
+      try {
+        ndjson = fs.readFileSync(target.fsPath, 'utf-8');
+      } catch {
+        void window.showWarningMessage('Nika: this trace is unreadable.');
+        return;
+      }
+      const md = renderRunReport({
+        traceName: path.basename(target.fsPath).replace(/\.ndjson$/, ''),
+        model: foldTrace(ndjson),
+        artifacts: extractRunArtifacts(ndjson),
+      });
+      const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
+      try {
+        await commands.executeCommand('markdown.showPreview', preview.uri);
+      } catch {
+        await window.showTextDocument(preview, { preview: true });
+      }
+    }),
     commands.registerCommand('nika.replayTrace', async (uri?: Uri) => {
       let target = uri;
       if (!target) {

@@ -267,6 +267,11 @@
         "icon": "$(repo-forked)"
       },
       {
+        "command": "nika.runReport",
+        "title": "Nika: Run Report (provable — read from the trace)",
+        "icon": "$(notebook)"
+      },
+      {
         "command": "nika.captureLintBaseline",
         "title": "Nika: Capture Lint Baseline (grandfather current findings)"
       },
@@ -567,6 +572,11 @@
           "command": "nika.forkFromTask",
           "when": "view == nikaRuns && viewItem == nikaTraceTask",
           "group": "inline"
+        },
+        {
+          "command": "nika.runReport",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "context"
         }
       ]
     },
