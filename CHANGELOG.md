@@ -5,6 +5,29 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.97.2] · 2026-07-06
+
+### The backlog paid — the review's remaining five
+
+- **Fork resolves by NAME, asks on ambiguity.** The journal stamps its
+  workflow name; fork now requires the exact match when present — an
+  active sibling sharing task ids can no longer hijack the fork, several
+  declaring files QuickPick instead of first-wins, and a no-match refusal
+  names the workflow it looked for. The overlap heuristic survives only
+  for nameless (truncated/foreign) journals.
+- **The cross-run grid stops mixing siblings** — membership is the exact
+  workflow name too, and the window is honest: stat-first newest-first,
+  folding lazily until 12 members (the old shape folded an arbitrary
+  100-file window eagerly — the « last 12 » could omit the actual newest
+  runs, and 88 folds were thrown away).
+- **Answering warns before killing a live run** — the notification click
+  superseded any in-flight run silently; it now asks first.
+- **Unknown pause modes degrade to the input box** — never the Yes/No
+  picker (a boolean fails a choice gate every time); a future engine
+  mode gets a string the gate validates against its own contract.
+
+### Riding the same train
+
 - **Preflight rates** (nika ≥ 0.96) — every model row in the flight plan
   shows what it will pay per token (`$2/$10 per 1M`, from the engine's
   vendored 602-model catalog) beside its key verdict. An UNKNOWN price

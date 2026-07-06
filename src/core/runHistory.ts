@@ -146,3 +146,26 @@ export function renderHistory(workflowName: string, runs: HistoryRun[]): string 
   out.push('_Columns map to journal files, oldest → newest. Diff any two runs with `Nika: Diff Two Runs on the DAG`; fork from a step with `Nika: Fork From Task`._');
   return out.join('\n');
 }
+
+/**
+ * Whether a folded trace belongs to `docName`'s history — EXACT workflow
+ * name when both sides carry one (every engine journal stamps `workflow`
+ * on workflow_started; template-derived siblings sharing ≥60% task ids
+ * can no longer contaminate each other's grid — the 0.97.0 review's
+ * finding), majority-overlap heuristic ONLY when a name is missing
+ * (a truncated journal · a nameless fold).
+ */
+export function traceBelongsTo(
+  traceName: string | undefined,
+  docName: string | undefined,
+  traceTaskIds: readonly string[],
+  docTaskIds: ReadonlySet<string>,
+  threshold = 0.6,
+): boolean {
+  if (traceName !== undefined && docName !== undefined) {
+    return traceName === docName;
+  }
+  if (traceTaskIds.length === 0) { return false; }
+  const overlap = traceTaskIds.filter((id) => docTaskIds.has(id)).length / traceTaskIds.length;
+  return overlap >= threshold;
+}

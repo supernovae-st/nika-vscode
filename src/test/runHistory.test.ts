@@ -76,3 +76,30 @@ describe('renderHistory', () => {
     expect(renderHistory('wf', [])).toContain('No recorded runs');
   });
 });
+
+// ─── traceBelongsTo — the contamination gate (0.97.2) ────────────────────────
+import { traceBelongsTo } from '../core/runHistory';
+
+describe('traceBelongsTo', () => {
+  const docIds = new Set(['fetch', 'judge', 'ship']);
+
+  it('exact workflow name WINS over any task overlap — siblings stay apart', () => {
+    // deploy-staging and deploy-prod share every task id; the name splits them.
+    expect(traceBelongsTo('deploy-prod', 'deploy-staging', ['fetch', 'judge', 'ship'], docIds)).toBe(false);
+    expect(traceBelongsTo('deploy-staging', 'deploy-staging', ['fetch', 'judge', 'ship'], docIds)).toBe(true);
+  });
+
+  it('name match does not require any task overlap (a renamed-tasks run still belongs)', () => {
+    expect(traceBelongsTo('deploy-staging', 'deploy-staging', ['other_a', 'other_b'], docIds)).toBe(true);
+  });
+
+  it('falls back to majority overlap only when a name is missing', () => {
+    expect(traceBelongsTo(undefined, 'deploy-staging', ['fetch', 'judge', 'ship'], docIds)).toBe(true);
+    expect(traceBelongsTo(undefined, 'deploy-staging', ['fetch', 'x', 'y', 'z', 'w'], docIds)).toBe(false);
+    expect(traceBelongsTo('deploy-staging', undefined, ['fetch', 'judge'], docIds)).toBe(true);
+  });
+
+  it('an empty trace never belongs', () => {
+    expect(traceBelongsTo(undefined, 'x', [], docIds)).toBe(false);
+  });
+});

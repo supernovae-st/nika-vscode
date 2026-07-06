@@ -66,7 +66,7 @@ import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs } from './core/renameRefs';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
-import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow } from './features/runLive';
+import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
 import { costDelta } from './core/costDelta';
@@ -102,7 +102,8 @@ import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
 import { attemptLadders } from './core/attempts';
-import { renderHistory, type HistoryRun } from './core/runHistory';
+import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
+import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -889,17 +890,20 @@ export function activate(context: ExtensionContext): void {
     paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string },
   ): Promise<void> => {
     const question = paused.message ?? `Answer for task \`${paused.task}\``;
+    // The pure routing seam (pauseAnswer.ts · pinned by tests): confirm →
+    // Yes/No · choice WITH parsed options → the workflow's own picker ·
+    // everything else (input · choice-without-options · unknown future
+    // modes) → the INPUT BOX — a string is engine-validated against the
+    // gate's own contract, while a boolean would fail a choice gate
+    // every time. Values ride encodeAnswer (text stays text).
+    const control = answerControlFor(paused.mode, paused.choices?.length ?? 0);
     let value: string | undefined;
-    if (paused.mode === 'input') {
+    if (control === 'input') {
       const raw = await window.showInputBox({ prompt: question, ignoreFocusOut: true });
-      // JSON-encode: the engine JSON-parses answer values, so a bare
-      // `123`/`true`/`null` would arrive TYPED and fail the input
-      // gate's string contract (PROMPT-001) — quoting keeps text text.
-      value = raw === undefined ? undefined : JSON.stringify(raw);
-    } else if (paused.mode === 'choice' && (paused.choices?.length ?? 0) > 0) {
+      value = raw === undefined ? undefined : encodeAnswer('input', raw);
+    } else if (control === 'choice') {
       const pick = (await window.showQuickPick(paused.choices!, { placeHolder: question, ignoreFocusOut: true })) ?? undefined;
-      // Same law: numeric-looking choices (`"1"`) must survive as strings.
-      value = pick === undefined ? undefined : JSON.stringify(pick);
+      value = pick === undefined ? undefined : encodeAnswer('choice', pick);
     } else {
       const pick = await window.showQuickPick(
         [
@@ -911,6 +915,17 @@ export function activate(context: ExtensionContext): void {
       value = pick?.value;
     }
     if (value === undefined) { return; }
+    // The singleton supersede: launching ANY run kills the in-flight one
+    // (module-level activeRun). A background notification click is a
+    // non-obvious trigger for that — warn instead of silently killing
+    // someone's live inference spend (the 0.97.0 review's finding).
+    if (isRunActive()) {
+      const go = await window.showWarningMessage(
+        'Nika: a run is in flight — answering now will cancel it.',
+        'Answer anyway',
+      );
+      if (go !== 'Answer anyway') { return; }
+    }
     // The paused record carries its OWN journal (captured at pause time) —
     // the by-workflow map is live and any run since (a mock preview
     // included) would have repointed it at the wrong file.
@@ -1274,20 +1289,52 @@ export function activate(context: ExtensionContext): void {
         if (!pick) { return; }
         taskId = pick.label;
       }
-      // The workflow this trace belongs to — found, not demanded: the
-      // active doc first, then every workspace workflow, gated by the
-      // same majority-overlap law as replay. A fork against the WRONG
-      // workflow refuses loudly; the right one opens itself.
+      // The workflow this trace belongs to — found, not demanded. The
+      // journal stamps its workflow name on workflow_started: EXACT name
+      // match is the law when present (an active sibling sharing task
+      // ids can no longer hijack the fork — the 0.97.0 review's finding);
+      // ambiguity asks, never silent-runs. The majority-overlap heuristic
+      // survives only for nameless (truncated/foreign) journals.
       const overlapOf = (text: string): number => {
         const ids = new Set(parseRichWorkflow(text).tasks.map((t) => t.id));
         return fold.tasks.size === 0
           ? 0
           : [...fold.tasks.keys()].filter((id) => ids.has(id)).length / fold.tasks.size;
       };
+      const wanted = fold.workflowName;
       let doc = activeNikaDocument();
-      if (!doc || overlapOf(doc.getText()) < 0.5) {
+      if (wanted !== undefined) {
+        if (doc && parseRichWorkflow(doc.getText()).name !== wanted) { doc = undefined; }
+        if (!doc) {
+          const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 500);
+          const matches: Uri[] = [];
+          for (const f of wfFiles) {
+            try {
+              if (parseRichWorkflow(fs.readFileSync(f.fsPath, 'utf-8')).name === wanted) {
+                matches.push(f);
+              }
+            } catch {
+              // unreadable candidate — skip
+            }
+          }
+          let chosen: Uri | undefined = matches.length === 1 ? matches[0] : undefined;
+          if (matches.length > 1) {
+            const root = workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+            const pick = await window.showQuickPick(
+              matches.map((f) => ({ label: path.relative(root, f.fsPath), uri: f })),
+              { placeHolder: `Several files declare workflow \`${wanted}\` — fork which one?` },
+            );
+            if (!pick) { return; }
+            chosen = pick.uri;
+          }
+          if (chosen) {
+            doc = await workspace.openTextDocument(chosen);
+            await window.showTextDocument(doc, { preview: false });
+          }
+        }
+      } else if (!doc || overlapOf(doc.getText()) < 0.5) {
         doc = undefined;
-        const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 50);
+        const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 200);
         let best: { uri: Uri; score: number } | undefined;
         for (const f of wfFiles) {
           try {
@@ -1305,7 +1352,11 @@ export function activate(context: ExtensionContext): void {
         }
       }
       if (!doc) {
-        void window.showWarningMessage('Nika: no workspace workflow matches this trace — open the workflow the run came from.');
+        void window.showWarningMessage(
+          wanted !== undefined
+            ? `Nika: no workspace file declares workflow \`${wanted}\` — open the workflow this run came from.`
+            : 'Nika: no workspace workflow matches this trace — open the workflow the run came from.',
+        );
         return;
       }
       const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
@@ -1689,22 +1740,34 @@ export function activate(context: ExtensionContext): void {
         void window.showInformationMessage('Nika: no tasks parsed — fix the workflow first.');
         return;
       }
+      const docName = parseRichWorkflow(doc.getText()).name;
       const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
-      const files = await workspace.findFiles(glob, '**/node_modules/**', 100);
+      // Stat-first, newest-first, fold LAZILY until 12 members: the old
+      // shape folded an ARBITRARY findFiles(100) window eagerly (the
+      // « last 12 » could omit the actual newest runs, and 88 folds were
+      // thrown away) — the 0.97.0 review's window+perf findings. And
+      // membership is the exact workflow name when the journal carries
+      // one (traceBelongsTo): template-derived siblings sharing task ids
+      // no longer contaminate each other's grid.
+      const files = await workspace.findFiles(glob, '**/node_modules/**', 500);
+      const stamped = files
+        .map((f) => { try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; } })
+        .filter((x): x is { f: Uri; m: number } => x !== undefined)
+        .sort((a, b) => b.m - a.m);
       const runs: HistoryRun[] = [];
-      for (const f of files) {
+      for (const { f, m } of stamped) {
+        if (runs.length >= 12) { break; }
         try {
           const model = foldTrace(fs.readFileSync(f.fsPath, 'utf-8'));
           const taskIds = [...model.tasks.keys()];
+          if (!traceBelongsTo(model.workflowName, docName, taskIds, ids)) { continue; }
           if (taskIds.length === 0) { continue; }
-          const overlap = taskIds.filter((id) => ids.has(id)).length / taskIds.length;
-          if (overlap < 0.6) { continue; }
-          runs.push({ name: path.basename(f.fsPath), mtimeMs: fs.statSync(f.fsPath).mtimeMs, model });
+          runs.push({ name: path.basename(f.fsPath), mtimeMs: m, model });
         } catch {
           // unreadable trace — skip
         }
       }
-      const newest = runs.sort((a, b) => a.mtimeMs - b.mtimeMs).slice(-12);
+      const newest = runs.sort((a, b) => a.mtimeMs - b.mtimeMs);
       const md = renderHistory(
         path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
         newest,
