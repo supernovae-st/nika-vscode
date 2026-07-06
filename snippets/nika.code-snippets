@@ -10,7 +10,7 @@
       "nika: v1",
       "workflow: ${1:my-workflow}",
       "",
-      "model: ${2|mock/echo,anthropic/claude-sonnet-4-6,openai/gpt-4o,gemini/gemini-2.5-flash,openrouter/anthropic/claude-sonnet-4-6,ollama/llama3.3|}",
+      "model: ${2|ollama/qwen3.5:4b,mistral/mistral-small-latest,anthropic/claude-sonnet-4-6,openai/gpt-4o,gemini/gemini-2.5-flash,openrouter/anthropic/claude-sonnet-4-6,mock/echo|}",
       "",
       "tasks:",
       "  - id: ${3:first_task}",
@@ -169,7 +169,7 @@
     "body": [
       "- id: ${1:review}",
       "  agent:",
-      "    model: ${2:anthropic/claude-sonnet-4-6}",
+      "    model: ${2:ollama/qwen3.5:4b}",
       "    system: \"${3:You are a senior reviewer.}\"",
       "    prompt: \"${4:Review the diff and list the issues.}\"",
       "    tools:                       # default-deny · ONLY these",

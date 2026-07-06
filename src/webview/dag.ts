@@ -399,7 +399,7 @@ const BUILTIN_GLYPH: Record<string, string> = {
   convert: '⧉', uuid: '⧉', date: '⧉', hash: '⧉',
   fetch: '⇄', notify: '⇄',
   inspect: '⌕', compose: '⌕',
-  image_generate: '▣',
+  image_generate: '▣', tts_generate: '▣',
 };
 
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
