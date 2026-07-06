@@ -91,6 +91,7 @@ const WELCOME_COMMANDS = new Set([
   'nika.showMenu', 'nika.checkWorkflow', 'nika.showReport',
   'nika.inspectWorkflow', 'nika.inferPermits', 'nika.explainWorkflow',
   'nika.openSpec', 'nika.copyAiPrompt', 'nika.setupMcp',
+  'nika.restartServer',
 ]);
 
 /** Coarse relative-time label for the welcome's recent list. */
@@ -244,6 +245,30 @@ async function pickModel(
       /^[a-z0-9_-]+\/[A-Za-z0-9._:-]+$/.test(v.trim()) ? null : 'expected provider/model (e.g. ollama/llama3.2)',
   });
   return value?.trim() || undefined;
+}
+
+/**
+ * The no-binary gate: when the engine is missing, every dead end becomes
+ * the SAME actionable message — install/detect (→ restartServer, which
+ * re-resolves and offers the consent-gated download) or the brew line.
+ * Returns true when the engine is available (callers proceed).
+ */
+async function requireEngine(service: NikaService, doing: string): Promise<boolean> {
+  if (service.available) { return true; }
+  const pick = await window.showWarningMessage(
+    `Nika: ${doing} needs the engine binary — it is not on this machine yet.`,
+    'Install / detect',
+    'Copy brew command',
+  );
+  if (pick === 'Install / detect') {
+    await commands.executeCommand('nika.restartServer');
+    return service.available;
+  }
+  if (pick === 'Copy brew command') {
+    await env.clipboard.writeText('brew install supernovae-st/tap/nika');
+    void window.setStatusBarMessage('$(clippy) brew install supernovae-st/tap/nika', 4000);
+  }
+  return false;
 }
 
 // ─── Activation ─────────────────────────────────────────────────────────────
@@ -819,7 +844,7 @@ export function activate(context: ExtensionContext): void {
           uri: v.uri.toString(),
           rel: relTime(v.mtime),
         }));
-      dagPanel.welcomeData(recent);
+      dagPanel.welcomeData(recent, !service.available);
     } catch {
       // The welcome degrades to actions-only — never an error surface.
     }
@@ -1003,6 +1028,9 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       if (!service.caps.check) {
+        // Old binary → terminal fallback. MISSING binary → the gate
+        // (a "command not found" terminal is a dead end, not guidance).
+        if (!(await requireEngine(service, 'checking a workflow'))) { return; }
         runNikaCommand(state.resolvedServerPath, 'check', doc.uri.fsPath);
         return;
       }
@@ -1032,6 +1060,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.inspectWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
+      if (!(await requireEngine(service, 'inspecting a workflow'))) { return; }
       runNikaCommand(state.resolvedServerPath, 'inspect', doc.uri.fsPath);
     }),
     // Command: deterministic workflow explanation (offline · zero LLM) —
@@ -1256,6 +1285,9 @@ export function activate(context: ExtensionContext): void {
         void window.showInformationMessage('Nika: open a workspace folder first.');
         return;
       }
+      // Without the engine every check comes back empty — capturing now
+      // would OVERWRITE the real grandfathered-debt record with nothing.
+      if (!(await requireEngine(service, 'capturing the lint baseline'))) { return; }
       const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 300);
       const perFile = new Map<string, string[]>();
       await window.withProgress(
@@ -1393,6 +1425,13 @@ export function activate(context: ExtensionContext): void {
         await safeStopClient(state.client);
         state.client = undefined;
       }
+      // Re-RESOLVE the binary before restarting: the restart gesture is
+      // what a user reaches for right after installing nika — it must
+      // pick the fresh binary up (PATH · bundled · cached · download).
+      const fresh = await resolveBinary(context);
+      state.resolvedServerPath = fresh;
+      await service.setBinary(fresh);
+      void state.pushWelcomeData?.();
       if (service.caps.lsp) {
         startClient(context, state, log, state.resolvedServerPath);
         window.showInformationMessage('Nika language server restarted.');
@@ -1477,8 +1516,21 @@ async function configureMcpForHost(
 async function resolveBinary(context: ExtensionContext): Promise<string | undefined> {
   const configPath = getNikaPath();
   if (configPath !== 'nika') {
-    log('INFO', `Using configured binary: ${configPath}`);
-    return configPath;
+    if (await isBinaryWorking(configPath)) {
+      log('INFO', `Using configured binary: ${configPath}`);
+      return configPath;
+    }
+    // An explicit setting that does not run was the ONE silent
+    // no-binary state — say so, then let the fallbacks play.
+    log('WARN', `Configured nika.server.path does not run: ${configPath}`);
+    void window.showWarningMessage(
+      `Nika: the configured server path does not run (\`${configPath}\`) — falling back to bundled/PATH discovery.`,
+      'Open settings',
+    ).then((pick) => {
+      if (pick === 'Open settings') {
+        void commands.executeCommand('workbench.action.openSettings', 'nika.server.path');
+      }
+    });
   }
 
   const bundled = findBundledBinary(context);

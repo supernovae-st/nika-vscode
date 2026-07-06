@@ -173,7 +173,14 @@ export function parseRichWorkflow(content: string): RichWorkflow {
         break;
       }
     }
-    while (endLine > start && lines[endLine].trim() === '') { endLine -= 1; }
+    // Trailing blanks AND comments leave the span — a comment that ends
+    // a span documents the NEXT task (the doc-comment convention), so
+    // delete/duplicate must not carry it. Mid-task comments (followed
+    // by more fields) are not trailing and stay.
+    while (
+      endLine > start
+      && (lines[endLine].trim() === '' || lines[endLine].trim().startsWith('#'))
+    ) { endLine -= 1; }
 
     const task: RichTask = {
       id: idMatch[1],

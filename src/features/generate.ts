@@ -220,9 +220,18 @@ export function registerGenerate(
   context.subscriptions.push(
     vscode.commands.registerCommand('nika.generateWorkflow', async (prefilled?: string) => {
       if (!service.available) {
-        void vscode.window.showWarningMessage(
-          'Nika: the engine binary is required — generation grounds every candidate through `nika check`.',
+        // The welcome hero lands here — the typed intent must SURVIVE
+        // the missing engine, and the way out must be one click.
+        const pick = await vscode.window.showWarningMessage(
+          'Nika: generation needs the engine binary — every candidate is grounded through `nika check`.',
+          'Install / detect',
         );
+        if (pick === 'Install / detect') {
+          await vscode.commands.executeCommand('nika.restartServer');
+          if (service.available) {
+            await vscode.commands.executeCommand('nika.generateWorkflow', prefilled);
+          }
+        }
         return;
       }
       // The canvas omnibar passes the intent directly; the palette path

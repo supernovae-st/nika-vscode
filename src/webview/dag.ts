@@ -270,7 +270,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
-  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }> };
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }>; binaryMissing?: boolean };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -3444,7 +3444,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'diff:clear':
       clearDiff();
       break;
-    case 'welcome:data':
+    case 'welcome:data': {
+      const banner = document.getElementById('es-binary');
+      if (banner) {
+        if (msg.binaryMissing) { banner.removeAttribute('hidden'); }
+        else { banner.setAttribute('hidden', ''); }
+      }
+    }
       renderWelcomeRecent(msg.recent);
       break;
   }

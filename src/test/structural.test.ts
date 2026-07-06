@@ -269,6 +269,90 @@ describe('graph editing backends (the n8n loop)', () => {
   });
 });
 
+describe('edge-case hunt 2026-07-06 · confirmed YAML-surgery bugs', () => {
+  // Same-indent block lists are legal YAML the parser itself reads —
+  // the editors must not corrupt them (was: strict > indent scan).
+  const SAME_INDENT = [
+    'nika: v1',
+    'workflow: t',
+    'tasks:',
+    '  - id: a',
+    '    exec: { command: echo a }',
+    '',
+    '  - id: b',
+    '    depends_on:',
+    '    - a',
+    '    exec: { command: echo b }',
+  ].join('\n');
+
+  it('addDependsOn appends at the ITEMS indent of a same-indent block list', () => {
+    const out = addDependsOn(SAME_INDENT, 'b', 'c')!;
+    const wf = parseRichWorkflow(out);
+    expect(wf.tasks.find((t) => t.id === 'b')?.dependsOn).toEqual(['a', 'c']);
+    // The new item rides the EXISTING items' indent — never deeper.
+    expect(out).toContain('\n    - a\n    - c\n');
+  });
+
+  it('removeDependsOn removes QUOTED deps (inline and block)', () => {
+    const inline = DOC.replace('depends_on: [first]', 'depends_on: ["first"]');
+    const out = removeDependsOn(inline, 'third', 'first')!;
+    expect(out).toBeDefined();
+    expect(parseRichWorkflow(out).tasks.find((t) => t.id === 'third')?.dependsOn).toEqual([]);
+
+    const block = DOC.replace('      - first', "      - 'first'");
+    const out2 = removeDependsOn(block, 'fourth', 'first')!;
+    expect(out2).toBeDefined();
+    expect(parseRichWorkflow(out2).tasks.find((t) => t.id === 'fourth')?.dependsOn).toEqual([]);
+  });
+
+  it('insertBetween reroutes even when the declared dep is quoted', () => {
+    const quoted = DOC.replace('depends_on: [first]', 'depends_on: ["first"]');
+    const res = insertBetween(quoted, 'first', 'third', 'exec')!;
+    const wf = parseRichWorkflow(res.text);
+    // A triangle (['first', spliced]) is the bug; the splice must reroute.
+    expect(wf.tasks.find((t) => t.id === 'third')?.dependsOn).toEqual([res.taskId]);
+  });
+
+  it('addVarDeclaration never splices INTO a multi-line var value', () => {
+    const doc = [
+      'nika: v1',
+      'workflow: t',
+      'vars:',
+      '  prompt: |',
+      '    Summarize the input.',
+      '    Keep it short.',
+      'tasks:',
+      '  - id: a',
+      '    infer: { prompt: "x" }',
+    ].join('\n');
+    const out = addVarDeclaration(doc, 'missing')!;
+    const wf = parseRichWorkflow(out);
+    expect(wf.varsKeys.sort()).toEqual(['missing', 'prompt']);
+    // The block scalar stays contiguous — the declaration lands AFTER it.
+    expect(out).toContain('  prompt: |\n    Summarize the input.\n    Keep it short.\n  missing: ""');
+  });
+
+  it('a trailing comment documents the NEXT task — spans exclude it', () => {
+    const doc = [
+      'nika: v1',
+      'workflow: t',
+      'tasks:',
+      '  - id: a',
+      '    exec: { command: echo a }',
+      '',
+      '  # b needs network access',
+      '  - id: b',
+      '    exec: { command: echo b }',
+    ].join('\n');
+    // Delete a → b keeps its doc comment.
+    const del = deleteTask(doc, 'a');
+    expect(del && 'text' in del && del.text).toContain('# b needs network access');
+    // Duplicate a → the comment is NOT cloned onto the copy.
+    const dup = duplicateTask(doc, 'a')!;
+    expect(dup.text.match(/# b needs network access/g)).toHaveLength(1);
+  });
+});
+
 describe('addVarDeclaration', () => {
   it('creates the vars block before tasks: when absent', () => {
     const out = addVarDeclaration(DOC, 'topic')!;

@@ -5,6 +5,39 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Edge-case hunt — four YAML-surgery bugs fixed, five dead ends gated
+
+An adversarial multi-agent hunt over the edit surfaces confirmed four
+real corruption/wrong-behavior bugs (each reproduced against the live
+code before fixing) and five new-user dead ends. All fixed, all pinned
+by tests:
+
+- **Same-indent block lists survive connect** — `depends_on:` with
+  items at the key's own indent (legal YAML the parser reads fine) was
+  corrupted by drag-connect/quick-fix: the new item spliced two columns
+  deep, making the file unparseable. The scan now accepts same-indent
+  items and appends at THEIR indent.
+- **Multi-line var values survive the VAR-001 quick fix** — declaring a
+  missing var used to splice the declaration INTO a block scalar
+  (`prompt: |` …), corrupting the document. The vars-block scan now
+  understands continuations and 4-space styles.
+- **Quoted deps disconnect** — `depends_on: ["a"]` made ⌥click-
+  disconnect a silent no-op and turned insert-on-edge into a triangle
+  (both ends kept). Items now compare unquoted, inline and block.
+- **A doc comment belongs to the task below it** — deleting the task
+  ABOVE a `# comment` used to delete the comment; ⌘D duplicated it onto
+  the copy. Task spans no longer swallow trailing comments.
+- **No more dead ends without the engine** — every no-binary path now
+  lands on one actionable gate (Install / detect → re-resolve + the
+  consent-gated download · or copy the brew line): check/inspect no
+  longer open a terminal that says `command not found`; capture-baseline
+  no longer OVERWRITES the grandfathered-debt record with an empty one;
+  the status-bar menu finally contains the install row its tooltip
+  promised; describe→generate keeps your typed intent through the
+  install; a configured `nika.server.path` that doesn't run says so
+  (with Open settings) instead of failing silently. The welcome shows
+  an amber engine-missing banner with the same one-click recovery.
+
 ### The binary's own model catalog in the picker (E1 closed)
 
 - The model picker's second step now lists the **exact runnable model

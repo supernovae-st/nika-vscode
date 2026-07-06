@@ -6,7 +6,7 @@
     ],
     "description": "Complete Nika workflow file (nika: v1 envelope)",
     "body": [
-      "# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json",
+      "# yaml-language-server: \\$schema=https://nika.sh/spec/v1/workflow.schema.json",
       "nika: v1",
       "workflow: ${1:my-workflow}",
       "",

@@ -63,6 +63,10 @@ export class NikaStatusBar implements vscode.Disposable {
     const items: Item[] = [];
     const add = (cond: boolean, item: Item): void => { if (cond) { items.push(item); } };
 
+    // The tooltip promises install options — this row IS them (visible
+    // exactly when the engine is missing; restartServer re-resolves and
+    // offers the consent-gated download).
+    add(!this.service.available, { label: '$(cloud-download) Install / detect the nika engine', description: 'brew · PATH · bundled · verified download', command: 'nika.restartServer' });
     add(caps.check, { label: '$(check) Check workflow', description: 'static pre-flight (ADR-092 ladder)', command: 'nika.checkWorkflow' });
     add(caps.check, { label: '$(output) Open check report', description: 'check --json projection', command: 'nika.showReport' });
     add(caps.graph, { label: '$(type-hierarchy) Show DAG', command: 'nika.showDag' });

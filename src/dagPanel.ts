@@ -60,7 +60,7 @@ export type ExtToWebviewMessage =
   // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
   | { kind: 'dag:replayEnd' }
   // The welcome (empty canvas): recent workflows for the resume list.
-  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }> };
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }>; binaryMissing?: boolean };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -463,8 +463,8 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Recent workflows for the welcome (empty canvas resume list). */
-  public welcomeData(recent: Array<{ name: string; uri: string; rel: string }>): void {
-    this.postMessage({ kind: 'welcome:data', recent });
+  public welcomeData(recent: Array<{ name: string; uri: string; rel: string }>, binaryMissing = false): void {
+    this.postMessage({ kind: 'welcome:data', recent, binaryMissing });
   }
 
   /** Fit the view to show all nodes */
@@ -755,6 +755,13 @@ export class DagPanel implements vscode.Disposable {
                aria-label="Describe the workflow to generate">
         <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">✨</button>
       </form>
+      <div id="es-binary" hidden role="status">
+        <span class="es-binary-mark" aria-hidden>⚠</span>
+        <span class="es-binary-text">The nika engine is not on this machine — every check, graph
+        and run needs it. <code>brew install supernovae-st/tap/nika</code> or let the extension
+        fetch the official binary (HTTPS · SHA-256 verified · ~10 MB).</span>
+        <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
+      </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
         <button id="es-new" class="es-button">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">▤ Examples</button>

@@ -52,11 +52,15 @@ export function addDependsOn(text: string, taskId: string, dep: string): string 
       return lines.join('\n');
     }
     if (/^\s*depends_on:\s*$/.test(line)) {
-      // Block form — append after the last item.
+      // Block form — append after the last item. YAML allows list items
+      // at the SAME indent as the key (a legal style the parser reads),
+      // so the scan accepts >= — but only for `- ` lines, so the next
+      // sibling task item (shallower) still terminates it.
       let last = i;
+      const keyIndent = line.match(/^( *)/)?.[1].length ?? 0;
       for (let j = i + 1; j <= task.endLine; j++) {
         if (lines[j].trim() === '') { continue; }
-        if (/^\s*-\s/.test(lines[j]) && (lines[j].match(/^( *)/)?.[1].length ?? 0) > (line.match(/^( *)/)?.[1].length ?? 0)) {
+        if (/^\s*-\s/.test(lines[j]) && (lines[j].match(/^( *)/)?.[1].length ?? 0) >= keyIndent) {
           last = j;
           continue;
         }
@@ -190,7 +194,8 @@ export function removeDependsOn(text: string, taskId: string, dep: string): stri
   for (let i = task.line; i <= task.endLine; i++) {
     const inline = lines[i].match(/^(\s*depends_on:\s*\[)([^\]]*)(\].*)$/);
     if (inline) {
-      const items = inline[2].split(',').map((s) => s.trim()).filter((s) => s.length > 0 && s !== dep);
+      const unquote = (s: string): string => s.replace(/^['"]|['"]$/g, '');
+      const items = inline[2].split(',').map((s) => s.trim()).filter((s) => s.length > 0 && unquote(s) !== dep);
       if (items.length === 0) {
         lines.splice(i, 1);
       } else {
@@ -206,7 +211,7 @@ export function removeDependsOn(text: string, taskId: string, dep: string): stri
         if (lines[j].trim() === '') { continue; }
         const indent = lines[j].search(/\S/);
         if (indent <= keyIndent || !lines[j].trim().startsWith('-')) { break; }
-        if (new RegExp(`^\\s*-\\s*${dep}\\s*(#.*)?$`).test(lines[j])) {
+        if (new RegExp(`^\\s*-\\s*(['"]?)${dep}\\1\\s*(#.*)?$`).test(lines[j])) {
           lines.splice(j, 1);
           removed = true;
           j -= 1;
@@ -323,14 +328,20 @@ export function addVarDeclaration(text: string, varName: string): string | undef
   const lines = text.split('\n');
   const varsLine = lines.findIndex((l) => /^vars:\s*(#.*)?$/.test(l));
   if (varsLine !== -1) {
-    // Append after the last existing entry.
+    // Append after the last line BELONGING to the block — any indented
+    // line (entries AND their multi-line values: block scalars, nested
+    // maps, 4-space styles). The block ends at the next top-level key.
     let last = varsLine;
+    let entryIndent = 2;
+    let sawEntry = false;
     for (let i = varsLine + 1; i < lines.length; i++) {
       if (lines[i].trim() === '') { continue; }
-      if (/^ {2}\S/.test(lines[i])) { last = i; continue; }
-      break;
+      const indent = lines[i].match(/^( *)/)?.[1].length ?? 0;
+      if (indent === 0) { break; }
+      if (!sawEntry) { entryIndent = indent; sawEntry = true; }
+      last = i;
     }
-    lines.splice(last + 1, 0, `  ${varName}: ""`);
+    lines.splice(last + 1, 0, `${' '.repeat(entryIndent)}${varName}: ""`);
     return lines.join('\n');
   }
 

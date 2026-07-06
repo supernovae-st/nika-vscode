@@ -3388,6 +3388,36 @@ body.welcome #dag-status {
   display: none;
 }
 
+/* ── the missing-engine banner · amber, honest, one action ─────────────── */
+#es-binary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 4px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 45%, transparent);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+#es-binary[hidden] { display: none; }
+.es-binary-mark { color: var(--nk-st-retrying); flex: 0 0 auto; }
+.es-binary-text { color: var(--nk-ink); opacity: 0.9; flex: 1 1 auto; text-align: left; }
+.es-binary-text code {
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border: 1px solid var(--nk-border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  white-space: nowrap;
+}
+#es-binary .es-button { flex: 0 0 auto; }
+@media (max-width: 460px) {
+  #es-binary { flex-wrap: wrap; }
+}
+
 .es-button-ghost {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
