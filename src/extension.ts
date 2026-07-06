@@ -385,7 +385,12 @@ export function activate(context: ExtensionContext): void {
         'Add', 'No',
       );
       if (choice === 'Add') {
-        fs.writeFileSync(giPath, `${existing}${existing.length > 0 && !existing.endsWith('\n') ? '\n' : ''}.nika/\n`);
+        // Re-read NOW: the notification is non-modal and unbounded — the
+        // snapshot from ask-time would silently revert any edit made
+        // (by the user or another tool) while the toast sat there.
+        const fresh = fs.existsSync(giPath) ? fs.readFileSync(giPath, 'utf-8') : '';
+        if (/^\.nika\/?\s*$/m.test(fresh) || fresh.includes('.nika/')) { return; }
+        fs.writeFileSync(giPath, `${fresh}${fresh.length > 0 && !fresh.endsWith('\n') ? '\n' : ''}.nika/\n`);
       }
     } catch {
       // Garnish law — a nudge must never throw.
@@ -874,16 +879,27 @@ export function activate(context: ExtensionContext): void {
   // with the right control for the mode (confirm → pick · choice → pick
   // of the workflow's own options · input → box), then resume the exact
   // journal the engine announced, injecting `--answer task=value`.
+  // One-shot ledger: a pause answered THIS session must not silently
+  // re-fire from a stale notification — the gate guards side effects,
+  // and a forced re-answer re-EXECUTES everything downstream (ADR-099:
+  // --answer forces the prompt past its cache hit).
+  const answeredPauses = new Set<string>();
   const answerPausedRun = async (
     fsPath: string,
-    paused: { task: string; mode: string; message?: string; choices?: string[] },
+    paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string },
   ): Promise<void> => {
     const question = paused.message ?? `Answer for task \`${paused.task}\``;
     let value: string | undefined;
     if (paused.mode === 'input') {
-      value = await window.showInputBox({ prompt: question, ignoreFocusOut: true });
+      const raw = await window.showInputBox({ prompt: question, ignoreFocusOut: true });
+      // JSON-encode: the engine JSON-parses answer values, so a bare
+      // `123`/`true`/`null` would arrive TYPED and fail the input
+      // gate's string contract (PROMPT-001) — quoting keeps text text.
+      value = raw === undefined ? undefined : JSON.stringify(raw);
     } else if (paused.mode === 'choice' && (paused.choices?.length ?? 0) > 0) {
-      value = (await window.showQuickPick(paused.choices!, { placeHolder: question, ignoreFocusOut: true })) ?? undefined;
+      const pick = (await window.showQuickPick(paused.choices!, { placeHolder: question, ignoreFocusOut: true })) ?? undefined;
+      // Same law: numeric-looking choices (`"1"`) must survive as strings.
+      value = pick === undefined ? undefined : JSON.stringify(pick);
     } else {
       const pick = await window.showQuickPick(
         [
@@ -895,11 +911,22 @@ export function activate(context: ExtensionContext): void {
       value = pick?.value;
     }
     if (value === undefined) { return; }
-    const trace = lastTracePathByWorkflow.get(fsPath);
+    // The paused record carries its OWN journal (captured at pause time) —
+    // the by-workflow map is live and any run since (a mock preview
+    // included) would have repointed it at the wrong file.
+    const trace = paused.tracePath ?? lastTracePathByWorkflow.get(fsPath);
     if (!trace || !fs.existsSync(trace)) {
       void window.showWarningMessage('Nika: the paused journal was not found — resume from the Runs view instead.');
       return;
     }
+    if (answeredPauses.has(trace)) {
+      const again = await window.showWarningMessage(
+        'Nika: this pause was already answered — answering again RE-RUNS the gated side effects.',
+        'Answer again',
+      );
+      if (again !== 'Answer again') { return; }
+    }
+    answeredPauses.add(trace);
     runWorkflowLive(service, dagPanel, fsPath, log, undefined, {
       extraArgs: ['--resume', trace, '--answer', `${paused.task}=${value}`],
       onClose: () => refreshStaleBadges(fsPath),
@@ -910,7 +937,7 @@ export function activate(context: ExtensionContext): void {
   // button starts the answer flow (never a modal, never auto-answered).
   const onRunPaused = async (
     fsPath: string,
-    paused: { task: string; mode: string; message?: string; choices?: string[] },
+    paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string },
   ): Promise<void> => {
     const q = paused.message ?? `task \`${paused.task}\` awaits an answer`;
     const choice = await window.showInformationMessage(`Nika paused — ${q}`, 'Answer…');

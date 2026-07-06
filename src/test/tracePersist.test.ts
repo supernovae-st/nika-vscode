@@ -106,3 +106,74 @@ describe('persistTrace', () => {
     expect(latestTraceFor(path.join(blocker, 'x.nika.yaml'))).toBeUndefined();
   });
 });
+
+// ─── the dir-wide pruner (0.97.1) — status-aware, protect-aware ──────────────
+// The 0.97.0 review's CRITICAL: the old dir pruner was blind to what a
+// journal IS. These pin the two guards: a PAUSED journal (the resume
+// substrate of an answerable run) survives any ranking, and the imminent
+// spawn's own --resume target survives even when it ranks last.
+import { isPausedJournal, pruneTraces } from '../core/tracePersist';
+
+const PAUSED_TAIL =
+  '{"kind":"task_started","fields":[{"key":"task","value":"ask"}]}\n' +
+  '{"kind":"workflow_paused","fields":[{"key":"task","value":"ask"}]}\n';
+const DONE_TAIL = '{"kind":"workflow_completed","fields":[]}\n';
+
+describe('pruneTraces (dir-wide · 0.97.1 guards)', () => {
+  const seedAt = (file: string, content: string, ageMs: number): string => {
+    seedFile(file, content);
+    const full = path.join(tracesDir(), file);
+    const t = new Date(Date.now() - ageMs);
+    fs.utimesSync(full, t, t);
+    return full;
+  };
+
+  it('keeps the newest N and deletes the rest', () => {
+    seedAt('old-1.ndjson', DONE_TAIL, 30_000);
+    seedAt('old-2.ndjson', DONE_TAIL, 20_000);
+    seedAt('new-1.ndjson', DONE_TAIL, 1_000);
+    pruneTraces(root, 1);
+    expect(fs.existsSync(path.join(tracesDir(), 'new-1.ndjson'))).toBe(true);
+    expect(fs.existsSync(path.join(tracesDir(), 'old-1.ndjson'))).toBe(false);
+    expect(fs.existsSync(path.join(tracesDir(), 'old-2.ndjson'))).toBe(false);
+  });
+
+  it('NEVER deletes a paused journal — the answerable run survives any ranking', () => {
+    const paused = seedAt('paused-old.ndjson', PAUSED_TAIL, 60_000);
+    seedAt('done-old.ndjson', DONE_TAIL, 50_000);
+    seedAt('new.ndjson', DONE_TAIL, 1_000);
+    pruneTraces(root, 1);
+    expect(fs.existsSync(paused)).toBe(true);
+    expect(fs.existsSync(path.join(tracesDir(), 'done-old.ndjson'))).toBe(false);
+  });
+
+  it('NEVER deletes the protected --resume target of the imminent spawn', () => {
+    const target = seedAt('fork-source.ndjson', DONE_TAIL, 90_000);
+    seedAt('mid.ndjson', DONE_TAIL, 40_000);
+    seedAt('new.ndjson', DONE_TAIL, 1_000);
+    pruneTraces(root, 1, target);
+    expect(fs.existsSync(target)).toBe(true);
+    expect(fs.existsSync(path.join(tracesDir(), 'mid.ndjson'))).toBe(false);
+  });
+
+  it('keep<=0 or non-finite = unlimited (never deletes)', () => {
+    seedAt('a.ndjson', DONE_TAIL, 10_000);
+    seedAt('b.ndjson', DONE_TAIL, 5_000);
+    pruneTraces(root, 0);
+    pruneTraces(root, Number.NaN);
+    expect(fs.readdirSync(tracesDir()).length).toBe(2);
+  });
+});
+
+describe('isPausedJournal', () => {
+  it('reads the pause from the tail and the completion as not-paused', () => {
+    seedFile('p.ndjson', PAUSED_TAIL);
+    seedFile('d.ndjson', DONE_TAIL);
+    expect(isPausedJournal(path.join(tracesDir(), 'p.ndjson'))).toBe(true);
+    expect(isPausedJournal(path.join(tracesDir(), 'd.ndjson'))).toBe(false);
+  });
+
+  it('treats an unreadable file as paused — protection over reclamation', () => {
+    expect(isPausedJournal(path.join(tracesDir(), 'absent.ndjson'))).toBe(true);
+  });
+});

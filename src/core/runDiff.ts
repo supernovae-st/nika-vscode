@@ -140,9 +140,14 @@ export function diffRuns(
 
   // First divergence — compare-run EXECUTION order (traces carry the
   // clock; the DAG is not needed): the earliest task whose STORY changed.
+  // COMPARE clocks only: a task cancelled/skipped in the compare run has
+  // no compare clock, and falling back to the BASE run's absolute epoch
+  // (always older) would let a cascade VICTIM outrank the culprit — the
+  // 0.97.0 review's flagship-scenario finding. No compare clock = the
+  // task never started there = it diverged at the end of visibility.
   const divergent = tasks.filter((t) => t.kind === 'status-changed' || t.kind === 'output-changed');
   const startOf = (id: string): number =>
-    compare.tasks.get(id)?.startMs ?? base.tasks.get(id)?.startMs ?? Number.MAX_SAFE_INTEGER;
+    compare.tasks.get(id)?.startMs ?? Number.MAX_SAFE_INTEGER;
   const firstDivergentId = divergent.length > 0
     ? divergent.reduce((min, t) => (startOf(t.id) < startOf(min.id) ? t : min)).id
     : undefined;

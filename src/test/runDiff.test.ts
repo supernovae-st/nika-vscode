@@ -121,4 +121,24 @@ describe('diffRuns v2 — outputs + first divergence', () => {
     // mid (start 50 · output change) beats late (start 90 · status flip).
     expect(diff.firstDivergentId).toBe('mid');
   });
+
+  it('the CULPRIT outranks its cascade victims — compare clocks only (0.97.1)', () => {
+    // The flagship failure scenario: base yesterday all-green (small
+    // epochs), compare today A failed → B, C cascade-cancelled (no
+    // compare task_started · no compare clock). The old mixed-clock
+    // ranking let yesterday's base epochs on B/C beat today's epoch on
+    // A — the banner named a VICTIM and focused the wrong node.
+    const base = model([
+      ['a', { status: 'success', startMs: 1_000 }],
+      ['b', { status: 'success', startMs: 2_000 }],
+      ['c', { status: 'success', startMs: 3_000 }],
+    ]);
+    const compare = model([
+      ['a', { status: 'failed', startMs: 9_000_000 }],   // today's epoch
+      ['b', { status: 'cancelled' }],                    // never started — no clock
+      ['c', { status: 'cancelled' }],
+    ]);
+    const diff = diffRuns(base, compare);
+    expect(diff.firstDivergentId).toBe('a');
+  });
 });

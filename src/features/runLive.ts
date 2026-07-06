@@ -21,7 +21,7 @@ import * as vscode from 'vscode';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
-import { persistTrace } from '../core/tracePersist';
+import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
@@ -70,7 +70,7 @@ export function runWorkflowLive(
     extraArgs?: string[];
     onClose?: () => void;
     /** The run hit an ADR-099 human-gate — the caller owns the answer UX. */
-    onPaused?: (paused: { task: string; mode: string; message?: string; choices?: string[] }) => void;
+    onPaused?: (paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string }) => void;
   },
 ): void {
   const binary = service.binaryPath;
@@ -102,7 +102,14 @@ export function runWorkflowLive(
     spawnFingerprints = undefined;
   }
 
-  pruneTraces(path.dirname(fsPath));
+  {
+    const keep = vscode.workspace.getConfiguration('nika').get<number>('traces.keep', 200);
+    const extra = opts?.extraArgs ?? [];
+    const ri = extra.indexOf('--resume');
+    // Protect the imminent spawn's own --resume target; paused journals
+    // are protected inside the pruner (both were the 0.97.0 CRITICAL).
+    pruneTraces(path.dirname(fsPath), keep, ri >= 0 ? extra[ri + 1] : undefined);
+  }
   const child = spawn(
     binary,
     ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
@@ -209,7 +216,10 @@ export function runWorkflowLive(
       const q = model.paused.message ?? `task \`${model.paused.task}\` awaits an answer`;
       dagPanel.note('⏸', `paused · ${model.paused.task} asks: ${q}`, model.paused.task, cls);
       dagPanel.runVerdict('⏸', `paused — ${q}`, cls);
-      opts?.onPaused?.(model.paused);
+      // The paused record carries ITS OWN journal (captured now, while
+      // this child's announce is provably the map's value) — an answer
+      // clicked hours later must never resume whatever ran since.
+      opts?.onPaused?.({ ...model.paused, tracePath: lastTracePathByWorkflow.get(fsPath) });
     } else {
       dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
       // The verdict banner — the same summary, visible WITHOUT opening the
@@ -250,29 +260,3 @@ const FEED_ICON: Record<string, string> = {
   cancelled: '◼',
 };
 
-/**
- * Journal housekeeping: keep the newest `nika.traces.keep` journals in
- * this workflow's trace dir (0 = unlimited). Runs before each spawn —
- * the dir never grows unbounded, and the newest N always survive.
- */
-function pruneTraces(workflowDir: string): void {
-  const keep = vscode.workspace.getConfiguration('nika').get<number>('traces.keep', 200);
-  if (!Number.isFinite(keep) || keep <= 0) { return; }
-  const dir = `${workflowDir}/.nika/traces`;
-  let entries: string[];
-  try {
-    entries = fs.readdirSync(dir).filter((f) => f.endsWith('.ndjson'));
-  } catch {
-    return;
-  }
-  if (entries.length <= keep) { return; }
-  const stamped = entries
-    .map((f) => {
-      try { return { f, m: fs.statSync(`${dir}/${f}`).mtimeMs }; } catch { return undefined; }
-    })
-    .filter((x): x is { f: string; m: number } => x !== undefined)
-    .sort((a, b) => b.m - a.m);
-  for (const { f } of stamped.slice(keep)) {
-    try { fs.unlinkSync(`${dir}/${f}`); } catch { /* garnish */ }
-  }
-}

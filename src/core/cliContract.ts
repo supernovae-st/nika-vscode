@@ -389,6 +389,13 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
         typeof v.analysis === 'object' && v.analysis !== null
           ? (v.analysis as unknown as ReportDagAnalysis)
           : undefined,
+      // E-REQ (engine-stated contract): without this copy the whole
+      // requirements adapter is dead code on the wire — the 0.97.0
+      // review's exact finding.
+      requirements:
+        typeof v.requirements === 'object' && v.requirements !== null
+          ? (v.requirements as unknown as ReportRequirements)
+          : undefined,
     };
   } catch {
     return undefined;

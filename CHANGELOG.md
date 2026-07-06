@@ -5,6 +5,46 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.97.1] · 2026-07-06
+
+### The adversarial review pays — nine fixes in the day's own release
+
+An end-of-day adversarial review of everything 0.97.0 shipped found
+real edges in the untested seams; all confirmed on the code, fixed and
+pinned the same day:
+
+- **Housekeeping can no longer strand an answerable run.** The trace
+  pruner was blind to what a journal IS: it could delete a PAUSED run's
+  journal (the resume substrate) — including the very `--resume` target
+  the click was about to consume, since it pruned BEFORE the spawn.
+  Paused journals now survive any ranking (tail check), and the
+  imminent spawn's resume target is explicitly protected.
+- **An answer now targets its own pause.** The paused notification
+  re-derived the journal at click time from a live map that EVERY run
+  overwrites — a mock preview run between pause and answer could
+  swallow a real human approval into a mock journal. The paused record
+  now carries its journal path, captured at pause time; answering the
+  same pause twice warns before re-running gated side effects.
+- **Typed answers survive.** The engine JSON-parses answer values —
+  answering `123` to an input gate arrived as a Number and failed the
+  gate's string contract; numeric-looking choices could never match.
+  Input and choice answers are JSON-encoded (text stays text).
+- **Preflight's engine contract is alive.** `parseCheckReport` never
+  copied the `requirements` section — the whole engine-stated-contract
+  adapter was dead code on the wire. One copy, one wire-level test.
+- **Diff v2 names the culprit, not a victim.** First-divergence ranked
+  by clocks mixed across the two runs — a cascade-cancelled task (no
+  compare clock) fell back to the OLDER run's epoch and always outranked
+  the actual failure. Compare-run clocks only now.
+- **Drift truth only speaks about its own workflow** (the sha check now
+  requires the trace to match the active document), the runs-tree cache
+  keys on mtime+size (same-tick appends on coarse filesystems), the
+  .gitignore nudge re-reads before writing (a stale snapshot could
+  revert edits made while the toast waited), and terminal runs (`run`
+  fallback · golden test) honor the spawn-cwd law so their journals
+  land beside the workflow.
+
+
 ### Time travel, for real
 
 - **F5 time-travel debugger** (nika ≥ 0.96) — breakpoints in your

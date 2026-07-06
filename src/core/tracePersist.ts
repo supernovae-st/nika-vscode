@@ -75,3 +75,59 @@ export function persistTrace(fsPath: string, ndjson: string, keep = 10): void {
     // Garnish law.
   }
 }
+
+/** Whether a journal's TAIL says the run is PAUSED (`workflow_paused` is
+ *  the terminal line the runtime writes · ADR-099) — a paused journal is
+ *  the resume substrate of an ANSWERABLE run, never prunable garbage.
+ *  Reads only the last 4 KiB (journals can be MB-class). Unreadable →
+ *  treated paused (protection over reclamation). */
+export function isPausedJournal(filePath: string): boolean {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    try {
+      const size = fs.fstatSync(fd).size;
+      const len = Math.min(size, 4096);
+      const buf = Buffer.alloc(len);
+      fs.readSync(fd, buf, 0, len, size - len);
+      return buf.toString('utf-8').includes('"workflow_paused"');
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Dir-wide retention for a workflow's trace dir: keep the newest `keep`
+ * `.ndjson` files by mtime, delete the rest — EXCEPT the two classes a
+ * blind ranking must never touch (the 0.97.0 review's CRITICAL): any
+ * journal whose tail says PAUSED (an answerable run's resume substrate),
+ * and `protect` (the exact file the imminent spawn resumes FROM — prune
+ * ran BEFORE spawn and could unlink its own `--resume` target).
+ * `keep <= 0` or non-finite = unlimited. Never throws (garnish law).
+ */
+export function pruneTraces(workflowDir: string, keep: number, protect?: string): void {
+  if (!Number.isFinite(keep) || keep <= 0) { return; }
+  const dir = path.join(workflowDir, '.nika', 'traces');
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir).filter((f) => f.endsWith('.ndjson'));
+  } catch {
+    return;
+  }
+  if (entries.length <= keep) { return; }
+  const protectedPath = protect ? path.resolve(protect) : undefined;
+  const stamped = entries
+    .map((f) => {
+      const full = path.join(dir, f);
+      try { return { full, m: fs.statSync(full).mtimeMs }; } catch { return undefined; }
+    })
+    .filter((x): x is { full: string; m: number } => x !== undefined)
+    .sort((a, b) => b.m - a.m);
+  for (const { full } of stamped.slice(keep)) {
+    if (path.resolve(full) === protectedPath) { continue; }
+    if (isPausedJournal(full)) { continue; }
+    try { fs.unlinkSync(full); } catch { /* garnish */ }
+  }
+}

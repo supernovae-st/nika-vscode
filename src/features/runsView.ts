@@ -22,6 +22,8 @@ import type { NikaService } from '../nikaService';
 interface TraceFile {
   uri: vscode.Uri;
   mtimeMs: number;
+  /** Cache-key twin of mtime — breaks same-mtime-tick append ties. */
+  sizeBytes: number;
   model: RunModel;
   /** Media/file outputs recovered from the raw trace (assets-not-blobs). */
   artifacts: Map<string, RunArtifact[]>;
@@ -276,7 +278,10 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         const stat = fs.statSync(uri.fsPath);
         seen.add(uri.fsPath);
         const cached = this.parsed.get(uri.fsPath);
-        if (cached && cached.mtimeMs === stat.mtimeMs) {
+        // mtime ALONE misses same-tick appends on coarse-mtime filesystems
+        // (FAT/NFS/SMB · the final workflow_completed line landing within
+        // the same second) — size breaks the tie for free.
+        if (cached && cached.mtimeMs === stat.mtimeMs && cached.sizeBytes === stat.size) {
           traces.push(cached);
           continue;
         }
@@ -284,6 +289,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         const entry: TraceFile = {
           uri,
           mtimeMs: stat.mtimeMs,
+          sizeBytes: stat.size,
           model: foldTrace(content),
           artifacts: extractRunArtifacts(content),
           ladders: attemptLadders(content),
@@ -387,12 +393,14 @@ export async function replayIntoDag(
   // Prefer the active workflow's real DAG when its task ids overlap the
   // trace; otherwise synthesize nodes from the trace itself (edges unknown).
   let graph: DagGraph | undefined;
+  let traceMatchesActiveDoc = false;
   if (activeDoc) {
     const candidate = await service.dagForDocument(activeDoc);
     const ids = new Set(candidate.nodes.map((n) => n.id));
     const overlap = [...model.tasks.keys()].filter((id) => ids.has(id)).length;
     if (overlap >= Math.ceil(model.tasks.size / 2)) {
       graph = candidate;
+      traceMatchesActiveDoc = true;
     }
   }
   graph ??= {
@@ -410,7 +418,10 @@ export async function replayIntoDag(
   // Drift truth (0.95+ journals): the run recorded WHICH definition ran —
   // when the file on disk no longer matches, say so up front. The canvas
   // shows today's graph; the statuses tell that run's story.
-  if (model.workflowSha256 !== undefined && activeDoc?.uri.scheme === 'file') {
+  // Only when the trace BELONGS to the active doc (majority overlap) —
+  // hashing an unrelated workflow's file against this run's sha would
+  // claim drift on a surface whose whole point is truth.
+  if (traceMatchesActiveDoc && model.workflowSha256 !== undefined && activeDoc?.uri.scheme === 'file') {
     try {
       const cur = createHash('sha256').update(fs.readFileSync(activeDoc.uri.fsPath)).digest('hex');
       if (cur !== model.workflowSha256) {

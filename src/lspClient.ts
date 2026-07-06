@@ -3,6 +3,7 @@
 // Creates, starts, and manages the Nika language server connection.
 // State is owned by extension.ts and passed via the ClientState interface.
 
+import * as path from 'path';
 import {
   workspace,
   ExtensionContext,
@@ -67,7 +68,12 @@ export function getNikaPath(): string {
 
 export function runNikaCommand(resolvedServerPath: string | undefined, subcmd: string, filePath: string): void {
   const nika = resolvedServerPath ?? getNikaPath();
-  const terminal = window.createTerminal({ name: `Nika: ${subcmd}` });
+  // The spawn-cwd law reaches the terminal twin: the engine journals at
+  // the process CWD, so a terminal opened at the workspace root would
+  // scatter a nested workflow's journals away from every surface that
+  // looks beside the file (Runs tree · resume substrate · averages).
+  const cwd = filePath.length > 0 ? path.dirname(filePath) : undefined;
+  const terminal = window.createTerminal({ name: `Nika: ${subcmd}`, cwd });
   terminal.show();
   if (filePath.length === 0) {
     terminal.sendText(`"${nika}" ${subcmd}`);

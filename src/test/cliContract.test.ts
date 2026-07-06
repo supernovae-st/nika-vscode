@@ -170,6 +170,26 @@ describe('parseCheckReport + collectFindings', () => {
     expect(countReportFindings(report!)).toBe(0);
   });
 
+  it('carries the requirements section through the parse (E-REQ · 0.97.1)', () => {
+    // The 0.97.0 review's exact finding: the adapter existed, the copy
+    // didn't — report.requirements was ALWAYS undefined and the whole
+    // engine-stated-contract branch was dead code on the wire.
+    const report = parseCheckReport(JSON.stringify({
+      report_version: 1,
+      cost: {},
+      requirements: {
+        models: [{ model: 'ollama/qwen3.5:4b', provider: 'ollama', requires_key: false }],
+        secrets: [],
+        env: [],
+      },
+    }));
+    expect(report?.requirements).toBeDefined();
+    expect(report?.requirements?.models?.[0]?.provider).toBe('ollama');
+    // absent on older binaries → undefined, never a throw
+    const older = parseCheckReport(JSON.stringify({ report_version: 1, cost: {} }));
+    expect(older?.requirements).toBeUndefined();
+  });
+
   it('prefers the engine-stamped severity + docs_url (E4 wire · ≥0.94)', () => {
     const report = parseCheckReport(JSON.stringify({
       report_version: 1,
