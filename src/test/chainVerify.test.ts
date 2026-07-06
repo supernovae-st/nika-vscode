@@ -1,0 +1,53 @@
+import { createHash } from 'crypto';
+import { describe, expect, it } from 'vitest';
+
+import { verifyChain } from '../core/chainVerify';
+
+function sha(s: string): string {
+  return createHash('sha256').update(s, 'utf-8').digest('hex');
+}
+
+/** Build a chained journal the way the engine sink does. */
+function chained(events: object[]): string {
+  let chain = sha('nika-trace-v1');
+  let out = '';
+  for (const e of events) {
+    const line = JSON.stringify({ ...e, chain });
+    chain = sha(line);
+    out += line + '\n';
+  }
+  return out;
+}
+
+const ev = (kind: string) => ({ id: { uuid: 'u' }, timestamp: 1, kind, fields: [] });
+
+describe('verifyChain — the client twin of nika trace verify', () => {
+  it('an intact chain verifies with its head', () => {
+    const raw = chained([ev('workflow_started'), ev('task_completed'), ev('workflow_completed')]);
+    const v = verifyChain(raw);
+    expect(v.kind).toBe('intact');
+    if (v.kind === 'intact') {
+      expect(v.events).toBe(3);
+      const last = raw.trimEnd().split('\n').at(-1) as string;
+      expect(v.head).toBe(sha(last));
+    }
+  });
+
+  it('one edited byte breaks at the line after the edit', () => {
+    const raw = chained([ev('workflow_started'), ev('task_completed'), ev('workflow_completed')]);
+    const v = verifyChain(raw.replace('task_completed', 'task_complexed'));
+    expect(v).toEqual({ kind: 'broken', line: 3 });
+  });
+
+  it('a torn final line is a crash, not a tamper', () => {
+    const raw = chained([ev('workflow_started'), ev('task_completed')]) + '{"id":{"uu';
+    const v = verifyChain(raw);
+    expect(v.kind).toBe('torn');
+    if (v.kind === 'torn') { expect(v.events).toBe(2); }
+  });
+
+  it('a pre-chain journal is unchained, never an alarm', () => {
+    const raw = JSON.stringify(ev('workflow_started')) + '\n';
+    expect(verifyChain(raw)).toEqual({ kind: 'unchained' });
+  });
+});
