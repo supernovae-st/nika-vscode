@@ -5,6 +5,8 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.95.0] · 2026-07-06
+
 ### Heatmap 2.0 — a reading mode, not a one-card show
 
 - **The √ perceptual ramp** — a long-tail metric (one 14s agent over
