@@ -5,6 +5,12 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+- **Fix: F5 via the generated launch.json snippet** — the snippet's
+  `replay: ""` beat the trace the provider had just resolved (first F5
+  died on `cannot read journal ''`). Resolved paths now win over
+  empty/missing ones; user config keeps the cosmetics. (Landed minutes
+  after 0.97.1 was cut — rides this train.)
+
 ## [0.97.1] · 2026-07-06
 
 ### The adversarial review pays — nine fixes in the day's own release
