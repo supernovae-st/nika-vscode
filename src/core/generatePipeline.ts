@@ -167,7 +167,11 @@ export async function generateWorkflow(
 
   let roundsUsed = 0;
   // Early-stop: a clean candidate ships without burning repair rounds.
-  while (!(bestOutcome.parsed && bestOutcome.findings === 0) && roundsUsed < repairBudget) {
+  // Clean = parsed + zero findings + EXIT 0: the binary's verdict outranks
+  // the client-side count (a finding family added behind report_version 1
+  // would zero the count while `nika check` still exits 2).
+  const isClean = (o: GenCheckOutcome): boolean => o.parsed && o.findings === 0 && o.exit === 0;
+  while (!isClean(bestOutcome) && roundsUsed < repairBudget) {
     roundsUsed += 1;
     progress(`repair round ${roundsUsed}/${repairBudget} (${bestOutcome.findings} finding(s))…`);
     const exemplar = seams.reground
@@ -186,7 +190,7 @@ export async function generateWorkflow(
 
   return {
     yaml: bestYaml,
-    clean: bestOutcome.parsed && bestOutcome.findings === 0,
+    clean: isClean(bestOutcome),
     findings: bestOutcome.findings,
     roundsUsed,
     candidatesTried,

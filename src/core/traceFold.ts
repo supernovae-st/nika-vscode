@@ -62,7 +62,7 @@ export interface TimelineEntry {
 }
 
 export interface RunModel {
-  workflowStatus: 'unknown' | 'running' | 'completed' | 'failed' | 'cancelled';
+  workflowStatus: 'unknown' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
   tasks: Map<string, FoldedTask>;
   totalUsd?: number;
   /** Σ `tokens` across terminal task events (the v2 wire carries them). */
@@ -282,6 +282,12 @@ export function foldTrace(ndjson: string): RunModel {
       case 'workflow_cancelled':
         model.workflowStatus = 'cancelled';
         continue;
+      // ADR-099 durable pause (`nika:prompt` awaiting an answer) — the
+      // process stopped; without a mapping the Runs view reads the run
+      // as live forever.
+      case 'workflow_paused':
+        model.workflowStatus = 'paused';
+        continue;
       case 'cost_incurred':
         if (ev.usd !== undefined) {
           model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
@@ -419,6 +425,7 @@ export function summarizeRun(model: RunModel): string {
     model.workflowStatus === 'completed' ? '✓'
     : model.workflowStatus === 'failed' ? '✗'
     : model.workflowStatus === 'cancelled' ? '◼'
+    : model.workflowStatus === 'paused' ? '⏸'
     : '…';
   const parts = [`${icon} ${model.tasks.size} task${model.tasks.size === 1 ? '' : 's'}`];
   // A resumed run's card says how much of it was rehydrated (ADR-099) —
