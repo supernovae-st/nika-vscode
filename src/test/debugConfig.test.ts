@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matchWorkflowFiles, replayConfig, workflowNameOf } from '../core/debugConfig';
+import { matchWorkflowFiles, mergeLaunchConfig, replayConfig, workflowNameOf } from '../core/debugConfig';
 
 describe('workflowNameOf', () => {
   it('reads the workflow name across quoting styles and comments', () => {
@@ -37,5 +37,25 @@ describe('replayConfig', () => {
     expect(cfg.workflow).toBe('/w/deploy.nika.yaml');
     expect(cfg.replay).toBe('/w/.nika/traces/run.ndjson');
     expect(cfg.name).toBe('Replay run.ndjson');
+  });
+});
+
+describe('mergeLaunchConfig', () => {
+  it('resolved paths beat the generated snippet empty strings', () => {
+    const cfg = mergeLaunchConfig(
+      { type: 'nika', request: 'launch', name: 'Replay latest run', workflow: '${file}', replay: '' },
+      '/w/deploy.nika.yaml',
+      '/w/.nika/traces/run.ndjson',
+    );
+    expect(cfg.replay).toBe('/w/.nika/traces/run.ndjson');
+    expect(cfg.workflow).toBe('/w/deploy.nika.yaml');
+    expect(cfg.name).toBe('Replay latest run');
+  });
+
+  it('keeps user extras and fills a missing name', () => {
+    const cfg = mergeLaunchConfig({ stopOnEntry: true }, '/w/a.nika.yaml', '/t/r.ndjson');
+    expect(cfg.stopOnEntry).toBe(true);
+    expect(cfg.name).toBe('Replay r.ndjson');
+    expect(cfg.type).toBe('nika');
   });
 });

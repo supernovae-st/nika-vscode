@@ -49,6 +49,31 @@ export function replayConfig(workflowPath: string, tracePath: string): ReplayLau
   };
 }
 
+/**
+ * Merge a user launch config with the RESOLVED workflow/replay paths.
+ * The user's config wins on cosmetics (name, extra fields) but the
+ * resolved paths win over empty/missing ones — the generated snippet
+ * ships `replay: ""` and a naive spread would smuggle that empty string
+ * back OVER the trace we just found (the first-F5 killer).
+ */
+export function mergeLaunchConfig(
+  config: Record<string, unknown>,
+  workflowPath: string,
+  tracePath: string,
+): Record<string, unknown> {
+  const base = replayConfig(workflowPath, tracePath);
+  const name =
+    typeof config.name === 'string' && config.name.length > 0 ? config.name : base.name;
+  return {
+    ...config,
+    type: base.type,
+    request: base.request,
+    name,
+    workflow: workflowPath,
+    replay: tracePath,
+  };
+}
+
 function basename(p: string): string {
   const i = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
   return i >= 0 ? p.slice(i + 1) : p;

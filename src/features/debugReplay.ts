@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import { matchWorkflowFiles, replayConfig, workflowNameOf } from '../core/debugConfig';
+import { matchWorkflowFiles, mergeLaunchConfig, replayConfig, workflowNameOf } from '../core/debugConfig';
 import { foldTrace } from '../core/traceFold';
 
 /** The engine binary serves the session: `nika dap` over stdio. */
@@ -74,7 +74,7 @@ class NikaDebugConfigProvider implements vscode.DebugConfigurationProvider {
       );
       return undefined;
     }
-    return { ...replayConfig(workflow, replay), ...config, type: 'nika', request: 'launch' };
+    return mergeLaunchConfig(config, workflow, replay) as vscode.DebugConfiguration;
   }
 }
 
