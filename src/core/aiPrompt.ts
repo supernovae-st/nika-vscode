@@ -46,5 +46,12 @@ export function buildAuthoringPrompt(workflowPath?: string): string {
     'cost/permits/secrets are audited statically — keep them declared and',
     'minimal; prefer `mock/echo` as model while iterating (deterministic,',
     'zero keys), then swap the real `provider/model`.',
+    '',
+    'PROVE runs, never assert them (0.96+): every run writes a journal to',
+    '`.nika/traces/*.ndjson` — quote it. `nika trace outputs <trace>` (per-task',
+    'table) · `nika trace peek <trace> <task> --raw` (one exact output — pipe',
+    'to jq) · a failing run replays under a time-travel debugger (`nika dap`,',
+    'or F5 in VS Code) · `nika trace export <trace>` projects it to OTLP for',
+    'Jaeger/Grafana/Langfuse. Cite trace evidence in your summary, not vibes.',
   ].join('\n');
 }
