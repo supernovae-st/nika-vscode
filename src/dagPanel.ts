@@ -759,7 +759,7 @@ export class DagPanel implements vscode.Disposable {
         <span class="es-binary-mark" aria-hidden>⚠</span>
         <span class="es-binary-text">The nika engine is not on this machine — every check, graph
         and run needs it. <code>brew install supernovae-st/tap/nika</code> or let the extension
-        fetch the official binary (HTTPS · SHA-256 verified · ~10 MB).</span>
+        fetch the official binary (HTTPS · SHA-256 verified · ~10 MB).</span>
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
