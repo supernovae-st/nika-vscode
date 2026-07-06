@@ -83,6 +83,8 @@ import { loadRecordedHashes } from './core/canvasState';
 import { insertPermitsBlock } from './core/permitsEdit';
 import { parseRichWorkflow, taskAtLine } from './workflowParser';
 import { refAt } from './core/expr';
+import { buildPreflight, collectPreflightFacts, parseCatalogProviders, renderPreflight } from './core/preflight';
+import { traceStore } from './core/traceStore';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -1092,6 +1094,52 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       const md = explainWorkflow(graph, service.peekCheck(doc.uri.toString())?.report);
+      const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
+      try {
+        await commands.executeCommand('markdown.showPreview', preview.uri);
+      } catch {
+        await window.showTextDocument(preview, { preview: true });
+      }
+    }),
+  );
+
+  // Command: Preflight — the flight plan (cost · secrets · permits · keys)
+  // BEFORE any token is spent. Every line derived: check --json + catalog
+  // --json + the YAML + the environment as THIS process sees it. Nothing
+  // executes; « declared » is never upgraded to « verified ».
+  context.subscriptions.push(
+    commands.registerCommand('nika.preflightWorkflow', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (!(await requireEngine(service, 'preflighting a workflow'))) { return; }
+      const outcome = await service.checkDocument(doc);
+      let graph;
+      try { graph = await service.dagForDocument(doc); } catch { graph = undefined; }
+      const cat = await service.runCli(['catalog', '--json'], 10000);
+      const catalog = cat.code === 0 ? parseCatalogProviders(cat.stdout) : undefined;
+      const rec = traceStore.get(doc.uri.fsPath);
+      let lastRun: { durationMs?: number; costUsd?: number } | undefined;
+      if (rec) {
+        const tasks = [...rec.fold.tasks.values()];
+        const starts = tasks.map((t) => t.startMs).filter((n): n is number => n !== undefined);
+        const ends = tasks.map((t) => t.endMs).filter((n): n is number => n !== undefined);
+        const cost = tasks.reduce((a, t) => a + (t.usd ?? 0), 0);
+        lastRun = {
+          durationMs: starts.length > 0 && ends.length > 0
+            ? Math.max(...ends) - Math.min(...starts)
+            : undefined,
+          costUsd: cost > 0 ? cost : undefined,
+        };
+      }
+      const md = renderPreflight(buildPreflight({
+        workflowName: path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
+        facts: collectPreflightFacts(doc.getText()),
+        report: outcome?.report,
+        graph,
+        catalog,
+        envPresent: (n) => (process.env[n] ?? '').length > 0,
+        lastRun,
+      }));
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {
         await commands.executeCommand('markdown.showPreview', preview.uri);

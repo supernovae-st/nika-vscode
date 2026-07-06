@@ -225,6 +225,11 @@
         "icon": "$(book)"
       },
       {
+        "command": "nika.preflightWorkflow",
+        "title": "Nika: Preflight — cost · secrets · permits (before any token)",
+        "icon": "$(shield)"
+      },
+      {
         "command": "nika.inferPermits",
         "title": "Nika: Insert Inferred Permits Boundary",
         "icon": "$(shield)"
