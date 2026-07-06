@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import { createHash } from 'crypto';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
 import { parseTraceOutputs } from '../core/xray';
@@ -400,6 +401,20 @@ export async function replayIntoDag(
     })),
     edges: [],
   };
+
+  // Drift truth (0.95+ journals): the run recorded WHICH definition ran —
+  // when the file on disk no longer matches, say so up front. The canvas
+  // shows today's graph; the statuses tell that run's story.
+  if (model.workflowSha256 !== undefined && activeDoc?.uri.scheme === 'file') {
+    try {
+      const cur = createHash('sha256').update(fs.readFileSync(activeDoc.uri.fsPath)).digest('hex');
+      if (cur !== model.workflowSha256) {
+        dagPanel.note('≠', 'definition drifted since this run — the canvas shows today\'s file, the statuses show that run', undefined, 'st-retrying');
+      }
+    } catch {
+      // unreadable file — no claim
+    }
+  }
 
   // Reset all node states to pending, show, then hand over the timeline.
   // Reset all node states to pending, show, then hand the timeline to

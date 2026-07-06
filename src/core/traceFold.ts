@@ -73,6 +73,10 @@ export interface RunModel {
   timeline: TimelineEntry[];
   /** Lines that parsed as JSON but matched no known shape. */
   unknownLines: number;
+  /** The run's SOURCE identity (0.95+ engines): sha256 hex of the exact
+   *  bytes that ran — rides workflow_started. Absent = engine too old
+   *  to claim; drift surfaces stay silent rather than guessing. */
+  workflowSha256?: string;
   /** ADR-099 human-gate: the run is waiting on a `nika:prompt` answer.
    *  Fields ride the workflow_paused event — the QUESTION included. */
   paused?: { task: string; mode: string; message?: string; choices?: string[] };
@@ -96,6 +100,8 @@ interface NormalizedEvent {
   message?: string;
   /** workflow_paused only — choice-mode options. */
   choices?: string[];
+  /** workflow_started only — the run's source identity (sha256 hex). */
+  workflowSha256?: string;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -212,6 +218,9 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       tokens: asNumber(fields.get('tokens')),
       note: typeof note === 'string' ? note : undefined,
       output: outputToString(fields.get('output')),
+      workflowSha256: typeof fields.get('workflow_sha256') === 'string'
+        ? fields.get('workflow_sha256') as string
+        : undefined,
       mode: typeof fields.get('mode') === 'string' ? fields.get('mode') as string : undefined,
       message: typeof fields.get('message') === 'string' ? fields.get('message') as string : undefined,
       choices: Array.isArray(fields.get('choices'))
@@ -286,6 +295,9 @@ export function foldTrace(ndjson: string): RunModel {
     switch (ev.kind) {
       case 'workflow_started':
         model.workflowStatus = 'running';
+        if (ev.workflowSha256 !== undefined) {
+          model.workflowSha256 = ev.workflowSha256;
+        }
         continue;
       case 'workflow_completed':
         model.workflowStatus = 'completed';

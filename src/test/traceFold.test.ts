@@ -449,3 +449,19 @@ describe('workflow_paused (ADR-099 human-gate)', () => {
     expect(model.paused).toEqual({ task: 'approve', mode: 'choice', message: 'Ship it?', choices: ['now', 'later'] });
   });
 });
+
+describe('workflow_sha256 (the run knows its source · 0.95+)', () => {
+  it('rides workflow_started into the fold; absent = no claim', () => {
+    const withId = JSON.stringify({
+      id: { uuid: 'x' }, timestamp: 1, kind: 'workflow_started', run: null, correlation: null,
+      fields: [
+        { key: 'workflow', value: 'wf' },
+        { key: 'permits', value: 'engine floor (no boundary declared)' },
+        { key: 'workflow_sha256', value: 'ab'.repeat(32) },
+      ],
+    });
+    expect(foldTrace(withId).workflowSha256).toBe('ab'.repeat(32));
+    const without = withId.replace(/,\{"key":"workflow_sha256"[^}]*\}/, '');
+    expect(foldTrace(without).workflowSha256).toBeUndefined();
+  });
+});
