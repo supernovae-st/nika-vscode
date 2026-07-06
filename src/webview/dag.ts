@@ -1076,6 +1076,8 @@ class DagRenderer {
   private lineage: LineageView | null = null;
   /** True when the caret (not a click) set the lineage — cleared on caret exit. */
   private lineageFromEditor = false;
+  /** Last posted running-set signature — transport:tick fires on change only. */
+  private lastRunTick = '';
   /** The editor-caret hinted task — restored after any class rewrite. */
   private cursorHintedId: string | null = null;
   /** Live `/`-filter matches (null = no filter) — the other input. */
@@ -2739,6 +2741,19 @@ class DagRenderer {
     this.saveState({ graph: this.currentGraph });
     this.updateStatusDisplay();
     if (this.heatmapOn) { this.applyHeatmap(); }
+
+    // Source-bound highlight: tell the extension WHERE execution is now
+    // so the YAML lights the running spans. Live batches, the platine
+    // and the Replayer all funnel through this one seam; the set only
+    // posts on change (a settled frame costs nothing).
+    const running = (this.currentGraph?.nodes ?? [])
+      .filter((n) => n.status === 'running' || n.status === 'retrying')
+      .map((n) => n.id);
+    const sig = running.join(' ');
+    if (sig !== this.lastRunTick) {
+      this.lastRunTick = sig;
+      vscode.postMessage({ kind: 'transport:tick', running });
+    }
   }
 
   updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
@@ -2833,6 +2848,10 @@ class DagRenderer {
     this.lineage = null;
     this.lineageFromEditor = false;
     this.filterMatches = null;
+    if (this.lastRunTick !== '') {
+      this.lastRunTick = '';
+      vscode.postMessage({ kind: 'transport:tick', running: [] });
+    }
     this.wasAllTerminal = false;
     this.layoutBox.clear();
     this.hideHoverCard(true);

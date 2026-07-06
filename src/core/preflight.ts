@@ -310,8 +310,6 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
 
 // ─── Markdown rendering (the flight-plan document) ──────────────────────────
 
-const mark = (ok: boolean): string => (ok ? '✓' : '✗');
-
 export function renderPreflight(m: PreflightModel): string {
   const out: string[] = [];
   out.push(`# Preflight — ${m.workflowName}`);

@@ -79,6 +79,7 @@ export type WebviewToExtMessage =
   | { kind: 'dag:newWorkflow' }
   | { kind: 'dag:openWalkthrough' }
   | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
+  | { kind: 'transport:tick'; running: string[] }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
   | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
@@ -518,8 +519,14 @@ export class DagPanel implements vscode.Disposable {
     this.panel?.webview.postMessage(msg);
   }
 
+  /** Fires when the webview's running-task set changes (live · replay). */
+  public onTransportTick?: (running: string[]) => void;
+
   private handleMessage(msg: WebviewToExtMessage): void {
     switch (msg.kind) {
+      case 'transport:tick':
+        this.onTransportTick?.(msg.running);
+        break;
       case 'dag:ready':
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {

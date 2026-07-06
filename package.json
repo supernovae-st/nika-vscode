@@ -457,6 +457,11 @@
           "default": true,
           "description": "The open DAG panel re-targets when you switch to another .nika.yaml (debounced)."
         },
+        "nika.editor.runHighlight": {
+          "type": "boolean",
+          "default": true,
+          "description": "Light the YAML spans of RUNNING tasks while a run or replay is at them — the source is the timeline."
+        },
         "nika.dag.cursorSync": {
           "type": "boolean",
           "default": true,

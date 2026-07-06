@@ -6,6 +6,7 @@ import {
   Uri,
   Position,
   Range,
+  ThemeColor,
   Location,
   WorkspaceEdit,
   env,
@@ -456,6 +457,45 @@ export function activate(context: ExtensionContext): void {
     { dispose: () => { if (cursorSyncTimer) { clearTimeout(cursorSyncTimer); } } },
   );
 
+  // Source-bound run highlight — the YAML is the timeline: the spans of
+  // RUNNING tasks glow while a run (or a replay scrub) is at them. Two
+  // feeds, one painter: the webview's transport:tick (replay + live
+  // echoes, panel open) and traceStore updates (live, works with the
+  // panel closed). Same events → same set → idempotent decorations.
+  const runHighlight = window.createTextEditorDecorationType({
+    isWholeLine: true,
+    backgroundColor: new ThemeColor('editor.wordHighlightBackground'),
+    overviewRulerColor: new ThemeColor('editorCursor.foreground'),
+  });
+  const paintRunningSpans = (fsPath: string | undefined, ids: string[]): void => {
+    if (!workspace.getConfiguration('nika').get<boolean>('editor.runHighlight', true)) { return; }
+    for (const ed of window.visibleTextEditors) {
+      const doc = ed.document;
+      if (!NIKA_FILE_RE.test(doc.fileName)) { continue; }
+      if (fsPath !== undefined && doc.uri.fsPath !== fsPath) { continue; }
+      if (ids.length === 0) {
+        ed.setDecorations(runHighlight, []);
+        continue;
+      }
+      const wf = parseRichWorkflow(doc.getText());
+      const ranges = wf.tasks
+        .filter((t) => ids.includes(t.id))
+        .map((t) => new Range(t.line, 0, t.endLine, 0));
+      ed.setDecorations(runHighlight, ranges);
+    }
+  };
+  context.subscriptions.push(
+    runHighlight,
+    traceStore.onDidUpdate((key) => {
+      const rec = traceStore.get(key);
+      if (!rec) { return; }
+      const running = [...rec.fold.tasks.values()]
+        .filter((t) => t.status === 'running' || t.status === 'retrying')
+        .map((t) => t.id);
+      paintRunningSpans(key, running);
+    }),
+  );
+
   // Living panel · follow mode: switching to ANOTHER workflow re-targets
   // the open DAG (debounced — flipping through tabs must not spawn a
   // graph per stop).
@@ -829,6 +869,12 @@ export function activate(context: ExtensionContext): void {
     () => { void state.pushWelcomeData?.(); },
   );
   state.activeDagPanel = dagPanel;
+
+  // The webview's running-set feed → the YAML highlight (replay + live).
+  dagPanel.onTransportTick = (running) => {
+    const uri = dagPanel.currentWorkflowUri();
+    paintRunningSpans(uri ? Uri.parse(uri).fsPath : undefined, running);
+  };
 
   // Canvas glyphs speak the binary's vocabulary (`nika tools --json`) —
   // seeded now, refreshed whenever the service re-probes the binary.
