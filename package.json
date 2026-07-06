@@ -606,7 +606,7 @@
         {
           "command": "nika.debugReplay",
           "when": "view == nikaRuns && viewItem == nikaTrace",
-          "group": "nika@2"
+          "group": "inline"
         },
         {
           "command": "nika.exportOtel",
