@@ -22,12 +22,13 @@ export function spawnCli(
   args: string[],
   timeoutMs: number,
   stdin?: string,
+  cwd?: string,
 ): Promise<CliResult> {
   return new Promise((resolve) => {
     const child = execFile(
       bin,
       args,
-      { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, NO_COLOR: '1' } },
+      { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, cwd, env: { ...process.env, NO_COLOR: '1' } },
       (error, stdout, stderr) => {
         let code = 0;
         if (error) {

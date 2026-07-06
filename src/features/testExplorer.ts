@@ -10,6 +10,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as path from 'path';
 import type { NikaService } from '../nikaService';
 
 const goldenOf = (fsPath: string): string => `${fsPath}.golden.json`;
@@ -76,7 +77,10 @@ export function registerTestExplorer(
           ? ['test', '--update', item.uri.fsPath]
           : ['test', item.uri.fsPath];
         try {
-          const res = await service.runCli(args, 60000);
+          // The engine resolves relative paths and writes its journal
+          // against the CWD (journey-e2e law) — the workflow's own
+          // directory is the test's world.
+          const res = await service.runCli(args, 60000, undefined, path.dirname(item.uri.fsPath));
           const dur = Date.now() - started;
           if (res.code === 0) {
             run.passed(item, dur);

@@ -16,6 +16,7 @@
 
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
@@ -96,6 +97,12 @@ export function runWorkflowLive(
     binary,
     ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
     {
+      // The engine writes its journal (`.nika/traces/`) and resolves
+      // relative paths against the process CWD (empirical law — the
+      // journey e2e pins it). A host launched from the Dock has cwd `/`:
+      // without this, editor runs would leave NO journal anywhere the
+      // Runs view looks. The workflow's own directory is the contract.
+      cwd: path.dirname(fsPath),
       env: { ...process.env, NO_COLOR: '1' },
     },
   );

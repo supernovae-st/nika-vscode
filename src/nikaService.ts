@@ -192,11 +192,11 @@ export class NikaService {
     }
   }
 
-  runCli(args: string[], timeoutMs = 30000, stdin?: string): Promise<CliResult> {
+  runCli(args: string[], timeoutMs = 30000, stdin?: string, cwd?: string): Promise<CliResult> {
     if (!this.binary) {
       return Promise.resolve({ code: EXIT.ENV, stdout: '', stderr: 'nika binary not resolved' });
     }
-    return spawnCli(this.binary, args, timeoutMs, stdin);
+    return spawnCli(this.binary, args, timeoutMs, stdin, cwd);
   }
 
   /** Run a CLI verb against `doc` — real path when saved, otherwise the
