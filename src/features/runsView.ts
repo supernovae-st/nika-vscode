@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
 import { extractRunArtifacts, humanBytes, type RunArtifact } from '../core/artifacts';
+import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
@@ -22,6 +23,8 @@ interface TraceFile {
   model: RunModel;
   /** Media/file outputs recovered from the raw trace (assets-not-blobs). */
   artifacts: Map<string, RunArtifact[]>;
+  /** Per-task retry ladders — the « why did this fail » story. */
+  ladders: Map<string, Attempt[]>;
 }
 
 /**
@@ -125,6 +128,8 @@ class TraceTaskItem extends vscode.TreeItem {
     readonly artifacts: RunArtifact[] = [],
     /** The trace this row belongs to — fork-from-step needs both halves. */
     readonly traceUri?: vscode.Uri,
+    /** The attempt story (retries · details) — tooltip when present. */
+    ladder: Attempt[] = [],
   ) {
     super(
       taskId,
@@ -144,6 +149,15 @@ class TraceTaskItem extends vscode.TreeItem {
       .filter(Boolean)
       .join(' · ');
     this.contextValue = 'nikaTraceTask';
+    if (ladder.length > 0) {
+      const md = new vscode.MarkdownString(undefined, true);
+      md.appendMarkdown(`**${taskId}** — the attempt story\n\n`);
+      for (const line of renderLadder(ladder)) {
+        md.appendMarkdown(`${line}\n\n`);
+      }
+      md.appendMarkdown('_⑂ fork from here re-runs this task with upstream rehydrated._');
+      this.tooltip = md;
+    }
     this.iconPath = new vscode.ThemeIcon(
       status === 'success' ? 'check'
       : status === 'failed' ? 'x'
@@ -231,6 +245,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           t.id, t.status, t.durationMs, t.retries,
           element.trace.artifacts.get(t.id) ?? [],
           element.trace.uri,
+          element.trace.ladders.get(t.id) ?? [],
         ),
       );
     }
@@ -254,6 +269,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           mtimeMs: stat.mtimeMs,
           model: foldTrace(content),
           artifacts: extractRunArtifacts(content),
+          ladders: attemptLadders(content),
         });
       } catch {
         // unreadable trace — skip, never fail the tree

@@ -99,6 +99,7 @@ import { XrayInlayProvider } from './features/xray';
 import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
+import { attemptLadders } from './core/attempts';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -1529,6 +1530,7 @@ export function activate(context: ExtensionContext): void {
         model: foldTrace(ndjson),
         artifacts: extractRunArtifacts(ndjson),
         resolvePath,
+        ladders: attemptLadders(ndjson),
       });
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {

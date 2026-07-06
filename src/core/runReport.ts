@@ -10,6 +10,7 @@ import type { RunModel } from './traceFold';
 import { humanizeDuration } from './traceFold';
 import type { RunArtifact } from './artifacts';
 import { humanBytes } from './artifacts';
+import { renderLadder, type Attempt } from './attempts';
 
 export interface RunReportInputs {
   traceName: string;
@@ -19,6 +20,8 @@ export interface RunReportInputs {
    *  that EXISTS — image artifacts it resolves render inline in the
    *  report preview (the gallery). Unresolvable stays a plain line. */
   resolvePath?: (p: string) => string | undefined;
+  /** Per-task attempt ladders — failures grow their per-attempt story. */
+  ladders?: Map<string, Attempt[]>;
 }
 
 const usd = (n: number): string =>
@@ -115,6 +118,12 @@ export function renderRunReport(inputs: RunReportInputs): string {
     out.push('');
     for (const t of failures) {
       out.push(`- \`${t.id}\` — ${t.preview ?? 'no detail recorded'}${t.retries > 0 ? ` (after ${t.retries + 1} attempts)` : ''}`);
+      const ladder = inputs.ladders?.get(t.id);
+      if (ladder && ladder.length > 1) {
+        for (const line of renderLadder(ladder)) {
+          out.push(`  - ${line}`);
+        }
+      }
     }
     out.push('');
     out.push('_Re-run from a failure with `Nika: Fork From Task` — upstream rehydrates from this trace._');
