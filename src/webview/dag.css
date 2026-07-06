@@ -1775,10 +1775,13 @@ body[data-nk-theme='nika'] {
    * itself is the calm two-zone surface — never the site's heavy slab. */
   /* THE reference background (operator lock): warm near-black, raised
    * neutral cards — blue lives in accents/wires/verbs, never the page. */
-  --nk-page: #131313;
-  --nk-surface: #1b1b1e;
-  --nk-card: #1e1f23;
-  --nk-card-border: rgb(255 255 255 / 0.08);
+  /* Deepened 2026-07-06 (operator: « plus dark ») — the page falls to
+   * true near-black; the cards KEEP their level, so the raise between
+   * pool and module face widens instead of everything sinking. */
+  --nk-page: #0d0d0e;
+  --nk-surface: #17171a;
+  --nk-card: #1c1d21;
+  --nk-card-border: rgb(255 255 255 / 0.09);
   --nk-border: rgb(255 255 255 / 0.09);
   --nk-border-strong: rgb(255 255 255 / 0.2);
   --nk-border-soft: rgb(255 255 255 / 0.06);
@@ -1794,6 +1797,10 @@ body[data-nk-theme='nika'] {
   --nk-ink-dim: #8a8f98;
   --nk-accent: #4f86ff;
   --nk-data: #4f86ff;
+  /* ONE blue: the CTA is the accent pushed to button weight — never a
+   * second unrelated blue (the AI-slop tell). */
+  --nk-cta: color-mix(in srgb, var(--nk-accent) 62%, #0b2fbd);
+  --nk-cta-hover: color-mix(in srgb, var(--nk-accent) 74%, #0b2fbd);
   --nk-radius: 7px;
   --nk-radius-card: 10px;
   --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
@@ -1810,16 +1817,28 @@ body[data-nk-theme='nika'] {
   --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cg fill='%23ffffff'%3E%3Crect x='0' y='0' width='1' height='1' fill-opacity='0.05'/%3E%3Crect x='2' y='2' width='1' height='1' fill-opacity='0.05'/%3E%3Crect x='2' y='0' width='1' height='1' fill-opacity='0.022'/%3E%3Crect x='0' y='2' width='1' height='1' fill-opacity='0.022'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* Canvas · faint blue survey crosses on the black pool. */
+/* Canvas · faint survey crosses on the black pool. The background is
+ * CAMERA-AWARE (pure CSS — the LOD classes drive it): near reads the
+ * fine 40px survey; far swaps to a calmer 96px major grid with larger,
+ * rarer marks — a map gets a map's graticule, and deep zoom-out never
+ * turns the pool into cross-noise. */
 body[data-nk-theme='nika'] {
-  --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.055'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
+  --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
+  --nk-grid-img-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.07'%3E%3Cpath d='M48 42v12M42 48h12'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 body[data-nk-theme='nika'] #dag-container {
   background-color: var(--nk-page);
 }
 
-/* Depth vignette — the pool falls away at the edges (paint-only). */
+body[data-nk-theme='nika'].lod-far #dag-container {
+  background-image: var(--nk-grid-img-far);
+  background-size: 96px 96px;
+}
+
+/* Depth vignette — the pool falls away at the edges (paint-only), and
+ * it KNOWS the run: while tasks execute the falloff tightens, pulling
+ * the eye to the lit work; a finished canvas relaxes back. */
 body[data-nk-theme='nika'] #dag-container::before {
   content: '';
   position: absolute;
@@ -1828,7 +1847,15 @@ body[data-nk-theme='nika'] #dag-container::before {
   background: radial-gradient(
     120% 100% at 50% 38%,
     transparent 55%,
-    rgb(0 0 0 / 0.3) 100%
+    rgb(0 0 0 / 0.38) 100%
+  );
+}
+
+body[data-nk-theme='nika'].running #dag-container::before {
+  background: radial-gradient(
+    110% 92% at 50% 40%,
+    transparent 46%,
+    rgb(0 0 0 / 0.5) 100%
   );
 }
 

@@ -5,6 +5,22 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The deep register — darker pool, an intelligent background
+
+- **The nika skin falls to true near-black** (`#0d0d0e` page) while the
+  cards keep their level — the raise between pool and module face
+  WIDENS instead of everything sinking. Hairlines retuned, vignette
+  deepened.
+- **The background became a four-layer instrument** (DESIGN.md §4):
+  the survey grid now follows the CAMERA (far zoom swaps the fine 40px
+  crosses for a calm 96px major graticule — the map read gets a map's
+  grid), and the vignette KNOWS the run (the falloff tightens while
+  tasks execute, pulling the eye to the lit work, then relaxes).
+- **One blue.** The Run CTA now derives from the accent
+  (`color-mix`) — the second, unrelated button-blue is gone.
+- README `dag-execution.gif` re-captured on the deep register (661KB,
+  −16% again — near-black compresses better).
+
 ### Edge-case hunt — four YAML-surgery bugs fixed, five dead ends gated
 
 An adversarial multi-agent hunt over the edit surfaces confirmed four

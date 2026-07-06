@@ -111,12 +111,27 @@ the palette hint — so the first click can happen in either surface.
 
 ### `nika` (default · the brand ambiance · always dark)
 
-THE reference background (operator lock): warm near-black page
-`#131313` with white `+` survey crosses @40px, raised NEUTRAL cards
-(`#1e1f23` · white hairlines 0.08) — **blue lives only in accents**:
-data wires, verb tiles, selection, the pointer lamp, the aurora.
-Martian Mono everywhere. Quiet by default — glow is spent on
+THE reference background (operator lock · deepened 2026-07-06): true
+near-black page `#0d0d0e` with white `+` survey crosses @40px, raised
+NEUTRAL cards (`#1c1d21` · white hairlines 0.09) — the cards keep
+their level while the pool falls away, so the raise WIDENS. **Blue
+lives only in accents**: data wires, verb tiles, selection, the
+pointer lamp, the aurora — and it is ONE blue: the Run CTA derives
+from the accent (`color-mix`), never a second unrelated blue. Martian
+Mono everywhere. Quiet by default — glow is spent on
 running/selected/failed only.
+
+**The background is a four-layer instrument, each layer with a job:**
+1. **The survey grid follows the CAMERA** — near reads the fine 40px
+   crosses; `lod-far` swaps a calmer 96px major graticule (a map gets
+   a map's grid; deep zoom-out never becomes cross-noise). Pure CSS
+   off the LOD classes.
+2. **The vignette KNOWS the run** — at rest the pool edges fall to
+   0.38 black; while tasks execute the falloff tightens (0.5, closer
+   in), pulling the eye to the lit work; a finished canvas relaxes.
+3. **The pointer lamp** — a faint accent glow trailing the cursor
+   (two custom props per frame, paint-only).
+4. **The aurora** — speaks once, at a live run's close.
 
 ### `editor` (adaptive · `nika.dag.theme: "editor"`)
 
