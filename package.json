@@ -272,6 +272,11 @@
         "icon": "$(notebook)"
       },
       {
+        "command": "nika.runHistory",
+        "title": "Nika: Run History (cross-run grid · flaky · trends)",
+        "icon": "$(graph-line)"
+      },
+      {
         "command": "nika.captureLintBaseline",
         "title": "Nika: Capture Lint Baseline (grandfather current findings)"
       },
@@ -426,6 +431,11 @@
           "type": "boolean",
           "default": true,
           "description": "Warn on literal credentials pasted in workflow YAML (pure local scan) with a ${{ env.VAR }} quick fix."
+        },
+        "nika.traces.keep": {
+          "type": "number",
+          "default": 200,
+          "description": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). The newest always survive."
         },
         "nika.traces.glob": {
           "type": "string",

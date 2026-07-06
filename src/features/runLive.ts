@@ -93,6 +93,7 @@ export function runWorkflowLive(
     spawnFingerprints = undefined;
   }
 
+  pruneTraces(path.dirname(fsPath));
   const child = spawn(
     binary,
     ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
@@ -222,3 +223,30 @@ const FEED_ICON: Record<string, string> = {
   skipped: '⤼',
   cancelled: '◼',
 };
+
+/**
+ * Journal housekeeping: keep the newest `nika.traces.keep` journals in
+ * this workflow's trace dir (0 = unlimited). Runs before each spawn —
+ * the dir never grows unbounded, and the newest N always survive.
+ */
+function pruneTraces(workflowDir: string): void {
+  const keep = vscode.workspace.getConfiguration('nika').get<number>('traces.keep', 200);
+  if (!Number.isFinite(keep) || keep <= 0) { return; }
+  const dir = `${workflowDir}/.nika/traces`;
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir).filter((f) => f.endsWith('.ndjson'));
+  } catch {
+    return;
+  }
+  if (entries.length <= keep) { return; }
+  const stamped = entries
+    .map((f) => {
+      try { return { f, m: fs.statSync(`${dir}/${f}`).mtimeMs }; } catch { return undefined; }
+    })
+    .filter((x): x is { f: string; m: number } => x !== undefined)
+    .sort((a, b) => b.m - a.m);
+  for (const { f } of stamped.slice(keep)) {
+    try { fs.unlinkSync(`${dir}/${f}`); } catch { /* garnish */ }
+  }
+}

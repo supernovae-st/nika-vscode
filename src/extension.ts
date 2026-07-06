@@ -100,6 +100,7 @@ import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
 import { attemptLadders } from './core/attempts';
+import { renderHistory, type HistoryRun } from './core/runHistory';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
@@ -360,7 +361,30 @@ export function activate(context: ExtensionContext): void {
     }, 300));
   };
   const traceWatcher = workspace.createFileSystemWatcher('**/.nika/traces/*.ndjson');
-  traceWatcher.onDidCreate(onTraceEvent);
+  // First journal in a workspace → offer .gitignore coverage ONCE (the
+  // AI-SDK devtools pattern, but asked — we never silently edit a user's
+  // .gitignore). Choice remembered per workspace.
+  const nudgeGitignore = async (): Promise<void> => {
+    if (context.workspaceState.get<boolean>('nika.gitignoreNudged')) { return; }
+    const root = workspace.workspaceFolders?.[0];
+    if (!root) { return; }
+    await context.workspaceState.update('nika.gitignoreNudged', true);
+    const giPath = path.join(root.uri.fsPath, '.gitignore');
+    try {
+      const existing = fs.existsSync(giPath) ? fs.readFileSync(giPath, 'utf-8') : '';
+      if (/^\.nika\/?\s*$/m.test(existing) || existing.includes('.nika/')) { return; }
+      const choice = await window.showInformationMessage(
+        'Nika keeps run journals in .nika/traces/ — add .nika/ to .gitignore?',
+        'Add', 'No',
+      );
+      if (choice === 'Add') {
+        fs.writeFileSync(giPath, `${existing}${existing.length > 0 && !existing.endsWith('\n') ? '\n' : ''}.nika/\n`);
+      }
+    } catch {
+      // Garnish law — a nudge must never throw.
+    }
+  };
+  traceWatcher.onDidCreate((uri) => { void nudgeGitignore(); onTraceEvent(uri); });
   traceWatcher.onDidChange(onTraceEvent);
   traceWatcher.onDidDelete(() => runsTree.refresh());
   context.subscriptions.push(
@@ -1163,17 +1187,41 @@ export function activate(context: ExtensionContext): void {
         if (!pick) { return; }
         taskId = pick.label;
       }
-      // The workflow this trace belongs to: the active nika doc, gated by
-      // the same majority-overlap law as replay — a fork against the
-      // WRONG workflow must refuse loudly, never run confusingly.
-      const doc = await requireNikaDocument(undefined);
-      if (!doc) { return; }
-      const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
-      const overlap = [...fold.tasks.keys()].filter((id) => ids.has(id)).length;
-      if (fold.tasks.size === 0 || overlap < Math.ceil(fold.tasks.size / 2)) {
-        void window.showWarningMessage('Nika: the active workflow does not match this trace — open the workflow the run came from.');
+      // The workflow this trace belongs to — found, not demanded: the
+      // active doc first, then every workspace workflow, gated by the
+      // same majority-overlap law as replay. A fork against the WRONG
+      // workflow refuses loudly; the right one opens itself.
+      const overlapOf = (text: string): number => {
+        const ids = new Set(parseRichWorkflow(text).tasks.map((t) => t.id));
+        return fold.tasks.size === 0
+          ? 0
+          : [...fold.tasks.keys()].filter((id) => ids.has(id)).length / fold.tasks.size;
+      };
+      let doc = activeNikaDocument();
+      if (!doc || overlapOf(doc.getText()) < 0.5) {
+        doc = undefined;
+        const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 50);
+        let best: { uri: Uri; score: number } | undefined;
+        for (const f of wfFiles) {
+          try {
+            const score = overlapOf(fs.readFileSync(f.fsPath, 'utf-8'));
+            if (score >= 0.5 && (best === undefined || score > best.score)) {
+              best = { uri: f, score };
+            }
+          } catch {
+            // unreadable candidate — skip
+          }
+        }
+        if (best) {
+          doc = await workspace.openTextDocument(best.uri);
+          await window.showTextDocument(doc, { preview: false });
+        }
+      }
+      if (!doc) {
+        void window.showWarningMessage('Nika: no workspace workflow matches this trace — open the workflow the run came from.');
         return;
       }
+      const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
       if (!ids.has(taskId)) {
         void window.showWarningMessage(`Nika: task \`${taskId}\` is not in the active workflow.`);
         return;
@@ -1532,6 +1580,44 @@ export function activate(context: ExtensionContext): void {
         resolvePath,
         ladders: attemptLadders(ndjson),
       });
+      const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
+      try {
+        await commands.executeCommand('markdown.showPreview', preview.uri);
+      } catch {
+        await window.showTextDocument(preview, { preview: true });
+      }
+    }),
+    // Command: run history — the cross-run grid (tasks × last N runs ·
+    // flaky + slowdown callouts), computed from the journal directory
+    // alone with the same majority-overlap law as replay.
+    commands.registerCommand('nika.runHistory', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
+      if (ids.size === 0) {
+        void window.showInformationMessage('Nika: no tasks parsed — fix the workflow first.');
+        return;
+      }
+      const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+      const files = await workspace.findFiles(glob, '**/node_modules/**', 100);
+      const runs: HistoryRun[] = [];
+      for (const f of files) {
+        try {
+          const model = foldTrace(fs.readFileSync(f.fsPath, 'utf-8'));
+          const taskIds = [...model.tasks.keys()];
+          if (taskIds.length === 0) { continue; }
+          const overlap = taskIds.filter((id) => ids.has(id)).length / taskIds.length;
+          if (overlap < 0.6) { continue; }
+          runs.push({ name: path.basename(f.fsPath), mtimeMs: fs.statSync(f.fsPath).mtimeMs, model });
+        } catch {
+          // unreadable trace — skip
+        }
+      }
+      const newest = runs.sort((a, b) => a.mtimeMs - b.mtimeMs).slice(-12);
+      const md = renderHistory(
+        path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
+        newest,
+      );
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {
         await commands.executeCommand('markdown.showPreview', preview.uri);
