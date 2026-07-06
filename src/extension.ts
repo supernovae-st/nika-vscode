@@ -111,7 +111,7 @@ const WELCOME_COMMANDS = new Set([
   'nika.showMenu', 'nika.checkWorkflow', 'nika.showReport',
   'nika.inspectWorkflow', 'nika.inferPermits', 'nika.explainWorkflow',
   'nika.openSpec', 'nika.copyAiPrompt', 'nika.setupMcp',
-  'nika.restartServer',
+  'nika.restartServer', 'nika.preflightWorkflow', 'nika.runHistory',
 ]);
 
 /** Coarse relative-time label for the welcome's recent list. */

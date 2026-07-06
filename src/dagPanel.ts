@@ -804,6 +804,8 @@ export class DagPanel implements vscode.Disposable {
       <div class="es-sec">What Nika does here</div>
       <div class="es-caps">
         <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check — static pre-flight</button>
+        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>🛡</span>Preflight — cost · secrets · keys</button>
+        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>▤</span>Run history — flaky · trends</button>
         <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>≣</span>Pre-flight report</button>
         <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
         <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>

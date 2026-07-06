@@ -572,6 +572,16 @@
           "group": "navigation"
         },
         {
+          "command": "nika.runHistory",
+          "when": "view == 'nikaRuns'",
+          "group": "navigation"
+        },
+        {
+          "command": "nika.diffTraces",
+          "when": "view == 'nikaRuns'",
+          "group": "navigation"
+        },
+        {
           "command": "nika.newWorkflow",
           "when": "view == 'nikaWorkflows'",
           "group": "navigation"
