@@ -88,6 +88,7 @@ import { buildPreflight, collectPreflightFacts, parseCatalogProviders, renderPre
 import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
 import { renderRunReport } from './core/runReport';
+import { XrayInlayProvider } from './features/xray';
 import { extractRunArtifacts } from './core/artifacts';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
@@ -410,11 +411,14 @@ export function activate(context: ExtensionContext): void {
 
   // Audit lenses — inlay cost/when/fan-out + the header audit card.
   const inlayProvider = new AuditInlayHintsProvider(service);
+  const xrayProvider = new XrayInlayProvider();
   const lensProvider = new AuditCodeLensProvider(service);
   context.subscriptions.push(
     inlayProvider,
     lensProvider,
     languages.registerInlayHintsProvider([{ language: 'nika' }], inlayProvider),
+    languages.registerInlayHintsProvider([{ language: 'nika' }], xrayProvider),
+    traceStore.onDidUpdate(() => xrayProvider.refresh()),
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
     new VerbGutterDecorations(),

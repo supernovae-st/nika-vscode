@@ -467,6 +467,11 @@
           "default": true,
           "description": "The open DAG panel re-targets when you switch to another .nika.yaml (debounced)."
         },
+        "nika.editor.xray": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ghost values: inlay hints show what each ${{ tasks.x… }} ref resolved to in the last matching recorded run."
+        },
         "nika.editor.runHighlight": {
           "type": "boolean",
           "default": true,
