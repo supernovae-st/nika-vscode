@@ -5,6 +5,26 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### Diff v2 · the cross-run grid · housekeeping
+
+- **Diff v2 — output changes + the first divergence.** The run diff now
+  compares recorded outputs (0.94 journals): same status but different
+  data paints « ≠ output » (key-stable equality; a missing record never
+  claims a change). The FIRST task whose story diverged — status flip
+  or output change, never a timing wobble — is named in the feed and
+  centered on the canvas: everything downstream of it is suspect.
+- **`Nika: Run History` — the cross-run grid.** Tasks × the last 12
+  matching runs: every cell a recorded terminal status (⚡ cache-hit),
+  flaky tasks called out (mixed outcomes in the window — a fact), and
+  slowdown callouts vs the window median (15% noise floor, ≥3 samples).
+- **Journal housekeeping.** `nika.traces.keep` (default 200) prunes the
+  workflow's journal dir before each run — newest always survive. The
+  first journal in a workspace offers `.gitignore` coverage once
+  (asked, remembered — never a silent edit).
+- **Fork finds its workflow.** Fork-from-step resolves the matching
+  workflow itself (active doc, then the workspace, majority-overlap
+  law) and opens it — only a true no-match refuses.
+
 ### The user-POV review pass + the retry ladder
 
 - **The retry ladder.** Failures grow their per-attempt story (each
