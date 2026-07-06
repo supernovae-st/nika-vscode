@@ -21,9 +21,11 @@ import {
   EXIT,
   graphDocToDag,
   isGraphDoc,
+  parseCatalogModels,
   parseCheckReport,
   parseTemplateSet,
   parseToolCategories,
+  type CatalogModel,
   type CheckReport,
   type DagGraph,
   type GraphDoc,
@@ -109,6 +111,14 @@ export class NikaService {
     return this.toolCatsValue;
   }
 
+  private catalogModelsValue: Record<string, CatalogModel[]> | undefined;
+
+  /** Provider → exact model rows (`nika catalog --json` · engine ≥0.94).
+   *  Undefined on older binaries — the picker keeps free typing. */
+  get catalogModels(): Record<string, CatalogModel[]> | undefined {
+    return this.catalogModelsValue;
+  }
+
   /** Set (or clear) the resolved binary and re-probe its surface. */
   async setBinary(binaryPath: string | undefined): Promise<void> {
     this.binary = binaryPath;
@@ -148,14 +158,22 @@ export class NikaService {
       this.changeEmitter.fire();
     }
 
-    // Tool categories from the binary (engine ≥0.94 · E1). Older binaries
-    // fail the spawn or the parse — the presentation fallback holds.
+    // The binary's own vocabulary (engine ≥0.94 · E1): tool categories
+    // + the exact per-provider model rows. Older binaries fail the
+    // spawn or the parse — every consumer keeps its fallback.
     this.toolCatsValue = undefined;
-    const toolsRes = await this.spawnCli(binaryPath, ['tools', '--json'], 10000);
+    this.catalogModelsValue = undefined;
+    const [toolsRes, catalogRes] = await Promise.all([
+      this.spawnCli(binaryPath, ['tools', '--json'], 10000),
+      this.spawnCli(binaryPath, ['catalog', '--json'], 10000),
+    ]);
     if (toolsRes.code === 0) {
       this.toolCatsValue = parseToolCategories(toolsRes.stdout);
-      if (this.toolCatsValue) { this.changeEmitter.fire(); }
     }
+    if (catalogRes.code === 0) {
+      this.catalogModelsValue = parseCatalogModels(catalogRes.stdout);
+    }
+    if (this.toolCatsValue || this.catalogModelsValue) { this.changeEmitter.fire(); }
   }
 
   invalidate(uriString: string): void {

@@ -260,6 +260,57 @@ function normalizeCost(raw: unknown): CostCeiling {
   return { ...(c as object), tasks: Array.isArray(c.tasks) ? (c.tasks as TaskCost[]) : [] } as CostCeiling;
 }
 
+/** One catalog model, picker-ready: the full id + a one-line fact. */
+export interface CatalogModel {
+  /** The runnable model id (`claude-sonnet-4-20250514`). */
+  model: string;
+  /** `200k ctx · reasoning · vision · json:schema` — facts only, may be empty. */
+  desc: string;
+}
+
+/**
+ * Parse `nika catalog --json` (catalog_version 1 · additive-only) into
+ * provider → picker-ready model rows. Providers with no models are
+ * dropped (the canon list stays the picker's skeleton — the catalog
+ * only ENRICHES the step-2 choice). Undefined on garbage, wrong
+ * envelope, or an empty map — callers keep the free-typed fallback.
+ */
+export function parseCatalogModels(stdout: string): Record<string, CatalogModel[]> | undefined {
+  try {
+    const v = JSON.parse(stdout) as Record<string, unknown>;
+    if (typeof v !== 'object' || v === null || !Array.isArray(v.providers)) { return undefined; }
+    const out: Record<string, CatalogModel[]> = {};
+    for (const entry of v.providers as unknown[]) {
+      if (typeof entry !== 'object' || entry === null) { continue; }
+      const p = entry as Record<string, unknown>;
+      if (typeof p.id !== 'string' || !Array.isArray(p.models)) { continue; }
+      const rows: CatalogModel[] = [];
+      for (const m of p.models as unknown[]) {
+        if (typeof m !== 'object' || m === null) { continue; }
+        const mm = m as Record<string, unknown>;
+        if (typeof mm.model !== 'string' || mm.model.length === 0) { continue; }
+        const facts: string[] = [];
+        if (typeof mm.context_window_tokens === 'number' && mm.context_window_tokens > 0) {
+          facts.push(`${Math.round(mm.context_window_tokens / 1000)}k ctx`);
+        }
+        const caps = (typeof mm.capabilities === 'object' && mm.capabilities !== null)
+          ? mm.capabilities as Record<string, unknown>
+          : {};
+        if (caps.reasoning === true) { facts.push('reasoning'); }
+        if (caps.vision === true) { facts.push('vision'); }
+        if (typeof caps.json_mode === 'string' && caps.json_mode.length > 0) {
+          facts.push(`json:${caps.json_mode}`);
+        }
+        rows.push({ model: mm.model, desc: facts.join(' · ') });
+      }
+      if (rows.length > 0) { out[p.id] = rows; }
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Parse `nika tools --json` (tools_version 1 · additive-only envelope)
  * into a BARE-name → kebab-category map (`log → core`). Entries without

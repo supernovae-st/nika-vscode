@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   graphDocToDag,
   isGraphDoc,
+  parseCatalogModels,
   parseCheckReport,
   parseToolCategories,
   collectFindings,
@@ -219,6 +220,53 @@ describe('parseToolCategories (nika tools --json · v1 envelope)', () => {
       tools: [{ name: 'nika:jq', category: 'data', args: ['expression'], extra: true }],
     });
     expect(parseToolCategories(stdout)).toEqual({ jq: 'data' });
+  });
+});
+
+describe('parseCatalogModels (nika catalog --json · v1 envelope)', () => {
+  const CATALOG = JSON.stringify({
+    catalog_version: 1,
+    providers: [
+      {
+        id: 'anthropic',
+        models: [
+          {
+            id: 'sonnet',
+            model: 'claude-sonnet-4-20250514',
+            context_window_tokens: 200000,
+            max_output_tokens: 8192,
+            capabilities: { reasoning: true, vision: true, json_mode: 'schema' },
+          },
+          { id: 'haiku', model: 'claude-haiku-4-5', context_window_tokens: 200000, capabilities: { vision: false } },
+        ],
+      },
+      { id: 'empty-provider', models: [] },
+    ],
+  });
+
+  it('maps provider → picker-ready model rows (ctx + capability line)', () => {
+    const cat = parseCatalogModels(CATALOG)!;
+    expect(Object.keys(cat)).toEqual(['anthropic']); // empty providers dropped
+    expect(cat.anthropic).toHaveLength(2);
+    expect(cat.anthropic[0].model).toBe('claude-sonnet-4-20250514');
+    expect(cat.anthropic[0].desc).toBe('200k ctx · reasoning · vision · json:schema');
+    expect(cat.anthropic[1].desc).toBe('200k ctx');
+  });
+
+  it('is undefined on garbage, wrong envelope, or an empty map', () => {
+    expect(parseCatalogModels('')).toBeUndefined();
+    expect(parseCatalogModels('nika 0.92.0')).toBeUndefined();
+    expect(parseCatalogModels('{"tools_version":1}')).toBeUndefined();
+    expect(parseCatalogModels('{"catalog_version":1,"providers":[]}')).toBeUndefined();
+  });
+
+  it('ignores unknown fields and odd ctx values (additive-only contract)', () => {
+    const cat = parseCatalogModels(JSON.stringify({
+      catalog_version: 1,
+      future: true,
+      providers: [{ id: 'x', extra: 1, models: [{ model: 'm-1', novel_field: 2 }] }],
+    }))!;
+    expect(cat.x[0]).toEqual({ model: 'm-1', desc: '' });
   });
 });
 

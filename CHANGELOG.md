@@ -5,6 +5,15 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The binary's own model catalog in the picker (E1 closed)
+
+- The model picker's second step now lists the **exact runnable model
+  ids** from `nika catalog --json` (engine ≥0.94) with the facts that
+  matter — `200k ctx · reasoning · vision · json:schema` — the current
+  model marked, `✎ custom…` one row away. The canon provider list
+  stays step 1's skeleton (local providers keep free typing); older
+  binaries keep the previous flow untouched.
+
 ### Readable at every distance — semantic zoom + insert-on-edge
 
 - **The far zoom is a real map now** (DESIGN.md §6c). Below ~30% the

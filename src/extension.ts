@@ -205,6 +205,32 @@ async function pickModel(
     provider = picked.provider;
   }
 
+  // Step 2 — the binary's OWN model rows when it exports them (engine
+  // ≥0.94 `catalog --json`): exact runnable ids with the facts that
+  // matter (ctx window · reasoning · vision · json mode). Free typing
+  // stays one row away — and is the whole step on older binaries or
+  // catalog-less providers (the local five).
+  const rows = provider ? service.catalogModels?.[provider] : undefined;
+  if (provider && rows && rows.length > 0) {
+    interface ModelItem extends QuickPickItem { value?: string; custom?: boolean }
+    const modelItems: ModelItem[] = rows.map((r) => ({
+      label: r.model,
+      description: [r.desc, current === `${provider}/${r.model}` ? 'current' : undefined]
+        .filter(Boolean).join('  ·  '),
+      value: `${provider}/${r.model}`,
+    }));
+    modelItems.push(
+      { label: '', kind: QuickPickItemKind.Separator },
+      { label: '✎ custom…', description: 'type any provider/model', custom: true },
+    );
+    const picked = await window.showQuickPick(modelItems, {
+      title: `Model for \`${taskId}\` — ${provider}`,
+      placeHolder: current ?? 'exact ids from the binary’s catalog',
+    });
+    if (!picked) { return undefined; }
+    if (!picked.custom) { return picked.value; }
+  }
+
   const value = await window.showInputBox({
     title: `Model for \`${taskId}\``,
     prompt: 'provider/model — resolved by the engine at run time',
