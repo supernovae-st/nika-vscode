@@ -257,6 +257,11 @@
         "icon": "$(diff)"
       },
       {
+        "command": "nika.exportOtel",
+        "title": "Nika: Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
+        "icon": "$(telescope)"
+      },
+      {
         "command": "nika.rerunTask",
         "title": "Nika: Re-run Task (and its upstream)",
         "icon": "$(debug-restart)"
@@ -592,6 +597,11 @@
           "command": "nika.diffTraces",
           "when": "view == nikaRuns && viewItem == nikaTrace",
           "group": "inline"
+        },
+        {
+          "command": "nika.exportOtel",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "nika@3"
         },
         {
           "command": "nika.forkFromTask",

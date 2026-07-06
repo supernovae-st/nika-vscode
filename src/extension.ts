@@ -1711,6 +1711,37 @@ export function activate(context: ExtensionContext): void {
     // Command: diff two recorded runs on the DAG ("why is this run 3x
     // slower"). First pick = BASE (reference) · second = COMPARE (under
     // scrutiny). Paints compare's statuses + movement badges vs base.
+    // Command: export a recorded run to OTLP/JSON lines — every OTel tool
+    // (Jaeger drag-drop · Aspire · Grafana · Langfuse) becomes a nika
+    // viewer. Pure projection via `nika trace export`; file lands beside
+    // the journal, sovereign, zero collector.
+    commands.registerCommand('nika.exportOtel', async (arg?: Uri | { trace?: { uri: Uri } }) => {
+      const target = arg instanceof Uri ? arg : arg?.trace?.uri;
+      if (!target) {
+        void window.showInformationMessage('Nika: pick a run in the Runs view to export.');
+        return;
+      }
+      const res = await service.runCli(['trace', 'export', target.fsPath], 15000);
+      if (res.code !== 0) {
+        const noise = (res.stderr || res.stdout).trim();
+        // A binary older than the verb: say so instead of parroting clap.
+        const msg = /unrecognized subcommand|unexpected argument/.test(noise)
+          ? 'Nika: this engine predates `trace export` — update nika (brew upgrade nika).'
+          : `Nika: export failed — ${noise.slice(0, 200)}`;
+        void window.showErrorMessage(msg);
+        return;
+      }
+      const out = target.fsPath.replace(/\.ndjson$/, '.otlp.jsonl');
+      const pick = await window.showInformationMessage(
+        'Nika: OTel trace exported — drag it into Jaeger UI, or POST to any OTLP endpoint.',
+        'Reveal', 'Copy Path',
+      );
+      if (pick === 'Reveal') { void commands.executeCommand('revealFileInOS', Uri.file(out)); }
+      if (pick === 'Copy Path') { await env.clipboard.writeText(out); }
+    }),
+  );
+
+  context.subscriptions.push(
     commands.registerCommand('nika.diffTraces', async (uri?: Uri) => {
       const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
       const files = await workspace.findFiles(glob, '**/node_modules/**', 50);
