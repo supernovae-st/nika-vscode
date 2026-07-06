@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { extractRunArtifacts, humanBytes, type RunArtifact } from '../core/artifacts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
@@ -19,6 +20,8 @@ interface TraceFile {
   uri: vscode.Uri;
   mtimeMs: number;
   model: RunModel;
+  /** Media/file outputs recovered from the raw trace (assets-not-blobs). */
+  artifacts: Map<string, RunArtifact[]>;
 }
 
 /**
@@ -114,12 +117,28 @@ class TraceItem extends vscode.TreeItem {
 }
 
 class TraceTaskItem extends vscode.TreeItem {
-  constructor(taskId: string, status: string, durationMs?: number, retries?: number) {
-    super(taskId, vscode.TreeItemCollapsibleState.None);
+  constructor(
+    taskId: string,
+    status: string,
+    durationMs?: number,
+    retries?: number,
+    readonly artifacts: RunArtifact[] = [],
+  ) {
+    super(
+      taskId,
+      artifacts.length > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None,
+    );
     const dur = durationMs !== undefined
       ? durationMs >= 1000 ? `${(durationMs / 1000).toFixed(1)}s` : `${durationMs}ms`
       : undefined;
-    this.description = [status, dur, retries ? `↻${retries}` : undefined]
+    this.description = [
+      status,
+      dur,
+      retries ? `↻${retries}` : undefined,
+      artifacts.length > 0 ? `${artifacts.length} artifact${artifacts.length > 1 ? 's' : ''}` : undefined,
+    ]
       .filter(Boolean)
       .join(' · ');
     this.iconPath = new vscode.ThemeIcon(
@@ -132,6 +151,43 @@ class TraceTaskItem extends vscode.TreeItem {
       : status === 'running' ? 'sync'
       : 'circle-outline',
     );
+  }
+}
+
+/**
+ * One recovered output on disk — click opens it in the editor's own
+ * viewer (image preview · audio player · text). The tooltip carries the
+ * provenance link nobody ships: artifact ↔ producing task ↔ model.
+ */
+class ArtifactItem extends vscode.TreeItem {
+  constructor(a: RunArtifact) {
+    super(path.basename(a.path), vscode.TreeItemCollapsibleState.None);
+    this.resourceUri = vscode.Uri.file(
+      path.isAbsolute(a.path)
+        ? a.path
+        : path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', a.path),
+    );
+    this.description = [
+      a.label,
+      a.bytes !== undefined ? humanBytes(a.bytes) : undefined,
+      a.durationMs !== undefined ? `${(a.durationMs / 1000).toFixed(1)}s` : undefined,
+    ].filter(Boolean).join(' · ');
+    this.iconPath = new vscode.ThemeIcon(
+      a.kind === 'image' ? 'file-media' : a.kind === 'audio' ? 'music' : 'file',
+    );
+    this.contextValue = 'nikaArtifact';
+    const md = new vscode.MarkdownString(undefined, true);
+    md.appendMarkdown(`**${path.basename(a.path)}**\n\n`);
+    md.appendMarkdown(`produced by \`${a.taskId}\``);
+    if (a.model || a.provider) {
+      const origin = a.model && a.provider && !a.model.startsWith(`${a.provider}/`)
+        ? `${a.provider}/${a.model}`
+        : (a.model ?? a.provider);
+      md.appendMarkdown(` · ${origin}`);
+    }
+    md.appendMarkdown(`\n\n\`${a.path}\``);
+    this.tooltip = md;
+    this.command = { command: 'vscode.open', title: 'Open', arguments: [this.resourceUri] };
   }
 }
 
@@ -150,8 +206,14 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (element instanceof TraceItem) {
       return [...element.trace.model.tasks.values()].map(
-        (t) => new TraceTaskItem(t.id, t.status, t.durationMs, t.retries),
+        (t) => new TraceTaskItem(
+          t.id, t.status, t.durationMs, t.retries,
+          element.trace.artifacts.get(t.id) ?? [],
+        ),
       );
+    }
+    if (element instanceof TraceTaskItem) {
+      return element.artifacts.map((a) => new ArtifactItem(a));
     }
     if (element) { return []; }
 
@@ -165,7 +227,12 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
       try {
         const stat = fs.statSync(uri.fsPath);
         const content = fs.readFileSync(uri.fsPath, 'utf-8');
-        traces.push({ uri, mtimeMs: stat.mtimeMs, model: foldTrace(content) });
+        traces.push({
+          uri,
+          mtimeMs: stat.mtimeMs,
+          model: foldTrace(content),
+          artifacts: extractRunArtifacts(content),
+        });
       } catch {
         // unreadable trace — skip, never fail the tree
       }
