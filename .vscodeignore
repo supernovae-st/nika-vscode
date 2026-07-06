@@ -18,3 +18,5 @@ out-integration/**
 .vscode-test/**
 tsconfig.integration.json
 src/test-integration/**
+eslint.config.mjs
+AGENTS.md

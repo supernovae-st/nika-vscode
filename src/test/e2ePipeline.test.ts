@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { diffRuns, summarizeDiff } from '../core/runDiff';
-import { foldTrace, type RunModel } from '../core/traceFold';
+import { foldTrace, summarizeRun, type RunModel } from '../core/traceFold';
 import { buildTraceTimeline, statesAt } from '../core/traceTimeline';
 
 const DIR = join(__dirname, 'fixtures', 'b1-writer');
@@ -105,5 +105,40 @@ describe('writer traces → run-diff (the differentiator on real wire)', () => {
     expect(diff.counts.statusChanged).toBeGreaterThan(0);
     expect(diff.tasks[0].kind).toBe('status-changed');
     expect(summarizeDiff(diff)).toMatch(/status/);
+  });
+});
+
+// ─── A REAL LOCAL RUN (ollama/qwen3.5:4b · release binary 0.95.0) ────────────
+// The mock fixtures above prove the wire's SHAPE; this one pins the wire's
+// LOCAL truth — recorded 2026-07-06 from `nika run` (release 0.95.0) against
+// a live Ollama serving qwen3.5:4b: 1149 real tokens, an 82.9s infer (the
+// thinking-model class the 180s provider deadline exists for), and NO
+// cost_usd anywhere — a sovereign model is « unpriced », never « $0.00 paid ».
+// If the reader ever misreads absent-cost as zero-cost (or chokes on a
+// minute-long duration), THIS goes red.
+describe('a real local run → the fold (sovereign wire truth)', () => {
+  const model = foldTrace(
+    readFileSync(join(__dirname, 'fixtures', 'local-real', 'chain-ollama-qwen35-4b.ndjson'), 'utf8'),
+  );
+
+  it('folds clean: completed, 3 tasks, zero unknown lines', () => {
+    expect(model.workflowStatus).toBe('completed');
+    expect(model.tasks.size).toBe(3);
+    expect(model.unknownLines).toBe(0);
+  });
+
+  it('carries the real token count but NO dollar figure — local is unpriced', () => {
+    expect(model.totalTokens).toBeGreaterThan(1000);
+    expect(model.totalUsd).toBeUndefined();
+    const card = summarizeRun(model);
+    expect(card).toContain('tok');
+    expect(card).not.toContain('$');
+  });
+
+  it('survives a minute-scale infer duration (the local thinking-model class)', () => {
+    const think = model.tasks.get('think');
+    expect(think?.status).toBe('success');
+    expect(think?.durationMs).toBeGreaterThan(60_000);
+    expect(summarizeRun(model)).toContain('83.0s');
   });
 });
