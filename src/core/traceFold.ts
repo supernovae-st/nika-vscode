@@ -67,6 +67,9 @@ export interface TimelineEntry {
 
 export interface RunModel {
   workflowStatus: 'unknown' | 'running' | 'completed' | 'failed' | 'cancelled' | 'paused';
+  /** workflow_started's `workflow` field — the run's name (drives the
+   *  replay-debugger's journal→source match). */
+  workflowName?: string;
   tasks: Map<string, FoldedTask>;
   totalUsd?: number;
   /** Σ `tokens` across terminal task events (the v2 wire carries them). */
@@ -106,6 +109,8 @@ interface NormalizedEvent {
   choices?: string[];
   /** workflow_started only — the run's source identity (sha256 hex). */
   workflowSha256?: string;
+  /** workflow_started only — the run's workflow name. */
+  workflowName?: string;
   /** task_skipped only — the gate's CEL text (0.95+). */
   whenExpr?: string;
   /** task_cancelled only — the culprit upstream (0.95+). */
@@ -229,6 +234,9 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       workflowSha256: typeof fields.get('workflow_sha256') === 'string'
         ? fields.get('workflow_sha256') as string
         : undefined,
+      workflowName: typeof fields.get('workflow') === 'string'
+        ? fields.get('workflow') as string
+        : undefined,
       whenExpr: typeof fields.get('when') === 'string' ? fields.get('when') as string : undefined,
       blockedBy: typeof fields.get('blocked_by') === 'string' ? fields.get('blocked_by') as string : undefined,
       mode: typeof fields.get('mode') === 'string' ? fields.get('mode') as string : undefined,
@@ -307,6 +315,9 @@ export function foldTrace(ndjson: string): RunModel {
         model.workflowStatus = 'running';
         if (ev.workflowSha256 !== undefined) {
           model.workflowSha256 = ev.workflowSha256;
+        }
+        if (ev.workflowName !== undefined) {
+          model.workflowName = ev.workflowName;
         }
         continue;
       case 'workflow_completed':

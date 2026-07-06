@@ -257,6 +257,11 @@
         "icon": "$(diff)"
       },
       {
+        "command": "nika.debugReplay",
+        "title": "Nika: Debug This Run (Replay · Time Travel)",
+        "icon": "$(debug-alt)"
+      },
+      {
         "command": "nika.exportOtel",
         "title": "Nika: Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
         "icon": "$(telescope)"
@@ -599,6 +604,11 @@
           "group": "inline"
         },
         {
+          "command": "nika.debugReplay",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "nika@2"
+        },
+        {
           "command": "nika.exportOtel",
           "when": "view == nikaRuns && viewItem == nikaTrace",
           "group": "nika@3"
@@ -798,6 +808,61 @@
       {
         "view": "nikaWorkflows",
         "contents": "No workflows in this folder yet.\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "nika"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "nika",
+        "label": "Nika Replay",
+        "languages": [
+          "nika"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "type": "object",
+            "required": [
+              "workflow",
+              "replay"
+            ],
+            "properties": {
+              "workflow": {
+                "type": "string",
+                "description": "The .nika.yaml the run executed (stack frames point here)."
+              },
+              "replay": {
+                "type": "string",
+                "description": "A recorded run journal (.nika/traces/*.ndjson) — replay never re-executes."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "nika",
+            "request": "launch",
+            "name": "Replay latest run",
+            "workflow": "${file}",
+            "replay": ""
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Nika: Replay a recorded run",
+            "description": "Time-travel debug over a .nika/traces journal (stepBack included).",
+            "body": {
+              "type": "nika",
+              "request": "launch",
+              "name": "Replay ${1:run}",
+              "workflow": "^\"\\${workspaceFolder}/${2:workflow.nika.yaml}\"",
+              "replay": "^\"\\${workspaceFolder}/${3:.nika/traces/run.ndjson}\""
+            }
+          }
+        ]
       }
     ]
   },

@@ -56,6 +56,7 @@ import { NikaStatusBar } from './features/statusBar';
 import { NikaLanguageStatus } from './features/languageStatus';
 import { WorkspaceLint } from './features/workspaceLint';
 import { registerStructureNav } from './features/structureNav';
+import { registerDebugReplay } from './features/debugReplay';
 import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
 import { registerIntel } from './features/intel';
@@ -301,6 +302,11 @@ export function activate(context: ExtensionContext): void {
 
   // The ONE seam to the binary + the capability-aware status bar.
   const service = new NikaService();
+
+  // F5 over a recorded run — the DAP replay wiring (factory · config
+  // provider · the Runs-view "Debug this run" action). The adapter IS
+  // the engine: `nika dap` over stdio.
+  registerDebugReplay(context, () => service.binaryPath);
   const statusBar = new NikaStatusBar(service);
   context.subscriptions.push(statusBar);
   // statusSink is (re)assigned below once the language-status items exist —
