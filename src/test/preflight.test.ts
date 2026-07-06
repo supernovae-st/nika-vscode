@@ -221,3 +221,28 @@ describe('preflightChipModel', () => {
     expect(chip.tip).toContain('NOT checked');
   });
 });
+
+describe('factsFromRequirements (E-REQ · the engine states the contract)', () => {
+  it('engine requirements win; permits stay client-read', async () => {
+    const { factsFromRequirements } = await import('../core/preflight');
+    const facts = factsFromRequirements({
+      models: [{ model: 'anthropic/claude-sonnet-4-6', tasks: ['digest'] }],
+      secrets: [
+        { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
+        { name: 'vault_pass', source: 'vault', key: 'prod/db' },
+      ],
+      env_reads: ['GITHUB_ORG', 'REGION'],
+      env_defined: ['REGION'],
+      vars_required: ['target_url'],
+    }, YAML);
+    expect(facts.models.get('anthropic/claude-sonnet-4-6')).toEqual(['digest']);
+    expect(facts.secrets[0]).toEqual({ name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' });
+    // vault keys are lookup paths, never env names — the adapter drops them.
+    expect(facts.secrets[1].key).toBeUndefined();
+    expect(facts.envRefs).toEqual(['GITHUB_ORG', 'REGION']);
+    expect(facts.envDefined).toEqual(['REGION']);
+    // permits still come from the YAML (client-read).
+    expect(facts.permitsDeclared).toBe(true);
+    expect(facts.permitCategories).toEqual(['net', 'exec']);
+  });
+});

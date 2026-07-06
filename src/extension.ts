@@ -87,6 +87,7 @@ import { refAt } from './core/expr';
 import {
   buildPreflight,
   collectPreflightFacts,
+  factsFromRequirements,
   parseCatalogProviders,
   preflightChipModel,
   renderPreflight,
@@ -1115,7 +1116,9 @@ export function activate(context: ExtensionContext): void {
         if (service.peekCheck(uriString)?.report !== report) { return; }
         const model = buildPreflight({
           workflowName: '',
-          facts: collectPreflightFacts(docText),
+          facts: report.requirements !== undefined
+            ? factsFromRequirements(report.requirements, docText)
+            : collectPreflightFacts(docText),
           report,
           catalog,
           envPresent: (n) => (process.env[n] ?? '').length > 0,
@@ -1435,7 +1438,9 @@ export function activate(context: ExtensionContext): void {
       }
       const md = renderPreflight(buildPreflight({
         workflowName: path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
-        facts: collectPreflightFacts(doc.getText()),
+        facts: outcome?.report?.requirements !== undefined
+          ? factsFromRequirements(outcome.report.requirements, doc.getText())
+          : collectPreflightFacts(doc.getText()),
         report: outcome?.report,
         graph,
         catalog,

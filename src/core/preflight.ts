@@ -11,7 +11,7 @@
 
 import { parseRichWorkflow } from '../workflowParser';
 import { scanRefs } from './expr';
-import type { CheckReport } from './cliContract';
+import type { CheckReport, ReportRequirements } from './cliContract';
 
 // ─── Static facts read from the YAML ────────────────────────────────────────
 
@@ -36,9 +36,29 @@ export interface PreflightFacts {
   permitsDeclared: boolean;
 }
 
+/** E-REQ adapter: the engine's own requirements section (0.95+) IS the
+ *  facts — the client parser below survives only as the <0.95 fallback.
+ *  Permits stay client-read (not part of the engine contract yet). */
+export function factsFromRequirements(req: ReportRequirements, text: string): PreflightFacts {
+  const clientFacts = collectPreflightFacts(text);
+  return {
+    secrets: req.secrets.map((s) => ({
+      name: s.name,
+      source: s.source,
+      key: s.source === 'env' ? s.key : undefined,
+    })),
+    envDefined: req.env_defined,
+    envRefs: req.env_reads,
+    models: new Map(req.models.map((m) => [m.model, m.tasks])),
+    permitCategories: clientFacts.permitCategories,
+    permitsDeclared: clientFacts.permitsDeclared,
+  };
+}
+
 /**
  * Line-based tolerant read of the envelope blocks preflight cares about.
- * Never throws; a half-typed file yields partial facts.
+ * Never throws; a half-typed file yields partial facts — and it is the
+ * FALLBACK: an engine that states requirements (E-REQ · 0.95+) wins.
  */
 export function collectPreflightFacts(text: string): PreflightFacts {
   const lines = text.split('\n');

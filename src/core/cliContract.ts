@@ -242,6 +242,15 @@ export interface ReportDagAnalysis {
   blast_radius: Array<{ task: string; blocks: number }>;
 }
 
+/** E-REQ (0.95+): the caller contract, stated by the checker itself. */
+export interface ReportRequirements {
+  models: Array<{ model: string; tasks: string[] }>;
+  secrets: Array<{ name: string; source: string; key: string }>;
+  env_reads: string[];
+  env_defined: string[];
+  vars_required: string[];
+}
+
 export interface CheckReport {
   report_version: number;
   clean?: boolean;
@@ -263,6 +272,9 @@ export interface CheckReport {
   hints: CheckHint[];
   /** Engine DAG read (width · pinch · blast) — absent on older binaries. */
   analysis?: ReportDagAnalysis;
+  /** The caller contract (models · secrets · env split · required vars) —
+   *  absent on pre-0.95 binaries; the client parser is the fallback. */
+  requirements?: ReportRequirements;
 }
 
 /**
