@@ -193,6 +193,10 @@ export interface ConformanceViolation {
   code: string;
   message: string;
   span?: ByteSpan | null;
+  /** Engine-stamped severity (E4 wire · engine ≥0.94) — absent before. */
+  severity?: string;
+  /** Engine-stamped per-code docs page (`https://nika.sh/errors/<CODE>`). */
+  docs_url?: string;
 }
 
 export interface TaskCost {
@@ -336,6 +340,9 @@ export interface UnifiedFinding {
   fix?: string;
   /** Did-you-mean replacement, when the report suggests one. */
   suggestion?: string;
+  /** Engine-stamped docs page for the code — preferred over any
+   *  client-derived URL when present (one truth, the engine's). */
+  docsUrl?: string;
 }
 
 /** Failure-class finding count (hints excluded — they never fail a check). */
@@ -363,12 +370,18 @@ export function collectFindings(report: CheckReport): UnifiedFinding[] {
   const out: UnifiedFinding[] = [];
 
   for (const c of report.conformance) {
+    // Engine-stamped severity wins (E4 wire); an unknown future name
+    // degrades to error — a finding never silently softens.
+    const stamped = c.severity === 'warning' || c.severity === 'info' || c.severity === 'error'
+      ? c.severity
+      : 'error';
     out.push({
       source: 'conformance',
       code: c.code,
       message: c.message,
-      severity: 'error',
+      severity: stamped,
       span: c.span ?? undefined,
+      docsUrl: typeof c.docs_url === 'string' && c.docs_url.length > 0 ? c.docs_url : undefined,
     });
   }
   for (const l of report.secret_leaks) {

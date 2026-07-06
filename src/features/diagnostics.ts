@@ -322,9 +322,14 @@ export class DiagnosticsController implements vscode.Disposable {
           if (lspOwns) { continue; } // the server paints these
           const d = new vscode.Diagnostic(range, f.message, severityOf(f));
           d.source = NIKA_DIAG_SOURCE;
-          d.code = f.code.startsWith('NIKA-')
-            ? { value: f.code, target: vscode.Uri.parse(`https://nika.sh/errors/${f.code}`) }
-            : f.code;
+          // The engine-stamped docs_url wins (E4 wire · ≥0.94); older
+          // binaries fall back to the derived register URL — same page,
+          // the engine's word simply outranks the client's derivation.
+          d.code = f.docsUrl
+            ? { value: f.code, target: vscode.Uri.parse(f.docsUrl) }
+            : f.code.startsWith('NIKA-')
+              ? { value: f.code, target: vscode.Uri.parse(`https://nika.sh/errors/${f.code}`) }
+              : f.code;
           // DAG-003 names two tasks — light the producer's declaration so
           // the Problems panel walks the user to both ends of the wire.
           if (f.code === 'NIKA-DAG-003') {

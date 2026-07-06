@@ -128,6 +128,30 @@ describe('parseCheckReport + collectFindings', () => {
     const errors = findings.filter((f) => f.severity === 'error');
     expect(errors).toHaveLength(7); // everything except the hint
   });
+
+  it('prefers the engine-stamped severity + docs_url (E4 wire · ≥0.94)', () => {
+    const report = parseCheckReport(JSON.stringify({
+      report_version: 1,
+      conformance: [
+        {
+          code: 'NIKA-DAG-002',
+          message: 'cycle detected',
+          severity: 'warning',
+          docs_url: 'https://nika.sh/errors/NIKA-DAG-002',
+        },
+        // Unknown severity name from a future engine → degrade to error,
+        // never crash; absent docs_url stays absent (client fallback).
+        { code: 'NIKA-VAR-001', message: 'unresolved', severity: 'fatal-9000' },
+      ],
+      waves: [],
+      cost: { tasks: [] },
+    })!);
+    const [warned, degraded] = collectFindings(report!);
+    expect(warned.severity).toBe('warning');
+    expect(warned.docsUrl).toBe('https://nika.sh/errors/NIKA-DAG-002');
+    expect(degraded.severity).toBe('error');
+    expect(degraded.docsUrl).toBeUndefined();
+  });
 });
 
 describe('byteOffsetToPosition', () => {

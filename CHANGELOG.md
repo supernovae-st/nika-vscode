@@ -5,6 +5,16 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The engine's word on findings — severity + docs_url (E4 wire)
+
+- `check --json` conformance findings from engine ≥0.94 stamp their own
+  `severity` and `docs_url` (nika PR #184); the extension now prefers
+  both — an engine-stamped severity drives the squiggle (unknown future
+  names degrade to error, never soften), and the diagnostic code links
+  to the engine's own URL. Older binaries keep the derived
+  `nika.sh/errors/<CODE>` fallback — same register page either way
+  (shipped on nika.sh in this arc: `/errors` + `/errors/:code`).
+
 ### Canvas quick wins — duplicate ⌘D · the binary's own tool vocabulary
 
 - **Duplicate a task** — `⌘D`/`Ctrl+D` on the focused card, or the `⧉ dup`
