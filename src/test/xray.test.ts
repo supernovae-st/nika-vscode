@@ -57,6 +57,17 @@ describe('xrayHintsForText', () => {
     expect(hints[0].label).toBe(' = "Hello HN"');
     expect(hints[1].label.startsWith(' = {"title"')).toBe(true);
     // ghost (never ran) and silent (no recorded output) yield NOTHING.
+    // The hint lands AFTER the island's closing `}}`, never inside it.
+    for (const h of hints) {
+      expect(yaml.slice(h.offset - 2, h.offset)).toBe('}}');
+    }
+  });
+
+  it('an unclosed island (still being typed) keeps the ref-end offset', () => {
+    const yaml = 'prompt: "${{ tasks.fetch.output.title';
+    const hints = xrayHintsForText(yaml, outputs);
+    expect(hints).toHaveLength(1);
+    expect(yaml.slice(0, hints[0].offset).endsWith('title')).toBe(true);
   });
 
   it('status refs are not recorded values — no invention', () => {

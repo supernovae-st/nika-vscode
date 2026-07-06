@@ -7,7 +7,7 @@
 // no recorded value → no hint (never a guess); values the engine
 // masked stay masked; previews truncate loudly with an ellipsis.
 
-import { scanRefs } from './expr';
+import { scanIslands, scanRefs } from './expr';
 
 /** Parsed recorded outputs per task (JSON value, or the raw string). */
 export function parseTraceOutputs(ndjson: string): Map<string, unknown> {
@@ -97,6 +97,14 @@ export interface XrayHint {
  */
 export function xrayHintsForText(text: string, outputs: Map<string, unknown>): XrayHint[] {
   const hints: XrayHint[] = [];
+  // The hint reads best AFTER the closing `}}` — `${{ tasks.x }} = "v"`,
+  // not wedged between the path and the braces. Unclosed islands (still
+  // being typed) keep the ref end.
+  const islands = scanIslands(text);
+  const hintOffsetFor = (refStart: number, refEnd: number): number => {
+    const island = islands.find((i) => i.start <= refStart && refEnd <= i.end);
+    return island === undefined || island.unclosed ? refEnd : island.end;
+  };
   for (const ref of scanRefs(text)) {
     if (ref.root !== 'tasks' || ref.path.length === 0) { continue; }
     const taskId = ref.path[0];
@@ -121,7 +129,7 @@ export function xrayHintsForText(text: string, outputs: Map<string, unknown>): X
       full = label;
     }
     if (full.length > 2000) { full = `${full.slice(0, 2000)}…`; }
-    hints.push({ offset: ref.end, label: ` = ${label}`, full });
+    hints.push({ offset: hintOffsetFor(ref.start, ref.end), label: ` = ${label}`, full });
   }
   return hints;
 }

@@ -163,20 +163,32 @@ class TraceTaskItem extends vscode.TreeItem {
  * provenance link nobody ships: artifact ↔ producing task ↔ model.
  */
 class ArtifactItem extends vscode.TreeItem {
-  constructor(a: RunArtifact) {
+  constructor(a: RunArtifact, traceUri?: vscode.Uri) {
     super(path.basename(a.path), vscode.TreeItemCollapsibleState.None);
-    this.resourceUri = vscode.Uri.file(
-      path.isAbsolute(a.path)
-        ? a.path
-        : path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', a.path),
-    );
+    // Recorded paths are usually run-cwd relative. The run cwd for
+    // `<cwd>/.nika/traces/x.ndjson` is the trace dir's grandparent —
+    // try it first, then the workspace roots. An artifact that resolves
+    // NOWHERE says so instead of opening a phantom.
+    const candidates = path.isAbsolute(a.path)
+      ? [a.path]
+      : [
+        ...(traceUri ? [path.join(path.dirname(path.dirname(path.dirname(traceUri.fsPath))), a.path)] : []),
+        ...(vscode.workspace.workspaceFolders ?? []).map((f) => path.join(f.uri.fsPath, a.path)),
+      ];
+    const resolved = candidates.find((c) => {
+      try { return fs.existsSync(c); } catch { return false; }
+    });
     this.description = [
       a.label,
       a.bytes !== undefined ? humanBytes(a.bytes) : undefined,
       a.durationMs !== undefined ? `${(a.durationMs / 1000).toFixed(1)}s` : undefined,
+      resolved === undefined ? 'missing on disk' : undefined,
     ].filter(Boolean).join(' · ');
     this.iconPath = new vscode.ThemeIcon(
-      a.kind === 'image' ? 'file-media' : a.kind === 'audio' ? 'music' : 'file',
+      resolved === undefined ? 'warning'
+      : a.kind === 'image' ? 'file-media'
+      : a.kind === 'audio' ? 'music'
+      : 'file',
     );
     this.contextValue = 'nikaArtifact';
     const md = new vscode.MarkdownString(undefined, true);
@@ -189,8 +201,14 @@ class ArtifactItem extends vscode.TreeItem {
       md.appendMarkdown(` · ${origin}`);
     }
     md.appendMarkdown(`\n\n\`${a.path}\``);
+    if (resolved === undefined) {
+      md.appendMarkdown('\n\n$(warning) recorded here, but not found on disk (moved or cleaned?)');
+    }
     this.tooltip = md;
-    this.command = { command: 'vscode.open', title: 'Open', arguments: [this.resourceUri] };
+    if (resolved !== undefined) {
+      this.resourceUri = vscode.Uri.file(resolved);
+      this.command = { command: 'vscode.open', title: 'Open', arguments: [this.resourceUri] };
+    }
   }
 }
 
@@ -217,7 +235,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
       );
     }
     if (element instanceof TraceTaskItem) {
-      return element.artifacts.map((a) => new ArtifactItem(a));
+      return element.artifacts.map((a) => new ArtifactItem(a, element.traceUri));
     }
     if (element) { return []; }
 

@@ -98,7 +98,8 @@ export function renderRunReport(inputs: RunReportInputs): string {
           const abs = inputs.resolvePath?.(a.path);
           if (abs !== undefined) {
             out.push('');
-            out.push(`  ![${a.label ?? 'image'} — ${taskId}](file://${abs})`);
+            // Angle-bracket destination — paths with spaces stay one URL.
+            out.push(`  ![${a.label ?? 'image'} — ${taskId}](<file://${abs}>)`);
             out.push('');
           }
         }

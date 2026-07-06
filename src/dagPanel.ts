@@ -182,6 +182,9 @@ export class DagPanel implements vscode.Disposable {
   public endReplay(): void {
     this.replayActive = false;
     this.postMessage({ kind: 'dag:replayEnd' });
+    // A closed replay leaves no « currently executing » — the YAML
+    // highlight must not survive the timeline it came from.
+    this.onTransportTick?.([]);
   }
 
   /** Push the static cost forecast for the run pill (null clears it).
@@ -464,6 +467,7 @@ export class DagPanel implements vscode.Disposable {
   public clearTransport(): void {
     this.pendingTransport = undefined;
     this.postMessage({ kind: 'transport:clear' });
+    this.onTransportTick?.([]);
   }
 
   /** Recent workflows for the welcome (empty canvas resume list). */

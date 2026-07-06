@@ -56,7 +56,7 @@ describe('renderRunReport', () => {
       traceName: 'x', model, artifacts,
       resolvePath: (p) => `/abs/${p}`,
     });
-    expect(withResolver).toContain('![image — render](file:///abs/out/a.png)');
+    expect(withResolver).toContain('![image — render](<file:///abs/out/a.png>)');
     const without = renderRunReport({ traceName: 'x', model, artifacts });
     expect(without).not.toContain('![');
   });

@@ -335,12 +335,15 @@ export function preflightChipModel(m: PreflightModel): PreflightChip {
       tip: `${bits.join(' · ')} — review before running.\n\nClick for the flight plan.`,
     };
   }
+  // A ✓ that verified nothing is a soft lie: unknown-provider models
+  // (no catalog on this binary) demote the verdict to a neutral dot.
+  const unknown = m.modelRows.filter((r) => r.status === 'unknown').length;
   const facts: string[] = [];
-  if (m.modelRows.length > 0) { facts.push(`${m.modelRows.length} model${m.modelRows.length > 1 ? 's' : ''} ok`); }
+  if (m.modelRows.length > 0) { facts.push(`${m.modelRows.length} model${m.modelRows.length > 1 ? 's' : ''}${unknown > 0 ? ` (${unknown} key${unknown > 1 ? 's' : ''} NOT checked — catalog unavailable)` : ' ok'}`); }
   if (m.secretRows.length > 0) { facts.push(`${m.secretRows.length} secret${m.secretRows.length > 1 ? 's' : ''}`); }
   facts.push(m.permits.declared ? 'boundary declared' : 'engine-floor permits');
   return {
-    text: '✓ preflight',
+    text: unknown > 0 ? '· preflight' : '✓ preflight',
     cls: 'ok',
     tip: `${facts.join(' · ')}\n\nClick for the flight plan.`,
   };

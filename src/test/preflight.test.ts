@@ -211,4 +211,13 @@ describe('preflightChipModel', () => {
     expect(preflightChipModel(base({ permits: { declared: true, categories: [], escapes: 1, leaks: 0, egresses: 0 } })).cls).toBe('warn');
     expect(preflightChipModel(base({}))).toMatchObject({ cls: 'ok', text: '✓ preflight' });
   });
+
+  it('unknown-provider models demote the ✓ to a neutral dot — never a lying green check', async () => {
+    const { preflightChipModel } = await import('../core/preflight');
+    const chip = preflightChipModel(base({
+      modelRows: [{ model: 'custom/x', tasks: ['a'], status: 'unknown', detail: '' }],
+    }));
+    expect(chip.text).toBe('· preflight');
+    expect(chip.tip).toContain('NOT checked');
+  });
 });

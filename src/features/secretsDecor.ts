@@ -29,6 +29,9 @@ export function registerSecretsDecor(context: vscode.ExtensionContext): void {
     const marked = new Set<string>();
     for (const ref of scanRefs(text)) {
       if (ref.root !== 'env' || ref.path.length === 0) { continue; }
+      // A ref living in a YAML comment is documentation, not a read.
+      const lineStart = text.lastIndexOf('\n', ref.start) + 1;
+      if (text.slice(lineStart, ref.start).trimStart().startsWith('#')) { continue; }
       const name = ref.path[0];
       if (facts.envDefined.includes(name) || present(name)) { continue; }
       // One mark per name — the first occurrence teaches, ten repeats nag.
@@ -48,6 +51,13 @@ export function registerSecretsDecor(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidSaveTextDocument((doc) => {
       const ed = vscode.window.visibleTextEditors.find((e) => e.document === doc);
       paint(ed);
+    }),
+    // An edit shifts offsets under the marks — a « not set » pinned to
+    // the wrong text is worse than none. Clear; the save repaints.
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      for (const ed of vscode.window.visibleTextEditors) {
+        if (ed.document === e.document) { ed.setDecorations(deco, []); }
+      }
     }),
   );
   paint(vscode.window.activeTextEditor);

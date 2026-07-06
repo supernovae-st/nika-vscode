@@ -924,9 +924,15 @@ export function activate(context: ExtensionContext): void {
   state.activeDagPanel = dagPanel;
 
   // The webview's running-set feed → the YAML highlight (replay + live).
+  // A panel with NO workflow uri (trace-synthesized graph) must never
+  // wildcard-paint every visible nika file — scope or clear, nothing else.
   dagPanel.onTransportTick = (running) => {
     const uri = dagPanel.currentWorkflowUri();
-    paintRunningSpans(uri ? Uri.parse(uri).fsPath : undefined, running);
+    if (!uri) {
+      paintRunningSpans(undefined, []);
+      return;
+    }
+    paintRunningSpans(Uri.parse(uri).fsPath, running);
   };
   // The preflight chip's click → the full flight-plan document.
   dagPanel.onOpenPreflight = () => {
@@ -1310,8 +1316,7 @@ export function activate(context: ExtensionContext): void {
       const outcome = await service.checkDocument(doc);
       let graph;
       try { graph = await service.dagForDocument(doc); } catch { graph = undefined; }
-      const cat = await service.runCli(['catalog', '--json'], 10000);
-      const catalog = cat.code === 0 ? parseCatalogProviders(cat.stdout) : undefined;
+      const catalog = await catalogKeys();
       const rec = traceStore.get(doc.uri.fsPath);
       let lastRun: { durationMs?: number; costUsd?: number } | undefined;
       if (rec) {
