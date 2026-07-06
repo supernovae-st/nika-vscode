@@ -28,6 +28,7 @@ import {
 import { generateWorkflow, type GenCheckOutcome, type GenResult } from '../core/generatePipeline';
 import { refinedIntent, slugifyIntent } from '../core/generateStaging';
 import { rankBm25, type RankDoc } from '../core/intentRank';
+import { runCliOnText } from '../core/spawn';
 import type { NikaService } from '../nikaService';
 
 interface CorpusDoc extends RankDoc {
@@ -149,33 +150,26 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
 /** The oracle seam: every candidate runs through the real binary. */
 function makeCheckSeam(service: NikaService): (yaml: string) => Promise<GenCheckOutcome> {
   return async (yaml: string): Promise<GenCheckOutcome> => {
-    tmpSeq += 1;
-    const tmp = path.join(os.tmpdir(), `nika-gen-check-${process.pid}-${tmpSeq}.nika.yaml`);
-    fs.writeFileSync(tmp, yaml, 'utf-8');
-    try {
-      const res = await service.runCli(['check', tmp, '--json']);
-      const report = parseCheckReport(res.stdout);
-      if (!report) {
-        return { exit: res.code, findings: Number.MAX_SAFE_INTEGER, hints: 0, codes: [], parsed: false };
-      }
-      const codes = [
-        ...new Set(
-          collectFindings(report)
-            .filter((f) => f.severity !== 'info')
-            .map((f) => f.code),
-        ),
-      ];
-      return {
-        exit: res.code,
-        findings: countReportFindings(report),
-        hints: report.hints.length,
-        reportJson: JSON.stringify(report, null, 2),
-        codes,
-        parsed: true,
-      };
-    } finally {
-      fs.unlink(tmp, () => undefined);
+    const res = await runCliOnText(service, (file) => ['check', file, '--json'], yaml, 30000, 'gen');
+    const report = parseCheckReport(res.stdout);
+    if (!report) {
+      return { exit: res.code, findings: Number.MAX_SAFE_INTEGER, hints: 0, codes: [], parsed: false };
     }
+    const codes = [
+      ...new Set(
+        collectFindings(report)
+          .filter((f) => f.severity !== 'info')
+          .map((f) => f.code),
+      ),
+    ];
+    return {
+      exit: res.code,
+      findings: countReportFindings(report),
+      hints: report.hints.length,
+      reportJson: JSON.stringify(report, null, 2),
+      codes,
+      parsed: true,
+    };
   };
 }
 

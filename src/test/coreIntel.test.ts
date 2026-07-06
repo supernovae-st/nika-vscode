@@ -80,6 +80,43 @@ describe('capabilities', () => {
     expect(cmds.has('cost')).toBe(false); // the wrapped-line first word
     expect(cmds.size).toBe(10);
   });
+
+  // ─── stdin dash (engine #190 · `nika check - --json`) ─────────────────────
+
+  const CHECK_HELP_DASH = `Static pre-flight: the ADR-092 ladder (audit BEFORE run)
+
+Usage: nika-cli check [OPTIONS] <FILE>
+
+Arguments:
+  <FILE>  Workflow file (\`*.nika.yaml\`) · \`-\` reads stdin
+
+Options:
+      --json  Emit the machine-readable report (never coloured)
+  -h, --help  Print help
+`;
+
+  const CHECK_HELP_PRE_DASH = CHECK_HELP_DASH.replace(' · `-` reads stdin', '');
+
+  it('lights stdinDash when check --help documents the dash', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1', CHECK_HELP_DASH);
+    expect(caps.stdinDash).toBe(true);
+  });
+
+  it('keeps stdinDash off on a pre-dash binary — the tmp fallback stays', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1', CHECK_HELP_PRE_DASH);
+    expect(caps.stdinDash).toBe(false);
+  });
+
+  it('keeps stdinDash off when the probe itself failed (empty output)', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1');
+    expect(caps.stdinDash).toBe(false);
+  });
+
+  it('never lights stdinDash without check itself', () => {
+    const noCheck = CLAP_HELP.replace(/^ {2}check.*\n/m, '');
+    const caps = buildCapabilities(noCheck, 'nika-cli 0.93.1', CHECK_HELP_DASH);
+    expect(caps.stdinDash).toBe(false);
+  });
 });
 
 // ─── expr ────────────────────────────────────────────────────────────────────

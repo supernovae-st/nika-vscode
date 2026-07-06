@@ -8,17 +8,10 @@
 // never do; the rev-parse probe per lookup is a ~ms local spawn.
 
 import { execFile } from 'child_process';
-import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { parseCheckReport } from '../core/cliContract';
 import type { CostBaseline } from '../core/costDelta';
-
-/** The one seam this needs from NikaService (keeps the module testable). */
-interface CheckRunner {
-  runCli(args: string[], timeoutMs?: number): Promise<{ code: number | null; stdout: string; stderr: string }>;
-}
+import { runCliOnText, type TextRunner } from '../core/spawn';
 
 function git(args: string[], cwd: string): Promise<string | undefined> {
   return new Promise((resolve) => {
@@ -33,9 +26,8 @@ export class CostBaselineTracker {
    *  `baseline: undefined` is a REMEMBERED miss — untracked stays silent
    *  without re-probing until the next commit). */
   private readonly cache = new Map<string, { sha: string; baseline: CostBaseline | undefined }>();
-  private seq = 0;
 
-  constructor(private readonly service: CheckRunner) {}
+  constructor(private readonly service: TextRunner) {}
 
   /** The HEAD baseline for `fsPath`, or undefined when there is none
    *  (not a repo · untracked · HEAD content refuses to check). */
@@ -59,12 +51,14 @@ export class CostBaselineTracker {
     const headText = await git(['show', `HEAD:./${path.basename(fsPath)}`], dir);
     if (headText === undefined || headText.length === 0) { return undefined; }
 
-    this.seq += 1;
-    const digest = crypto.createHash('sha256').update(fsPath).digest('hex').slice(0, 12);
-    const tmp = path.join(os.tmpdir(), `nika-base-${digest}-${process.pid}-${this.seq}.nika.yaml`);
     try {
-      fs.writeFileSync(tmp, headText, 'utf-8');
-      const res = await this.service.runCli(['check', tmp, '--json'], 20000);
+      const res = await runCliOnText(
+        this.service,
+        (file) => ['check', file, '--json'],
+        headText,
+        20000,
+        'base',
+      );
       const report = parseCheckReport(res.stdout);
       if (!report) { return undefined; }
       return {
@@ -73,8 +67,6 @@ export class CostBaselineTracker {
       };
     } catch {
       return undefined;
-    } finally {
-      fs.unlink(tmp, () => undefined);
     }
   }
 }

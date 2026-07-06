@@ -31,6 +31,12 @@ export interface CapabilitySet {
    *  engine-side dirty-slice — unchanged tasks cache-hit with their
    *  recorded output, edited tasks + their cone re-run. */
   resume: boolean;
+  /** `check/graph/inspect -` read stdin (engine #190): dirty buffers pipe
+   *  straight into the binary — no tmp-file dance. Probed on the REAL
+   *  `check --help` text (a version gate would misread dev builds — main
+   *  carried the dash while still reporting 0.93.1); pre-dash binaries
+   *  keep the tmp fallback. */
+  stdinDash: boolean;
 }
 
 /** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
@@ -66,7 +72,11 @@ export function parseHelpCommands(helpText: string): Set<string> {
   return commands;
 }
 
-export function buildCapabilities(helpText: string, versionText: string): CapabilitySet {
+export function buildCapabilities(
+  helpText: string,
+  versionText: string,
+  checkHelpText = '',
+): CapabilitySet {
   const commands = parseHelpCommands(helpText);
   return {
     commands,
@@ -90,6 +100,9 @@ export function buildCapabilities(helpText: string, versionText: string): Capabi
     // the gate is the release line that shipped ADR-099. A custom build
     // reporting an older version just keeps the affordance hidden.
     resume: commands.has('run') && versionAtLeast(versionText, 0, 93),
+    // The dash is an ARGUMENT shape, not a subcommand — the discriminator
+    // is its own doc line in `check --help` ("`-` reads stdin").
+    stdinDash: commands.has('check') && /reads stdin/.test(checkHelpText),
   };
 }
 
