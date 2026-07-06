@@ -5,6 +5,23 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+### The P1 arc — fork · report · x-ray · the chip
+
+- **Fork-from-step.** Pick a task in a recorded run (Runs-view ⑂ or the
+  palette): it and its downstream re-execute, upstream rehydrates from
+  the trace (`--resume --from`) — counterfactual iteration without
+  re-spending the cone above. Majority-overlap guarded.
+- **Run report.** One markdown per recorded run: verdict, per-task
+  table, artifacts with provenance, failures pointing at fork — every
+  line the trace's own events, gaps stated (« no cost data », never $0).
+- **X-ray ghost values.** Inlays show what each `${{ tasks.x… }}`
+  resolved to in the last matching run (full outputs, drilled per path,
+  loud ellipsis, tooltip carries the value). No record → no hint.
+  Opt-out: `nika.editor.xray`.
+- **Preflight chip on the run pill.** Red « ✗ N missing » (blockers in
+  the tooltip) · amber « ⚠ flows » · green « ✓ preflight » — computed on
+  every check; click opens the flight-plan document.
+
 ### Understandable before it runs · provable after (P0 of the IDE-experience arc)
 
 - **Lineage mode — follow the data.** Click a card, or put the caret
