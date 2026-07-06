@@ -5,6 +5,8 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.97.0] · 2026-07-06
+
 ### The human-gate, answered
 
 - **Paused runs ask — you answer — they finish.** A `nika:prompt` task
