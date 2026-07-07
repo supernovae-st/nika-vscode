@@ -37,7 +37,7 @@ let activeRun: { kill: () => void } | undefined;
 /** workflow fsPath → the journal the engine last announced on stderr —
  *  the exact file a paused run must be resumed FROM. */
 export const lastTracePathByWorkflow = new Map<string, string>();
-/** The run's printed anchor (`N events · chain <head16>`) per workflow. */
+/** The run's printed anchor (`N events · chain <head32>`) per workflow. */
 const lastAnchorByWorkflow = new Map<string, string>();
 
 /** True while a spawned `nika run` drives the DAG (liveDag suspends). */
@@ -112,6 +112,12 @@ export function runWorkflowLive(
     // are protected inside the pruner (both were the 0.97.0 CRITICAL).
     pruneTraces(path.dirname(fsPath), keep, ri >= 0 ? extra[ri + 1] : undefined);
   }
+  // The anchor only prints at run END: a run that dies without printing
+  // it (Stop = SIGTERM · crash · sink failure · older engine) must NOT
+  // wear the PREVIOUS run's head on its verdict banner — the map is
+  // cleared at spawn so a missing anchor stays missing (the trust
+  // surface never shows a head that belongs to another journal).
+  lastAnchorByWorkflow.delete(fsPath);
   const child = spawn(
     binary,
     ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
@@ -187,10 +193,12 @@ export function runWorkflowLive(
   child.stderr.on('data', (chunk: string) => {
     const m = chunk.match(/trace: (\S+\.ndjson)/);
     if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
-    // The anchor (0.97+): the engine prints `· N events · chain <head16>`
+    // The anchor (0.97+): the engine prints `· N events · chain <head32>`
     // on the trace line — hold it so the close toast can carry the
-    // proof identity (scrollback ↔ toast ↔ tooltip, one head).
-    const anchor = chunk.match(/(\d+) events · chain ([0-9a-f]{16})/);
+    // proof identity (scrollback ↔ toast ↔ tooltip, one head). Full
+    // 32 hex: the engine's writer-side review (M4) rejected 16 as a
+    // forgeable width — truncating here would undo that on the banner.
+    const anchor = chunk.match(/(\d+) events · chain ([0-9a-f]{32})/);
     if (anchor) { lastAnchorByWorkflow.set(fsPath, `${anchor[1]} events · chain ${anchor[2]}`); }
     log('WARN', `nika run: ${chunk.trim()}`);
   });

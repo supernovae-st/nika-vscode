@@ -5,6 +5,48 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.97.4] · 2026-07-07
+
+### Evidence reaches the editor — reviewed, then released
+
+Engine 0.97.0 shipped « the run becomes evidence »; this release turns
+it on in the editor — after the adversarial pass the trust arc had
+never had (two HIGHs died pre-ship, the law pays again):
+
+- **Verify Journal** — one click asks the engine itself (`nika trace
+  verify`): intact with its head, BROKEN at its exact line, or
+  unchained (pre-0.96 — nothing to verify, nothing to distrust).
+- **Reproduce Run** — the determinism taxonomy in the Runs view:
+  `reproduced` · `NONDETERMINISTIC` (the flaky task, named) ·
+  `authored` · `environment`. Reads two journals; never re-runs,
+  never spends.
+- **One head everywhere** — the run's verdict banner, the tooltip and
+  the run report carry the engine's printed chain head.
+- **The drift badge tells a re-encode from an edit** — the Runs view
+  folds `workflow_sha256_lf` (engine #247's client twin): a CRLF↔LF
+  save no longer cries « definition drifted ».
+
+### Fixed (the adversarial pass)
+
+- **A stopped run no longer wears the previous run's chain head** —
+  the anchor only prints at run END, so Stop/crash/older-engine runs
+  inherited the last run's head on their banner; the anchor now clears
+  at spawn (HIGH).
+- **A one-line torn journal is UNREADABLE, never a green** — the
+  client walk returned « torn » with the constant genesis head on a
+  file the engine rejects; torn now requires a verified prefix,
+  mirroring the engine's exact hardening (HIGH).
+- **The client chain walk matches the engine on CRLF journals** — a
+  re-encoded journal verified INTACT by the engine read BROKEN in the
+  tooltip (`\r` hashed into the line); and broken line numbers are
+  FILE lines, blanks counted — client and engine name the same line.
+- Banner/tooltip carry the engine's full **32-hex** anchor (16 was the
+  forgeable width the engine's own review rejected) · a nameless
+  recorded journal says so in the Reproduce picker instead of listing
+  the whole workspace as siblings · the « Prove it ran » walkthrough
+  step owns its media page.
+
+
 - **Verify Journal** (nika ≥ 0.97) — one click on any recorded run asks
   the engine (`nika trace verify`) for its authoritative chain verdict:
   OK with the full head for the anchor comparison, or the broken line

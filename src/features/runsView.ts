@@ -116,9 +116,10 @@ class TraceItem extends vscode.TreeItem {
       );
     } else if (trace.chain.kind === 'intact' || trace.chain.kind === 'torn') {
       // The anchor UX: this head should MATCH the one the run printed
-      // (`trace: … · chain <head16>`) — scrollback vs journal, closed.
+      // (`trace: … · chain <head32>`) — scrollback vs journal, closed.
+      // Full 32 hex (engine M4: 16 is a forgeable width).
       md.appendMarkdown(
-        `$(verified-filled) chain intact — head \`${trace.chain.head.slice(0, 16)}\`${trace.chain.kind === 'torn' ? ' (final line torn — crash, not tampering)' : ''}\n\n`,
+        `$(verified-filled) chain intact — head \`${trace.chain.head.slice(0, 32)}\`${trace.chain.kind === 'torn' ? ' (final line torn — crash, not tampering)' : ''}\n\n`,
       );
     }
     const tasks = [...trace.model.tasks.values()];

@@ -48,6 +48,39 @@ describe('verifyChain — the client twin of nika trace verify', () => {
     if (v.kind === 'torn') { expect(v.events).toBe(2); }
   });
 
+  it('a single torn line is UNREADABLE, never a false green (engine parity)', () => {
+    // The engine hardened this exact class: TornTail requires verified > 0,
+    // else Unreadable — "a one-line garbage file is Unreadable, never OK".
+    // The client returned torn with the CONSTANT genesis head, and the
+    // tooltip painted « chain intact » on a file Verify Journal rejects.
+    expect(verifyChain('{"id":{"uu').kind).toBe('unreadable');
+  });
+
+  it('a CRLF re-encode of an intact journal stays intact — same head as LF', () => {
+    // Rust str::lines() strips one trailing \r per line, so the engine
+    // verifies a re-encoded journal INTACT; the client hashed the \r into
+    // the line and cried BROKEN at line 2 — two contradictory verdicts on
+    // the same trust surface (the re-encode-vs-edit class, journal side).
+    const lf = chained([ev('workflow_started'), ev('task_completed')]);
+    const crlf = lf.replace(/\n/g, '\r\n');
+    const a = verifyChain(lf);
+    const b = verifyChain(crlf);
+    expect(a.kind).toBe('intact');
+    expect(b.kind).toBe('intact');
+    if (a.kind === 'intact' && b.kind === 'intact') { expect(b.head).toBe(a.head); }
+  });
+
+  it('broken line numbers are FILE lines, even with blank lines (engine parity)', () => {
+    // The engine pins broken_line_numbers_are_file_lines_even_with_blanks;
+    // the client numbered the post-filter array — client and engine named
+    // DIFFERENT lines for the same break.
+    const lines = chained([ev('workflow_started'), ev('task_completed')]).trimEnd().split('\n');
+    const withBlank = [lines[0], '', lines[1].replace(/"chain":"[0-9a-f]{4}/, '"chain":"dead')].join('\n');
+    const v = verifyChain(withBlank);
+    expect(v.kind).toBe('broken');
+    if (v.kind === 'broken') { expect(v.line).toBe(3); }
+  });
+
   it('a pre-chain journal is unchained, never an alarm', () => {
     const raw = JSON.stringify(ev('workflow_started')) + '\n';
     expect(verifyChain(raw)).toEqual({ kind: 'unchained' });

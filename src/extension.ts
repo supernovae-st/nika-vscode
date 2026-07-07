@@ -1875,7 +1875,17 @@ export function activate(context: ExtensionContext): void {
           description: path.relative(root, f.fsPath),
           f,
         })),
-        { placeHolder: 'Reproduce against which run? (fresh side)' },
+        {
+          // A nameless recorded journal (torn head · unreadable fold) can't
+          // filter the candidates — every trace in the workspace is listed.
+          // Say so instead of letting the list masquerade as same-workflow
+          // (a cross-workflow compare renders a confident MISSING/ADDED
+          // taxonomy — never silently).
+          placeHolder:
+            name === undefined
+              ? 'Recorded journal has no workflow name — ALL traces listed, pick its sibling carefully (fresh side)'
+              : 'Reproduce against which run? (fresh side)',
+        },
       );
       if (!picked) { return; }
       const res = await service.runCli(['trace', 'reproduce', recorded.fsPath, picked.f.fsPath], 20000);
