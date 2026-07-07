@@ -7,7 +7,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { createHash } from 'crypto';
+import { workflowDrifted } from '../core/workflowDrift';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
 import { verifyChain, type ChainVerdict } from '../core/chainVerify';
@@ -443,8 +443,9 @@ export async function replayIntoDag(
   // claim drift on a surface whose whole point is truth.
   if (traceMatchesActiveDoc && model.workflowSha256 !== undefined && activeDoc?.uri.scheme === 'file') {
     try {
-      const cur = createHash('sha256').update(fs.readFileSync(activeDoc.uri.fsPath)).digest('hex');
-      if (cur !== model.workflowSha256) {
+      // Content terms, not byte terms: a CRLF↔LF/BOM re-encode is not an
+      // edit (engine #247's quadrant rule — workflowDrift is its twin).
+      if (workflowDrifted(fs.readFileSync(activeDoc.uri.fsPath), model.workflowSha256, model.workflowSha256Lf)) {
         dagPanel.note('≠', 'definition drifted since this run — the canvas shows today\'s file, the statuses show that run', undefined, 'st-retrying');
       }
     } catch {
