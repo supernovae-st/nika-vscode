@@ -262,6 +262,11 @@
         "icon": "$(debug-alt)"
       },
       {
+        "command": "nika.verifyTrace",
+        "title": "Nika: Verify Journal (Tamper-Evidence Chain)",
+        "icon": "$(shield)"
+      },
+      {
         "command": "nika.reproduceRun",
         "title": "Nika: Reproduce Run (Determinism Check)",
         "icon": "$(law)"
@@ -612,6 +617,11 @@
           "command": "nika.debugReplay",
           "when": "view == nikaRuns && viewItem == nikaTrace",
           "group": "inline"
+        },
+        {
+          "command": "nika.verifyTrace",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "nika@3"
         },
         {
           "command": "nika.reproduceRun",

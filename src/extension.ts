@@ -1813,6 +1813,29 @@ export function activate(context: ExtensionContext): void {
     // (Jaeger drag-drop · Aspire · Grafana · Langfuse) becomes a nika
     // viewer. Pure projection via `nika trace export`; file lands beside
     // the journal, sovereign, zero collector.
+    // Command: engine-authoritative chain verdict on one click — the
+    // tooltip's client walk is instant; this is the engine's own word
+    // (and the full head, for the anchor comparison).
+    commands.registerCommand('nika.verifyTrace', async (arg?: { trace?: { uri: Uri } }) => {
+      const trace = arg?.trace?.uri;
+      if (!trace) {
+        void window.showInformationMessage('Nika: pick a run in the Runs view to verify.');
+        return;
+      }
+      const res = await service.runCli(['trace', 'verify', trace.fsPath], 15000);
+      const noise = (res.stderr || res.stdout).trim();
+      if (/unrecognized subcommand|unexpected argument/.test(noise)) {
+        void window.showErrorMessage('Nika: this engine has no `trace verify` — needs nika ≥ 0.97 (brew upgrade nika).');
+        return;
+      }
+      const first = (res.stdout || noise).split('\n')[0]?.trim() ?? 'no output';
+      if (res.code === 0) {
+        void window.showInformationMessage(`Nika: ${first}`);
+      } else {
+        void window.showWarningMessage(`Nika: ${first}`);
+      }
+    }),
+
     // Command: reproduce a recorded run against another journal of the
     // SAME workflow — the engine's determinism taxonomy (0.96+): each
     // task classified reproduced / NONDETERMINISTIC / authored /
