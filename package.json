@@ -812,6 +812,18 @@
             ]
           },
           {
+            "id": "proof",
+            "title": "Prove it ran (chain · reproduce · export)",
+            "description": "Every run hash-chains its journal — the Runs view shows a shield when a journal fails verification, and the run report states its own integrity. Right-click a run → **Reproduce Run** classifies WHY two runs diverge (NONDETERMINISTIC names the flaky task). **Export to OpenTelemetry** ships the trace — with its chain head — to Jaeger/Grafana/Langfuse.\n[Open the Runs view](command:nikaRuns.focus)",
+            "media": {
+              "markdown": "walkthrough/05-dag.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.reproduceRun",
+              "onCommand:nika.exportOtel"
+            ]
+          },
+          {
             "id": "agents",
             "title": "Make your AI an expert",
             "description": "`nika init` writes schema wiring, AGENTS.md, and Cursor rules; this command wires MCP so agents can check workflows and explain failures through the real oracle.\n[Setup agents](command:nika.setupMcp)",

@@ -171,6 +171,15 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   run projects its journal to OTLP/JSON lines — drag into Jaeger UI, or
   POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
   collector, zero vendor
+- **Tamper-evident runs** (nika ≥ 0.96) · every journal line hash-chains
+  to the previous one — the Runs view walks the chain client-side: a
+  broken journal gets a warning shield that outranks its run verdict,
+  an intact one shows its head (compare against the one the run
+  printed). The run report states its own integrity
+- **Reproduce Run — determinism check** (nika ≥ 0.97) · right-click a
+  run, pick another journal of the same workflow: every task classified
+  reproduced / NONDETERMINISTIC (same def+inputs, different output) /
+  authored / environment — with the engine attestation compared
 - **Paused runs ask — you answer — they finish** · a `nika:prompt` task
   pauses the run (a pause is not a failure: the verdict goes amber ⏸
   with the question itself), a notification offers **Answer…**, and the
