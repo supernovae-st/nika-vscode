@@ -1823,11 +1823,19 @@ export function activate(context: ExtensionContext): void {
         // A binary older than the verb: say so instead of parroting clap.
         const msg = /unrecognized subcommand|unexpected argument/.test(noise)
           ? 'Nika: this engine predates `trace export` — update nika (brew upgrade nika).'
-          : `Nika: export failed — ${noise.slice(0, 200)}`;
+          : `Nika: export failed — ${noise.slice(0, 200) || 'no output (timeout?)'}`;
         void window.showErrorMessage(msg);
         return;
       }
-      const out = target.fsPath.replace(/\.ndjson$/, '.otlp.jsonl');
+      // The engine STATES where it wrote (`exported → <path>` on stdout) —
+      // parse that instead of assuming the extension's own suffix rule: a
+      // custom traces glob (`.jsonl` journals) made the assumed path a
+      // no-op replace, so Reveal/Copy pointed at the RAW journal and the
+      // "exported" toast lied (the 0.97.2 review's F4).
+      const stated = /exported → (\S+)/.exec(res.stdout)?.[1];
+      const out = stated !== undefined
+        ? path.resolve(path.dirname(target.fsPath), stated)
+        : target.fsPath.replace(/\.ndjson$/, '.otlp.jsonl');
       const pick = await window.showInformationMessage(
         'Nika: OTel trace exported — drag it into Jaeger UI, or POST to any OTLP endpoint.',
         'Reveal', 'Copy Path',

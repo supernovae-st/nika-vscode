@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  type CheckReport,
   graphDocToDag,
   isGraphDoc,
   parseCatalogModels,
@@ -168,6 +169,40 @@ describe('parseCheckReport + collectFindings', () => {
     expect(report?.missing_args).toEqual([]);
     expect(report?.gate_findings).toEqual([]);
     expect(countReportFindings(report!)).toBe(0);
+  });
+
+  it('round-trips EVERY CheckReport key through the parser — the dead-code-on-the-wire ratchet', () => {
+    // The class struck twice in two days: `requirements` (0.97.0 review)
+    // then `pricing` (0.97.2 review) — interface + consumers shipped, the
+    // parser copy didn't, the feature was silently dead on the wire. This
+    // fixture is typed Required<CheckReport>: adding a field to the
+    // interface BREAKS THIS FIXTURE at compile time, forcing it in here —
+    // and the loop below then fails until parseCheckReport copies it.
+    const FULL_WIRE: Required<CheckReport> = {
+      report_version: 1,
+      clean: false,
+      conformance: [],
+      waves: [],
+      cost: { tasks: [] },
+      secret_leaks: [],
+      secret_egresses: [],
+      capability_escapes: [],
+      schema_findings: [],
+      unknown_tools: [],
+      unknown_args: [],
+      missing_args: [],
+      gate_findings: [],
+      schema_lints: [],
+      hints: [],
+      analysis: { width: 1, width_witness: ['a'], pinch_points: [], blast_radius: [] },
+      requirements: { models: [], secrets: [], env_reads: [], env_defined: [], vars_required: [] },
+      pricing: { models: [{ model: 'ollama/qwen3.5:4b', input_per_million: null, output_per_million: null }] },
+    };
+    const parsed = parseCheckReport(JSON.stringify(FULL_WIRE));
+    expect(parsed).toBeDefined();
+    for (const key of Object.keys(FULL_WIRE) as Array<keyof CheckReport>) {
+      expect(parsed?.[key], `parseCheckReport drops \`${key}\` — dead code on the wire`).toBeDefined();
+    }
   });
 
   it('carries the requirements section through the parse (E-REQ · 0.97.1)', () => {

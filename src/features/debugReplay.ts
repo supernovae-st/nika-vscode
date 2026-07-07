@@ -42,9 +42,22 @@ class NikaDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 }
 
 /** F5 without a launch.json: workflow = the active editor, replay = the
- *  newest recorded run of THAT workflow (falling back to newest overall). */
+ *  newest recorded run of THAT workflow. The real work runs in the
+ *  SUBSTITUTED hook: the generated launch.json ships `workflow: "${file}"`,
+ *  and the pre-substitution hook sees that literal string — resolving there
+ *  read `${file}` as a real path, missed the name, and silently replayed
+ *  the newest run of ANY workflow (the 0.97.2 review's F2). */
 class NikaDebugConfigProvider implements vscode.DebugConfigurationProvider {
-  async resolveDebugConfiguration(
+  resolveDebugConfiguration(
+    _folder: vscode.WorkspaceFolder | undefined,
+    config: vscode.DebugConfiguration,
+  ): vscode.DebugConfiguration | undefined {
+    // Unsubstituted variables pass through untouched — VS Code substitutes
+    // next, then the WithSubstitutedVariables hook completes the config.
+    return config;
+  }
+
+  async resolveDebugConfigurationWithSubstitutedVariables(
     _folder: vscode.WorkspaceFolder | undefined,
     config: vscode.DebugConfiguration,
   ): Promise<vscode.DebugConfiguration | undefined> {
@@ -64,13 +77,16 @@ class NikaDebugConfigProvider implements vscode.DebugConfigurationProvider {
       return undefined;
     }
 
+    const docName = workflowNameOf(safeRead(workflow) ?? '');
     const replay =
       typeof config.replay === 'string' && config.replay.length > 0
         ? config.replay
-        : await newestTraceFor(workflowNameOf(safeRead(workflow) ?? '') ?? '');
+        : await newestTraceFor(docName);
     if (!replay) {
       void vscode.window.showInformationMessage(
-        'Nika: no recorded run to replay — run the workflow once, then F5.',
+        docName !== undefined
+          ? `Nika: no recorded run of \`${docName}\` to replay — run the workflow once, then F5.`
+          : 'Nika: no recorded run to replay — run the workflow once, then F5.',
       );
       return undefined;
     }
@@ -78,21 +94,26 @@ class NikaDebugConfigProvider implements vscode.DebugConfigurationProvider {
   }
 }
 
-/** Newest journal whose folded workflow name matches (else newest overall). */
-async function newestTraceFor(workflowName: string): Promise<string | undefined> {
+/** Newest journal whose folded workflow name matches. The newest-overall
+ *  fallback survives ONLY when the doc's name is unknown (nameless
+ *  journals era) — a KNOWN name that matches nothing returns undefined
+ *  and the caller says so: F5 must never silently debug a foreign run
+ *  (the same never-silent-runs law fork got in 0.97.2). */
+async function newestTraceFor(workflowName: string | undefined): Promise<string | undefined> {
   const glob = vscode.workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
-  const files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 100);
+  const files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 500);
   const dated = files
     .map((f) => {
       try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; }
     })
     .filter((x): x is { f: vscode.Uri; m: number } => x !== undefined)
     .sort((a, b) => b.m - a.m);
-  if (workflowName) {
+  if (workflowName !== undefined) {
     for (const { f } of dated) {
       const text = safeRead(f.fsPath);
       if (text && foldTrace(text).workflowName === workflowName) { return f.fsPath; }
     }
+    return undefined;
   }
   return dated[0]?.f.fsPath;
 }

@@ -407,6 +407,14 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
         typeof v.requirements === 'object' && v.requirements !== null
           ? (v.requirements as unknown as ReportRequirements)
           : undefined,
+      // The SAME class recurred one field later (pricing · 0.97.2): the
+      // interface + consumers shipped, the copy didn't, the feature was
+      // dead on the wire. The full-wire round-trip test now makes any
+      // future omission fail at compile time + test time.
+      pricing:
+        typeof v.pricing === 'object' && v.pricing !== null
+          ? (v.pricing as unknown as ReportPricing)
+          : undefined,
     };
   } catch {
     return undefined;

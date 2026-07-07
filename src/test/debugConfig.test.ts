@@ -3,6 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { matchWorkflowFiles, mergeLaunchConfig, replayConfig, workflowNameOf } from '../core/debugConfig';
 
 describe('workflowNameOf', () => {
+  it('a # inside quotes is part of the name, never a comment (0.97.3)', () => {
+    // The extractor divergence: the old mixed regex truncated
+    // `"deploy #7"` to `deploy`, so a quoted-hash workflow never
+    // exact-matched its own journal in the F5 direction while fork
+    // (the real parser) matched it fine.
+    expect(workflowNameOf('workflow: "deploy #7"\n')).toBe('deploy #7');
+    expect(workflowNameOf("workflow: 'deploy #7'\n")).toBe('deploy #7');
+    expect(workflowNameOf('workflow: deploy #7 is a comment\n')).toBe('deploy');
+    expect(workflowNameOf('workflow: ""\n')).toBeUndefined();
+  });
+
   it('reads the workflow name across quoting styles and comments', () => {
     expect(workflowNameOf('nika: v1\nworkflow: deploy\ntasks: []\n')).toBe('deploy');
     expect(workflowNameOf('workflow: "quoted name"\n')).toBe('quoted name');

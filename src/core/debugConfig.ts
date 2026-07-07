@@ -8,8 +8,14 @@
 /** The `workflow:` name of a nika YAML — a light line-scan, no parser. */
 export function workflowNameOf(yamlText: string): string | undefined {
   for (const line of yamlText.split('\n')) {
-    const m = /^workflow:\s*["']?([^"'#\n]+?)["']?\s*(#.*)?$/.exec(line);
-    if (m) { return m[1].trim(); }
+    // Quoted value first: a `#` INSIDE quotes is part of the name, not a
+    // comment — the single mixed regex truncated `"deploy #7"` to
+    // `deploy`, so a quoted-hash workflow could never exact-match its own
+    // journal (the 0.97.2 review's extractor-divergence finding).
+    const q = /^workflow:\s*"([^"]*)"\s*(#.*)?$/.exec(line) ?? /^workflow:\s*'([^']*)'\s*(#.*)?$/.exec(line);
+    if (q) { return q[1].trim() || undefined; }
+    const bare = /^workflow:\s*([^#\n]+?)\s*(#.*)?$/.exec(line);
+    if (bare) { return bare[1].trim() || undefined; }
   }
   return undefined;
 }

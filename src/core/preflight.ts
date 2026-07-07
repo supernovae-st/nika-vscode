@@ -267,7 +267,10 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
   // row detail. An unpriced model shows nothing (never $0).
   const rates = new Map<string, string>();
   for (const row of report?.pricing?.models ?? []) {
-    if (row.input_per_million !== null && row.output_per_million !== null) {
+    // typeof, not !== null: an engine that OMITS the key (or renames it)
+    // must render NOTHING — `undefined !== null` would have painted
+    // `$undefined/$undefined per 1M` on every row.
+    if (typeof row.input_per_million === 'number' && typeof row.output_per_million === 'number') {
       rates.set(row.model, `$${row.input_per_million}/$${row.output_per_million} per 1M`);
     }
   }

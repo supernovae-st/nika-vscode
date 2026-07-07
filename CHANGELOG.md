@@ -5,6 +5,42 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+## [0.97.3] · 2026-07-07
+
+### The second adversarial pass — the review reviews the reviewers
+
+Two more agents attacked the never-reviewed halves of the F5/OTel/rates
+arc (client) and the `nika dap` server itself. The server's protocol
+layer came back hardened (~30 hostile inputs, zero panics); the client
+side pays its findings now:
+
+- **Preflight rates were dead on the wire** — `parseCheckReport` never
+  copied `pricing`: the exact class that hit `requirements` one review
+  earlier, recurred one field later. Fixed — and a **full-wire
+  round-trip ratchet** now types the fixture `Required<CheckReport>`,
+  so any future field the parser forgets fails at compile time AND at
+  test time. The class is structurally dead.
+- **The generated launch.json no longer hijacks F5.** `workflow:
+  "${file}"` reached the resolver before variable substitution, read as
+  a literal path, missed the name, and silently replayed the newest run
+  of ANY workflow. Resolution now runs in the substituted hook — and
+  the newest-overall fallback is gone when the workflow's name is
+  known: F5 says « no recorded run of `name` » instead of silently
+  debugging a foreign journal (fork's never-silent-runs law, applied
+  to the other direction).
+- **Quoted workflow names match their journals** — `workflow:
+  "deploy #7"` was truncated at the `#` by the line-scan extractor
+  (the real parser handled it), so such workflows could never
+  exact-match in the F5 direction.
+- **OTel export trusts the engine's own answer** — the exported path
+  is parsed from the engine's `exported → …` line instead of assumed
+  from a suffix rule (a custom `.jsonl` traces glob made the assumed
+  path point at the raw journal); a timed-out export no longer shows
+  an empty error.
+- Rates guard hardened (`typeof`, an omitted key renders nothing —
+  never `$undefined`) · journal scan cap raised 100 → 500 stat-first.
+
+
 ## [0.97.2] · 2026-07-06
 
 ### The backlog paid — the review's remaining five
