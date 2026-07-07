@@ -37,6 +37,8 @@ let activeRun: { kill: () => void } | undefined;
 /** workflow fsPath → the journal the engine last announced on stderr —
  *  the exact file a paused run must be resumed FROM. */
 export const lastTracePathByWorkflow = new Map<string, string>();
+/** The run's printed anchor (`N events · chain <head16>`) per workflow. */
+const lastAnchorByWorkflow = new Map<string, string>();
 
 /** True while a spawned `nika run` drives the DAG (liveDag suspends). */
 export function isRunActive(): boolean {
@@ -185,6 +187,11 @@ export function runWorkflowLive(
   child.stderr.on('data', (chunk: string) => {
     const m = chunk.match(/trace: (\S+\.ndjson)/);
     if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
+    // The anchor (0.97+): the engine prints `· N events · chain <head16>`
+    // on the trace line — hold it so the close toast can carry the
+    // proof identity (scrollback ↔ toast ↔ tooltip, one head).
+    const anchor = chunk.match(/(\d+) events · chain ([0-9a-f]{16})/);
+    if (anchor) { lastAnchorByWorkflow.set(fsPath, `${anchor[1]} events · chain ${anchor[2]}`); }
     log('WARN', `nika run: ${chunk.trim()}`);
   });
 
@@ -221,10 +228,14 @@ export function runWorkflowLive(
       // clicked hours later must never resume whatever ran since.
       opts?.onPaused?.({ ...model.paused, tracePath: lastTracePathByWorkflow.get(fsPath) });
     } else {
-      dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}`, undefined, cls);
+      // The anchor rides the verdict (0.97+ engines print it): the DAG
+      // banner shows the SAME head the scrollback and tooltip hold.
+      const anchor = lastAnchorByWorkflow.get(fsPath);
+      const suffix = anchor ? ` · ${anchor}` : '';
+      dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}${suffix}`, undefined, cls);
       // The verdict banner — the same summary, visible WITHOUT opening the
       // feed (summarizeRun leads with its own icon; the banner owns it).
-      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}`, cls);
+      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}${suffix}`, cls);
     }
     // Only meaningful runs land (≥1 task event) — a spawn that died
     // before any task event has nothing worth resuming from.
