@@ -5,6 +5,11 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+- **The anchor closes in the tooltip** — an intact run now shows its
+  chain head (`$(verified-filled) chain intact — head …`) in the Runs
+  view: compare it against the one the run printed to close the anchor
+  loop by eye. Torn tails say "crash, not tampering".
+
 ## [0.97.3] · 2026-07-07
 
 ### The second adversarial pass — the review reviews the reviewers

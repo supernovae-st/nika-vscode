@@ -114,6 +114,12 @@ class TraceItem extends vscode.TreeItem {
       md.appendMarkdown(
         `$(shield) **chain BROKEN at line ${trace.chain.line}** — this journal fails \`nika trace verify\`; its claims are unverified\n\n`,
       );
+    } else if (trace.chain.kind === 'intact' || trace.chain.kind === 'torn') {
+      // The anchor UX: this head should MATCH the one the run printed
+      // (`trace: … · chain <head16>`) — scrollback vs journal, closed.
+      md.appendMarkdown(
+        `$(verified-filled) chain intact — head \`${trace.chain.head.slice(0, 16)}\`${trace.chain.kind === 'torn' ? ' (final line torn — crash, not tampering)' : ''}\n\n`,
+      );
     }
     const tasks = [...trace.model.tasks.values()];
     const ok = tasks.filter((t) => t.status === 'success').length;
