@@ -1813,6 +1813,64 @@ export function activate(context: ExtensionContext): void {
     // (Jaeger drag-drop · Aspire · Grafana · Langfuse) becomes a nika
     // viewer. Pure projection via `nika trace export`; file lands beside
     // the journal, sovereign, zero collector.
+    // Command: reproduce a recorded run against another journal of the
+    // SAME workflow — the engine's determinism taxonomy (0.96+): each
+    // task classified reproduced / NONDETERMINISTIC / authored /
+    // environment / status-changed, with the attestation comparison.
+    commands.registerCommand('nika.reproduceRun', async (arg?: { trace?: { uri: Uri } }) => {
+      const recorded = arg?.trace?.uri;
+      if (!recorded) {
+        void window.showInformationMessage('Nika: pick a run in the Runs view to reproduce.');
+        return;
+      }
+      const name = (() => {
+        try { return foldTrace(fs.readFileSync(recorded.fsPath, 'utf-8')).workflowName; } catch { return undefined; }
+      })();
+      const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+      const files = (await workspace.findFiles(glob, '**/node_modules/**', 100))
+        .filter((f) => f.fsPath !== recorded.fsPath);
+      const candidates = files
+        .map((f) => {
+          try {
+            const text = fs.readFileSync(f.fsPath, 'utf-8');
+            return { f, name: foldTrace(text).workflowName, m: fs.statSync(f.fsPath).mtimeMs };
+          } catch { return undefined; }
+        })
+        .filter((x): x is { f: Uri; name: string | undefined; m: number } => x !== undefined)
+        .filter((x) => name === undefined || x.name === name)
+        .sort((a, b) => b.m - a.m);
+      if (candidates.length === 0) {
+        void window.showInformationMessage(
+          `Nika: no other recorded run of “${name ?? 'this workflow'}” — run it again, then reproduce.`,
+        );
+        return;
+      }
+      const root = workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+      const picked = await window.showQuickPick(
+        candidates.map(({ f }) => ({
+          label: path.basename(f.fsPath),
+          description: path.relative(root, f.fsPath),
+          f,
+        })),
+        { placeHolder: 'Reproduce against which run? (fresh side)' },
+      );
+      if (!picked) { return; }
+      const res = await service.runCli(['trace', 'reproduce', recorded.fsPath, picked.f.fsPath], 20000);
+      const noise = (res.stderr || '').trim();
+      if (/unrecognized subcommand|unexpected argument/.test(noise)) {
+        void window.showErrorMessage('Nika: this engine has no `trace reproduce` — needs nika ≥ 0.97 (brew upgrade nika).');
+        return;
+      }
+      const doc = await workspace.openTextDocument({ language: 'markdown', content: [
+        `# Reproduce — ${path.basename(recorded.fsPath)} vs ${picked.label}`,
+        '',
+        '```',
+        res.stdout.trim() || noise,
+        '```',
+      ].join('\n') });
+      await window.showTextDocument(doc, { preview: true });
+    }),
+
     commands.registerCommand('nika.exportOtel', async (arg?: Uri | { trace?: { uri: Uri } }) => {
       const target = arg instanceof Uri ? arg : arg?.trace?.uri;
       if (!target) {

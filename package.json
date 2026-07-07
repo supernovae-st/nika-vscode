@@ -262,6 +262,11 @@
         "icon": "$(debug-alt)"
       },
       {
+        "command": "nika.reproduceRun",
+        "title": "Nika: Reproduce Run (Determinism Check)",
+        "icon": "$(law)"
+      },
+      {
         "command": "nika.exportOtel",
         "title": "Nika: Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
         "icon": "$(telescope)"
@@ -607,6 +612,11 @@
           "command": "nika.debugReplay",
           "when": "view == nikaRuns && viewItem == nikaTrace",
           "group": "inline"
+        },
+        {
+          "command": "nika.reproduceRun",
+          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "group": "nika@4"
         },
         {
           "command": "nika.exportOtel",

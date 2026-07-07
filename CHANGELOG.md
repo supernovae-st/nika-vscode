@@ -5,6 +5,12 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+- **Reproduce Run (determinism check)** (nika ≥ 0.97) — right-click any
+  recorded run, pick another journal of the same workflow, and the
+  engine's taxonomy answers WHY they diverge: reproduced ·
+  NONDETERMINISTIC (same def+inputs, different output) · authored ·
+  environment · status-changed — with the engine/platform attestation
+  compared. The verdict opens as a markdown preview.
 - **The anchor closes in the tooltip** — an intact run now shows its
   chain head (`$(verified-filled) chain intact — head …`) in the Runs
   view: compare it against the one the run printed to close the anchor
