@@ -11,6 +11,7 @@ import { humanizeDuration } from './traceFold';
 import type { RunArtifact } from './artifacts';
 import { humanBytes } from './artifacts';
 import { renderLadder, type Attempt } from './attempts';
+import type { ChainVerdict } from './chainVerify';
 
 export interface RunReportInputs {
   traceName: string;
@@ -22,6 +23,9 @@ export interface RunReportInputs {
   resolvePath?: (p: string) => string | undefined;
   /** Per-task attempt ladders — failures grow their per-attempt story. */
   ladders?: Map<string, Attempt[]>;
+  /** The tamper-evidence walk (engine 0.96+) — the proof-carrying
+   *  report carries its proof. */
+  chain?: ChainVerdict;
 }
 
 const usd = (n: number): string =>
@@ -64,6 +68,16 @@ export function renderRunReport(inputs: RunReportInputs): string {
   out.push(`- Workflow: **${model.workflowStatus ?? 'unknown'}** — ${ok} succeeded · ${bad} failed · ${skipped} skipped${cached > 0 ? ` · ${cached} from cache` : ''}${retries > 0 ? ` · ${retries} retr${retries === 1 ? 'y' : 'ies'}` : ''}`);
   out.push(`- Wall clock: ${wallMs !== undefined ? humanizeDuration(wallMs) : 'not recoverable from this trace'}`);
   out.push(`- Spend: ${priced ? usd(spend) : 'no cost data (mock/local — nothing was priced)'}`);
+  if (inputs.chain) {
+    const c = inputs.chain;
+    if (c.kind === 'intact') {
+      out.push(`- Integrity: chain **intact** — head \`${c.head}\` (tamper-evident; compare against the head the run printed)`);
+    } else if (c.kind === 'torn') {
+      out.push(`- Integrity: chain intact through the last complete line — head \`${c.head}\` (final line torn: a crash mid-write, not tampering)`);
+    } else if (c.kind === 'broken') {
+      out.push(`- ⚠ Integrity: **chain BROKEN at line ${c.line}** — this journal fails \`nika trace verify\`; every claim in this report is unverified`);
+    }
+  }
   if (model.unknownLines > 0) {
     out.push(`- ⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this report reads what it can prove`);
   }

@@ -97,6 +97,7 @@ import {
 import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
 import { renderRunReport } from './core/runReport';
+import { verifyChain } from './core/chainVerify';
 import { XrayInlayProvider } from './features/xray';
 import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
@@ -1721,6 +1722,7 @@ export function activate(context: ExtensionContext): void {
         artifacts: extractRunArtifacts(ndjson),
         resolvePath,
         ladders: attemptLadders(ndjson),
+        chain: verifyChain(ndjson),
       });
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {
