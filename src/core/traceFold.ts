@@ -84,6 +84,9 @@ export interface RunModel {
    *  bytes that ran — rides workflow_started. Absent = engine too old
    *  to claim; drift surfaces stay silent rather than guessing. */
   workflowSha256?: string;
+  /** The LF normal form's sha256 — recorded only for CRLF/BOM sources
+   *  (0.97+ engines): lets drift surfaces tell a re-encode from an edit. */
+  workflowSha256Lf?: string;
   /** ADR-099 human-gate: the run is waiting on a `nika:prompt` answer.
    *  Fields ride the workflow_paused event — the QUESTION included. */
   paused?: { task: string; mode: string; message?: string; choices?: string[] };
@@ -109,6 +112,8 @@ interface NormalizedEvent {
   choices?: string[];
   /** workflow_started only — the run's source identity (sha256 hex). */
   workflowSha256?: string;
+  /** workflow_started only — the LF normal form's sha256 (CRLF/BOM sources · 0.97+). */
+  workflowSha256Lf?: string;
   /** workflow_started only — the run's workflow name. */
   workflowName?: string;
   /** task_skipped only — the gate's CEL text (0.95+). */
@@ -234,6 +239,9 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       workflowSha256: typeof fields.get('workflow_sha256') === 'string'
         ? fields.get('workflow_sha256') as string
         : undefined,
+      workflowSha256Lf: typeof fields.get('workflow_sha256_lf') === 'string'
+        ? fields.get('workflow_sha256_lf') as string
+        : undefined,
       workflowName: typeof fields.get('workflow') === 'string'
         ? fields.get('workflow') as string
         : undefined,
@@ -315,6 +323,9 @@ export function foldTrace(ndjson: string): RunModel {
         model.workflowStatus = 'running';
         if (ev.workflowSha256 !== undefined) {
           model.workflowSha256 = ev.workflowSha256;
+        }
+        if (ev.workflowSha256Lf !== undefined) {
+          model.workflowSha256Lf = ev.workflowSha256Lf;
         }
         if (ev.workflowName !== undefined) {
           model.workflowName = ev.workflowName;
