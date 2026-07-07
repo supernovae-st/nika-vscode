@@ -1,7 +1,8 @@
 # Changelog · nika-vscode
 
-All notable changes to the extension. Versions track the engine's
-announce line (forever-v0.x).
+All notable changes to the extension. Versions pace the engine's
+release line (real semver toward 1.0 · lockstep on the engine's
+major.minor from 0.97).
 
 ## [Unreleased]
 
