@@ -830,7 +830,8 @@
             },
             "completionEvents": [
               "onCommand:nika.reproduceRun",
-              "onCommand:nika.exportOtel"
+              "onCommand:nika.exportOtel",
+              "onCommand:nika.verifyTrace"
             ]
           },
           {

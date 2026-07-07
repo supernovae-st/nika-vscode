@@ -5,6 +5,11 @@ announce line (forever-v0.x).
 
 ## [Unreleased]
 
+- **Verify Journal** (nika ≥ 0.97) — one click on any recorded run asks
+  the engine (`nika trace verify`) for its authoritative chain verdict:
+  OK with the full head for the anchor comparison, or the broken line
+  as a warning. The tooltip's instant client walk and the engine's own
+  word are now both one gesture away.
 - **Reproduce Run (determinism check)** (nika ≥ 0.97) — right-click any
   recorded run, pick another journal of the same workflow, and the
   engine's taxonomy answers WHY they diverge: reproduced ·
