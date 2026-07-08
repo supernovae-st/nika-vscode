@@ -401,6 +401,30 @@ export function activate(context: ExtensionContext): void {
   traceWatcher.onDidCreate((uri) => { void nudgeGitignore(); onTraceEvent(uri); });
   traceWatcher.onDidChange(onTraceEvent);
   traceWatcher.onDidDelete(() => runsTree.refresh());
+  // First CLEAN check in a workspace → hand over to the next step ONCE
+  // (the 2026-07-08 funnel audit: verdicts appeared but nothing said
+  // « now run it »). Same discipline as the gitignore nudge: asked,
+  // once per workspace, setting-gated, never throws (garnish law).
+  context.subscriptions.push(service.onDidUpdateDocument((uriString) => {
+    try {
+      if (context.workspaceState.get<boolean>('nika.firstCleanNudged')) { return; }
+      if (!workspace.getConfiguration('nika').get<boolean>('nudge.firstCleanCheck', true)) { return; }
+      const outcome = service.peekCheck(uriString);
+      if (outcome?.report?.clean !== true) { return; }
+      void context.workspaceState.update('nika.firstCleanNudged', true);
+      void (async () => {
+        const choice = await window.showInformationMessage(
+          'Workflow checks clean — run it: mock/echo needs no key, no server.',
+          '▶ Run', '¶ Explain',
+        );
+        const uri = Uri.parse(uriString);
+        if (choice === '▶ Run') { await commands.executeCommand('nika.runWorkflow', uri); }
+        if (choice === '¶ Explain') { await commands.executeCommand('nika.explainWorkflow', uri); }
+      })();
+    } catch {
+      // Garnish law — a nudge must never throw.
+    }
+  }));
   context.subscriptions.push(
     traceWatcher,
     { dispose: () => { for (const t of overlayTimers.values()) { clearTimeout(t); } } },

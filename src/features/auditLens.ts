@@ -150,6 +150,15 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         title: '$(type-hierarchy) DAG',
         arguments: [document.uri],
       }),
+      // The beginner's missing door (2026-07-08 funnel audit): the
+      // deterministic narrative existed but was palette-only — the one
+      // surface every workflow shows now carries it.
+      new vscode.CodeLens(top, {
+        command: 'nika.explainWorkflow',
+        title: '$(book) Explain',
+        arguments: [document.uri],
+        tooltip: 'What this workflow does, wave by wave — cost · touches · risks (offline, zero LLM)',
+      }),
     ];
 
     if (this.service.caps.run) {

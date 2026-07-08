@@ -6,6 +6,19 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The beginner meets the story (30s-experience arc)
+
+- **¶ Explain joins the header lens** — the deterministic narrative
+  (waves · cost · touches · risks) was palette-only; the one row every
+  workflow shows now carries it.
+- **First clean check hands over** — once per workspace (setting
+  `nika.nudge.firstCleanCheck`), a clean verdict suggests the next
+  step: run it, mock/echo needs no key. Verdicts no longer dead-end.
+- **The empty sidebar pitches and opens the canvas** — one line of
+  what Nika IS + a `◇ Open the canvas` entry (the DAG panel's welcome
+  hero — describe→generate, examples, capabilities — was unreachable
+  with zero files).
+
 ## [0.97.4] · 2026-07-07
 
 ### Evidence reaches the editor — reviewed, then released
