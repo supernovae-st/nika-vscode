@@ -530,7 +530,7 @@
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Register nika_check / nika_explain / nika_graph as Language Model Tools so in-editor AI agents validate workflows through the real oracle."
+          "description": "Register the Nika Language Model Tools (check \u00b7 explain \u00b7 graph \u00b7 workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle."
         }
       }
     },
@@ -714,6 +714,17 @@
               "description": "Absolute path to the .nika.yaml file (defaults to the active editor)."
             }
           }
+        }
+      },
+      {
+        "name": "nika_workspace",
+        "displayName": "Nika Workspace",
+        "toolReferenceName": "nikaWorkspace",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS — never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the context verb (0.99+); on older binaries this tool is not registered.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
         }
       }
     ],
