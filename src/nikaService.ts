@@ -34,7 +34,6 @@ import { collectBodyFacts } from './core/bodyFacts';
 import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
 import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
-import { parseRichWorkflow } from './workflowParser';
 
 export type { CliResult } from './core/spawn';
 
@@ -129,18 +128,21 @@ export class NikaService {
       this.changeEmitter.fire();
       return;
     }
-    // `check --help` rides along for the dash probe (engine #190): on a
-    // binary without check, clap errors and the empty stdout keeps the
-    // gate off — no conditional second round-trip.
-    const [help, version, checkHelp] = await Promise.all([
+    // `check --help` rides along for the dash probe (engine #190), and
+    // `explain --help` for the file-form probe (engine #298): on a
+    // binary without the subcommand, clap errors and the empty stdout
+    // keeps the gate off — no conditional second round-trip.
+    const [help, version, checkHelp, explainHelp] = await Promise.all([
       spawnCli(binaryPath, ['--help'], 5000),
       spawnCli(binaryPath, ['--version'], 5000),
       spawnCli(binaryPath, ['check', '--help'], 5000),
+      spawnCli(binaryPath, ['explain', '--help'], 5000),
     ]);
     this.capsValue = buildCapabilities(
       help.stdout,
       version.stdout || version.stderr,
       checkHelp.stdout,
+      explainHelp.stdout,
     );
     this.changeEmitter.fire();
 
@@ -331,35 +333,6 @@ export class NikaService {
     }
 
     return clientDagFor(text, doc.uri.toString(), path.basename(doc.uri.fsPath ?? 'workflow'));
-    const wf = parseRichWorkflow(text);
-    const base: DagGraph = {
-      workflowName: wf.name ?? path.basename(doc.uri.fsPath ?? 'workflow'),
-      workflowUri: doc.uri.toString(),
-      nodes: wf.tasks.map((t) => ({
-        id: t.id,
-        label: t.id,
-        verb: t.verb,
-        status: 'pending' as const,
-        model: t.model ?? wf.defaultModel,
-        tool: t.tool,
-        dependsOn: t.dependsOn,
-      })),
-      edges: wf.tasks.flatMap((t) =>
-        t.dependsOn.map((dep) => ({
-          id: `${dep}->${t.id}`,
-          source: dep,
-          target: t.id,
-          isDataEdge: false,
-        })),
-      ),
-    };
-    const flow = annotateDataFlow(text, base.nodes, base.edges);
-    base.nodes = flow.nodes;
-    base.edges = [...flow.edges, ...flow.ghosts];
-    mergeBodyFacts(text, base.nodes);
-    const regions = parseRegions(text);
-    if (regions.length > 0) { base.regions = regions; }
-    return base;
   }
 
   async graphFormat(doc: TextDocument, format: 'mermaid' | 'dot'): Promise<string | undefined> {

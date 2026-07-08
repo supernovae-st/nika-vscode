@@ -6,6 +6,17 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Internal (30s-experience arc, continued)
+
+- **`explainFile` capability probed, dormant** — engine #298's
+  `nika explain <file>` (narrative + `--json` twin) is detected on the
+  REAL `explain --help` doc line (the stdinDash law: help text over
+  version numbers). Nothing consumes it yet; the swap point is
+  `nika.explainWorkflow` once a release carries the file form.
+- **Dead code out of `dagForDocument`** — the unreachable duplicate
+  fallback after the `clientDagFor` return (and its orphaned
+  `parseRichWorkflow` import — the lint proved the kill).
+
 ### The beginner meets the story (30s-experience arc)
 
 - **¶ Explain joins the header lens** — the deterministic narrative
