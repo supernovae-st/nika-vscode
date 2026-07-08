@@ -202,8 +202,9 @@ export class NikaService {
   }
 
   /** Run a CLI verb against `doc` — real path when saved, otherwise the
-   *  text leg (stdin dash · tmp fallback on pre-dash binaries). */
-  private runDocCli(
+   *  text leg (stdin dash · tmp fallback on pre-dash binaries). Public:
+   *  one-shot doc-scoped verbs (explain's engine voice) ride it too. */
+  runDocCli(
     doc: TextDocument,
     args: (file: string) => string[],
     timeoutMs = 30000,
