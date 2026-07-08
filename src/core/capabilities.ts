@@ -51,6 +51,12 @@ export interface CapabilitySet {
    *  the swap point is nika.explainWorkflow → `explain <file> --json`
    *  once a release carries it. */
   explainFile: boolean;
+  /** `nika context` aggregates the workspace (engine 0.99 line · the
+   *  30s arc W4): every workflow audited + runs folded + environment,
+   *  one versioned JSON. A plain subcommand — the clap tree carries it.
+   *  Consumed by the `nika_workspace` LM tool (registered only when
+   *  this capability probes true, so the tool list stays honest). */
+  context: boolean;
 }
 
 /** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
@@ -125,6 +131,7 @@ export function buildCapabilities(
     // « Teach one error code »; the file form adds « narrate a workflow
     // FILE »).
     explainFile: commands.has('explain') && /narrate a workflow FILE/.test(explainHelpText),
+    context: commands.has('context'),
   };
 }
 
