@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## [0.98.0] · 2026-07-08
+
+- **The estimate names its prices** (nika ≥ 0.98) — the preflight's
+  Estimated-cost block carries the pricing snapshot's provenance from
+  `check --json` (`pricing.snapshot`): `Prices: list rates (public
+  catalog) · snapshot 2026-07-07 · 606 models`, with a staleness hint
+  past the engine's 120-day threshold (`⚠ N days old — upgrade nika to
+  refresh prices`). Old engines omit the key → the line is absent,
+  never invented.
+
 ### The story speaks with one voice (30s-experience arc, continued)
 
 - **Explain swaps to the engine's narrative** — with a binary that

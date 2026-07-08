@@ -108,7 +108,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   reads checked against your actual environment (`env`-sourced
   verified; vault/file say *declared*, never *verified*), permits +
   capability escapes + secret flows, the wave-by-wave plan, and the
-  cost ceiling. A **verdict chip on the run pill** keeps it glanceable
+  cost ceiling — with the **prices named** (nika ≥ 0.98): the pricing
+  snapshot's provenance line (source · date · model count) plus a
+  staleness hint past 120 days, so every estimate says which prices
+  produced it. A **verdict chip on the run pill** keeps it glanceable
   (`✗ 2 missing` · `⚠ flows` · `✓ preflight`) — click it for the doc
 - **Lineage — follow the data** · click a card, or put the caret inside
   `${{ tasks.x… }}` in the YAML: the producer and every consumer stay
