@@ -194,6 +194,10 @@ export interface PreflightModel {
   modelRows: ModelRow[];
   permits: { declared: boolean; categories: string[]; escapes: number; leaks: number; egresses: number };
   cost: { label: string; unbounded: boolean; topTasks: Array<{ task: string; label: string }> };
+  /** The pricing snapshot's identity line (0.98+ engines) — which
+   *  prices produced every figure above, from when. Undefined on old
+   *  engines: the line is simply absent. */
+  pricingSnapshot?: string;
   lastRun?: { durationMs?: number; costUsd?: number };
   /** Blocking truths (missing env secret · missing model key) — the gate list. */
   blockers: string[];
@@ -338,6 +342,7 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
       egresses: report?.secret_egresses.length ?? 0,
     },
     cost: { label: costLabel, unbounded, topTasks },
+    pricingSnapshot: snapshotLine(report?.pricing?.snapshot),
     lastRun: inputs.lastRun,
     blockers,
   };
@@ -386,6 +391,26 @@ export function preflightChipModel(m: PreflightModel): PreflightChip {
 
 // ─── Markdown rendering (the flight-plan document) ──────────────────────────
 
+/** How old the vendored snapshot may grow before the preflight hints —
+ *  mirrors the engine doctor's 120-day staleness threshold. */
+const SNAPSHOT_STALE_DAYS = 120;
+
+/** The pricing-provenance line: list-rates basis · snapshot date ·
+ *  size · a staleness hint past the doctor's threshold. Undefined when
+ *  the engine did not send a snapshot (pre-0.98) — never invented. */
+function snapshotLine(
+  snap: NonNullable<CheckReport['pricing']>['snapshot'] | undefined,
+): string | undefined {
+  if (!snap || typeof snap.as_of !== 'string') { return undefined; }
+  const bits = [`list rates (public catalog) · snapshot ${snap.as_of}`];
+  if (typeof snap.rules === 'number') { bits.push(`${snap.rules} models`); }
+  const ageDays = Math.floor((Date.now() - Date.parse(`${snap.as_of}T00:00:00Z`)) / 86_400_000);
+  if (Number.isFinite(ageDays) && ageDays > SNAPSHOT_STALE_DAYS) {
+    bits.push(`⚠ ${ageDays} days old — upgrade nika to refresh prices`);
+  }
+  return bits.join(' · ');
+}
+
 export function renderPreflight(m: PreflightModel): string {
   const out: string[] = [];
   out.push(`# Preflight — ${m.workflowName}`);
@@ -404,6 +429,7 @@ export function renderPreflight(m: PreflightModel): string {
   out.push('');
   out.push(`- Conformance: ${m.clean === true ? 'clean ✓' : m.findings > 0 ? `${m.findings} finding${m.findings > 1 ? 's' : ''} — fix before running` : m.clean === false ? 'not clean' : 'not checked'}`);
   out.push(`- Estimated cost: ${m.cost.label}`);
+  if (m.pricingSnapshot) { out.push(`- Prices: ${m.pricingSnapshot}`); }
   if (m.lastRun && (m.lastRun.durationMs !== undefined || m.lastRun.costUsd !== undefined)) {
     const bits: string[] = [];
     if (m.lastRun.durationMs !== undefined) { bits.push(`${(m.lastRun.durationMs / 1000).toFixed(1)}s`); }
