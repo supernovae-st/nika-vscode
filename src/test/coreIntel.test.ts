@@ -122,6 +122,46 @@ Options:
     expect(caps.stdinDash).toBe(false);
   });
 
+  // Captured verbatim from the engine #298 build (2026-07-08) — the file
+  // form's own doc line is the discriminator, same law as stdinDash.
+  const EXPLAIN_HELP_FILE_FORM = `Teach one error code (cause · category · fix-form) — or narrate a workflow FILE: what it does · the waves · cost before a token is spent · what it touches · how to run it
+
+Usage: nika explain [OPTIONS] <CODE>
+
+Arguments:
+  <CODE>
+          An error code (\`NIKA-440\` · bare \`440\`) or a workflow file path (\`*.nika.yaml\` · \`-\` reads stdin)
+
+Options:
+      --json  File form only: emit the versioned machine twin
+  -h, --help  Print help
+`;
+
+  // Captured verbatim from the released 0.97.0 — code-teacher only.
+  const EXPLAIN_HELP_CODE_ONLY = `Teach one error code (cause · category · fix-form)
+
+Usage: nika explain [OPTIONS] <CODE>
+
+Arguments:
+  <CODE>
+          The code (\`NIKA-440\` or bare \`440\`)
+`;
+
+  it('lights explainFile when explain --help documents the file form', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.98.0', '', EXPLAIN_HELP_FILE_FORM);
+    expect(caps.explainFile).toBe(true);
+  });
+
+  it('keeps explainFile off on the released code-only explain (0.97 line)', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.97.0', '', EXPLAIN_HELP_CODE_ONLY);
+    expect(caps.explainFile).toBe(false);
+  });
+
+  it('keeps explainFile off when the probe itself failed (empty output)', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.98.0');
+    expect(caps.explainFile).toBe(false);
+  });
+
   it('never lights stdinDash without check itself', () => {
     const noCheck = CLAP_HELP.replace(/^ {2}check.*\n/m, '');
     const caps = buildCapabilities(noCheck, 'nika-cli 0.93.1', CHECK_HELP_DASH);

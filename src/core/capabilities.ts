@@ -42,6 +42,15 @@ export interface CapabilitySet {
    *  carried the dash while still reporting 0.93.1); pre-dash binaries
    *  keep the tmp fallback. */
   stdinDash: boolean;
+  /** `explain <file>` narrates a workflow (engine #298 · the 30s arc):
+   *  the positional routes a PATH to the story renderer (waves · cost
+   *  honesty · touches · run/trace hand-off) with an `--json` machine
+   *  twin. Probed on the REAL `explain --help` doc line (same law as
+   *  stdinDash: help text over version numbers — dev builds lie about
+   *  versions, never about their own help). DORMANT until consumed:
+   *  the swap point is nika.explainWorkflow → `explain <file> --json`
+   *  once a release carries it. */
+  explainFile: boolean;
 }
 
 /** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
@@ -81,6 +90,7 @@ export function buildCapabilities(
   helpText: string,
   versionText: string,
   checkHelpText = '',
+  explainHelpText = '',
 ): CapabilitySet {
   const commands = parseHelpCommands(helpText);
   return {
@@ -110,6 +120,11 @@ export function buildCapabilities(
     // The dash is an ARGUMENT shape, not a subcommand — the discriminator
     // is its own doc line in `check --help` ("`-` reads stdin").
     stdinDash: commands.has('check') && /reads stdin/.test(checkHelpText),
+    // The file form overloads an EXISTING subcommand — the discriminator
+    // is its own doc line in `explain --help` (released 0.97 says only
+    // « Teach one error code »; the file form adds « narrate a workflow
+    // FILE »).
+    explainFile: commands.has('explain') && /narrate a workflow FILE/.test(explainHelpText),
   };
 }
 
