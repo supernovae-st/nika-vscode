@@ -302,6 +302,19 @@ export function activate(context: ExtensionContext): void {
   log('INFO', `Nika extension v${context.extension.packageJSON.version} activating`);
   log('INFO', `Platform: ${process.platform}/${process.arch}`);
 
+  // First activation EVER → surface the walkthrough once (the 2026-07-08
+  // funnel audit: the five-step story existed but relied on VS Code's
+  // own post-install card, which most users dismiss unseen). Global
+  // state — one machine, one greeting; never again after that.
+  if (!context.globalState.get<boolean>('nika.walkthroughShown')) {
+    void context.globalState.update('nika.walkthroughShown', true);
+    void commands.executeCommand(
+      'workbench.action.openWalkthrough',
+      `${context.extension.id}#nika.gettingStarted`,
+      false,
+    );
+  }
+
   // The ONE seam to the binary + the capability-aware status bar.
   const service = new NikaService();
 
@@ -1498,6 +1511,24 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.explainWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
+      // Engine ≥0.98 narrates files itself (the 30s arc) — ONE voice for
+      // the story across terminal and editor, wires drawing included.
+      // The client composer stays the pre-explain-binary fallback (the
+      // brain-in-the-engine law: the projection swaps the moment the
+      // binary carries the seam).
+      if (service.caps.explainFile) {
+        const res = await service.runDocCli(doc, (file) => ['explain', file]);
+        if (res && res.code === 0 && res.stdout.trim().length > 0) {
+          const preview = await workspace.openTextDocument({
+            language: 'plaintext',
+            content: res.stdout,
+          });
+          await window.showTextDocument(preview, { preview: true });
+          return;
+        }
+        // A dirty/finding file falls through — the client path renders
+        // its own conformance warning below.
+      }
       let graph;
       try {
         graph = await service.dagForDocument(doc);

@@ -6,6 +6,19 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The story speaks with one voice (30s-experience arc, continued)
+
+- **Explain swaps to the engine's narrative** — with a binary that
+  carries `nika explain <file>` (engine #298+, probed live), the
+  `Explain Workflow` command shows the engine's own story: waves ·
+  the wires drawing · cost honesty (FLOOR · unpriced, never « free ») ·
+  the flight-recorder hand-off. One voice across terminal and editor;
+  the client composer stays the fallback for older binaries and
+  non-conformant files.
+- **The walkthrough greets first activation** — the five-step story
+  existed but relied on VS Code's post-install card (dismissed unseen
+  by most). It now opens once, ever, on the first activation.
+
 ### Internal (30s-experience arc, continued)
 
 - **`explainFile` capability probed, dormant** — engine #298's
