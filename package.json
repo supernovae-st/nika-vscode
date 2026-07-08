@@ -402,6 +402,11 @@
           "default": true,
           "description": "Show code lens actions (Run, Validate, task count, last run status)."
         },
+        "nika.nudge.firstCleanCheck": {
+          "type": "boolean",
+          "default": true,
+          "description": "Once per workspace, when a workflow first checks clean, suggest the next step (run it — mock/echo needs no key)."
+        },
         "nika.trace.server": {
           "type": "string",
           "enum": [
@@ -851,7 +856,7 @@
     "viewsWelcome": [
       {
         "view": "nikaWorkflows",
-        "contents": "No workflows in this folder yet.\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       }
     ],
     "breakpoints": [
