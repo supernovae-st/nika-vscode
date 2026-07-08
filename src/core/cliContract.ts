@@ -286,6 +286,15 @@ export interface ReportPricing {
     input_per_million: number | null;
     output_per_million: number | null;
   }>;
+  /** The vendored catalog's provenance (0.98+) — which prices produced
+   *  every figure, from when. Old engines omit it: render nothing. */
+  snapshot?: {
+    source?: string;
+    as_of?: string;
+    source_sha256_16?: string;
+    rules?: number;
+    providers?: number;
+  };
 }
 
 /**
