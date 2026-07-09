@@ -15,7 +15,7 @@ icons (Seti does since VS Code 1.65). Folder icons are not part of that API.
 
 ## Material Icon Theme — today, via settings
 
-Until the upstream icons land, map the `.nika` folder to Material's existing
+Until [material-extensions/vscode-material-icon-theme#3529](https://github.com/material-extensions/vscode-material-icon-theme/pull/3529) lands, map the `.nika` folder to Material's existing
 `flow` folder (semantically right — the folder holds workflow traces):
 
 ```jsonc
@@ -27,7 +27,7 @@ Until the upstream icons land, map the `.nika` folder to Material's existing
 
 `*.nika.yaml` keeps Material's YAML icon until the upstream PR merges.
 
-## Material Icon Theme — the upstream contribution (ready to submit)
+## Material Icon Theme — the upstream contribution ([PR #3529](https://github.com/material-extensions/vscode-material-icon-theme/pull/3529) · in review)
 
 `material-icon-theme/` follows their CONTRIBUTING spec (16×16 viewBox ·
 Material palette only · folder = `id="folder"` canonical path + `id="motive"` ·
