@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Version-skew warning leaves the LSP path** — the outdated-extension
+  check now fires on every binary resolution (activation and the
+  restart gesture), not only when `nika lsp` happens to start: an old
+  extension against a new non-LSP binary previously got no signal.
+- **The motion preference goes live** — the canvas reads
+  `prefers-reduced-motion` through a media-query listener: toggling the
+  OS setting takes effect on the next gesture, no panel reload needed.
+
+
 - **The verbs wear their own faces** — the DAG card keycap, the drop-a-port
   verb palette (cmdk) and the add-a-task toolbar swap the unicode stand-ins
   (◇ ▷ ◆ ✦) for the icon ontology's house verb glyphs (sparkle · console ·

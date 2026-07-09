@@ -198,9 +198,6 @@ export function startClient(
     log('INFO', 'Language server started successfully');
     state.statusSink?.('running');
 
-    // Check for version mismatch between extension and LSP server
-    checkVersionMismatch(context, log, state.resolvedServerPath);
-
     // Forward execution events from LSP to DAG webview for live updates
     if (state.client) {
       state.client.onNotification('nika/executionEvent', (event: { taskId: string; status: string }) => {
