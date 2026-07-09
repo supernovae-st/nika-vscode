@@ -28,6 +28,7 @@ import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
+import { makeVerbGlyph } from './verbGlyphs';
 import { lineageOf, type LineageView } from '../core/lineage';
 
 // Every animation in this view is gated on the user's motion preference.
@@ -149,7 +150,9 @@ class VerbCmdk {
       row.dataset.i = String(i);
       const glyph = document.createElement('span');
       glyph.className = 'cmdk-glyph';
-      glyph.textContent = item.glyph;
+      const rowSvg = makeVerbGlyph(item.verb, 13);
+      if (rowSvg) { glyph.appendChild(rowSvg); }
+      else { glyph.textContent = item.glyph; }
       const name = document.createElement('span');
       name.className = 'cmdk-name';
       name.textContent = item.verb;
@@ -2126,7 +2129,11 @@ class DagRenderer {
     // carrying the verb glyph — THE mark that survives every zoom.
     const glyph = document.createElement('span');
     glyph.className = 'nc-tile';
-    glyph.textContent = verbIcon(node.verb);
+    // The house verb glyph (icon ontology · currentColor rides the keycap
+    // hue); unknown verbs keep the unicode fallback.
+    const tileSvg = makeVerbGlyph(node.verb, 13);
+    if (tileSvg) { glyph.appendChild(tileSvg); }
+    else { glyph.textContent = verbIcon(node.verb); }
     glyph.title = node.verb;
     const id = document.createElement('span');
     id.className = 'nc-id';
