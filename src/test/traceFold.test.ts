@@ -550,3 +550,18 @@ describe('task_recovered (0.98+ wire · D-2026-07-08-N4)', () => {
     expect(t?.recoveredFrom).toBeUndefined();
   });
 });
+
+describe('task_recovered · the REAL wire (engine-main capture, 2026-07-09)', () => {
+  // Captured from a debug build of engine origin/main running an
+  // on_error.recover workflow — the exact bytes the emitter writes
+  // (emit_task.rs: fields task + code), not a synthesized shape.
+  it('the recorded journal folds to a recovered success end-to-end', () => {
+    const m = fixtureFold('recovered-run.ndjson');
+    expect(m.workflowStatus).toBe('completed');
+    const t = m.tasks.get('fragile');
+    expect(t?.status).toBe('success');
+    expect(t?.recoveredFrom).toBe('NIKA-BUILTIN-READ-001');
+    expect(t && formatRunBadge(t)).toContain('recovered');
+    expect(summarizeRun(m)).toContain('✚ 1 recovered');
+  });
+});
