@@ -2355,6 +2355,11 @@ class DagRenderer {
       // Short label — the k-column is narrow; the range IS the static read.
       add('cost', `$${live.costMin.toFixed(live.costMin < 0.1 ? 4 : 2)} → $${live.costMax.toFixed(live.costMax < 0.1 ? 4 : 2)}`);
     }
+    if (live.usd !== undefined) {
+      // The after-story: the estimate above said what it COULD cost —
+      // this is what it DID cost (the terminal event's recorded spend).
+      add('spent', `$${live.usd.toFixed(live.usd < 0.1 ? 4 : 2)} recorded`);
+    }
     if (live.durationMs != null) {
       add('duration', live.durationMs >= 1000 ? `${(live.durationMs / 1000).toFixed(1)}s` : `${live.durationMs}ms`);
     }
@@ -3003,6 +3008,21 @@ class DagRenderer {
         dot.className = 'legend-dot';
         const label = document.createElement('span');
         label.textContent = `${counts[st]} ${st}`;
+        chip.append(dot, label);
+        chips.appendChild(chip);
+      }
+      // A repaired run says so at a glance here too (D-2026-07-08-N4).
+      let recovered = 0;
+      for (const node of this.currentGraph.nodes) {
+        if (node.recoveredFrom !== undefined) { recovered += 1; }
+      }
+      if (recovered > 0) {
+        const chip = document.createElement('span');
+        chip.className = 'legend-chip st-recovered';
+        const dot = document.createElement('span');
+        dot.className = 'legend-dot';
+        const label = document.createElement('span');
+        label.textContent = `✚ ${recovered} recovered`;
         chip.append(dot, label);
         chips.appendChild(chip);
       }
