@@ -25,6 +25,19 @@ major.minor from 0.97).
   completions without the binary (they read the engine's `nika schema`);
   the DAG walkthrough names the real flag (`nika graph <file> --format
   mermaid`).
+- **The glyph reaches every small surface** — activity bar, editor-tab
+  language icon and DAG panel tab now use the brand kit's 16 px teardrop
+  glyph instead of scaling down the full butterfly-supernova (which turns
+  to mush under 24 px; the light variant also wore an off-system navy
+  `#0a2540` — now the canonical inks: glow `#cfe6ff` on dark · ink
+  `#04050d` on light). The Marketplace tile is untouched. Icon sources are
+  vendored from the brand kit — see `icons/README.md` and
+  [nika.sh/brand](https://nika.sh/brand/nika-logo-dark.svg).
+- **`contrib/` icon kit for file-icon themes** — ready-made, spec-compliant
+  Nika icons + wiring for Material Icon Theme (interim `.nika` → `flow`
+  folder association + upstream-ready `nika.svg` / `folder-nika.svg`) and
+  vscode-icons (custom file/folder/open-folder set). The README grows an
+  « Icons in your editor » section. Excluded from the `.vsix`.
 
 ## [0.98.0] · 2026-07-08
 
