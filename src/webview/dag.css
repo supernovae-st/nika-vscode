@@ -4131,6 +4131,10 @@ body.vscode-high-contrast .dag-edge.edge-data {
 }
 @keyframes nk-orbit-tile { to { transform: rotate(360deg); } }
 
+/* The recovered legend chip — the amber of the absorbed failure. */
+.legend-chip.st-recovered .legend-dot { background: var(--nk-st-retrying); }
+.legend-chip.st-recovered { color: var(--nk-st-retrying); }
+
 /* Heat mode neutralizes hue on purpose — the verb matter steps back so
  * the duration/cost tint stays the ONLY color story. */
 body.heatmap .nc-head { background-image: none; }

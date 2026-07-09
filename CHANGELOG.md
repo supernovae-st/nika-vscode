@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The card tells its after-story** — the hover card now shows
+  `spent $0.0018 recorded` (the terminal event's real spend) right
+  under the static `cost $min → $max` estimate: before and after on
+  one card. And the legend chips gain `✚ N recovered` — a repaired
+  run says so in the run summary, not only on the card.
+
+
 - **The canvas cost ticker** — the status pill now carries the run's
   recorded spend, live: `2 done · 4 running · ≥ $0.0022`. Engine truth
   only (the terminal events' `cost_usd`, summed as tasks settle), with
