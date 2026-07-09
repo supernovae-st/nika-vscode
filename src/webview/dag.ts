@@ -30,6 +30,7 @@ import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
 import { makeVerbGlyph } from './verbGlyphs';
 import { lineageOf, type LineageView } from '../core/lineage';
+import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
 
 // Every animation in this view is gated on the user's motion preference —
 // read LIVE: runtime gates see an OS-level toggle without a panel reload
@@ -197,6 +198,8 @@ function auroraSignal(kind: 'sweep' | 'danger'): void {
 // ─── Types (mirrored from dagPanel.ts — no shared import in webview) ────────
 
 type TaskStatus = 'pending' | 'running' | 'retrying' | 'success' | 'failed' | 'skipped' | 'cancelled';
+/** Why a particle train exists: the live frontier, or a hover-traced lineage. */
+type ParticleKind = 'run' | 'trace';
 // The 4 verbs are locked forever (D-2026-05-22-N18) — fetch is the
 // `nika:fetch` BUILTIN under invoke, not a verb. Unknown strings render
 // with a neutral icon (forward-compat with future graph projections).
@@ -478,6 +481,7 @@ class DagRenderer {
   private bandGroup: Selection<SVGGElement, unknown, null, undefined>;
   private regionGroup: Selection<SVGGElement, unknown, null, undefined>;
   private edgeGroup: Selection<SVGGElement, unknown, null, undefined>;
+  private particleGroup: Selection<SVGGElement, unknown, null, undefined>;
   private nodeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private zoomBehavior: ZoomBehavior<SVGSVGElement, unknown>;
   private currentGraph: DagGraph | undefined;
@@ -537,6 +541,12 @@ class DagRenderer {
   private edgePathEl = new Map<string, SVGPathElement>();
   private edgeLabelEl = new Map<string, SVGTextElement>();
   private edgeHitEl = new Map<string, SVGPathElement>();
+  /** Live particle trains, per edge (what exists ↔ what is true). */
+  private particleEdges = new Map<string, { kind: ParticleKind; el: SVGGElement; path: SVGPathElement }>();
+  /** Unique DOM ids for edge paths (SMIL <mpath> needs an href anchor). */
+  private edgeDomSeq = 0;
+  /** One-shot afterglow window — cleared before any re-arm. */
+  private afterglowTimer: number | undefined;
   /** rAF coalescing for the drag hot path (mousemove can outrun frames). */
   private dragRaf = 0;
   private dragLast: { x: number; y: number } | null = null;
@@ -575,6 +585,8 @@ class DagRenderer {
     this.regionGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-regions');
     // Edges below nodes
     this.edgeGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-edges');
+    // Execution particles ride ABOVE the wires, UNDER the cards.
+    this.particleGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-particles');
     // Nodes on top
     this.nodeGroup = this.rootGroup.append<SVGGElement>('g').attr('class', 'dag-nodes');
 
@@ -837,6 +849,9 @@ class DagRenderer {
       this.lineage = null;
       this.lineageFromEditor = false;
     }
+    // A hover can't survive a graph swap (its sets point at old ids, and
+    // the pointer's mouseenter will re-fire if it still rests on a card).
+    this.hoverLin = null;
     // Same for the live filter: its match set points at the OLD graph's
     // ids — recompute against the new one (the query survives, the
     // stale set must not dim everything).
@@ -1090,6 +1105,9 @@ class DagRenderer {
   private lineage: LineageView | null = null;
   /** True when the caret (not a click) set the lineage — cleared on caret exit. */
   private lineageFromEditor = false;
+  /** Pointer-driven lineage (hover-to-trace) — the WEAKEST intent: a click
+   *  focus owns the stage; the caret lineage restores itself on unhover. */
+  private hoverLin: LineageView | null = null;
   /** Last posted running-set signature — transport:tick fires on change only. */
   private lastRunTick = '';
   /** The editor-caret hinted task — restored after any class rewrite. */
@@ -1118,9 +1136,32 @@ class DagRenderer {
     this.refreshDim();
   }
 
+  /**
+   * Hover-to-trace: the pointer rests on a card — light its REAL
+   * up/downstream closure without stealing anything. Weakest intent of
+   * the three lineage drivers (click > hover > caret): a click focus
+   * suppresses it entirely; leaving the card restores whatever the
+   * caret had lit. Class flips + a particle resync — nothing else.
+   */
+  hoverLineage(taskId: string | null): void {
+    const next = taskId !== null && this.nodeMap.has(taskId)
+      ? lineageOf(this.currentGraph?.edges ?? [], taskId)
+      : null;
+    if (next === null && this.hoverLin === null) { return; }
+    if (next !== null && this.hoverLin?.focus === next.focus) { return; }
+    this.hoverLin = next;
+    this.refreshDim();
+  }
+
+  /** The lineage the canvas SHOWS right now (click > hover > caret). */
+  private effectiveLineage(): LineageView | null {
+    if (this.focusedId !== null) { return this.lineage; }
+    return this.hoverLin ?? this.lineage;
+  }
+
   /** Lineage illumination ∧ filter matches — ONE dimming truth for nodes+edges. */
   private refreshDim(): void {
-    const lin = this.lineage;
+    const lin = this.effectiveLineage();
     const lit = lin === null ? null : new Set(lin.lit);
     const direct = lin === null ? null : new Set([...lin.upDirect, ...lin.downDirect]);
     const litEdges = lin === null ? null : new Set(lin.litEdges);
@@ -1149,6 +1190,12 @@ class DagRenderer {
         const ends = this.edgeEnds.get(d.id);
         return ends !== undefined && litEdges.has(`${ends.source}->${ends.target}`);
       });
+    // The minimap tells the same story (class-only touch, no re-render).
+    for (const r of document.querySelectorAll<SVGRectElement>('#minimap-svg rect.mm-node')) {
+      const id = r.dataset.id;
+      r.classList.toggle('mm-dim', id !== undefined && dimNode(id));
+    }
+    this.syncParticles();
   }
 
   /** Live text filter (`/`): non-matching fades; returns the match count. */
@@ -1768,6 +1815,12 @@ class DagRenderer {
     clone.setAttribute('height', String(H));
     clone.setAttribute('viewBox', `0 0 ${W} ${H}`);
     clone.querySelector('g.dag-root')?.removeAttribute('transform');
+    // Live-run ephemera never travel with the file: particle trains would
+    // keep animating inside an exported SVG, afterglow would replay on open.
+    clone.querySelector('g.dag-particles')?.replaceChildren();
+    for (const p of clone.querySelectorAll('.dag-edge.afterglow, .dag-edge.afterglow-fail')) {
+      p.classList.remove('afterglow', 'afterglow-fail');
+    }
 
     // Styles travel INSIDE the file; skin rules re-anchor on :root so the
     // exported image keeps the active register.
@@ -1938,9 +1991,10 @@ class DagRenderer {
         if (this.ghostIds.has(d.id)) { return false; } // nothing crosses a missing wire
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return false; }
-        const tgt = this.nodeMap.get(ends.target)?.status;
-        return this.nodeMap.get(ends.source)?.status === 'success'
-          && (tgt === 'running' || tgt === 'retrying');
+        return isFlowing(
+          this.nodeMap.get(ends.source)?.status,
+          this.nodeMap.get(ends.target)?.status,
+        );
       })
       .classed('done', (d) => {
         if (this.ghostIds.has(d.id)) { return false; }
@@ -1950,6 +2004,134 @@ class DagRenderer {
           && this.nodeMap.get(ends.target)?.status === 'success';
       })
       .classed('critical', (d) => this.criticalEdges.has(d.id));
+    this.syncParticles();
+  }
+
+  // ─── Execution particles · data crossing THIS wire, made visible ─────────
+  // The Liam-ERD recipe: a handful of SMIL animateMotion dots riding the
+  // edge path — the compositor animates them for 2-3 frames of layout
+  // cost, where a dash-offset march re-rasterizes the stroke every frame
+  // (Chromium 40958492). Existence IS the honesty gate: a train spawns
+  // only while the wire is truly flowing (live frontier) or while YOU
+  // hold a lineage under the pointer (hover-to-trace).
+
+  /** Which edges deserve a particle train RIGHT NOW, and why. */
+  private desiredParticles(): Map<string, ParticleKind> {
+    const want = new Map<string, ParticleKind>();
+    if (REDUCED_MOTION) { return want; }
+    // Hover-to-trace: particles ride the hovered story ONLY (the rest of
+    // the canvas is dimmed — a bright train on a dimmed wire would lie).
+    const hov = this.focusedId === null ? this.hoverLin : null;
+    if (hov !== null) {
+      const lit = new Set(hov.litEdges);
+      for (const [id, ends] of this.edgeEnds) {
+        if (this.ghostIds.has(id)) { continue; }
+        if (lit.has(`${ends.source}->${ends.target}`)) { want.set(id, 'trace'); }
+      }
+      return want;
+    }
+    // The live frontier: source settled → target computing, and the wire
+    // is actually VISIBLE (a lineage/filter dim mutes its particles too).
+    for (const [id, ends] of this.edgeEnds) {
+      if (this.ghostIds.has(id)) { continue; }
+      if (!isFlowing(this.nodeMap.get(ends.source)?.status, this.nodeMap.get(ends.target)?.status)) { continue; }
+      if (this.edgePathEl.get(id)?.classList.contains('dimmed')) { continue; }
+      want.set(id, 'run');
+    }
+    return want;
+  }
+
+  /** Reconcile living trains with the truth — spawn, retire, respawn. */
+  private syncParticles(): void {
+    const want = this.desiredParticles();
+    for (const [id, entry] of [...this.particleEdges]) {
+      const path = this.edgePathEl.get(id);
+      // Retire when no longer true, when the reason changed, or when a
+      // relayout replaced the path element the train was riding.
+      if (want.get(id) !== entry.kind || path !== entry.path || !entry.path.isConnected) {
+        entry.el.remove();
+        this.particleEdges.delete(id);
+      }
+    }
+    for (const [id, kind] of want) {
+      if (!this.particleEdges.has(id)) { this.spawnParticles(id, kind); }
+    }
+  }
+
+  /** One staggered train of ≤6 dots riding an edge path (SMIL mpath). */
+  private spawnParticles(edgeId: string, kind: ParticleKind): void {
+    const host = this.particleGroup.node();
+    const path = this.edgePathEl.get(edgeId);
+    if (!host || !path || !path.isConnected) { return; }
+    const total = path.getTotalLength();
+    if (total < 24) { return; } // too short for a train to read
+    if (path.id === '') { path.id = `nk-ep-${this.edgeDomSeq++}`; }
+    const ns = 'http://www.w3.org/2000/svg';
+    const g = document.createElementNS(ns, 'g');
+    g.setAttribute('class', `edge-particles ep-${kind}`);
+    // Constant TRAVEL SPEED (~200 px/s), not constant duration — a long
+    // wire must not read as faster data than a short one.
+    const dur = Math.min(2.6, Math.max(1, total / 200));
+    const count = Math.max(2, Math.min(6, Math.floor(total / 40)));
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElementNS(ns, 'ellipse');
+      dot.setAttribute('class', 'edge-particle');
+      // ~2× the wire width — must READ at fit zoom (~0.4-0.8), not only
+      // when zoomed in (the first harness pass shipped 2.4 and vanished).
+      dot.setAttribute('rx', '4');
+      dot.setAttribute('ry', '2.2');
+      const am = document.createElementNS(ns, 'animateMotion');
+      am.setAttribute('dur', `${dur.toFixed(3)}s`);
+      am.setAttribute('repeatCount', 'indefinite');
+      am.setAttribute('rotate', 'auto');
+      // Negative stagger: the train is already spread on frame one.
+      am.setAttribute('begin', `${(-(i * dur) / count).toFixed(3)}s`);
+      const mp = document.createElementNS(ns, 'mpath');
+      mp.setAttribute('href', `#${path.id}`);
+      mp.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#${path.id}`);
+      am.appendChild(mp);
+      dot.appendChild(am);
+      g.appendChild(dot);
+    }
+    host.appendChild(g);
+    this.particleEdges.set(edgeId, { kind, el: g, path });
+  }
+
+  /** OS motion preference flipped mid-session — re-arbitrate the trains. */
+  motionPrefChanged(): void {
+    this.syncParticles();
+  }
+
+  // ─── Post-run afterglow · the executed path holds heat, briefly ──────────
+  // Unreal's recently-executed read: right as a LIVE run closes, every
+  // wire that actually FIRED glows hot (success green · failure red) and
+  // cools over ~2.4s to the resting tint. Pure opacity/glow decay — no
+  // motion — so reduced-motion KEEPS it, shorter (CSS gates the duration).
+
+  private runAfterglow(): void {
+    if (this.afterglowTimer !== undefined) {
+      window.clearTimeout(this.afterglowTimer);
+      // Restart clean: a re-added class on the same element would not
+      // replay the animation otherwise.
+      this.edgeGroup.selectAll('.dag-edge')
+        .classed('afterglow', false)
+        .classed('afterglow-fail', false);
+    }
+    const verdictOf = (d: ElkExtendedEdge): 'hot-success' | 'hot-fail' | 'cold' => {
+      if (this.ghostIds.has(d.id)) { return 'cold'; } // nothing fired a missing wire
+      const ends = this.edgeEnds.get(d.id);
+      if (!ends) { return 'cold'; }
+      return afterglowVerdict(this.nodeMap.get(ends.source), this.nodeMap.get(ends.target));
+    };
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
+      .classed('afterglow', (d) => verdictOf(d) === 'hot-success')
+      .classed('afterglow-fail', (d) => verdictOf(d) === 'hot-fail');
+    this.afterglowTimer = window.setTimeout(() => {
+      this.afterglowTimer = undefined;
+      this.edgeGroup.selectAll('.dag-edge')
+        .classed('afterglow', false)
+        .classed('afterglow-fail', false);
+    }, 3000);
   }
 
   private renderNodes(elkNodes: ElkNode[], dagNodes: DagNode[]): void {
@@ -2096,11 +2278,18 @@ class DagRenderer {
       });
     });
 
-    // Rich hover card (replaces the native <title> tooltip)
+    // Rich hover card (replaces the native <title> tooltip) + the
+    // hover-to-trace lineage — one pointer, two reads.
     enter
-      .on('mouseenter', (event: MouseEvent, d: DagNode) => this.showHoverCard(event, d))
+      .on('mouseenter', (event: MouseEvent, d: DagNode) => {
+        this.showHoverCard(event, d);
+        this.hoverLineage(d.id);
+      })
       .on('mousemove', (event: MouseEvent) => this.moveHoverCard(event))
-      .on('mouseleave', () => this.hideHoverCard());
+      .on('mouseleave', () => {
+        this.hideHoverCard();
+        this.hoverLineage(null);
+      });
 
     // Entering nodes appear AT their position (no fly-in from origin);
     // the wave-staggered fade does the reveal.
@@ -2508,6 +2697,10 @@ class DagRenderer {
         const meta = dagEdgeMap.get(d.id);
         return meta?.ghost ? '' : `url(#arrow-${meta?.isDataEdge ? 'data' : 'dep'})`;
       })
+      // Entering wires get their geometry AT ONCE (they fade in in place,
+      // like the cards) — particles measure/ride the path immediately;
+      // only UPDATING wires tween `d` (the relayout re-route).
+      .attr('d', (d) => this.edgePathFor(d))
       .attr('opacity', 0);
     // Wires join the entrance choreography: each fades in just after its
     // SOURCE card's wave (REDUCED_MOTION collapses the stagger to zero).
@@ -2865,6 +3058,12 @@ class DagRenderer {
     this.bandGroup.selectAll('*').remove();
     this.regionGroup.selectAll('*').remove();
     this.edgeGroup.selectAll('*').remove();
+    this.particleGroup.selectAll('*').remove();
+    this.particleEdges.clear();
+    if (this.afterglowTimer !== undefined) {
+      window.clearTimeout(this.afterglowTimer);
+      this.afterglowTimer = undefined;
+    }
     this.nodeGroup.selectAll('*').remove();
     this.currentGraph = undefined;
     this.nodeMap.clear();
@@ -2876,6 +3075,7 @@ class DagRenderer {
     this.focusedId = null;
     this.lineage = null;
     this.lineageFromEditor = false;
+    this.hoverLin = null;
     this.filterMatches = null;
     if (this.lastRunTick !== '') {
       this.lastRunTick = '';
@@ -2957,6 +3157,8 @@ class DagRenderer {
     const allTerminal = total > 0 && terminal === total;
     if (allTerminal && !this.wasAllTerminal && !replayer.active) {
       auroraSignal(counts.failed > 0 ? 'danger' : 'sweep');
+      // The trace, persisted briefly: heat on exactly the wires that fired.
+      this.runAfterglow();
     }
     this.wasAllTerminal = allTerminal;
 
@@ -3295,6 +3497,9 @@ function toggleExplainer(): void {
 
 const renderer = new DagRenderer('dag-container');
 renderer.wireHoverCardPersistence();
+// The top-of-file listener updates REDUCED_MOTION first (registration
+// order); this one lets the renderer retire/spawn particle trains live.
+MOTION_QUERY.addEventListener('change', () => renderer.motionPrefChanged());
 
 // The platine — paints trace instants through the SAME batch path as
 // live runs (states/classes only, never a relayout).

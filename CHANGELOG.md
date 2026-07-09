@@ -6,6 +6,29 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Execution particles — data made visible crossing the wire** — while
+  a task computes, each edge feeding it carries a short train of bright
+  beads (SVG `animateMotion` riding the edge path on the compositor; the
+  dash-offset march is retired — it re-rasterized the stroke every
+  frame). Existence is the honesty gate: a particle spawns only while
+  data truly travels (source settled → target running/retrying), never
+  on a resting graph. Reduced motion spawns none — the settled tint
+  alone carries the state.
+
+- **Hover-to-trace lineage** — rest the pointer on a card and its REAL
+  data story lights: the transitive producers and consumers (the same
+  closure the click-focus uses), everything else dims — minimap
+  included — and the particle train rides the hovered lineage only. A
+  click keeps its stronger claim; the caret-driven lineage restores
+  itself when the pointer leaves.
+
+- **Post-run afterglow** — the instant a live run closes, every wire
+  that actually FIRED holds heat and cools over ~2.4s: success green,
+  failure red, while cached (ADR-099 rehydration — nothing executed)
+  and skipped wires stay cold. Pure opacity/glow decay, zero motion —
+  reduced-motion keeps it, shorter. Replays and scrubs never fire it;
+  only a live close does.
+
 ## [0.98.1] · 2026-07-09
 
 - **The real butterfly, everywhere the logo stands** (operator lock) —

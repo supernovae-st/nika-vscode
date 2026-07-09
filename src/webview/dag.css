@@ -648,6 +648,12 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   stroke-width: 2;
 }
 
+/* The minimap mirrors the dim (id-weighted: it must out-rank the
+ * .mm-node.st-* opacity rules wherever they sit). */
+#minimap-svg .mm-node.mm-dim {
+  opacity: 0.12;
+}
+
 @media (forced-colors: active) {
   .dag-node.lin-direct .node-bg {
     stroke: Highlight !important;
@@ -660,14 +666,16 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 /* ─── Edge flow · the LIVE FRONTIER only (React Flow discipline) ──────────
-   An edge animates while data is travelling NOW (source settled → target
-   running); a fully settled edge rests as a quiet success tint. Never
-   the whole graph. */
+   An edge lights while data is travelling NOW (source settled → target
+   running) — a solid settled tint under the particle train; a fully
+   settled edge rests as a quiet success tint. Never the whole graph.
+   (The old dash-offset march is retired: it re-rasterized the stroke
+   every frame — Chromium 40958492; the animateMotion particles below
+   carry the movement on the compositor instead.) */
 
 .dag-edge.flowing {
   stroke: var(--nk-st-success);
-  stroke-dasharray: 7 5;
-  animation: edge-flow 0.9s linear infinite;
+  opacity: 1;
 }
 
 .dag-edge.done {
@@ -675,9 +683,90 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   opacity: 0.85;
 }
 
-@keyframes edge-flow {
+/* ─── Execution particles · data crossing THIS wire, NOW ──────────────────
+   ≤6 SMIL dots riding the edge path (Liam-ERD recipe) — they exist only
+   while the wire truly flows (live frontier) or while a lineage is held
+   under the pointer (.ep-trace). TS owns existence; CSS owns the ink. */
+
+.dag-particles {
+  pointer-events: none;
+}
+
+.edge-particle {
+  /* Hot-core bead: brighter than the wire it rides (same hue family at
+   * fit zoom = camouflage — the first harness pass proved it). */
+  fill: color-mix(in srgb, var(--nk-st-running) 48%, white);
+  opacity: 0.95;
+}
+
+.edge-particles.ep-trace .edge-particle {
+  fill: color-mix(in srgb, var(--nk-accent) 55%, white);
+  opacity: 0.9;
+}
+
+@media (forced-colors: active) {
+  /* Decorative reinforcement only — the tints carry the state. */
+  .dag-particles {
+    display: none !important;
+  }
+}
+
+/* ─── Post-run afterglow · the trace, persisted briefly ───────────────────
+   The instant a LIVE run closes, every wire that FIRED holds heat
+   (success green · failure red) and cools to the resting tint. Pure
+   glow/opacity decay — zero motion — so reduced-motion keeps it,
+   shorter. TS drops the class once the heat has left. */
+
+.dag-edge.afterglow {
+  animation: nk-afterglow 2.4s ease-out both;
+}
+
+.dag-edge.afterglow-fail {
+  animation: nk-afterglow-fail 2.4s ease-out both;
+}
+
+@keyframes nk-afterglow {
+  from {
+    stroke-opacity: 1;
+    filter:
+      drop-shadow(0 0 3px var(--nk-st-success))
+      drop-shadow(0 0 9px color-mix(in srgb, var(--nk-st-success) 65%, transparent));
+  }
+
   to {
-    stroke-dashoffset: -12;
+    filter:
+      drop-shadow(0 0 0 transparent)
+      drop-shadow(0 0 0 transparent);
+  }
+}
+
+@keyframes nk-afterglow-fail {
+  from {
+    stroke-opacity: 1;
+    filter:
+      drop-shadow(0 0 3px var(--nk-st-failed))
+      drop-shadow(0 0 9px color-mix(in srgb, var(--nk-st-failed) 65%, transparent));
+  }
+
+  to {
+    filter:
+      drop-shadow(0 0 0 transparent)
+      drop-shadow(0 0 0 transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Opacity/glow decay carries no motion — it STAYS, just quicker. */
+  .dag-edge.afterglow,
+  .dag-edge.afterglow-fail {
+    animation-duration: 1s;
+  }
+}
+
+@media (forced-colors: active) {
+  .dag-edge.afterglow,
+  .dag-edge.afterglow-fail {
+    animation: none !important;
   }
 }
 
@@ -687,10 +776,6 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   stroke: var(--nk-critical);
   stroke-width: 2.5;
   stroke-dasharray: none;
-}
-
-.dag-edge.critical.flowing {
-  stroke-dasharray: 7 5;
 }
 
 /* ─── Hover card · the node explains itself (glass · interactive) ───────── */
@@ -1716,7 +1801,6 @@ body.vscode-light .logo-dark { display: none; }
     transition: none !important;
   }
 
-  .dag-edge.flowing,
   .dag-edge.edge-ghost,
   #first-hint,
   .dag-node.status-running .node-bg,
@@ -1970,18 +2054,11 @@ body[data-nk-theme='nika'] .nc-tile {
     inset 0 0 8px color-mix(in srgb, var(--dv-hue, transparent) 18%, transparent);
 }
 
-/* Data circulation · sparse round dashes travelling the wire (dv-flow). */
+/* Data circulation · the nika wire settles brand-blue; the particle
+ * train (tokens, re-scoped above) carries the movement. */
 body[data-nk-theme='nika'] .dag-edge.flowing {
   stroke: rgb(141 180 255 / 0.75);
   stroke-linecap: round;
-  stroke-dasharray: 3 15;
-  animation: nk-edge-flow 1.5s linear infinite;
-}
-
-@keyframes nk-edge-flow {
-  to {
-    stroke-dashoffset: -18;
-  }
 }
 
 /* Hover card + activity + minimap ride the re-scoped tokens; pin the
@@ -2116,7 +2193,6 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 /* ─── Reduced motion · the nika-skin additions opt out too ──────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-nk-theme='nika'] .dag-edge.flowing,
   body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
     animation: none !important;
   }
