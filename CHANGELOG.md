@@ -6,6 +6,23 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Every verb gets a soul** — each card now carries its execution
+  model's matter and character, per the four-verb doctrine (a verb IS a
+  distinct native execution model): `infer` wears a thought-aurora
+  behind its head and the tile breathes while the model is actually
+  thinking · `exec` shows faint CRT scanlines and blinks a terminal
+  caret after the command while the subprocess is live · `invoke` has a
+  socket gradient at rest and visible current flowing across the head
+  while the tool call is in flight · `agent` carries a dashed orbit
+  ring around its tile that rotates while the loop turns. Plus a
+  skeuomorphic surface pass: light falls from above, the card edge is
+  polished, param chips sit inset. Rest layers are static paint; the
+  only continuous animations ride `status-running` (bounded by max
+  parallelism), every one has a reduced-motion opt-out, and heat mode
+  neutralizes the verb matter so the cost tint stays the only color
+  story. Both skins pixel-proven.
+
+
 - **The canvas card says `✚ recovered`** (engine ≥0.98 · D-2026-07-08-N4)
   — the repaired-success story reaches the DAG: the card's verdict word
   turns `✚ recovered` in retry-amber, the success dot wears the amber
