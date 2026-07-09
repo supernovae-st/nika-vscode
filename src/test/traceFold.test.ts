@@ -493,3 +493,60 @@ describe('the skip/cancel WHY (0.95+ journals)', () => {
     expect(m.tasks.get('old_style')?.whyWhen).toBeUndefined();
   });
 });
+
+describe('task_recovered (0.98+ wire · D-2026-07-08-N4)', () => {
+  const line = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
+    JSON.stringify({ id: 'x', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+  const recoveredTrace = [
+    line('workflow_started', [{ key: 'workflow', value: 'demo' }], 1000),
+    line('task_started', [{ key: 'task', value: 'fragile' }], 1001),
+    line('task_recovered', [
+      { key: 'task', value: 'fragile' },
+      { key: 'code', value: 'NIKA-BUILTIN-READ-001' },
+    ], 1002),
+    line('task_completed', [
+      { key: 'task', value: 'fragile' },
+      { key: 'duration_ms', value: 3 },
+    ], 1003),
+    line('workflow_completed', [], 1004),
+  ].join('\n');
+
+  it('normalizeEventLine carries the code the repair absorbed', () => {
+    const ev = normalizeEventLine(line('task_recovered', [
+      { key: 'task', value: 'fragile' },
+      { key: 'code', value: 'NIKA-EXEC-001' },
+    ], 5));
+    expect(ev).toMatchObject({ kind: 'task_recovered', taskId: 'fragile', code: 'NIKA-EXEC-001' });
+  });
+
+  it('a repaired success paints success AND carries recoveredFrom', () => {
+    const model = foldTrace(recoveredTrace);
+    const t = model.tasks.get('fragile');
+    expect(t?.status).toBe('success');
+    expect(t?.recoveredFrom).toBe('NIKA-BUILTIN-READ-001');
+  });
+
+  it('the editor badge and the run card both say recovered — a repaired success never reads clean', () => {
+    const model = foldTrace(recoveredTrace);
+    const t = model.tasks.get('fragile');
+    expect(t && formatRunBadge(t)).toContain('recovered');
+    expect(summarizeRun(model)).toContain('✚ 1 recovered');
+  });
+
+  it('a run without the event says nothing about recovery', () => {
+    expect(summarizeRun(fixtureFold('sig-run-a.ndjson'))).not.toContain('recovered');
+  });
+
+  it('recovered arriving AFTER the terminal line is trace corruption — frozen, ignored', () => {
+    const corrupt = [
+      line('task_completed', [{ key: 'task', value: 'fragile' }], 1000),
+      line('task_recovered', [
+        { key: 'task', value: 'fragile' },
+        { key: 'code', value: 'NIKA-EXEC-001' },
+      ], 1001),
+    ].join('\n');
+    const t = foldTrace(corrupt).tasks.get('fragile');
+    expect(t?.status).toBe('success');
+    expect(t?.recoveredFrom).toBeUndefined();
+  });
+});

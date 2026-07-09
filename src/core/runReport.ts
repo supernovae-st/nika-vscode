@@ -56,6 +56,7 @@ export function renderRunReport(inputs: RunReportInputs): string {
   const bad = tasks.filter((t) => t.status === 'failed').length;
   const skipped = tasks.filter((t) => t.status === 'skipped').length;
   const cached = tasks.filter((t) => t.cached === true).length;
+  const recovered = tasks.filter((t) => t.recoveredFrom !== undefined).length;
   const retries = tasks.reduce((a, t) => a + t.retries, 0);
   const starts = tasks.map((t) => t.startMs).filter((n): n is number => n !== undefined);
   const ends = tasks.map((t) => t.endMs).filter((n): n is number => n !== undefined);
@@ -65,7 +66,7 @@ export function renderRunReport(inputs: RunReportInputs): string {
 
   out.push('## Verdict');
   out.push('');
-  out.push(`- Workflow: **${model.workflowStatus ?? 'unknown'}** — ${ok} succeeded · ${bad} failed · ${skipped} skipped${cached > 0 ? ` · ${cached} from cache` : ''}${retries > 0 ? ` · ${retries} retr${retries === 1 ? 'y' : 'ies'}` : ''}`);
+  out.push(`- Workflow: **${model.workflowStatus ?? 'unknown'}** — ${ok} succeeded · ${bad} failed · ${skipped} skipped${cached > 0 ? ` · ${cached} from cache` : ''}${recovered > 0 ? ` · ${recovered} recovered` : ''}${retries > 0 ? ` · ${retries} retr${retries === 1 ? 'y' : 'ies'}` : ''}`);
   out.push(`- Wall clock: ${wallMs !== undefined ? humanizeDuration(wallMs) : 'not recoverable from this trace'}`);
   out.push(`- Spend: ${priced ? usd(spend) : 'no cost data (mock/local — nothing was priced)'}`);
   if (inputs.chain) {
@@ -91,6 +92,10 @@ export function renderRunReport(inputs: RunReportInputs): string {
   for (const t of tasks) {
     const notes: string[] = [];
     if (t.cached) { notes.push('cache hit'); }
+    // A repaired success names what it absorbed (D-2026-07-08-N4).
+    if (t.recoveredFrom !== undefined) {
+      notes.push(t.recoveredFrom ? `recovered from ${t.recoveredFrom}` : 'recovered');
+    }
     if (t.retries > 0) { notes.push(`↻${t.retries}`); }
     if (t.whyWhen !== undefined) { notes.push(`gate false: ${t.whyWhen.replace(/\|/g, '·')}`); }
     if (t.blockedBy !== undefined) { notes.push(`blocked by \`${t.blockedBy}\``); }

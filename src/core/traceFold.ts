@@ -46,6 +46,11 @@ export interface FoldedTask {
   /** Resume cache hit (ADR-099): the task was NOT re-executed — its
    *  recorded output was injected from the prior trace. */
   cached?: boolean;
+  /** `on_error: recover` repaired this success (0.98+ engines ·
+   *  D-2026-07-08-N4): the NIKA code the task recovered FROM. Without
+   *  this a repaired success is byte-identical to a clean one on every
+   *  surface — the exact invisibility the engine event exists to kill. */
+  recoveredFrom?: string;
   /** One badge-safe line of the task's recorded `output` (the v0.93 wire
    *  carries it on task_completed AND task_cache_hit). */
   outputPreview?: string;
@@ -104,6 +109,8 @@ interface NormalizedEvent {
   note?: string;
   /** The recorded task output (v0.93 wire · task_completed/cache_hit). */
   output?: string;
+  /** task_recovered only (0.98+) — the NIKA code the repair absorbed. */
+  code?: string;
   /** workflow_paused only — prompt mode (confirm|input|choice). */
   mode?: string;
   /** workflow_paused only — the human question. */
@@ -236,6 +243,7 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       tokens: asNumber(fields.get('tokens')),
       note: typeof note === 'string' ? note : undefined,
       output: outputToString(fields.get('output')),
+      code: typeof fields.get('code') === 'string' ? fields.get('code') as string : undefined,
       workflowSha256: typeof fields.get('workflow_sha256') === 'string'
         ? fields.get('workflow_sha256') as string
         : undefined,
@@ -363,6 +371,22 @@ export function foldTrace(ndjson: string): RunModel {
         break;
     }
 
+    // D-2026-07-08-N4 (0.98+ engines · one emission site INV#24): rides
+    // BETWEEN the absorbed failure and the terminal task_completed — an
+    // annotation, never a status transition. Terminal tasks stay frozen
+    // (same corruption law as the terminal guard below).
+    if (ev.kind === 'task_recovered') {
+      if (ev.taskId !== undefined) {
+        const t = model.tasks.get(ev.taskId)
+          ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
+        if (!TERMINAL.has(t.status)) {
+          t.recoveredFrom = ev.code ?? '';
+          model.tasks.set(ev.taskId, t);
+        }
+      }
+      continue;
+    }
+
     const status = TASK_STATUS[ev.kind];
     if (!status || !ev.taskId) { continue; }
 
@@ -483,6 +507,9 @@ export function formatRunBadge(task: FoldedTask): string | undefined {
   // ADR-099 rehydration — the ✓ stays (the task IS settled-success) but
   // the badge must never read as a fresh execution ("cached", no clock).
   if (task.cached === true) { facts.push('cached'); }
+  // D-2026-07-08-N4 — the ✓ stays (the task IS settled-success) but a
+  // repaired success must never read as a clean one.
+  if (task.recoveredFrom !== undefined) { facts.push('recovered'); }
   if (task.durationMs !== undefined) { facts.push(humanizeDuration(task.durationMs)); }
   if (task.usd !== undefined) { facts.push(formatUsd(task.usd)); }
   return facts.length > 0 ? ` ${icon} ${facts.join(' · ')}` : ` ${icon}`;
@@ -505,6 +532,14 @@ export function summarizeRun(model: RunModel): string {
   }
   if (cachedCount > 0) {
     parts.push(`↻ ${cachedCount} cached`);
+  }
+  // A repaired run says so at a glance (D-2026-07-08-N4): `✚ 1 recovered`.
+  let recoveredCount = 0;
+  for (const t of model.tasks.values()) {
+    if (t.recoveredFrom !== undefined) { recoveredCount += 1; }
+  }
+  if (recoveredCount > 0) {
+    parts.push(`✚ ${recoveredCount} recovered`);
   }
   if (model.startMs !== undefined && model.endMs !== undefined && model.endMs > model.startMs) {
     parts.push(`${((model.endMs - model.startMs) / 1000).toFixed(1)}s`);
