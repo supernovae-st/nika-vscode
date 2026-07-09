@@ -41,6 +41,7 @@ import {
   getNikaPath,
   runNikaCommand,
   safeStopClient,
+  checkVersionMismatch,
   type ClientState,
 } from './lspClient';
 import {
@@ -2212,6 +2213,7 @@ export function activate(context: ExtensionContext): void {
       const fresh = await resolveBinary(context);
       state.resolvedServerPath = fresh;
       await service.setBinary(fresh);
+      if (fresh) { checkVersionMismatch(context, log, fresh); }
       void state.pushWelcomeData?.();
       if (service.caps.lsp) {
         startClient(context, state, log, state.resolvedServerPath);
@@ -2228,6 +2230,10 @@ export function activate(context: ExtensionContext): void {
     const binaryPath = await resolveBinary(context);
     state.resolvedServerPath = binaryPath;
     await service.setBinary(binaryPath);
+    // Version-skew is a BINARY fact, not an LSP one — warn on every
+    // resolution, not only when `nika lsp` happens to start (an old
+    // extension against a new non-LSP binary got no signal before).
+    if (binaryPath) { checkVersionMismatch(context, log, binaryPath); }
 
     if (!binaryPath) {
       statusBar.setLspState('off');

@@ -31,8 +31,13 @@ import { createTransport } from './transport';
 import { makeVerbGlyph } from './verbGlyphs';
 import { lineageOf, type LineageView } from '../core/lineage';
 
-// Every animation in this view is gated on the user's motion preference.
-const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Every animation in this view is gated on the user's motion preference —
+// read LIVE: runtime gates see an OS-level toggle without a panel reload
+// (init-time captures keep their boot value; every new gesture respects
+// the change immediately).
+const MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)');
+let REDUCED_MOTION = MOTION_QUERY.matches;
+MOTION_QUERY.addEventListener('change', (e) => { REDUCED_MOTION = e.matches; });
 
 // d3-zoom's programmatic methods are typed against a Selection; calling
 // them on a Transition is the documented pattern but needs a variance-
