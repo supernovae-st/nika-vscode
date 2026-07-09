@@ -830,10 +830,10 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
     </div>
     <div id="verb-palette" role="toolbar" aria-label="Add a task">
-      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)">◇</button>
-      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)">▷</button>
-      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)">◆</button>
-      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)">✦</button>
+      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M7.5 8L9.25 9.75L7.5 11.5M12 11.5H14M7 20H17C18.6569 20 20 18.6569 20 17V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V17C4 18.6569 5.34315 20 7 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     <input id="omni-input" type="text"
            placeholder="+ infer after gather · / filter · or describe a workflow…"

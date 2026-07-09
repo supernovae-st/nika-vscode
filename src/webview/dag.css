@@ -2225,6 +2225,15 @@ body.lod-far .dag-node:hover .nc {
   flex: none;
 }
 
+/* The house verb glyphs (icon ontology) render as inline SVG inside the
+ * keycap / cmdk row / palette buttons — block display kills the baseline
+ * gap; currentColor rides each surface's hue var. */
+.nc-tile svg,
+.cmdk-glyph svg,
+.vp-btn svg {
+  display: block;
+}
+
 /* The verb KEYCAP — a physical key face (§4b): top light catch, seated
  * bottom lip; the verb hue is the cap's backlight. */
 .nc-tile {

@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The verbs wear their own faces** — the DAG card keycap, the drop-a-port
+  verb palette (cmdk) and the add-a-task toolbar swap the unicode stand-ins
+  (◇ ▷ ◆ ✦) for the icon ontology's house verb glyphs (sparkle · console ·
+  api-roundtrip · agent-graph — [nika.sh/brand](https://nika.sh/brand)),
+  built as safe DOM, inked by each surface's existing verb hue. Unknown
+  verbs keep the unicode fallback (forward-compat contract unchanged).
+
 - **The canvas gets a key** — `ctrl+alt+d` / `cmd+alt+d` opens the DAG
   on any `.nika.yaml` (Run and Check already had theirs).
 - **Dead code swept** — the `dag:viewportChanged` protocol kind (declared
