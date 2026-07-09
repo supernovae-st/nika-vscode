@@ -164,6 +164,7 @@ export function runWorkflowLive(
         status: t.status as TaskStatus,
         durationMs: t.durationMs,
         cached: t.cached,
+        recoveredFrom: t.recoveredFrom,
         outputPreview: t.outputPreview,
       })),
     );
@@ -179,6 +180,10 @@ export function runWorkflowLive(
           dagPanel.note('↻', `${t.id} cached · recorded output reused`, t.id, 'st-success');
         } else {
           dagPanel.note(FEED_ICON[t.status] ?? '·', `${t.id} ${t.status}`, t.id, `st-${t.status}`);
+        }
+        if (t.recoveredFrom !== undefined) {
+          // D-2026-07-08-N4 — a repaired success says what it absorbed.
+          dagPanel.note('✚', `${t.id} recovered${t.recoveredFrom ? ` from ${t.recoveredFrom}` : ''} · on_error.recover absorbed the failure`, t.id, 'st-success');
         }
       }
     }

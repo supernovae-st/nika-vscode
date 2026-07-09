@@ -22,8 +22,8 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 // Extension -> Webview
 export type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -400,7 +400,7 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Update a single task's status (during execution) */
-  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
+  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       const node = this.currentGraph.nodes.find((n) => n.id === taskId);
@@ -410,14 +410,15 @@ export class DagPanel implements vscode.Disposable {
         // Assign, never accumulate — a fresh run's paint must clear the
         // ↻ a previous resume left on the mirrored graph (ADR-099).
         node.cached = cached === true;
+        node.recoveredFrom = recoveredFrom;
         node.outputPreview = outputPreview;
       }
     }
-    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs, cached, outputPreview });
+    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs, cached, recoveredFrom, outputPreview });
   }
 
   /** Batch update multiple task statuses at once */
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
@@ -426,6 +427,7 @@ export class DagPanel implements vscode.Disposable {
           node.status = u.status;
           node.durationMs = u.durationMs;
           node.cached = u.cached === true;
+          node.recoveredFrom = u.recoveredFrom;
           node.outputPreview = u.outputPreview;
         }
       }

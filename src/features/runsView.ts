@@ -378,6 +378,7 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
       status: t.status as TaskStatus,
       durationMs: t.durationMs,
       cached: t.cached,
+      recoveredFrom: t.recoveredFrom,
       outputPreview: t.outputPreview,
     })),
   );
