@@ -10,13 +10,14 @@ never rename.
 |---|---|---|
 | `nika-icon.png` | `nika-tile-256.png` | `package.json#icon` — the Marketplace/OpenVSX tile |
 | `nika-icon.svg` | `nika-tile.svg` | reference copy of the tile |
-| `nika-dark.svg` | `nika-glyph-16` inked glow `#cfe6ff` | activity bar · language icon (dark themes) · DAG panel tab |
-| `nika-light.svg` | `nika-glyph-16` inked ink `#04050d` | language icon (light themes) · DAG panel tab |
+| `nika-dark.svg` | `nika-mark` inked glow `#cfe6ff` | activity bar · language icon (dark themes) · DAG panel tab |
+| `nika-light.svg` | `nika-mark` inked ink `#04050d` | language icon (light themes) · DAG panel tab |
 | — (path data) | the ontology's 4 verb glyphs | `src/webview/verbGlyphs.ts` — keycap · cmdk · palette (safe-DOM · sync from [nika.sh/brand/icons](https://nika.sh/brand/icons.json)) |
 
-The glyph (not the full mark) drives every ≤24 px surface: the full
-butterfly-supernova doesn't survive 16 px, so tabs/explorer/activity-bar use
-the hand-traced teardrop glyph. The full mark lives only in the tile.
+Every nika-logo surface carries the REAL butterfly-supernova mark
+(operator lock 2026-07-09 — it's the brand, dense-but-recognizable at
+16 px). The hand-traced 16 px teardrop stays only inside the site's
+stroke UI family (nav mega icons), never as the logo.
 
 Editor file/folder icon themes (Material · vscode-icons · Seti): see
 [`contrib/`](../contrib/README.md).

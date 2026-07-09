@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The real butterfly, everywhere the logo stands** (operator lock) —
+  the activity bar, the `*.nika.yaml` language icon and the DAG panel tab
+  now carry the official butterfly-supernova mark (glow `#cfe6ff` dark ·
+  ink `#04050d` light) instead of the interim simplified glyph; the
+  `contrib/` Material + vscode-icons kits align with the upstream PR
+  (material-extensions#3529, updated the same way). The 4 verb glyphs on
+  the canvas keycaps are untouched — they are verb icons, not the logo.
+
 - **The card tells its after-story** — the hover card now shows
   `spent $0.0018 recorded` (the terminal event's real spend) right
   under the static `cost $min → $max` estimate: before and after on
