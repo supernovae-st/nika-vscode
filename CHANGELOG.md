@@ -6,6 +6,8 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## [0.98.1] · 2026-07-09
+
 - **The real butterfly, everywhere the logo stands** (operator lock) —
   the activity bar, the `*.nika.yaml` language icon and the DAG panel tab
   now carry the official butterfly-supernova mark (glow `#cfe6ff` dark ·
