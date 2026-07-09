@@ -662,6 +662,12 @@
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "when": "resourceLangId == 'nika'"
+      },
+      {
+        "command": "nika.showDag",
+        "key": "ctrl+alt+d",
+        "mac": "cmd+alt+d",
+        "when": "resourceLangId == 'nika'"
       }
     ],
     "languageModelTools": [

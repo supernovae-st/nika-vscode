@@ -79,7 +79,6 @@ export type WebviewToExtMessage =
   // Empty-state actions — scaffold a workflow · open the walkthrough.
   | { kind: 'dag:newWorkflow' }
   | { kind: 'dag:openWalkthrough' }
-  | { kind: 'dag:viewportChanged'; zoom: number; panX: number; panY: number }
   | { kind: 'transport:tick'; running: string[] }
   | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
@@ -578,10 +577,6 @@ export class DagPanel implements vscode.Disposable {
         if (this.currentGraph) {
           this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
         }
-        break;
-
-      case 'dag:viewportChanged':
-        // Could persist viewport state here if needed
         break;
 
       case 'dag:addTask':
