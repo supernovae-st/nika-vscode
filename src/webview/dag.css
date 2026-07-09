@@ -4036,3 +4036,111 @@ body.vscode-high-contrast .dag-edge.edge-data {
 .nc-body.nc-body-live {
   animation-timing-function: var(--nk-spring);
 }
+
+/* ═══ VERB SOULS · each verb's execution model made visible ═══════════════
+ * The doctrine: a verb IS a distinct native execution model (D-N18) — so
+ * each card carries its verb's MATTER at rest and its CHARACTER while
+ * running. Rest layers are static paint (zero cost at any scale); the
+ * only continuous animations ride status-running (bounded by max
+ * parallelism) and every one gets a reduced-motion opt-out below.
+ * Skeuomorphic layer: top light + polished edge + inset chips — surface
+ * physics only, no metric changes (the TS↔CSS anatomy contract holds). */
+
+/* 0 · The physical surface — light falls from above, the edge is polished. */
+.nc {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #fff 3.5%, transparent), transparent 44%),
+    var(--nk-card);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.055),
+    inset 0 -1px 0 rgb(0 0 0 / 0.18),
+    var(--nk-card-shadow);
+}
+.nc-chip {
+  box-shadow:
+    inset 0 1.5px 2.5px rgb(0 0 0 / 0.3),
+    inset 0 -1px 0 rgb(255 255 255 / 0.045);
+}
+
+/* 1 · INFER — thought. An aurora rises behind the head; while the model
+ * is actually thinking, the tile breathes a soft halo. */
+.dag-node.verb-infer .nc-head {
+  background: radial-gradient(130% 240% at 10% -60%,
+    color-mix(in srgb, var(--dv-hue) 13%, transparent), transparent 58%);
+  border-radius: 6px;
+}
+.dag-node.verb-infer.status-running .nc-tile {
+  animation: nk-think 2.2s ease-in-out infinite;
+}
+@keyframes nk-think {
+  0%, 100% { box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 -1.5px 0 rgb(0 0 0 / 0.25),
+    0 0 4px 0 color-mix(in srgb, var(--dv-hue) 25%, transparent); }
+  50% { box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 -1.5px 0 rgb(0 0 0 / 0.25),
+    0 0 13px 2.5px color-mix(in srgb, var(--dv-hue) 60%, transparent); }
+}
+
+/* 2 · EXEC — the machine. Faint CRT scanlines at rest; a terminal caret
+ * blinks after the command while the subprocess is live. */
+.dag-node.verb-exec .nc-head {
+  background: repeating-linear-gradient(180deg,
+    color-mix(in srgb, var(--dv-hue) 4%, transparent) 0 1px, transparent 1px 4px);
+  border-radius: 6px;
+}
+.dag-node.verb-exec.status-running .nc-body::after {
+  content: '▍';
+  color: var(--dv-hue);
+  margin-left: 2px;
+  animation: nk-caret 1s steps(2, jump-none) infinite;
+}
+@keyframes nk-caret { 50% { opacity: 0; } }
+
+/* 3 · INVOKE — the connector. A socket gradient sits on the head's left
+ * edge at rest; while the tool call is in flight, current flows across. */
+.dag-node.verb-invoke .nc-head {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--dv-hue) 9%, transparent), transparent 34%);
+  border-radius: 6px;
+}
+.dag-node.verb-invoke.status-running .nc-head {
+  background: linear-gradient(90deg, transparent 0%,
+    color-mix(in srgb, var(--dv-hue) 16%, transparent) 50%, transparent 100%);
+  background-size: 45% 100%;
+  background-repeat: no-repeat;
+  animation: nk-current 1.6s linear infinite;
+}
+@keyframes nk-current {
+  from { background-position: -45% 0; }
+  to { background-position: 145% 0; }
+}
+
+/* 4 · AGENT — the loop. A dashed orbit ring circles the tile at rest;
+ * it ROTATES while the loop is actually turning (transform-only). */
+.dag-node.verb-agent .nc-tile { position: relative; }
+.dag-node.verb-agent .nc-tile::after {
+  content: '';
+  position: absolute;
+  inset: -3.5px;
+  border-radius: 9px;
+  border: 1px dashed color-mix(in srgb, var(--dv-hue) 45%, transparent);
+  pointer-events: none;
+}
+.dag-node.verb-agent.status-running .nc-tile::after {
+  animation: nk-orbit-tile 3.2s linear infinite;
+}
+@keyframes nk-orbit-tile { to { transform: rotate(360deg); } }
+
+/* Heat mode neutralizes hue on purpose — the verb matter steps back so
+ * the duration/cost tint stays the ONLY color story. */
+body.heatmap .nc-head { background-image: none; }
+body.heatmap .dag-node.verb-agent .nc-tile::after { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dag-node.verb-infer.status-running .nc-tile,
+  .dag-node.verb-exec.status-running .nc-body::after,
+  .dag-node.verb-invoke.status-running .nc-head,
+  .dag-node.verb-agent.status-running .nc-tile::after {
+    animation: none !important;
+  }
+}
