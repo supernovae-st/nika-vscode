@@ -212,6 +212,8 @@ interface DagNode {
   cached?: boolean;
   /** `on_error: recover` repaired this success — the absorbed NIKA code. */
   recoveredFrom?: string;
+  /** Recorded per-task spend (engine terminal events) — the ticker's fuel. */
+  usd?: number;
   /** One badge-safe line of the recorded output (hover-card fact). */
   outputPreview?: string;
   provider?: string;
@@ -260,8 +262,8 @@ interface DagGraph {
 
 type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -2705,7 +2707,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
 
@@ -2720,6 +2722,7 @@ class DagRenderer {
     // the ↻ (and the output fact) a previous resume left on the card.
     node.cached = cached === true;
     node.recoveredFrom = recoveredFrom;
+    node.usd = usd;
     node.outputPreview = outputPreview;
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
@@ -2777,15 +2780,15 @@ class DagRenderer {
     }
   }
 
-  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): void {
-    if (!this.applyStatus(taskId, status, durationMs, cached, outputPreview, recoveredFrom)) return;
+  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number): void {
+    if (!this.applyStatus(taskId, status, durationMs, cached, outputPreview, recoveredFrom, usd)) return;
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
     let touched = false;
     for (const u of updates) {
-      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom) || touched;
+      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd) || touched;
     }
     if (touched) { this.afterStatusChange(); }
   }
@@ -2960,6 +2963,19 @@ class DagRenderer {
     if (counts.pending > 0) parts.push(`${counts.pending} pending`);
     if (counts.skipped > 0) parts.push(`${counts.skipped} skipped`);
     if (counts.cancelled > 0) parts.push(`${counts.cancelled} cancelled`);
+
+    // The live cost ticker — recorded spend only (terminal events' usd):
+    // the ≥ grammar of the run totals. Unpriced tasks exist, so the sum
+    // is a floor, never a bill — and nothing-priced (mock/local-only)
+    // shows nothing: a $0.00 meaning « unpriced » would be the fake-zero.
+    let spent = 0;
+    let priced = false;
+    for (const node of this.currentGraph.nodes) {
+      if (node.usd !== undefined) { spent += node.usd; priced = true; }
+    }
+    if (priced) {
+      parts.push(`≥ $${spent.toFixed(spent < 0.1 ? 4 : 2)}`);
+    }
 
     const statusEl = document.getElementById('dag-status');
     if (statusEl) {
@@ -3454,7 +3470,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:updateStatus':
       // The live present wins over any replay scrub (runsView law).
       transport.deactivate();
-      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview, msg.recoveredFrom);
+      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview, msg.recoveredFrom, msg.usd);
       break;
     case 'dag:batchUpdateStatus':
       transport.deactivate();
