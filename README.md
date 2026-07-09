@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://nika.sh">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://nika.sh/brand/nika-logo-dark.png">
+      <img src="https://nika.sh/brand/nika-logo-light.png" alt="Nika" width="220">
+    </picture>
+  </a>
+</p>
+
 # Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
 
 [![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-install-2b62ea)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
