@@ -22,8 +22,8 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 // Extension -> Webview
 export type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -400,7 +400,7 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Update a single task's status (during execution) */
-  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): void {
+  public updateTaskStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       const node = this.currentGraph.nodes.find((n) => n.id === taskId);
@@ -414,11 +414,11 @@ export class DagPanel implements vscode.Disposable {
         node.outputPreview = outputPreview;
       }
     }
-    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs, cached, recoveredFrom, outputPreview });
+    this.postMessage({ kind: 'dag:updateStatus', taskId, status, durationMs, usd, cached, recoveredFrom, outputPreview });
   }
 
   /** Batch update multiple task statuses at once */
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {

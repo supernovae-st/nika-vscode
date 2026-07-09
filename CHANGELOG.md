@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The canvas cost ticker** — the status pill now carries the run's
+  recorded spend, live: `2 done · 4 running · ≥ $0.0022`. Engine truth
+  only (the terminal events' `cost_usd`, summed as tasks settle), with
+  the run-totals grammar: `≥` because unpriced tasks exist — the sum is
+  a floor, never a bill — and a mock/local-only run shows nothing
+  rather than a fake `$0.00`.
+
+
 - **Every verb gets a soul** — each card now carries its execution
   model's matter and character, per the four-verb doctrine (a verb IS a
   distinct native execution model): `infer` wears a thought-aurora

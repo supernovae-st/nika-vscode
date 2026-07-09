@@ -165,6 +165,7 @@ export function runWorkflowLive(
         durationMs: t.durationMs,
         cached: t.cached,
         recoveredFrom: t.recoveredFrom,
+        usd: t.usd,
         outputPreview: t.outputPreview,
       })),
     );
