@@ -14,6 +14,7 @@ scripts/**
 .github/**
 PUBLISHING.md
 media/**
+contrib/**
 out-integration/**
 .vscode-test/**
 tsconfig.integration.json

@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://nika.sh">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://nika.sh/brand/nika-logo-dark.svg">
+      <img src="https://nika.sh/brand/nika-logo-light.svg" alt="Nika" width="220">
+    </picture>
+  </a>
+</p>
+
 # Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
 
 [![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-install-2b62ea)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
@@ -35,6 +44,24 @@ messages and positions come from the engine, not the extension.*
   Without the binary you still get syntax, snippets and the client-side
   DAG (schema-driven completions come alive once the binary is found —
   they read the engine's own `nika schema`).
+
+## Icons in your editor
+
+The extension ships the butterfly everywhere VS Code lets it: the
+Marketplace tile, the activity bar, and a **language icon** so `*.nika.yaml`
+files carry the 16 px glyph in themes that honor language icons (Seti — the
+default — does). File/folder icons beyond that belong to your *file icon
+theme*, not to extensions:
+
+- **Material Icon Theme** · give the engine's `.nika/` folder an icon today:
+  ```jsonc
+  "material-icon-theme.folders.associations": { ".nika": "flow" }
+  ```
+- **vscode-icons** · full custom butterfly (file + folder + open-folder):
+  see [`contrib/`](contrib/README.md).
+- Upstream Material icons (real `nika` file + `.nika` folder artwork) are
+  prepared in [`contrib/material-icon-theme/`](contrib/README.md), spec-compliant
+  and ready to PR.
 
 ## 30 seconds to the wow
 
