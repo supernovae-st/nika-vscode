@@ -5,4 +5,4 @@ The DAG panel renders it live:
 
 - click a node → jump to its YAML
 - re-renders on save
-- same renderer as `nika graph <file> --mermaid` in your terminal
+- same renderer as `nika graph <file> --format mermaid` in your terminal

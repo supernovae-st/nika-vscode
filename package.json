@@ -868,6 +868,10 @@
       {
         "view": "nikaWorkflows",
         "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+      },
+      {
+        "view": "nikaRuns",
+        "contents": "No recorded runs yet — every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[▤ Try an embedded example](command:nika.browseExamples)"
       }
     ],
     "breakpoints": [

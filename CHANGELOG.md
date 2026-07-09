@@ -6,6 +6,26 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Repaired successes stop dressing as clean ones** (nika ≥ 0.98 ·
+  D-2026-07-08-N4) — the fold now consumes `task_recovered`: the task
+  keeps its ✓ (it IS a settled success) but the editor badge says
+  `recovered`, the run card counts `✚ N recovered`, and the run report
+  names what was absorbed (`recovered from NIKA-…`) in the verdict line
+  and the task row. Old traces without the event are unaffected. The
+  DAG-canvas card badge follows in a canvas pass (pixel-proof law).
+- **First-run manners** — declining the binary-download consent is now
+  remembered: the modal never re-fires on startup (the status bar and
+  the welcome canvas keep the install affordance); the explicit
+  `Nika: Restart Language Server` gesture asks again. The
+  binary-not-found toast shows once ever instead of once per window.
+- **The Runs view greets its first visitor** — an empty flight recorder
+  now explains itself: run a workflow (mock needs no key) instead of a
+  blank panel.
+- **Two honesty fixes** — the README no longer promises schema
+  completions without the binary (they read the engine's `nika schema`);
+  the DAG walkthrough names the real flag (`nika graph <file> --format
+  mermaid`).
+
 ## [0.98.0] · 2026-07-08
 
 - **The estimate names its prices** (nika ≥ 0.98) — the preflight's

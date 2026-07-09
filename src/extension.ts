@@ -2208,6 +2208,9 @@ export function activate(context: ExtensionContext): void {
       // Re-RESOLVE the binary before restarting: the restart gesture is
       // what a user reaches for right after installing nika — it must
       // pick the fresh binary up (PATH · bundled · cached · download).
+      // An explicit gesture also re-opens the download question a user
+      // previously declined (the auto path stays silent after a decline).
+      await context.globalState.update('nika.downloadDeclined', undefined);
       const fresh = await resolveBinary(context);
       state.resolvedServerPath = fresh;
       await service.setBinary(fresh);
@@ -2231,12 +2234,18 @@ export function activate(context: ExtensionContext): void {
     if (!binaryPath) {
       statusBar.setLspState('off');
       langStatus.setLspState('off');
-      const choice = await window.showWarningMessage(
-        'Nika binary not found. Install it (cargo install nika) or let the extension download it.',
-        'Open Install Guide',
-      );
-      if (choice === 'Open Install Guide') {
-        void env.openExternal(Uri.parse(GITHUB_INSTALL_URL));
+      // One toast EVER (not one per window per day): after the first
+      // nudge the status bar + welcome canvas carry the missing-binary
+      // state, and every engine-gated command explains itself on use.
+      if (!context.globalState.get<boolean>('nika.binaryNudgeShown')) {
+        await context.globalState.update('nika.binaryNudgeShown', true);
+        const choice = await window.showWarningMessage(
+          'Nika binary not found. Install it (cargo install nika) or let the extension download it.',
+          'Open Install Guide',
+        );
+        if (choice === 'Open Install Guide') {
+          void env.openExternal(Uri.parse(GITHUB_INSTALL_URL));
+        }
       }
       return;
     }
@@ -2343,14 +2352,21 @@ async function resolveBinary(context: ExtensionContext): Promise<string | undefi
   }
   // First-run CONSENT before any network fetch (marketplace policy for
   // extensions that download executables · sovereignty: nothing leaves or
-  // arrives without an explicit yes). Remembered globally once granted.
+  // arrives without an explicit yes). Remembered globally once granted —
+  // and a DECLINE is remembered too: the modal never re-fires on startup
+  // (the status bar + welcome canvas keep the install affordance); only
+  // the explicit restart/re-detect gesture asks again.
   if (!context.globalState.get<boolean>('nika.downloadConsent')) {
+    if (context.globalState.get<boolean>('nika.downloadDeclined')) { return undefined; }
     const pick = await window.showInformationMessage(
       'Nika engine not found. Download the official binary from GitHub releases? (HTTPS · SHA-256 verified · ~10 MB)',
       { modal: true },
       'Download',
     );
-    if (pick !== 'Download') { return undefined; }
+    if (pick !== 'Download') {
+      await context.globalState.update('nika.downloadDeclined', true);
+      return undefined;
+    }
     await context.globalState.update('nika.downloadConsent', true);
   }
   try {

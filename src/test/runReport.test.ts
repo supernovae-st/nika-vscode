@@ -61,3 +61,27 @@ describe('renderRunReport', () => {
     expect(without).not.toContain('![');
   });
 });
+
+describe('renderRunReport · task_recovered (D-2026-07-08-N4)', () => {
+  it('a repaired success is named in the verdict line AND the task row', () => {
+    const line = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
+      JSON.stringify({ id: 'x', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+    const ndjson = [
+      line('workflow_started', [{ key: 'workflow', value: 'demo' }], 1000),
+      line('task_started', [{ key: 'task', value: 'fragile' }], 1001),
+      line('task_recovered', [
+        { key: 'task', value: 'fragile' },
+        { key: 'code', value: 'NIKA-BUILTIN-READ-001' },
+      ], 1002),
+      line('task_completed', [{ key: 'task', value: 'fragile' }], 1003),
+      line('workflow_completed', [], 1004),
+    ].join('\n');
+    const md = renderRunReport({
+      traceName: 'recovered-run',
+      model: foldTrace(ndjson),
+      artifacts: new Map(),
+    });
+    expect(md).toContain('1 recovered');
+    expect(md).toContain('recovered from NIKA-BUILTIN-READ-001');
+  });
+});

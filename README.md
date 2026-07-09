@@ -32,8 +32,9 @@ messages and positions come from the engine, not the extension.*
   `brew install supernovae-st/tap/nika` — or let the extension offer a
   verified download on first open (HTTPS + SHA-256 · explicit consent ·
   [policy](https://github.com/supernovae-st/nika-vscode/blob/main/README.md)).
-  Without the binary you still get syntax, snippets, schema completions
-  and the client-side DAG.
+  Without the binary you still get syntax, snippets and the client-side
+  DAG (schema-driven completions come alive once the binary is found —
+  they read the engine's own `nika schema`).
 
 ## 30 seconds to the wow
 
