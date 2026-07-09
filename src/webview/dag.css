@@ -2315,6 +2315,17 @@ body.running .dag-node.status-success .nc::after {
   box-shadow: none;
 }
 
+/* D-2026-07-08-N4 · a REPAIRED success never paints clean: the dot keeps
+ * its success fill but wears the retry-amber ring (the failure that was
+ * absorbed), and the verdict word (`✚ recovered`) carries the story. */
+.dag-node.is-recovered.status-success .nc-dot {
+  border: 1.5px solid var(--nk-st-retrying);
+  box-shadow: 0 0 5px 1px color-mix(in srgb, var(--nk-st-retrying) 45%, transparent);
+}
+.dag-node.is-recovered.status-success .nc-sub-v {
+  color: var(--nk-st-retrying);
+}
+
 /* Full-bleed hairline between identity and facts (the two zones). */
 .nc-div {
   flex: none;

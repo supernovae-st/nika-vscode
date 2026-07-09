@@ -210,6 +210,8 @@ interface DagNode {
   durationMs?: number;
   /** ADR-099 resume — settled from the recorded output, NOT re-executed. */
   cached?: boolean;
+  /** `on_error: recover` repaired this success — the absorbed NIKA code. */
+  recoveredFrom?: string;
   /** One badge-safe line of the recorded output (hover-card fact). */
   outputPreview?: string;
   provider?: string;
@@ -258,8 +260,8 @@ interface DagGraph {
 
 type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -383,6 +385,7 @@ function nodeClassOf(node: DagNode): string {
     + (node.stale ? ' is-stale' : '')
     + (node.staleUpstream ? ' stale-up' : '')
     + (node.cached ? ' is-cached' : '')
+    + (node.recoveredFrom !== undefined ? ' is-recovered' : '')
     + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '');
 }
 
@@ -1643,6 +1646,7 @@ class DagRenderer {
       // Scrub = status time-travel: the ↻ follows the frame; the output
       // fact is a resting truth (live/overlay), not a scrub-frame one.
       node.cached = f.cached === true;
+      node.recoveredFrom = undefined;
       node.outputPreview = undefined;
       const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
       el.attr('class', nodeClassOf(node));
@@ -2355,6 +2359,9 @@ class DagRenderer {
     if (live.cached) {
       add('resume', '↻ cache hit — recorded output reused, not re-executed');
     }
+    if (live.recoveredFrom) {
+      add('repaired', `✚ recovered from ${live.recoveredFrom} — on_error.recover absorbed the failure`);
+    }
     add('output', live.outputPreview);
     const wave = this.waveOf.get(live.id);
     if (wave !== undefined && this.waveOf.size > 0) {
@@ -2698,7 +2705,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
 
@@ -2712,6 +2719,7 @@ class DagRenderer {
     // Assign, never accumulate — a fresh run's running-paint must CLEAR
     // the ↻ (and the output fact) a previous resume left on the card.
     node.cached = cached === true;
+    node.recoveredFrom = recoveredFrom;
     node.outputPreview = outputPreview;
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
@@ -2769,15 +2777,15 @@ class DagRenderer {
     }
   }
 
-  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string): void {
-    if (!this.applyStatus(taskId, status, durationMs, cached, outputPreview)) return;
+  updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string): void {
+    if (!this.applyStatus(taskId, status, durationMs, cached, outputPreview, recoveredFrom)) return;
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; outputPreview?: string }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
     let touched = false;
     for (const u of updates) {
-      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview) || touched;
+      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom) || touched;
     }
     if (touched) { this.afterStatusChange(); }
   }
@@ -2898,6 +2906,8 @@ class DagRenderer {
     if (node.status === 'retrying') return 'retry\u2026';
     // ADR-099 rehydration — no clock fact exists (nothing executed).
     if (node.cached) return '\u21BB cached';
+    // D-2026-07-08-N4 — a repaired success never paints clean.
+    if (node.recoveredFrom !== undefined) return '✚ recovered';
     if (node.durationMs != null) {
       const dur = node.durationMs >= 1000
         ? `${(node.durationMs / 1000).toFixed(1)}s`
@@ -3444,7 +3454,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:updateStatus':
       // The live present wins over any replay scrub (runsView law).
       transport.deactivate();
-      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview);
+      renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview, msg.recoveredFrom);
       break;
     case 'dag:batchUpdateStatus':
       transport.deactivate();

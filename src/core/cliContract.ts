@@ -63,6 +63,9 @@ export interface DagNode {
   /** ADR-099 resume — settled from the recorded output, NOT re-executed
    *  (paints success; this flag keeps the story honest on every surface). */
   cached?: boolean;
+  /** `on_error: recover` repaired this success (0.98+ wire) — the NIKA
+   *  code the repair absorbed. A repaired success never paints clean. */
+  recoveredFrom?: string;
   /** One badge-safe line of the recorded output (hover-card fact). */
   outputPreview?: string;
   provider?: string;

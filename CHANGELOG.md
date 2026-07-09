@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The canvas card says `✚ recovered`** (engine ≥0.98 · D-2026-07-08-N4)
+  — the repaired-success story reaches the DAG: the card's verdict word
+  turns `✚ recovered` in retry-amber, the success dot wears the amber
+  ring of the failure it absorbed, and the hover card names the code
+  (`recovered from NIKA-… — on_error.recover absorbed the failure`).
+  Live runs and trace overlays both feed it; the activity feed gains the
+  matching `✚` line; scrub frames treat it as a resting truth (like the
+  output preview). Both skins pixel-proven in the harness.
+
+
 - **Version-skew warning leaves the LSP path** — the outdated-extension
   check now fires on every binary resolution (activation and the
   restart gesture), not only when `nika lsp` happens to start: an old
