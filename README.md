@@ -173,7 +173,13 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
 - **Content-first canvas** · the node IS the content: infer cards show
   their prompt, exec cards their `$ command`, invoke cards their tool +
-  args — before any run. The **model chip edits** (provider picker →
+  args — before any run. **Every verb has a soul**: `infer` wears a
+  thought-aurora and its tile breathes while the model thinks, `exec`
+  shows CRT scanlines and blinks a terminal caret while the subprocess
+  is live, `invoke` carries flowing current while the tool call is in
+  flight, `agent` has an orbit ring that rotates while the loop turns —
+  matter at rest, character only while RUNNING (every animation has a
+  reduced-motion opt-out). The **model chip edits** (provider picker →
   one undoable YAML edit), `⌀` badges carry the mean duration across
   your recorded runs, ports appear on hover (drag out-port → card =
   `depends_on`, or drop on empty canvas → a new pre-wired task), and a
@@ -187,7 +193,17 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   The DAG lights live; the pill flips ▶/■ from the real spawn/close.
   On a 0.93+ engine an **↻ changed** button joins the pill — engine
   `--resume`: unchanged tasks cache-hit their recorded output (dashed
-  `↻ cached` cards, never a fake fresh-green), edited tasks re-run
+  `↻ cached` cards, never a fake fresh-green), edited tasks re-run.
+  **A repaired success never paints clean** (nika ≥ 0.98): a task saved
+  by `on_error: recover` says `✚ recovered` in retry-amber — on the
+  card, in the activity feed, in the legend chips and the run report,
+  with the absorbed NIKA code on the hover card
+- **The live cost ticker** · the status pill counts the run's recorded
+  spend as tasks settle (`2 done · 4 running · ≥ $0.0022`) — engine
+  truth only, the `≥` because unpriced tasks make it a floor, and a
+  mock/local-only run shows nothing rather than a fake `$0.00`. The
+  hover card closes the loop per task: `cost $min → $max` (the estimate)
+  next to `spent $… recorded` (the terminal event's fact)
 - **Time-travel replay** · click a recorded run and **scrub its whole
   timeline** — play/pause (Space), drag the handle, the DAG state at any
   instant computed locally. Replay re-renders, never re-executes
