@@ -12,6 +12,7 @@ never rename.
 | `nika-icon.svg` | `nika-tile.svg` | reference copy of the tile |
 | `nika-dark.svg` | `nika-glyph-16` inked glow `#cfe6ff` | activity bar · language icon (dark themes) · DAG panel tab |
 | `nika-light.svg` | `nika-glyph-16` inked ink `#04050d` | language icon (light themes) · DAG panel tab |
+| — (path data) | the ontology's 4 verb glyphs | `src/webview/verbGlyphs.ts` — keycap · cmdk · palette (safe-DOM · sync from [nika.sh/brand/icons](https://nika.sh/brand/icons.json)) |
 
 The glyph (not the full mark) drives every ≤24 px surface: the full
 butterfly-supernova doesn't survive 16 px, so tabs/explorer/activity-bar use
