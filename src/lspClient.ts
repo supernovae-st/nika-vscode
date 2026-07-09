@@ -50,8 +50,6 @@ export async function safeStopClient(client: LanguageClient | undefined): Promis
 /** Shared mutable state owned by extension.ts, passed by reference. */
 export interface ClientState {
   client: LanguageClient | undefined;
-  statusBarItem: import('vscode').StatusBarItem | undefined;
-  statusPollInterval: ReturnType<typeof setInterval> | undefined;
   activeDagPanel: DagPanel | undefined;
   /** Welcome refresh (recent workflows) — wired by extension.ts. */
   pushWelcomeData?: () => Promise<void>;
@@ -199,10 +197,6 @@ export function startClient(
   state.client.start().then(() => {
     log('INFO', 'Language server started successfully');
     state.statusSink?.('running');
-    if (state.statusBarItem) {
-      state.statusBarItem.text = '$(zap) Nika: Ready';
-      state.statusBarItem.backgroundColor = undefined;
-    }
 
     // Check for version mismatch between extension and LSP server
     checkVersionMismatch(context, log, state.resolvedServerPath);
@@ -217,47 +211,9 @@ export function startClient(
       });
     }
 
-    // Poll daemon status every 30s — clear previous interval to prevent
-    // accumulation; the disposable below covers host-driven deactivation
-    // even when deactivate() never runs.
-    if (state.statusPollInterval !== undefined) {
-      clearInterval(state.statusPollInterval);
-    }
-    context.subscriptions.push({
-      dispose: () => {
-        if (state.statusPollInterval !== undefined) {
-          clearInterval(state.statusPollInterval);
-          state.statusPollInterval = undefined;
-        }
-      },
-    });
-    state.statusPollInterval = setInterval(async () => {
-      if (!state.client || !state.client.isRunning()) {
-        if (state.statusBarItem) {
-          state.statusBarItem.text = '$(zap) Nika: LSP $(x)';
-        }
-        return;
-      }
-      try {
-        const status = await state.client.sendRequest<{ connected: boolean }>('nika/daemonStatus');
-        if (state.statusBarItem) {
-          state.statusBarItem.text = status.connected
-            ? '$(zap) Nika: LSP $(check) | Daemon $(check)'
-            : '$(zap) Nika: LSP $(check) | Daemon $(x)';
-          state.statusBarItem.backgroundColor = undefined;
-        }
-      } catch {
-        if (state.statusBarItem) {
-          state.statusBarItem.text = '$(zap) Nika: LSP $(check)';
-        }
-      }
-    }, 30000);
   }).catch((err: Error) => {
     log('ERROR', `LSP failed to start: ${err.message}`);
     state.statusSink?.('failed');
-    if (state.statusBarItem) {
-      state.statusBarItem.text = '$(zap) Nika: LSP $(x)';
-    }
     window.showErrorMessage(
       `Failed to start Nika language server: ${err.message}. ` +
       `Make sure 'nika' is installed and in your PATH, or set nika.server.path.`,

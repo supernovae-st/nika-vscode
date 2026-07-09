@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The canvas gets a key** — `ctrl+alt+d` / `cmd+alt+d` opens the DAG
+  on any `.nika.yaml` (Run and Check already had theirs).
+- **Dead code swept** — the `dag:viewportChanged` protocol kind (declared
+  and handled, sent by no one) is gone from both unions; the legacy LSP
+  daemon-status poll (30s interval writing to a status-bar item that was
+  never created) is deleted — the real status bar has owned that surface
+  for a long time.
+
+
 - **Repaired successes stop dressing as clean ones** (nika ≥ 0.98 ·
   D-2026-07-08-N4) — the fold now consumes `task_recovered`: the task
   keeps its ✓ (it IS a settled success) but the editor badge says

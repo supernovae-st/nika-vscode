@@ -130,8 +130,6 @@ function relTime(mtime: number): string {
 // Owned here, passed by reference to module functions via ClientState.
 const state: ClientState = {
   client: undefined,
-  statusBarItem: undefined,
-  statusPollInterval: undefined,
   activeDagPanel: undefined,
   resolvedServerPath: undefined,
 };
