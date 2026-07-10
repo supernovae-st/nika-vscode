@@ -131,7 +131,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 
 - **Preflight — the flight plan before any token** · `Nika: Preflight`
   composes what nothing else shows pre-run: every infer/agent model
-  resolved against the engine catalog's key requirements (local
+  resolved against the engine catalog (`nika catalog` — the embedded
+  provider/model list with capabilities and env-var requirements; the
+  builtin side lives in `nika tools`, the `nika:*` schemas an `invoke`
+  can reach without MCP) and its key requirements (local
   providers marked sovereign · mock marked zero-spend), secrets and env
   reads checked against your actual environment (`env`-sourced
   verified; vault/file say *declared*, never *verified*), permits +
