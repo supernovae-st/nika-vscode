@@ -382,6 +382,7 @@ tasks:
 
 ## Links
 
+- **Every door in one page** — install paths, IDEs, agents, skills, MCP, CI, SDKs: [docs.nika.sh/integrations/everywhere](https://docs.nika.sh/integrations/everywhere)
 - Language spec (Apache-2.0) · https://github.com/supernovae-st/nika-spec
 - Engine (AGPL-3.0-or-later) · https://github.com/supernovae-st/nika
 - Docs · https://docs.nika.sh
