@@ -17,6 +17,7 @@ import { buildCapabilities } from '../core/capabilities';
 import {
   EXIT,
   collectFindings,
+  goishDuration,
   graphDocToDag,
   isGraphDoc,
   parseCheckReport,
@@ -475,6 +476,41 @@ describe.skipIf(!BIN)('explain ↔ canon error codes (real binary)', () => {
 // ─── graphDocToDag pure adaptation (no binary needed) ────────────────────────
 
 describe('graphDocToDag adaptation (pure)', () => {
+  it('engine-projected policy wins the card fields (0.99+ graph)', () => {
+    const doc = {
+      graph_format: 1,
+      workflow: 'policy_probe',
+      nodes: [
+        {
+          id: 'guarded', verb: 'infer',
+          retry_max_attempts: 3, timeout_ms: 30_000,
+          on_error: 'skip', outputs: ['summary', 'title'],
+        },
+        { id: 'bare', verb: 'exec' },
+      ],
+      edges: [],
+    };
+    const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
+    const guarded = dag.nodes[0];
+    expect(guarded.retryMax).toBe(3);
+    expect(guarded.timeout).toBe('30s');
+    expect(guarded.onError).toBe('skip');
+    expect(guarded.outputNames).toEqual(['summary', 'title']);
+    const bare = dag.nodes[1];
+    expect(bare.retryMax).toBeUndefined();
+    expect(bare.timeout).toBeUndefined();
+    expect(bare.onError).toBeUndefined();
+    expect(bare.outputNames).toBeUndefined();
+  });
+
+  it('goishDuration renders engine timeout_ms compactly', () => {
+    expect(goishDuration(500)).toBe('500ms');
+    expect(goishDuration(1_500)).toBe('1.5s');
+    expect(goishDuration(30_000)).toBe('30s');
+    expect(goishDuration(90_000)).toBe('1m30s');
+    expect(goishDuration(120_000)).toBe('2m');
+  });
+
   it('carries per-task permits onto the node (#367 contract)', () => {
     const doc = {
       graph_format: 1,

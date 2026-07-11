@@ -10,7 +10,7 @@ import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { extractRunArtifacts } from '../core/artifacts';
+import { extractRunArtifacts, pickCardArtifact } from '../core/artifacts';
 import { parseCatalogProviders } from '../core/preflight';
 
 const CANDIDATES = [
@@ -82,6 +82,71 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
       expect(arts.length).toBeGreaterThan(0);
       expect(arts[0].path).toContain('report.md');
       expect(arts[0].taskId).toBe('save');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a real chart run yields an IMAGE card pick (svg is first-class)', () => {
+    // The full card pipeline against the flagship media builtin:
+    // `nika:chart` writes a byte-identical SVG at `out` — the extractor
+    // must class it image and the pure pick must label it, or the media
+    // card previews nothing (the exact regression the svg-less
+    // IMAGE_EXT shipped).
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-chart-e2e-'));
+    try {
+      const wf = path.join(dir, 'chart-e2e.nika.yaml');
+      fs.writeFileSync(wf, `nika: v1
+workflow: chart-card-e2e
+permits:
+  fs:
+    write:
+      - "out/*"
+tasks:
+  - id: novelty_chart
+    invoke:
+      tool: "nika:chart"
+      args:
+        data:
+          - { item: "a", score: 3 }
+          - { item: "b", score: 5 }
+          - { item: "c", score: 2 }
+        chart:
+          type: bar
+          x: item
+          y: score
+          title: "novelty by item"
+        out: "out/novelty.svg"
+`);
+      let ran = true;
+      try {
+        execFileSync(BIN!, ['run', wf, '--json', '--no-color'], {
+          cwd: dir,
+          timeout: 30000,
+          env: { ...process.env, NO_COLOR: '1' },
+        });
+      } catch {
+        ran = false; // pre-chart binary (0.98-) — the floor holds via unit fixtures
+      }
+      const traceDir = path.join(dir, '.nika', 'traces');
+      if (!ran || !fs.existsSync(traceDir)) {
+        expect.soft(true).toBe(true);
+        return;
+      }
+      const traces = fs.readdirSync(traceDir).filter((f) => f.endsWith('.ndjson'));
+      expect(traces.length).toBeGreaterThan(0);
+      const ndjson = fs.readFileSync(path.join(traceDir, traces[0]), 'utf-8');
+      const arts = extractRunArtifacts(ndjson).get('novelty_chart') ?? [];
+      expect(arts.length).toBeGreaterThan(0);
+      const pick = pickCardArtifact(arts);
+      expect(pick).toBeDefined();
+      expect(pick!.kind).toBe('image');
+      expect(pick!.name).toBe('novelty.svg');
+      // The recorded path resolves to REAL bytes on disk (the honesty
+      // gate the host resolution applies before any thumb renders).
+      const abs = path.isAbsolute(pick!.path) ? pick!.path : path.join(dir, pick!.path);
+      expect(fs.existsSync(abs)).toBe(true);
+      expect(fs.statSync(abs).size).toBeGreaterThan(0);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

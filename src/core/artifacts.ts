@@ -22,7 +22,10 @@ export interface RunArtifact {
   label?: string;
 }
 
-const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif)$/i;
+// svg is first-class: `nika:chart` writes byte-identical SVG artifacts
+// (its `out` contract) — without it the flagship media builtin classed
+// as `file` and never previewed (caught by the real-binary e2e).
+const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
 const AUDIO_EXT = /\.(wav|mp3|flac|ogg|opus|m4a)$/i;
 
 function kindOfPath(p: string): RunArtifact['kind'] {
@@ -158,6 +161,45 @@ export function extractRunArtifacts(ndjson: string): Map<string, RunArtifact[]> 
     byTask.set(task, list);
   }
   return byTask;
+}
+
+/** The ONE preview a card carries (pure pick + label — the caller
+ *  resolves the path to disk and mints the webview URI). */
+export interface CardArtifactPick {
+  kind: 'image' | 'audio';
+  /** As recorded in the trace (relative or absolute). */
+  path: string;
+  name: string;
+  tip?: string;
+  /** Siblings of the same kind this task recorded (label `1/N`). */
+  count?: number;
+  durationMs?: number;
+}
+
+/** Basename without any directory walk (pure — no path module). */
+const baseNameOf = (p: string): string => p.split(/[\\/]/).pop() ?? p;
+
+/**
+ * Pick a task's card preview from its recorded artifacts: the first
+ * image, else the first audio — a card is a card, not a gallery.
+ */
+export function pickCardArtifact(list: RunArtifact[]): CardArtifactPick | undefined {
+  const pick = list.find((a) => a.kind === 'image') ?? list.find((a) => a.kind === 'audio');
+  if (!pick || (pick.kind !== 'image' && pick.kind !== 'audio')) { return undefined; }
+  const siblings = list.filter((a) => a.kind === pick.kind).length;
+  const facts = [
+    pick.provider && pick.model ? `${pick.provider}/${pick.model}` : pick.provider ?? pick.model,
+    pick.bytes !== undefined ? humanBytes(pick.bytes) : undefined,
+    pick.durationMs !== undefined ? `${(pick.durationMs / 1000).toFixed(1)}s` : undefined,
+  ].filter((s): s is string => Boolean(s));
+  return {
+    kind: pick.kind,
+    path: pick.path,
+    name: baseNameOf(pick.path),
+    tip: facts.length > 0 ? facts.join(' · ') : undefined,
+    count: siblings > 1 ? siblings : undefined,
+    durationMs: pick.durationMs,
+  };
 }
 
 /** `412 KB` · `1.3 MB` — list-row size chip. */

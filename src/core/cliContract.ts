@@ -25,6 +25,12 @@ export interface GraphDocNode {
   permits?: string[];
   /** [min_path_usd, worst_case_usd] — only for priced inference tasks. */
   cost_interval?: [number, number] | null;
+  /** Declared policy, engine-projected (0.99+ graph) — ONE voice: when
+   *  these ship, the client stops re-parsing the YAML for them. */
+  retry_max_attempts?: number | null;
+  timeout_ms?: number | null;
+  on_error?: string | null;
+  outputs?: string[] | null;
 }
 
 export interface GraphDocEdge {
@@ -165,6 +171,17 @@ export interface DagGraph {
   regions?: DagRegion[];
 }
 
+/** `30000` → `30s` · `90000` → `1m30s` · `1500` → `1.5s` — the compact
+ *  Go-ish display of an engine-projected timeout. */
+export function goishDuration(ms: number): string {
+  if (ms < 1000) { return `${ms}ms`; }
+  const s = ms / 1000;
+  if (s < 60) { return Number.isInteger(s) ? `${s}s` : `${s.toFixed(1)}s`; }
+  const m = Math.floor(s / 60);
+  const rest = Math.round(s % 60);
+  return rest === 0 ? `${m}m` : `${m}m${rest}s`;
+}
+
 export function isGraphDoc(value: unknown): value is GraphDoc {
   if (typeof value !== 'object' || value === null) { return false; }
   const v = value as Record<string, unknown>;
@@ -200,6 +217,15 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
       // "true" is the implicit default gate — only surface real conditions.
       if (n.when && n.when !== 'true') { node.when = n.when; }
       if (n.permits && n.permits.length > 0) { node.permits = n.permits; }
+      // Engine-projected policy (0.99+): the DECLARED facts in the
+      // engine's own voice — bodyFacts stays the pre-upgrade fallback
+      // (mergeBodyFacts only fills what is still undefined).
+      if (typeof n.retry_max_attempts === 'number') { node.retryMax = n.retry_max_attempts; }
+      if (typeof n.timeout_ms === 'number') { node.timeout = goishDuration(n.timeout_ms); }
+      if (typeof n.on_error === 'string') { node.onError = n.on_error; }
+      if (Array.isArray(n.outputs) && n.outputs.length > 0) {
+        node.outputNames = n.outputs.slice(0, 4);
+      }
       if (n.fan_out) {
         node.fanOutKind = n.fan_out.kind;
         if (typeof n.fan_out.count === 'number') { node.fanOutCount = n.fan_out.count; }

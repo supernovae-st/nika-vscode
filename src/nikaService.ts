@@ -37,7 +37,10 @@ import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
 
 export type { CliResult } from './core/spawn';
 
-/** Card substance (prompt · command · args · policy facts) onto the nodes. */
+/** Card substance (prompt · command · args · policy facts) onto the nodes.
+ *  Policy fills ONLY what the engine projection left undefined — the
+ *  binary's graph (0.99+ policy fields) is the voice; this client YAML
+ *  read is the pre-upgrade fallback. */
 function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNode[]): void {
   const facts = collectBodyFacts(text);
   for (const node of nodes) {
@@ -46,10 +49,10 @@ function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNod
     node.promptPreview = f.prompt;
     node.commandPreview = f.command;
     node.argsPreview = f.args;
-    node.retryMax = f.retryMax;
-    node.timeout = f.timeout;
-    node.onError = f.onError;
-    node.outputNames = f.outputNames;
+    node.retryMax ??= f.retryMax;
+    node.timeout ??= f.timeout;
+    node.onError ??= f.onError;
+    node.outputNames ??= f.outputNames;
   }
 }
 
