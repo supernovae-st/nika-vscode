@@ -1984,7 +1984,18 @@ class DagRenderer {
     if (touched.length === 0) { return; }
     stopCardAudio();
     if (relayout) {
-      void this.render(this.currentGraph);
+      // render()'s update path refreshes classes + the fact row only —
+      // an existing card never re-enters buildCardHtml, so a FIRST
+      // preview (or a kind flip) got its new box but not its new DOM.
+      // Rebuild the touched cards once the layout settles.
+      void this.render(this.currentGraph).then(() => {
+        for (const node of touched) {
+          const host = this.nodeGroup
+            .select<SVGGElement>(`[data-id="${CSS.escape(node.id)}"]`)
+            .select<HTMLElement>('.nc').node();
+          if (host) { this.buildCardHtml(host, node); }
+        }
+      });
       return;
     }
     for (const node of touched) {
