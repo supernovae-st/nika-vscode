@@ -12,6 +12,8 @@ import {
   env,
   languages,
   QuickPickItemKind,
+  Selection,
+  TextEditorRevealType,
   type QuickPickItem,
   type TextDocument,
 } from 'vscode';
@@ -66,6 +68,7 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs, renameTask } from './core/renameRefs';
+import { buildAddTaskPicks } from './core/addTaskPicks';
 import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
@@ -1737,6 +1740,65 @@ export function activate(context: ExtensionContext): void {
       });
       if (!value) { return; }
       await openNikaDoc('explain', value.trim(), 'markdown');
+    }),
+  );
+
+  // Command: Add Task — the task palette's vocabulary, from the editor.
+  // One QuickPick: the 4 verbs, then every builtin as a pre-wired invoke
+  // (binary-fed catalog when present · the fallback vocabulary offline).
+  // Inserts AFTER the task under the cursor (end of file otherwise) and
+  // lands the selection on the new id — the same skeleton the canvas
+  // palette and the omni `+ jq after gather` produce.
+  context.subscriptions.push(
+    commands.registerCommand('nika.addTask', async () => {
+      const doc = activeNikaDocument();
+      if (!doc) {
+        void window.showInformationMessage('Nika: open a .nika.yaml file first.');
+        return;
+      }
+      const editor = window.visibleTextEditors.find(
+        (e) => e.document.uri.toString() === doc.uri.toString(),
+      );
+      const text = doc.getText();
+      const after = editor
+        ? taskAtLine(parseRichWorkflow(text), editor.selection.active.line)?.id
+        : undefined;
+
+      const picks = buildAddTaskPicks(service.toolCats);
+      const picked = await window.showQuickPick(
+        picks.map((x) =>
+          x.kind === 'separator'
+            ? { label: x.label, kind: QuickPickItemKind.Separator }
+            : { label: x.label, description: x.description, pick: x },
+        ),
+        {
+          title: after ? `Nika: new task after \`${after}\`` : 'Nika: new task',
+          placeHolder: 'a verb — or type a builtin (jq · fetch · write …) for a pre-wired invoke',
+          matchOnDescription: true,
+        },
+      ) as { pick?: import('./core/addTaskPicks').AddTaskPick } | undefined;
+      const pick = picked?.pick;
+      if (!pick?.verb) { return; }
+
+      const res = insertTaskSkeleton(text, pick.verb, after, pick.tool);
+      if (!res) {
+        void window.showWarningMessage('Nika: could not insert a task here (no tasks block?).');
+        return;
+      }
+      const edit = new WorkspaceEdit();
+      edit.replace(doc.uri, new Range(0, 0, doc.lineCount, 0), res.text);
+      await workspace.applyEdit(edit);
+      service.invalidate(doc.uri.toString());
+
+      // Land ON the new id (the fresh doc — the edit may have grown it).
+      const fresh = await workspace.openTextDocument(doc.uri);
+      const shown = await window.showTextDocument(fresh, editor?.viewColumn);
+      const at = fresh.getText().indexOf(`id: ${res.taskId}`);
+      if (at >= 0) {
+        const pos = fresh.positionAt(at + 4);
+        shown.selection = new Selection(pos, fresh.positionAt(at + 4 + res.taskId.length));
+        shown.revealRange(new Range(pos, pos), TextEditorRevealType.InCenter);
+      }
     }),
   );
 

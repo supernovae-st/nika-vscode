@@ -180,6 +180,12 @@
         "icon": "$(new-file)"
       },
       {
+        "command": "nika.addTask",
+        "title": "Add Task (verb or builtin)",
+        "category": "Nika",
+        "icon": "$(add)"
+      },
+      {
         "command": "nika.restartServer",
         "title": "Nika: Restart Language Server",
         "icon": "$(refresh)"
@@ -570,7 +576,7 @@
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Register the Nika Language Model Tools (check \u00b7 explain \u00b7 graph \u00b7 workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle."
+          "description": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle."
         }
       }
     },
@@ -672,29 +678,34 @@
       ],
       "editor/context": [
         {
-          "command": "nika.runWorkflow",
+          "command": "nika.addTask",
           "when": "resourceLangId == 'nika'",
           "group": "nika@1"
         },
         {
-          "command": "nika.checkWorkflow",
+          "command": "nika.runWorkflow",
           "when": "resourceLangId == 'nika'",
           "group": "nika@2"
         },
         {
+          "command": "nika.checkWorkflow",
+          "when": "resourceLangId == 'nika'",
+          "group": "nika@3"
+        },
+        {
           "command": "nika.inspectWorkflow",
           "when": "resourceLangId == 'nika' && nika.hasBinary",
-          "group": "nika@3"
+          "group": "nika@4"
         },
         {
           "command": "nika.inferPermits",
           "when": "resourceLangId == 'nika' && nika.capCheck",
-          "group": "nika@4"
+          "group": "nika@5"
         },
         {
           "command": "nika.exportDagMermaid",
           "when": "resourceLangId == 'nika' && nika.capGraph",
-          "group": "nika@5"
+          "group": "nika@6"
         }
       ],
       "view/title": [
@@ -774,6 +785,12 @@
         "command": "nika.showDag",
         "key": "ctrl+alt+d",
         "mac": "cmd+alt+d",
+        "when": "resourceLangId == 'nika'"
+      },
+      {
+        "command": "nika.addTask",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
         "when": "resourceLangId == 'nika'"
       }
     ],
@@ -944,7 +961,7 @@
             "title": "Time-travel a recorded run (F5)",
             "description": "Set a breakpoint on any task line and press **F5** — the engine replays your latest recorded run under the debugger: step forward AND backward through settles, outputs in the Variables pane. Replay never re-executes.\n[Debug the latest run](command:workbench.action.debug.start)",
             "media": {
-              "markdown": "walkthrough/05-dag.md"
+              "markdown": "walkthrough/08-timetravel.md"
             },
             "completionEvents": [
               "onCommand:workbench.action.debug.start"
