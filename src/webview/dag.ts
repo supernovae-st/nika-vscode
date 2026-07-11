@@ -565,11 +565,15 @@ const CATEGORY_ORDER = ['core', 'file', 'data', 'network', 'introspection', 'med
  *  otherwise; grouped by category order, alphabetical within. */
 function paletteTools(): ToolItem[] {
   const bares = Object.keys(toolCatsMap ?? FALLBACK_TOOL_CATS);
+  // A category this build doesn't know (future binary vocabulary)
+  // sorts AFTER the known families — never before core.
+  const rank = (cat: string): number => {
+    const i = CATEGORY_ORDER.indexOf(cat);
+    return i === -1 ? CATEGORY_ORDER.length : i;
+  };
   return bares
     .map((bare) => ({ tool: `nika:${bare}`, bare, cat: toolCatOf(bare) ?? 'core' }))
-    .sort((a, b) =>
-      (CATEGORY_ORDER.indexOf(a.cat) - CATEGORY_ORDER.indexOf(b.cat))
-      || a.bare.localeCompare(b.bare));
+    .sort((a, b) => (rank(a.cat) - rank(b.cat)) || a.bare.localeCompare(b.bare));
 }
 
 /** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
@@ -1952,7 +1956,10 @@ class DagRenderer {
   }
 
   /** dag:artifacts — recorded outputs land on the cards (run close ·
-   *  replay). A preview APPEARING or changing kind changes the card's
+   *  replay). The delta is a SNAPSHOT of its source trace: a task
+   *  absent from it LOSES its preview (the fresh run produced none —
+   *  an older generation must not sit beside newer statuses). A
+   *  preview appearing, leaving or changing kind changes the card's
    *  TRUE box → full re-render (statuses live in the same nodes, so
    *  nothing is lost); a same-kind refresh just rebuilds the cards. */
   applyArtifacts(artifacts: CardArtifactMsg[]): void {
@@ -1962,12 +1969,17 @@ class DagRenderer {
     const touched: DagNode[] = [];
     for (const node of this.nodeMap.values()) {
       const next = byId.get(node.id);
-      if (!next) { continue; }
       const prevKind = node.artifact?.kind;
-      const { taskId: _taskId, ...fields } = next;
-      node.artifact = fields;
-      touched.push(node);
-      if (prevKind !== next.kind) { relayout = true; }
+      if (next) {
+        const { taskId: _taskId, ...fields } = next;
+        node.artifact = fields;
+        touched.push(node);
+        if (prevKind !== next.kind) { relayout = true; }
+      } else if (node.artifact) {
+        node.artifact = undefined;
+        touched.push(node);
+        relayout = true;
+      }
     }
     if (touched.length === 0) { return; }
     stopCardAudio();

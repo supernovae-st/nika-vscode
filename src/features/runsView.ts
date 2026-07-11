@@ -12,7 +12,7 @@ import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
 import { verifyChain, type ChainVerdict } from '../core/chainVerify';
 import { parseTraceOutputs } from '../core/xray';
-import { extractRunArtifacts, humanBytes, type RunArtifact } from '../core/artifacts';
+import { extractRunArtifacts, humanBytes, pickCardArtifact, type RunArtifact } from '../core/artifacts';
 import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
@@ -121,8 +121,10 @@ export function collectCardArtifacts(
   // …/.nika/traces/x.ndjson → the workspace the run most likely wrote in.
   const traceWorkspace = path.resolve(path.dirname(traceFsPath), '..', '..');
   for (const [taskId, list] of byTask) {
-    const pick = list.find((a) => a.kind === 'image') ?? list.find((a) => a.kind === 'audio');
-    if (!pick || (pick.kind !== 'image' && pick.kind !== 'audio')) { continue; }
+    // The pick + label are PURE (core/artifacts — e2e-proven against the
+    // real binary); only the disk resolution lives host-side.
+    const pick = pickCardArtifact(list);
+    if (!pick) { continue; }
     const candidates = path.isAbsolute(pick.path)
       ? [pick.path]
       : [
@@ -131,22 +133,7 @@ export function collectCardArtifacts(
       ];
     const abs = candidates.find((c) => { try { return fs.existsSync(c); } catch { return false; } });
     if (!abs) { continue; }
-    const siblings = list.filter((a) => a.kind === pick.kind).length;
-    const facts = [
-      pick.provider && pick.model ? `${pick.provider}/${pick.model}` : pick.provider ?? pick.model,
-      pick.bytes !== undefined ? humanBytes(pick.bytes) : undefined,
-      pick.durationMs !== undefined ? `${(pick.durationMs / 1000).toFixed(1)}s` : undefined,
-    ].filter((s): s is string => Boolean(s));
-    out.set(taskId, {
-      taskId,
-      kind: pick.kind,
-      src: abs,
-      path: abs,
-      name: path.basename(pick.path),
-      tip: facts.length > 0 ? facts.join(' · ') : undefined,
-      count: siblings > 1 ? siblings : undefined,
-      durationMs: pick.durationMs,
-    });
+    out.set(taskId, { taskId, ...pick, src: abs, path: abs });
   }
   return out;
 }
