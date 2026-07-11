@@ -1954,8 +1954,11 @@ body[data-nk-theme='nika'] {
   --nk-radius-card: 10px;
   --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
   --nk-ui-font: 'Martian Mono', var(--vscode-font-family, sans-serif);
+  /* The run-state palette IS the register's (design/tokens.yaml status: +
+   * severity — NIKA_STATUS in design-tokens.generated.ts · the designTokensCss
+   * gate pins this block). The old #71e08a green was one hue off-canon. */
   --nk-st-running: #5b8cff;
-  --nk-st-success: #71e08a;
+  --nk-st-success: #34d399;
   --nk-st-failed: #ff5d5d;
   --nk-st-retrying: #e0b071;
   --nk-st-muted: #5a606b;
