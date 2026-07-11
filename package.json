@@ -363,6 +363,32 @@
         "command": "nika.testUpdate",
         "title": "Nika: Golden Test — Update the Golden",
         "icon": "$(beaker)"
+      },
+      {
+        "command": "nika.canvas.runTask",
+        "title": "Run Task (with its upstream cone)",
+        "category": "Nika Canvas",
+        "icon": "$(play)"
+      },
+      {
+        "command": "nika.canvas.duplicateTask",
+        "title": "Duplicate Task",
+        "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.canvas.deleteTask",
+        "title": "Delete Task",
+        "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.canvas.openYaml",
+        "title": "Open in YAML",
+        "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.canvas.copyTaskId",
+        "title": "Copy Task Id",
+        "category": "Nika Canvas"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -546,6 +572,55 @@
       }
     },
     "menus": {
+      "webview/context": [
+        {
+          "command": "nika.canvas.runTask",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "1_run@1"
+        },
+        {
+          "command": "nika.canvas.openYaml",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "1_run@2"
+        },
+        {
+          "command": "nika.canvas.duplicateTask",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "nika.canvas.deleteTask",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "2_edit@2"
+        },
+        {
+          "command": "nika.canvas.copyTaskId",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "9_copy@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nika.canvas.runTask",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.duplicateTask",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.deleteTask",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.openYaml",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.copyTaskId",
+          "when": "false"
+        }
+      ],
       "editor/title": [
         {
           "command": "nika.runWorkflow",

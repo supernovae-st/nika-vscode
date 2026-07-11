@@ -1082,6 +1082,35 @@ export function activate(context: ExtensionContext): void {
   );
   state.activeDagPanel = dagPanel;
 
+  // Native right-click on a canvas card: the node group carries
+  // data-vscode-context (webviewSection 'nikaTask'), VS Code renders a
+  // REAL context menu (package.json webview/context) and hands each
+  // command the parsed context — the same levers the canvas gestures
+  // already use (rerunTask · applyDagEdit · jumpToTask), zero DOM menus.
+  type CanvasMenuCtx = { taskId?: string; workflowUri?: string } | undefined;
+  context.subscriptions.push(
+    commands.registerCommand('nika.canvas.runTask', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      void commands.executeCommand('nika.rerunTask', ctx.workflowUri ?? dagWorkflowUri, ctx.taskId);
+    }),
+    commands.registerCommand('nika.canvas.duplicateTask', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      void applyDagEdit({ kind: 'dag:duplicateTask', taskId: ctx.taskId, workflowUri: ctx.workflowUri });
+    }),
+    commands.registerCommand('nika.canvas.deleteTask', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      void applyDagEdit({ kind: 'dag:deleteTask', taskId: ctx.taskId, workflowUri: ctx.workflowUri });
+    }),
+    commands.registerCommand('nika.canvas.openYaml', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      jumpToTask(ctx.taskId, ctx.workflowUri);
+    }),
+    commands.registerCommand('nika.canvas.copyTaskId', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      void env.clipboard.writeText(ctx.taskId);
+    }),
+  );
+
   // The webview's running-set feed → the YAML highlight (replay + live).
   // A panel with NO workflow uri (trace-synthesized graph) must never
   // wildcard-paint every visible nika file — scope or clear, nothing else.

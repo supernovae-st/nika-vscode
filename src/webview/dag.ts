@@ -223,6 +223,8 @@ interface DagNode {
   model?: string;
   tool?: string;
   when?: string;
+  /** Per-task capability grants (engine #367 affirmative permits). */
+  permits?: string[];
   fanOutKind?: string;
   fanOutCount?: number;
   costMin?: number;
@@ -232,6 +234,14 @@ interface DagNode {
   promptPreview?: string;
   commandPreview?: string;
   argsPreview?: string;
+  /** `retry.max_attempts` — the declared retry budget (client YAML read). */
+  retryMax?: number;
+  /** `timeout` Go-duration string, as written (`30s`). */
+  timeout?: string;
+  /** `on_error` action — recover · skip · fail_workflow. */
+  onError?: string;
+  /** Named `output:` bindings the task PRODUCES (≤4). */
+  outputNames?: string[];
   avgMs?: number;
   avgRuns?: number;
   stale?: boolean;
@@ -329,15 +339,22 @@ const TOP_INSET = 54;
 
 // Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
 // DESIGN.md §1 — pad 10 · head 22 · divider 12 · sub 15 · body 15/line
-// (+4 gap) · params 24 (+6 gap)).
+// (+4 gap) · io 15 (+5 gap) · params 24 (+6 gap) · policy 20 (+6 gap)).
 const CARD_PAD_Y = 10;
 const HEAD_H = 22;
 const DIVIDER_H = 12;
 const SUB_H = 15;
 const BODY_LINE_H = 15;
 const BODY_GAP = 4;
+const IO_H = 15;
+const IO_GAP = 5;
 const PARAMS_H = 24;
 const PARAMS_GAP = 6;
+const POLICY_H = 20;
+const POLICY_GAP = 6;
+
+/** Inbound wires shown ON the card (the rest counts into `+N`). */
+const IO_MAX_WIRES = 2;
 
 /** Body preview text for a node (verb decides which fact leads). */
 function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
@@ -353,6 +370,21 @@ function hasParamsRow(node: DagNode): boolean {
     || node.when !== undefined
     || (node.costMin != null && node.costMax != null)
     || node.avgMs !== undefined;
+}
+
+/** Whether the io row shows — inbound wires, named ON the card. */
+function hasIoRow(node: DagNode): boolean {
+  return (node.bindingsIn?.length ?? 0) > 0;
+}
+
+/** Whether the policy row shows — retry · timeout · on_error · outputs ·
+ *  permits (declared facts only; an empty row never renders). */
+function hasPolicyRow(node: DagNode): boolean {
+  return node.retryMax !== undefined
+    || node.timeout !== undefined
+    || node.onError !== undefined
+    || (node.outputNames?.length ?? 0) > 0
+    || (node.permits?.length ?? 0) > 0;
 }
 
 /** Card height from content — the layout must know the TRUE box. */
@@ -371,7 +403,9 @@ function nodeHeightOf(node: DagNode): number {
       : lines;
     h += BODY_GAP + wrapLines * BODY_LINE_H;
   }
+  if (hasIoRow(node)) { h += IO_GAP + IO_H; }
   if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
+  if (hasPolicyRow(node)) { h += POLICY_GAP + POLICY_H; }
   return Math.max(h, NODE_HEIGHT);
 }
 
@@ -418,7 +452,7 @@ const BUILTIN_GLYPH: Record<string, string> = {
   convert: '⧉', uuid: '⧉', date: '⧉', hash: '⧉',
   fetch: '⇄', notify: '⇄',
   inspect: '⌕', compose: '⌕',
-  image_generate: '▣', tts_generate: '▣',
+  image_generate: '▣', tts_generate: '▣', image_fx: '▣', chart: '▣',
 };
 
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
@@ -541,6 +575,10 @@ class DagRenderer {
   private edgePathEl = new Map<string, SVGPathElement>();
   private edgeLabelEl = new Map<string, SVGTextElement>();
   private edgeHitEl = new Map<string, SVGPathElement>();
+  private edgeDirEl = new Map<string, SVGPathElement>();
+  /** Hidden measuring path (in defs) — chevron placement reads the FINAL
+   *  geometry without touching the live wires mid-transition. */
+  private measurePath: SVGPathElement | null = null;
   /** Live particle trains, per edge (what exists ↔ what is true). */
   private particleEdges = new Map<string, { kind: ParticleKind; el: SVGGElement; path: SVGPathElement }>();
   /** Unique DOM ids for edge paths (SMIL <mpath> needs an href anchor). */
@@ -576,6 +614,8 @@ class DagRenderer {
     const defs = this.svg.append('defs');
     this.createArrowMarkers(defs);
     this.createGlowFilter(defs);
+    // The measuring path (defs = in-document but never painted).
+    this.measurePath = defs.append<SVGPathElement>('path').node();
 
     // Root group receives all zoom/pan transforms
     this.rootGroup = this.svg.append<SVGGElement>('g').attr('class', 'dag-root');
@@ -1179,17 +1219,21 @@ class DagRenderer {
       // status · frame) drops it — restore it here so the caret halo
       // survives every refresh.
       .classed('cursor-hint', (d) => d.id === this.cursorHintedId);
+    const dimEdge = (d: ElkExtendedEdge): boolean => {
+      const ends = this.edgeEnds.get(d.id);
+      if (!ends) { return lit !== null || this.filterMatches !== null; }
+      return dimNode(ends.source) || dimNode(ends.target);
+    };
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
-      .classed('dimmed', (d) => {
-        const ends = this.edgeEnds.get(d.id);
-        if (!ends) { return lit !== null || this.filterMatches !== null; }
-        return dimNode(ends.source) || dimNode(ends.target);
-      })
+      .classed('dimmed', dimEdge)
       .classed('lin-path', (d) => {
         if (litEdges === null) { return false; }
         const ends = this.edgeEnds.get(d.id);
         return ends !== undefined && litEdges.has(`${ends.source}->${ends.target}`);
       });
+    // The chevrons tell the same dim story as their wires.
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.edge-dir')
+      .classed('dimmed', dimEdge);
     // The minimap tells the same story (class-only touch, no re-render).
     for (const r of document.querySelectorAll<SVGRectElement>('#minimap-svg rect.mm-node')) {
       const id = r.dataset.id;
@@ -1406,6 +1450,16 @@ class DagRenderer {
         const [lx, ly] = this.edgeLabelPoint(datum);
         label.setAttribute('x', String(lx));
         label.setAttribute('y', String(ly - 5));
+      }
+      const dir = this.edgeDirEl.get(eid);
+      if (dir) {
+        const datum = select<SVGPathElement, ElkExtendedEdge>(dir).datum();
+        const t = this.edgeDirTransformFor(datum);
+        if (t === '') { dir.setAttribute('display', 'none'); }
+        else {
+          dir.removeAttribute('display');
+          dir.setAttribute('transform', t);
+        }
       }
     }
   }
@@ -1951,15 +2005,17 @@ class DagRenderer {
   /** Focus queued while ELK is still laying out (race: focus ≺ layout). */
   private pendingCenter: string | undefined;
 
-  /** Keyboard nav: move focus by direction over the DAG structure. */
+  /** Keyboard nav: move focus by direction over the DAG structure.
+   *  Keyboard-initiated → the camera JUMPS (motion charter law 7). */
   navFocus(dir: NavDir): void {
     if (!this.currentGraph) { return; }
     const target = nextFocus(this.currentGraph.nodes, this.currentGraph.edges, this.focusedId ?? undefined, dir);
-    if (target) { this.focusAndCenter(target); }
+    if (target) { this.focusAndCenter(target, true); }
   }
 
-  /** Editor-driven focus: light the lineage AND glide the node to center. */
-  focusAndCenter(taskId: string): void {
+  /** Editor-driven focus: light the lineage AND glide the node to center
+   *  (`instant` = keyboard source — no glide, per the motion charter). */
+  focusAndCenter(taskId: string, instant = false): void {
     if (!this.nodeMap.has(taskId)) { return; }
     this.applyFocus(taskId);
     const box = this.layoutBox.get(taskId);
@@ -1976,7 +2032,7 @@ class DagRenderer {
       .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
       .scale(k);
     this.svg
-      .transition().duration(REDUCED_MOTION ? 0 : 420)
+      .transition().duration(instant || REDUCED_MOTION ? 0 : 420)
       .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
@@ -2211,13 +2267,29 @@ class DagRenderer {
       .attr('r', 7);
 
     // Ports — the visible connect affordance (drag out-port → card).
-    enter
+    // The IN jack speaks the port grammar: it wears the data hue when
+    // named wires actually plug in (Blender's socket read — the shape
+    // teaches the semantics already in the schema), and its title says
+    // exactly what arrives.
+    const portsIn = enter
       .append('circle')
-      .attr('class', 'nc-port nc-port-in')
+      .attr('class', (d) =>
+        `nc-port nc-port-in${(d.bindingsIn?.length ?? 0) > 0 ? ' nc-port-data' : ''}`)
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', 0)
       .attr('r', 3.5);
-    enter
+    portsIn.append('title').text((d) => {
+      const wires = d.bindingsIn?.length ?? 0;
+      const deps = d.dependsOn.length;
+      if (wires > 0) {
+        return `${wires} named wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer — the card's io row)`;
+      }
+      if (deps > 0) {
+        return `${deps} dependenc${deps === 1 ? 'y' : 'ies'} arrive${deps === 1 ? 's' : ''} here (ordering only)`;
+      }
+      return 'no inputs — a root task';
+    });
+    const portsOut = enter
       .append('circle')
       .attr('class', 'nc-port nc-port-out')
       .attr('cx', NODE_WIDTH / 2)
@@ -2228,6 +2300,8 @@ class DagRenderer {
         event.stopPropagation();
         this.startConnect(d.id);
       });
+    portsOut.append('title')
+      .text('drag to connect — the drop target gains depends_on on this task (⌥drag from the card works too)');
 
     // Mousedown on a card: ⌥ starts a dependency edge (the n8n gesture);
     // plain primary button arms a CARD DRAG (threshold-gated so clicks
@@ -2279,13 +2353,13 @@ class DagRenderer {
     });
 
     // Rich hover card (replaces the native <title> tooltip) + the
-    // hover-to-trace lineage — one pointer, two reads.
+    // hover-to-trace lineage — one pointer, two reads. The card anchors
+    // to the NODE box (never chases the cursor), so no mousemove hook.
     enter
-      .on('mouseenter', (event: MouseEvent, d: DagNode) => {
-        this.showHoverCard(event, d);
+      .on('mouseenter', (_event: MouseEvent, d: DagNode) => {
+        this.showHoverCard(d);
         this.hoverLineage(d.id);
       })
-      .on('mousemove', (event: MouseEvent) => this.moveHoverCard(event))
       .on('mouseleave', () => {
         this.hideHoverCard();
         this.hoverLineage(null);
@@ -2317,6 +2391,15 @@ class DagRenderer {
     // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => nodeClassOf(d));
     merged.select('.nc-sub-v').text((d) => this.subValue(d));
+    // Native right-click: VS Code reads data-vscode-context off the DOM
+    // path and shows the contributed webview/context menu — refreshed on
+    // every render so the workflowUri never goes stale on a switch.
+    merged.attr('data-vscode-context', (d) => JSON.stringify({
+      webviewSection: 'nikaTask',
+      taskId: d.id,
+      workflowUri: this.currentGraph?.workflowUri,
+      preventDefaultContextMenuItems: true,
+    }));
   }
 
   /** Build the HTML card body (safe DOM construction — never innerHTML). */
@@ -2400,6 +2483,45 @@ class DagRenderer {
       host.appendChild(el);
     }
 
+    // The io row — the inbound wires, named ON the card (they used to
+    // live hover-only): `alias ← from`, click focuses the producer.
+    if (hasIoRow(node)) {
+      const io = document.createElement('div');
+      io.className = 'nc-io';
+      const wires = node.bindingsIn ?? [];
+      for (const b of wires.slice(0, IO_MAX_WIRES)) {
+        const wire = document.createElement('button');
+        wire.className = 'nc-io-wire';
+        wire.title = `${b.alias || b.path} ← ${b.from}.${b.path} — click to focus the producer`;
+        const alias = document.createElement('span');
+        alias.className = 'nc-io-alias';
+        alias.textContent = b.alias || b.path;
+        const arr = document.createElement('span');
+        arr.className = 'nc-io-arr';
+        arr.textContent = '←';
+        const from = document.createElement('span');
+        from.className = 'nc-io-from';
+        from.textContent = b.from;
+        wire.append(alias, arr, from);
+        wire.addEventListener('mousedown', (e) => e.stopPropagation());
+        wire.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.focusAndCenter(b.from);
+        });
+        io.appendChild(wire);
+      }
+      if (wires.length > IO_MAX_WIRES) {
+        const more = document.createElement('span');
+        more.className = 'nc-io-more';
+        more.textContent = `+${wires.length - IO_MAX_WIRES}`;
+        more.title = wires.slice(IO_MAX_WIRES)
+          .map((b) => `${b.alias || b.path} ← ${b.from}.${b.path}`)
+          .join('\n');
+        io.appendChild(more);
+      }
+      host.appendChild(io);
+    }
+
     if (hasParamsRow(node)) {
       const params = document.createElement('div');
       params.className = 'nc-params';
@@ -2454,6 +2576,51 @@ class DagRenderer {
       }
       host.appendChild(params);
     }
+
+    // The policy row — declared execution policy, ON the card (Temporal's
+    // « high-value fields » clamp: curated chips, never prose). Facts only:
+    // an undeclared policy renders nothing.
+    if (hasPolicyRow(node)) {
+      const policy = document.createElement('div');
+      policy.className = 'nc-policy';
+      const chip = (cls: string, text: string, title: string): void => {
+        const el = document.createElement('span');
+        el.className = `nc-pol ${cls}`;
+        el.textContent = text;
+        el.title = title;
+        policy.appendChild(el);
+      };
+      if (node.retryMax !== undefined) {
+        chip('nc-pol-retry', `↻×${node.retryMax}`,
+          `Retries up to ${node.retryMax} attempt${node.retryMax === 1 ? '' : 's'} on failure (retry.max_attempts)`);
+      }
+      if (node.timeout !== undefined) {
+        chip('nc-pol-timeout', `⏱ ${node.timeout}`,
+          `Hard timeout — the task is cancelled past ${node.timeout}`);
+      }
+      if (node.onError === 'recover') {
+        chip('nc-pol-recover', '✚ recover',
+          'on_error: recover — a failure is absorbed with the declared recovery output (the card will say « recovered »)');
+      } else if (node.onError === 'skip') {
+        chip('nc-pol-skip', '⤼ skip',
+          'on_error: skip — a failure skips this task; the error stays readable at tasks.X.error');
+      } else if (node.onError === 'fail_workflow') {
+        chip('nc-pol-fail', '⛔ fail',
+          'on_error: fail_workflow — a failure here stops the whole run');
+      }
+      const outs = node.outputNames ?? [];
+      if (outs.length > 0) {
+        chip('nc-pol-outs',
+          outs.length === 1 ? `⤳ ${outs[0]}` : `⤳ ${outs.length} outs`,
+          `Produces named outputs: ${outs.join(' · ')} (output: jq bindings — \${{ tasks.${node.id}.<name> }})`);
+      }
+      const grants = node.permits ?? [];
+      if (grants.length > 0) {
+        chip('nc-pol-permits', `▦ ${grants.length}`,
+          `Allowed capabilities (engine-projected · affirmative permits):\n${grants.join('\n')}`);
+      }
+      host.appendChild(policy);
+    }
   }
 
   // ─── Hover card (safe DOM construction · explication riche) ──────────────
@@ -2471,7 +2638,7 @@ class DagRenderer {
     return row;
   }
 
-  private showHoverCard(event: MouseEvent, node: DagNode): void {
+  private showHoverCard(node: DagNode): void {
     if (!this.hoverCard) { return; }
     if (this.dragging?.moved) { return; } // no tooltips mid-drag
     // A pending delayed-hide (from leaving the PREVIOUS node) must not
@@ -2531,26 +2698,17 @@ class DagRenderer {
     head.append(verb, id, status, dupBtn, runBtn);
     this.hoverCard.appendChild(head);
 
+    // The hover is the RUN STORY + the jumps — never a mirror of the
+    // card. Mechanism facts (model · tool · gate · fan-out · cost · the
+    // inbound wires) live ON the card now; repeating them here was the
+    // old duplication this slimming removed.
     const add = (label: string, value: string | undefined): void => {
       if (value) { this.hoverCard!.appendChild(this.hcRow(label, value)); }
     };
-    add('model', live.model);
-    add('tool', live.tool);
-    add('when', live.when);
-    if (live.fanOutKind) {
-      add('fan-out', live.fanOutCount != null ? `${live.fanOutKind} ×${live.fanOutCount}` : live.fanOutKind);
-    }
-    if (live.costMin != null && live.costMax != null) {
-      // Short label — the k-column is narrow; the range IS the static read.
-      add('cost', `$${live.costMin.toFixed(live.costMin < 0.1 ? 4 : 2)} → $${live.costMax.toFixed(live.costMax < 0.1 ? 4 : 2)}`);
-    }
-    if (live.usd !== undefined) {
-      // The after-story: the estimate above said what it COULD cost —
-      // this is what it DID cost (the terminal event's recorded spend).
+    if (live.usd !== undefined && (live.status !== 'success' || live.durationMs == null)) {
+      // Recorded spend that the card verdict does NOT already show
+      // (a failed/cancelled task still spent before it stopped).
       add('spent', `$${live.usd.toFixed(live.usd < 0.1 ? 4 : 2)} recorded`);
-    }
-    if (live.durationMs != null) {
-      add('duration', live.durationMs >= 1000 ? `${(live.durationMs / 1000).toFixed(1)}s` : `${live.durationMs}ms`);
     }
     if (live.cached) {
       add('resume', '↻ cache hit — recorded output reused, not re-executed');
@@ -2600,55 +2758,40 @@ class DagRenderer {
     neighborRow('needs', this.upstreamOf.get(live.id) ?? []);
     neighborRow('unlocks', this.downstreamOf.get(live.id) ?? []);
 
-    // The wires, named: what data arrives here and under which alias.
-    if (live.bindingsIn && live.bindingsIn.length > 0) {
-      const row = document.createElement('div');
-      row.className = 'hc-row hc-bindings';
-      const k = document.createElement('span');
-      k.className = 'hc-k';
-      k.textContent = 'inputs';
-      const v = document.createElement('span');
-      v.className = 'hc-v';
-      for (const b of live.bindingsIn) {
-        const wire = document.createElement('div');
-        wire.className = 'hc-wire';
-        const alias = document.createElement('span');
-        alias.className = 'hc-wire-alias';
-        alias.textContent = b.alias || b.path;
-        const arrow = document.createElement('span');
-        arrow.className = 'hc-wire-arrow';
-        arrow.textContent = '←';
-        const src = document.createElement('button');
-        src.className = 'hc-chip';
-        src.textContent = `${b.from}.${b.path}`;
-        src.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.hideHoverCard(true);
-          this.focusAndCenter(b.from);
-        });
-        wire.append(alias, arrow, src);
-        v.appendChild(wire);
-      }
-      row.append(k, v);
-      this.hoverCard.appendChild(row);
-    }
-
     this.hoverCard.classList.add('visible');
-    this.moveHoverCard(event);
+    this.anchorHoverCard(live.id);
   }
 
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
 
-  private moveHoverCard(event: MouseEvent): void {
+  /**
+   * Anchor the hover card to the NODE's screen box (right flank, flips
+   * left, viewport-clamped) instead of chasing the cursor — a steady
+   * inspector with a predictable pointer path to its ▸/⧉ buttons (the
+   * 2026-07-09 harness trap class: a cursor-following card intercepts
+   * the very pointer travel it invites).
+   */
+  private anchorHoverCard(nodeId: string): void {
     if (!this.hoverCard) { return; }
-    const pad = 14;
+    const box = this.layoutBox.get(nodeId);
+    const svgRect = this.svg.node()?.getBoundingClientRect();
+    if (!box || !svgRect) { return; }
+    const k = this.currentZoom;
+    const left = svgRect.left + box.x * k + this.currentTx;
+    const top = svgRect.top + box.y * k + this.currentTy;
+    const w = box.w * k;
     const rect = this.hoverCard.getBoundingClientRect();
-    let x = event.clientX + pad;
-    let y = event.clientY + pad;
-    if (x + rect.width > window.innerWidth - 8) { x = event.clientX - rect.width - pad; }
-    if (y + rect.height > window.innerHeight - 8) { y = event.clientY - rect.height - pad; }
-    this.hoverCard.style.left = `${Math.max(8, x)}px`;
-    this.hoverCard.style.top = `${Math.max(8, y)}px`;
+    const GAP = 12;
+    let x = left + w + GAP;
+    if (x + rect.width > window.innerWidth - 8) { x = left - rect.width - GAP; }
+    x = Math.max(8, x);
+    let y = top;
+    if (y + rect.height > window.innerHeight - 8) {
+      y = window.innerHeight - rect.height - 8;
+    }
+    y = Math.max(8, y);
+    this.hoverCard.style.left = `${x}px`;
+    this.hoverCard.style.top = `${y}px`;
   }
 
   /**
@@ -2737,7 +2880,9 @@ class DagRenderer {
         workflowUri: this.currentGraph?.workflowUri,
       });
     });
-    enter.append('title').text((d) => {
+    // One title voice for the wire AND its 16px hit twin (the twin sits
+    // on top, so the pointer usually rests there).
+    const titleOf = (d: ElkExtendedEdge): string => {
       const ends = this.edgeEnds.get(d.id);
       if (!ends) { return ''; }
       const meta = dagEdgeMap.get(d.id);
@@ -2748,7 +2893,8 @@ class DagRenderer {
         ? `${ends.source} ── ${meta.label} ──▶ ${ends.target}\n(data travels here)`
         : `${ends.source} → ${ends.target}\n(ordering only — no binding crosses this edge)`;
       return `${head}\n⌥click to remove the dependency`;
-    });
+    };
+    enter.append('title').text(titleOf);
 
     // Binding labels — the wire's NAME riding the data edge midpoint.
     const labels = this.edgeGroup
@@ -2768,6 +2914,23 @@ class DagRenderer {
       .attr('text-anchor', 'middle')
       .text((d) => dagEdgeMap.get(d.id)?.label ?? '');
 
+    // Direction chevrons — end arrowheads drown under the target cards
+    // (the n8n 1.70 read); one quiet ⌃ at the wire's WAIST carries the
+    // flow direction at any pan. Ghost wires keep their red march.
+    const dirs = this.edgeGroup
+      .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-dir')
+      .data(elkEdges.filter((e) => !dagEdgeMap.get(e.id)?.ghost), (d) => d.id);
+    dirs.exit().remove();
+    dirs
+      .enter()
+      .append('path')
+      .attr('class', (d) =>
+        `edge-dir ${dagEdgeMap.get(d.id)?.isDataEdge ? 'edge-dir-data' : 'edge-dir-dep'}`)
+      .attr('d', 'M -3.4 -3.1 L 3 0 L -3.4 3.1')
+      .merge(dirs)
+      .attr('transform', (d) => this.edgeDirTransformFor(d))
+      .attr('display', (d) => this.edgeDirTransformFor(d) === '' ? 'none' : null);
+
     enter
       .merge(paths)
       .transition().duration(300)
@@ -2775,28 +2938,52 @@ class DagRenderer {
       .attr('opacity', 1)
       .attr('d', (d) => this.edgePathFor(d));
 
-    // Hover twins for DEP wires — a 2px stroke is an undiscoverable hit
-    // target; each dep edge gets an invisible 16px-wide twin carrying
-    // the insert-on-edge gesture (the n8n/React Flow hit convention).
-    // Splicing reroutes depends_on, so data/ghost edges get NO twin (a
-    // binding is a ref, never rewritten — DESIGN.md §6b).
+    // Hover twins for EVERY real wire — a 2px stroke is an undiscoverable
+    // hit target; each edge gets an invisible 16px-wide twin (the n8n/
+    // React Flow hit convention) that lights the wire + its label and
+    // carries the gestures: the insert-on-edge + rides DEP wires only
+    // (splicing reroutes depends_on; a binding is a ref, never rewritten
+    // — DESIGN.md §6b), ⌥click removes the dependency (both kinds).
     const hits = this.edgeGroup
       .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-hit')
       .data(elkEdges.filter((e) => {
         const meta = dagEdgeMap.get(e.id);
-        return meta !== undefined && !meta.ghost && !meta.isDataEdge;
+        return meta !== undefined && !meta.ghost;
       }), (d) => d.id);
     hits.exit().remove();
-    hits
+    const hitsEnter = hits
       .enter()
       .append('path')
       .attr('class', 'edge-hit')
       .on('mouseenter', (event: MouseEvent, d: ElkExtendedEdge) => {
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return; }
-        this.showEdgePlus(event.currentTarget as SVGPathElement, ends.source, ends.target);
+        this.setEdgeLit(d.id, true);
+        if (dagEdgeMap.get(d.id)?.isDataEdge !== true) {
+          this.showEdgePlus(event.currentTarget as SVGPathElement, ends.source, ends.target);
+        }
       })
-      .on('mouseleave', () => this.hideEdgePlus())
+      .on('mouseleave', (_event: MouseEvent, d: ElkExtendedEdge) => {
+        this.setEdgeLit(d.id, false);
+        this.hideEdgePlus();
+      })
+      .on('click', (event: MouseEvent, d: ElkExtendedEdge) => {
+        // The twin sits ABOVE the wire — it must carry the wire's ⌥click
+        // (before the twins widened to every edge, the path's own handler
+        // was already unreachable under a twin).
+        if (!event.altKey) { return; }
+        const ends = this.edgeEnds.get(d.id);
+        if (!ends) { return; }
+        event.stopPropagation();
+        vscode.postMessage({
+          kind: 'dag:disconnect',
+          from: ends.source,
+          to: ends.target,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+    hitsEnter.append('title').text(titleOf);
+    hitsEnter
       .merge(hits)
       .attr('d', (d) => this.edgePathFor(d));
 
@@ -2804,6 +2991,7 @@ class DagRenderer {
     this.edgePathEl.clear();
     this.edgeLabelEl.clear();
     this.edgeHitEl.clear();
+    this.edgeDirEl.clear();
     const pathEls = this.edgePathEl;
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.dag-edge')
       .each(function (d) { pathEls.set(d.id, this); });
@@ -2813,6 +3001,34 @@ class DagRenderer {
     const hitEls = this.edgeHitEl;
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-hit')
       .each(function (d) { hitEls.set(d.id, this); });
+    const dirEls = this.edgeDirEl;
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-dir')
+      .each(function (d) { dirEls.set(d.id, this); });
+  }
+
+  /** Light one wire + its label + its chevron (hover through the twin). */
+  private setEdgeLit(edgeId: string, lit: boolean): void {
+    this.edgePathEl.get(edgeId)?.classList.toggle('edge-lit', lit);
+    this.edgeLabelEl.get(edgeId)?.classList.toggle('lit', lit);
+    this.edgeDirEl.get(edgeId)?.classList.toggle('lit', lit);
+  }
+
+  /** Chevron placement: midpoint + tangent of the edge's FINAL path,
+   *  measured on the hidden defs path (never the mid-transition wire).
+   *  '' = too short to read (the card gap already tells the story). */
+  private edgeDirTransformFor(edge: ElkExtendedEdge): string {
+    const mp = this.measurePath;
+    if (!mp) { return ''; }
+    const d = this.edgePathFor(edge);
+    if (!d) { return ''; }
+    mp.setAttribute('d', d);
+    const total = mp.getTotalLength();
+    if (total < 42) { return ''; }
+    const mid = mp.getPointAtLength(total / 2);
+    const a = mp.getPointAtLength(Math.max(total / 2 - 4, 0));
+    const b = mp.getPointAtLength(Math.min(total / 2 + 4, total));
+    const ang = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    return `translate(${mid.x}, ${mid.y}) rotate(${ang.toFixed(1)})`;
   }
 
   /** Path for one edge — a direct curve when an endpoint is hand-pinned
@@ -2993,7 +3209,7 @@ class DagRenderer {
 
   // ─── Viewport Controls ───────────────────────────────────────────────────
 
-  fitToView(elkResult?: ElkNode): void {
+  fitToView(elkResult?: ElkNode, instant = false): void {
     const svgEl = this.svg.node();
     if (!svgEl) return;
 
@@ -3036,21 +3252,23 @@ class DagRenderer {
     const ty = TOP_INSET + (usableH - graphH * scale) / 2;
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
+    // Motion charter (law 7): keyboard-initiated camera moves NEVER
+    // animate — `instant` rides down from the key handlers.
     this.svg
-      .transition().duration(REDUCED_MOTION ? 0 : 500)
+      .transition().duration(instant || REDUCED_MOTION ? 0 : 500)
       .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
 
-  zoomIn(): void {
+  zoomIn(instant = false): void {
     this.svg
-      .transition().duration(REDUCED_MOTION ? 0 : 300)
+      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
       .call(this.zoomBehavior.scaleBy as D3ZoomCall, 1.3);
   }
 
-  zoomOut(): void {
+  zoomOut(instant = false): void {
     this.svg
-      .transition().duration(REDUCED_MOTION ? 0 : 300)
+      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
       .call(this.zoomBehavior.scaleBy as D3ZoomCall, 0.7);
   }
 
@@ -3120,7 +3338,11 @@ class DagRenderer {
       const dur = node.durationMs >= 1000
         ? `${(node.durationMs / 1000).toFixed(1)}s`
         : `${node.durationMs}ms`;
-      if (node.status === 'success') { return `\u2713 ${dur}`; }
+      if (node.status === 'success') {
+        // The after-story ON the card: recorded spend joins the verdict
+        // (terminal event's cost_usd \u2014 engine truth, never estimated).
+        return node.usd !== undefined ? `\u2713 ${dur} \u00b7 ${usd(node.usd)}` : `\u2713 ${dur}`;
+      }
       if (node.status === 'failed') { return `\u2717 ${dur}`; }
       return dur;
     }
@@ -3376,8 +3598,9 @@ function buildExplainer(): void {
     ['ex-glyph-critical', 'Critical path', 'the longest chain (real durations when known) — it alone decides the wall-clock'],
     ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
-    ['ex-glyph-hover', 'Hover a node', 'the full story — model · gates · cost · needs/unlocks · \u25B8 run from here · \u29C9 duplicate'],
+    ['ex-glyph-hover', 'Hover a node', 'the run story + jumps — output · blast radius · needs/unlocks · \u25B8 run from here · \u29C9 duplicate'],
     ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) — the deck IS the parallel copies; the badge counts them'],
+    ['ex-glyph-data', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy — ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
     ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
     ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
@@ -3406,7 +3629,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -3974,13 +4197,13 @@ document.getElementById('btn-zoom-out')?.addEventListener('click', () => rendere
 document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
 
 /** Auto-layout: drop the drag pins, re-run ELK, re-fit (⌗ · key A). */
-async function resetLayout(): Promise<void> {
+async function resetLayout(instant = false): Promise<void> {
   if (!renderer.hasManualLayout) { return; }
   renderer.clearManualLayout();
   const g = vscode.getState()?.graph;
   if (!g) { return; }
   await renderer.render(g);
-  renderer.fitToView();
+  renderer.fitToView(undefined, instant);
 }
 document.getElementById('btn-relayout')?.addEventListener('click', () => { void resetLayout(); });
 
@@ -4106,7 +4329,8 @@ searchEl?.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'Enter') {
     const ids = renderer.filteredIds();
     if (ids.length > 0) {
-      renderer.focusAndCenter(ids[searchCycle % ids.length]);
+      // Keyboard cycling — the camera jumps (motion charter law 7).
+      renderer.focusAndCenter(ids[searchCycle % ids.length], true);
       searchCycle += 1;
     }
   }
@@ -4116,16 +4340,18 @@ searchEl?.addEventListener('keydown', (e: KeyboardEvent) => {
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   // Only handle if not in an input field
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-  if (e.key === 'f' || e.key === 'F') renderer.fitToView();
-  if (e.key === '+' || e.key === '=') renderer.zoomIn();
-  if (e.key === '-') renderer.zoomOut();
+  // Keyboard camera = INSTANT (motion charter law 7: a key press never
+  // animates — the glides belong to pointer gestures).
+  if (e.key === 'f' || e.key === 'F') renderer.fitToView(undefined, true);
+  if (e.key === '+' || e.key === '=') renderer.zoomIn(true);
+  if (e.key === '-') renderer.zoomOut(true);
   if (e.key === '/') {
     e.preventDefault();
     openSearch();
     return;
   }
-  // Keyboard-first canvas nav (a11y + power): Tab cycles the topological
-  // node order, ↑ walks to a dependency, ↓ to a dependent.
+  // Keyboard-first canvas nav (a11y + power): Tab (or ←/→) cycles the
+  // topological node order, ↑ walks to a dependency, ↓ to a dependent.
   if (e.key === 'Tab') {
     e.preventDefault();
     renderer.navFocus(e.shiftKey ? 'prev' : 'next');
@@ -4133,6 +4359,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   if (e.key === 'ArrowUp') { e.preventDefault(); renderer.navFocus('up'); return; }
   if (e.key === 'ArrowDown') { e.preventDefault(); renderer.navFocus('down'); return; }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); renderer.navFocus('prev'); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); renderer.navFocus('next'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
     if (renderer.cancelConnect()) { return; }
@@ -4141,7 +4369,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     renderer.clearFocus();
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
-  if (e.key === 'a' || e.key === 'A') { void resetLayout(); }
+  if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }
   // K (or ⌘K) — the command muscle: focus the omnibar input.

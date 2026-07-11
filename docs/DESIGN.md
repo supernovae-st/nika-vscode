@@ -21,13 +21,16 @@ every visible pixel.
 
 ```
 ┌────────────────────────────────┐
-│ ⬚ task_id            ● ⚠2 ×5  │  head · verb TILE + id + status DOT + chips
-│ ─────────────────────────────  │  hairline divider (full bleed)
-│ infer · mistral   →  ✓ 2.3s    │  sub · mechanism at rest → run line settled
-│ Rank these stories by…         │  body · prompt / $ command / args (≤3 lines)
-│ [mistral/large] $0.004–0.03 ⌀2s│  params · chips (edit) + facts (read)
+│ ⬚ task_id            ● ⚠2 ×5  │  head 22 · verb TILE + id + status DOT + chips
+│ ─────────────────────────────  │  hairline divider (12 incl. margins)
+│ infer · mistral → ✓ 2.3s·$0.004│  sub 15 · mechanism → verdict (+ recorded $)
+│ Rank these stories by…         │  body 15/line · prompt / $ cmd / args (≤3)
+│ items ← fetch  brief ← rank +1 │  io 15 · inbound wires (≤2 + overflow, jump)
+│ [mistral/large] $0.004–0.03 ⌀2s│  params 24 · chips (edit) + facts (read)
+│ [↻×3][⏱ 45s][✚ recover][⤳ 2][▦1]│ policy 20 · retry·timeout·on_error·outs·permits
 └────────────────────────────────┘
-  248px wide · min 72px · height from content (the layout knows the truth)
+  248px wide · min 72px · height from content (the layout knows the truth ·
+  the TS `Card anatomy metrics` block in dag.ts MIRRORS these numbers — law 2)
 ```
 
 - **Verb tile** (the n8n read): 22×22, radius 6, verb hue at 14% fill +
@@ -57,6 +60,20 @@ every visible pixel.
   extension feeds categories from `nika tools --json`); and a settled
   task's RECORDED OUTPUT lands on the card (`→ …`, green-tinted) where
   its prompt was — the run shows its data, a re-run restores the rest.
+- **The io row** (dense-card 2026-07-11): the inbound wires, named ON
+  the card — `alias ← producer`, data-hue alias, click jumps to the
+  producer; ≤2 wires + a `+N` counter (title lists the rest). The
+  in-port wears the data hue when wires actually plug in.
+- **The policy row**: declared execution policy as footer chips —
+  `↻×N` retry.max_attempts · `⏱ 30s` timeout · on_error route
+  (`✚ recover` amber · `⤼ skip` dim · `⛔ fail` red) · `⤳ N outs`
+  named output bindings · `▦ N` permits (engine-projected, #367).
+  Facts only — an undeclared policy renders NOTHING.
+- **The hover card is the run story, never a card mirror**: actions
+  (▸ run · ⧉ dup) + output/spent/cached/recovered + wave/blast/pinch +
+  needs/unlocks jumps. Mechanism facts live on the card. It anchors to
+  the NODE box (right flank, flips left) — a steady inspector with a
+  predictable pointer path, not a cursor-chaser.
 
 ## 2 · Wires
 
