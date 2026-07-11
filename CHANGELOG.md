@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **SVG previews + the engine's policy voice** (deep-e2e review wave) —
+  `.svg` joins the image extensions: `nika:chart` writes byte-identical
+  SVG artifacts and its card previewed NOTHING (a new real-binary e2e
+  runs an actual chart workflow and pins the whole pipeline). On a
+  0.99+ binary whose graph projects the declared policy, the cards now
+  read `retry` / `timeout` / `on_error` / `outputs` from the ENGINE
+  (the client YAML read degrades to the pre-0.99 fallback). Artifact
+  refreshes are snapshots — a task whose fresh run produced no media
+  loses its stale preview instead of wearing an older generation.
+
 - **The generation lands ON the card** — media tasks now show their
   RECORDED artifact in a preview zone: image thumbnails (click opens
   the real file) and playable audio rows (▶ · one player canvas-wide ·
