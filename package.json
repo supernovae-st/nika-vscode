@@ -389,6 +389,16 @@
         "command": "nika.canvas.copyTaskId",
         "title": "Copy Task Id",
         "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.canvas.renameTask",
+        "title": "Rename Task (references follow)",
+        "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.canvas.focusTask",
+        "title": "Focus Task",
+        "category": "Nika Canvas"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -586,14 +596,24 @@
           "group": "1_run@2"
         },
         {
-          "command": "nika.canvas.duplicateTask",
+          "command": "nika.canvas.focusTask",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "1_run@3"
+        },
+        {
+          "command": "nika.canvas.renameTask",
           "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
           "group": "2_edit@1"
         },
         {
-          "command": "nika.canvas.deleteTask",
+          "command": "nika.canvas.duplicateTask",
           "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
           "group": "2_edit@2"
+        },
+        {
+          "command": "nika.canvas.deleteTask",
+          "when": "webviewId == 'nika.dagView' && webviewSection == 'nikaTask'",
+          "group": "2_edit@3"
         },
         {
           "command": "nika.canvas.copyTaskId",
@@ -620,6 +640,14 @@
         },
         {
           "command": "nika.canvas.copyTaskId",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.renameTask",
+          "when": "false"
+        },
+        {
+          "command": "nika.canvas.focusTask",
           "when": "false"
         }
       ],

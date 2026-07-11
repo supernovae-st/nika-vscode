@@ -6,6 +6,26 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The task palette — a verb, or a tool, one searchable surface** —
+  ＋ Task, the N key and the port-drop gesture now open one palette:
+  the 4 verbs first, then the full builtin vocabulary grouped by
+  category (`tools --json` when the binary ships it, the offline
+  27-tool map otherwise). Picking a tool lands an `invoke` task PINNED
+  to it — named after the tool (`jq`, not `invoke_4`) and deliberately
+  argless: the check's findings teach that tool's required args in the
+  engine's own voice.
+
+- **Arriving is describing** — a workflow with zero tasks greets you
+  with a centered describe bar (the same oracle-checked generate flow
+  as the welcome) and the palette hint; it leaves the stage the moment
+  the first task lands. A `⧇ New` toolbar button opens a fresh
+  untitled workflow page without leaving the canvas.
+
+- **Rename Task from the canvas** — the right-click menu gains Rename
+  (every reference follows: `${{ tasks.X }}` islands, `depends_on`,
+  `when:` CEL — the pure rename engine the LSP already trusted) and
+  Focus Task (center the camera on the card).
+
 - **The dense card — the substance moves ON the node, the hover slims
   to the run story** — the card gains an io row (the inbound wires,
   named: `alias ← producer`, data-hue, click jumps to the producer,
