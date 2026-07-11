@@ -23,6 +23,11 @@ export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'console', invo
 
 export const NIKA_SEVERITY = { ok: '#34d399', fail: '#ff5d5d' } as const
 
+/** the LIVE run-state palette — done/failed ARE severity (one storage,
+ *  aliased here); running deliberately equals the infer hue. The vscode
+ *  EDITOR skin stays theme-driven (LOCK-005) — its NIKA skin pins these. */
+export const NIKA_STATUS = { running: '#5b8cff', done: '#34d399', failed: '#ff5d5d', retrying: '#e0b071', muted: '#5a606b' } as const
+
 export const NIKA_BRAND = {
   bg: '#08090b',
   accent: '#4f86ff',
