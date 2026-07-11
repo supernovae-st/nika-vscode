@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Add Task from the editor** (`⌘⌥T` · `Nika: Add Task` · editor
+  context menu) — one QuickPick speaking the canvas palette's exact
+  vocabulary: the 4 verbs, then every builtin as a pre-wired `invoke:`
+  (binary-fed catalog with the engine's own descriptions; the fallback
+  vocabulary offline). Inserts after the task under the cursor, lands
+  the selection on the new id. The walkthrough's create step teaches
+  it, and the time-travel step gains its own page (it was re-using the
+  DAG one).
+
 - **SVG previews + the engine's policy voice** (deep-e2e review wave) —
   `.svg` joins the image extensions: `nika:chart` writes byte-identical
   SVG artifacts and its card previewed NOTHING (a new real-binary e2e
