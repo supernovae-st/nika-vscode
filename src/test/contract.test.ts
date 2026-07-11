@@ -154,6 +154,68 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     }
   });
 
+  it('the projected policy + per-task permits reach the cards (0.99.1+ graph · capability-honest)', () => {
+    // Pins the WHOLE seam the dense cards read: engine projection →
+    // graphDocToDag → card fields. Capability-honest: a binary whose
+    // JSON predates the policy fields (brew 0.99.0) soft-passes — the
+    // floor stays green while dev/next binaries PIN the contract.
+    const file = tmpWorkflow(`nika: v1
+workflow: policy-seam
+model: mock/echo
+permits:
+  fs:
+    write:
+      - "out/*"
+tasks:
+  - id: guarded
+    infer:
+      prompt: "p"
+      max_tokens: 5
+    timeout: "30s"
+    retry:
+      max_attempts: 3
+    on_error:
+      skip: true
+    output:
+      summary: ".text"
+  - id: save
+    depends_on: [guarded]
+    invoke:
+      tool: "nika:write"
+      args:
+        path: "out/report.md"
+        content: "hi"
+`);
+    try {
+      const res = run(['graph', file, '--format', 'json']);
+      expect(res.code).toBe(EXIT.OK);
+      const doc = JSON.parse(res.stdout) as Parameters<typeof graphDocToDag>[0];
+      expect(isGraphDoc(doc)).toBe(true);
+      const rawGuarded = doc.nodes.find((n) => n.id === 'guarded');
+      if (rawGuarded?.retry_max_attempts === undefined) {
+        // Pre-projection binary — the YAML fallback lane owns this
+        // floor (bodyFacts unit suite); nothing to pin here.
+        expect.soft(true).toBe(true);
+        return;
+      }
+      const dag = graphDocToDag(doc);
+      const guarded = dag.nodes.find((n) => n.id === 'guarded')!;
+      expect(guarded.retryMax).toBe(3);
+      expect(guarded.timeout).toBe('30s');
+      expect(guarded.onError).toBe('skip');
+      expect(guarded.outputNames).toEqual(['summary']);
+      // Per-task permits (engine #445): the write task pins its effect
+      // family strings; the bare infer pins nothing.
+      const save = dag.nodes.find((n) => n.id === 'save')!;
+      expect(save.permits).toBeDefined();
+      expect(save.permits).toContain('fs.write: out/report.md');
+      expect(save.permits).toContain('tool: nika:write');
+      expect(guarded.permits).toBeUndefined();
+    } finally {
+      fs.unlinkSync(file);
+    }
+  });
+
   it('infer-permits output round-trips through insertPermitsBlock + applyPermitsFix', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
