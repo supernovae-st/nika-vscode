@@ -182,6 +182,12 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   it, named after the tool; its required args arrive as check findings
   — the engine teaches). `⧇ New` opens the next blank page without
   leaving the canvas
+- **The generation lands on the card** · media tasks show their
+  RECORDED artifact — image thumbnails (click opens the file) and
+  playable audio rows — pulled from the latest matching trace and
+  refreshed the moment a live run closes. Engine truth only: a file a
+  run actually wrote, or nothing. Running tasks tick their **observed
+  elapsed** (`12.4s ⋯`) until the engine's measured duration lands
 - **The dense card** · the substance lives ON the node: an **io row**
   names the inbound wires (`alias ← producer` — click one, jump to the
   producer, `+N` when more), a **policy row** carries the declared

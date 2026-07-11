@@ -6,6 +6,34 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The generation lands ON the card** — media tasks now show their
+  RECORDED artifact in a preview zone: image thumbnails (click opens
+  the real file) and playable audio rows (▶ · one player canvas-wide ·
+  nothing autoplays), with name, `1/N` count, and provider/model/size
+  in the tip. Engine truth only: artifacts come from the latest
+  matching trace (the same ≥60% membership gate as the averages), a
+  file that no longer exists renders nothing, and a finishing live run
+  pushes its fresh artifacts the moment it closes. The webview opens
+  workspace `localResourceRoots` (+ a `media-src` CSP line) to read
+  them — the architecture decision the previews waited for. Exports
+  shed the preview bytes (webview URIs die outside the panel).
+
+- **Live tasks count their observed elapsed** — a running/retrying
+  card's verdict ticks `12.4s ⋯` (our clock from the observed start
+  event, repainted at 1Hz — text, not motion); the engine's measured
+  duration replaces it at settle. No observed start (restored panel ·
+  scrub) → no number: observed, never invented. The
+  wavy-throughput-ring idea was REJECTED on the same honesty gate —
+  the engine streams no live token rate to modulate it with.
+
+- **Every builtin, its face and its voice** — the task palette's tool
+  rows now carry the 6 house category icons (core hub · file doc ·
+  data braces · network globe · introspection lens · media frame — the
+  same 24-grid stroke-2 language as the verb glyphs) and a one-line
+  teaching blurb per tool: the binary's own `tools --json` description
+  when it ships, a curated 27-tool fallback offline. Card tool chips
+  wear the same category icon.
+
 - **One palette EVERYWHERE** — the insert-on-edge `+` now opens the
   same task palette (verb or tool) instead of a verb-only QuickPick,
   and the omnibar's deterministic add learns the tool vocabulary:

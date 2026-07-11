@@ -56,7 +56,16 @@ const VERB_GLYPHS: Record<string, VerbGlyphDef> = {
  * null for an unknown verb — the caller keeps its text fallback.
  */
 export function makeVerbGlyph(verb: string, size: number): SVGSVGElement | null {
-  const def = VERB_GLYPHS[verb];
+  return buildGlyph(VERB_GLYPHS[verb], size);
+}
+
+/** Shared 24-grid stroke-2 builder (verbs + tool categories). */
+interface GlyphDef extends VerbGlyphDef {
+  /** currentColor-FILLED dots (the hub center · the frame sun). */
+  dots?: { cx: number; cy: number; r: number }[];
+}
+
+function buildGlyph(def: GlyphDef | undefined, size: number): SVGSVGElement | null {
   if (!def) { return null; }
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
@@ -82,5 +91,62 @@ export function makeVerbGlyph(verb: string, size: number): SVGSVGElement | null 
     el.setAttribute('stroke-width', '2');
     svg.appendChild(el);
   }
+  for (const d of def.dots ?? []) {
+    const el = document.createElementNS(SVG_NS, 'circle');
+    el.setAttribute('cx', String(d.cx));
+    el.setAttribute('cy', String(d.cy));
+    el.setAttribute('r', String(d.r));
+    el.setAttribute('fill', 'currentColor');
+    svg.appendChild(el);
+  }
   return svg;
+}
+
+// The 6 builtin-category icons — the same 24-grid stroke-2 house
+// language as the verbs (core=hub · file=doc · data=braces ·
+// network=globe · introspection=lens · media=frame). currentColor rides
+// each surface's hue; unknown categories return null → unicode fallback.
+const CATEGORY_GLYPHS: Record<string, GlyphDef> = {
+  core: {
+    paths: [],
+    circles: [{ cx: 12, cy: 12, r: 7.5 }],
+    dots: [{ cx: 12, cy: 12, r: 2 }],
+  },
+  file: {
+    paths: [
+      { d: 'M8 3H14L19 8V19C19 20.1046 18.1046 21 17 21H8C6.89543 21 6 20.1046 6 19V5C6 3.89543 6.89543 3 8 3Z' },
+      { d: 'M14 3V8H19M9.5 13H15.5M9.5 16.5H15.5' },
+    ],
+  },
+  data: {
+    paths: [
+      { d: 'M9 4C7 4 7 6 7 8C7 10 6 11 4.5 12C6 13 7 14 7 16C7 18 7 20 9 20' },
+      { d: 'M15 4C17 4 17 6 17 8C17 10 18 11 19.5 12C18 13 17 14 17 16C17 18 17 20 15 20' },
+    ],
+  },
+  network: {
+    paths: [
+      { d: 'M4 12H20M12 4C14.8 6.7 14.8 17.3 12 20M12 4C9.2 6.7 9.2 17.3 12 20' },
+    ],
+    circles: [{ cx: 12, cy: 12, r: 8 }],
+  },
+  introspection: {
+    paths: [{ d: 'M15.8 15.8L20 20' }],
+    circles: [{ cx: 11, cy: 11, r: 5.5 }],
+  },
+  media: {
+    paths: [
+      { d: 'M5.5 4H18.5C19.3284 4 20 4.67157 20 5.5V18.5C20 19.3284 19.3284 20 18.5 20H5.5C4.67157 20 4 19.3284 4 18.5V5.5C4 4.67157 4.67157 4 5.5 4Z' },
+      { d: 'M6.5 16L10.5 11.5L13.5 14.5L15.5 12.5L17.8 15.3' },
+    ],
+    dots: [{ cx: 9, cy: 8.6, r: 1.4 }],
+  },
+};
+
+/**
+ * Build a builtin CATEGORY's house icon (currentColor ink), or null for
+ * an unknown category — the caller keeps the unicode fallback.
+ */
+export function makeCategoryGlyph(cat: string, size: number): SVGSVGElement | null {
+  return buildGlyph(CATEGORY_GLYPHS[cat], size);
 }

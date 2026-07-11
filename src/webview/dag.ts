@@ -23,12 +23,12 @@ import { topoWaves, criticalPath } from '../core/cliContract';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
 import { nextFocus, type NavDir } from '../core/canvasNav';
-import { filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
+import { FALLBACK_TOOL_BLURBS, filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
-import { makeVerbGlyph } from './verbGlyphs';
+import { makeCategoryGlyph, makeVerbGlyph } from './verbGlyphs';
 import { lineageOf, type LineageView } from '../core/lineage';
 import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
 
@@ -208,9 +208,14 @@ class VerbCmdk {
         blurb.textContent = entry.blurb;
       } else {
         row.className = 'cmdk-row cmdk-tool verb-invoke';
-        glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆';
+        // The category's house icon — the binary's description as the
+        // teaching line (curated fallback offline).
+        const catSvg = makeCategoryGlyph(entry.cat, 13);
+        if (catSvg) { glyph.appendChild(catSvg); }
+        else { glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆'; }
         name.textContent = entry.bare;
-        blurb.textContent = `invoke · nika:${entry.bare}`;
+        blurb.textContent = toolDescOf(entry.bare) ?? `invoke · nika:${entry.bare}`;
+        row.title = `invoke · nika:${entry.bare}${toolDescOf(entry.bare) ? ` — ${toolDescOf(entry.bare)}` : ''}`;
       }
       row.append(glyph, name, blurb);
       row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
@@ -299,7 +304,21 @@ interface DagNode {
   staleUpstream?: boolean;
   auditCount?: number;
   auditWorst?: 'error' | 'warning' | 'info';
+  /** The task's RECORDED media artifact (webview URI in `src`, host path
+   *  in `path` for the open jump) — engine truth from the trace. */
+  artifact?: {
+    kind: 'image' | 'audio';
+    src: string;
+    path: string;
+    name: string;
+    tip?: string;
+    count?: number;
+    durationMs?: number;
+  };
 }
+
+/** One artifact delta row (dag:artifacts — run close · replay). */
+type CardArtifactMsg = NonNullable<DagNode['artifact']> & { taskId: string };
 
 interface DagEdge {
   id: string;
@@ -325,7 +344,8 @@ interface DagGraph {
 }
 
 type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }> }
+  | { kind: 'dag:artifacts'; artifacts: CardArtifactMsg[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
@@ -389,8 +409,9 @@ const PADDING = 40;
 const TOP_INSET = 54;
 
 // Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
-// DESIGN.md §1 — pad 10 · head 22 · divider 12 · sub 15 · body 15/line
-// (+4 gap) · io 15 (+5 gap) · params 24 (+6 gap) · policy 20 (+6 gap)).
+// DESIGN.md §1 — pad 10 · head 22 · divider 12 · preview 92 img / 30
+// audio (+6 gap) · sub 15 · body 15/line (+4 gap) · io 15 (+5 gap) ·
+// params 24 (+6 gap) · policy 20 (+6 gap)).
 const CARD_PAD_Y = 10;
 const HEAD_H = 22;
 const DIVIDER_H = 12;
@@ -403,6 +424,10 @@ const PARAMS_H = 24;
 const PARAMS_GAP = 6;
 const POLICY_H = 20;
 const POLICY_GAP = 6;
+/** The recorded-artifact preview zone (image thumb / audio row). */
+const PREVIEW_IMG_H = 92;
+const PREVIEW_AUD_H = 30;
+const PREVIEW_GAP = 6;
 
 /** Inbound wires shown ON the card (the rest counts into `+N`). */
 const IO_MAX_WIRES = 2;
@@ -441,6 +466,9 @@ function hasPolicyRow(node: DagNode): boolean {
 /** Card height from content — the layout must know the TRUE box. */
 function nodeHeightOf(node: DagNode): number {
   let h = CARD_PAD_Y * 2 + HEAD_H + DIVIDER_H + SUB_H;
+  if (node.artifact) {
+    h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
+  }
   const body = bodyTextOf(node);
   if (body) {
     const lines = body.kind === 'prompt'
@@ -507,7 +535,17 @@ const BUILTIN_GLYPH: Record<string, string> = {
 };
 
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
-let toolCatsMap: Record<string, string> | undefined;
+let toolCatsMap: Record<string, { cat: string; desc?: string }> | undefined;
+
+/** Category of a bare builtin — binary vocabulary first, fallback map. */
+function toolCatOf(bare: string): string | undefined {
+  return toolCatsMap?.[bare]?.cat ?? FALLBACK_TOOL_CATS[bare];
+}
+
+/** One-line blurb — the binary's own description wins; curated fallback. */
+function toolDescOf(bare: string): string | undefined {
+  return toolCatsMap?.[bare]?.desc ?? FALLBACK_TOOL_BLURBS[bare];
+}
 
 /** Offline bare → category (inverted glyph map) — the palette's fallback
  *  vocabulary when the binary hasn't fed `tools --json` yet. */
@@ -526,9 +564,9 @@ const CATEGORY_ORDER = ['core', 'file', 'data', 'network', 'introspection', 'med
 /** The palette's tool rows — the binary's vocabulary first, fallback map
  *  otherwise; grouped by category order, alphabetical within. */
 function paletteTools(): ToolItem[] {
-  const cats = toolCatsMap ?? FALLBACK_TOOL_CATS;
-  return Object.entries(cats)
-    .map(([bare, cat]) => ({ tool: `nika:${bare}`, bare, cat }))
+  const bares = Object.keys(toolCatsMap ?? FALLBACK_TOOL_CATS);
+  return bares
+    .map((bare) => ({ tool: `nika:${bare}`, bare, cat: toolCatOf(bare) ?? 'core' }))
     .sort((a, b) =>
       (CATEGORY_ORDER.indexOf(a.cat) - CATEGORY_ORDER.indexOf(b.cat))
       || a.bare.localeCompare(b.bare));
@@ -537,7 +575,7 @@ function paletteTools(): ToolItem[] {
 /** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
 function toolWithGlyph(tool: string): string {
   const bare = tool.replace(/^nika:/, '');
-  const cat = toolCatsMap?.[bare];
+  const cat = toolCatOf(bare);
   const glyph = (cat ? CATEGORY_GLYPH[cat] : undefined) ?? BUILTIN_GLYPH[bare];
   return glyph ? `${glyph} ${tool}` : tool;
 }
@@ -545,6 +583,35 @@ function toolWithGlyph(tool: string): string {
 /** Storage key for a workflow's hand-dragged layout (uri, else name). */
 function layoutKeyOf(graph: DagGraph): string {
   return graph.workflowUri ?? graph.workflowName;
+}
+
+// ─── Card audio · ONE player, the recorded output, on demand ────────────────
+// A single HTMLAudio plays the clicked card's recorded artifact; starting
+// another card (or re-clicking) stops the first. User-initiated only —
+// nothing autoplays, reduced-motion has nothing to opt out of.
+let cardAudio: HTMLAudioElement | null = null;
+let cardAudioBtn: HTMLButtonElement | null = null;
+
+function stopCardAudio(): void {
+  cardAudio?.pause();
+  cardAudio = null;
+  if (cardAudioBtn) {
+    cardAudioBtn.textContent = '▶';
+    cardAudioBtn.classList.remove('playing');
+    cardAudioBtn = null;
+  }
+}
+
+function toggleCardAudio(taskId: string, src: string, btn: HTMLButtonElement): void {
+  if (cardAudioBtn === btn) { stopCardAudio(); return; }
+  stopCardAudio();
+  const audio = new Audio(src);
+  cardAudio = audio;
+  cardAudioBtn = btn;
+  btn.textContent = '⏸';
+  btn.classList.add('playing');
+  audio.addEventListener('ended', () => { if (cardAudio === audio) { stopCardAudio(); } });
+  audio.play().catch(() => { if (cardAudio === audio) { stopCardAudio(); } });
 }
 
 // ─── ELK Layout Engine ──────────────────────────────────────────────────────
@@ -675,6 +742,12 @@ class DagRenderer {
   private waveCount = 0;
   /** Per-wave vertical extents + member counts (the plan rail reads these). */
   private waveExtents = new Map<number, { top: number; bottom: number; count: number }>();
+  /** Task id → performance.now() at the OBSERVED live start — the
+   *  elapsed ticker's anchor (session-only, never restored: a revived
+   *  panel cannot know when a task started). */
+  private liveStart = new Map<string, number>();
+  /** The 1Hz elapsed repaint (exists only while something runs). */
+  private elapsedTimer: number | undefined;
 
   constructor(containerId: string) {
     this.container = document.getElementById(containerId)!;
@@ -1878,6 +1951,38 @@ class DagRenderer {
     this.refreshDim();
   }
 
+  /** dag:artifacts — recorded outputs land on the cards (run close ·
+   *  replay). A preview APPEARING or changing kind changes the card's
+   *  TRUE box → full re-render (statuses live in the same nodes, so
+   *  nothing is lost); a same-kind refresh just rebuilds the cards. */
+  applyArtifacts(artifacts: CardArtifactMsg[]): void {
+    if (!this.currentGraph) { return; }
+    const byId = new Map(artifacts.map((a) => [a.taskId, a]));
+    let relayout = false;
+    const touched: DagNode[] = [];
+    for (const node of this.nodeMap.values()) {
+      const next = byId.get(node.id);
+      if (!next) { continue; }
+      const prevKind = node.artifact?.kind;
+      const { taskId: _taskId, ...fields } = next;
+      node.artifact = fields;
+      touched.push(node);
+      if (prevKind !== next.kind) { relayout = true; }
+    }
+    if (touched.length === 0) { return; }
+    stopCardAudio();
+    if (relayout) {
+      void this.render(this.currentGraph);
+      return;
+    }
+    for (const node of touched) {
+      const host = this.nodeGroup
+        .select<SVGGElement>(`[data-id="${CSS.escape(node.id)}"]`)
+        .select<HTMLElement>('.nc').node();
+      if (host) { this.buildCardHtml(host, node); }
+    }
+  }
+
   /** dag:stale — refresh badges in place; run statuses stay painted. */
   applyStale(stale: string[], direct: string[]): void {
     const staleSet = new Set(stale);
@@ -1972,6 +2077,12 @@ class DagRenderer {
     // Live-run ephemera never travel with the file: particle trains would
     // keep animating inside an exported SVG, afterglow would replay on open.
     clone.querySelector('g.dag-particles')?.replaceChildren();
+    // Artifact previews reference vscode-webview:// URIs that die outside
+    // the panel — the exported file keeps the card box, sheds the bytes.
+    for (const el of clone.querySelectorAll('.nc-preview, .nc-preview-audio')) {
+      el.replaceChildren();
+      el.classList.add('nc-preview-exported');
+    }
     for (const p of clone.querySelectorAll('.dag-edge.afterglow, .dag-edge.afterglow-fail')) {
       p.classList.remove('afterglow', 'afterglow-fail');
     }
@@ -2558,6 +2669,61 @@ class DagRenderer {
     divider.className = 'nc-div';
     host.appendChild(divider);
 
+    // The RECORDED artifact — the generation, ON the card (engine truth
+    // from the trace: only a file a run actually wrote and that still
+    // exists). Image = thumb (click opens the real file) · audio = a
+    // playable row. Identity above, the output next, the facts below.
+    if (node.artifact) {
+      const a = node.artifact;
+      if (a.kind === 'image') {
+        const zone = document.createElement('button');
+        zone.className = 'nc-preview';
+        zone.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · recorded output (click to open)`;
+        const img = document.createElement('img');
+        img.src = a.src;
+        img.alt = a.name;
+        img.draggable = false;
+        const label = document.createElement('span');
+        label.className = 'nc-preview-label';
+        label.textContent = a.count ? `${a.name} · 1/${a.count}` : a.name;
+        zone.append(img, label);
+        zone.addEventListener('mousedown', (e) => e.stopPropagation());
+        zone.addEventListener('click', (e) => {
+          e.stopPropagation();
+          vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
+        });
+        host.appendChild(zone);
+      } else {
+        const row = document.createElement('div');
+        row.className = 'nc-preview-audio';
+        const play = document.createElement('button');
+        play.className = 'nc-audio-play';
+        play.textContent = '▶';
+        play.title = `Play ${a.name} (recorded output)`;
+        play.addEventListener('mousedown', (e) => e.stopPropagation());
+        play.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleCardAudio(node.id, a.src, play);
+        });
+        const name = document.createElement('button');
+        name.className = 'nc-audio-name';
+        name.textContent = a.name;
+        name.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · click to open the file`;
+        name.addEventListener('mousedown', (e) => e.stopPropagation());
+        name.addEventListener('click', (e) => {
+          e.stopPropagation();
+          vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
+        });
+        const dur = document.createElement('span');
+        dur.className = 'nc-audio-dur';
+        if (a.durationMs !== undefined) {
+          dur.textContent = `${(a.durationMs / 1000).toFixed(1)}s`;
+        }
+        row.append(play, name, dur);
+        host.appendChild(row);
+      }
+    }
+
     // The fact row (Well key→value): mechanism left, live verdict right.
     const sub = document.createElement('div');
     sub.className = 'nc-sub';
@@ -2641,7 +2807,20 @@ class DagRenderer {
         // provider/model QuickPick extension-side → YAML edit → reload.
         const chip = document.createElement('button');
         chip.className = 'nc-chip nc-model';
-        chip.textContent = node.model ? target : toolWithGlyph(target);
+        if (node.model) {
+          chip.textContent = target;
+        } else {
+          // Tool chip wears the category's house icon (svg beats the
+          // unicode approximation); the text stays the full tool ref.
+          const cat = toolCatOf(target.replace(/^nika:/, ''));
+          const icon = cat ? makeCategoryGlyph(cat, 11) : null;
+          if (icon) {
+            icon.classList.add('nc-chip-icon');
+            chip.append(icon, document.createTextNode(target));
+          } else {
+            chip.textContent = toolWithGlyph(target);
+          }
+        }
         chip.title = node.model
           ? 'Change this task\'s model (edits the YAML · ⌘Z undoes)'
           : node.tool ?? '';
@@ -3231,6 +3410,14 @@ class DagRenderer {
       if (status === 'running') { this.maybeFollow(taskId); }
       if (status === 'failed') { this.failureShockwave(taskId); }
     }
+    // The elapsed anchor: set at the FIRST observed live transition
+    // (retries keep the original clock — the task's wall time, not the
+    // attempt's); any terminal state retires it.
+    if (status === 'running' || status === 'retrying') {
+      if (!this.liveStart.has(taskId)) { this.liveStart.set(taskId, performance.now()); }
+    } else {
+      this.liveStart.delete(taskId);
+    }
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
     // Assign, never accumulate — a fresh run's running-paint must CLEAR
@@ -3400,6 +3587,12 @@ class DagRenderer {
       this.lastRunTick = '';
       vscode.postMessage({ kind: 'transport:tick', running: [] });
     }
+    this.liveStart.clear();
+    if (this.elapsedTimer !== undefined) {
+      window.clearInterval(this.elapsedTimer);
+      this.elapsedTimer = undefined;
+    }
+    stopCardAudio();
     this.wasAllTerminal = false;
     this.layoutBox.clear();
     this.hideHoverCard(true);
@@ -3429,10 +3622,25 @@ class DagRenderer {
     return node.verb;
   }
 
+  /** `12.4s` · `74s` · `2m05` — the live elapsed, compact. */
+  private elapsedText(startTs: number): string {
+    const s = (performance.now() - startTs) / 1000;
+    if (s < 10) { return `${s.toFixed(1)}s`; }
+    if (s < 100) { return `${Math.round(s)}s`; }
+    return `${Math.floor(s / 60)}m${String(Math.round(s % 60)).padStart(2, '0')}`;
+  }
+
   /** Right half — the LIVE verdict (Well's value column · DESIGN.md §1). */
   private subValue(node: DagNode): string {
-    if (node.status === 'running') return 'running\u2026';
-    if (node.status === 'retrying') return 'retry\u2026';
+    // A LIVE task counts its OBSERVED elapsed (our clock from the start
+    // event — real wall time; the ⋯ marks it live, the engine's measured
+    // duration replaces it at settle). No start observed → no number.
+    if (node.status === 'running' || node.status === 'retrying') {
+      const started = this.liveStart.get(node.id);
+      const prefix = node.status === 'retrying' ? '↻ ' : '';
+      if (started !== undefined) { return `${prefix}${this.elapsedText(started)} ⋯`; }
+      return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
+    }
     // ADR-099 rehydration — no clock fact exists (nothing executed).
     if (node.cached) return '\u21BB cached';
     // D-2026-07-08-N4 — a repaired success never paints clean.
@@ -3475,6 +3683,26 @@ class DagRenderer {
     }
     const total = this.currentGraph.nodes.length;
     const terminal = counts.success + counts.failed + counts.skipped + counts.cancelled;
+
+    // The elapsed ticker lives exactly while something runs: one 1Hz
+    // repaint of the live verdicts (text, not motion — the engine's
+    // measured duration takes the cell at settle).
+    const live = counts.running + counts.retrying > 0;
+    if (live && this.elapsedTimer === undefined) {
+      this.elapsedTimer = window.setInterval(() => {
+        for (const id of this.liveStart.keys()) {
+          const node = this.nodeMap.get(id);
+          if (!node) { continue; }
+          this.nodeGroup
+            .select(`[data-id="${CSS.escape(id)}"]`)
+            .select('.nc-sub-v')
+            .text(this.subValue(node));
+        }
+      }, 1000);
+    } else if (!live && this.elapsedTimer !== undefined) {
+      window.clearInterval(this.elapsedTimer);
+      this.elapsedTimer = undefined;
+    }
 
     // Run verdict → the aurora speaks once, at the LIVE close. A replay
     // reaching its terminal frame (or a scrub crossing it) is not a live
@@ -4076,6 +4304,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);
       refreshStaleChip();
+      break;
+    case 'dag:artifacts':
+      renderer.applyArtifacts(msg.artifacts);
       break;
     case 'dag:audit':
       renderer.applyAudit(msg.audits);

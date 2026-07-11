@@ -111,6 +111,22 @@ export interface DagNode {
   auditCount?: number;
   /** Worst severity across those findings. */
   auditWorst?: 'error' | 'warning' | 'info';
+  /** The task's RECORDED media artifact (latest matching trace · one per
+   *  card — first image, else first audio). `src` is a host-absolute
+   *  path until DagPanel maps it to a webview URI at post time; `path`
+   *  stays host-absolute for the open-artifact jump. Engine truth: the
+   *  file the run actually wrote (artifacts.ts), never a guess. */
+  artifact?: {
+    kind: 'image' | 'audio';
+    src: string;
+    path: string;
+    name: string;
+    tip?: string;
+    /** How many artifacts of that kind the task recorded (label `1/N`). */
+    count?: number;
+    /** Audio only — recorded duration. */
+    durationMs?: number;
+  };
 }
 
 export interface DagEdge {
@@ -384,18 +400,30 @@ export function parseCatalogModels(stdout: string): Record<string, CatalogModel[
  * Undefined on non-JSON, wrong envelope, or an empty map — callers keep
  * their presentation fallback.
  */
-export function parseToolCategories(stdout: string): Record<string, string> | undefined {
+/** One builtin's canvas-relevant vocabulary row (`tools --json`). */
+export interface ToolMeta {
+  cat: string;
+  /** The binary's own one-line description — the palette's teaching voice. */
+  desc?: string;
+}
+
+export function parseToolMeta(stdout: string): Record<string, ToolMeta> | undefined {
   try {
     const v = JSON.parse(stdout) as Record<string, unknown>;
     if (typeof v !== 'object' || v === null || !Array.isArray(v.tools)) { return undefined; }
-    const cats: Record<string, string> = {};
+    const meta: Record<string, ToolMeta> = {};
     for (const entry of v.tools as unknown[]) {
       if (typeof entry !== 'object' || entry === null) { continue; }
       const t = entry as Record<string, unknown>;
       if (typeof t.name !== 'string' || typeof t.category !== 'string') { continue; }
-      cats[t.name.replace(/^nika:/, '')] = t.category;
+      meta[t.name.replace(/^nika:/, '')] = {
+        cat: t.category,
+        desc: typeof t.description === 'string' && t.description.length > 0
+          ? t.description
+          : undefined,
+      };
     }
-    return Object.keys(cats).length > 0 ? cats : undefined;
+    return Object.keys(meta).length > 0 ? meta : undefined;
   } catch {
     return undefined;
   }

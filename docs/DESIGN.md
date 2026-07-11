@@ -23,7 +23,9 @@ every visible pixel.
 ┌────────────────────────────────┐
 │ ⬚ task_id            ● ⚠2 ×5  │  head 22 · verb TILE + id + status DOT + chips
 │ ─────────────────────────────  │  hairline divider (12 incl. margins)
-│ infer · mistral → ✓ 2.3s·$0.004│  sub 15 · mechanism → verdict (+ recorded $)
+│ ▛ recorded artifact ▟ 1/3      │  preview 92 img / 30 audio (+6) · THE generation
+│ infer · mistral → ✓ 2.3s·$0.004│  sub 15 · mechanism → verdict (+ recorded $ ·
+│                                │           live tasks count OBSERVED elapsed `12s ⋯`)
 │ Rank these stories by…         │  body 15/line · prompt / $ cmd / args (≤3)
 │ items ← fetch  brief ← rank +1 │  io 15 · inbound wires (≤2 + overflow, jump)
 │ [mistral/large] $0.004–0.03 ⌀2s│  params 24 · chips (edit) + facts (read)
@@ -32,6 +34,18 @@ every visible pixel.
   248px wide · min 72px · height from content (the layout knows the truth ·
   the TS `Card anatomy metrics` block in dag.ts MIRRORS these numbers — law 2)
 ```
+
+- **The preview is engine truth only**: the artifact comes from the
+  RECORDED trace (`artifacts.ts` — a file a run actually wrote, that
+  still exists on disk); webview URIs mint at post time over
+  workspace-rooted `localResourceRoots`. Image = thumb (click opens the
+  real file), audio = a playable row (ONE player canvas-wide, ▶ only —
+  nothing autoplays). Exports shed the bytes (webview URIs die outside
+  the panel) and keep the box.
+- **The elapsed is observed, never invented**: a live task counts OUR
+  clock from the observed start event (`12.4s ⋯` — the ⋯ marks it
+  live); the engine's measured duration takes the cell at settle. No
+  observed start (restored panel · scrub) → no number.
 
 - **Verb tile** (the n8n read): 22×22, radius 6, verb hue at 14% fill +
   30% border, the verb glyph inside. THE identity mark at every zoom.

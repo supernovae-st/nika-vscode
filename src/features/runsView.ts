@@ -91,6 +91,112 @@ export async function collectTaskAverages(
   return out;
 }
 
+/** One card preview per task, resolved to a real on-disk file. */
+export interface CardArtifactHost {
+  taskId: string;
+  kind: 'image' | 'audio';
+  /** Host-absolute — DagPanel maps it to a webview URI at post time. */
+  src: string;
+  path: string;
+  name: string;
+  tip?: string;
+  count?: number;
+  durationMs?: number;
+}
+
+/**
+ * The trace's media artifacts as card previews, ONE per task (first
+ * image, else first audio — a card is a card, not a gallery; `count`
+ * says how many siblings of that kind the run recorded). Paths resolve
+ * the run report's way (absolute · workspace folders · the trace's own
+ * workspace) — an artifact whose file is GONE renders nothing: no
+ * bytes, no thumb.
+ */
+export function collectCardArtifacts(
+  ndjson: string,
+  traceFsPath: string,
+): Map<string, CardArtifactHost> {
+  const out = new Map<string, CardArtifactHost>();
+  const byTask = extractRunArtifacts(ndjson);
+  // …/.nika/traces/x.ndjson → the workspace the run most likely wrote in.
+  const traceWorkspace = path.resolve(path.dirname(traceFsPath), '..', '..');
+  for (const [taskId, list] of byTask) {
+    const pick = list.find((a) => a.kind === 'image') ?? list.find((a) => a.kind === 'audio');
+    if (!pick || (pick.kind !== 'image' && pick.kind !== 'audio')) { continue; }
+    const candidates = path.isAbsolute(pick.path)
+      ? [pick.path]
+      : [
+        ...(vscode.workspace.workspaceFolders ?? []).map((f) => path.join(f.uri.fsPath, pick.path)),
+        path.join(traceWorkspace, pick.path),
+      ];
+    const abs = candidates.find((c) => { try { return fs.existsSync(c); } catch { return false; } });
+    if (!abs) { continue; }
+    const siblings = list.filter((a) => a.kind === pick.kind).length;
+    const facts = [
+      pick.provider && pick.model ? `${pick.provider}/${pick.model}` : pick.provider ?? pick.model,
+      pick.bytes !== undefined ? humanBytes(pick.bytes) : undefined,
+      pick.durationMs !== undefined ? `${(pick.durationMs / 1000).toFixed(1)}s` : undefined,
+    ].filter((s): s is string => Boolean(s));
+    out.set(taskId, {
+      taskId,
+      kind: pick.kind,
+      src: abs,
+      path: abs,
+      name: path.basename(pick.path),
+      tip: facts.length > 0 ? facts.join(' · ') : undefined,
+      count: siblings > 1 ? siblings : undefined,
+      durationMs: pick.durationMs,
+    });
+  }
+  return out;
+}
+
+/** Newest trace (by mtime) whose task ids overlap the graph ≥60% —
+ *  the same membership gate as the averages/live overlay. */
+export async function latestTraceForGraph(
+  graphIds: Set<string>,
+): Promise<{ ndjson: string; fsPath: string } | undefined> {
+  if (graphIds.size === 0) { return undefined; }
+  const glob = vscode.workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+  let files: vscode.Uri[];
+  try {
+    files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 60);
+  } catch {
+    return undefined;
+  }
+  const newest = files
+    .map((uri) => {
+      try {
+        return { uri, mtimeMs: fs.statSync(uri.fsPath).mtimeMs };
+      } catch {
+        return undefined;
+      }
+    })
+    .filter((f): f is { uri: vscode.Uri; mtimeMs: number } => f !== undefined)
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .slice(0, 20);
+  for (const f of newest) {
+    let ndjson: string;
+    try {
+      ndjson = fs.readFileSync(f.uri.fsPath, 'utf-8');
+    } catch {
+      continue;
+    }
+    let model: RunModel;
+    try {
+      model = foldTrace(ndjson);
+    } catch {
+      continue;
+    }
+    const ids = [...model.tasks.keys()];
+    if (ids.length === 0) { continue; }
+    const overlap = ids.filter((id) => graphIds.has(id)).length / ids.length;
+    if (overlap < 0.6) { continue; }
+    return { ndjson, fsPath: f.uri.fsPath };
+  }
+  return undefined;
+}
+
 class TraceItem extends vscode.TreeItem {
   constructor(readonly trace: TraceFile) {
     super(path.basename(trace.uri.fsPath), vscode.TreeItemCollapsibleState.Collapsed);

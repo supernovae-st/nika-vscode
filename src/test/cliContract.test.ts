@@ -5,7 +5,7 @@ import {
   isGraphDoc,
   parseCatalogModels,
   parseCheckReport,
-  parseToolCategories,
+  parseToolMeta,
   collectFindings,
   countReportFindings,
   byteOffsetToPosition,
@@ -273,20 +273,21 @@ describe('byteOffsetToPosition', () => {
 // ─── resume capability (ADR-099 · version-gated flag, not a subcommand) ─────
 import { buildCapabilities, versionAtLeast } from '../core/capabilities';
 
-describe('parseToolCategories (nika tools --json · v1 envelope)', () => {
-  it('maps BARE tool names → kebab category', () => {
+describe('parseToolMeta (nika tools --json · v1 envelope)', () => {
+  it('maps BARE tool names → category + the binary description (the teaching voice)', () => {
     const stdout = JSON.stringify({
       tools_version: 1,
       tools: [
         { name: 'nika:log', category: 'core', description: 'x' },
         { name: 'nika:image_generate', category: 'media' },
-        { name: 'nika:fetch', category: 'network' },
+        { name: 'nika:fetch', category: 'network', description: '' },
       ],
     });
-    expect(parseToolCategories(stdout)).toEqual({
-      log: 'core',
-      image_generate: 'media',
-      fetch: 'network',
+    expect(parseToolMeta(stdout)).toEqual({
+      log: { cat: 'core', desc: 'x' },
+      image_generate: { cat: 'media', desc: undefined },
+      // Empty descriptions stay absent — a blank teaches nothing.
+      fetch: { cat: 'network', desc: undefined },
     });
   });
 
@@ -298,14 +299,14 @@ describe('parseToolCategories (nika tools --json · v1 envelope)', () => {
         { name: 'nika:mystery', category: null },
       ],
     });
-    expect(parseToolCategories(stdout)).toEqual({ log: 'core' });
+    expect(parseToolMeta(stdout)).toEqual({ log: { cat: 'core', desc: undefined } });
   });
 
   it('is undefined on non-JSON, wrong envelope, or empty tools', () => {
-    expect(parseToolCategories('')).toBeUndefined();
-    expect(parseToolCategories('nika 0.92.0')).toBeUndefined();
-    expect(parseToolCategories('{"catalog_version":1}')).toBeUndefined();
-    expect(parseToolCategories('{"tools_version":1,"tools":[]}')).toBeUndefined();
+    expect(parseToolMeta('')).toBeUndefined();
+    expect(parseToolMeta('nika 0.92.0')).toBeUndefined();
+    expect(parseToolMeta('{"catalog_version":1}')).toBeUndefined();
+    expect(parseToolMeta('{"tools_version":1,"tools":[]}')).toBeUndefined();
   });
 
   it('ignores unknown fields (additive-only envelope contract)', () => {
@@ -314,7 +315,7 @@ describe('parseToolCategories (nika tools --json · v1 envelope)', () => {
       future_field: { x: 1 },
       tools: [{ name: 'nika:jq', category: 'data', args: ['expression'], extra: true }],
     });
-    expect(parseToolCategories(stdout)).toEqual({ jq: 'data' });
+    expect(parseToolMeta(stdout)).toEqual({ jq: { cat: 'data', desc: undefined } });
   });
 });
 
