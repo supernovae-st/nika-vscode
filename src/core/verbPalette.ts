@@ -77,3 +77,39 @@ export function filterTools(query: string, tools: readonly ToolItem[]): ToolItem
     .sort((a, b) => a.rank - b.rank || a.i - b.i)
     .map((s) => s.item);
 }
+
+/** A parsed omnibar deterministic add: `+ <verb|tool> [after <id>]`. */
+export interface OmniAdd {
+  verb: 'infer' | 'exec' | 'invoke' | 'agent';
+  /** Full tool ref when the token named a tool (`nika:jq`). */
+  tool?: string;
+  /** Anchor task id (`after gather`). */
+  after?: string;
+}
+
+/**
+ * Parse the omnibar's deterministic-add grammar. The token is a verb,
+ * a full `nika:x` ref, or a bare tool name from `knownBares` (the
+ * binary's vocabulary). Anything else returns undefined — the caller
+ * routes those sentences to the oracle-checked generate flow. A full
+ * `nika:x` ref is accepted even outside `knownBares`: an unknown tool
+ * is the ENGINE's diagnostic to give, not this parser's guess.
+ */
+export function parseOmniAdd(
+  text: string,
+  knownBares: ReadonlySet<string>,
+): OmniAdd | undefined {
+  const m = text.match(/^\+\s*([a-z][a-z0-9_:]*)(?:\s+after\s+([a-z][a-z0-9_]*))?\s*$/i);
+  if (!m) { return undefined; }
+  const token = m[1].toLowerCase();
+  const after = m[2]?.toLowerCase();
+  if (token === 'infer' || token === 'exec' || token === 'invoke' || token === 'agent') {
+    return { verb: token, after };
+  }
+  const full = token.match(/^nika:([a-z][a-z0-9_]*)$/)?.[1];
+  if (full !== undefined) { return { verb: 'invoke', tool: `nika:${full}`, after }; }
+  if (/^[a-z][a-z0-9_]*$/.test(token) && knownBares.has(token)) {
+    return { verb: 'invoke', tool: `nika:${token}`, after };
+  }
+  return undefined;
+}

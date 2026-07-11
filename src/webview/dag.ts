@@ -1689,13 +1689,20 @@ class DagRenderer {
     g.on('click', (e: MouseEvent) => {
       e.stopPropagation();
       if (!this.edgePlusEnds) { return; }
-      vscode.postMessage({
-        kind: 'dag:insertOnEdge',
-        from: this.edgePlusEnds.from,
-        to: this.edgePlusEnds.to,
-        workflowUri: this.currentGraph?.workflowUri,
-      });
+      const { from, to } = this.edgePlusEnds;
       this.hideEdgePlus(true);
+      // ONE palette everywhere: the splice picks a verb OR a tool at
+      // the cursor — the same surface as ＋ Task / N / port-drop.
+      verbCmdk.open(e.clientX, e.clientY, (pick) => {
+        vscode.postMessage({
+          kind: 'dag:insertOnEdge',
+          from,
+          to,
+          verb: pick.verb,
+          tool: pick.tool,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
     });
     this.edgePlus = g;
     return g;
@@ -3701,7 +3708,7 @@ function buildExplainer(): void {
     ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
     ['ex-glyph-connect', '⌥ drag node → node', 'create a dependency — the YAML gets the depends_on (⌘Z undoes) · ⌥click an edge removes it'],
-    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb, the wire reroutes through it (dependency wires only)'],
+    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb or a tool, the wire reroutes through it (dependency wires only)'],
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here (the label is the binding alias) — gray dashed edges are ordering only'],
