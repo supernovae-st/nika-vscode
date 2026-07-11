@@ -13,6 +13,18 @@
 [![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika-lang?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika-lang)
 [![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika-lang?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika-lang)
 
+**Your AI workflow as a live graph.** A `.nika.yaml` file becomes a
+content-first canvas: prompts on the cards, wires carrying named data,
+policy and permits as chips, cost as a running meter — and when you press
+▶, the graph executes wave by wave and closes on a verdict with a
+verifiable receipt:
+
+![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner with its trace chain head](media/canvas-live-run.gif)
+
+*Real webview, real message protocol — this capture drives the extension's
+own bundle through the same `dag:*`/`run:*` messages a live `nika run`
+streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
+
 > One extension, every VS Code-compatible editor. `nika-vscode` is the
 > repo name because that's the extension *platform* (like `vscode-eslint`)
 > · it ships to the **VS Code Marketplace** AND **OpenVSX**, so Cursor,
@@ -24,12 +36,24 @@ Code**, the workflow language for AI (one file, 4 verbs, one binary) that
 turns repeatable AI work into files you can run, review, diff and share.
 And **the only one auditable BEFORE it runs**: cost ceiling, permits
 boundary, secret flows and schema parity are all static facts the editor
-paints in the margin. Apache-2.0 spec · AGPL engine.
+paints in the margin — before a single token is spent. Apache-2.0 spec ·
+AGPL engine.
 
 ![The static audit painted as you type: real nika check diagnostics (NIKA-DAG-003, NIKA-VAR-001 with did-you-mean), the three-line fix, then a clean verdict](media/check-as-you-type.gif)
 
 *The diagnostics above are the real `nika check --json` output — codes,
 messages and positions come from the engine, not the extension.*
+
+## 30 seconds to the wow
+
+1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
+2. **`Nika: Show Workflow DAG`** — the file becomes a content-first
+   canvas: prompts on infer cards, `$ commands` on exec cards.
+3. Press **▶ mock** on the run pill — the DAG lights up wave by wave with
+   `mock/echo`: **deterministic, zero API keys, zero network.**
+
+That's the whole loop: the same file then runs on any of the engine's
+providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 
 ## Install
 
@@ -62,17 +86,6 @@ theme*, not to extensions:
 - Upstream Material icons (real `nika` file + `.nika` folder artwork) are
   prepared in [`contrib/material-icon-theme/`](contrib/README.md), spec-compliant
   and ready to PR.
-
-## 30 seconds to the wow
-
-1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
-2. **`Nika: Show Workflow DAG`** — the file becomes a content-first
-   canvas: prompts on infer cards, `$ commands` on exec cards.
-3. Press **▶ mock** on the run pill — the DAG lights up wave by wave with
-   `mock/echo`: **deterministic, zero API keys, zero network.**
-
-That's the whole loop: the same file then runs on any of the engine's
-providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 
 ## Features
 

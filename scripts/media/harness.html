@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../../out/webview/dag.css">
+  <title>Nika DAG gif harness</title>
+  <script>
+    let __state;
+    window.acquireVsCodeApi = () => ({
+      postMessage: (m) => console.log('[toExt]', JSON.stringify(m).slice(0, 200)),
+      getState: () => __state,
+      setState: (s) => { __state = s; },
+    });
+  </script>
+</head>
+<body data-nk-theme="nika" class="vscode-dark">
+  <div id="aurora" aria-hidden="true"></div>
+  <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden aria-label="Filter tasks">
+  <div id="dag-toolbar">
+    <span id="dag-mark" aria-hidden="true"></span>
+    <span id="dag-title"></span>
+    <span class="tb-sep"></span>
+    <div class="tb-group"><button id="btn-add-task">＋ Task</button><button id="btn-new">⧇ New</button></div>
+    <div class="tb-group">
+      <button id="btn-zoom-out">−</button>
+      <button id="zoom-pct">100%</button>
+      <button id="btn-zoom-in">＋</button>
+      <span class="tb-inner-sep"></span>
+      <button id="btn-fit">Fit<kbd>F</kbd></button>
+      <button id="btn-relayout">⌗<kbd>A</kbd></button>
+    </div>
+    <div class="tb-group">
+      <button id="btn-waves">≋<kbd>W</kbd></button>
+      <button id="btn-curve">∿</button>
+      <button id="btn-heat">▥<kbd>H</kbd></button>
+      <button id="btn-follow">⌖<kbd>G</kbd></button>
+      <button id="btn-feed">≣<kbd>L</kbd></button>
+      <button id="btn-help">?<kbd>?</kbd></button>
+    </div>
+    <div class="tb-group">
+      <button id="btn-export-svg">⤓ svg</button>
+      <button id="btn-export-png">⤓ png</button>
+    </div>
+    <span id="dag-status"></span>
+  </div>
+  <div id="dag-container"></div>
+  <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
+    <div class="cd-pill">
+      <span class="cd-mark" aria-hidden="true">✨</span>
+      <input id="cd-input" type="text"
+             placeholder="Describe this workflow — the tasks land checked by the engine…"
+             aria-label="Describe the workflow to generate">
+      <button id="cd-go" type="submit">↵</button>
+    </div>
+    <div class="cd-hint">or press <kbd>N</kbd> — add a task from the palette (a verb, or a builtin tool)</div>
+  </form>
+  <nav id="plan-rail" hidden aria-label="Execution plan"></nav>
+  <div id="minimap"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
+  <div id="activity" hidden>
+    <div id="activity-head">Activity</div>
+    <div id="activity-list"></div>
+  </div>
+  <div id="empty-state" hidden><div class="es-card"></div></div>
+  <div id="explainer" hidden></div>
+  <div id="verb-cmdk" hidden role="listbox">
+    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…">
+    <div id="cmdk-list"></div>
+  </div>
+  <div id="hover-card" role="tooltip"></div>
+  <div id="run-verdict" role="status" hidden></div>
+  <div id="omnibar">
+    <div id="run-controls" role="toolbar">
+      <button id="btn-run" class="rc-run">▶ Run</button>
+      <button id="run-preflight" hidden></button>
+      <span id="run-cost" hidden></span>
+      <span id="run-stale" hidden></span>
+      <button id="btn-run-resume" class="rc-resume" hidden>↻ changed</button>
+      <button id="btn-run-mock" class="rc-mock">▶ mock</button>
+      <button id="btn-stop" class="rc-stop" hidden>■ Stop</button>
+    </div>
+    <div id="verb-palette" role="toolbar">
+      <button class="vp-btn vp-infer" data-verb="infer">◇</button>
+      <button class="vp-btn vp-exec" data-verb="exec">▷</button>
+      <button class="vp-btn vp-invoke" data-verb="invoke">◆</button>
+      <button class="vp-btn vp-agent" data-verb="agent">✦</button>
+    </div>
+    <input id="omni-input" type="text" placeholder="+ infer after gather · / filter …">
+    <button id="omni-go">↵</button>
+  </div>
+  <div id="scrubber" hidden>
+    <button id="scrub-play">▶</button>
+    <div id="scrub-track"><div id="scrub-fill"></div><div id="scrub-handle"></div></div>
+    <span id="scrub-time">0.0s</span>
+    <button id="scrub-close">✕</button>
+  </div>
+  <div id="dag-legend">
+    <span id="legend-heat" aria-hidden><i class="lh-bar"></i><span class="lh-label"></span></span>
+    <div id="legend-chips"></div>
+    <div id="progress-track"><div id="progress-fill"></div></div>
+  </div>
+  <div id="transport" hidden>
+    <button id="tr-play">▶</button>
+    <div id="tr-track"><div id="tr-ticks" aria-hidden="true"></div>
+      <input id="tr-scrub" type="range" min="0" max="1000" step="1" value="0"></div>
+    <span id="tr-time">0:00.0 / 0:00.0</span>
+  </div>
+  <script src="../../out/webview/dag.js"></script>
+  <script>
+    // Scripted run timeline for the README hero GIF — states illustrative,
+    // shapes and chrome are the real webview bundle (out/webview/dag.{js,css}).
+    const CHART_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">'
+      + '<rect width="320" height="180" fill="#0a0f1e"/>'
+      + '<g fill="#4f86ff">'
+      + '<rect x="28"  y="52"  width="34" height="104"/>'
+      + '<rect x="76"  y="76"  width="34" height="80"/>'
+      + '<rect x="124" y="96"  width="34" height="60"/>'
+      + '<rect x="172" y="116" width="34" height="40"/>'
+      + '<rect x="220" y="130" width="34" height="26"/>'
+      + '<rect x="268" y="140" width="34" height="16"/>'
+      + '</g>'
+      + '<line x1="20" y1="156" x2="308" y2="156" stroke="#31415f" stroke-width="2"/>'
+      + '<text x="24" y="30" fill="#8db4ff" font-family="monospace" font-size="13">commits by author</text>'
+      + '</svg>');
+
+    const GRAPH = {
+      workflowName: 'release-notes',
+      workflowUri: 'file:///work/release-notes.nika.yaml',
+      resumeCapable: true,
+      nodes: [
+        {
+          id: 'history', label: 'history', verb: 'exec', status: 'pending',
+          commandPreview: 'git log --oneline --no-merges -8',
+          permits: ['exec: git'],
+          dependsOn: [],
+        },
+        {
+          id: 'stats', label: 'stats', verb: 'exec', status: 'pending',
+          commandPreview: 'git shortlog -sn HEAD',
+          permits: ['exec: git'],
+          dependsOn: [],
+        },
+        {
+          id: 'digest', label: 'digest', verb: 'infer', status: 'pending',
+          model: 'ollama/qwen3.5:4b', provider: 'ollama',
+          promptPreview: 'Group these commits into a headline and highlights for the release notes.',
+          retryMax: 3, timeout: '45s', outputNames: ['headline', 'highlights'],
+          bindingsIn: [{ alias: 'commits', from: 'history', path: 'output' }],
+          dependsOn: ['history'],
+        },
+        {
+          id: 'chart', label: 'chart', verb: 'invoke', status: 'pending',
+          tool: 'nika:chart',
+          argsPreview: 'kind: bar · title: commits by author',
+          bindingsIn: [{ alias: 'rows', from: 'stats', path: 'output' }],
+          dependsOn: ['stats'],
+        },
+        {
+          id: 'polish', label: 'polish', verb: 'infer', status: 'pending',
+          model: 'mistral/mistral-small', provider: 'mistral',
+          promptPreview: 'Tighten the headline. Keep the maintainer voice — plain, direct.',
+          costMin: 0.001, costMax: 0.006, timeout: '30s',
+          bindingsIn: [{ alias: 'draft', from: 'digest', path: 'headline' }],
+          dependsOn: ['digest'],
+        },
+        {
+          id: 'notes', label: 'notes', verb: 'invoke', status: 'pending',
+          tool: 'nika:write',
+          argsPreview: 'path: RELEASE_NOTES.md',
+          permits: ['fs.write: RELEASE_NOTES.md', 'tool: nika:write'],
+          outputNames: ['notes_path'],
+          bindingsIn: [
+            { alias: 'body', from: 'polish', path: 'output' },
+            { alias: 'chart', from: 'chart', path: 'output' },
+          ],
+          dependsOn: ['polish', 'chart'],
+        },
+        {
+          id: 'review', label: 'review', verb: 'agent', status: 'pending',
+          model: 'ollama/qwen3.5:9b', provider: 'ollama',
+          promptPreview: 'Verify every claim against the commits — flag anything overstated.',
+          retryMax: 2,
+          bindingsIn: [{ alias: 'notes', from: 'notes', path: 'notes_path' }],
+          dependsOn: ['notes'],
+        },
+      ],
+      edges: [
+        { id: 'history->digest', source: 'history', target: 'digest', isDataEdge: true, label: 'commits' },
+        { id: 'stats->chart', source: 'stats', target: 'chart', isDataEdge: true, label: 'rows' },
+        { id: 'digest->polish', source: 'digest', target: 'polish', isDataEdge: true, label: 'draft' },
+        { id: 'polish->notes', source: 'polish', target: 'notes', isDataEdge: true, label: 'body' },
+        { id: 'chart->notes', source: 'chart', target: 'notes', isDataEdge: true, label: 'chart' },
+        { id: 'notes->review', source: 'notes', target: 'review', isDataEdge: true, label: 'notes' },
+      ],
+    };
+
+    const post = (m) => window.postMessage(m, '*');
+    const batch = (updates) => post({ kind: 'dag:batchUpdateStatus', updates });
+
+    // t=0 is page load. dag:load waits out the load race (≥500ms).
+    setTimeout(() => {
+      post({
+        kind: 'dag:load', graph: GRAPH,
+        toolCats: {
+          chart: { cat: 'media', desc: 'data → chart image (5 renderers)' },
+          write: { cat: 'file', desc: 'Write a file' },
+        },
+      });
+    }, 600);
+
+    setTimeout(() => {
+      post({ kind: 'run:state', running: true });
+      batch([
+        { taskId: 'history', status: 'running' },
+        { taskId: 'stats', status: 'running' },
+      ]);
+      post({ kind: 'run:progress', done: 0, total: 7 });
+    }, 1900);
+
+    setTimeout(() => {
+      batch([
+        { taskId: 'history', status: 'success', durationMs: 245, outputPreview: '8 commits' },
+        { taskId: 'stats', status: 'success', durationMs: 182 },
+        { taskId: 'digest', status: 'running' },
+        { taskId: 'chart', status: 'running' },
+      ]);
+      post({ kind: 'run:progress', done: 2, total: 7 });
+    }, 3100);
+
+    setTimeout(() => {
+      batch([{ taskId: 'digest', status: 'success', durationMs: 2840, outputPreview: 'headline: « the release train picks up parallel rails »' }]);
+      post({ kind: 'run:progress', done: 3, total: 7 });
+    }, 6000);
+
+    setTimeout(() => {
+      batch([{ taskId: 'chart', status: 'success', durationMs: 3405 }]);
+      post({
+        kind: 'dag:artifacts',
+        artifacts: [{
+          taskId: 'chart', kind: 'image', src: CHART_SVG,
+          path: '/work/out/commits-by-author.svg', name: 'commits-by-author.svg',
+          tip: 'nika:chart · deterministic SVG',
+        }],
+      });
+      post({ kind: 'run:progress', done: 4, total: 7 });
+    }, 6700);
+
+    setTimeout(() => { batch([{ taskId: 'polish', status: 'running' }]); }, 7200);
+
+    setTimeout(() => {
+      batch([{ taskId: 'polish', status: 'success', durationMs: 2130, usd: 0.0031 }]);
+      post({ kind: 'run:progress', done: 5, total: 7 });
+    }, 9400);
+
+    setTimeout(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 9900);
+
+    setTimeout(() => {
+      batch([{ taskId: 'notes', status: 'success', durationMs: 96, outputPreview: 'RELEASE_NOTES.md · 1.4 KB' }]);
+      post({ kind: 'run:progress', done: 6, total: 7 });
+    }, 10700);
+
+    setTimeout(() => { batch([{ taskId: 'review', status: 'running' }]); }, 11200);
+
+    setTimeout(() => {
+      batch([{ taskId: 'review', status: 'success', durationMs: 2760 }]);
+      post({ kind: 'run:progress', done: 7, total: 7 });
+    }, 14000);
+
+    setTimeout(() => {
+      post({ kind: 'run:state', running: false });
+      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
+    }, 14500);
+  </script>
+</body>
+</html>
