@@ -22,7 +22,7 @@ import {
   parseCatalogModels,
   parseCheckReport,
   parseTemplateSet,
-  parseToolCategories,
+  parseToolMeta,
   type CatalogModel,
   type CheckReport,
   type DagGraph,
@@ -100,11 +100,11 @@ export class NikaService {
     return this.intelValue;
   }
 
-  private toolCatsValue: Record<string, string> | undefined;
+  private toolCatsValue: Record<string, import('./core/cliContract').ToolMeta> | undefined;
 
   /** BARE builtin name → kebab category (`nika tools --json` · engine ≥0.94).
    *  Undefined on older binaries — consumers keep their fallback. */
-  get toolCats(): Record<string, string> | undefined {
+  get toolCats(): Record<string, import('./core/cliContract').ToolMeta> | undefined {
     return this.toolCatsValue;
   }
 
@@ -176,7 +176,7 @@ export class NikaService {
       spawnCli(binaryPath, ['catalog', '--json'], 10000),
     ]);
     if (toolsRes.code === 0) {
-      this.toolCatsValue = parseToolCategories(toolsRes.stdout);
+      this.toolCatsValue = parseToolMeta(toolsRes.stdout);
     }
     if (catalogRes.code === 0) {
       this.catalogModelsValue = parseCatalogModels(catalogRes.stdout);

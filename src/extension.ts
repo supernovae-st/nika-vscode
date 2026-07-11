@@ -67,7 +67,7 @@ import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { parseOmniAdd } from './core/verbPalette';
-import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
+import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
@@ -715,6 +715,21 @@ export function activate(context: ExtensionContext): void {
       // Averages are garnish — the graph must never fail on them.
     }
     try {
+      // Recorded media artifacts land ON the cards at load — the latest
+      // matching trace's real files (« your generation appears here »,
+      // honestly: only what a run actually wrote and still exists).
+      const trace = await latestTraceForGraph(new Set(graph.nodes.map((n) => n.id)));
+      if (trace) {
+        const arts = collectCardArtifacts(trace.ndjson, trace.fsPath);
+        for (const node of graph.nodes) {
+          const a = arts.get(node.id);
+          if (a) { node.artifact = a; }
+        }
+      }
+    } catch {
+      // Same law — previews are garnish, never a load failure.
+    }
+    try {
       // Dirty-nodes: substance changed since the last SUCCESSFUL run
       // (sidecar-recorded) — direct edits + their downstream cone.
       if (doc.uri.scheme === 'file') {
@@ -1021,6 +1036,20 @@ export function activate(context: ExtensionContext): void {
     } catch {
       // Garnish law.
     }
+    // The run that just closed wrote its trace — its artifacts land on
+    // the cards NOW (the after-story in pixels, statuses untouched).
+    void (async () => {
+      try {
+        const ids = dagPanel.currentGraphIds();
+        if (!ids || ids.size === 0) { return; }
+        const trace = await latestTraceForGraph(ids);
+        if (!trace) { return; }
+        const arts = collectCardArtifacts(trace.ndjson, trace.fsPath);
+        if (arts.size > 0) { dagPanel.artifactsUpdate([...arts.values()]); }
+      } catch {
+        // Garnish law — a close must never throw on its epilogue.
+      }
+    })();
   };
 
   const dagPanel = new DagPanel(

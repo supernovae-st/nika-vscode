@@ -13,7 +13,7 @@ import * as crypto from 'crypto';
 // The DAG shapes live in core/cliContract.ts (ONE contract across the CLI
 // `graph --format json` adapter, this panel, and the webview mirror).
 
-import type { DagGraph, TaskStatus } from './core/cliContract';
+import type { DagGraph, TaskStatus, ToolMeta } from './core/cliContract';
 import type { TraceTimeline } from './core/traceTimeline';
 import type { TimelineEntry } from './core/traceFold';
 
@@ -21,7 +21,10 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 
 // Extension -> Webview
 export type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, string> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, ToolMeta> }
+  // Recorded media artifacts landing ON the cards (run close · replay) —
+  // `src` is webview-safe, `path` host-absolute for the open jump.
+  | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
@@ -101,6 +104,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string }
+  // A card's artifact preview was clicked — open the real file.
+  | { kind: 'dag:openArtifact'; path: string }
   // The welcome surface — open a recent file · run a WHITELISTED nika
   // command · describe → the oracle-checked generate flow.
   | { kind: 'welcome:open'; uri: string }
@@ -117,6 +122,9 @@ export type DagEditRequest = Extract<
 function getNonce(): string {
   return crypto.randomBytes(16).toString('base64');
 }
+
+/** The wire shape of one card artifact (webview-safe src + host path). */
+export type CardArtifact = NonNullable<DagGraph['nodes'][number]['artifact']> & { taskId: string };
 
 // ─── DAG Panel ───────────────────────────────────────────────────────────────
 export class DagPanel implements vscode.Disposable {
@@ -239,11 +247,7 @@ export class DagPanel implements vscode.Disposable {
       {
         enableScripts: true,
         retainContextWhenHidden: true, // Keep state when panel is backgrounded
-        localResourceRoots: [
-          vscode.Uri.joinPath(this.extensionUri, 'out', 'webview'),
-          vscode.Uri.joinPath(this.extensionUri, 'icons'),
-          vscode.Uri.joinPath(this.extensionUri, 'fonts'),
-        ],
+        localResourceRoots: DagPanel.resourceRoots(this.extensionUri),
       },
     );
 
@@ -271,14 +275,11 @@ export class DagPanel implements vscode.Disposable {
     this.panel = panel;
 
     // Serializer-restored panels arrive with their ORIGINAL options —
-    // re-assert so the logo/font URIs stay readable after upgrades.
+    // re-assert so the logo/font/artifact URIs stay readable after
+    // upgrades AND workspace-folder changes.
     panel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this.extensionUri, 'out', 'webview'),
-        vscode.Uri.joinPath(this.extensionUri, 'icons'),
-        vscode.Uri.joinPath(this.extensionUri, 'fonts'),
-      ],
+      localResourceRoots: DagPanel.resourceRoots(this.extensionUri),
     };
 
     panel.iconPath = {
@@ -329,7 +330,7 @@ export class DagPanel implements vscode.Disposable {
         // open replay) alive while backgrounded — re-sending dag:load
         // would close the replay and blank to the stale seed graph.
         if (hasBeenHidden && this.currentGraph && !this.replayActive) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
         }
       }),
     );
@@ -379,23 +380,71 @@ export class DagPanel implements vscode.Disposable {
 
   /** BARE builtin → category from `nika tools --json` — rides every
    *  dag:load so the canvas glyphs speak the binary's vocabulary. */
-  private toolCats: Record<string, string> | undefined;
+  private toolCats: Record<string, ToolMeta> | undefined;
 
-  public setToolCats(cats: Record<string, string> | undefined): void {
+  public setToolCats(cats: Record<string, ToolMeta> | undefined): void {
     this.toolCats = cats;
+  }
+
+  /** Everything the webview may read: our bundles + the workspace (the
+   *  recorded artifacts live there — .nika/ outputs, media files). */
+  private static resourceRoots(extensionUri: vscode.Uri): vscode.Uri[] {
+    return [
+      vscode.Uri.joinPath(extensionUri, 'out', 'webview'),
+      vscode.Uri.joinPath(extensionUri, 'icons'),
+      vscode.Uri.joinPath(extensionUri, 'fonts'),
+      ...(vscode.workspace.workspaceFolders ?? []).map((f) => f.uri),
+    ];
+  }
+
+  /** Map a host-absolute artifact src to a webview URI (post-time only —
+   *  the stored graph keeps host paths so re-posts stay re-mappable). */
+  private mapArtifacts(graph: DagGraph): DagGraph {
+    const webview = this.panel?.webview;
+    if (!webview) { return graph; }
+    return {
+      ...graph,
+      nodes: graph.nodes.map((n) => n.artifact
+        ? {
+          ...n,
+          artifact: {
+            ...n.artifact,
+            src: webview.asWebviewUri(vscode.Uri.file(n.artifact.src)).toString(),
+          },
+        }
+        : n),
+    };
+  }
+
+  private pendingArtifacts: CardArtifact[] | undefined;
+
+  /** Push recorded artifacts onto the cards (run close · replay). */
+  public artifactsUpdate(artifacts: CardArtifact[]): void {
+    this.pendingArtifacts = artifacts.length > 0 ? artifacts : undefined;
+    const webview = this.panel?.webview;
+    if (!webview) { return; }
+    this.postMessage({
+      kind: 'dag:artifacts',
+      artifacts: artifacts.map((a) => ({
+        ...a,
+        src: webview.asWebviewUri(vscode.Uri.file(a.src)).toString(),
+      })),
+    });
   }
 
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
     // A new graph orphans any queued timeline (the webview side also
-    // deactivates its transport on dag:load).
+    // deactivates its transport on dag:load) AND any queued artifact
+    // delta — the fresh graph carries its own recorded artifacts.
+    this.pendingArtifacts = undefined;
     this.pendingTransport = undefined;
     // A fresh graph supersedes any replay (the webview's dag:load handler
     // closes the Replayer); keep the extension-side guard in step.
     this.replayActive = false;
     if (this.panel?.visible) {
-      this.postMessage({ kind: 'dag:load', graph, toolCats: this.toolCats });
+      this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(graph), toolCats: this.toolCats });
     }
   }
 
@@ -547,7 +596,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:ready':
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
         } else {
           // Empty canvas → the welcome wants its resume list.
           this.onWelcomeReady?.();
@@ -559,6 +608,10 @@ export class DagPanel implements vscode.Disposable {
         if (this.pendingTransport) {
           // After dag:load, in-order — the webview resyncs post-layout.
           this.postMessage({ kind: 'transport:load', ...this.pendingTransport });
+        }
+        if (this.pendingArtifacts) {
+          // Artifact deltas queued while the panel booted replay too.
+          this.artifactsUpdate(this.pendingArtifacts);
         }
         // A reloaded panel mid-run must keep showing the truthful ■.
         if (this.runState) {
@@ -577,7 +630,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:requestRefresh':
         // Extension can re-parse workflow and send updated graph
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.currentGraph, toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
         }
         break;
 
@@ -594,6 +647,18 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:showActive':
         this.onShowActive?.();
+        break;
+
+      case 'dag:openArtifact':
+        // The recorded file, opened for real (image tab · audio player);
+        // an unopenable path falls back to the OS reveal.
+        void (async () => {
+          try {
+            await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(msg.path));
+          } catch {
+            await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(msg.path));
+          }
+        })();
         break;
 
       case 'dag:openReport':
@@ -701,6 +766,8 @@ export class DagPanel implements vscode.Disposable {
       `script-src 'nonce-${nonce}'`,
       `img-src ${webview.cspSource} data:`,
       `font-src ${webview.cspSource}`,
+      // Recorded audio artifacts play ON the card (workspace-rooted).
+      `media-src ${webview.cspSource}`,
       // Image export inlines the bundled font into the serialized SVG —
       // the ONLY fetch target is our own extension assets.
       `connect-src ${webview.cspSource}`,

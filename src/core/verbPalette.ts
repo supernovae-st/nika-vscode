@@ -78,6 +78,41 @@ export function filterTools(query: string, tools: readonly ToolItem[]): ToolItem
     .map((s) => s.item);
 }
 
+/**
+ * Offline one-line blurbs for the 27 builtins — the palette's fallback
+ * teaching voice. The BINARY's `tools --json` description WINS whenever
+ * it ships (these are honest approximations, updated with the stdlib).
+ */
+export const FALLBACK_TOOL_BLURBS: Record<string, string> = {
+  log: 'diagnostic line into the run stream',
+  emit: 'append a structured event',
+  assert: 'fail unless the condition holds',
+  prompt: 'ask the human · wait for the answer',
+  done: 'end an agent loop with a result',
+  wait: 'pause for a duration',
+  read: 'read a file (workspace-scoped)',
+  write: 'write a file (workspace-scoped)',
+  edit: 'surgical text replace in a file',
+  glob: 'list files by pattern',
+  grep: 'search file contents by regex',
+  jq: 'transform JSON with a jq program',
+  json_diff: 'structural diff of two JSON values',
+  validate: 'check JSON against a schema',
+  json_merge_patch: 'RFC 7396 merge-patch',
+  convert: 'JSON ⇄ YAML ⇄ TOML ⇄ CSV',
+  uuid: 'mint a v4 uuid',
+  date: 'now · format · add on dates',
+  hash: 'sha-256 and friends',
+  fetch: 'HTTP request (permits-gated)',
+  notify: 'webhook ping (permits-gated)',
+  inspect: 'describe a value’s shape',
+  compose: 'run a sub-workflow',
+  image_generate: 'text → image (provider-priced)',
+  tts_generate: 'text → speech audio',
+  image_fx: 'edit / filter an image locally',
+  chart: 'data → chart image (5 renderers)',
+};
+
 /** A parsed omnibar deterministic add: `+ <verb|tool> [after <id>]`. */
 export interface OmniAdd {
   verb: 'infer' | 'exec' | 'invoke' | 'agent';

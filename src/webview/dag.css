@@ -2590,6 +2590,145 @@ body.running .dag-node.status-success .nc::after {
   border-radius: 4px;
 }
 
+/* The recorded-artifact preview — the GENERATION, on the card (engine
+ * truth from the trace: a file a run actually wrote). Image = thumb,
+ * click opens the real file; audio = a playable row. Fixed heights so
+ * the layout box stays deterministic (anatomy law: 92 img · 30 audio). */
+.nc-preview {
+  pointer-events: auto;
+  position: relative;
+  flex: none;
+  height: 92px;
+  margin-top: 6px;
+  padding: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--nk-page) 60%, var(--nk-card));
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
+.nc-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 220ms var(--nk-ease);
+}
+
+.nc-preview:hover img {
+  transform: scale(1.03);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nc-preview img { transition: none; }
+  .nc-preview:hover img { transform: none; }
+}
+
+.nc-preview-label {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-page) 72%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 5px;
+}
+
+/* Audio artifact — a playable row (ONE player canvas-wide; the ▶ is the
+ * only trigger — nothing autoplays). */
+.nc-preview-audio {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 30px;
+  margin-top: 6px;
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--nk-ink) 4%, transparent);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 8px;
+}
+
+.nc-audio-play {
+  pointer-events: auto;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-accent) 40%, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background var(--nk-dur) var(--nk-ease);
+}
+
+.nc-audio-play:hover {
+  background: color-mix(in srgb, var(--nk-accent) 30%, transparent);
+}
+
+.nc-audio-play.playing {
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
+  border-color: transparent;
+}
+
+.nc-audio-name {
+  pointer-events: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  text-align: left;
+  color: var(--nk-ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.nc-audio-name:hover {
+  color: var(--nk-accent);
+}
+
+.nc-audio-dur {
+  flex: none;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+}
+
+/* Exported files shed the preview bytes (webview URIs die outside the
+ * panel) — the card keeps its box, quietly. */
+.nc-preview-exported {
+  background:
+    repeating-linear-gradient(45deg,
+      color-mix(in srgb, var(--nk-ink) 4%, transparent) 0 6px,
+      transparent 6px 12px);
+}
+
+/* The category icon riding a tool chip (svg beside the ref text). */
+.nc-chip-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+
 /* The io row — inbound wires, named ON the card (`alias ← from`). The
  * alias speaks the data voice (same hue as edge labels); the whole wire
  * is a jump — click focuses the producer (chips opt back into pointer
@@ -2787,6 +2926,7 @@ body.heatmap .edge-label { display: none; }
 body.heatmap .nc-tile { filter: grayscale(0.85); opacity: 0.6; }
 body.heatmap .nc-params { opacity: 0.4; }
 body.heatmap .nc-io, body.heatmap .nc-policy { opacity: 0.4; }
+body.heatmap .nc-preview, body.heatmap .nc-preview-audio { opacity: 0.35; filter: grayscale(0.8); }
 body.heatmap .nc-badge, body.heatmap .nc-audit, body.heatmap .nc-stale { opacity: 0.35; }
 
 /* One mode = one question: the critical-path chip describes a trace
@@ -2835,6 +2975,8 @@ body.lod-mid .nc-policy { visibility: hidden; }
 body.lod-far .nc-params,
 body.lod-far .nc-io,
 body.lod-far .nc-policy,
+body.lod-far .nc-preview,
+body.lod-far .nc-preview-audio,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,
@@ -4025,6 +4167,14 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   .nc-io-wire,
   .nc-io-alias {
     color: LinkText !important;
+  }
+
+  .nc-audio-play,
+  .nc-preview-label {
+    background: Canvas !important;
+    color: CanvasText !important;
+    border: 1px solid CanvasText !important;
+    forced-color-adjust: none;
   }
 
   /* fail_workflow keeps its danger as WEIGHT, not hue. */
