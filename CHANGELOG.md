@@ -45,6 +45,19 @@ major.minor from 0.97).
   family's 0.99 graduates) join the offline category-glyph map; the
   binary's own `tools --json` vocabulary still wins when present.
 
+- **The phosphor skin** — `nika.dag.theme: phosphor`, an opt-in OLED
+  register: true-black pool, phosphor-green ink and hairlines, and verb
+  chroma that SLEEPS at rest and wakes to full hue exactly while a task
+  is live — the color is the execution. Status voices keep their
+  semantics (success green · failed red · retrying amber, retuned for
+  black); forced-colors wins over it like every skin; `auto` never
+  resolves to it (an OLED black is a choice, not an inference).
+
+- **Two interaction paper-cuts** — double-clicking a card no longer
+  ALSO zooms the camera (d3's default dblclick.zoom now yields to the
+  card's open-YAML gesture), and the hover card's `pinch point` label
+  no longer wraps its key column.
+
 - **Execution particles — data made visible crossing the wire** — while
   a task computes, each edge feeding it carries a short train of bright
   beads (SVG `animateMotion` riding the edge path on the compositor; the

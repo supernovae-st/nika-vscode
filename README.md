@@ -174,6 +174,18 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
   mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
+- **The dense card** · the substance lives ON the node: an **io row**
+  names the inbound wires (`alias ← producer` — click one, jump to the
+  producer, `+N` when more), a **policy row** carries the declared
+  execution policy as chips (`↻×3` retry budget · `⏱ 30s` timeout ·
+  on_error route `✚ recover`/`⤼ skip`/`⛔ fail` · `⤳ 2 outs` named
+  output bindings · `▦ N` permits, engine-projected), and a settled
+  verdict shows its recorded spend (`✓ 1.2s · $0.0042`). The hover card
+  keeps only what the card can't say — recorded output, blast radius,
+  pinch, needs/unlocks jumps, ▸ run-from-here — anchored to the node,
+  and **right-click is a real VS Code menu** (run task · open YAML ·
+  duplicate · delete · copy id). Facts only: nothing declared, nothing
+  rendered
 - **Content-first canvas** · the node IS the content: infer cards show
   their prompt, exec cards their `$ command`, invoke cards their tool +
   args — before any run. **Every verb has a soul**: `infer` wears a
@@ -266,7 +278,10 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
   4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
   Martian Mono, a full-spectrum edge aurora that sweeps once on a clean
   run close and flashes red on failure · `nika.dag.theme: editor` follows
-  your theme instead · high contrast always wins
+  your theme instead · `phosphor` is the OLED register — true-black
+  pool, phosphor ink, and verb chroma that sleeps at rest and wakes
+  ONLY on live tasks (the color is the execution) · high contrast
+  always wins
 - **`/` filter** · type to fade everything but matching tasks
   (id · verb · model · tool · provider) · Enter cycles the matches
 - **The engineering read** · exact max parallelism (Dilworth antichain,

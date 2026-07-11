@@ -32,7 +32,7 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'auto' }
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
   // The platine: a normalized trace timeline the webview transport
   // plays/scrubs LOCALLY — zero round-trips per frame.
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
@@ -351,12 +351,12 @@ export class DagPanel implements vscode.Disposable {
     );
   }
 
-  /** The configured webview skin — brand · editor-adaptive · auto
-   *  (auto resolves WEBVIEW-side against the live body theme class,
+  /** The configured webview skin — brand · editor-adaptive · phosphor ·
+   *  auto (auto resolves WEBVIEW-side against the live body theme class,
    *  so a theme switch re-resolves without a panel reload). */
-  private static themeMode(): 'nika' | 'editor' | 'auto' {
+  private static themeMode(): 'nika' | 'editor' | 'phosphor' | 'auto' {
     const raw = vscode.workspace.getConfiguration('nika').get<string>('dag.theme', 'nika');
-    return raw === 'editor' || raw === 'auto' ? raw : 'nika';
+    return raw === 'editor' || raw === 'auto' || raw === 'phosphor' ? raw : 'nika';
   }
 
   /** Whether a webview panel currently exists (visible or backgrounded). */

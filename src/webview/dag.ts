@@ -285,7 +285,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
   | { kind: 'theme:changed' }
-  | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'auto' }
+  | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
   | { kind: 'transport:clear' }
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
@@ -708,7 +708,10 @@ class DagRenderer {
     // gesture set (n8n/Figma): plain wheel/two-finger = PAN, pinch (which
     // Chromium reports as ctrlKey wheel) or ⌘wheel = ZOOM.
     this.zoomBehavior.filter((event: MouseEvent | WheelEvent) => {
-      if (event.type === 'mousedown'
+      // Card gestures own their events: mousedown arms the card DRAG,
+      // dblclick opens the YAML — neither may double as a camera move
+      // (d3's default dblclick.zoom used to zoom WHILE the file opened).
+      if ((event.type === 'mousedown' || event.type === 'dblclick')
         && (event.target as Element | null)?.closest?.('.dag-node')) {
         return false;
       }
@@ -2729,7 +2732,8 @@ class DagRenderer {
         add('blast', `blocks ${blocks} downstream task${blocks === 1 ? '' : 's'}`);
       }
       if (ins.pinchPoints.includes(live.id) && ins.nodeCount > 1) {
-        add('pinch point', 'nothing else can run while this runs');
+        // One word — 'pinch point' wrapped the 76px k-column in two.
+        add('pinch', 'nothing else can run while this runs');
       }
     }
     const neighborRow = (label: string, ids: string[]): void => {
@@ -3851,10 +3855,12 @@ const replayer = new Replayer();
 // VS Code stamps vscode-light / vscode-dark / vscode-high-contrast on
 // <body>; the initial data-nk-theme arrives server-rendered from the
 // panel HTML, so this only needs to run on mode/theme CHANGES.
-let rawSkinMode: 'nika' | 'editor' | 'auto' =
-  (document.body.dataset.nkTheme as 'nika' | 'editor' | 'auto') ?? 'nika';
+let rawSkinMode: 'nika' | 'editor' | 'phosphor' | 'auto' =
+  (document.body.dataset.nkTheme as 'nika' | 'editor' | 'phosphor' | 'auto') ?? 'nika';
 
-function applySkinMode(mode: 'nika' | 'editor' | 'auto'): void {
+function applySkinMode(mode: 'nika' | 'editor' | 'phosphor' | 'auto'): void {
+  // phosphor is EXPLICIT only — auto never resolves to it (an OLED-black
+  // register is a choice, not an inference).
   const resolved = mode === 'auto'
     ? (document.body.classList.contains('vscode-light') ? 'editor' : 'nika')
     : mode;
