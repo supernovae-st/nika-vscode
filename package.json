@@ -513,15 +513,17 @@
           "enum": [
             "nika",
             "editor",
+            "phosphor",
             "auto"
           ],
           "enumDescriptions": [
             "The Nika design language — warm engineered-black canvas, one blue accent, verb-hue tiles, Martian Mono (the brand skin, pinned dark)",
             "Adaptive — derives every surface AND the accent from your editor theme (--vscode-* variables, focusBorder as accent)",
+            "Phosphor — true-black OLED register, phosphor-green ink, hairlines; verb chroma sleeps at rest and wakes only on LIVE tasks (explicit choice — auto never picks it)",
             "Auto — the brand skin on dark themes, the adaptive skin on light themes"
           ],
           "default": "nika",
-          "description": "Visual skin of the DAG panel. High-contrast themes and forced colors always win over both."
+          "description": "Visual skin of the DAG panel. High-contrast themes and forced colors always win over every skin."
         },
         "nika.dag.followActiveEditor": {
           "type": "boolean",

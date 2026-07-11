@@ -4388,3 +4388,82 @@ body.heatmap .dag-node.verb-agent .nc-tile::after { display: none; }
     animation: none !important;
   }
 }
+
+/* ═══ The phosphor skin · OLED-black, chroma only where life is ═══════════ */
+/* Opt-in third register (R5 #12 · Lummi 2026 read): a true-black pool,
+ * phosphor ink, hairline borders — the black is the point: real motion
+ * (particles · rings · flow) reads against it without any ambient
+ * decoration. Verb hues SLEEP at rest (a desaturated phosphor family)
+ * and wake to full chroma exactly while a task is live — the color IS
+ * the execution. The run-state palette keeps its semantic voices
+ * (LOCK-005: success green · failed red · retrying amber — values
+ * retuned for black, never re-assigned). forced-colors wins over this
+ * skin like the other two; `auto` never resolves here (explicit only). */
+
+body[data-nk-theme='phosphor'] {
+  --nk-page: #000000;
+  --nk-surface: #090d0a;
+  --nk-card: #070a08;
+  --nk-card-border: rgb(126 214 156 / 0.13);
+  --nk-border: rgb(126 214 156 / 0.15);
+  --nk-border-strong: rgb(158 232 182 / 0.32);
+  --nk-border-soft: rgb(126 214 156 / 0.08);
+  --nk-card-shadow:
+    inset 0 1px 0 rgb(190 255 214 / 0.04),
+    0 1px 3px rgb(0 0 0 / 0.55),
+    0 14px 30px -20px rgb(0 0 0 / 0.8);
+  --nk-card-shadow-hover:
+    inset 0 1px 0 rgb(190 255 214 / 0.06),
+    0 2px 5px rgb(0 0 0 / 0.6),
+    0 20px 40px -20px rgb(0 0 0 / 0.85);
+  --nk-ink: #d3ecd9;
+  --nk-ink-dim: #7fa48a;
+  --nk-accent: #52e09a;
+  --nk-data: #7fd6a0;
+  --nk-cta: #14663f;
+  --nk-cta-hover: #187a4b;
+  --nk-cta-ink: #eafff2;
+  --nk-radius: 7px;
+  --nk-radius-card: 10px;
+  --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
+  --nk-ui-font: 'Martian Mono', var(--vscode-font-family, sans-serif);
+  /* Status voices, retuned for #000 (semantics untouched — LOCK-005). */
+  --nk-st-running: #6ea8ff;
+  --nk-st-success: #71e08a;
+  --nk-st-failed: #ff6161;
+  --nk-st-retrying: #e0b071;
+  --nk-st-muted: #52605a;
+  --nk-critical: #e6b873;
+  --nk-shadow-1: 0 1px 3px rgb(0 0 0 / 0.5);
+  --nk-shadow-2: 0 1px 3px rgb(0 0 0 / 0.5), 0 24px 48px -24px rgb(0 40 20 / 0.6);
+  /* Verb chroma at REST — asleep, one desaturated phosphor family. */
+  --nk-verb-infer: #5e7a88;
+  --nk-verb-exec: #83755e;
+  --nk-verb-invoke: #5e8380;
+  --nk-verb-agent: #75688a;
+  /* Survey crosses in phosphor ink. */
+  --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%237ed69c' stroke-opacity='0.055'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
+  --nk-grid-img-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cg stroke='%237ed69c' stroke-opacity='0.075'%3E%3Cpath d='M48 42v12M42 48h12'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-nk-theme='phosphor'] #dag-container {
+  background-color: var(--nk-page);
+}
+
+body[data-nk-theme='phosphor'].lod-far #dag-container {
+  background-image: var(--nk-grid-img-far);
+  background-size: 96px 96px;
+}
+
+/* The wake rule — full verb chroma EXACTLY while the task is live.
+ * Attribute + three classes out-specify the resting .dag-node.verb-*
+ * assignment; retrying keeps its amber dot (status voice) while the
+ * tile/soul/ring pick the woken hue. */
+body[data-nk-theme='phosphor'] .dag-node.verb-infer.status-running,
+body[data-nk-theme='phosphor'] .dag-node.verb-infer.status-retrying { --dv-hue: #5b8cff; }
+body[data-nk-theme='phosphor'] .dag-node.verb-exec.status-running,
+body[data-nk-theme='phosphor'] .dag-node.verb-exec.status-retrying { --dv-hue: #ff7a3c; }
+body[data-nk-theme='phosphor'] .dag-node.verb-invoke.status-running,
+body[data-nk-theme='phosphor'] .dag-node.verb-invoke.status-retrying { --dv-hue: #22d3ee; }
+body[data-nk-theme='phosphor'] .dag-node.verb-agent.status-running,
+body[data-nk-theme='phosphor'] .dag-node.verb-agent.status-retrying { --dv-hue: #b07bff; }
