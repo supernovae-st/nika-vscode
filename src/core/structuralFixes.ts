@@ -97,13 +97,15 @@ const SKELETONS: Record<Verb, string[]> = {
   ],
 };
 
-/** First free `<verb>_N` id (engine grammar: snake_case). */
-export function nextTaskId(text: string, verb: Verb): string {
+/** First free `<base>_N` id (engine grammar: snake_case). The base is
+ *  the verb — or the bare tool name when the task palette picked one
+ *  (`jq` reads better than `invoke_4`). */
+export function nextTaskId(text: string, base: string): string {
   const wf = parseRichWorkflow(text);
   const taken = new Set(wf.tasks.map((t) => t.id));
-  if (!taken.has(verb)) { return verb; }
+  if (!taken.has(base)) { return base; }
   for (let n = 2; ; n++) {
-    const candidate = `${verb}_${n}`;
+    const candidate = `${base}_${n}`;
     if (!taken.has(candidate)) { return candidate; }
   }
 }
@@ -113,15 +115,24 @@ export function nextTaskId(text: string, verb: Verb): string {
  * end of the `tasks:` block (creating the block when absent). Returns the
  * rewritten document + the new id, or undefined when the insert anchor
  * cannot be resolved.
+ *
+ * `tool` (task palette · invoke only): the skeleton pins THAT tool and
+ * deliberately writes NO args — the check's findings teach the tool's
+ * required args in its own voice (one voice: CLI · findings · LSP).
  */
 export function insertTaskSkeleton(
   text: string,
   verb: Verb,
   afterTaskId?: string,
+  tool?: string,
 ): { text: string; taskId: string } | undefined {
   const wf = parseRichWorkflow(text);
   const lines = text.split('\n');
-  const taskId = nextTaskId(text, verb);
+  const bare = verb === 'invoke' ? tool?.match(/^nika:([a-z][a-z0-9_]*)$/)?.[1] : undefined;
+  const taskId = nextTaskId(text, bare ?? verb);
+  const skeleton = bare !== undefined
+    ? ['invoke:', `  tool: nika:${bare}`]
+    : SKELETONS[verb];
 
   // Item indent mirrors existing tasks (2 spaces under `tasks:` default).
   const anchor = afterTaskId
@@ -136,7 +147,7 @@ export function insertTaskSkeleton(
     '',
     `${itemIndent}- id: ${taskId}`,
     ...(afterTaskId ? [`${fieldIndent}depends_on: [${afterTaskId}]`] : []),
-    ...SKELETONS[verb].map((l) => `${fieldIndent}${l}`),
+    ...skeleton.map((l) => `${fieldIndent}${l}`),
   ];
 
   if (anchor !== undefined) {

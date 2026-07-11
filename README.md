@@ -174,6 +174,14 @@ providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
   mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
+- **Arriving is describing** · a fresh (zero-task) workflow greets you
+  with a centered describe bar — type the intent, the oracle-checked
+  generate lands the tasks — or press **N**: one searchable **task
+  palette** with the 4 verbs and the full builtin-tool vocabulary,
+  grouped by category (picking a tool lands an `invoke` task pinned to
+  it, named after the tool; its required args arrive as check findings
+  — the engine teaches). `⧇ New` opens the next blank page without
+  leaving the canvas
 - **The dense card** · the substance lives ON the node: an **io row**
   names the inbound wires (`alias ← producer` — click one, jump to the
   producer, `+N` when more), a **policy row** carries the declared

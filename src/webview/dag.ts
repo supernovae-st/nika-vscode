@@ -23,7 +23,7 @@ import { topoWaves, criticalPath } from '../core/cliContract';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
 import { nextFocus, type NavDir } from '../core/canvasNav';
-import { filterVerbs } from '../core/verbPalette';
+import { filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
@@ -78,18 +78,27 @@ async function inlineFontDataUri(): Promise<string | null> {
   }
 }
 
-// ─── Verb cmdk · the drop-a-port palette (opens at the cursor) ──────────────
-// A tiny command palette: 4 verbs, type-to-filter (filterVerbs ranks
-// them), ↑↓ to move, Enter to pick, Esc to cancel. The renderer opens it
-// on a port-drop onto empty canvas; the callback posts the pre-wired add.
+// ─── The task palette (cmdk) · add a task — verb or tool ────────────────────
+// One searchable palette: the 4 verbs, then the builtin tools grouped
+// by category (the binary's `tools --json` vocabulary when it ships).
+// ↑↓ to move, Enter to pick, Esc to cancel. Opens on a port-drop onto
+// empty canvas (pre-wired depends_on), on N, and from ＋ Task; picking
+// a tool posts an `invoke` task pinned to that tool.
+
+/** What the palette hands back: a verb, optionally with a pinned tool. */
+interface PalettePick { verb: string; tool?: string }
+
+type PaletteEntry =
+  | { kind: 'verb'; verb: string; glyph: string; blurb: string }
+  | { kind: 'tool'; tool: string; bare: string; cat: string };
 
 class VerbCmdk {
   private readonly el = document.getElementById('verb-cmdk');
   private readonly input = document.getElementById('cmdk-input') as HTMLInputElement | null;
   private readonly list = document.getElementById('cmdk-list');
-  private items: ReturnType<typeof filterVerbs> = [];
+  private items: PaletteEntry[] = [];
   private active = 0;
-  private onPick: ((verb: string) => void) | undefined;
+  private onPick: ((pick: PalettePick) => void) | undefined;
 
   constructor() {
     this.input?.addEventListener('input', () => this.render());
@@ -110,11 +119,11 @@ class VerbCmdk {
     return this.el?.hasAttribute('hidden') === false;
   }
 
-  open(clientX: number, clientY: number, onPick: (verb: string) => void): void {
+  open(clientX: number, clientY: number, onPick: (pick: PalettePick) => void): void {
     if (!this.el || !this.input) { return; }
     this.onPick = onPick;
     // Clamp so the palette never spills past the viewport edges.
-    const W = 220, H = 190;
+    const W = 280, H = 400;
     const x = Math.min(clientX, window.innerWidth - W - 8);
     const y = Math.min(clientY, window.innerHeight - H - 8);
     this.el.style.left = `${Math.max(8, x)}px`;
@@ -124,6 +133,15 @@ class VerbCmdk {
     this.active = 0;
     this.render();
     this.input.focus();
+  }
+
+  /** Open centered over the canvas (N · ＋ Task) — no cursor to anchor. */
+  openCentered(onPick: (pick: PalettePick) => void): void {
+    const rect = document.getElementById('dag-container')?.getBoundingClientRect();
+    const W = 280, H = 400;
+    const x = rect ? rect.left + rect.width / 2 - W / 2 : 120;
+    const y = rect ? Math.max(rect.top + rect.height * 0.2, 60) : 80;
+    this.open(x, Math.min(y, window.innerHeight - H - 8), onPick);
   }
 
   close(): void {
@@ -138,33 +156,62 @@ class VerbCmdk {
   }
 
   private pick(index: number): void {
-    const item = this.items[index];
-    if (!item) { return; }
+    const entry = this.items[index];
+    if (!entry) { return; }
     const cb = this.onPick;
     this.close();
-    cb?.(item.verb);
+    if (entry.kind === 'verb') { cb?.({ verb: entry.verb }); }
+    else { cb?.({ verb: 'invoke', tool: entry.tool }); }
+  }
+
+  private header(text: string): HTMLElement {
+    const h = document.createElement('div');
+    h.className = 'cmdk-cat';
+    h.textContent = text;
+    return h;
   }
 
   private render(): void {
     if (!this.list) { return; }
-    this.items = filterVerbs(this.input?.value ?? '');
+    const q = this.input?.value ?? '';
+    const verbs = filterVerbs(q);
+    const tools = filterTools(q, paletteTools());
+    this.items = [
+      ...verbs.map((v): PaletteEntry => ({ kind: 'verb', verb: v.verb, glyph: v.glyph, blurb: v.blurb })),
+      ...tools.map((t): PaletteEntry => ({ kind: 'tool', ...t })),
+    ];
     this.active = Math.min(this.active, Math.max(this.items.length - 1, 0));
     this.list.replaceChildren();
-    this.items.forEach((item, i) => {
+
+    // Group headers ride the flow: `verbs`, then each tool category.
+    let lastHeader = '';
+    this.items.forEach((entry, i) => {
+      const wanted = entry.kind === 'verb' ? 'verbs' : entry.cat;
+      if (wanted !== lastHeader) {
+        this.list!.appendChild(this.header(wanted));
+        lastHeader = wanted;
+      }
       const row = document.createElement('button');
-      row.className = `cmdk-row verb-${item.verb}`;
       row.dataset.i = String(i);
       const glyph = document.createElement('span');
       glyph.className = 'cmdk-glyph';
-      const rowSvg = makeVerbGlyph(item.verb, 13);
-      if (rowSvg) { glyph.appendChild(rowSvg); }
-      else { glyph.textContent = item.glyph; }
       const name = document.createElement('span');
       name.className = 'cmdk-name';
-      name.textContent = item.verb;
       const blurb = document.createElement('span');
       blurb.className = 'cmdk-blurb';
-      blurb.textContent = item.blurb;
+      if (entry.kind === 'verb') {
+        row.className = `cmdk-row verb-${entry.verb}`;
+        const rowSvg = makeVerbGlyph(entry.verb, 13);
+        if (rowSvg) { glyph.appendChild(rowSvg); }
+        else { glyph.textContent = entry.glyph; }
+        name.textContent = entry.verb;
+        blurb.textContent = entry.blurb;
+      } else {
+        row.className = 'cmdk-row cmdk-tool verb-invoke';
+        glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆';
+        name.textContent = entry.bare;
+        blurb.textContent = `invoke · nika:${entry.bare}`;
+      }
       row.append(glyph, name, blurb);
       row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
       row.addEventListener('click', () => this.pick(i));
@@ -174,8 +221,12 @@ class VerbCmdk {
   }
 
   private paintActive(): void {
-    const rows = this.list?.querySelectorAll('.cmdk-row');
-    rows?.forEach((r, i) => r.classList.toggle('active', i === this.active));
+    const rows = this.list?.querySelectorAll<HTMLElement>('.cmdk-row');
+    rows?.forEach((r) => {
+      const on = Number(r.dataset.i) === this.active;
+      r.classList.toggle('active', on);
+      if (on) { r.scrollIntoView({ block: 'nearest' }); }
+    });
   }
 }
 
@@ -458,6 +509,31 @@ const BUILTIN_GLYPH: Record<string, string> = {
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
 let toolCatsMap: Record<string, string> | undefined;
 
+/** Offline bare → category (inverted glyph map) — the palette's fallback
+ *  vocabulary when the binary hasn't fed `tools --json` yet. */
+const FALLBACK_TOOL_CATS: Record<string, string> = (() => {
+  const glyphCat = Object.fromEntries(
+    Object.entries(CATEGORY_GLYPH).map(([cat, glyph]) => [glyph, cat]),
+  );
+  return Object.fromEntries(
+    Object.entries(BUILTIN_GLYPH).map(([bare, glyph]) => [bare, glyphCat[glyph] ?? 'core']),
+  );
+})();
+
+/** Canonical category order for the task palette groups. */
+const CATEGORY_ORDER = ['core', 'file', 'data', 'network', 'introspection', 'media'];
+
+/** The palette's tool rows — the binary's vocabulary first, fallback map
+ *  otherwise; grouped by category order, alphabetical within. */
+function paletteTools(): ToolItem[] {
+  const cats = toolCatsMap ?? FALLBACK_TOOL_CATS;
+  return Object.entries(cats)
+    .map(([bare, cat]) => ({ tool: `nika:${bare}`, bare, cat }))
+    .sort((a, b) =>
+      (CATEGORY_ORDER.indexOf(a.cat) - CATEGORY_ORDER.indexOf(b.cat))
+      || a.bare.localeCompare(b.bare));
+}
+
 /** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
 function toolWithGlyph(tool: string): string {
   const bare = tool.replace(/^nika:/, '');
@@ -659,14 +735,15 @@ class DagRenderer {
         });
         return;
       }
-      // Dropped on EMPTY canvas — the Flows gesture: open a verb cmdk AT
-      // the cursor to pick the new task's verb; insertTaskSkeleton then
+      // Dropped on EMPTY canvas — the Flows gesture: open the task
+      // palette AT the cursor (verb or tool); insertTaskSkeleton then
       // declares depends_on: [from] extension-side.
       if (!targetEl) {
-        verbCmdk.open(event.clientX, event.clientY, (verb) => {
+        verbCmdk.open(event.clientX, event.clientY, (pick) => {
           vscode.postMessage({
             kind: 'dag:addTask',
-            verb,
+            verb: pick.verb,
+            tool: pick.tool,
             afterTaskId: from,
             workflowUri: this.currentGraph?.workflowUri,
           });
@@ -866,6 +943,19 @@ class DagRenderer {
     // Loaded → the empty state yields to the canvas, chrome comes back.
     document.getElementById('empty-state')?.setAttribute('hidden', '');
     document.body.classList.remove('welcome');
+
+    // A workflow with ZERO tasks is an ARRIVAL, not a graph: the
+    // centered describe bar takes the stage (type the intent, or add
+    // the first task from the bar/N) and leaves as the first task lands.
+    const describeHost = document.getElementById('canvas-describe');
+    if (describeHost) {
+      const arriving = graph.nodes.length === 0;
+      const wasHidden = describeHost.hasAttribute('hidden');
+      describeHost.toggleAttribute('hidden', !arriving);
+      if (arriving && wasHidden) {
+        (document.getElementById('cd-input') as HTMLInputElement | null)?.focus();
+      }
+    }
 
     // Remember laid-out boxes for editor-driven centerOn.
     this.layoutBox.clear();
@@ -3309,6 +3399,8 @@ class DagRenderer {
     this.waveExtents.clear();
     document.getElementById('plan-rail')?.setAttribute('hidden', '');
     document.body.classList.remove('has-rail');
+    // The welcome takes the empty panel — the arrival bar is per-workflow.
+    document.getElementById('canvas-describe')?.setAttribute('hidden', '');
     document.getElementById('empty-state')?.removeAttribute('hidden');
     document.body.classList.add('welcome');
 
@@ -3633,7 +3725,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -4384,6 +4476,12 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     (document.getElementById('omni-input') as HTMLInputElement | null)?.focus();
     return;
   }
+  // N — new task: the palette (verb or tool), centered.
+  if (e.key === 'n' || e.key === 'N') {
+    e.preventDefault();
+    openTaskPalette();
+    return;
+  }
   if (e.key === '?') toggleExplainer();
   if (e.key === 'l' || e.key === 'L') toggleActivity();
   // ⌘D / Ctrl+D — duplicate the focused task (the n8n/Figma muscle).
@@ -4417,12 +4515,39 @@ document.getElementById('btn-help')?.addEventListener('click', () => toggleExpla
 document.getElementById('btn-feed')?.addEventListener('click', () => toggleActivity());
 document.getElementById('btn-export-svg')?.addEventListener('click', () => { void renderer.exportImage('svg'); });
 document.getElementById('btn-export-png')?.addEventListener('click', () => { void renderer.exportImage('png'); });
-document.getElementById('btn-add-task')?.addEventListener('click', () => {
-  vscode.postMessage({
-    kind: 'dag:addTask',
-    afterTaskId: renderer.focused,
-    workflowUri: vscode.getState()?.graph?.workflowUri,
+// ＋ Task (and N) open the task palette centered — verb or tool, one
+// searchable surface (the QuickPick fallback stays for the omnibar).
+function openTaskPalette(): void {
+  if (!vscode.getState()?.graph) { return; } // welcome owns the empty panel
+  verbCmdk.openCentered((pick) => {
+    vscode.postMessage({
+      kind: 'dag:addTask',
+      verb: pick.verb,
+      tool: pick.tool,
+      afterTaskId: renderer.focused,
+      workflowUri: vscode.getState()?.graph?.workflowUri,
+    });
   });
+}
+document.getElementById('btn-add-task')?.addEventListener('click', () => openTaskPalette());
+// ＋ New — a fresh workflow page (untitled .nika.yaml, extension-side).
+document.getElementById('btn-new')?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:newWorkflow' });
+});
+
+// The arrival describe bar (empty workflow) — same oracle-checked
+// generate flow as the welcome; the hint teaches the palette.
+document.getElementById('canvas-describe')?.addEventListener('submit', (e: Event) => {
+  e.preventDefault();
+  const input = document.getElementById('cd-input') as HTMLInputElement | null;
+  const text = input?.value.trim();
+  if (!text) { input?.focus(); return; }
+  vscode.postMessage({ kind: 'welcome:describe', text });
+  if (input) { input.value = ''; }
+});
+document.getElementById('cd-input')?.addEventListener('keydown', (e: KeyboardEvent) => {
+  e.stopPropagation();
+  if (e.key === 'Escape') { (e.target as HTMLInputElement).blur(); }
 });
 // Minimap: click navigates · DRAG pans continuously (the real-minimap feel).
 const minimapEl = document.getElementById('minimap');

@@ -82,7 +82,7 @@ export type WebviewToExtMessage =
   | { kind: 'transport:tick'; running: string[] }
   | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
-  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string }
+  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string; tool?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
@@ -736,7 +736,8 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-title"></span>
     <span class="tb-sep"></span>
     <div class="tb-group">
-      <button id="btn-add-task" title="Add a task (wired after the focused one)">＋ Task</button>
+      <button id="btn-add-task" title="Add a task — the palette (N): a verb, or a builtin tool pre-wired">＋ Task</button>
+      <button id="btn-new" title="New workflow — a fresh page (untitled .nika.yaml)">⧇ New</button>
     </div>
     <div class="tb-group">
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
@@ -761,6 +762,16 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-status"></span>
   </div>
   <div id="dag-container"></div>
+  <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
+    <div class="cd-pill">
+      <span class="cd-mark" aria-hidden="true">✨</span>
+      <input id="cd-input" type="text"
+             placeholder="Describe this workflow — the tasks land checked by the engine…"
+             aria-label="Describe the workflow to generate">
+      <button id="cd-go" type="submit" title="Generate it (oracle-checked before it lands)">↵</button>
+    </div>
+    <div class="cd-hint">or press <kbd>N</kbd> — add a task from the palette (a verb, or a builtin tool)</div>
+  </form>
   <nav id="plan-rail" hidden aria-label="Execution plan"></nav>
   <div id="minimap"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
   <div id="activity" hidden>
@@ -816,7 +827,7 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden role="listbox" aria-label="Pick the new task's verb">
-    <input id="cmdk-input" type="text" placeholder="verb…" aria-label="Filter verbs">
+    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" aria-label="Filter verbs and tools">
     <div id="cmdk-list"></div>
   </div>
   <div id="hover-card" role="tooltip"></div>

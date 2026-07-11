@@ -160,6 +160,32 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(wf.tasks.map((t) => t.id)).toEqual(['exec']);
   });
 
+  it('task palette tool pick — invoke skeleton pins the tool, NO args (the check teaches)', () => {
+    const res = insertTaskSkeleton(DOC, 'invoke', 'second', 'nika:jq')!;
+    // The id reads as the tool, not invoke_N.
+    expect(res.taskId).toBe('jq');
+    expect(res.text).toContain('tool: nika:jq');
+    const wf = parseRichWorkflow(res.text);
+    const inserted = wf.tasks.find((t) => t.id === 'jq')!;
+    expect(inserted.verb).toBe('invoke');
+    expect(inserted.dependsOn).toEqual(['second']);
+    // Deliberately argless — the findings voice the required args.
+    const span = res.text.split('\n').slice(inserted.line, inserted.endLine + 1).join('\n');
+    expect(span).not.toContain('args:');
+  });
+
+  it('a malformed tool ref falls back to the plain invoke skeleton', () => {
+    const res = insertTaskSkeleton(DOC, 'invoke', undefined, 'mcp:srv/tool')!;
+    expect(res.taskId).toBe('invoke');
+    expect(res.text).toContain('tool: nika:log'); // the default skeleton
+  });
+
+  it('a tool pick never reshapes a non-invoke verb', () => {
+    const res = insertTaskSkeleton(DOC, 'infer', undefined, 'nika:jq')!;
+    expect(res.taskId).toBe('infer');
+    expect(res.text).toContain('prompt: "Describe what to infer"');
+  });
+
   it('removes a dep from inline lists, dropping the key when emptied', () => {
     const out = removeDependsOn(DOC, 'third', 'first')!;
     expect(out).not.toContain('depends_on: [first]');

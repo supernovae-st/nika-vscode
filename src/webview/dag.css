@@ -3372,7 +3372,7 @@ body.lod-far .region-label { display: none; }
 #verb-cmdk {
   position: fixed;
   z-index: 52;
-  width: 220px;
+  width: 280px;
   padding: 6px;
   background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
   background-image: var(--nk-grain);
@@ -3384,6 +3384,24 @@ body.lod-far .region-label { display: none; }
 
 #verb-cmdk[hidden] {
   display: none;
+}
+
+/* The list scrolls (4 verbs + the 27-tool vocabulary); headers pin the
+ * groups: `verbs`, then each builtin category. */
+#cmdk-list {
+  max-height: 336px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cmdk-cat {
+  padding: 6px 8px 2px;
+  font-family: var(--nk-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nk-ink-dim);
+  user-select: none;
 }
 
 #cmdk-input {
@@ -3448,6 +3466,101 @@ body.lod-far .region-label { display: none; }
   font-size: 9.5px;
   color: var(--nk-ink-dim);
   text-align: right;
+}
+
+/* Tool rows read a notch quieter than the 4 verbs (name not bold). */
+.cmdk-tool .cmdk-name {
+  font-weight: 500;
+}
+
+/* ─── The arrival bar · an EMPTY workflow greets with intent ─────────────
+ * Flows read: a fresh page asks what you want — describe (the oracle-
+ * checked generate) or add the first task from the palette. Leaves the
+ * stage the moment the first task lands. */
+#canvas-describe {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, calc(100% - 48px));
+  pointer-events: auto;
+}
+
+#canvas-describe[hidden] {
+  display: none;
+}
+
+.cd-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 6px 6px 14px;
+  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid var(--nk-border);
+  border-radius: 999px;
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+
+.cd-mark {
+  flex: none;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+#cd-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 2px;
+  font-size: 12.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+#cd-input::placeholder {
+  color: var(--nk-ink-dim);
+}
+
+#cd-go {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--nk-dur) var(--nk-ease);
+}
+
+#cd-go:hover {
+  background: var(--nk-cta-hover);
+}
+
+.cd-hint {
+  font-family: var(--nk-mono);
+  font-size: 10px;
+  color: var(--nk-ink-dim);
+}
+
+.cd-hint kbd {
+  padding: 0 5px;
+  font-size: 9.5px;
+  border: 1px solid var(--nk-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
 }
 
 /* ─── Audit chip · the static-check moat on the card ────────────────────── */

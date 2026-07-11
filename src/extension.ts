@@ -65,7 +65,7 @@ import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/audit
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
-import { findTaskRefs } from './core/renameRefs';
+import { findTaskRefs, renameTask } from './core/renameRefs';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
@@ -782,8 +782,8 @@ export function activate(context: ExtensionContext): void {
 
     switch (request.kind) {
       case 'dag:addTask': {
-        // Verb preset (the canvas palette) skips the QuickPick; the bare
-        // ＋ Task button still asks.
+        // Verb preset (the task palette) skips the QuickPick; a palette
+        // TOOL pick pins that builtin on the invoke skeleton.
         const isVerb = (v: unknown): v is Verb =>
           v === 'infer' || v === 'exec' || v === 'invoke' || v === 'agent';
         let picked: Verb | undefined = isVerb(request.verb) ? request.verb : undefined;
@@ -791,7 +791,10 @@ export function activate(context: ExtensionContext): void {
           request.afterTaskId ? `New task after \`${request.afterTaskId}\`` : 'New task',
         );
         if (!picked) { return; }
-        const res = insertTaskSkeleton(text, picked, request.afterTaskId ?? undefined);
+        const tool = picked === 'invoke' && typeof request.tool === 'string'
+          ? request.tool
+          : undefined;
+        const res = insertTaskSkeleton(text, picked, request.afterTaskId ?? undefined, tool);
         if (res) {
           newText = res.text;
           revealTask = res.taskId;
@@ -1108,6 +1111,45 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.canvas.copyTaskId', (ctx: CanvasMenuCtx) => {
       if (!ctx?.taskId) { return; }
       void env.clipboard.writeText(ctx.taskId);
+    }),
+    commands.registerCommand('nika.canvas.focusTask', (ctx: CanvasMenuCtx) => {
+      if (!ctx?.taskId) { return; }
+      dagPanel.focusNode(ctx.taskId);
+    }),
+    commands.registerCommand('nika.canvas.renameTask', (ctx: CanvasMenuCtx) => {
+      void (async () => {
+        if (!ctx?.taskId) { return; }
+        const doc = await requireNikaDocument(ctx.workflowUri ?? dagWorkflowUri);
+        if (!doc) { return; }
+        const text = doc.getText();
+        const oldId = ctx.taskId;
+        const newId = await window.showInputBox({
+          title: `Rename task \`${oldId}\``,
+          value: oldId,
+          prompt: 'Every reference follows — ${{ tasks.X }} islands · depends_on · when: CEL.',
+          validateInput: (v) => {
+            if (!/^[a-z][a-z0-9_]*$/.test(v)) { return 'snake_case — ^[a-z][a-z0-9_]*$'; }
+            if (v !== oldId && findTaskRefs(text, v).length > 0) {
+              return `\`${v}\` already exists (or is referenced) in this workflow`;
+            }
+            return undefined;
+          },
+        });
+        if (!newId || newId === oldId) { return; }
+        const renamed = renameTask(text, oldId, newId);
+        if (renamed === undefined) {
+          void window.showWarningMessage(`Nika: could not rename \`${oldId}\` — task not found.`);
+          return;
+        }
+        const edit = new WorkspaceEdit();
+        edit.replace(doc.uri, new Range(0, 0, doc.lineCount, 0), renamed);
+        await workspace.applyEdit(edit);
+        service.invalidate(doc.uri.toString());
+        const fresh = await workspace.openTextDocument(doc.uri);
+        dagPanel.loadGraph(await loadGraphFor(fresh));
+        dagPanel.focusNode(newId);
+        dagPanel.note('✎', `task renamed · ${oldId} → ${newId}`, newId, 'st-note');
+      })();
     }),
   );
 

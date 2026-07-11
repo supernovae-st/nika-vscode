@@ -1,11 +1,12 @@
-// verbPalette.ts — the cmdk verb list for the drop-a-port palette.
+// verbPalette.ts — the task palette's ranked lists (verbs + tools).
 //
-// Dropping a node's out-port on empty canvas opens a small command
-// palette at the cursor to pick the next task's verb (pre-wired
-// depends_on). The 4 verbs are the closed set (D-2026-05-22-N18); the
-// filter is the one bit worth pinning: prefix matches rank above
+// The palette adds a TASK: pick a verb (the closed set of 4 ·
+// D-2026-05-22-N18) or pick a builtin tool directly (an `invoke` task
+// pre-wired to it — the 27-tool vocabulary, binary-fed when present).
+// The filter is the bit worth pinning: prefix matches rank above
 // substring, name above description, so typing "in" lands on `infer`
-// first. Pure — the webview renders the ranked list, the test pins it.
+// first and "j" surfaces `jq` before `json_diff`. Pure — the webview
+// renders the ranked lists, the tests pin them.
 
 export interface VerbItem {
   verb: 'infer' | 'exec' | 'invoke' | 'agent';
@@ -42,6 +43,37 @@ export function filterVerbs(query: string): VerbItem[] {
   // Stable within a rank (VERB_ITEMS order preserved).
   return scored
     .map((s, i) => ({ ...s, i }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map((s) => s.item);
+}
+
+/** One builtin tool row for the task palette (an invoke task, pre-wired). */
+export interface ToolItem {
+  /** Full tool ref (`nika:jq`). */
+  tool: string;
+  /** Bare name (`jq`) — the match + display text. */
+  bare: string;
+  /** Category (`data` · `media` · …) — the group header + weak match. */
+  cat: string;
+}
+
+/**
+ * Filter + rank tools. Empty query returns the given order (the caller
+ * groups by category). Ranking: bare-name prefix < bare substring <
+ * category substring; non-matches drop.
+ */
+export function filterTools(query: string, tools: readonly ToolItem[]): ToolItem[] {
+  const q = query.trim().toLowerCase();
+  if (q.length === 0) { return [...tools]; }
+  const scored: Array<{ item: ToolItem; rank: number; i: number }> = [];
+  tools.forEach((item, i) => {
+    let rank = Infinity;
+    if (item.bare.startsWith(q)) { rank = 0; }
+    else if (item.bare.includes(q)) { rank = 1; }
+    else if (item.cat.includes(q)) { rank = 2; }
+    if (rank !== Infinity) { scored.push({ item, rank, i }); }
+  });
+  return scored
     .sort((a, b) => a.rank - b.rank || a.i - b.i)
     .map((s) => s.item);
 }
