@@ -2908,7 +2908,7 @@ class DagRenderer {
       const grants = node.permits ?? [];
       if (grants.length > 0) {
         chip('nc-pol-permits', `▦ ${grants.length}`,
-          `Allowed capabilities (engine-projected · affirmative permits):\n${grants.join('\n')}`);
+          `Capability effects this task pins (engine-attributed — the same walk --infer-permits aggregates):\n${grants.join('\n')}`);
       }
       host.appendChild(policy);
     }
