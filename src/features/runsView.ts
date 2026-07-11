@@ -35,6 +35,34 @@ interface TraceFile {
   ladders: Map<string, Attempt[]>;
 }
 
+/** Fold cache — traces are append-only files, so (mtime · size) pins
+ *  the content: a warm graph load stats 32 candidates and reads ~1
+ *  instead of folding every file again (loads fire per user action —
+ *  editor switch, edit apply, run start — and traces reach MBs). */
+const foldCache = new Map<string, { mtimeMs: number; sizeBytes: number; model: RunModel }>();
+
+function foldTraceCached(fsPath: string): { model: RunModel; mtimeMs: number } | undefined {
+  try {
+    const stat = fs.statSync(fsPath);
+    const hit = foldCache.get(fsPath);
+    if (hit && hit.mtimeMs === stat.mtimeMs && hit.sizeBytes === stat.size) {
+      return { model: hit.model, mtimeMs: stat.mtimeMs };
+    }
+    const model = foldTrace(fs.readFileSync(fsPath, 'utf-8'));
+    foldCache.set(fsPath, { mtimeMs: stat.mtimeMs, sizeBytes: stat.size, model });
+    // Bounded: drop the oldest insertion past 40 entries (the finder
+    // caps at 60 files; 40 covers every warm path without pinning MBs
+    // of dead runs forever).
+    if (foldCache.size > 40) {
+      const oldest = foldCache.keys().next().value;
+      if (oldest !== undefined) { foldCache.delete(oldest); }
+    }
+    return { model, mtimeMs: stat.mtimeMs };
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Mean SUCCESS duration per task across recorded traces of THIS graph.
  * Traces carry no workflow name — membership uses the same majority-
@@ -67,12 +95,9 @@ export async function collectTaskAverages(
 
   const sums = new Map<string, { total: number; n: number }>();
   for (const f of newest) {
-    let model: RunModel;
-    try {
-      model = foldTrace(fs.readFileSync(f.uri.fsPath, 'utf-8'));
-    } catch {
-      continue;
-    }
+    const folded = foldTraceCached(f.uri.fsPath);
+    if (!folded) { continue; }
+    const { model } = folded;
     const ids = [...model.tasks.keys()];
     if (ids.length === 0) { continue; }
     const overlap = ids.filter((id) => graphIds.has(id)).length / ids.length;
@@ -163,23 +188,20 @@ export async function latestTraceForGraph(
     .sort((a, b) => b.mtimeMs - a.mtimeMs)
     .slice(0, 20);
   for (const f of newest) {
-    let ndjson: string;
-    try {
-      ndjson = fs.readFileSync(f.uri.fsPath, 'utf-8');
-    } catch {
-      continue;
-    }
-    let model: RunModel;
-    try {
-      model = foldTrace(ndjson);
-    } catch {
-      continue;
-    }
-    const ids = [...model.tasks.keys()];
+    // Membership tests ride the fold cache (stat-first) — only the ONE
+    // matching trace pays a full read (its raw NDJSON feeds the
+    // artifact extraction).
+    const folded = foldTraceCached(f.uri.fsPath);
+    if (!folded) { continue; }
+    const ids = [...folded.model.tasks.keys()];
     if (ids.length === 0) { continue; }
     const overlap = ids.filter((id) => graphIds.has(id)).length / ids.length;
     if (overlap < 0.6) { continue; }
-    return { ndjson, fsPath: f.uri.fsPath };
+    try {
+      return { ndjson: fs.readFileSync(f.uri.fsPath, 'utf-8'), fsPath: f.uri.fsPath };
+    } catch {
+      continue;
+    }
   }
   return undefined;
 }
