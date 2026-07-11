@@ -1049,7 +1049,7 @@
     "watch": "node esbuild.mjs --watch",
     "lint": "eslint src",
     "parity": "node scripts/parity.mjs",
-    "test": "vitest run && node scripts/parity.mjs && npm run lint",
+    "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
     "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js",

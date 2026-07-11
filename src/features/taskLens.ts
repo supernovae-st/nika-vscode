@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { findTaskRefs } from '../core/renameRefs';
+import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -50,14 +51,10 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
 
 // ─── Verb gutter dots · the file scannable at a glance ──────────────────────
 
-// The 4 verb hues — nika.sh canon (same set as the DAG webview LEDs):
+// The 4 verb hues — the shared visual vocabulary SSOT (nika-spec
+// design/tokens.yaml, projected here as design-tokens.generated.ts):
 // a verb's color is language identity, identical on every Nika surface.
-const VERB_DOT_COLORS: Record<string, string> = {
-  infer: '#5b8cff',
-  exec: '#ff7a3c',
-  invoke: '#22d3ee',
-  agent: '#b07bff',
-};
+const VERB_DOT_COLORS: Record<string, string> = NIKA_VERB_HEX;
 
 function dotUri(color: string): vscode.Uri {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><circle cx="7" cy="8" r="2.6" fill="${color}" fill-opacity="0.9"/></svg>`;
