@@ -66,6 +66,7 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs, renameTask } from './core/renameRefs';
+import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectTaskAverages, diffTracesOntoDag, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { latestTraceFor } from './core/tracePersist';
@@ -802,9 +803,17 @@ export function activate(context: ExtensionContext): void {
         break;
       }
       case 'dag:insertOnEdge': {
-        const picked = await pickVerb(`Insert between \`${request.from}\` → \`${request.to}\``);
+        // The canvas palette presets verb (and maybe a pinned tool);
+        // the QuickPick stays as the no-preset fallback.
+        const isVerb = (v: unknown): v is Verb =>
+          v === 'infer' || v === 'exec' || v === 'invoke' || v === 'agent';
+        let picked: Verb | undefined = isVerb(request.verb) ? request.verb : undefined;
+        picked ??= await pickVerb(`Insert between \`${request.from}\` → \`${request.to}\``);
         if (!picked) { return; }
-        const res = insertBetween(text, request.from, request.to, picked);
+        const tool = picked === 'invoke' && typeof request.tool === 'string'
+          ? request.tool
+          : undefined;
+        const res = insertBetween(text, request.from, request.to, picked, tool);
         if (res) {
           newText = res.text;
           revealTask = res.taskId;
@@ -823,11 +832,16 @@ export function activate(context: ExtensionContext): void {
         break;
       }
       case 'dag:omni': {
-        // `+ verb [after id]` adds a task deterministically; anything
-        // else routes to the oracle-checked generate pipeline.
-        const add = request.text.match(/^\+\s*(infer|exec|invoke|agent)(?:\s+after\s+([a-z][a-z0-9_]*))?\s*$/i);
+        // `+ <verb|tool> [after id]` adds deterministically — the same
+        // vocabulary as the task palette (`+ jq after gather` lands an
+        // invoke pinned to nika:jq); anything else routes to the
+        // oracle-checked generate pipeline.
+        const add = parseOmniAdd(
+          request.text,
+          new Set(Object.keys(service.toolCats ?? {})),
+        );
         if (add) {
-          const res = insertTaskSkeleton(text, add[1].toLowerCase() as Verb, add[2] ?? undefined);
+          const res = insertTaskSkeleton(text, add.verb, add.after, add.tool);
           if (res) {
             newText = res.text;
             revealTask = res.taskId;

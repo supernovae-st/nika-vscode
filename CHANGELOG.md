@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **One palette EVERYWHERE** — the insert-on-edge `+` now opens the
+  same task palette (verb or tool) instead of a verb-only QuickPick,
+  and the omnibar's deterministic add learns the tool vocabulary:
+  `+ jq after gather` lands an `invoke` pinned to `nika:jq` (known
+  bares from the binary's `tools --json`; a full `nika:x` ref is
+  always accepted — an unknown tool is the engine's diagnostic to
+  give, not the parser's guess).
+
 - **The task palette — a verb, or a tool, one searchable surface** —
   ＋ Task, the N key and the port-drop gesture now open one palette:
   the 4 verbs first, then the full builtin vocabulary grouped by

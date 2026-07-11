@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterTools, filterVerbs, VERB_ITEMS, type ToolItem } from '../core/verbPalette';
+import { filterTools, filterVerbs, parseOmniAdd, VERB_ITEMS, type ToolItem } from '../core/verbPalette';
 
 const names = (q: string): string[] => filterVerbs(q).map((v) => v.verb);
 
@@ -65,5 +65,33 @@ describe('filterTools (the task palette tool rows)', () => {
 
   it('drops non-matches', () => {
     expect(bares('zzz')).toEqual([]);
+  });
+});
+
+describe('parseOmniAdd (the omnibar deterministic-add grammar)', () => {
+  const KNOWN = new Set(['jq', 'fetch', 'chart']);
+
+  it('a verb, with and without an anchor', () => {
+    expect(parseOmniAdd('+ infer', KNOWN)).toEqual({ verb: 'infer', after: undefined });
+    expect(parseOmniAdd('+ exec after gather', KNOWN)).toEqual({ verb: 'exec', after: 'gather' });
+  });
+
+  it('a KNOWN bare tool lands an invoke pinned to it', () => {
+    expect(parseOmniAdd('+ jq after gather', KNOWN))
+      .toEqual({ verb: 'invoke', tool: 'nika:jq', after: 'gather' });
+  });
+
+  it('a full nika: ref is accepted even outside the known set — the engine diagnoses', () => {
+    expect(parseOmniAdd('+ nika:frobnicate', KNOWN))
+      .toEqual({ verb: 'invoke', tool: 'nika:frobnicate', after: undefined });
+  });
+
+  it('an unknown bare word routes to generate (undefined)', () => {
+    expect(parseOmniAdd('+ summarize the page', KNOWN)).toBeUndefined();
+    expect(parseOmniAdd('+ frobnicate', KNOWN)).toBeUndefined();
+  });
+
+  it('no leading + = not an add', () => {
+    expect(parseOmniAdd('scrape hn and post to slack', KNOWN)).toBeUndefined();
   });
 });

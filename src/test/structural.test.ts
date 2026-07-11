@@ -186,6 +186,16 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(res.text).toContain('prompt: "Describe what to infer"');
   });
 
+  it('splice with a pinned tool — insertBetween carries it (one palette everywhere)', () => {
+    const res = insertBetween(DOC, 'second', 'third', 'invoke', 'nika:validate')!;
+    expect(res.taskId).toBe('validate');
+    expect(res.text).toContain('tool: nika:validate');
+    const wf = parseRichWorkflow(res.text);
+    const spliced = wf.tasks.find((t) => t.id === 'validate')!;
+    expect(spliced.dependsOn).toEqual(['second']);
+    expect(wf.tasks.find((t) => t.id === 'third')!.dependsOn).toContain('validate');
+  });
+
   it('removes a dep from inline lists, dropping the key when emptied', () => {
     const out = removeDependsOn(DOC, 'third', 'first')!;
     expect(out).not.toContain('depends_on: [first]');

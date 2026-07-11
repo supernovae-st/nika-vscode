@@ -286,12 +286,13 @@ export function insertBetween(
   from: string,
   to: string,
   verb: Verb,
+  tool?: string,
 ): { text: string; taskId: string } | undefined {
   const wf = parseRichWorkflow(text);
   if (!wf.tasks.some((t) => t.id === from) || !wf.tasks.some((t) => t.id === to)) {
     return undefined;
   }
-  const ins = insertTaskSkeleton(text, verb, from);
+  const ins = insertTaskSkeleton(text, verb, from, tool);
   if (!ins) { return undefined; }
   let out = removeDependsOn(ins.text, to, from) ?? ins.text;
   out = addDependsOn(out, to, ins.taskId) ?? out;
