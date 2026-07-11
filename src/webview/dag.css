@@ -368,6 +368,53 @@ body.running .dag-edge.edge-dep {
   stroke-width: 2.5;
 }
 
+/* Edge-lit — the answer travels through the 16px hit twin (the pointer
+ * almost never touches the 2px wire itself): wire + label + chevron
+ * light together (setEdgeLit). */
+.dag-edge.edge-lit {
+  opacity: 1;
+  stroke-width: 2.6;
+}
+
+.dag-edge.edge-data.edge-lit {
+  stroke: color-mix(in srgb, var(--nk-data) 78%, var(--nk-ink));
+}
+
+.edge-label.lit {
+  opacity: 1;
+}
+
+/* Direction chevron — one quiet ⌃ at the wire's WAIST (n8n 1.70 read:
+ * end arrowheads drown under the target cards). Hue follows the wire
+ * kind; the map read (lod-far) and the heat question drop it. */
+.edge-dir {
+  fill: none;
+  stroke: var(--nk-st-muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.edge-dir-data {
+  stroke: var(--nk-data);
+}
+
+.edge-dir.dimmed {
+  opacity: 0.1;
+}
+
+.edge-dir.lit {
+  opacity: 1;
+  stroke-width: 2.1;
+}
+
+body.lod-far .edge-dir,
+body.heatmap .edge-dir {
+  display: none;
+}
+
 /* Arrow markers inherit from CSS */
 .arrow-data {
   fill: var(--nk-data);
@@ -1586,29 +1633,6 @@ body.vscode-light .logo-dark { display: none; }
 
 .ex-glyph-data { background: var(--nk-data); height: 3px; }
 
-/* ─── Hover-card wires (inputs · alias ← source.path) ───────────────────── */
-
-.hc-bindings .hc-v {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.hc-wire {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.hc-wire-alias {
-  font-family: var(--nk-mono);
-  color: var(--nk-data);
-}
-
-.hc-wire-arrow {
-  color: var(--nk-ink-dim);
-}
-
 /* ─── Activity feed · the run, narrated ─────────────────────────────────── */
 
 #activity {
@@ -2566,6 +2590,120 @@ body.running .dag-node.status-success .nc::after {
   border-radius: 4px;
 }
 
+/* The io row — inbound wires, named ON the card (`alias ← from`). The
+ * alias speaks the data voice (same hue as edge labels); the whole wire
+ * is a jump — click focuses the producer (chips opt back into pointer
+ * events; the group's drag/select never sees it). */
+.nc-io {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  height: 15px;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nc-io-wire {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 2px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.nc-io-alias {
+  color: var(--nk-data);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.12s;
+}
+
+.nc-io-arr {
+  flex: none;
+  color: var(--nk-ink-dim);
+  opacity: 0.8;
+}
+
+.nc-io-from {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nc-io-wire:hover,
+.nc-io-wire:hover .nc-io-alias {
+  color: var(--nk-accent);
+}
+
+.nc-io-more {
+  flex: none;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  padding: 0 5px;
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 6px;
+}
+
+/* The policy row — the task's declared execution policy as footer chips
+ * (retry · timeout · on_error · outputs · permits). Facts only; hue is
+ * semantic: recover wears the absorbed-failure amber, fail_workflow the
+ * danger red, outputs the data voice — never decoration. */
+.nc-policy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  height: 20px;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nc-pol {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 4px;
+}
+
+.nc-pol-recover {
+  color: var(--nk-st-retrying);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 40%, transparent);
+  background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
+}
+
+.nc-pol-fail {
+  color: var(--nk-st-failed);
+  border-color: color-mix(in srgb, var(--nk-st-failed) 38%, transparent);
+  background: color-mix(in srgb, var(--nk-st-failed) 7%, transparent);
+}
+
+.nc-pol-outs {
+  color: var(--nk-data);
+  border-color: color-mix(in srgb, var(--nk-data) 35%, transparent);
+}
+
 /* Ports — the visible connect affordance (drag out → card = depends_on). */
 .nc-port {
   /* Patch-bay JACKS (§4b): dark bore + machined collar — the wire
@@ -2581,6 +2719,12 @@ body.running .dag-node.status-success .nc::after {
 .dag-svg.connecting .nc-port {
   opacity: 1;
   r: 5.5;
+}
+
+/* The data jack — named wires actually plug in here (port grammar §3):
+ * the collar takes the data hue, same voice as the io row + edge labels. */
+.nc-port-data {
+  stroke: color-mix(in srgb, var(--nk-data) 72%, var(--nk-page));
 }
 
 .nc-port-out {
@@ -2642,6 +2786,7 @@ body.heatmap .dag-edge { stroke: color-mix(in srgb, var(--nk-ink) 18%, transpare
 body.heatmap .edge-label { display: none; }
 body.heatmap .nc-tile { filter: grayscale(0.85); opacity: 0.6; }
 body.heatmap .nc-params { opacity: 0.4; }
+body.heatmap .nc-io, body.heatmap .nc-policy { opacity: 0.4; }
 body.heatmap .nc-badge, body.heatmap .nc-audit, body.heatmap .nc-stale { opacity: 0.35; }
 
 /* One mode = one question: the critical-path chip describes a trace
@@ -2685,7 +2830,11 @@ body.heatmap .dag-node:hover .nc {
  * params. Near shows the whole card. Class set by the zoom handler. */
 
 body.lod-mid .nc-params { visibility: hidden; }
+body.lod-mid .nc-io,
+body.lod-mid .nc-policy { visibility: hidden; }
 body.lod-far .nc-params,
+body.lod-far .nc-io,
+body.lod-far .nc-policy,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,
@@ -3750,11 +3899,26 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   #run-cost,
   #run-stale,
   .nc-audit,
+  .nc-pol,
+  .nc-io-more,
   .nc-stale {
     background: Canvas !important;
     color: CanvasText !important;
     border: 1px solid CanvasText !important;
     forced-color-adjust: none;
+  }
+
+  /* The io wires keep their jump affordance readable as LINKS. */
+  .nc-io-wire,
+  .nc-io-alias {
+    color: LinkText !important;
+  }
+
+  /* fail_workflow keeps its danger as WEIGHT, not hue. */
+  .nc-pol-fail {
+    color: Highlight !important;
+    border-color: Highlight !important;
+    font-weight: 700;
   }
 
   /* Severity survives as WEIGHT + a marker, not hue. */

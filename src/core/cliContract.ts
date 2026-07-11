@@ -75,6 +75,9 @@ export interface DagNode {
   model?: string;
   tool?: string;
   when?: string;
+  /** Per-task capability grants (`graph --format json` · the #367
+   *  affirmative permits contract) — engine truth, never parsed here. */
+  permits?: string[];
   fanOutKind?: string;
   fanOutCount?: number;
   costMin?: number;
@@ -88,6 +91,14 @@ export interface DagNode {
   commandPreview?: string;
   /** Card body — invoke args summary `k: v · k: v` (client YAML read). */
   argsPreview?: string;
+  /** `retry.max_attempts` — the declared retry budget (client YAML read). */
+  retryMax?: number;
+  /** `timeout` Go-duration string, as written (`30s` · client YAML read). */
+  timeout?: string;
+  /** `on_error` action — exactly one of recover · skip · fail_workflow. */
+  onError?: string;
+  /** Named `output:` bindings this task PRODUCES (client YAML read · ≤4). */
+  outputNames?: string[];
   /** Mean success duration across recorded traces (flight recorder). */
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */
@@ -172,6 +183,7 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
       if (n.tool) { node.tool = n.tool; }
       // "true" is the implicit default gate — only surface real conditions.
       if (n.when && n.when !== 'true') { node.when = n.when; }
+      if (n.permits && n.permits.length > 0) { node.permits = n.permits; }
       if (n.fan_out) {
         node.fanOutKind = n.fan_out.kind;
         if (typeof n.fan_out.count === 'number') { node.fanOutCount = n.fan_out.count; }

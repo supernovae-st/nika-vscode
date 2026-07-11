@@ -6,6 +6,45 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The dense card — the substance moves ON the node, the hover slims
+  to the run story** — the card gains an io row (the inbound wires,
+  named: `alias ← producer`, data-hue, click jumps to the producer,
+  `+N` overflow) and a policy row (declared execution policy as chips:
+  `↻×N` retry budget · `⏱ 30s` timeout · on_error route — `✚ recover`
+  amber / `⤼ skip` / `⛔ fail` red · `⤳ N` named output bindings ·
+  `▦ N` permits, engine-projected per the affirmative permits
+  contract). A settled task's verdict now carries its recorded spend
+  (`✓ 1.2s · $0.0042`). The hover card stops mirroring the card
+  (model/gate/cost/fan-out/wires rows removed) and keeps what only IT
+  can say — output · spent-before-failure · wave · blast radius ·
+  pinch · needs/unlocks jumps · ▸ run/⧉ dup — and it now anchors to
+  the node's flank (flips on overflow) instead of chasing the cursor.
+  Facts only: an undeclared policy renders nothing; permits come from
+  `graph --format json` (previously dropped by the adapter).
+
+- **Edge & port grammar** — every real wire (data included) gains the
+  16px hover twin: hovering lights the wire, its alias label and its
+  NEW mid-edge direction chevron (end arrowheads drown under target
+  cards — the waist ⌃ reads at any pan; hidden on the far map read).
+  The ⌥click-to-disconnect gesture now actually works through the
+  twin (it was unreachable beneath it before); the insert-on-edge +
+  stays dependency-wires-only. The in-port wears the data hue when
+  named wires plug in, and both ports teach on hover.
+
+- **Keyboard camera obeys the motion charter** — every
+  keyboard-initiated camera move is now INSTANT (F fit · +/− zoom ·
+  A auto-layout · Tab/↑↓ nav · `/`-Enter cycling); glides stay with
+  pointer gestures. ←/→ join Tab as prev/next task.
+
+- **Native right-click on a card** — a real VS Code context menu
+  (`data-vscode-context` + `webview/context`): Run Task (upstream
+  cone) · Open in YAML · Duplicate · Delete · Copy Task Id — the same
+  levers the canvas gestures already used, zero hand-rolled DOM menus.
+
+- **27-builtin glyph fallback** — `chart` and `image_fx` (the media
+  family's 0.99 graduates) join the offline category-glyph map; the
+  binary's own `tools --json` vocabulary still wins when present.
+
 - **Execution particles — data made visible crossing the wire** — while
   a task computes, each edge feeding it carries a short train of bright
   beads (SVG `animateMotion` riding the edge path on the compositor; the

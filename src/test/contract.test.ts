@@ -472,6 +472,26 @@ describe.skipIf(!BIN)('explain ↔ canon error codes (real binary)', () => {
   });
 });
 
+// ─── graphDocToDag pure adaptation (no binary needed) ────────────────────────
+
+describe('graphDocToDag adaptation (pure)', () => {
+  it('carries per-task permits onto the node (#367 contract)', () => {
+    const doc = {
+      graph_format: 1,
+      workflow: 'permits_probe',
+      nodes: [
+        { id: 'a', verb: 'invoke', tool: 'nika:fetch', permits: ['net.http: api.example.org'] },
+        { id: 'b', verb: 'infer', permits: [] },
+      ],
+      edges: [{ from: 'a', to: 'b', kind: 'depends_on' }],
+    };
+    const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
+    expect(dag.nodes[0].permits).toEqual(['net.http: api.example.org']);
+    // An empty grant list stays absent — no fake ▦0 chip.
+    expect(dag.nodes[1].permits).toBeUndefined();
+  });
+});
+
 // ─── DAG insights on the REAL projection ─────────────────────────────────────
 // The analysis invariants hold on whatever the engine actually projects —
 // width bounds every wave, Brent + Graham hold, ghosts shape nothing.

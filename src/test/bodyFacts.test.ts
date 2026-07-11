@@ -61,3 +61,62 @@ describe('collectBodyFacts', () => {
     expect(facts.has('bare')).toBe(false);
   });
 });
+
+const POLICY_WF = `nika: v1
+workflow: policy_probe
+model: mock/echo
+tasks:
+  - id: guarded
+    infer:
+      prompt: "Summarize."
+    timeout: "30s"
+    retry:
+      max_attempts: 3
+      backoff_ms: 200
+    on_error:
+      skip: true
+    output:
+      summary: ".text"
+      title: ".title"
+  - id: flow_forms
+    exec:
+      command: echo hi
+    retry: { max_attempts: 2 }
+    on_error: { recover: "fallback" }
+  - id: decoy
+    invoke:
+      tool: "nika:jq"
+      args:
+        expr: "."
+    with:
+      timeout: "\${{ tasks.guarded.output }}"
+`;
+
+describe('collectBodyFacts · policy facts (retry · timeout · on_error · output)', () => {
+  const facts = collectBodyFacts(POLICY_WF);
+
+  it('reads retry.max_attempts from a block', () => {
+    expect(facts.get('guarded')?.retryMax).toBe(3);
+  });
+
+  it('reads the quoted Go-duration timeout', () => {
+    expect(facts.get('guarded')?.timeout).toBe('30s');
+  });
+
+  it('reads the on_error action key (block form)', () => {
+    expect(facts.get('guarded')?.onError).toBe('skip');
+  });
+
+  it('collects named output bindings the task produces', () => {
+    expect(facts.get('guarded')?.outputNames).toEqual(['summary', 'title']);
+  });
+
+  it('reads flow forms — retry: {max_attempts} · on_error: {recover}', () => {
+    expect(facts.get('flow_forms')?.retryMax).toBe(2);
+    expect(facts.get('flow_forms')?.onError).toBe('recover');
+  });
+
+  it('a with: alias named timeout never impersonates the task field', () => {
+    expect(facts.get('decoy')?.timeout).toBeUndefined();
+  });
+});
