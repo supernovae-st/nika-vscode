@@ -6,6 +6,67 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.99.9 — 2026-07-12
+
+The same operator day, second half: nine more merged PRs (#69–#77),
+each sideloaded and re-proven live (0.99.4→0.99.8 were those steps;
+0.99.9 is the publish candidate).
+
+### One truth for where the user is
+- **The journey** — four surfaces each re-derived « where is the
+  user? » (status menu · welcome view · init nudge · New Session);
+  `core/journey.ts` now computes it once — `noBinary → unequipped →
+  empty → working`, precedence telling the story (workflows mean
+  WORKING: equipping is an improvement, never a blocker) — and every
+  surface consumes it (#77).
+- **The menu head IS the next step, per stage** — Finish setup /
+  Init this project / the 10-second proof + New session / the active
+  file's Run · Check · Graph. Init Project and New Session finally
+  enter the menu — the onboarding doors were missing from the one
+  ordered surface (#77).
+- **The sidebar says what the menu says** — viewsWelcome splits per
+  stage via the `nika.journey` context key; the walkthrough's first
+  step becomes one gesture (Finish Setup, completion wired) (#77).
+
+### The language tells the truth
+- **Colors stay honest** — links move OFF the verb keywords (a
+  DocumentLink paints over token colors permanently in Cursor; hover
+  keeps the teaching) and semantic tokens skip comment lines, so a
+  `${{ … }}` in a comment reads as a comment (#70).
+- **References navigable** — F12 / peek works on task names: wire
+  references (`${{ tasks.X }}`, `needs:`) resolve to the task's
+  definition and back (#70).
+
+### The menu reads as intent, not inventory
+- **Sections over a wall** — the active file leads with concrete
+  labels (Run · Check · Graph on the filename), then Author · Prove ·
+  Understand · Machine; the earned ask closes the list (#71).
+- **Less but better** — one lifecycle toast, two lens segments, one
+  menu row fewer (#69).
+
+### One lightbulb, never two
+- **The client yields renames to the server** — when the engine's LSP
+  advertises code actions (the `check --fix` rename engine shipped as
+  quickfixes), the extension's own rename quickfixes stand down; older
+  engines keep the client fallback. Probed live on the initialize
+  handshake, never version-guessed (#72).
+
+### One voice, fewer moving parts
+- **The palette speaks one voice** — category SSOT « Nika » (titles
+  lose their prefix), one export command (`Export Graph` asks
+  SVG/PNG/Mermaid/DOT), internal rows hidden: 54 → 47 palette
+  entries (#74).
+- **The vsix sheds its internal docs** — contributor docs and icon
+  build notes leave the artifact (58 → 55 files); OFL.txt stays — the
+  SIL license must travel with the font (#76).
+
+### Belts
+- **artifactsReal pins the released binary** — the e2e belt prefers
+  the Homebrew Cellar path over bare PATH: a sister session's branch
+  build on PATH can carry provenance attributes that Gatekeeper kills,
+  reading as « no binary » in belts that must prove the RELEASED
+  story (#73).
+
 ## 0.99.3 — 2026-07-12
 
 The operator-loop day: ten screenshot-driven passes, nine merged PRs

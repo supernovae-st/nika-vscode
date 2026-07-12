@@ -46,6 +46,11 @@ messages and positions come from the engine, not the extension.*
 
 ## 30 seconds to the wow
 
+The **🦋 status-bar item** is the one door: its menu opens on *your*
+next step — no engine yet → **Finish Setup** (verified download · MCP ·
+LSP, one gesture) · fresh repo → **Init this project** · then the
+10-second proof and your files' Run · Check · Graph.
+
 1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
 2. **`Nika: Show Workflow DAG`**. The file becomes a content-first
    canvas: prompts on infer cards, `$ commands` on exec cards.
@@ -84,8 +89,8 @@ theme*, not to extensions:
 - **vscode-icons** · full custom butterfly (file + folder + open-folder):
   see [`contrib/`](contrib/README.md).
 - Upstream Material icons (real `nika` file + `.nika` folder artwork) are
-  prepared in [`contrib/material-icon-theme/`](contrib/README.md), spec-compliant
-  and ready to PR.
+  submitted: [material-icon-theme#3530](https://github.com/material-extensions/vscode-material-icon-theme/pull/3530)
+  (sources in [`contrib/material-icon-theme/`](contrib/README.md)).
 
 ## Features
 
