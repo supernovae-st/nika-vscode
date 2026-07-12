@@ -109,7 +109,7 @@ describe.skipIf(!BIN)('live-run wire (real binary · the canvas run pill seam)',
   it('a real fan-out run folds to the exact terminal state', () => {
     const file = tmpWorkflow(FANOUT_WF);
     try {
-      const res = runStream(['run', file, '--json', '--no-color']);
+      const res = runStream(['run', file, '--json', '--color', 'never']);
       expect(res.code).toBe(0);
 
       const model = foldTrace(res.stdout);
@@ -130,7 +130,7 @@ describe.skipIf(!BIN)('live-run wire (real binary · the canvas run pill seam)',
   it('the fold is chunk-boundary-independent on the REAL stream', () => {
     const file = tmpWorkflow(FANOUT_WF);
     try {
-      const stream = runStream(['run', file, '--json', '--no-color']).stdout;
+      const stream = runStream(['run', file, '--json', '--color', 'never']).stdout;
       const whole = foldTrace(stream);
 
       // Re-fold at 17-byte increments the way runLive does per chunk:
@@ -153,7 +153,7 @@ describe.skipIf(!BIN)('live-run wire (real binary · the canvas run pill seam)',
   it('a failing exec folds to the verdict the danger flash keys on', () => {
     const file = tmpWorkflow(FAILING_WF);
     try {
-      const res = runStream(['run', file, '--json', '--no-color']);
+      const res = runStream(['run', file, '--json', '--color', 'never']);
       expect(res.code).not.toBe(0);
 
       const model = foldTrace(res.stdout);
@@ -168,7 +168,7 @@ describe.skipIf(!BIN)('live-run wire (real binary · the canvas run pill seam)',
   it('--model mock/echo overrides a cloud envelope (the zero-key preview)', () => {
     const file = tmpWorkflow(CLOUD_WF);
     try {
-      const res = runStream(['run', file, '--json', '--no-color', '--model', 'mock/echo']);
+      const res = runStream(['run', file, '--json', '--color', 'never', '--model', 'mock/echo']);
       expect(res.code).toBe(0);
       const model = foldTrace(res.stdout);
       expect(model.workflowStatus).toBe('completed');

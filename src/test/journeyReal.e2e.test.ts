@@ -87,7 +87,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
       fs.writeFileSync(wf, WORKFLOW);
 
       // ── Run 1: the flaky diamond (expected to FAIL after retries). ──
-      const first = run(BIN!, dir, ['run', wf, '--json', '--no-color']);
+      const first = run(BIN!, dir, ['run', wf, '--json', '--color', 'never']);
       expect(first.code).not.toBe(0); // flaky exhausts its attempts
       const traces1 = traceFiles(dir);
       expect(traces1.length).toBeGreaterThan(0);
@@ -127,7 +127,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
       expect(report).toContain('`flaky`');
 
       // ── The flagship: fork from `right` — upstream must REHYDRATE. ──
-      run(BIN!, dir, ['run', wf, '--resume', traces1[traces1.length - 1], '--from', 'right', '--json', '--no-color']);
+      run(BIN!, dir, ['run', wf, '--resume', traces1[traces1.length - 1], '--from', 'right', '--json', '--color', 'never']);
       const traces2 = traceFiles(dir).filter((t) => !traces1.includes(t));
       expect(traces2.length).toBeGreaterThan(0);
       const ndjson2 = fs.readFileSync(traces2[traces2.length - 1], 'utf-8');
@@ -160,7 +160,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
         '    exec:',
         '      command: ["echo", "shipped"]',
       ].join('\n'));
-      const paused = run(BIN!, dir, ['run', wf, '--json', '--no-color']);
+      const paused = run(BIN!, dir, ['run', wf, '--json', '--color', 'never']);
       expect(paused.code).toBe(4); // exit 4 = PAUSED, the human-gate
       const t1 = traceFiles(dir);
       expect(t1.length).toBeGreaterThan(0);
@@ -168,7 +168,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
       expect(fold.workflowStatus).toBe('paused');
       expect(fold.paused).toMatchObject({ task: 'approve', mode: 'confirm', message: 'Ship it?' });
 
-      const done = run(BIN!, dir, ['run', wf, '--resume', t1[t1.length - 1], '--answer', 'approve=true', '--json', '--no-color']);
+      const done = run(BIN!, dir, ['run', wf, '--resume', t1[t1.length - 1], '--answer', 'approve=true', '--json', '--color', 'never']);
       expect(done.code).toBe(0);
       const t2 = traceFiles(dir).filter((t) => !t1.includes(t));
       const fold2 = foldTrace(fs.readFileSync(t2[t2.length - 1], 'utf-8'));
@@ -188,7 +188,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
       fs.mkdirSync(elsewhere);
       const wf = path.join(wfDir, 'probe.nika.yaml');
       fs.writeFileSync(wf, 'nika: v1\nworkflow: cwd-probe\ntasks:\n  - id: a\n    exec:\n      command: ["true"]\n');
-      run(BIN!, elsewhere, ['run', wf, '--json', '--no-color']);
+      run(BIN!, elsewhere, ['run', wf, '--json', '--color', 'never']);
       const here = traceFiles(elsewhere).length;
       const there = traceFiles(wfDir).length;
       // Whichever way the engine decides, exactly ONE side owns the

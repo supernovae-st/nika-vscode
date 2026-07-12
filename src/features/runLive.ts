@@ -121,7 +121,7 @@ export function runWorkflowLive(
   lastAnchorByWorkflow.delete(fsPath);
   const child = spawn(
     binary,
-    ['run', fsPath, '--json', '--no-color', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
+    ['run', fsPath, '--json', '--color', 'never', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
     {
       // The engine writes its journal (`.nika/traces/`) and resolves
       // relative paths against the process CWD (empirical law — the

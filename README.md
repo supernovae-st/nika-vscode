@@ -111,6 +111,14 @@ theme*, not to extensions:
   derived by `check --infer-permits` (default-deny from then on)
 - **Static cost audit** · per-task `$min–max` inlay hints + the workflow
   ceiling on a code lens · audited before a single token is spent
+- **Lens doors on every structural line** · the envelope reads
+  top-to-bottom (GitHub ↑ `nika:` · Check/DAG/Run ↑ `workflow:` ·
+  Explain ↑ `description:` · verdict + ceiling ↑ `tasks:`) · `model:`
+  opens the local-first catalog picker · each verb key offers proven
+  starters — `invoke:` lists every builtin THIS binary carries with an
+  args skeleton from the tool's own schema; `infer:`/`exec:`/`agent:`
+  insert the spec's oracle-validated shapes · picking replaces the
+  block surgically (one edit · one undo)
 - **Secrets lint** · literal credentials flagged locally (pure scan · zero
   network) with a `${{ env.VAR }}` rewrite quick fix
 
