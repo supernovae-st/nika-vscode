@@ -90,7 +90,6 @@ export class NikaStatusBar implements vscode.Disposable {
     add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · provider keys · never mutates', command: 'nika.doctor' });
     add(caps.doctor && versionAtLeast(caps.version, 0, 94), { label: '$(radio-tower) Doctor + ping local providers', description: 'opt-in TCP probe · loopback only · 300ms cap · nothing sent', command: 'nika.doctorPing' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
-    add(this.service.available, { label: '$(verified) Verify engine binary', command: 'nika.checkBinary' });
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });
     // The one earned ask — a quiet footer, never a toast (engine #498's
     // community-line doctrine, extension side).

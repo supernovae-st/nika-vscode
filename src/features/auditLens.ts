@@ -200,14 +200,21 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         const waveTotal = r.waves.reduce((acc, w) => acc + w.length, 0);
         const clean = r.clean === true;
         const findingCount = countReportFindings(r);
+        // Verdict + ceiling share the target (the report) — ONE segment,
+        // not two (the Rams pass: the status row's budget is the sin the
+        // morning screenshot flagged).
+        const bounded0 = r.cost.bounded_total_usd;
+        const ceilingTail = typeof bounded0 === 'number' && bounded0 > 0
+          ? ` · ≤ ${usd(bounded0)}`
+          : '';
         const findingsTitle = clean
-          ? '$(pass-filled) clean'
-          : `$(warning) ${findingCount} finding${findingCount === 1 ? '' : 's'}`;
+          ? `$(pass-filled) clean${ceilingTail}`
+          : `$(warning) ${findingCount} finding${findingCount === 1 ? '' : 's'}${ceilingTail}`;
         lenses.push(new vscode.CodeLens(status, {
           command: 'nika.showReport',
           title: findingsTitle,
           arguments: [document.uri],
-          tooltip: 'Open the full static pre-flight report (check --json)',
+          tooltip: 'Open the full static pre-flight report (check --json) — verdict · findings · the cost ceiling',
         }));
         if (waveTotal > 0) {
           lenses.push(new vscode.CodeLens(status, {
@@ -236,16 +243,7 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
             tooltip: `Copy the run line with ${varsRequired.join(' · ')} as --var placeholders`,
           }));
         }
-        const bounded = r.cost.bounded_total_usd;
-        if (typeof bounded === 'number' && bounded > 0) {
-          const minPath = r.cost.min_path_total_usd;
-          lenses.push(new vscode.CodeLens(status, {
-            command: 'nika.showReport',
-            title: `$(graph) ceiling ${typeof minPath === 'number' ? `${usd(minPath)}–` : ''}${usd(bounded)}`,
-            arguments: [document.uri],
-            tooltip: 'Static worst-case cost ceiling across all priced tasks — audited before a single token is spent',
-          }));
-        }
+
       }
     }
 
