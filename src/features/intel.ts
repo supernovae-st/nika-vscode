@@ -207,8 +207,23 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
     const word = document.getText(wordRange);
     const lineText = document.lineAt(position.line).text;
 
-    // 2 · builtin tool hover — `nika:read` etc. (the closed set)
-    if (word.startsWith('nika:')) {
+    // 1bis · the envelope key — `nika: v1` at the top level is the ONE
+    // `nika:`-prefixed token that is NOT a tool (operator screenshot
+    // 2026-07-12: the bare key hit the unknown-builtin warning). Teach
+    // what it is instead.
+    if (/^nika:\s/.test(lineText) && (word === 'nika:' || word === 'nika' || word === 'v1')) {
+      const md = new vscode.MarkdownString();
+      md.appendMarkdown(
+        '**`nika: v1`** — the envelope, frozen forever. Every workflow starts with '
+        + '`nika: v1` · `workflow: <kebab-id>` · `tasks:` — the version never changes '
+        + 'with engine releases.',
+      );
+      return new vscode.Hover(md, wordRange);
+    }
+
+    // 2 · builtin tool hover — `nika:read` etc. (the closed set). The
+    // bare `nika:` word (no tool name after the colon) never lands here.
+    if (word.startsWith('nika:') && word.length > 'nika:'.length) {
       if (intel.builtinTools.includes(word)) {
         const md = new vscode.MarkdownString();
         md.appendMarkdown(`**\`${word}\`** — stdlib builtin (closed set of ${intel.builtinTools.length} · from the embedded schema).`);
