@@ -5,7 +5,7 @@
 // a quick-pick menu.
 
 import * as vscode from 'vscode';
-import { describeCapabilities, versionAtLeast } from '../core/capabilities';
+import { describeCapabilities } from '../core/capabilities';
 import type { NikaService } from '../nikaService';
 
 export class NikaStatusBar implements vscode.Disposable {
@@ -63,39 +63,63 @@ export class NikaStatusBar implements vscode.Disposable {
     const items: Item[] = [];
     const add = (cond: boolean, item: Item): void => { if (cond) { items.push(item); } };
 
-    // STATE-AWARE, not a chore list (operator design pass 2026-07-12):
-    // no binary → ONE orchestrated repair; fresh workspace → the
-    // 10-second proof leads; working workspace → operate verbs lead.
+    // STATE-AWARE and SECTIONED (Rams pass #2, operator screenshot
+    // 2026-07-12 18h03: eighteen flat rows read as a wall). The active
+    // FILE leads with concrete labels; then Author · Prove ·
+    // Understand · Machine; the earned ask closes. One doctor row
+    // (--ping stays a terminal move, named in the description).
     const hasWorkflows = (await vscode.workspace.findFiles(
       '**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 1,
     )).length > 0;
+    const activeDoc = vscode.window.activeTextEditor?.document;
+    const active = activeDoc?.languageId === 'nika'
+      ? activeDoc.uri.path.split('/').pop() ?? 'this workflow'
+      : undefined;
+    const sep = (label: string): Item =>
+      ({ label, kind: vscode.QuickPickItemKind.Separator } as Item);
+
     add(!this.service.available, { label: '$(zap) Finish setup — install engine + wire everything', description: 'verified download · MCP · LSP · one gesture', command: 'nika.finishSetup' });
     add(this.service.available && !hasWorkflows && caps.examples, { label: '$(play) Run the 10-second proof', description: '01-hello · mock/echo · offline · zero keys', command: 'nika.runProof' });
-    add(caps.check, { label: '$(check) Check workflow', description: 'static pre-flight (ADR-092 ladder)', command: 'nika.checkWorkflow' });
-    add(caps.check, { label: '$(output) Open check report', description: 'check --json projection', command: 'nika.showReport' });
-    add(caps.graph, { label: '$(type-hierarchy) Show DAG', command: 'nika.showDag' });
-    add(caps.inspect, { label: '$(list-tree) Inspect anatomy', description: 'tasks · verbs · cost · permits', command: 'nika.inspectWorkflow' });
-    add(caps.check, { label: '$(shield) Insert inferred permits boundary', command: 'nika.inferPermits' });
-    add(caps.run, { label: '$(play) Run workflow', command: 'nika.runWorkflow' });
-    add(caps.test, { label: '$(beaker) Golden test', description: 'mock provider · offline · compares <file>.golden.json', command: 'nika.testWorkflow' });
-    add(caps.test, { label: '$(beaker) Update the golden', description: 'test --update — (re)writes <file>.golden.json from this run', command: 'nika.testUpdate' });
-    add(!caps.run && caps.trace, { label: '$(play-circle) Watch demo replay', description: 'run ships with the L3 runtime', command: 'nika.watchDemo' });
-    add(caps.trace, { label: '$(history) Replay a trace', command: 'nika.replayTrace' });
+
+    if (active) {
+      add(true, sep(active));
+      add(caps.run, { label: '$(play) Run', description: active, command: 'nika.runWorkflow' });
+      add(caps.check, { label: '$(check) Check', description: 'the audit, before a token is spent', command: 'nika.checkWorkflow' });
+      add(caps.graph, { label: '$(type-hierarchy) Graph', description: 'the DAG canvas', command: 'nika.showDag' });
+      add(!caps.run && caps.trace, { label: '$(play-circle) Watch demo replay', description: 'run ships with the engine runtime', command: 'nika.watchDemo' });
+    }
+
+    add(true, sep('Author'));
     add(true, { label: '$(new-file) New workflow', command: 'nika.newWorkflow' });
     add(caps.examples, { label: '$(book) Browse embedded examples', command: 'nika.browseExamples' });
+    add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'template → check → repair, for any agent', command: 'nika.copyAiPrompt' });
+
+    add(caps.test || caps.trace, sep('Prove'));
+    add(caps.test, { label: '$(beaker) Golden test', description: 'mock provider · offline · compares <file>.golden.json', command: 'nika.testWorkflow' });
+    add(caps.test, { label: '$(beaker) Update the golden', description: 'test --update — (re)writes the pin from this run', command: 'nika.testUpdate' });
+    add(caps.trace, { label: '$(history) Replay a trace', command: 'nika.replayTrace' });
+
+    add(caps.inspect || caps.check || caps.spec, sep('Understand'));
+    add(caps.inspect, { label: '$(list-tree) Inspect anatomy', description: 'tasks · verbs · cost · permits', command: 'nika.inspectWorkflow' });
+    add(caps.check, { label: '$(output) Open check report', description: 'check --json projection', command: 'nika.showReport' });
+    add(caps.check, { label: '$(shield) Insert inferred permits boundary', command: 'nika.inferPermits' });
     add(caps.spec, { label: '$(file-text) Open embedded spec', command: 'nika.openSpec' });
     add(caps.schema, { label: '$(json) Open JSON schema', command: 'nika.openSchema' });
-    add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'deterministic template→check→repair protocol', command: 'nika.copyAiPrompt' });
+
+    add(true, sep('Machine'));
+    add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · keys · never mutates (--ping in a terminal probes local ports)', command: 'nika.doctor' });
     add(this.service.available, { label: '$(plug) Re-wire MCP + agent rules', description: 'idempotent — auto-ran once at first activation', command: 'nika.setupMcp' });
-    add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · provider keys · never mutates', command: 'nika.doctor' });
-    add(caps.doctor && versionAtLeast(caps.version, 0, 94), { label: '$(radio-tower) Doctor + ping local providers', description: 'opt-in TCP probe · loopback only · 300ms cap · nothing sent', command: 'nika.doctorPing' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });
-    // The one earned ask — a quiet footer, never a toast (engine #498's
-    // community-line doctrine, extension side).
+
+    add(true, sep(''));
+    // The one earned ask — a quiet footer, never a toast (#498 doctrine).
     add(true, { label: '$(star) Star nika on GitHub', description: 'supernovae-st/nika — it helps others find it', command: 'nika.starOnGitHub' });
 
-    const picked = await vscode.window.showQuickPick(items, { title: 'Nika' });
+    const picked = await vscode.window.showQuickPick(items, {
+      title: 'Nika',
+      placeHolder: active ? `${active} — run · check · graph, or browse below` : 'What next — author, prove, understand?',
+    });
     if (picked?.command) {
       await vscode.commands.executeCommand(picked.command, ...(picked.args ?? []));
     }

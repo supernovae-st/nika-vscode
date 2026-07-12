@@ -18,7 +18,18 @@ import { attemptLadders } from '../core/attempts';
 import { renderRunReport } from '../core/runReport';
 import { extractRunArtifacts } from '../core/artifacts';
 
-const CANDIDATES = [process.env.NIKA_BIN, 'nika']
+// Prefer a RELEASED binary over the bare PATH: on dev machines a
+// sister session routinely swaps /opt/homebrew/bin/nika for an
+// in-flight branch build whose contracts (exit codes · trace layout)
+// legitimately drift — these belts pin the SHIPPED behavior.
+const CELLAR = (() => {
+  try {
+    const base = '/opt/homebrew/Cellar/nika';
+    const versions = fs.readdirSync(base).sort();
+    return versions.length ? `${base}/${versions[versions.length - 1]}/bin/nika` : undefined;
+  } catch { return undefined; }
+})();
+const CANDIDATES = [process.env.NIKA_BIN, CELLAR, 'nika']
   .filter((p): p is string => typeof p === 'string' && p.length > 0);
 
 function probe(bin: string): boolean {
