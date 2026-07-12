@@ -32,3 +32,22 @@ jobs:
         run: npm test
       - name: Snippets parse as strict JSON
         run: node -e "JSON.parse(require('fs').readFileSync('snippets/nika.code-snippets','utf8')); console.log('snippets OK')"
+      # The starters SSOT loop, closed consumer-side (the docs-oracle
+      # pattern): verbStarters.generated.ts must be byte-exactly what the
+      # spec's projector emits from stdlib/verb-starters-v0.1.yaml — a
+      # hand edit here, or a spec that moved without a resync, reds this
+      # PR instead of drifting silently. The projector also re-proves
+      # every starter against the conformance oracle before comparing.
+      # SECURITY: no github.event data is interpolated — the only
+      # expression is the runner-controlled workspace path.
+      - name: Fetch the spec SSOT (sibling layout)
+        run: git clone --depth 1 https://github.com/supernovae-st/nika-spec ../spec
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verb starters track the spec projector
+        env:
+          NIKA_VSCODE_SRC: ${{ github.workspace }}/src
+        run: |
+          pip install pyyaml jsonschema
+          python3 ../spec/scripts/starters-projector.py --check
