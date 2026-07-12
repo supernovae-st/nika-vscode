@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Cursor gets its guided setup** — running in Cursor with a working
+  binary now surfaces ONE toast (machine-scoped, never again): install
+  the nika marketplace plugin (rules · skill · subagent · hooks · MCP
+  in one Add) or wire just this workspace (`nika.setupMcp`). No install
+  API exists on the plugin side, so the nudge guides instead of acting.
+
 - **Add Task from the editor** (`⌘⌥T` · `Nika: Add Task` · editor
   context menu) — one QuickPick speaking the canvas palette's exact
   vocabulary: the 4 verbs, then every builtin as a pre-wired `invoke:`
