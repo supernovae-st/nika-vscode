@@ -2575,7 +2575,25 @@ async function resolveBinary(context: ExtensionContext): Promise<string | undefi
   try {
     const downloaded = await downloadNikaBinary(storagePath);
     if (downloaded && fs.existsSync(downloaded) && (await isBinaryWorking(downloaded))) {
-      window.showInformationMessage('Nika engine downloaded successfully.');
+      // The moment of highest intent — the toast carries the NEXT moves
+      // instead of dead-ending (first-install audit 2026-07-12). Wiring
+      // still requires the explicit click: downloading a binary is not
+      // consent to write .cursor/.vscode files into the user's repo.
+      void window.showInformationMessage(
+        'Nika engine downloaded. Wire this workspace (MCP + agent rules) or take the 5-minute tour?',
+        'Wire workspace',
+        'Open walkthrough',
+      ).then((choice) => {
+        if (choice === 'Wire workspace') {
+          void commands.executeCommand('nika.setupMcp');
+        } else if (choice === 'Open walkthrough') {
+          void commands.executeCommand(
+            'workbench.action.openWalkthrough',
+            'supernovae.nika-lang#nika.gettingStarted',
+            false,
+          );
+        }
+      });
       return downloaded;
     }
   } catch (err) {

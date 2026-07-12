@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The post-download toast carries the next moves** — after the
+  one-click engine download (consent modal · SHA-256 verified), the
+  success toast offered nothing. It now hands over: Wire workspace
+  (MCP + agent rules via `nika.setupMcp`) or Open walkthrough. Wiring
+  stays click-explicit: downloading a binary is not consent to write
+  files into the user's repo.
+
 - **Cursor gets its guided setup** — running in Cursor now surfaces ONE
   toast (machine-scoped, never again): install the nika marketplace
   plugin (rules · skill · subagent · hooks · MCP in one Add) or wire
