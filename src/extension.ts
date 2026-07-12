@@ -1802,6 +1802,53 @@ export function activate(context: ExtensionContext): void {
     }),
   );
 
+  // Command: Init Project — the one-gesture project setup. Runs the
+  // binary's own scaffold (`nika init` — 7 files: AGENTS.md · .cursor/
+  // {rules,mcp.json} · .vscode schema wiring · copilot brief · CLAUDE.md
+  // · the authoring skill; skip-if-exists, the engine's discipline) and
+  // then wires the HOST (mcp + rules for Cursor/Windsurf/VS Code). One
+  // click = a fully equipped repo; the button IS the consent to write.
+  context.subscriptions.push(
+    commands.registerCommand('nika.initProject', async () => {
+      const folder = workspace.workspaceFolders?.[0];
+      if (!folder) {
+        void window.showErrorMessage('Nika: open a folder first.');
+        return;
+      }
+      if (!state.resolvedServerPath && !getNikaPath()) {
+        const pick = await window.showWarningMessage(
+          'Init Project runs the nika binary, which is not installed yet.',
+          'Install binary first',
+        );
+        if (pick === 'Install binary first') {
+          void commands.executeCommand('nika.restartServer');
+        }
+        return;
+      }
+      const res = await service.runCli(['init', folder.uri.fsPath, '--color', 'never'], 30000);
+      if (res.code !== 0) {
+        log('WARN', `nika init failed (${res.code}): ${res.stderr || res.stdout}`);
+        void window.showErrorMessage('Nika: init failed — see the output channel.');
+        return;
+      }
+      const created = (res.stdout.match(/created /g) ?? []).length;
+      const skipped = (res.stdout.match(/skipped/g) ?? []).length;
+      await configureMcpForHost(state.resolvedServerPath, service.intel?.providers, false);
+      void window.showInformationMessage(
+        `Nika: project equipped — ${created} file(s) scaffolded${skipped ? `, ${skipped} kept` : ''}, MCP + agent rules wired.`,
+        'Open walkthrough',
+      ).then((choice) => {
+        if (choice === 'Open walkthrough') {
+          void commands.executeCommand(
+            'workbench.action.openWalkthrough',
+            'supernovae.nika-lang#nika.gettingStarted',
+            false,
+          );
+        }
+      });
+    }),
+  );
+
   // Command: New workflow — engine templates first, starter fallback.
   context.subscriptions.push(
     commands.registerCommand('nika.newWorkflow', async () => {

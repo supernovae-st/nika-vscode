@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **Init Project — the one-gesture setup** (`Nika: Init Project` ·
+  welcome view 🚀 button · walkthrough) — runs the binary's own
+  scaffold (`nika init`: 7 files, skip-if-exists) then wires MCP +
+  agent rules for the detected host. One click = a fully equipped
+  repo; the button IS the consent to write.
+
 - **The post-download toast carries the next moves** — after the
   one-click engine download (consent modal · SHA-256 verified), the
   success toast offered nothing. It now hands over: Wire workspace
