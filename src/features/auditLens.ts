@@ -11,10 +11,12 @@ import { countReportFindings } from '../core/cliContract';
 import { findLensAnchors, findPermitsLine } from '../core/lensAnchors';
 import {
   ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, DECLARE_INPUT_DOOR, makeCallableDoorTitle,
-  PUBLISH_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle,
+  MODEL_DOOR, PUBLISH_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle,
 } from '../core/lensVocab';
+import { needsDefaultModel } from '../core/modelEdit';
 import { findOutputsBlock } from '../core/outputsEdit';
 import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
+import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -278,6 +280,18 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         command: 'nika.addTask',
         title: ADD_TASK_DOOR,
         tooltip: 'New task from the palette — a verb, or a builtin as a pre-wired invoke (⌥⌘T)',
+      }));
+    }
+    // The missing brain (static fact, offline): infer/agent present,
+    // no model ANYWHERE — the run hits the provider wall at launch.
+    // One door, run-blocking severity, gone the moment a model lands.
+    const need = needsDefaultModel(parseRichWorkflow(document.getText()));
+    if (need) {
+      lenses.push(new vscode.CodeLens(status, {
+        command: 'nika.chooseDefaultModel',
+        title: MODEL_DOOR,
+        arguments: [document.uri],
+        tooltip: `No model anywhere yet — ${need.needy.join(' · ')} will need one at run time. Inserts the envelope default (local-first catalog).`,
       }));
     }
     // A DECLARED boundary drifts as tasks accumulate; its line offers

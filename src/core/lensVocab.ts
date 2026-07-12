@@ -65,3 +65,7 @@ export const GATE_DOOR = '⌁ choose a gate';
 
 /** `for_each:` — swap the collection the task maps over. */
 export const COLLECTION_DOOR = '$(symbol-array) choose the collection';
+
+/** A task that FAILED its last run — the spec's three error walls.
+ * (The missing-model status CTA reuses MODEL_DOOR — one voice.) */
+export const ARMOR_DOOR = '$(pulse) make it resilient';

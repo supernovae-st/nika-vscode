@@ -75,8 +75,9 @@ import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/audit
 import {
   declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
 } from './features/contractDoors';
+import { makeResilientFor } from './features/armorDoors';
 import { chooseCollectionFor, chooseGateFor, wireInputsFor } from './features/flowDoors';
-import { ModelLensProvider, pickModelForLine } from './features/modelLens';
+import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
@@ -705,6 +706,7 @@ export function activate(context: ExtensionContext): void {
     return map;
   };
   const lensProvider = new AuditCodeLensProvider(service);
+  const taskLensProvider = new TaskLensProvider();
   context.subscriptions.push(
     inlayProvider,
     lensProvider,
@@ -712,7 +714,8 @@ export function activate(context: ExtensionContext): void {
     languages.registerInlayHintsProvider([{ language: 'nika' }], xrayProvider),
     traceStore.onDidUpdate(() => xrayProvider.refresh()),
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
-    languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
+    taskLensProvider,
+    languages.registerCodeLensProvider([{ language: 'nika' }], taskLensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new ModelLensProvider()),
     commands.registerCommand('nika.pickModel', (uri: Uri, line: number) =>
       pickModelForLine(service, uri, line),
@@ -737,6 +740,14 @@ export function activate(context: ExtensionContext): void {
     ),
     commands.registerCommand('nika.chooseCollection', (uri: Uri, taskId: string) =>
       chooseCollectionFor(uri, taskId),
+    ),
+    // The armor doors (V3): the failed-task lens carries (uri, id);
+    // the palette path armors the task under the cursor.
+    commands.registerCommand('nika.makeResilient', (uri?: Uri, taskId?: string) =>
+      makeResilientFor(uri, taskId),
+    ),
+    commands.registerCommand('nika.chooseDefaultModel', (uri?: Uri) =>
+      chooseDefaultModelFor(service, uri),
     ),
     new VerbGutterDecorations(),
     runDecor,
