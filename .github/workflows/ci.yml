@@ -45,9 +45,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verb starters track the spec projector
+      - name: Generated surfaces track the spec projectors
+        # starters (verbStarters.generated.ts · oracle re-proof + byte diff)
+        # AND design tokens (design-tokens.generated.ts — tokens-parity.mjs
+        # only guards INTERNAL coherence; parity with the spec YAML was
+        # unguarded on both sides). Absent siblings (website · docs) skip.
         env:
           NIKA_VSCODE_SRC: ${{ github.workspace }}/src
         run: |
           pip install pyyaml jsonschema
           python3 ../spec/scripts/starters-projector.py --check
+          python3 ../spec/scripts/design-projector.py --check
