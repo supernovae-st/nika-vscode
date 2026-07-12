@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.101.0 — 2026-07-13
+
+Lockstep on the engine's 0.101 wave — **the sovereign lane ships
+whole**: every engine release binary now carries `local-infer`
+(`nika model pull` → `serve` → workflow `infer`, no cloud, no build
+wall). The extension already speaks to whatever binary answers — a
+lane the binary now always has.
+
 ### The doors speak — a lens title is a call, not a caption
 - **The naked nouns retire** (#86) — `model:` now offers **choose your
   model**, the verb keys **choose a starter** (`invoke:` **choose your
