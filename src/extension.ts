@@ -21,6 +21,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import { WorkflowTreeProvider } from './workflowTree';
+import { registerNikaBadge } from './features/fileBadge';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addDependsOn,
@@ -372,6 +373,7 @@ export function activate(context: ExtensionContext): void {
     }
   };
   context.subscriptions.push(workspace.onDidOpenTextDocument(enforceNikaLanguage));
+  context.subscriptions.push(registerNikaBadge());
   for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
 
   // The verb band, in the editor: write the four canonical hues into the

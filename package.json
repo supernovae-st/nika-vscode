@@ -608,6 +608,11 @@
           "type": "boolean",
           "default": true,
           "description": "On first activation with the binary present, wire MCP for this host automatically (nika wire is idempotent). Turn off for manual setup via 'Nika: Setup MCP'."
+        },
+        "nika.explorerBadge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the 🦋 badge on *.nika.yaml files in the Explorer (icon themes own the file icon slot; the badge adds nika identity without replacing your theme)."
         }
       }
     },
