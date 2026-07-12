@@ -33,6 +33,13 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
   constructor(
     private readonly controller: DiagnosticsController,
     private readonly service: NikaService,
+    /** True when the LANGUAGE SERVER advertises codeActionProvider —
+     *  the rename-shaped quickfixes (tool · task-id did-you-mean) are
+     *  then the server's (one fix engine, 0.99.7+ engines); the client
+     *  keeps its structural classes (permits repair · add depends_on ·
+     *  secret → env · add var), which the server does not carry. Same
+     *  yield pattern as the expressionIntel capability handshake. */
+    private readonly serverOwnsRenames: () => boolean = () => false,
   ) {}
 
   provideCodeActions(
@@ -60,8 +67,9 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
         }
       }
 
-      // 2 · did-you-mean tool replacement (unknown builtin)
-      if (finding.source === 'unknown-tool' && finding.suggestion) {
+      // 2 · did-you-mean tool replacement (unknown builtin) — yielded
+      // to the server when it ships the same rename engine.
+      if (finding.source === 'unknown-tool' && finding.suggestion && !this.serverOwnsRenames()) {
         const wrongTool = finding.message.match(/`([^`]+)`/)?.[1];
         if (wrongTool) {
           // Stored findings anchor PRE-edit lines — re-resolve the owning
@@ -114,7 +122,7 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
         // Unknown TASK id in a ref → did-you-mean (Damerau ≤2 · same UX
         // contract as the engine's tool suggestions, client-side).
         const badTask = parseUnresolvedTaskRef(finding.message);
-        if (badTask) {
+        if (!this.serverOwnsRenames() && badTask) {
           const ids = parseRichWorkflow(text).tasks.map((t) => t.id);
           const suggestion = didYouMean(badTask, ids);
           if (suggestion) {
