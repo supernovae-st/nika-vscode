@@ -47,6 +47,7 @@ import {
   type ClientState,
 } from './lspClient';
 import {
+  ensureCursorGlobalMcpConfig,
   ensureCursorMcpConfig,
   ensureCursorRules,
   ensureVscodeMcpConfig,
@@ -69,6 +70,7 @@ import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
+import { commandOnPath } from './core/pathLookup';
 import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
@@ -2465,7 +2467,11 @@ export function activate(context: ExtensionContext): void {
     // NOT gated on the binary: the plugin teaches the install line, so the
     // no-binary user is exactly who must see it. Same one-shot discipline
     // as the binary nudge below.
-    if (isCursor() && !context.globalState.get<boolean>('nika.cursorPluginNudgeShown')) {
+    if (isCursor() && (workspace.workspaceFolders?.length ?? 0) > 0
+        && !context.globalState.get<boolean>('nika.cursorPluginNudgeShown')) {
+      // Empty-window law: without a folder, « Wire this workspace » can
+      // only error — the one-shot must not burn there. The state writes
+      // ONLY when the toast can actually help.
       await context.globalState.update('nika.cursorPluginNudgeShown', true);
       void window.showInformationMessage(
         'Running in Cursor — install the nika plugin (rules · skill · subagent · hooks · MCP in one Add), or wire just this workspace.',
@@ -2498,6 +2504,33 @@ export function activate(context: ExtensionContext): void {
       }
       return;
     }
+
+    // « Does this project exist yet? » — the per-WORKSPACE intelligence:
+    // the repo carries .nika.yaml workflows but is not equipped (no
+    // .cursor/rules/nika.mdc scaffold). One toast per WORKSPACE
+    // (workspaceState — the machine-global nudge above is about the
+    // plugin, this one is about THIS repo), offering the one-gesture
+    // setup. Skip-if-equipped: init is idempotent but the ask is noise.
+    void (async () => {
+      const folder = workspace.workspaceFolders?.[0];
+      if (!folder || context.workspaceState.get<boolean>('nika.initNudgeShown')) { return; }
+      const hasWorkflows = (await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 1)).length > 0;
+      if (!hasWorkflows) { return; }
+      const equipped = fs.existsSync(path.join(folder.uri.fsPath, '.cursor', 'rules', 'nika.mdc'))
+        || fs.existsSync(path.join(folder.uri.fsPath, 'AGENTS.md'));
+      void commands.executeCommand('setContext', 'nika.workspaceEquipped', equipped);
+      if (equipped) { return; }
+      await context.workspaceState.update('nika.initNudgeShown', true);
+      void window.showInformationMessage(
+        'This repo has nika workflows but is not equipped (agent rules · MCP · schema wiring). Set it up?',
+        'Init Project',
+        'Not now',
+      ).then((choice) => {
+        if (choice === 'Init Project') {
+          void commands.executeCommand('nika.initProject');
+        }
+      });
+    })();
 
     log('INFO', service.caps.mcp
       ? 'nika mcp is available — run "Nika: Setup MCP + Agent Rules" to wire agents explicitly'
@@ -2544,7 +2577,21 @@ async function configureMcpForHost(
       window.showInformationMessage('Nika MCP config wired (.vscode/mcp.json).');
     }
   }
-  if (notify && resolvedServerPath && path.isAbsolute(resolvedServerPath) && (isCursor() || !isWindsurf())) {
+  // The PATH gap, CLOSED instead of warned (first-run intelligence):
+  // when the only binary is the extension-downloaded one, `nika` is not
+  // on PATH and the workspace config's portable command cannot start the
+  // oracle. Cursor gets the machine-scoped ~/.cursor/mcp.json with the
+  // absolute path (never committed · other servers untouched); the probe
+  // guarantees a brew install is never shadowed.
+  const nikaOnPath = commandOnPath('nika', process.env.PATH, process.platform, (c) => {
+    try { fs.accessSync(c, fs.constants.X_OK); return true; } catch { return false; }
+  });
+  if (resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && isCursor()) {
+    await ensureCursorGlobalMcpConfig(resolvedServerPath, log);
+    if (notify) {
+      window.showInformationMessage('Nika: `nika` is not on PATH — the machine-scoped ~/.cursor/mcp.json now points at the downloaded binary.');
+    }
+  } else if (notify && resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && !isWindsurf()) {
     window.showWarningMessage(
       `Nika MCP workspace config uses the portable command "nika". Add ${path.dirname(resolvedServerPath)} to PATH if your agent cannot start MCP.`,
     );

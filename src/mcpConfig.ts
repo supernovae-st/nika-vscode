@@ -49,6 +49,37 @@ export async function ensureCursorMcpConfig(_resolvedServerPath: string | undefi
     : 'Auto-generated .cursor/mcp.json for Cursor MCP integration');
 }
 
+/** MACHINE-scoped fallback: when `nika` is not reachable on PATH (the
+ *  extension-download-only user), Cursor's MCP client cannot start the
+ *  oracle from the workspace config's portable `nika` command at all.
+ *  ~/.cursor/mcp.json is per-machine (never committed), so the resolved
+ *  ABSOLUTE path is correct there — same merge-safe patch, other servers
+ *  untouched. The caller gates on the PATH probe: a brew install must
+ *  never be shadowed by a downloaded binary. */
+export async function ensureCursorGlobalMcpConfig(absoluteServerPath: string, log: LogFn): Promise<void> {
+  const homeDir = process.env.HOME ?? process.env.USERPROFILE;
+  if (!homeDir) { return; }
+  const configDir = path.join(homeDir, '.cursor');
+  const configPath = path.join(configDir, 'mcp.json');
+  try {
+    fs.mkdirSync(configDir, { recursive: true });
+    let existing: JsonObject | undefined;
+    if (fs.existsSync(configPath)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as JsonObject;
+      } catch {
+        return; // malformed JSON — never overwrite what we cannot read
+      }
+    }
+    const result = patchCursorLikeConfig(existing, absoluteServerPath);
+    if (!result.changed && existing !== undefined) { return; }
+    fs.writeFileSync(configPath, JSON.stringify(result.config, null, 2));
+    log('INFO', `Wrote machine-scoped ~/.cursor/mcp.json (nika not on PATH — absolute path used)`);
+  } catch (err) {
+    log('WARN', `global mcp.json write failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 /** Provider groups for the generated rules (derived from the canon). */
 export interface RulesIntel {
   cloud: string[];
