@@ -182,6 +182,9 @@ const ok = [];
       ? fs.readdirSync(full).map((f) => path.join(full, f))
       : [full];
     for (const file of files) {
+      // the walkthrough grew an assets/ dir (posters) — scan FILES only,
+      // and only text: a PNG can't carry a volatile count.
+      if (fs.statSync(file).isDirectory() || !/\.(md|markdown|txt|json|code-snippets)$/.test(file)) { continue; }
       const lines = fs.readFileSync(file, 'utf-8').split('\n');
       lines.forEach((line, i) => {
         if (volatile.test(line)) {

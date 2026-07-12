@@ -905,7 +905,7 @@
       {
         "id": "nika.gettingStarted",
         "title": "Get started with Nika",
-        "description": "From zero to a running AI workflow in five steps.",
+        "description": "From zero to a proven, replayable AI workflow.",
         "steps": [
           {
             "id": "install",
@@ -926,7 +926,8 @@
               "markdown": "walkthrough/02-create.md"
             },
             "completionEvents": [
-              "onCommand:nika.newWorkflow"
+              "onCommand:nika.newWorkflow",
+              "onCommand:nika.initProject"
             ]
           },
           {
@@ -994,7 +995,8 @@
               "markdown": "walkthrough/06-agents.md"
             },
             "completionEvents": [
-              "onCommand:nika.setupMcp"
+              "onCommand:nika.setupMcp",
+              "onCommand:nika.initProject"
             ]
           }
         ]
