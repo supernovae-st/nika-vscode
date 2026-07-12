@@ -2,7 +2,7 @@
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
   "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.99.4",
+  "version": "0.99.5",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",

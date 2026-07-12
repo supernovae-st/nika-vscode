@@ -8,8 +8,6 @@ import {
   PERMITS_URL,
   TOOL_RE,
   TOOLS_URL,
-  VERB_LINE_RE,
-  VERBS_URL,
 } from '../core/linkTargets';
 
 export class NikaDocLinkProvider implements vscode.DocumentLinkProvider {
@@ -18,16 +16,6 @@ export class NikaDocLinkProvider implements vscode.DocumentLinkProvider {
     const cap = Math.min(document.lineCount, 2000);
     for (let i = 0; i < cap; i++) {
       const text = document.lineAt(i).text;
-      const verb = VERB_LINE_RE.exec(text);
-      if (verb) {
-        const start = text.indexOf(verb[1]);
-        const link = new vscode.DocumentLink(
-          new vscode.Range(i, start, i, start + verb[1].length),
-          vscode.Uri.parse(VERBS_URL),
-        );
-        link.tooltip = `The ${verb[1]} verb — execution model, fields, examples`;
-        links.push(link);
-      }
       if (PERMITS_LINE_RE.test(text)) {
         const link = new vscode.DocumentLink(
           new vscode.Range(i, 0, i, 'permits'.length),
