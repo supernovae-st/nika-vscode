@@ -290,6 +290,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.chooseAgentTools",
+        "title": "Choose Agent Tools (default-deny register)",
+        "icon": "$(tools)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.chooseDefaultModel",
         "title": "Choose Default Model (envelope)",
         "icon": "$(arrow-swap)",
@@ -806,6 +812,10 @@
         },
         {
           "command": "nika.chooseCollection",
+          "when": "false"
+        },
+        {
+          "command": "nika.chooseAgentTools",
           "when": "false"
         },
         {

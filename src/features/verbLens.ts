@@ -6,11 +6,12 @@
 // Picking REPLACES the verb block — one WorkspaceEdit, one undo.
 
 import * as vscode from 'vscode';
-import { TYPE_OUTPUT_DOOR, verbDoorTitle } from '../core/lensVocab';
+import { findAgentTools, ownedRef, toolsRewrite } from '../core/agentToolsEdit';
+import { AGENT_TOOLS_DOOR, TYPE_OUTPUT_DOOR, verbDoorTitle } from '../core/lensVocab';
 import { verbHasSchema, verbTakesSchema } from '../core/schemaEdit';
 import { invokeBodyFor, findVerbLines, verbBlockEdit } from '../core/verbBlocks';
 import { NIKA_VERB_STARTERS, type NikaVerb } from '../core/verbStarters.generated';
-import { VERB_ITEMS } from '../core/verbPalette';
+import { FALLBACK_TOOL_BLURBS, VERB_ITEMS } from '../core/verbPalette';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -49,6 +50,20 @@ export class VerbLensProvider implements vscode.CodeLensProvider {
             : 'schema: the response MUST match — typed extraction, no prose parsing (appends to this block)',
           arguments: [document.uri, v.line, v.verb],
         }));
+      }
+      // The register door — on the agent's tools: line itself (the
+      // starter always writes one; a tools-less agent is legitimate
+      // pure reasoning, so its absence never grows a lens).
+      if (v.verb === 'agent') {
+        const tools = findAgentTools(lines, v.line, v.indent);
+        if (tools) {
+          lenses.push(new vscode.CodeLens(new vscode.Range(tools.line, 0, tools.line, 0), {
+            command: 'nika.chooseAgentTools',
+            title: AGENT_TOOLS_DOOR,
+            tooltip: 'Re-pick the default-deny register from the catalog — MCP refs, globs and unknown names survive verbatim; an empty list is least privilege, not an error',
+            arguments: [document.uri, v.line, v.indent],
+          }));
+        }
       }
     }
     return lenses;
@@ -115,5 +130,65 @@ export async function pickVerbBodyForLine(
   if (!edit) { return; } // the line moved under us — refuse a blind write
   const we = new vscode.WorkspaceEdit();
   we.replace(uri, new vscode.Range(edit.startLine, 0, edit.endLine, 0), edit.newText);
+  await vscode.workspace.applyEdit(we);
+}
+
+// ─── « choose its tools » — the agent's default-deny register ────────────────
+
+type ToolPick = vscode.QuickPickItem & { bare: string };
+
+/** Multi-pick over the binary's catalog, pre-checked from the block.
+ * Author sentences (MCP · globs · strangers) never enter the picker —
+ * they survive the rewrite verbatim; their diagnostics belong to the
+ * engine. An empty pick writes `tools: []` (least privilege). */
+export async function chooseAgentToolsFor(
+  service: NikaService,
+  uri: vscode.Uri,
+  agentLine: number,
+  agentIndent: number,
+): Promise<void> {
+  const cats = service.toolCats;
+  const doc = await vscode.workspace.openTextDocument(uri);
+  const text = doc.getText();
+  const lines = text.split('\n');
+  const at = findAgentTools(lines, agentLine, agentIndent);
+  if (!at) { return; } // the block moved under us — refuse a blind write
+
+  const catalog = cats
+    ? Object.entries(cats).map(([bare, m]) => ({ bare, cat: m.cat, desc: m.desc }))
+    : Object.entries(FALLBACK_TOOL_BLURBS).map(([bare, desc]) => ({ bare, cat: 'builtins', desc }));
+  const bares = new Set(catalog.map((c) => c.bare));
+  const current = new Set(
+    at.refs.filter((r) => ownedRef(r, bares)).map((r) => r.slice('nika:'.length)),
+  );
+  const kept = at.refs.filter((r) => !ownedRef(r, bares));
+
+  const rows: ToolPick[] = [];
+  let lastCat: string | undefined;
+  for (const c of [...catalog].sort((a, b) => (a.cat < b.cat ? -1 : a.cat > b.cat ? 1 : a.bare < b.bare ? -1 : 1))) {
+    if (c.cat !== lastCat) {
+      rows.push({ label: c.cat, kind: vscode.QuickPickItemKind.Separator, bare: '' });
+      lastCat = c.cat;
+    }
+    rows.push({
+      label: `◆ nika:${c.bare}`,
+      description: c.desc ?? '',
+      picked: current.has(c.bare),
+      bare: c.bare,
+    });
+  }
+  const picked = await vscode.window.showQuickPick(rows, {
+    canPickMany: true,
+    placeHolder: kept.length > 0
+      ? `the default-deny register — ${kept.join(' · ')} survive as written (the engine judges strangers)`
+      : 'the default-deny register — grant the least set this mission needs; empty is a valid answer',
+    matchOnDescription: true,
+  });
+  if (!picked) { return; }
+
+  const next = toolsRewrite(text, agentLine, agentIndent, picked.map((p) => p.bare), bares);
+  if (next === undefined || next === text) { return; }
+  const we = new vscode.WorkspaceEdit();
+  we.replace(uri, new vscode.Range(0, 0, doc.lineCount, 0), next);
   await vscode.workspace.applyEdit(we);
 }

@@ -6,6 +6,18 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The agent register — « choose its tools » (#87)
+- **One lens on the agent's `tools:` line** (#94) — a `canPickMany`
+  multi-pick over the binary's catalog (category-grouped, the offline
+  blurbs as fallback), pre-checked from the block. Ownership law:
+  the picker owns only plain catalog `nika:<bare>` refs — MCP refs,
+  glob patterns (`nika:fs_*`, the spec's whitelist semantics) and
+  unknown names are the author's sentences, preserved verbatim; their
+  diagnostics stay the ENGINE's to give (the Real e2e pins a preserved
+  stranger surfacing as a check finding, not a picker guess). An
+  empty pick writes `tools: []` — least privilege is a valid answer,
+  never a removal. A tools-less agent (pure reasoning) grows no lens.
+
 ### The armor doors — the spec's three error walls, offered when proven needed
 - **« make it resilient »** (#93) — a task that FAILED its last run
   (the flight recorder's fold) grows one contextual lens offering the

@@ -78,7 +78,7 @@ import {
 import { makeResilientFor } from './features/armorDoors';
 import { chooseCollectionFor, chooseGateFor, wireInputsFor } from './features/flowDoors';
 import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
-import { VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
+import { chooseAgentToolsFor, VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
@@ -723,6 +723,10 @@ export function activate(context: ExtensionContext): void {
     languages.registerCodeLensProvider([{ language: 'nika' }], new VerbLensProvider()),
     commands.registerCommand('nika.pickVerbBody', (uri: Uri, line: number, verb: NikaVerb) =>
       pickVerbBodyForLine(service, uri, line, verb),
+    ),
+    // The agent register (issue #87): tools: as a catalog multi-pick.
+    commands.registerCommand('nika.chooseAgentTools', (uri: Uri, line: number, indent: number) =>
+      chooseAgentToolsFor(service, uri, line, indent),
     ),
     // The contract doors (V1): schema · outputs · vars.
     commands.registerCommand('nika.typeOutput', (uri: Uri, line: number, verb: NikaVerb) =>

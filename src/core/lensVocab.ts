@@ -69,3 +69,6 @@ export const COLLECTION_DOOR = '$(symbol-array) choose the collection';
 /** A task that FAILED its last run — the spec's three error walls.
  * (The missing-model status CTA reuses MODEL_DOOR — one voice.) */
 export const ARMOR_DOOR = '$(pulse) make it resilient';
+
+/** An agent's `tools:` line — the default-deny register, catalog-fed. */
+export const AGENT_TOOLS_DOOR = '$(tools) choose its tools';
