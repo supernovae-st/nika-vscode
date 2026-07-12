@@ -1009,6 +1009,17 @@
               "onCommand:nika.setupMcp",
               "onCommand:nika.initProject"
             ]
+          },
+          {
+            "id": "community",
+            "title": "Keep it findable",
+            "description": "Nika is independent open source — a star is how the next person finds it.\n[Star on GitHub](https://github.com/supernovae-st/nika)",
+            "media": {
+              "markdown": "walkthrough/09-community.md"
+            },
+            "completionEvents": [
+              "onLink:https://github.com/supernovae-st/nika"
+            ]
           }
         ]
       }

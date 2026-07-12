@@ -18,6 +18,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { maybeAskCommunity } from './communityAsk';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
@@ -250,6 +251,9 @@ export function runWorkflowLive(
       // The verdict banner — the same summary, visible WITHOUT opening the
       // feed (summarizeRun leads with its own icon; the banner owns it).
       dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}${suffix}`, cls);
+      // The one earned ask, ever — fires on the FIRST completed run only
+      // (communityAsk owns the flag; a dismissal counts as answered).
+      maybeAskCommunity(verdict);
     }
     // Only meaningful runs land (≥1 task event) — a spawn that died
     // before any task event has nothing worth resuming from.
