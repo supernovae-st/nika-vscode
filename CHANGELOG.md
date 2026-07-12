@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The one earned ask** — after the FIRST completed run (and only then,
+  once ever: the flag persists before the user answers, so a dismissal
+  counts), a notification offers the two community doors, editor-aware:
+  star the engine on GitHub · review where THIS editor installs from
+  (Open VSX for Cursor/Windsurf/VSCodium, the Marketplace for VS Code).
+  The walkthrough gains step 9 « Keep it findable » naming the three
+  doors (star · review · registry). Working surfaces (check · run ·
+  diagnostics) stay marketing-free by doctrine.
 - **New Session — the intent-first launcher** (`Nika: New Session` ·
   💬 button atop the welcome view). Cursor's Agents panel is a
   proprietary list nika cannot join, so the extension ships its own
