@@ -370,11 +370,15 @@ theme*, not to extensions:
   `windsurf` / `codex` patches each client's MCP config (idempotent ·
   preserves your other servers) so Claude Code, Codex CLI and friends
   call the same oracle from the terminal
-- **One plugin, both ecosystems** · `codex plugin marketplace add
-  supernovae-st/nika-agents` + `codex plugin add nika@nika` (Codex) · `claude
-  plugin marketplace add supernovae-st/nika-agents` + `claude plugin install
-  nika@nika` (Claude Code): the `nika-authoring` skill + the MCP oracle
-  in one install
+- **One plugin, three ecosystems** · Cursor: search "nika" in Settings →
+  Plugins (one Add installs skill + subagent + commands + check-on-edit
+  hook + MCP oracle) · Codex: `codex plugin marketplace add
+  supernovae-st/nika-agents` + `codex plugin add nika@nika` · Claude Code:
+  `claude plugin marketplace add supernovae-st/nika-agents` + `claude
+  plugin install nika@nika`. This extension is the IDE surface; the
+  [nika-agents](https://github.com/supernovae-st/nika-agents) plugin is
+  the agent surface — its README carries the who-does-what map (plugin =
+  per-agent · `nika init` = per-repo · `nika wire` = per-machine).
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
 
