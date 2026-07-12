@@ -6,6 +6,32 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The contract doors — inputs, outputs, and the typed unit
+- **« type its output »** (#89) — an `infer:`/`agent:` without `schema:`
+  offers the language's hardest block as a picker of proven shapes
+  (named fields · a list · a verdict · a grade — every one a top-level
+  object, appended child-indented at the end of the verb block). The
+  door only opens where the schema is missing: an untyped infer is
+  legitimate, a second schema never is.
+- **« choose what it publishes »** (#89) — `outputs:` as a multi-pick
+  over the DAG (verb-glyph rows, pre-checked from the block). The
+  picker owns only the rows it can regenerate
+  (`<id>: "${{ tasks.<id>.output }}"`); typed outputs, jq paths and
+  commented rows are the author's sentences and survive verbatim. It
+  never writes the bare-`${{ tasks.X }}` trap. The door also rides the
+  status row when a `dead-spend` hint fires with no `outputs:` at all —
+  publishing is one of the two honest fixes.
+- **« declare an input » · « make it callable »** (#89) — the `vars:`
+  line grows the input half of the callable contract: name → type (or
+  the untyped shorthand) → default, where an EMPTY default on a typed
+  input means `required: true` (the semantics, not an extra prompt).
+  Untyped rows offer promotion to the typed form — `type:` inferred
+  from each default, value and trailing comment preserved.
+- **Proven against the real engine** — a `*Real.e2e` belt chains the
+  four pure edits exactly as the pickers do and pipes the result to
+  `nika check -`: every shape combination checks clean (self-skips
+  without a binary, CELLAR-first).
+
 ## 0.101.0 — 2026-07-13
 
 Lockstep on the engine's 0.101 wave — **the sovereign lane ships

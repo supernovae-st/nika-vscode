@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, graphDoorTitle, MODEL_DOOR,
-  RERUN_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle, verbDoorTitle,
+  ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, DECLARE_INPUT_DOOR, graphDoorTitle,
+  makeCallableDoorTitle, MODEL_DOOR, PUBLISH_DOOR, RERUN_DOOR,
+  TIGHTEN_BOUNDARY_DOOR, TYPE_OUTPUT_DOOR, varsDoorTitle, verbDoorTitle,
 } from '../core/lensVocab';
 import { VERB_ITEMS } from '../core/verbPalette';
 
@@ -36,10 +37,18 @@ describe('lensVocab (one voice for the lens doors)', () => {
     expect(varsDoorTitle(2)).toBe('$(symbol-variable) 2 vars ride --var');
   });
 
+  it('the contract doors speak the same voice', () => {
+    expect(TYPE_OUTPUT_DOOR).toBe('$(symbol-structure) type its output');
+    expect(PUBLISH_DOOR).toBe('$(export) choose what it publishes');
+    expect(DECLARE_INPUT_DOOR).toBe('$(symbol-parameter) declare an input');
+    expect(makeCallableDoorTitle(2)).toBe('$(plug) make it callable · 2 untyped');
+  });
+
   it('every door is a lowercase call, codicon aside', () => {
     const doors = [
       MODEL_DOOR, RERUN_DOOR, ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR,
       TIGHTEN_BOUNDARY_DOOR, graphDoorTitle(2), varsDoorTitle(2),
+      TYPE_OUTPUT_DOOR, PUBLISH_DOOR, DECLARE_INPUT_DOOR, makeCallableDoorTitle(1),
       ...VERB_ITEMS.map((v) => verbDoorTitle(v.verb, v.glyph)),
     ];
     for (const door of doors) {
