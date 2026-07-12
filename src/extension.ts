@@ -2411,6 +2411,28 @@ export function activate(context: ExtensionContext): void {
     // extension against a new non-LSP binary got no signal before).
     if (binaryPath) { checkVersionMismatch(context, log, binaryPath); }
 
+    // Cursor host → one toast EVER pointing at the two setup moves this
+    // extension cannot make itself: the marketplace plugin (rules + skill
+    // + subagent + hooks + MCP in one Add — no install API exists, the
+    // nudge guides) and the workspace wiring (nika.setupMcp). Deliberately
+    // NOT gated on the binary: the plugin teaches the install line, so the
+    // no-binary user is exactly who must see it. Same one-shot discipline
+    // as the binary nudge below.
+    if (isCursor() && !context.globalState.get<boolean>('nika.cursorPluginNudgeShown')) {
+      await context.globalState.update('nika.cursorPluginNudgeShown', true);
+      void window.showInformationMessage(
+        'Running in Cursor — install the nika plugin (rules · skill · subagent · hooks · MCP in one Add), or wire just this workspace.',
+        'Open Marketplace',
+        'Wire this workspace',
+      ).then((choice) => {
+        if (choice === 'Open Marketplace') {
+          void env.openExternal(Uri.parse('https://cursor.com/marketplace?q=nika'));
+        } else if (choice === 'Wire this workspace') {
+          void commands.executeCommand('nika.setupMcp');
+        }
+      });
+    }
+
     if (!binaryPath) {
       statusBar.setLspState('off');
       langStatus.setLspState('off');
@@ -2434,26 +2456,6 @@ export function activate(context: ExtensionContext): void {
       ? 'nika mcp is available — run "Nika: Setup MCP + Agent Rules" to wire agents explicitly'
       : 'nika mcp not in this binary — agent MCP setup unavailable');
 
-    // Cursor host + working binary → one toast EVER pointing at the two
-    // setup moves this extension cannot make itself: the marketplace
-    // plugin (rules + skill + subagent + hooks + MCP in one Add — no
-    // install API exists, the nudge guides) and the workspace wiring
-    // (nika.setupMcp writes .cursor/mcp.json + .cursor/rules). Same
-    // one-shot discipline as the binary nudge above.
-    if (isCursor() && !context.globalState.get<boolean>('nika.cursorPluginNudgeShown')) {
-      await context.globalState.update('nika.cursorPluginNudgeShown', true);
-      void window.showInformationMessage(
-        'Running in Cursor — install the nika plugin (rules · skill · subagent · hooks · MCP in one Add), or wire just this workspace.',
-        'Open Marketplace',
-        'Wire this workspace',
-      ).then((choice) => {
-        if (choice === 'Open Marketplace') {
-          void env.openExternal(Uri.parse('https://cursor.com/marketplace?q=nika'));
-        } else if (choice === 'Wire this workspace') {
-          void commands.executeCommand('nika.setupMcp');
-        }
-      });
-    }
 
     if (service.caps.lsp) {
       // The engine ships `nika lsp` — full server takes over; the client
