@@ -2122,8 +2122,21 @@ export function activate(context: ExtensionContext): void {
     await window.showTextDocument(untitled, { preview: true });
   };
   context.subscriptions.push(
-    commands.registerCommand('nika.exportDagMermaid', exportDag('mermaid')),
-    commands.registerCommand('nika.exportDagDot', exportDag('dot')),
+    // ONE export command, format picked (Rams: two palette rows for one
+    // gesture was inflation; direct calls pass the format as arg).
+    commands.registerCommand('nika.exportDag', async (arg?: unknown) => {
+      // Menus pass the resource Uri as first arg — only a literal format
+      // string skips the picker (direct calls: executeCommand('…', 'dot')).
+      const format = arg === 'mermaid' || arg === 'dot' ? arg : undefined;
+      const pick = format ?? (await window.showQuickPick(
+        [
+          { label: 'Mermaid', description: 'markdown-embeddable diagram', value: 'mermaid' as const },
+          { label: 'Graphviz dot', description: 'render with dot/neato', value: 'dot' as const },
+        ],
+        { title: 'Export DAG as…' },
+      ))?.value;
+      if (pick) { await exportDag(pick)(); }
+    }),
   );
 
   // Command: Replay a trace through the DAG (replay = re-render, never re-execute).
