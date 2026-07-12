@@ -6,6 +6,18 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.100.2 — 2026-07-12
+
+### The run door heals on 0.100 engines
+- **`--no-color` → `--color never`** (#84) — the engine's Rams pass
+  retired the per-verb `--no-color` twins; the ▶ Run door (`runLive`)
+  and the infer-permits CTA still passed the dead flag, a clap error
+  on every 0.100 binary. CI was blind (real-engine suites self-skip
+  without a binary); the operator Cellar moving to 0.100.0 revealed
+  it. Product + all real-engine test files swept — 590 green against
+  the 0.100.0 Cellar. The README also learns the lens doors (#82/#80,
+  rode this train).
+
 ## 0.100.1 — 2026-07-12
 
 ### The verb line becomes a door
