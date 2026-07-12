@@ -175,6 +175,17 @@
         "icon": "$(check)"
       },
       {
+        "command": "nika.newSession",
+        "title": "New Session",
+        "category": "Nika",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "nika.openWalkthrough",
+        "title": "Open the Getting-Started Tour",
+        "category": "Nika"
+      },
+      {
         "command": "nika.initProject",
         "title": "Init Project (scaffold + wire everything)",
         "category": "Nika",
@@ -1005,7 +1016,7 @@
     "viewsWelcome": [
       {
         "view": "nikaWorkflows",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[🚀 Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[🚀 Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
