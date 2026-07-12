@@ -56,3 +56,12 @@ export const DECLARE_INPUT_DOOR = '$(symbol-parameter) declare an input';
 export function makeCallableDoorTitle(untypedCount: number): string {
   return `$(plug) make it callable · ${untypedCount} untyped`;
 }
+
+/** `depends_on:` — re-pick what this task waits for (cycle-safe). */
+export const WIRE_INPUTS_DOOR = '$(link) wire its inputs';
+
+/** `when:` — swap the CEL gate (⌁ is the when-inlay's own glyph). */
+export const GATE_DOOR = '⌁ choose a gate';
+
+/** `for_each:` — swap the collection the task maps over. */
+export const COLLECTION_DOOR = '$(symbol-array) choose the collection';
