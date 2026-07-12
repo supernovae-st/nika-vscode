@@ -6,6 +6,19 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **First-run intelligence** (the socratic pass on « install and
+  everything just works »):
+  - the PATH gap is CLOSED, not warned: an extension-download-only
+    user had a workspace MCP config saying `nika` with nothing on
+    PATH — the oracle could never start. On Cursor the machine-scoped
+    `~/.cursor/mcp.json` now gets the absolute path (PATH-probed:
+    a brew install is never shadowed; other servers untouched).
+  - the Cursor plugin nudge no longer burns its one-shot on an empty
+    window (where « Wire this workspace » could only error).
+  - per-workspace project detection: a repo carrying `.nika.yaml`
+    workflows but not equipped (no scaffold) gets ONE offer per
+    workspace — Init Project — at activation.
+
 - **Init Project — the one-gesture setup** (`Nika: Init Project` ·
   welcome view 🚀 button · walkthrough) — runs the binary's own
   scaffold (`nika init`: 7 files, skip-if-exists) then wires MCP +
