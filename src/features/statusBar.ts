@@ -5,6 +5,7 @@
 // a quick-pick menu.
 
 import * as vscode from 'vscode';
+import { journeyPlaceholder } from '../core/journey';
 import { describeCapabilities } from '../core/capabilities';
 import type { NikaService } from '../nikaService';
 
@@ -13,7 +14,13 @@ export class NikaStatusBar implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private lspState: 'off' | 'starting' | 'running' | 'failed' = 'off';
 
-  constructor(private readonly service: NikaService) {
+  constructor(
+    private readonly service: NikaService,
+    /** The journey SSOT (core/journey) — computed by the extension seam,
+     *  consumed here for the head row + placeholder (one truth, never a
+     *  second findFiles). */
+    private readonly getJourney: () => import('../core/journey').Journey,
+  ) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.item.command = 'nika.showMenu';
     this.item.show();
@@ -63,14 +70,12 @@ export class NikaStatusBar implements vscode.Disposable {
     const items: Item[] = [];
     const add = (cond: boolean, item: Item): void => { if (cond) { items.push(item); } };
 
-    // STATE-AWARE and SECTIONED (Rams pass #2, operator screenshot
-    // 2026-07-12 18h03: eighteen flat rows read as a wall). The active
-    // FILE leads with concrete labels; then Author · Prove ·
-    // Understand · Machine; the earned ask closes. One doctor row
-    // (--ping stays a terminal move, named in the description).
-    const hasWorkflows = (await vscode.workspace.findFiles(
-      '**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 1,
-    )).length > 0;
+    // JOURNEY-DRIVEN and SECTIONED (Rams #2 killed the 18-row wall; the
+    // journey SSOT killed the four independent state probes). The head
+    // section is THE next step for the user's stage; the active file
+    // leads when working; Author · Prove · Understand · Machine follow;
+    // the earned ask closes.
+    const j = this.getJourney();
     const activeDoc = vscode.window.activeTextEditor?.document;
     const active = activeDoc?.languageId === 'nika'
       ? activeDoc.uri.path.split('/').pop() ?? 'this workflow'
@@ -78,10 +83,19 @@ export class NikaStatusBar implements vscode.Disposable {
     const sep = (label: string): Item =>
       ({ label, kind: vscode.QuickPickItemKind.Separator } as Item);
 
-    add(!this.service.available, { label: '$(zap) Finish setup — install engine + wire everything', description: 'verified download · MCP · LSP · one gesture', command: 'nika.finishSetup' });
-    add(this.service.available && !hasWorkflows && caps.examples, { label: '$(play) Run the 10-second proof', description: '01-hello · mock/echo · offline · zero keys', command: 'nika.runProof' });
-
-    if (active) {
+    // ── The next step, per stage — exactly one head section.
+    if (j.stage === 'noBinary') {
+      add(true, sep('Next step'));
+      add(true, { label: '$(zap) Finish setup — install engine + wire everything', description: 'verified download · MCP · LSP · one gesture', command: 'nika.finishSetup' });
+    } else if (j.stage === 'unequipped') {
+      add(true, sep('Next step'));
+      add(true, { label: '$(rocket) Init this project', description: 'scaffold + agent rules + MCP — one gesture, skip-if-exists', command: 'nika.initProject' });
+      add(caps.examples, { label: '$(play) Run the 10-second proof', description: '01-hello · mock/echo · offline · zero keys', command: 'nika.runProof' });
+    } else if (j.stage === 'empty') {
+      add(true, sep('Next step'));
+      add(caps.examples, { label: '$(play) Run the 10-second proof', description: '01-hello · mock/echo · offline · zero keys', command: 'nika.runProof' });
+      add(true, { label: '$(comment-discussion) New session', description: 'wizard · describe · templates — the guided first workflow', command: 'nika.newSession' });
+    } else if (active) {
       add(true, sep(active));
       add(caps.run, { label: '$(play) Run', description: active, command: 'nika.runWorkflow' });
       add(caps.check, { label: '$(check) Check', description: 'the audit, before a token is spent', command: 'nika.checkWorkflow' });
@@ -90,8 +104,10 @@ export class NikaStatusBar implements vscode.Disposable {
     }
 
     add(true, sep('Author'));
+    add(true, { label: '$(comment-discussion) New session', description: 'wizard · describe · templates · examples', command: 'nika.newSession' });
     add(true, { label: '$(new-file) New workflow', command: 'nika.newWorkflow' });
     add(caps.examples, { label: '$(book) Browse embedded examples', command: 'nika.browseExamples' });
+    add(!j.equipped && j.workspaceOpen, { label: '$(rocket) Init this project', description: 'agent rules · MCP · schema wiring', command: 'nika.initProject' });
     add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'template → check → repair, for any agent', command: 'nika.copyAiPrompt' });
 
     add(caps.test || caps.trace, sep('Prove'));
@@ -118,7 +134,7 @@ export class NikaStatusBar implements vscode.Disposable {
 
     const picked = await vscode.window.showQuickPick(items, {
       title: 'Nika',
-      placeHolder: active ? `${active} — run · check · graph, or browse below` : 'What next — author, prove, understand?',
+      placeHolder: journeyPlaceholder(j.stage, active),
     });
     if (picked?.command) {
       await vscode.commands.executeCommand(picked.command, ...(picked.args ?? []));
