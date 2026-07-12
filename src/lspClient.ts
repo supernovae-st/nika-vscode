@@ -13,6 +13,8 @@ import {
   Uri,
 } from 'vscode';
 import {
+  CloseAction,
+  ErrorAction,
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
@@ -150,6 +152,7 @@ export function startClient(
   const fileWatcher = workspace.createFileSystemWatcher('**/*.nika.yaml');
   context.subscriptions.push(fileWatcher);
 
+  let closedCount = 0;
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: 'file', language: 'nika' },
@@ -181,6 +184,30 @@ export function startClient(
     markdown: {
       isTrusted: true,
       supportHtml: false,
+    },
+    // The dead-toast fix (operator live, 2026-07-12: « connection to
+    // server is erroring. write EPIPE » with no way out): a couple of
+    // transport hiccups restart quietly; a crash-loop STOPS cleanly and
+    // offers one-click recovery instead of the raw upstream error.
+    errorHandler: {
+      error: (_e, _m, count) =>
+        ({ action: (count ?? 1) <= 3 ? ErrorAction.Continue : ErrorAction.Shutdown }),
+      closed: () => {
+        closedCount += 1;
+        if (closedCount <= 2) {
+          return { action: CloseAction.Restart };
+        }
+        void window.showWarningMessage(
+          'Nika language server stopped (it may have crashed or the binary changed). Client-side intelligence stays active.',
+          'Restart server',
+        ).then((pick) => {
+          if (pick === 'Restart server') {
+            closedCount = 0;
+            void commands.executeCommand('nika.restartServer');
+          }
+        });
+        return { action: CloseAction.DoNotRestart, handled: true };
+      },
     },
   };
 
