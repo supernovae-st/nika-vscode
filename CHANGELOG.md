@@ -6,6 +6,20 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The doors speak — a lens title is a call, not a caption
+- **The naked nouns retire** (#86) — `model:` now offers **choose your
+  model**, the verb keys **choose a starter** (`invoke:` **choose your
+  tool**), the per-task graph lens **see it in the graph · N refs**.
+  One vocabulary module (`core/lensVocab`) feeds every provider so the
+  door words cannot fork per surface — and the vars CTA finally
+  conjugates (*1 var rides --var* · *2 vars ride --var*).
+- **Two new writing doors** (#86) — **add a task** rides the status
+  row above `tasks:` (the palette's vocabulary one click away · ⌥⌘T ·
+  offline fallback teaches the same 4 verbs); a DECLARED `permits:`
+  block gets **tighten the boundary** — the same `check
+  --infer-permits` recompute the undeclared case gets, because a
+  boundary drifts as tasks accumulate.
+
 ## 0.100.2 — 2026-07-12
 
 ### The run door heals on 0.100 engines

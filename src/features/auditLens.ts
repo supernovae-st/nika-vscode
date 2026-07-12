@@ -8,7 +8,10 @@
 
 import * as vscode from 'vscode';
 import { countReportFindings } from '../core/cliContract';
-import { findLensAnchors } from '../core/lensAnchors';
+import { findLensAnchors, findPermitsLine } from '../core/lensAnchors';
+import {
+  ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle,
+} from '../core/lensVocab';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -145,7 +148,8 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
     // `description:` · the STATUS row above `tasks:` (the plan's numbers
     // over the plan) — never over the license/header comments. Partial
     // files fall back up that chain, so no door disappears.
-    const anchors = findLensAnchors(document.getText().split('\n'));
+    const lines = document.getText().split('\n');
+    const anchors = findLensAnchors(lines);
     const row = (line: number): vscode.Range => new vscode.Range(line, 0, line, 0);
     const env = row(anchors.env);
     const actions = row(anchors.actions);
@@ -233,7 +237,7 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         if (r.hints.some((h) => h.kind === 'permits')) {
           lenses.push(new vscode.CodeLens(status, {
             command: 'nika.inferPermits',
-            title: '$(shield) declare the boundary',
+            title: DECLARE_BOUNDARY_DOOR,
             arguments: [document.uri],
             tooltip: 'Insert the tightest permits: block the workflow needs — default-deny from then on',
           }));
@@ -242,12 +246,36 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         if (varsRequired.length > 0) {
           lenses.push(new vscode.CodeLens(status, {
             command: 'nika.copyRunLine',
-            title: `$(symbol-variable) ${varsRequired.length} var${varsRequired.length === 1 ? '' : 's'} ride --var`,
+            title: varsDoorTitle(varsRequired.length),
             arguments: [document.uri],
             tooltip: `Copy the run line with ${varsRequired.join(' · ')} as --var placeholders`,
           }));
         }
 
+      }
+    }
+
+    // The writing doors (operator pass 2026-07-13). The plan row grows
+    // the plan: add-a-task puts the palette's vocabulary one click away
+    // — binary or not, the offline fallback teaches the same 4 verbs.
+    if (anchors.hasTasks) {
+      lenses.push(new vscode.CodeLens(status, {
+        command: 'nika.addTask',
+        title: ADD_TASK_DOOR,
+        tooltip: 'New task from the palette — a verb, or a builtin as a pre-wired invoke (⌥⌘T)',
+      }));
+    }
+    // A DECLARED boundary drifts as tasks accumulate; its line offers
+    // the same one-gesture recompute the undeclared case gets.
+    if (this.service.caps.check) {
+      const permitsLine = findPermitsLine(lines);
+      if (permitsLine !== undefined) {
+        lenses.push(new vscode.CodeLens(row(permitsLine), {
+          command: 'nika.inferPermits',
+          title: TIGHTEN_BOUNDARY_DOOR,
+          arguments: [document.uri],
+          tooltip: 'Recompute the tightest permits: block from what the workflow actually needs — replaces this block (one undo)',
+        }));
       }
     }
 

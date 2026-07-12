@@ -5,6 +5,7 @@
 // already know.
 
 import * as vscode from 'vscode';
+import { MODEL_DOOR } from '../core/lensVocab';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -40,7 +41,7 @@ export class ModelLensProvider implements vscode.CodeLensProvider {
       if (!MODEL_LINE.test(line.text)) { continue; }
       lenses.push(new vscode.CodeLens(line.range, {
         command: 'nika.pickModel',
-        title: '$(arrow-swap) model',
+        title: MODEL_DOOR,
         tooltip: 'Pick a model from the embedded catalog (local-first) — writes this line',
         arguments: [document.uri, i],
       }));

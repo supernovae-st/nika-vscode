@@ -6,6 +6,7 @@
 // Picking REPLACES the verb block — one WorkspaceEdit, one undo.
 
 import * as vscode from 'vscode';
+import { verbDoorTitle } from '../core/lensVocab';
 import { invokeBodyFor, findVerbLines, verbBlockEdit } from '../core/verbBlocks';
 import { NIKA_VERB_STARTERS, type NikaVerb } from '../core/verbStarters.generated';
 import { VERB_ITEMS } from '../core/verbPalette';
@@ -29,7 +30,7 @@ export class VerbLensProvider implements vscode.CodeLensProvider {
     for (const v of findVerbLines(document.getText().split('\n'))) {
       lenses.push(new vscode.CodeLens(new vscode.Range(v.line, 0, v.line, 0), {
         command: 'nika.pickVerbBody',
-        title: `${VERB_GLYPH[v.verb] ?? ''} ${v.verb === 'invoke' ? 'tool' : 'starters'}`,
+        title: verbDoorTitle(v.verb, VERB_GLYPH[v.verb] ?? ''),
         tooltip: v.verb === 'invoke'
           ? 'Choose the tool — proven starters + every builtin in this binary (replaces this invoke: block)'
           : `Insert a proven ${v.verb}: starter — the spec's canonical shapes (replaces this block)`,

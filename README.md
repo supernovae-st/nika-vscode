@@ -113,12 +113,15 @@ theme*, not to extensions:
   ceiling on a code lens · audited before a single token is spent
 - **Lens doors on every structural line** · the envelope reads
   top-to-bottom (GitHub ↑ `nika:` · Check/DAG/Run ↑ `workflow:` ·
-  Explain ↑ `description:` · verdict + ceiling ↑ `tasks:`) · `model:`
-  opens the local-first catalog picker · each verb key offers proven
-  starters — `invoke:` lists every builtin THIS binary carries with an
-  args skeleton from the tool's own schema; `infer:`/`exec:`/`agent:`
-  insert the spec's oracle-validated shapes · picking replaces the
-  block surgically (one edit · one undo)
+  Explain ↑ `description:` · verdict + ceiling + *add a task* ↑
+  `tasks:`) · every door is a call, not a caption — `model:` offers
+  *choose your model* (the local-first catalog picker) · each verb key
+  offers *choose a starter* — `invoke:` *choose your tool*, every
+  builtin THIS binary carries with an args skeleton from the tool's own
+  schema; `infer:`/`exec:`/`agent:` insert the spec's oracle-validated
+  shapes · picking replaces the block surgically (one edit · one undo)
+  · a declared `permits:` line offers *tighten the boundary* — the same
+  one-gesture recompute the undeclared case gets
 - **Secrets lint** · literal credentials flagged locally (pure scan · zero
   network) with a `${{ env.VAR }}` rewrite quick fix
 
