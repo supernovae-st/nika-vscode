@@ -71,6 +71,7 @@ import { LiveDag } from './features/liveDag';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
 import { commandOnPath } from './core/pathLookup';
+import { buildSessionPicks } from './core/sessionLauncher';
 import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
@@ -1801,6 +1802,58 @@ export function activate(context: ExtensionContext): void {
         shown.selection = new Selection(pos, fresh.positionAt(at + 4 + res.taskId.length));
         shown.revealRange(new Range(pos, pos), TextEditorRevealType.InCenter);
       }
+    }),
+  );
+
+  // Command: New Session — the intent-first launcher (Cursor's « New
+  // Agent » panel is a proprietary list nika cannot join; this is the
+  // extension's own front door). State-aware: an equipped workspace
+  // stops advertising setup, a binary-less one leads with install, and
+  // the GUIDED WIZARD (the binary's own `nika new` on a TTY — a chat in
+  // the terminal, a checked file out) sits at the top when available.
+  context.subscriptions.push(
+    commands.registerCommand('nika.openWalkthrough', () => {
+      void commands.executeCommand(
+        'workbench.action.openWalkthrough',
+        'supernovae.nika-lang#nika.gettingStarted',
+        false,
+      );
+    }),
+    commands.registerCommand('nika.newSession', async () => {
+      const folder = workspace.workspaceFolders?.[0];
+      const equipped = !!folder && (
+        fs.existsSync(path.join(folder.uri.fsPath, '.cursor', 'rules', 'nika.mdc'))
+        || fs.existsSync(path.join(folder.uri.fsPath, 'AGENTS.md'))
+      );
+      const picks = buildSessionPicks({
+        hasFolder: !!folder,
+        equipped,
+        binary: service.available,
+        capNew: service.caps.newTemplate,
+        capExamples: service.caps.examples,
+      });
+      const items = picks.map((x) =>
+        x.kind === 'separator'
+          ? { label: '', kind: QuickPickItemKind.Separator }
+          : { label: x.label, description: x.description, pick: x },
+      );
+      const picked = await window.showQuickPick(items as { label: string; pick?: import('./core/sessionLauncher').SessionPick }[], {
+        title: 'New Nika session',
+        placeHolder: 'what do you want to do?',
+      });
+      const pick = picked?.pick;
+      if (!pick) { return; }
+      if (pick.terminal) {
+        const nika = state.resolvedServerPath ?? getNikaPath();
+        const terminal = window.createTerminal({
+          name: 'Nika: wizard',
+          cwd: folder?.uri.fsPath,
+        });
+        terminal.show();
+        terminal.sendText(`"${nika}" ${pick.terminal}`);
+        return;
+      }
+      if (pick.command) { void commands.executeCommand(pick.command); }
     }),
   );
 

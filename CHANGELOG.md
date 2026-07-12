@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **New Session — the intent-first launcher** (`Nika: New Session` ·
+  💬 button atop the welcome view). Cursor's Agents panel is a
+  proprietary list nika cannot join, so the extension ships its own
+  front door: set up this project · the GUIDED WIZARD (the binary's
+  own `nika new` on a TTY — a chat in the terminal, a checked file
+  out) · describe → generate · templates · examples · canvas · tour,
+  with the full command menu one row away. State-aware: an equipped
+  workspace stops advertising setup; a binary-less one leads with
+  install.
+
 - **The walkthrough shows the product** (user-persona design pass) —
   the validate, run and DAG steps gain their posters (check-as-you-type
   findings · the run chaining green through the graph · the live
