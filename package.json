@@ -2,7 +2,7 @@
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
   "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.99.7",
+  "version": "0.99.8",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -160,23 +160,27 @@
     "commands": [
       {
         "command": "nika.runWorkflow",
-        "title": "Nika: Run Current Workflow",
-        "icon": "$(play)"
+        "title": "Run Current Workflow",
+        "icon": "$(play)",
+        "category": "Nika"
       },
       {
         "command": "nika.resumeWorkflow",
-        "title": "Nika: Resume Last Run (re-run what changed)",
-        "icon": "$(refresh)"
+        "title": "Resume Last Run (re-run what changed)",
+        "icon": "$(refresh)",
+        "category": "Nika"
       },
       {
         "command": "nika.dryRunWorkflow",
-        "title": "Nika: Dry-Run (show the plan · zero effects)",
-        "icon": "$(checklist)"
+        "title": "Dry-Run (show the plan · zero effects)",
+        "icon": "$(checklist)",
+        "category": "Nika"
       },
       {
         "command": "nika.checkWorkflow",
-        "title": "Nika: Validate Current Workflow",
-        "icon": "$(check)"
+        "title": "Validate Current Workflow",
+        "icon": "$(check)",
+        "category": "Nika"
       },
       {
         "command": "nika.newSession",
@@ -197,8 +201,9 @@
       },
       {
         "command": "nika.newWorkflow",
-        "title": "Nika: New Workflow File",
-        "icon": "$(new-file)"
+        "title": "New Workflow File",
+        "icon": "$(new-file)",
+        "category": "Nika"
       },
       {
         "command": "nika.addTask",
@@ -208,190 +213,220 @@
       },
       {
         "command": "nika.restartServer",
-        "title": "Nika: Restart Language Server",
-        "icon": "$(refresh)"
+        "title": "Restart Language Server",
+        "icon": "$(refresh)",
+        "category": "Nika"
       },
       {
         "command": "nika.showTasks",
-        "title": "Nika: Show Tasks (Outline)",
-        "icon": "$(list-tree)"
+        "title": "Show Tasks (Outline)",
+        "icon": "$(list-tree)",
+        "category": "Nika"
       },
       {
         "command": "nika.showOutput",
-        "title": "Nika: Show Output",
-        "icon": "$(output)"
+        "title": "Show Output",
+        "icon": "$(output)",
+        "category": "Nika"
       },
       {
         "command": "nika.showDag",
-        "title": "Nika: Show Workflow DAG",
-        "icon": "$(type-hierarchy)"
+        "title": "Show Workflow DAG",
+        "icon": "$(type-hierarchy)",
+        "category": "Nika"
       },
       {
         "command": "nika.checkBinary",
-        "title": "Nika: Verify Engine Binary"
+        "title": "Verify Engine Binary",
+        "category": "Nika"
       },
       {
         "command": "nika.setupMcp",
-        "title": "Nika: Setup MCP + Agent Rules"
+        "title": "Setup MCP + Agent Rules",
+        "category": "Nika"
       },
       {
         "command": "nika.showMenu",
-        "title": "Nika: Command Menu"
+        "title": "Command Menu",
+        "category": "Nika"
       },
       {
         "command": "nika.showReport",
-        "title": "Nika: Open Check Report (static pre-flight)",
-        "icon": "$(output)"
+        "title": "Open Check Report (static pre-flight)",
+        "icon": "$(output)",
+        "category": "Nika"
       },
       {
         "command": "nika.inspectWorkflow",
-        "title": "Nika: Inspect Anatomy (tasks · cost · permits)",
-        "icon": "$(list-tree)"
+        "title": "Inspect Anatomy (tasks · cost · permits)",
+        "icon": "$(list-tree)",
+        "category": "Nika"
       },
       {
         "command": "nika.explainWorkflow",
-        "title": "Nika: Explain Workflow (deterministic · offline)",
-        "icon": "$(book)"
+        "title": "Explain Workflow (deterministic · offline)",
+        "icon": "$(book)",
+        "category": "Nika"
       },
       {
         "command": "nika.preflightWorkflow",
-        "title": "Nika: Preflight — cost · secrets · permits (before any token)",
-        "icon": "$(shield)"
+        "title": "Preflight — cost · secrets · permits (before any token)",
+        "icon": "$(shield)",
+        "category": "Nika"
       },
       {
         "command": "nika.inferPermits",
-        "title": "Nika: Insert Inferred Permits Boundary",
-        "icon": "$(shield)"
+        "title": "Insert Inferred Permits Boundary",
+        "icon": "$(shield)",
+        "category": "Nika"
       },
       {
         "command": "nika.explainCode",
-        "title": "Nika: Explain Error Code (NIKA-XXXX)"
-      },
-      {
-        "command": "nika.exportDagMermaid",
-        "title": "Nika: Export DAG as Mermaid"
-      },
-      {
-        "command": "nika.exportDagDot",
-        "title": "Nika: Export DAG as Graphviz Dot"
+        "title": "Explain Error Code (NIKA-XXXX)",
+        "category": "Nika"
       },
       {
         "command": "nika.replayTrace",
-        "title": "Nika: Replay a Recorded Run (trace)",
-        "icon": "$(history)"
+        "title": "Replay a Recorded Run (trace)",
+        "icon": "$(history)",
+        "category": "Nika"
       },
       {
         "command": "nika.diffTraces",
-        "title": "Nika: Diff Two Runs on the DAG",
-        "icon": "$(diff)"
+        "title": "Diff Two Runs on the DAG",
+        "icon": "$(diff)",
+        "category": "Nika"
       },
       {
         "command": "nika.debugReplay",
-        "title": "Nika: Debug This Run (Replay · Time Travel)",
-        "icon": "$(debug-alt)"
+        "title": "Debug This Run (Replay · Time Travel)",
+        "icon": "$(debug-alt)",
+        "category": "Nika"
       },
       {
         "command": "nika.verifyTrace",
-        "title": "Nika: Verify Journal (Tamper-Evidence Chain)",
-        "icon": "$(shield)"
+        "title": "Verify Journal (Tamper-Evidence Chain)",
+        "icon": "$(shield)",
+        "category": "Nika"
       },
       {
         "command": "nika.reproduceRun",
-        "title": "Nika: Reproduce Run (Determinism Check)",
-        "icon": "$(law)"
+        "title": "Reproduce Run (Determinism Check)",
+        "icon": "$(law)",
+        "category": "Nika"
       },
       {
         "command": "nika.exportOtel",
-        "title": "Nika: Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
-        "icon": "$(telescope)"
+        "title": "Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
+        "icon": "$(telescope)",
+        "category": "Nika"
       },
       {
         "command": "nika.rerunTask",
-        "title": "Nika: Re-run Task (and its upstream)",
-        "icon": "$(debug-restart)"
+        "title": "Re-run Task (and its upstream)",
+        "icon": "$(debug-restart)",
+        "category": "Nika"
       },
       {
         "command": "nika.forkFromTask",
-        "title": "Nika: Fork From Task (upstream rehydrates from the trace)",
-        "icon": "$(repo-forked)"
+        "title": "Fork From Task (upstream rehydrates from the trace)",
+        "icon": "$(repo-forked)",
+        "category": "Nika"
       },
       {
         "command": "nika.runReport",
-        "title": "Nika: Run Report (provable — read from the trace)",
-        "icon": "$(notebook)"
+        "title": "Run Report (provable — read from the trace)",
+        "icon": "$(notebook)",
+        "category": "Nika"
       },
       {
         "command": "nika.runHistory",
-        "title": "Nika: Run History (cross-run grid · flaky · trends)",
-        "icon": "$(graph-line)"
+        "title": "Run History (cross-run grid · flaky · trends)",
+        "icon": "$(graph-line)",
+        "category": "Nika"
       },
       {
         "command": "nika.captureLintBaseline",
-        "title": "Nika: Capture Lint Baseline (grandfather current findings)"
+        "title": "Capture Lint Baseline (grandfather current findings)",
+        "category": "Nika"
       },
       {
         "command": "nika.watchDemo",
-        "title": "Nika: Watch Demo Replay"
+        "title": "Watch Demo Replay",
+        "category": "Nika"
       },
       {
         "command": "nika.openSpec",
-        "title": "Nika: Open Embedded Spec"
+        "title": "Open Embedded Spec",
+        "category": "Nika"
       },
       {
         "command": "nika.openSchema",
-        "title": "Nika: Open Embedded JSON Schema"
+        "title": "Open Embedded JSON Schema",
+        "category": "Nika"
       },
       {
         "command": "nika.browseExamples",
-        "title": "Nika: Browse Embedded Examples"
+        "title": "Browse Embedded Examples",
+        "category": "Nika"
       },
       {
         "command": "nika.copyAiPrompt",
-        "title": "Nika: Copy AI Authoring Prompt (deterministic protocol)"
+        "title": "Copy AI Authoring Prompt (deterministic protocol)",
+        "category": "Nika"
       },
       {
         "command": "nika.generateWorkflow",
-        "title": "Nika: Generate Workflow from Intent (oracle-checked)",
-        "icon": "$(sparkle)"
+        "title": "Generate Workflow from Intent (oracle-checked)",
+        "icon": "$(sparkle)",
+        "category": "Nika"
       },
       {
         "command": "nika.refreshRuns",
-        "title": "Nika: Refresh Runs",
-        "icon": "$(refresh)"
+        "title": "Refresh Runs",
+        "icon": "$(refresh)",
+        "category": "Nika"
       },
       {
         "command": "nika.fixAll",
-        "title": "Nika: Fix All Auto-Fixable Issues",
-        "icon": "$(wand)"
+        "title": "Fix All Auto-Fixable Issues",
+        "icon": "$(wand)",
+        "category": "Nika"
       },
       {
         "command": "nika.focusTaskInDag",
-        "title": "Nika: Focus Task in DAG",
-        "icon": "$(target)"
+        "title": "Focus Task in DAG",
+        "icon": "$(target)",
+        "category": "Nika"
       },
       {
         "command": "nika.peekTaskRefs",
-        "title": "Nika: Peek Task References"
+        "title": "Peek Task References",
+        "category": "Nika"
       },
       {
         "command": "nika.doctor",
-        "title": "Nika: Doctor (diagnose environment)",
-        "icon": "$(pulse)"
+        "title": "Doctor (diagnose environment)",
+        "icon": "$(pulse)",
+        "category": "Nika"
       },
       {
         "command": "nika.doctorPing",
-        "title": "Nika: Doctor + Ping Local Providers (0.94+)",
-        "icon": "$(radio-tower)"
+        "title": "Doctor + Ping Local Providers (0.94+)",
+        "icon": "$(radio-tower)",
+        "category": "Nika"
       },
       {
         "command": "nika.testWorkflow",
-        "title": "Nika: Golden Test (mock provider · offline)",
-        "icon": "$(beaker)"
+        "title": "Golden Test (mock provider · offline)",
+        "icon": "$(beaker)",
+        "category": "Nika"
       },
       {
         "command": "nika.testUpdate",
-        "title": "Nika: Golden Test — Update the Golden",
-        "icon": "$(beaker)"
+        "title": "Golden Test — Update the Golden",
+        "icon": "$(beaker)",
+        "category": "Nika"
       },
       {
         "command": "nika.canvas.runTask",
@@ -452,6 +487,11 @@
       {
         "command": "nika.copyRunLine",
         "title": "Copy Run Line (--var placeholders)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.exportDag",
+        "title": "Export DAG (Mermaid · Graphviz)",
         "category": "Nika"
       }
     ],
@@ -713,6 +753,30 @@
         {
           "command": "nika.canvas.focusTask",
           "when": "false"
+        },
+        {
+          "command": "nika.focusTaskInDag",
+          "when": "false"
+        },
+        {
+          "command": "nika.peekTaskRefs",
+          "when": "false"
+        },
+        {
+          "command": "nika.refreshRuns",
+          "when": "false"
+        },
+        {
+          "command": "nika.checkBinary",
+          "when": "false"
+        },
+        {
+          "command": "nika.watchDemo",
+          "when": "false"
+        },
+        {
+          "command": "nika.starOnGitHub",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -759,7 +823,7 @@
           "group": "nika@5"
         },
         {
-          "command": "nika.exportDagMermaid",
+          "command": "nika.exportDag",
           "when": "resourceLangId == 'nika' && nika.capGraph",
           "group": "nika@6"
         }
