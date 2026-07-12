@@ -23,6 +23,7 @@ import * as path from 'path';
 import { WorkflowTreeProvider } from './workflowTree';
 import { registerNikaBadge } from './features/fileBadge';
 import { NikaDocLinkProvider } from './features/docLinks';
+import { NikaDefinitionProvider } from './features/definitions';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addDependsOn,
@@ -385,6 +386,7 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(registerNikaBadge());
   context.subscriptions.push(
     languages.registerDocumentLinkProvider([{ language: 'nika' }], new NikaDocLinkProvider()),
+    languages.registerDefinitionProvider([{ language: 'nika' }], new NikaDefinitionProvider()),
   );
   for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
 

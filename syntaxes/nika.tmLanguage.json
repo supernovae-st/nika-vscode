@@ -19,6 +19,9 @@
       "include": "#provider-line"
     },
     {
+      "include": "#model-line"
+    },
+    {
       "include": "#top-level-keys"
     },
     {
@@ -26,6 +29,9 @@
     },
     {
       "include": "#verbs"
+    },
+    {
+      "include": "#depends-on-line"
     },
     {
       "include": "#task-fields"
@@ -273,6 +279,45 @@
     "null": {
       "match": "(?<=:\\s)(null|~)\\b",
       "name": "constant.language.null.nika"
+    },
+    "depends-on-line": {
+      "match": "^\\s+(depends_on)(:)\\s*(\\[)([^\\]]*)(\\])",
+      "captures": {
+        "1": {
+          "name": "support.type.field.nika"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.nika"
+        },
+        "3": {
+          "name": "punctuation.definition.array.begin.nika"
+        },
+        "4": {
+          "patterns": [
+            {
+              "match": "[\\w-]+",
+              "name": "variable.other.task-reference.nika"
+            }
+          ]
+        },
+        "5": {
+          "name": "punctuation.definition.array.end.nika"
+        }
+      }
+    },
+    "model-line": {
+      "match": "^(model)(:)\\s*([\\w.:/-]+)",
+      "captures": {
+        "1": {
+          "name": "support.type.optional.nika"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.nika"
+        },
+        "3": {
+          "name": "support.constant.provider-name.nika"
+        }
+      }
     }
   }
 }

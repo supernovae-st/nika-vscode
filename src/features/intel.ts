@@ -590,10 +590,20 @@ export class NikaSemanticTokensProvider implements vscode.DocumentSemanticTokens
   provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.SemanticTokens {
     const builder = new vscode.SemanticTokensBuilder(SEMANTIC_LEGEND);
     const text = document.getText();
+    // A ${{ }} on a comment line does NOTHING (spec) — semantic tokens
+    // painted over TextMate's gray and lied (operator screenshot).
+    const commentLine = new Set<number>();
+    {
+      const all = text.split('\n');
+      for (let i = 0; i < all.length; i++) {
+        if (/^\s*#/.test(all[i])) { commentLine.add(i); }
+      }
+    }
 
     // Island refs: root = keyword · path segments = property/variable.
     for (const ref of scanRefs(text)) {
       const rootPos = document.positionAt(ref.start);
+      if (commentLine.has(rootPos.line)) { continue; }
       builder.push(rootPos.line, rootPos.character, ref.root.length, 0, 0);
       let cursor = ref.start + ref.root.length;
       for (const seg of ref.path) {
@@ -614,6 +624,7 @@ export class NikaSemanticTokensProvider implements vscode.DocumentSemanticTokens
         builder.push(i, id[1].length, id[2].length, 4, 1);
       }
       for (const m of lines[i].matchAll(/nika:[a-z_]+/g)) {
+        if (commentLine.has(i)) { continue; }
         if (tools.size === 0 || tools.has(m[0])) {
           builder.push(i, m.index ?? 0, m[0].length, 3, 0);
         }
