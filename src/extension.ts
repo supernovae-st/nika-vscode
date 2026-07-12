@@ -73,6 +73,8 @@ import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActio
 import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
 import { ModelLensProvider, pickModelForLine } from './features/modelLens';
+import { VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
+import type { NikaVerb } from './core/verbStarters.generated';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
@@ -710,6 +712,10 @@ export function activate(context: ExtensionContext): void {
     languages.registerCodeLensProvider([{ language: 'nika' }], new ModelLensProvider()),
     commands.registerCommand('nika.pickModel', (uri: Uri, line: number) =>
       pickModelForLine(service, uri, line),
+    ),
+    languages.registerCodeLensProvider([{ language: 'nika' }], new VerbLensProvider()),
+    commands.registerCommand('nika.pickVerbBody', (uri: Uri, line: number, verb: NikaVerb) =>
+      pickVerbBodyForLine(service, uri, line, verb),
     ),
     new VerbGutterDecorations(),
     runDecor,
