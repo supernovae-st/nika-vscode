@@ -133,7 +133,7 @@
           "match": "^\\s+(infer)(:)",
           "captures": {
             "1": {
-              "name": "keyword.control.verb.infer.nika"
+              "name": "constant.language.verb.infer.nika"
             },
             "2": {
               "name": "punctuation.separator.key-value.nika"
@@ -144,7 +144,7 @@
           "match": "^\\s+(exec)(:)",
           "captures": {
             "1": {
-              "name": "keyword.control.verb.exec.nika"
+              "name": "string.other.verb.exec.nika"
             },
             "2": {
               "name": "punctuation.separator.key-value.nika"
@@ -155,7 +155,7 @@
           "match": "^\\s+(invoke)(:)",
           "captures": {
             "1": {
-              "name": "keyword.control.verb.invoke.nika"
+              "name": "support.type.verb.invoke.nika"
             },
             "2": {
               "name": "punctuation.separator.key-value.nika"

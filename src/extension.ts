@@ -355,6 +355,25 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.showMenu', () => statusBar.showMenu()),
   );
 
+  // Language-identity enforcement (proven live on Cursor 2026-07-12: a
+  // *.nika.yaml opened as languageId `yaml` DESPITE our extensions field
+  // AND a files.associations default — some host/extension layer wins the
+  // association fight). This runtime layer always wins: any nika file
+  // that opens under another language is set to `nika` on open, which
+  // brings the grammar, the language icon and the indent rules with it.
+  const enforceNikaLanguage = async (doc: TextDocument) => {
+    if (doc.languageId === 'nika' || doc.uri.scheme === 'git') { return; }
+    if (/\.nika\.ya?ml$/.test(doc.fileName)) {
+      try {
+        await languages.setTextDocumentLanguage(doc, 'nika');
+      } catch (e) {
+        log('WARN', `setTextDocumentLanguage failed: ${String(e)}`);
+      }
+    }
+  };
+  context.subscriptions.push(workspace.onDidOpenTextDocument(enforceNikaLanguage));
+  for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
+
   // The verb band, in the editor: write the four canonical hues into the
   // user's tokenColorCustomizations (an extension cannot DEFAULT these —
   // configurationDefaults excludes token customizations, so the write is
@@ -2594,6 +2613,40 @@ export function activate(context: ExtensionContext): void {
         }
       }
       return;
+    }
+
+    // Auto-power: the binary is here — wire MCP for this host without a
+    // gesture (`nika wire` is idempotent by contract · the engine writer
+    // is registry-canonical), once per machine. The install story becomes
+    // « install extension → accept the binary download → everything is
+    // live »: MCP wired here, LSP started below, diagnostics with it.
+    // `nika.autoSetup: false` opts out; the toast names the switch.
+    if (
+      workspace.getConfiguration('nika').get<boolean>('autoSetup', true)
+      && !context.globalState.get<boolean>('nika.autoEquipDone')
+    ) {
+      await context.globalState.update('nika.autoEquipDone', true);
+      const folder = workspace.workspaceFolders?.[0];
+      let wired = false;
+      if (service.caps.wire && folder) {
+        const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
+        const res = await service.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
+        wired = res.code === 0;
+        if (!wired) {
+          log('WARN', `auto wire ${target} failed (${res.code}): ${res.stderr || res.stdout}`);
+        }
+      }
+      if (!wired && isCursor() && state.resolvedServerPath) {
+        // No folder (or an older binary without `wire`): the machine-level
+        // Cursor MCP config still makes the oracle live everywhere.
+        await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
+        wired = true;
+      }
+      if (wired) {
+        void window.showInformationMessage(
+          'Nika is live — MCP wired, language server on, diagnostics running (turn auto-setup off: nika.autoSetup).',
+        );
+      }
     }
 
     // « Does this project exist yet? » — the per-WORKSPACE intelligence:
