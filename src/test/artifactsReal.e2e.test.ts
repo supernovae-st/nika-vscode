@@ -71,7 +71,7 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
       fs.writeFileSync(wf, WORKFLOW);
       let ran = true;
       try {
-        execFileSync(BIN!, ['run', wf, '--json', '--no-color'], {
+        execFileSync(BIN!, ['run', wf, '--json', '--color', 'never'], {
           cwd: dir,
           timeout: 30000,
           env: { ...process.env, NO_COLOR: '1' },
@@ -131,7 +131,7 @@ tasks:
 `);
       let ran = true;
       try {
-        execFileSync(BIN!, ['run', wf, '--json', '--no-color'], {
+        execFileSync(BIN!, ['run', wf, '--json', '--color', 'never'], {
           cwd: dir,
           timeout: 30000,
           env: { ...process.env, NO_COLOR: '1' },

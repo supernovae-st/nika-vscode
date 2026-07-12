@@ -279,7 +279,7 @@ export class NikaService {
   /** `check --infer-permits` — the inferred boundary YAML, when derivable. */
   async inferPermits(doc: TextDocument): Promise<string | undefined> {
     if (!this.caps.check) { return undefined; }
-    const res = await this.runDocCli(doc, (file) => ['check', file, '--infer-permits', '--no-color']);
+    const res = await this.runDocCli(doc, (file) => ['check', file, '--infer-permits', '--color', 'never']);
     const text = res.stdout.trim();
     return text.includes('permits:') ? text : undefined;
   }

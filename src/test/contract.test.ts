@@ -219,7 +219,7 @@ tasks:
   it('infer-permits output round-trips through insertPermitsBlock + applyPermitsFix', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
-      const res = run(['check', file, '--infer-permits', '--no-color']);
+      const res = run(['check', file, '--infer-permits', '--color', 'never']);
       const permitsYaml = res.stdout.trim();
       expect(permitsYaml).toContain('permits:');
 
