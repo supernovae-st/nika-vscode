@@ -24,6 +24,7 @@ import { WorkflowTreeProvider } from './workflowTree';
 import { registerNikaBadge } from './features/fileBadge';
 import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
+import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addDependsOn,
@@ -152,6 +153,33 @@ const state: ClientState = {
 let outputChannel: import('vscode').OutputChannel | undefined;
 let extContext: ExtensionContext;
 let svc: NikaService;
+
+// The journey SSOT (core/journey): refreshed on the events that can
+// move it (binary change · workflow create/delete · folder change ·
+// init/finish-setup) and consumed by the status menu, New Session and
+// the welcome views (via the `nika.journey` context key).
+let currentJourney: Journey = journey({
+  binaryAvailable: false,
+  workspaceOpen: false,
+  equipped: false,
+  hasWorkflows: false,
+});
+
+async function refreshJourney(): Promise<void> {
+  const folder = workspace.workspaceFolders?.[0];
+  const equipped = !!folder
+    && SCAFFOLD_MARKERS.some((m) => fs.existsSync(path.join(folder.uri.fsPath, m)));
+  const hasWorkflows = (await workspace.findFiles(
+    '**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 1,
+  )).length > 0;
+  currentJourney = journey({
+    binaryAvailable: svc?.available ?? false,
+    workspaceOpen: !!folder,
+    equipped,
+    hasWorkflows,
+  });
+  void commands.executeCommand('setContext', 'nika.journey', currentJourney.stage);
+}
 
 function log(level: string, msg: string): void {
   if (outputChannel) {
@@ -340,7 +368,7 @@ export function activate(context: ExtensionContext): void {
   // provider · the Runs-view "Debug this run" action). The adapter IS
   // the engine: `nika dap` over stdio.
   registerDebugReplay(context, () => service.binaryPath, () => service.caps.dap);
-  const statusBar = new NikaStatusBar(service);
+  const statusBar = new NikaStatusBar(service, () => currentJourney);
   context.subscriptions.push(statusBar);
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
@@ -352,6 +380,7 @@ export function activate(context: ExtensionContext): void {
     // The transition auto-power: a binary that ARRIVES mid-session (the
     // download path) must light everything without a reload.
     void autoEquipOnce();
+    void refreshJourney();
     void commands.executeCommand('setContext', 'nika.hasBinary', service.available);
     void commands.executeCommand('setContext', 'nika.capRun', caps.run);
     void commands.executeCommand('setContext', 'nika.capCheck', caps.check);
@@ -420,6 +449,7 @@ export function activate(context: ExtensionContext): void {
           if (!inited) { log('WARN', `finish-setup init failed: ${res.stderr || res.stdout}`); }
         }
       }
+      void refreshJourney();
       void window.showInformationMessage(
         `Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}.`,
       );
@@ -484,10 +514,12 @@ export function activate(context: ExtensionContext): void {
     service.onDidUpdateDocument(() => workflowTree.refresh()),
   );
   const watcher = workspace.createFileSystemWatcher('**/*.nika.yaml');
-  watcher.onDidCreate(() => workflowTree.refresh());
-  watcher.onDidDelete(() => workflowTree.refresh());
+  watcher.onDidCreate(() => { workflowTree.refresh(); void refreshJourney(); });
+  watcher.onDidDelete(() => { workflowTree.refresh(); void refreshJourney(); });
   watcher.onDidChange(() => workflowTree.refresh());
   context.subscriptions.push(watcher);
+  context.subscriptions.push(workspace.onDidChangeWorkspaceFolders(() => void refreshJourney()));
+  void refreshJourney();
 
   const runsTree = new RunsTreeProvider();
   context.subscriptions.push(window.registerTreeDataProvider('nikaRuns', runsTree));
@@ -1946,14 +1978,10 @@ export function activate(context: ExtensionContext): void {
       );
     }),
     commands.registerCommand('nika.newSession', async () => {
-      const folder = workspace.workspaceFolders?.[0];
-      const equipped = !!folder && (
-        fs.existsSync(path.join(folder.uri.fsPath, '.cursor', 'rules', 'nika.mdc'))
-        || fs.existsSync(path.join(folder.uri.fsPath, 'AGENTS.md'))
-      );
+      await refreshJourney();
       const picks = buildSessionPicks({
-        hasFolder: !!folder,
-        equipped,
+        hasFolder: currentJourney.workspaceOpen,
+        equipped: currentJourney.equipped,
         binary: service.available,
         capNew: service.caps.newTemplate,
         capExamples: service.caps.examples,
@@ -1973,7 +2001,7 @@ export function activate(context: ExtensionContext): void {
         const nika = state.resolvedServerPath ?? getNikaPath();
         const terminal = window.createTerminal({
           name: 'Nika: wizard',
-          cwd: folder?.uri.fsPath,
+          cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
         });
         terminal.show();
         terminal.sendText(`"${nika}" ${pick.terminal}`);
@@ -2015,6 +2043,7 @@ export function activate(context: ExtensionContext): void {
       const created = (res.stdout.match(/created /g) ?? []).length;
       const skipped = (res.stdout.match(/skipped/g) ?? []).length;
       await configureMcpForHost(state.resolvedServerPath, service.intel?.providers, false);
+      void refreshJourney();
       void window.showInformationMessage(
         `Nika: project equipped — ${created} file(s) scaffolded${skipped ? `, ${skipped} kept` : ''}, MCP + agent rules wired.`,
         'Open walkthrough',
@@ -2710,14 +2739,12 @@ export function activate(context: ExtensionContext): void {
     // plugin, this one is about THIS repo), offering the one-gesture
     // setup. Skip-if-equipped: init is idempotent but the ask is noise.
     void (async () => {
-      const folder = workspace.workspaceFolders?.[0];
-      if (!folder || context.workspaceState.get<boolean>('nika.initNudgeShown')) { return; }
-      const hasWorkflows = (await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 1)).length > 0;
-      if (!hasWorkflows) { return; }
-      const equipped = fs.existsSync(path.join(folder.uri.fsPath, '.cursor', 'rules', 'nika.mdc'))
-        || fs.existsSync(path.join(folder.uri.fsPath, 'AGENTS.md'));
-      void commands.executeCommand('setContext', 'nika.workspaceEquipped', equipped);
-      if (equipped) { return; }
+      if (context.workspaceState.get<boolean>('nika.initNudgeShown')) { return; }
+      await refreshJourney();
+      // Working-but-unequipped is the ONE case the nudge exists for —
+      // the journey SSOT carries both facts (the old inline probes died
+      // with the orphan `nika.workspaceEquipped` context).
+      if (currentJourney.stage !== 'working' || currentJourney.equipped) { return; }
       await context.workspaceState.update('nika.initNudgeShown', true);
       void window.showInformationMessage(
         'This repo has nika workflows but is not equipped (agent rules · MCP · schema wiring). Set it up?',

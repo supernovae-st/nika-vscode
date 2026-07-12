@@ -2,7 +2,7 @@
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
   "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.99.8",
+  "version": "0.99.9",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -1024,12 +1024,13 @@
           {
             "id": "install",
             "title": "Install the nika engine",
-            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Install nika](https://nika.sh/install)\nOr let the extension download it · it will offer automatically.",
+            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[⚡ Finish Setup — one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika` — then the same button detects it.",
             "media": {
               "markdown": "walkthrough/01-install.md"
             },
             "completionEvents": [
-              "onCommand:nika.checkBinary"
+              "onCommand:nika.checkBinary",
+              "onCommand:nika.finishSetup"
             ]
           },
           {
@@ -1130,6 +1131,17 @@
     "viewsWelcome": [
       {
         "view": "nikaWorkflows",
+        "when": "nika.journey == 'noBinary'",
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up."
+      },
+      {
+        "view": "nikaWorkflows",
+        "when": "nika.journey == 'unequipped'",
+        "contents": "This repo is not equipped for Nika yet.\n[🚀 Init this project — scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring — one gesture, skip-if-exists.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
+      },
+      {
+        "view": "nikaWorkflows",
+        "when": "nika.journey != 'noBinary' && nika.journey != 'unequipped'",
         "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[🚀 Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
