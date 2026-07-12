@@ -597,7 +597,13 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     languages.registerCodeActionsProvider(
       [{ language: 'nika' }, { pattern: '**/*.nika.yaml' }],
-      new NikaCodeActionProvider(diagnosticsController, service),
+      new NikaCodeActionProvider(diagnosticsController, service, () => {
+        // The server owns renames when IT advertises code actions
+        // (0.99.7+ engines) — read live so a mid-session binary swap
+        // flips ownership without a reload.
+        const caps = state.client?.initializeResult?.capabilities;
+        return Boolean(caps?.codeActionProvider);
+      }),
       NikaCodeActionProvider.metadata,
     ),
     languages.registerCodeActionsProvider(
