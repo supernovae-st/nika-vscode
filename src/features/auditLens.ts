@@ -138,7 +138,22 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
       return [];
     }
 
-    const top = new vscode.Range(0, 0, 0, 0);
+    // Anchor the ACTION row above the `nika:` envelope (never over the
+    // license/header comments — operator screenshot 2026-07-12), and the
+    // STATUS row above `tasks:`, where it speaks (the plan's numbers over
+    // the plan). Fallbacks keep headerless/taskless files at line 0.
+    let envLine = 0;
+    let tasksLine = -1;
+    const scanCap = Math.min(document.lineCount, 400);
+    for (let i = 0; i < scanCap; i++) {
+      const text = document.lineAt(i).text;
+      if (envLine === 0 && /^nika:\s/.test(text)) { envLine = i; }
+      if (tasksLine < 0 && /^tasks:\s*$/.test(text)) { tasksLine = i; break; }
+    }
+    const top = new vscode.Range(envLine, 0, envLine, 0);
+    const status = tasksLine >= 0
+      ? new vscode.Range(tasksLine, 0, tasksLine, 0)
+      : top;
     const lenses: vscode.CodeLens[] = [
       new vscode.CodeLens(top, {
         command: 'nika.checkWorkflow',
@@ -188,25 +203,25 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         const findingsTitle = clean
           ? '$(pass-filled) clean'
           : `$(warning) ${findingCount} finding${findingCount === 1 ? '' : 's'}`;
-        lenses.push(new vscode.CodeLens(top, {
+        lenses.push(new vscode.CodeLens(status, {
           command: 'nika.showReport',
           title: findingsTitle,
           arguments: [document.uri],
           tooltip: 'Open the full static pre-flight report (check --json)',
         }));
         if (waveTotal > 0) {
-          lenses.push(new vscode.CodeLens(top, {
+          lenses.push(new vscode.CodeLens(status, {
             command: 'nika.showDag',
-            title: `${waveTotal} task${waveTotal === 1 ? '' : 's'} · ${r.waves.length} wave${r.waves.length === 1 ? '' : 's'}`,
+            title: `$(layers) ${waveTotal} task${waveTotal === 1 ? '' : 's'} · ${r.waves.length} wave${r.waves.length === 1 ? '' : 's'}`,
             arguments: [document.uri],
           }));
         }
         const bounded = r.cost.bounded_total_usd;
         if (typeof bounded === 'number' && bounded > 0) {
           const minPath = r.cost.min_path_total_usd;
-          lenses.push(new vscode.CodeLens(top, {
+          lenses.push(new vscode.CodeLens(status, {
             command: 'nika.showReport',
-            title: `ceiling ${typeof minPath === 'number' ? `${usd(minPath)}–` : ''}${usd(bounded)}`,
+            title: `$(graph) ceiling ${typeof minPath === 'number' ? `${usd(minPath)}–` : ''}${usd(bounded)}`,
             arguments: [document.uri],
             tooltip: 'Static worst-case cost ceiling across all priced tasks — audited before a single token is spent',
           }));
