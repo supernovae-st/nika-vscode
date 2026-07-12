@@ -6,6 +6,22 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.100.1 — 2026-07-12
+
+### The verb line becomes a door
+- **One lens above every bare `<verb>:` key** (#82) — `◆ tool` on
+  `invoke:` (spec starters + every builtin THIS binary carries,
+  category-grouped, args skeleton derived from the tool's own schema —
+  required args as `# SLOT` lines, typed placeholders); `◇ ▷ ✦
+  starters` on `infer:`/`exec:`/`agent:` (the spec's canonical shapes).
+  Picking replaces the verb block — one surgical edit, one undo; a
+  moved anchor refuses a blind write.
+- **Starters are spec-truth** — projected from nika-spec
+  `stdlib/verb-starters-v0.1.yaml` by `starters-projector.py`, which
+  refuses to project starters the conformance oracle rejects. Builtins
+  stay engine-truth (`catalog --tools --json` — the picker shows what
+  YOUR binary can run).
+
 ## 0.100.0 — 2026-07-12
 
 The version line joins the engine's 0.100/0.101/… wave — every nika
