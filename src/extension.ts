@@ -34,7 +34,7 @@ import {
   setTaskModel,
   type Verb,
 } from './core/structuralFixes';
-import { mergeVerbBand, verbBandApplied } from './core/verbColors';
+import { mergeVerbBand } from './core/verbColors';
 import {
   getArtifactName,
   downloadNikaBinary,
@@ -469,26 +469,6 @@ export function activate(context: ExtensionContext): void {
       );
     }),
   );
-  // One-shot nudge: first nika file opened, never when already applied.
-  if (!context.globalState.get('nika.verbColorsNudgeShown')) {
-    const nudgeOnce = workspace.onDidOpenTextDocument(async (doc) => {
-      if (doc.languageId !== 'nika') { return; }
-      nudgeOnce.dispose();
-      if (verbBandApplied(workspace.getConfiguration('editor').get('tokenColorCustomizations'))) {
-        return;
-      }
-      await context.globalState.update('nika.verbColorsNudgeShown', true);
-      const pick = await window.showInformationMessage(
-        'Color the four Nika verbs with their canonical hues (works in every theme)?',
-        'Apply', 'Not now',
-      );
-      if (pick === 'Apply') {
-        await commands.executeCommand('nika.applyVerbColors');
-      }
-    });
-    context.subscriptions.push(nudgeOnce);
-  }
-
   // Sidebar — workflow explorer (check badges from the cached report ·
   // zero extra spawns) + flight-recorder runs.
   const workflowTree = new WorkflowTreeProvider((uriString) => {
@@ -2771,8 +2751,16 @@ async function equipHost(silent = false): Promise<boolean> {
     wired = true;
   }
   if (wired && !silent) {
+    // ONE toast per activation (Rams pass): the Cursor plugin pointer
+    // rides it; the separate one-shot stays for the auto-setup-off path.
+    const cursorTail = isCursor()
+      ? ' Agent side: install the nika plugin (Settings → Plugins → search "nika").'
+      : '';
+    if (isCursor()) {
+      void extContext.globalState.update('nika.cursorPluginNudgeShown', true);
+    }
     void window.showInformationMessage(
-      'Nika is live — MCP wired, language server on, diagnostics running (turn auto-setup off: nika.autoSetup).',
+      `Nika is live — MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`,
     );
   }
   return wired;
