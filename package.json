@@ -433,6 +433,21 @@
         "command": "nika.applyVerbColors",
         "title": "Apply Verb Colors (canonical hues, every theme)",
         "category": "Nika"
+      },
+      {
+        "command": "nika.finishSetup",
+        "title": "Finish Setup (engine + MCP + LSP, one gesture)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.runProof",
+        "title": "Run the 10-Second Proof (offline, zero keys)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.starOnGitHub",
+        "title": "Star nika on GitHub",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [

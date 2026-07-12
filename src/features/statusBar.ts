@@ -63,10 +63,14 @@ export class NikaStatusBar implements vscode.Disposable {
     const items: Item[] = [];
     const add = (cond: boolean, item: Item): void => { if (cond) { items.push(item); } };
 
-    // The tooltip promises install options — this row IS them (visible
-    // exactly when the engine is missing; restartServer re-resolves and
-    // offers the consent-gated download).
-    add(!this.service.available, { label: '$(cloud-download) Install / detect the nika engine', description: 'brew · PATH · bundled · verified download', command: 'nika.restartServer' });
+    // STATE-AWARE, not a chore list (operator design pass 2026-07-12):
+    // no binary → ONE orchestrated repair; fresh workspace → the
+    // 10-second proof leads; working workspace → operate verbs lead.
+    const hasWorkflows = (await vscode.workspace.findFiles(
+      '**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 1,
+    )).length > 0;
+    add(!this.service.available, { label: '$(zap) Finish setup — install engine + wire everything', description: 'verified download · MCP · LSP · one gesture', command: 'nika.finishSetup' });
+    add(this.service.available && !hasWorkflows && caps.examples, { label: '$(play) Run the 10-second proof', description: '01-hello · mock/echo · offline · zero keys', command: 'nika.runProof' });
     add(caps.check, { label: '$(check) Check workflow', description: 'static pre-flight (ADR-092 ladder)', command: 'nika.checkWorkflow' });
     add(caps.check, { label: '$(output) Open check report', description: 'check --json projection', command: 'nika.showReport' });
     add(caps.graph, { label: '$(type-hierarchy) Show DAG', command: 'nika.showDag' });
@@ -82,12 +86,15 @@ export class NikaStatusBar implements vscode.Disposable {
     add(caps.spec, { label: '$(file-text) Open embedded spec', command: 'nika.openSpec' });
     add(caps.schema, { label: '$(json) Open JSON schema', command: 'nika.openSchema' });
     add(true, { label: '$(copilot) Copy AI authoring prompt', description: 'deterministic template→check→repair protocol', command: 'nika.copyAiPrompt' });
-    add(true, { label: '$(plug) Setup MCP + agent rules', command: 'nika.setupMcp' });
+    add(this.service.available, { label: '$(plug) Re-wire MCP + agent rules', description: 'idempotent — auto-ran once at first activation', command: 'nika.setupMcp' });
     add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · provider keys · never mutates', command: 'nika.doctor' });
     add(caps.doctor && versionAtLeast(caps.version, 0, 94), { label: '$(radio-tower) Doctor + ping local providers', description: 'opt-in TCP probe · loopback only · 300ms cap · nothing sent', command: 'nika.doctorPing' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
-    add(true, { label: '$(verified) Verify engine binary', command: 'nika.checkBinary' });
+    add(this.service.available, { label: '$(verified) Verify engine binary', command: 'nika.checkBinary' });
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });
+    // The one earned ask — a quiet footer, never a toast (engine #498's
+    // community-line doctrine, extension side).
+    add(true, { label: '$(star) Star nika on GitHub', description: 'supernovae-st/nika — it helps others find it', command: 'nika.starOnGitHub' });
 
     const picked = await vscode.window.showQuickPick(items, { title: 'Nika' });
     if (picked?.command) {
