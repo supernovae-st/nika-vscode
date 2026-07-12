@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **The walkthrough shows the product** (user-persona design pass) —
+  the validate, run and DAG steps gain their posters (check-as-you-type
+  findings · the run chaining green through the graph · the live
+  canvas mid-run, a coalesced frame from the demo GIF). The
+  walkthrough description drops its stale step count (it said five;
+  there are eight — now count-free by the projection law), and
+  Init Project completes the create and agents steps too. The parity
+  scan learns to skip binary assets in walkthrough/.
+
 - **First-run intelligence** (the socratic pass on « install and
   everything just works »):
   - the PATH gap is CLOSED, not warned: an extension-download-only

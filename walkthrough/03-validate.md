@@ -1,5 +1,7 @@
 # Validate as you type
 
+![findings appear as you type, with their NIKA codes](./assets/check-as-you-type-poster.png)
+
 Nika is the language you can **audit before it runs** · and the editor
 paints that audit live:
 
