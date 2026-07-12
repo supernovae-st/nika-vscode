@@ -72,6 +72,7 @@ import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
 import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
+import { ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
@@ -706,6 +707,10 @@ export function activate(context: ExtensionContext): void {
     traceStore.onDidUpdate(() => xrayProvider.refresh()),
     languages.registerCodeLensProvider([{ language: 'nika' }], lensProvider),
     languages.registerCodeLensProvider([{ language: 'nika' }], new TaskLensProvider()),
+    languages.registerCodeLensProvider([{ language: 'nika' }], new ModelLensProvider()),
+    commands.registerCommand('nika.pickModel', (uri: Uri, line: number) =>
+      pickModelForLine(service, uri, line),
+    ),
     new VerbGutterDecorations(),
     runDecor,
     registerSecretsDecorDisposable(),

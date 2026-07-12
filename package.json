@@ -230,6 +230,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.pickModel",
+        "title": "Pick Model (catalog · local-first)",
+        "icon": "$(arrow-swap)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.showDag",
         "title": "Show Workflow DAG",
         "icon": "$(type-hierarchy)",
