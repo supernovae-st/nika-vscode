@@ -236,6 +236,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.pickVerbBody",
+        "title": "Pick Verb Body (starters · catalog)",
+        "icon": "$(sparkle)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.showDag",
         "title": "Show Workflow DAG",
         "icon": "$(type-hierarchy)",

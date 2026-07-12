@@ -426,11 +426,21 @@ export function parseCatalogModels(stdout: string): Record<string, CatalogModel[
  * Undefined on non-JSON, wrong envelope, or an empty map — callers keep
  * their presentation fallback.
  */
+/** One argument row from a tool's schema (`catalog --tools --json`). */
+export interface ToolArgSpec {
+  name: string;
+  required: boolean;
+  type?: string;
+  desc?: string;
+}
+
 /** One builtin's canvas-relevant vocabulary row (`tools --json`). */
 export interface ToolMeta {
   cat: string;
   /** The binary's own one-line description — the palette's teaching voice. */
   desc?: string;
+  /** Argument rows (required first · declaration order) — the invoke-lens skeleton source. */
+  args?: ToolArgSpec[];
 }
 
 export function parseToolMeta(stdout: string): Record<string, ToolMeta> | undefined {
@@ -442,17 +452,51 @@ export function parseToolMeta(stdout: string): Record<string, ToolMeta> | undefi
       if (typeof entry !== 'object' || entry === null) { continue; }
       const t = entry as Record<string, unknown>;
       if (typeof t.name !== 'string' || typeof t.category !== 'string') { continue; }
-      meta[t.name.replace(/^nika:/, '')] = {
+      const row: ToolMeta = {
         cat: t.category,
         desc: typeof t.description === 'string' && t.description.length > 0
           ? t.description
           : undefined,
       };
+      const args = parseToolArgs(t);
+      if (args.length > 0) { row.args = args; }
+      meta[t.name.replace(/^nika:/, '')] = row;
     }
     return Object.keys(meta).length > 0 ? meta : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** The tool's argument rows from its JSON-schema `parameters` (declaration
+ * order via `args` when present · required first) — absent schema → []. */
+function parseToolArgs(t: Record<string, unknown>): ToolArgSpec[] {
+  const params = t.parameters;
+  if (typeof params !== 'object' || params === null) { return []; }
+  const props = (params as Record<string, unknown>).properties;
+  if (typeof props !== 'object' || props === null) { return []; }
+  const requiredRaw = (params as Record<string, unknown>).required;
+  const required = new Set(
+    Array.isArray(requiredRaw) ? requiredRaw.filter((x): x is string => typeof x === 'string') : [],
+  );
+  const declared = Array.isArray(t.args)
+    ? t.args.filter((x): x is string => typeof x === 'string')
+    : [];
+  const names = declared.length > 0 ? declared : Object.keys(props);
+  const rows: ToolArgSpec[] = [];
+  for (const name of names) {
+    const p = (props as Record<string, unknown>)[name];
+    if (typeof p !== 'object' || p === null) { continue; }
+    const spec = p as Record<string, unknown>;
+    rows.push({
+      name,
+      required: required.has(name),
+      type: typeof spec.type === 'string' ? spec.type : undefined,
+      desc: typeof spec.description === 'string' ? spec.description : undefined,
+    });
+  }
+  // Required first, declaration order preserved within each half.
+  return [...rows.filter((r) => r.required), ...rows.filter((r) => !r.required)];
 }
 
 export function parseCheckReport(jsonText: string): CheckReport | undefined {
