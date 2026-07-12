@@ -424,6 +424,11 @@
         "command": "nika.canvas.focusTask",
         "title": "Focus Task",
         "category": "Nika Canvas"
+      },
+      {
+        "command": "nika.applyVerbColors",
+        "title": "Apply Verb Colors (canonical hues, every theme)",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [

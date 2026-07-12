@@ -128,15 +128,52 @@
       }
     },
     "verbs": {
-      "match": "^\\s+(infer|exec|invoke|agent)(:)",
-      "captures": {
-        "1": {
-          "name": "keyword.control.verb.nika"
+      "patterns": [
+        {
+          "match": "^\\s+(infer)(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.verb.infer.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
         },
-        "2": {
-          "name": "punctuation.separator.key-value.nika"
+        {
+          "match": "^\\s+(exec)(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.verb.exec.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
+        },
+        {
+          "match": "^\\s+(invoke)(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.verb.invoke.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
+        },
+        {
+          "match": "^\\s+(agent)(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.verb.agent.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
         }
-      }
+      ]
     },
     "task-fields": {
       "match": "^\\s+(artifact|as|concurrency|context_budget|decompose|depends_on|description|fail_fast|for_each|guardrails|log|model|on_error|output|preset|provider|record|retry|routing|structured|timeout|trust|when|with)(:)",
