@@ -6,6 +6,26 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.100.0 — 2026-07-12
+
+The version line joins the engine's 0.100/0.101/… wave — every nika
+repo (engine · extension · client-sdk · agents kit) ships the same
+number per wave from here on.
+
+### The envelope reads top-to-bottom
+- **Every lens on the line it serves** (#80) — the GitHub door above
+  `nika:` (the envelope names the language, the lens names where it
+  lives), Check · DAG · Run above `workflow:`, Explain above
+  `description:` (the narrative on the line it narrates); the status
+  row stays above `tasks:`. One pure placement law (`core/lensAnchors`,
+  10 tests) — partial files fall back up the chain so no door
+  disappears.
+- **The model line is a door** (#79) — `⇄ model` opens the embedded
+  catalog picker (provider-grouped, local-first per the
+  presentation-order doctrine) and surgically rewrites exactly that
+  line. Its canvas twin retired same-day (#80): the DAG door already
+  lives on the action row.
+
 ## 0.99.9 — 2026-07-12
 
 The same operator day, second half: nine more merged PRs (#69–#77),
