@@ -242,6 +242,30 @@
         "category": "Nika"
       },
       {
+        "command": "nika.typeOutput",
+        "title": "Type Its Output (schema shape)",
+        "icon": "$(symbol-structure)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.pickOutputs",
+        "title": "Choose What It Publishes (outputs)",
+        "icon": "$(export)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.declareInput",
+        "title": "Declare an Input (vars)",
+        "icon": "$(symbol-parameter)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.promoteVars",
+        "title": "Make Inputs Callable (typed vars)",
+        "icon": "$(plug)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.showDag",
         "title": "Show Workflow DAG",
         "icon": "$(type-hierarchy)",
@@ -738,6 +762,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "nika.typeOutput",
+          "when": "false"
+        },
         {
           "command": "nika.canvas.runTask",
           "when": "false"

@@ -10,8 +10,11 @@ import * as vscode from 'vscode';
 import { countReportFindings } from '../core/cliContract';
 import { findLensAnchors, findPermitsLine } from '../core/lensAnchors';
 import {
-  ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle,
+  ADD_TASK_DOOR, DECLARE_BOUNDARY_DOOR, DECLARE_INPUT_DOOR, makeCallableDoorTitle,
+  PUBLISH_DOOR, TIGHTEN_BOUNDARY_DOOR, varsDoorTitle,
 } from '../core/lensVocab';
+import { findOutputsBlock } from '../core/outputsEdit';
+import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -251,6 +254,18 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
             tooltip: `Copy the run line with ${varsRequired.join(' · ')} as --var placeholders`,
           }));
         }
+        // A dead-spend hint + no outputs: — the workflow burns tokens
+        // nothing reads AND returns nothing; publishing is one of the
+        // two honest fixes (the other is deleting the task).
+        if (r.hints.some((h) => h.kind === 'dead-spend')
+          && !lines.some((l) => /^outputs:/.test(l))) {
+          lenses.push(new vscode.CodeLens(status, {
+            command: 'nika.pickOutputs',
+            title: PUBLISH_DOOR,
+            arguments: [document.uri],
+            tooltip: 'A task\'s output goes unread (dead-spend) — publish it as the workflow\'s return value',
+          }));
+        }
 
       }
     }
@@ -277,6 +292,37 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
           tooltip: 'Recompute the tightest permits: block from what the workflow actually needs — replaces this block (one undo)',
         }));
       }
+    }
+    // The contract doors sit on the lines they grow: vars: (the input
+    // half — typed inputs make the workflow a callable unit) and
+    // outputs: (the return half — what CLI · MCP · compose callers read).
+    const varsBlock = findVarsBlock(lines);
+    if (varsBlock) {
+      lenses.push(new vscode.CodeLens(row(varsBlock.line), {
+        command: 'nika.declareInput',
+        title: DECLARE_INPUT_DOOR,
+        arguments: [document.uri],
+        tooltip: 'Add an input — reachable as ${{ vars.<name> }}; typed inputs validate at launch and power MCP/UI callers',
+      }));
+      const untyped = parseVarEntries(lines, varsBlock)
+        .filter((e) => !e.typed && e.inline !== undefined).length;
+      if (untyped > 0) {
+        lenses.push(new vscode.CodeLens(row(varsBlock.line), {
+          command: 'nika.promoteVars',
+          title: makeCallableDoorTitle(untyped),
+          arguments: [document.uri],
+          tooltip: 'Promote untyped rows to the typed form — type: inferred from each default, value preserved (one undo)',
+        }));
+      }
+    }
+    const outputsBlock = findOutputsBlock(lines);
+    if (outputsBlock) {
+      lenses.push(new vscode.CodeLens(row(outputsBlock.line), {
+        command: 'nika.pickOutputs',
+        title: PUBLISH_DOOR,
+        arguments: [document.uri],
+        tooltip: 'Re-pick what this workflow returns — custom rows survive, picked tasks publish ${{ tasks.<id>.output }}',
+      }));
     }
 
     return lenses;

@@ -72,6 +72,9 @@ import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
 import { registerIntel } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
+import {
+  declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
+} from './features/contractDoors';
 import { ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -717,6 +720,13 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.pickVerbBody', (uri: Uri, line: number, verb: NikaVerb) =>
       pickVerbBodyForLine(service, uri, line, verb),
     ),
+    // The contract doors (V1): schema · outputs · vars.
+    commands.registerCommand('nika.typeOutput', (uri: Uri, line: number, verb: NikaVerb) =>
+      typeOutputForLine(uri, line, verb),
+    ),
+    commands.registerCommand('nika.pickOutputs', (uri?: Uri) => pickOutputsFor(uri)),
+    commands.registerCommand('nika.declareInput', (uri?: Uri) => declareInputFor(uri)),
+    commands.registerCommand('nika.promoteVars', (uri?: Uri) => promoteVarsFor(uri)),
     new VerbGutterDecorations(),
     runDecor,
     registerSecretsDecorDisposable(),

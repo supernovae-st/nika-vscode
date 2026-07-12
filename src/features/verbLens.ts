@@ -6,7 +6,8 @@
 // Picking REPLACES the verb block — one WorkspaceEdit, one undo.
 
 import * as vscode from 'vscode';
-import { verbDoorTitle } from '../core/lensVocab';
+import { TYPE_OUTPUT_DOOR, verbDoorTitle } from '../core/lensVocab';
+import { verbHasSchema, verbTakesSchema } from '../core/schemaEdit';
 import { invokeBodyFor, findVerbLines, verbBlockEdit } from '../core/verbBlocks';
 import { NIKA_VERB_STARTERS, type NikaVerb } from '../core/verbStarters.generated';
 import { VERB_ITEMS } from '../core/verbPalette';
@@ -27,7 +28,8 @@ export class VerbLensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const lenses: vscode.CodeLens[] = [];
-    for (const v of findVerbLines(document.getText().split('\n'))) {
+    const lines = document.getText().split('\n');
+    for (const v of findVerbLines(lines)) {
       lenses.push(new vscode.CodeLens(new vscode.Range(v.line, 0, v.line, 0), {
         command: 'nika.pickVerbBody',
         title: verbDoorTitle(v.verb, VERB_GLYPH[v.verb] ?? ''),
@@ -36,6 +38,18 @@ export class VerbLensProvider implements vscode.CodeLensProvider {
           : `Insert a proven ${v.verb}: starter — the spec's canonical shapes (replaces this block)`,
         arguments: [document.uri, v.line, v.verb],
       }));
+      // The typed-unit door — only where the schema is missing (an
+      // untyped infer is legitimate; a second schema never is).
+      if (verbTakesSchema(v.verb) && !verbHasSchema(lines, v.line, v.indent)) {
+        lenses.push(new vscode.CodeLens(new vscode.Range(v.line, 0, v.line, 0), {
+          command: 'nika.typeOutput',
+          title: TYPE_OUTPUT_DOOR,
+          tooltip: v.verb === 'agent'
+            ? 'schema: the FINAL message MUST match — appends a proven shape to this agent: block'
+            : 'schema: the response MUST match — typed extraction, no prose parsing (appends to this block)',
+          arguments: [document.uri, v.line, v.verb],
+        }));
+      }
     }
     return lenses;
   }
