@@ -111,17 +111,31 @@ theme*, not to extensions:
   derived by `check --infer-permits` (default-deny from then on)
 - **Static cost audit** · per-task `$min–max` inlay hints + the workflow
   ceiling on a code lens · audited before a single token is spent
-- **Lens doors on every structural line** · the envelope reads
-  top-to-bottom (GitHub ↑ `nika:` · Check/DAG/Run ↑ `workflow:` ·
-  Explain ↑ `description:` · verdict + ceiling + *add a task* ↑
-  `tasks:`) · every door is a call, not a caption — `model:` offers
-  *choose your model* (the local-first catalog picker) · each verb key
-  offers *choose a starter* — `invoke:` *choose your tool*, every
-  builtin THIS binary carries with an args skeleton from the tool's own
-  schema; `infer:`/`exec:`/`agent:` insert the spec's oracle-validated
-  shapes · picking replaces the block surgically (one edit · one undo)
-  · a declared `permits:` line offers *tighten the boundary* — the same
-  one-gesture recompute the undeclared case gets
+- **A door on every language line** · a lens title is a call, not a
+  caption — each line offers the gesture it's for, fed by the SSOT
+  that owns it (the spec's oracle-proven starters · THIS binary's
+  catalog · the file's own DAG). The full map:
+
+  | line | door | writes |
+  |---|---|---|
+  | `nika:` | GitHub | — (the project door) |
+  | `workflow:` | Check · DAG · Run | — (the action row) |
+  | `description:` | Explain | — (the offline narrative) |
+  | `model:` | *choose your model* | the catalog ref (local-first) |
+  | `vars:` | *declare an input* · *make it callable · N untyped* | a typed/untyped input · untyped→typed promotion |
+  | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N vars ride --var* | each run-blocking gap, one gesture |
+  | `- id:` | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
+  | `depends_on:` | *wire its inputs* | pre-checked multi-pick — descendants never offered (cycle-safe) |
+  | `when:` | *choose a gate* | a CEL v0.1 shape from THIS file's vars + upstream tasks — a `tasks.*` gate wires its edge first |
+  | `for_each:` | *choose the collection* | typed array vars · upstream outputs (edge wired too) |
+  | `infer:`/`exec:`/`agent:` | *choose a starter* · *type its output* (schema missing) | the spec's shapes · a proven schema (fields · list · verdict · grade) |
+  | `invoke:` | *choose your tool* | starters + every builtin THIS binary carries, args skeleton from the tool's own schema |
+  | agent `tools:` | *choose its tools* | the catalog multi-pick — MCP/globs/strangers survive verbatim; `[]` is least privilege |
+  | `outputs:` | *choose what it publishes* | owned rows re-picked; typed/jq/commented rows survive verbatim |
+  | `permits:` | *tighten the boundary* | the `--infer-permits` recompute (one undo) |
+
+  Every write is surgical (one edit · one undo), refuses a moved
+  anchor, and never guesses what the engine can judge.
 - **Secrets lint** · literal credentials flagged locally (pure scan · zero
   network) with a `${{ env.VAR }}` rewrite quick fix
 
