@@ -228,16 +228,38 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'dag:stale', stale, direct });
   }
 
+  /** Drop a panel that died without (or before) its onDidDispose. */
+  private releaseDisposedPanel(): void {
+    this.panel = undefined;
+    this.pendingFocus = undefined;
+    this.pendingTransport = undefined;
+    const toDispose = this.disposables;
+    this.disposables = [];
+    for (const d of toDispose) {
+      try { d.dispose(); } catch { /* already gone */ }
+    }
+  }
+
   // ─── Public API ──────────────────────────────────────────────────────────
 
   /** Show the DAG panel (create if needed, reveal if exists) */
   public show(graph?: DagGraph): void {
     if (this.panel) {
-      this.panel.reveal(this.panel.viewColumn ?? vscode.ViewColumn.Beside);
-      if (graph) {
-        this.loadGraph(graph);
+      // A panel can be disposed UNDER us with onDidDispose never having fired
+      // (window reload races · serializer restores · host quirks — proven
+      // live: close the tab, click the graph again, « Webview is
+      // disposed » forever). WebviewPanel exposes no isDisposed: the
+      // documented shape is try/reveal, and on the throw we drop the
+      // corpse and fall through to a fresh panel.
+      try {
+        this.panel.reveal(this.panel.viewColumn ?? vscode.ViewColumn.Beside);
+        if (graph) {
+          this.loadGraph(graph);
+        }
+        return;
+      } catch {
+        this.releaseDisposedPanel();
       }
-      return;
     }
 
     const panel = vscode.window.createWebviewPanel(
@@ -577,7 +599,12 @@ export class DagPanel implements vscode.Disposable {
   // ─── Internals ───────────────────────────────────────────────────────────
 
   private postMessage(msg: ExtToWebviewMessage): void {
-    this.panel?.webview.postMessage(msg);
+    try {
+      this.panel?.webview.postMessage(msg);
+    } catch {
+      // Disposed under us — release so the next show() builds fresh.
+      this.releaseDisposedPanel();
+    }
   }
 
   /** Fires when the webview's running-task set changes (live · replay). */
