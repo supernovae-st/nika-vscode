@@ -13,8 +13,19 @@ import * as path from 'path';
 import { extractRunArtifacts, pickCardArtifact } from '../core/artifacts';
 import { parseCatalogProviders } from '../core/preflight';
 
+// Prefer a RELEASED binary over bare PATH — same shield as
+// journeyReal: a sister session routinely swaps the PATH binary for
+// an in-flight branch build; these belts pin SHIPPED behavior.
+const CELLAR = (() => {
+  try {
+    const base = '/opt/homebrew/Cellar/nika';
+    const versions = fs.readdirSync(base).sort();
+    return versions.length ? `${base}/${versions[versions.length - 1]}/bin/nika` : undefined;
+  } catch { return undefined; }
+})();
 const CANDIDATES = [
   process.env.NIKA_BIN,
+  CELLAR,
   'nika',
 ].filter((p): p is string => typeof p === 'string' && p.length > 0);
 
