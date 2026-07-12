@@ -22,6 +22,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { WorkflowTreeProvider } from './workflowTree';
 import { registerNikaBadge } from './features/fileBadge';
+import { NikaDocLinkProvider } from './features/docLinks';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addDependsOn,
@@ -382,6 +383,9 @@ export function activate(context: ExtensionContext): void {
   };
   context.subscriptions.push(workspace.onDidOpenTextDocument(enforceNikaLanguage));
   context.subscriptions.push(registerNikaBadge());
+  context.subscriptions.push(
+    languages.registerDocumentLinkProvider([{ language: 'nika' }], new NikaDocLinkProvider()),
+  );
   for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
 
   // Finish setup — the ONE orchestrated gesture: binary (verified
@@ -417,6 +421,22 @@ export function activate(context: ExtensionContext): void {
       void window.showInformationMessage(
         `Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}.`,
       );
+    }),
+  );
+
+  // The ready-to-paste run line — required vars become --var placeholders
+  // (the vars CTA lens · the check report names the contract).
+  context.subscriptions.push(
+    commands.registerCommand('nika.copyRunLine', async (uri?: Uri) => {
+      const doc = uri
+        ? await workspace.openTextDocument(uri)
+        : window.activeTextEditor?.document;
+      if (!doc) { return; }
+      const rel = workspace.asRelativePath(doc.uri);
+      const vars = service.peekCheck(doc.uri.toString())?.report?.requirements?.vars_required ?? [];
+      const line = `nika run ${rel}${vars.map((v) => ` --var ${v}=<value>`).join('')}`;
+      await env.clipboard.writeText(line);
+      void window.showInformationMessage(`Copied: ${line}`);
     }),
   );
 

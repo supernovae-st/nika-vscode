@@ -190,8 +190,15 @@ export function startClient(
     // transport hiccups restart quietly; a crash-loop STOPS cleanly and
     // offers one-click recovery instead of the raw upstream error.
     errorHandler: {
-      error: (_e, _m, count) =>
-        ({ action: (count ?? 1) <= 3 ? ErrorAction.Continue : ErrorAction.Shutdown }),
+      // handled: true — WITHOUT it the upstream client still shows its
+      // raw « connection to server is erroring. write EPIPE » toast on
+      // every tolerated error (operator screenshot, post-#62: the binary
+      // swap under a live server makes this an everyday event). Our
+      // closed() path owns ALL the messaging.
+      error: (_e, _m, count) => ({
+        action: (count ?? 1) <= 3 ? ErrorAction.Continue : ErrorAction.Shutdown,
+        handled: true,
+      }),
       closed: () => {
         closedCount += 1;
         if (closedCount <= 2) {
@@ -224,6 +231,11 @@ export function startClient(
   state.client.start().then(() => {
     log('INFO', 'Language server started successfully');
     state.statusSink?.('running');
+    // A successful (re)start heals the crash budget: the binary-swap
+    // routine (a sister build replacing the PATH binary mid-session)
+    // kills servers repeatedly — each recovery must re-arm the two
+    // quiet restarts instead of decaying to the stop-button state.
+    closedCount = 0;
 
     // Forward execution events from LSP to DAG webview for live updates
     if (state.client) {
