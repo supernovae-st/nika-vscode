@@ -5,11 +5,14 @@
 // editor back.
 
 import * as vscode from 'vscode';
+import { wornArmor } from '../core/armorEdit';
 import { findTaskKey } from '../core/flowEdit';
 import {
-  COLLECTION_DOOR, GATE_DOOR, graphDoorTitle, RERUN_DOOR, WIRE_INPUTS_DOOR,
+  ARMOR_DOOR, COLLECTION_DOOR, GATE_DOOR, graphDoorTitle, RERUN_DOOR,
+  WIRE_INPUTS_DOOR,
 } from '../core/lensVocab';
 import { findTaskRefs } from '../core/renameRefs';
+import { traceStore } from '../core/traceStore';
 import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
@@ -40,7 +43,20 @@ const FLOW_DOORS = [
   },
 ] as const;
 
-export class TaskLensProvider implements vscode.CodeLensProvider {
+export class TaskLensProvider implements vscode.CodeLensProvider, vscode.Disposable {
+  private readonly emitter = new vscode.EventEmitter<void>();
+  readonly onDidChangeCodeLenses = this.emitter.event;
+  private readonly disposables: vscode.Disposable[] = [];
+
+  constructor() {
+    // The armor door reads the latest fold — a fresh run must repaint.
+    this.disposables.push(this.emitter, traceStore.onDidUpdate(() => this.emitter.fire()));
+  }
+
+  dispose(): void {
+    for (const d of this.disposables) { d.dispose(); }
+  }
+
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     if (!isNikaDoc(document)) { return []; }
     if (!vscode.workspace.getConfiguration('nika').get<boolean>('codeLens.enabled', true)) {
@@ -49,6 +65,7 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
     const text = document.getText();
     const lines = text.split('\n');
     const wf = parseRichWorkflow(text);
+    const fold = traceStore.get(document.uri.fsPath)?.fold;
     const lenses: vscode.CodeLens[] = [];
 
     for (const task of wf.tasks) {
@@ -79,6 +96,18 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
         tooltip: 'Focus this task in the DAG (lineage lit) — ⇧F12 peeks its references',
         arguments: [document.uri, task.id],
       }));
+      // The armor door — contextual, not ambient: only on a task the
+      // LAST RUN proved fragile, and only while a wall is missing.
+      // (Proactive armoring stays one palette command away.)
+      if (fold?.tasks.get(task.id)?.status === 'failed'
+        && wornArmor(lines, task).size < 3) {
+        lenses.push(new vscode.CodeLens(range, {
+          command: 'nika.makeResilient',
+          title: ARMOR_DOOR,
+          tooltip: 'This task failed its last run — retry absorbs transient errors; recover/skip catch the rest; timeout bounds the wait. A wrong prompt needs editing, not armor.',
+          arguments: [document.uri, task.id],
+        }));
+      }
     }
     return lenses;
   }

@@ -284,6 +284,18 @@
         "category": "Nika"
       },
       {
+        "command": "nika.makeResilient",
+        "title": "Make Task Resilient (retry · recover · timeout)",
+        "icon": "$(pulse)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.chooseDefaultModel",
+        "title": "Choose Default Model (envelope)",
+        "icon": "$(arrow-swap)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.showDag",
         "title": "Show Workflow DAG",
         "icon": "$(type-hierarchy)",

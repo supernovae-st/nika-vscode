@@ -6,6 +6,26 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The armor doors — the spec's three error walls, offered when proven needed
+- **« make it resilient »** (#93) — a task that FAILED its last run
+  (the flight recorder's fold) grows one contextual lens offering the
+  walls it doesn't wear yet: *retry transient failures* (max_attempts
+  + backoff — exponential + jitter are the engine defaults), *recover
+  with a fallback* (an upstream output — resolved at recovery time,
+  not an execution edge — or a literal), *skip on error* (the DAG
+  continues, the original error stays readable), *bound its time*
+  (Go-duration timeout). Contextual, not ambient: no failure → no
+  lens; proactive armoring lives one palette command away (`Nika:
+  Make Task Resilient`). Recover sources honor the spec's parse-time
+  acyclicity rule (NIKA-DAG-004) via the same cycle-safe candidate
+  list the flow doors use — and the Real e2e pins the REJECTION of a
+  descendant recovery, not just the acceptance of a clean one.
+- **The missing brain** (#93) — infer/agent present, no model
+  ANYWHERE (envelope or per-task): the status row offers « choose
+  your model » (the same door, one voice) and inserts the envelope
+  default at the spec's canonical slot (after `description:`),
+  local-first catalog as always. Gone the moment a model lands.
+
 ### The flow doors — wire, gate, fan out
 - **« wire its inputs »** (#91) — the `depends_on:` line re-picks what
   the task waits for, verb-glyph rows pre-checked from the file.

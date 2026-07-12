@@ -36,7 +36,10 @@ function fieldIndentOf(lines: readonly string[], task: TaskRange): number {
   return m ? m[1].length + 2 : 4;
 }
 
-/** Find a task-level `key:` inside the item (block-list extent included). */
+/** Find a task-level `key:` inside the item. A block value's extent
+ * (list items AND map children — `retry:`'s fields as much as
+ * `depends_on:`'s dashes) is any deeper-indented run; blanks stay
+ * inside, the parser's own law. */
 export function findTaskKey(
   lines: readonly string[],
   task: TaskRange,
@@ -49,11 +52,9 @@ export function findTaskKey(
     if (!m) { continue; }
     let end = i;
     if (m[1].trim() === '' || m[1].trim().startsWith('#')) {
-      // Block-list extent: deeper `- item` lines (blanks stay inside —
-      // the parser's own law).
       for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
         if (lines[j].trim() === '') { continue; }
-        if (indentOf(lines[j]) > indent && lines[j].trimStart().startsWith('-')) { end = j; continue; }
+        if (indentOf(lines[j]) > indent) { end = j; continue; }
         break;
       }
     }
@@ -85,16 +86,43 @@ export function upstreamCandidates(tasks: readonly TaskRange[], id: string): Tas
   return tasks.filter((t) => t.id !== id && !blocked.has(t.id));
 }
 
-/** The anchor a fresh key inserts AFTER, per the spec's canonical order. */
-const KEY_ORDER: readonly string[] = ['depends_on', 'when', 'for_each'];
+/** The spec's canonical task-key order (03-dag task shape) — the
+ * anchor chain a fresh key inserts after. */
+const KEY_ORDER: readonly string[] = [
+  'depends_on', 'when', 'for_each', 'retry', 'on_error', 'timeout',
+];
 
-function insertionLine(lines: readonly string[], task: TaskRange, key: string): number {
+export function insertionLine(lines: readonly string[], task: TaskRange, key: string): number {
   let at = task.line; // after `- id:` by default
   for (const prior of KEY_ORDER.slice(0, KEY_ORDER.indexOf(key))) {
     const found = findTaskKey(lines, task, prior);
     if (found) { at = found.end; }
   }
   return at + 1;
+}
+
+/**
+ * Insert a task-level BLOCK key (`retry:`'s policy, `on_error:`'s
+ * action) at the canonical position — `body` unindented, first line
+ * `<key>:`. Refuses when the anchor moved or the key already exists:
+ * armor is tuned by hand once worn, never blind-rewritten.
+ */
+export function taskBlockInsert(
+  text: string,
+  task: TaskRange,
+  key: string,
+  body: string,
+): string | undefined {
+  const lines = text.split('\n');
+  if (!/^\s*- /.test(lines[task.line] ?? '')) { return undefined; }
+  if (findTaskKey(lines, task, key)) { return undefined; }
+  const pad = ' '.repeat(fieldIndentOf(lines, task));
+  const block = body
+    .replace(/\n$/, '')
+    .split('\n')
+    .map((l) => (l.trim() === '' ? '' : pad + l));
+  lines.splice(insertionLine(lines, task, key), 0, ...block);
+  return lines.join('\n');
 }
 
 /**

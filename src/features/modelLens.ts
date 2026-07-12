@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { MODEL_DOOR } from '../core/lensVocab';
+import { insertDefaultModel } from '../core/modelEdit';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -50,19 +51,15 @@ export class ModelLensProvider implements vscode.CodeLensProvider {
   }
 }
 
-/** The picker: catalog-fed quick pick (provider-grouped · local-first),
- * then a surgical edit of exactly the `model:` value on that line. */
-export async function pickModelForLine(
-  service: NikaService,
-  uri: vscode.Uri,
-  lineNo: number,
-): Promise<void> {
+/** The catalog quick pick (provider-grouped · local-first) — the ONE
+ * model chooser every door shares. Returns the `<provider>/<name>` ref. */
+export async function showCatalogPicker(service: NikaService): Promise<string | undefined> {
   const models = service.catalogModels;
   if (!models || Object.keys(models).length === 0) {
     void vscode.window.showInformationMessage(
       'nika: the model catalog is not loaded yet — is the binary wired? (nika doctor)',
     );
-    return;
+    return undefined;
   }
   const items: vscode.QuickPickItem[] = [];
   const providers = Object.keys(models).sort(
@@ -78,7 +75,17 @@ export async function pickModelForLine(
     placeHolder: 'model: <provider>/<name> — local-first · the catalog is embedded, keys are per-provider',
     matchOnDetail: true,
   });
-  if (!picked) { return; }
+  return picked?.label;
+}
+
+/** The lens path: pick, then surgically rewrite THAT `model:` line. */
+export async function pickModelForLine(
+  service: NikaService,
+  uri: vscode.Uri,
+  lineNo: number,
+): Promise<void> {
+  const ref = await showCatalogPicker(service);
+  if (!ref) { return; }
 
   const doc = await vscode.workspace.openTextDocument(uri);
   const line = doc.lineAt(Math.min(lineNo, doc.lineCount - 1));
@@ -87,6 +94,28 @@ export async function pickModelForLine(
   const indent = m[1] ?? '';
   const comment = m[3] ? `   ${m[3]}` : '';
   const edit = new vscode.WorkspaceEdit();
-  edit.replace(uri, line.range, `${indent}model: ${picked.label}${comment}`);
+  edit.replace(uri, line.range, `${indent}model: ${ref}${comment}`);
+  await vscode.workspace.applyEdit(edit);
+}
+
+/** The status-row path (no model anywhere): pick, then insert the
+ * envelope default at the spec's canonical slot. */
+export async function chooseDefaultModelFor(
+  service: NikaService,
+  uri?: vscode.Uri,
+): Promise<void> {
+  const doc = uri
+    ? await vscode.workspace.openTextDocument(uri)
+    : vscode.window.activeTextEditor?.document;
+  if (!doc || !isNikaDoc(doc)) {
+    void vscode.window.showInformationMessage('Nika: open a .nika.yaml file first.');
+    return;
+  }
+  const ref = await showCatalogPicker(service);
+  if (!ref) { return; }
+  const next = insertDefaultModel(doc.getText(), ref);
+  if (next === undefined) { return; } // a model: appeared under us — the lens path owns it now
+  const edit = new vscode.WorkspaceEdit();
+  edit.replace(doc.uri, new vscode.Range(0, 0, doc.lineCount, 0), next);
   await vscode.workspace.applyEdit(edit);
 }
