@@ -20,6 +20,9 @@ export interface LensAnchors {
   explain: number;
   /** `tasks:` line (else actions) — verdict · ceiling · CTAs. */
   status: number;
+  /** Whether a real `tasks:` block anchored `status` — the add-a-task
+   * door only opens where the skeleton has a home to land in. */
+  hasTasks: boolean;
 }
 
 /** First match wins per key; top-level keys only, so a task-level
@@ -44,5 +47,19 @@ export function findLensAnchors(lines: readonly string[]): LensAnchors {
     actions,
     explain: description >= 0 ? description : actions,
     status: tasks >= 0 ? tasks : actions,
+    hasTasks: tasks >= 0,
   };
+}
+
+/**
+ * First top-level `permits:` line — the tighten-the-boundary door.
+ * Deliberately UNCAPPED: the block `check --infer-permits` inserts
+ * lands at the END of the file, past any envelope cap; one extra
+ * regex per line is what modelLens already pays on every provide.
+ */
+export function findPermitsLine(lines: readonly string[]): number | undefined {
+  for (let i = 0; i < lines.length; i++) {
+    if (/^permits:\s*(#.*)?$/.test(lines[i])) { return i; }
+  }
+  return undefined;
 }

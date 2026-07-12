@@ -5,6 +5,7 @@
 // editor back.
 
 import * as vscode from 'vscode';
+import { graphDoorTitle, RERUN_DOOR } from '../core/lensVocab';
 import { findTaskRefs } from '../core/renameRefs';
 import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
@@ -29,18 +30,15 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
       // file is noise, not signal. References stay reachable natively
       // (⇧F12 · our ReferenceProvider) and via the peek command.
       const refs = findTaskRefs(text, task.id).filter((r) => r.home !== 'declaration');
-      const title = refs.length > 0
-        ? `$(target) graph · ${refs.length} ref${refs.length === 1 ? '' : 's'}`
-        : '$(target) graph';
       lenses.push(new vscode.CodeLens(range, {
         command: 'nika.rerunTask',
-        title: '$(debug-restart) re-run',
+        title: RERUN_DOOR,
         tooltip: 'Run THIS task and its upstream cone only (nika run --task) — the regenerate-one-block move',
         arguments: [document.uri, task.id],
       }));
       lenses.push(new vscode.CodeLens(range, {
         command: 'nika.focusTaskInDag',
-        title,
+        title: graphDoorTitle(refs.length),
         tooltip: 'Focus this task in the DAG (lineage lit) — ⇧F12 peeks its references',
         arguments: [document.uri, task.id],
       }));
