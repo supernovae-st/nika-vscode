@@ -216,6 +216,26 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
             arguments: [document.uri],
           }));
         }
+        // The two CTAs the report asks for (operator pass 2026-07-12):
+        // an undeclared boundary offers the one-gesture infer; required
+        // vars offer the ready-to-paste run line.
+        if (r.hints.some((h) => h.kind === 'permits')) {
+          lenses.push(new vscode.CodeLens(status, {
+            command: 'nika.inferPermits',
+            title: '$(shield) declare the boundary',
+            arguments: [document.uri],
+            tooltip: 'Insert the tightest permits: block the workflow needs — default-deny from then on',
+          }));
+        }
+        const varsRequired = r.requirements?.vars_required ?? [];
+        if (varsRequired.length > 0) {
+          lenses.push(new vscode.CodeLens(status, {
+            command: 'nika.copyRunLine',
+            title: `$(symbol-variable) ${varsRequired.length} var${varsRequired.length === 1 ? '' : 's'} ride --var`,
+            arguments: [document.uri],
+            tooltip: `Copy the run line with ${varsRequired.join(' · ')} as --var placeholders`,
+          }));
+        }
         const bounded = r.cost.bounded_total_usd;
         if (typeof bounded === 'number' && bounded > 0) {
           const minPath = r.cost.min_path_total_usd;

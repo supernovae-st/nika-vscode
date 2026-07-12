@@ -100,15 +100,30 @@
       }
     },
     "top-level-keys": {
-      "match": "^(agents|artifacts|context|description|goal|include|inputs|log|max_duration_secs|mcp|model|orchestrate|pkg|routing|schedule|skills|tasks)(:)",
-      "captures": {
-        "1": {
-          "name": "keyword.control.top-level.nika"
+      "patterns": [
+        {
+          "match": "^(nika|workflow|tasks)(:)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.required.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
         },
-        "2": {
-          "name": "punctuation.separator.key-value.nika"
+        {
+          "match": "^(description|model|vars|permits|secrets|outputs|agents|artifacts|context|goal|include|inputs|log|max_duration_secs|mcp|orchestrate|pkg|routing|schedule|skills|retry|on_error|timeout|env)(:)",
+          "captures": {
+            "1": {
+              "name": "support.type.optional.nika"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.nika"
+            }
+          }
         }
-      }
+      ]
     },
     "task-id": {
       "match": "^\\s*-?\\s*(id)(:)\\s*([\"']?)([\\w-]+)\\3",
