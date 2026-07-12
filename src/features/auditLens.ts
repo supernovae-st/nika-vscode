@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import { countReportFindings } from '../core/cliContract';
+import { findLensAnchors } from '../core/lensAnchors';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -138,37 +139,40 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
       return [];
     }
 
-    // Anchor the ACTION row above the `nika:` envelope (never over the
-    // license/header comments — operator screenshot 2026-07-12), and the
-    // STATUS row above `tasks:`, where it speaks (the plan's numbers over
-    // the plan). Fallbacks keep headerless/taskless files at line 0.
-    let envLine = 0;
-    let tasksLine = -1;
-    const scanCap = Math.min(document.lineCount, 400);
-    for (let i = 0; i < scanCap; i++) {
-      const text = document.lineAt(i).text;
-      if (envLine === 0 && /^nika:\s/.test(text)) { envLine = i; }
-      if (tasksLine < 0 && /^tasks:\s*$/.test(text)) { tasksLine = i; break; }
-    }
-    const top = new vscode.Range(envLine, 0, envLine, 0);
-    const status = tasksLine >= 0
-      ? new vscode.Range(tasksLine, 0, tasksLine, 0)
-      : top;
+    // One placement law (core/lensAnchors · operator layout 2026-07-12):
+    // each row sits on the line it serves — the GitHub door above
+    // `nika:` · Check/DAG/Run above `workflow:` · Explain above
+    // `description:` · the STATUS row above `tasks:` (the plan's numbers
+    // over the plan) — never over the license/header comments. Partial
+    // files fall back up that chain, so no door disappears.
+    const anchors = findLensAnchors(document.getText().split('\n'));
+    const row = (line: number): vscode.Range => new vscode.Range(line, 0, line, 0);
+    const env = row(anchors.env);
+    const actions = row(anchors.actions);
+    const explain = row(anchors.explain);
+    const status = row(anchors.status);
     const lenses: vscode.CodeLens[] = [
-      new vscode.CodeLens(top, {
+      // The project door: nika is independent open source — the envelope
+      // names the language, the lens names where it lives.
+      new vscode.CodeLens(env, {
+        command: 'nika.starOnGitHub',
+        title: '$(github) GitHub',
+        tooltip: 'supernovae-st/nika — the engine source · issues · releases',
+      }),
+      new vscode.CodeLens(actions, {
         command: 'nika.checkWorkflow',
         title: '$(check) Check',
         arguments: [document.uri],
       }),
-      new vscode.CodeLens(top, {
+      new vscode.CodeLens(actions, {
         command: 'nika.showDag',
         title: '$(type-hierarchy) DAG',
         arguments: [document.uri],
       }),
       // The beginner's missing door (2026-07-08 funnel audit): the
-      // deterministic narrative existed but was palette-only — the one
-      // surface every workflow shows now carries it.
-      new vscode.CodeLens(top, {
+      // deterministic narrative existed but was palette-only — it now
+      // sits on the line it narrates.
+      new vscode.CodeLens(explain, {
         command: 'nika.explainWorkflow',
         title: '$(book) Explain',
         arguments: [document.uri],
@@ -177,13 +181,13 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
     ];
 
     if (this.service.caps.run) {
-      lenses.push(new vscode.CodeLens(top, {
+      lenses.push(new vscode.CodeLens(actions, {
         command: 'nika.runWorkflow',
         title: '$(play) Run',
         arguments: [document.uri],
       }));
     } else if (this.service.caps.trace) {
-      lenses.push(new vscode.CodeLens(top, {
+      lenses.push(new vscode.CodeLens(actions, {
         command: 'nika.watchDemo',
         title: '$(play-circle) Demo replay',
         tooltip: '`run` ships with the engine runtime (L3) — watch the flight-recorder demo meanwhile',

@@ -1,8 +1,8 @@
-// modelLens.ts — the model line becomes a DOOR: a code lens row above
-// every `model:` (envelope and per-task) offering the catalog picker
-// (grouped local-first per the presentation-order doctrine) and the
-// canvas jump. The choice a stranger makes most — which brain — stops
-// being a string you have to already know.
+// modelLens.ts — the model line becomes a DOOR: a code lens above every
+// `model:` (envelope and per-task) offering the catalog picker (grouped
+// local-first per the presentation-order doctrine). The choice a
+// stranger makes most — which brain — stops being a string you have to
+// already know.
 
 import * as vscode from 'vscode';
 import type { NikaService } from '../nikaService';
@@ -43,12 +43,6 @@ export class ModelLensProvider implements vscode.CodeLensProvider {
         title: '$(arrow-swap) model',
         tooltip: 'Pick a model from the embedded catalog (local-first) — writes this line',
         arguments: [document.uri, i],
-      }));
-      lenses.push(new vscode.CodeLens(line.range, {
-        command: 'nika.showDag',
-        title: '$(type-hierarchy) canvas',
-        tooltip: 'Open this workflow on the DAG canvas',
-        arguments: [document.uri],
       }));
     }
     return lenses;
