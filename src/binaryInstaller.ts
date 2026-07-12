@@ -13,7 +13,37 @@ import { IncomingMessage } from 'http';
 import { extractBinaryFromTarGz, extractBinaryFromZip } from './core/archive';
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/supernovae-st/nika/releases/latest';
+const GITHUB_LATEST_HTML = 'https://github.com/supernovae-st/nika/releases/latest';
+const GITHUB_DOWNLOAD_BASE = 'https://github.com/supernovae-st/nika/releases/download';
 export const GITHUB_INSTALL_URL = 'https://github.com/supernovae-st/nika#installation';
+export const GITHUB_RELEASES_URL = 'https://github.com/supernovae-st/nika/releases/latest';
+
+/**
+ * The release version, WITHOUT the API when possible: the html
+ * releases/latest endpoint 302-redirects to .../tag/vX.Y.Z and carries
+ * no rate quota — the unauthenticated API (60 req/h/IP) turned the
+ * download button into a silent no-op on busy days (operator live,
+ * 2026-07-12). The API stays as the fallback.
+ */
+async function resolveLatestVersion(): Promise<string> {
+  try {
+    const res = await new Promise<IncomingMessage>((resolve, reject) => {
+      https.get(GITHUB_LATEST_HTML, { headers: { 'User-Agent': 'vscode-nika-extension' } }, resolve)
+        .on('error', reject);
+    });
+    res.resume();
+    const loc = res.headers.location ?? '';
+    const m = /\/tag\/v?([0-9][\w.-]*)$/.exec(loc);
+    if (m) { return m[1]; }
+  } catch { /* fall through to the API */ }
+  const apiRes = await httpGet(GITHUB_RELEASES_API);
+  if (apiRes.statusCode !== 200) {
+    apiRes.resume();
+    throw new Error(`GitHub API returned HTTP ${apiRes.statusCode}`);
+  }
+  const release = JSON.parse(await readBody(apiRes)) as { tag_name: string };
+  return release.tag_name.replace(/^v/, '');
+}
 
 /** Maps process.platform + process.arch to a GitHub release artifact prefix. */
 export function getArtifactName(): string | null {
@@ -138,27 +168,11 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
     },
     async (progress) => {
       try {
-        progress.report({ message: 'Fetching release info from GitHub...' });
-
-        // Fetch latest release metadata
-        const apiRes = await httpGet(GITHUB_RELEASES_API);
-        if (apiRes.statusCode !== 200) {
-          throw new Error(`GitHub API returned HTTP ${apiRes.statusCode}`);
-        }
-        const body = await readBody(apiRes);
-        const release = JSON.parse(body) as {
-          tag_name: string;
-          assets: Array<{ name: string; browser_download_url: string }>;
-        };
-
-        const version = release.tag_name.replace(/^v/, '');
+        progress.report({ message: 'Resolving the latest release...' });
+        const version = await resolveLatestVersion();
         const archiveExt = isWindows ? '.zip' : '.tar.gz';
         const archiveName = `${artifactName}-${version}${archiveExt}`;
-        const asset = release.assets.find((a) => a.name === archiveName);
-
-        if (!asset) {
-          throw new Error(`No asset named '${archiveName}' in release ${release.tag_name}`);
-        }
+        const assetUrl = `${GITHUB_DOWNLOAD_BASE}/v${version}/${archiveName}`;
 
         progress.report({ message: `Downloading ${archiveName}...` });
 
@@ -166,34 +180,32 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         fs.mkdirSync(storagePath, { recursive: true });
 
         const archiveDest = path.join(storagePath, archiveName);
-        await downloadToFile(asset.browser_download_url, archiveDest);
+        await downloadToFile(assetUrl, archiveDest);
 
-        // SHA256 checksum verification
-        progress.report({ message: 'Verifying checksum...' });
-        const checksumName = `${archiveName}.sha256`;
-        const checksumAsset = release.assets.find((a) => a.name === checksumName);
-        if (checksumAsset) {
-          const checksumRes = await httpGet(checksumAsset.browser_download_url);
-          if (checksumRes.statusCode === 200) {
-            const checksumBody = await readBody(checksumRes);
-            // Format: "<hash>  <filename>"
-            const expectedHash = checksumBody.trim().split(/\s+/)[0].toLowerCase();
-
-            const fileBuffer = fs.readFileSync(archiveDest);
-            const actualHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-
-            if (actualHash !== expectedHash) {
-              fs.unlinkSync(archiveDest);
-              throw new Error(
-                `SHA256 mismatch for ${archiveName}: expected ${expectedHash}, got ${actualHash}`
-              );
-            }
-          } else {
-            console.warn(`Nika: checksum file returned HTTP ${checksumRes.statusCode}, skipping verification`);
-            checksumRes.resume();
-          }
-        } else {
-          console.warn('Nika: no .sha256 checksum file in release, skipping verification');
+        // The release publishes ONE aggregate SHA256SUMS (the per-asset
+        // .sha256 era is over — the old lookup silently SKIPPED
+        // verification on every modern release). The named line MUST
+        // exist and MUST match: an unverifiable executable download is
+        // a failure, not a warning.
+        progress.report({ message: 'Verifying checksum (SHA256SUMS)...' });
+        const sumsRes = await httpGet(`${GITHUB_DOWNLOAD_BASE}/v${version}/SHA256SUMS`);
+        if (sumsRes.statusCode !== 200) {
+          sumsRes.resume();
+          throw new Error(`SHA256SUMS unavailable (HTTP ${sumsRes.statusCode}) — refusing an unverified binary`);
+        }
+        const sums = await readBody(sumsRes);
+        const line = sums.split('\n').find((l) => l.trim().endsWith(archiveName));
+        if (!line) {
+          throw new Error(`SHA256SUMS has no entry for ${archiveName} — refusing an unverified binary`);
+        }
+        const expectedHash = line.trim().split(/\s+/)[0].toLowerCase();
+        const actualHash = crypto.createHash('sha256')
+          .update(fs.readFileSync(archiveDest)).digest('hex');
+        if (actualHash !== expectedHash) {
+          fs.unlinkSync(archiveDest);
+          throw new Error(
+            `SHA256 mismatch for ${archiveName}: expected ${expectedHash}, got ${actualHash}`,
+          );
         }
 
         progress.report({ message: 'Extracting binary...' });

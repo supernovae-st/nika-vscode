@@ -37,6 +37,7 @@ import { mergeVerbBand, verbBandApplied } from './core/verbColors';
 import {
   getArtifactName,
   downloadNikaBinary,
+  GITHUB_RELEASES_URL,
   isBinaryWorking,
   findBundledBinary,
   GITHUB_INSTALL_URL,
@@ -147,6 +148,8 @@ const state: ClientState = {
 };
 
 let outputChannel: import('vscode').OutputChannel | undefined;
+let extContext: ExtensionContext;
+let svc: NikaService;
 
 function log(level: string, msg: string): void {
   if (outputChannel) {
@@ -307,6 +310,7 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 // ─── Activation ─────────────────────────────────────────────────────────────
 
 export function activate(context: ExtensionContext): void {
+  extContext = context;
   initCommunityAsk(context);
   outputChannel = window.createOutputChannel('Nika Language Server');
   context.subscriptions.push(outputChannel);
@@ -328,6 +332,7 @@ export function activate(context: ExtensionContext): void {
 
   // The ONE seam to the binary + the capability-aware status bar.
   const service = new NikaService();
+  svc = service;
 
   // F5 over a recorded run — the DAP replay wiring (factory · config
   // provider · the Runs-view "Debug this run" action). The adapter IS
@@ -342,6 +347,9 @@ export function activate(context: ExtensionContext): void {
   // Capability context keys drive `when` clauses in package.json menus.
   context.subscriptions.push(service.onDidChange(() => {
     const caps = service.caps;
+    // The transition auto-power: a binary that ARRIVES mid-session (the
+    // download path) must light everything without a reload.
+    void autoEquipOnce();
     void commands.executeCommand('setContext', 'nika.hasBinary', service.available);
     void commands.executeCommand('setContext', 'nika.capRun', caps.run);
     void commands.executeCommand('setContext', 'nika.capCheck', caps.check);
@@ -375,6 +383,57 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(workspace.onDidOpenTextDocument(enforceNikaLanguage));
   context.subscriptions.push(registerNikaBadge());
   for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
+
+  // Finish setup — the ONE orchestrated gesture: binary (verified
+  // download if needed) → wire host MCP → optional repo init (a repo
+  // write stays a consented question) → recap. Every step surfaces its
+  // own failure; nothing here is silent.
+  context.subscriptions.push(
+    commands.registerCommand('nika.finishSetup', async () => {
+      await context.globalState.update('nika.downloadDeclined', undefined);
+      if (!service.available) {
+        const fresh = await resolveBinary(context);
+        state.resolvedServerPath = fresh;
+        await service.setBinary(fresh);
+        if (!fresh) { return; } // the download path already spoke
+        if (service.caps.lsp && !state.client) {
+          startClient(context, state, log, fresh);
+        }
+      }
+      const wired = await equipHost(true);
+      const folder = workspace.workspaceFolders?.[0];
+      let inited = false;
+      if (folder && service.caps.init) {
+        const pick = await window.showInformationMessage(
+          'Equip this repo too? (`nika init` writes AGENTS.md · agent rules · MCP wiring for this workspace)',
+          'Init repo', 'Skip',
+        );
+        if (pick === 'Init repo') {
+          const res = await service.runCli(['init', folder.uri.fsPath], 30000);
+          inited = res.code === 0;
+          if (!inited) { log('WARN', `finish-setup init failed: ${res.stderr || res.stdout}`); }
+        }
+      }
+      void window.showInformationMessage(
+        `Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}.`,
+      );
+    }),
+  );
+
+  // The 10-second proof: the offline hello (mock/echo · zero keys) in
+  // the integrated terminal — the first wow, one click.
+  context.subscriptions.push(
+    commands.registerCommand('nika.runProof', () => {
+      runNikaCommand(state.resolvedServerPath, 'examples', 'run 01-hello --model mock/echo');
+    }),
+  );
+
+  // The one earned ask (mirrors the CLI's community line — #498).
+  context.subscriptions.push(
+    commands.registerCommand('nika.starOnGitHub', () => {
+      void env.openExternal(Uri.parse('https://github.com/supernovae-st/nika'));
+    }),
+  );
 
   // The verb band, in the editor: write the four canonical hues into the
   // user's tokenColorCustomizations (an extension cannot DEFAULT these —
@@ -2619,37 +2678,9 @@ export function activate(context: ExtensionContext): void {
 
     // Auto-power: the binary is here — wire MCP for this host without a
     // gesture (`nika wire` is idempotent by contract · the engine writer
-    // is registry-canonical), once per machine. The install story becomes
-    // « install extension → accept the binary download → everything is
-    // live »: MCP wired here, LSP started below, diagnostics with it.
-    // `nika.autoSetup: false` opts out; the toast names the switch.
-    if (
-      workspace.getConfiguration('nika').get<boolean>('autoSetup', true)
-      && !context.globalState.get<boolean>('nika.autoEquipDone')
-    ) {
-      await context.globalState.update('nika.autoEquipDone', true);
-      const folder = workspace.workspaceFolders?.[0];
-      let wired = false;
-      if (service.caps.wire && folder) {
-        const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
-        const res = await service.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
-        wired = res.code === 0;
-        if (!wired) {
-          log('WARN', `auto wire ${target} failed (${res.code}): ${res.stderr || res.stdout}`);
-        }
-      }
-      if (!wired && isCursor() && state.resolvedServerPath) {
-        // No folder (or an older binary without `wire`): the machine-level
-        // Cursor MCP config still makes the oracle live everywhere.
-        await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
-        wired = true;
-      }
-      if (wired) {
-        void window.showInformationMessage(
-          'Nika is live — MCP wired, language server on, diagnostics running (turn auto-setup off: nika.autoSetup).',
-        );
-      }
-    }
+    // is registry-canonical), once per machine. `nika.autoSetup: false`
+    // opts out; the toast names the switch.
+    await autoEquipOnce();
 
     // « Does this project exist yet? » — the per-WORKSPACE intelligence:
     // the repo carries .nika.yaml workflows but is not equipped (no
@@ -2695,6 +2726,45 @@ export function activate(context: ExtensionContext): void {
       log('INFO', 'nika lsp not in this binary — client-side intelligence active');
     }
   })();
+}
+
+/**
+ * The one auto-power move: wire MCP for this host (engine-canonical
+ * `nika wire`, idempotent · Cursor-global fallback). Shared by the
+ * activation path, the binary-becomes-available TRANSITION (a download
+ * mid-session must light everything without a reload — the gap the
+ * first cut had) and the Finish-setup orchestrator.
+ */
+async function equipHost(silent = false): Promise<boolean> {
+  const folder = workspace.workspaceFolders?.[0];
+  let wired = false;
+  if (svc.caps.wire && folder) {
+    const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
+    const res = await svc.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
+    wired = res.code === 0;
+    if (!wired) {
+      log('WARN', `auto wire ${target} failed (${res.code}): ${res.stderr || res.stdout}`);
+    }
+  }
+  if (!wired && isCursor() && state.resolvedServerPath) {
+    await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
+    wired = true;
+  }
+  if (wired && !silent) {
+    void window.showInformationMessage(
+      'Nika is live — MCP wired, language server on, diagnostics running (turn auto-setup off: nika.autoSetup).',
+    );
+  }
+  return wired;
+}
+
+/** One-shot per machine, only when auto-setup is on and a binary exists. */
+async function autoEquipOnce(): Promise<void> {
+  if (!svc.available) { return; }
+  if (!workspace.getConfiguration('nika').get<boolean>('autoSetup', true)) { return; }
+  if (extContext.globalState.get<boolean>('nika.autoEquipDone')) { return; }
+  await extContext.globalState.update('nika.autoEquipDone', true);
+  await equipHost();
 }
 
 async function configureMcpForHost(
@@ -2837,7 +2907,23 @@ async function resolveBinary(context: ExtensionContext): Promise<string | undefi
       return downloaded;
     }
   } catch (err) {
-    log('WARN', `Download failed: ${err instanceof Error ? err.message : String(err)}`);
+    const message = err instanceof Error ? err.message : String(err);
+    log('WARN', `Download failed: ${message}`);
+    // The click MUST answer (operator live 2026-07-12: a silent catch
+    // read as « the button does nothing ») — name the failure, hand the
+    // two exits.
+    void window.showErrorMessage(
+      `Nika download failed: ${message}`,
+      'Copy brew command',
+      'Open releases',
+    ).then((pick) => {
+      if (pick === 'Copy brew command') {
+        void env.clipboard.writeText('brew install supernovae-st/tap/nika');
+        void window.showInformationMessage('Copied — run it in a terminal, then click the status bar → Install/detect.');
+      } else if (pick === 'Open releases') {
+        void env.openExternal(Uri.parse(GITHUB_RELEASES_URL));
+      }
+    });
   }
   return undefined;
 }

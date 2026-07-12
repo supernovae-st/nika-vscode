@@ -31,8 +31,8 @@ import { applyPermitsFix, insertPermitsBlock, parseFix } from '../core/permitsEd
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
   process.env.NIKA_BIN,
-  path.resolve(__dirname, '../../../../repos/engine/target/release/nika-cli'),
-  path.resolve(__dirname, '../../../../repos/engine/target/debug/nika-cli'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika-cli'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika-cli'),
 ].filter((p): p is string => typeof p === 'string');
 
 const BIN = CANDIDATES.find((p) => {
