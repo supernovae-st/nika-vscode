@@ -75,6 +75,7 @@ import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/audit
 import {
   declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
 } from './features/contractDoors';
+import { chooseCollectionFor, chooseGateFor, wireInputsFor } from './features/flowDoors';
 import { ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -727,6 +728,16 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.pickOutputs', (uri?: Uri) => pickOutputsFor(uri)),
     commands.registerCommand('nika.declareInput', (uri?: Uri) => declareInputFor(uri)),
     commands.registerCommand('nika.promoteVars', (uri?: Uri) => promoteVarsFor(uri)),
+    // The flow doors (V2): depends_on · when · for_each.
+    commands.registerCommand('nika.wireInputs', (uri: Uri, taskId: string) =>
+      wireInputsFor(uri, taskId),
+    ),
+    commands.registerCommand('nika.chooseGate', (uri: Uri, taskId: string) =>
+      chooseGateFor(uri, taskId),
+    ),
+    commands.registerCommand('nika.chooseCollection', (uri: Uri, taskId: string) =>
+      chooseCollectionFor(uri, taskId),
+    ),
     new VerbGutterDecorations(),
     runDecor,
     registerSecretsDecorDisposable(),

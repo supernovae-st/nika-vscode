@@ -43,6 +43,8 @@ export interface VarEntry {
   line: number;
   /** Spec discriminator: an object value carrying a string `type:` key. */
   typed: boolean;
+  /** The declared `type:` when typed (one of the closed enum, or raw). */
+  varType?: string;
   /** The scalar default, raw (untyped inline rows only). */
   inline?: string;
   /** Trailing `# …` on the row, when present (rides a promotion). */
@@ -66,15 +68,17 @@ export function parseVarEntries(lines: readonly string[], block: Block): VarEntr
     const comment = hash === -1 ? undefined : raw.slice(hash).trim();
     if (value.length === 0) {
       // Block-map child — typed iff a `type:` key sits one level deeper.
-      let typed = false;
+      let varType: string | undefined;
       for (let j = i + 1; j <= block.end; j++) {
         const ind = indentOf(lines[j]);
         if (ind !== -1 && ind <= 2) { break; }
-        if (/^ {4}type\s*:/.test(lines[j])) { typed = true; break; }
+        const t = lines[j].match(/^ {4}type\s*:\s*["']?([a-z]+)["']?/);
+        if (t) { varType = t[1]; break; }
       }
-      out.push({ name: m[1], line: i, typed, comment });
+      out.push({ name: m[1], line: i, typed: varType !== undefined, varType, comment });
     } else if (/^\{.*\btype\s*:/.test(value)) {
-      out.push({ name: m[1], line: i, typed: true, comment });
+      const varType = value.match(/\btype\s*:\s*["']?([a-z]+)["']?/)?.[1];
+      out.push({ name: m[1], line: i, typed: true, varType, comment });
     } else {
       out.push({ name: m[1], line: i, typed: false, inline: value, comment });
     }

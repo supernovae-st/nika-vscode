@@ -5,7 +5,10 @@
 // editor back.
 
 import * as vscode from 'vscode';
-import { graphDoorTitle, RERUN_DOOR } from '../core/lensVocab';
+import { findTaskKey } from '../core/flowEdit';
+import {
+  COLLECTION_DOOR, GATE_DOOR, graphDoorTitle, RERUN_DOOR, WIRE_INPUTS_DOOR,
+} from '../core/lensVocab';
 import { findTaskRefs } from '../core/renameRefs';
 import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
@@ -14,6 +17,29 @@ function isNikaDoc(doc: vscode.TextDocument): boolean {
   return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
 }
 
+/** The flow doors — each on the task-level line it rewrites (never on
+ * the id row: an absent key is discoverable via LSP, not lens noise). */
+const FLOW_DOORS = [
+  {
+    key: 'depends_on',
+    command: 'nika.wireInputs',
+    title: WIRE_INPUTS_DOOR,
+    tooltip: 'Re-pick what this task waits for — descendants never offered (cycle-safe); block lists collapse to the flow form',
+  },
+  {
+    key: 'when',
+    command: 'nika.chooseGate',
+    title: GATE_DOOR,
+    tooltip: 'Swap the CEL v0.1 gate — built from THIS file\'s inputs and upstream tasks; a tasks.* gate wires its depends_on edge too',
+  },
+  {
+    key: 'for_each',
+    command: 'nika.chooseCollection',
+    title: COLLECTION_DOOR,
+    tooltip: 'Swap the collection this task maps over — ${{ item }} is the element, ${{ index }} its position',
+  },
+] as const;
+
 export class TaskLensProvider implements vscode.CodeLensProvider {
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     if (!isNikaDoc(document)) { return []; }
@@ -21,11 +47,22 @@ export class TaskLensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const text = document.getText();
+    const lines = text.split('\n');
     const wf = parseRichWorkflow(text);
     const lenses: vscode.CodeLens[] = [];
 
     for (const task of wf.tasks) {
       const range = document.lineAt(Math.min(task.line, document.lineCount - 1)).range;
+      for (const door of FLOW_DOORS) {
+        const at = findTaskKey(lines, task, door.key);
+        if (!at) { continue; }
+        lenses.push(new vscode.CodeLens(new vscode.Range(at.line, 0, at.line, 0), {
+          command: door.command,
+          title: door.title,
+          tooltip: door.tooltip,
+          arguments: [document.uri, task.id],
+        }));
+      }
       // ONE fused lens per task — two lines of lens per task on a 20-task
       // file is noise, not signal. References stay reachable natively
       // (⇧F12 · our ReferenceProvider) and via the peek command.

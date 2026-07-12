@@ -266,6 +266,24 @@
         "category": "Nika"
       },
       {
+        "command": "nika.wireInputs",
+        "title": "Wire Task Inputs (depends_on)",
+        "icon": "$(link)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.chooseGate",
+        "title": "Choose a Gate (when · CEL)",
+        "icon": "$(filter)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.chooseCollection",
+        "title": "Choose the Collection (for_each)",
+        "icon": "$(symbol-array)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.showDag",
         "title": "Show Workflow DAG",
         "icon": "$(type-hierarchy)",
@@ -764,6 +782,18 @@
       "commandPalette": [
         {
           "command": "nika.typeOutput",
+          "when": "false"
+        },
+        {
+          "command": "nika.wireInputs",
+          "when": "false"
+        },
+        {
+          "command": "nika.chooseGate",
+          "when": "false"
+        },
+        {
+          "command": "nika.chooseCollection",
           "when": "false"
         },
         {

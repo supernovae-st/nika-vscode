@@ -6,6 +6,27 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The flow doors — wire, gate, fan out
+- **« wire its inputs »** (#90) — the `depends_on:` line re-picks what
+  the task waits for, verb-glyph rows pre-checked from the file.
+  Cycle-safe by construction: descendants never enter the candidate
+  list. Block-list forms collapse to the spec's flow form; an empty
+  pick removes the key.
+- **« choose a gate »** (#90) — the `when:` line offers a CEL v0.1
+  register built from THIS file: `vars.<x>` equals/flag shapes for
+  every input, `status == 'success'` and `size(output) > 0` shapes for
+  every upstream task. Always writes the wrapped canonical form. A
+  `tasks.*` gate **wires its `depends_on` edge first** — the spec's
+  §referencing-requires-an-edge law, composed so the door can never
+  write the parse rejection (the Real e2e pins the rejection itself).
+- **« choose the collection »** (#90) — the `for_each:` line swaps the
+  collection: typed `array` inputs lead, upstream outputs follow (edge
+  wired the same way), other vars offered honestly (« runs if it holds
+  a list at launch »). The placeholder teaches `${{ item }}` /
+  `${{ index }}`.
+- Doors sit ONLY on existing lines — an absent key is LSP territory,
+  not lens noise. All three commands are lens-bound (palette-hidden).
+
 ### The contract doors — inputs, outputs, and the typed unit
 - **« type its output »** (#89) — an `infer:`/`agent:` without `schema:`
   offers the language's hardest block as a picker of proven shapes
