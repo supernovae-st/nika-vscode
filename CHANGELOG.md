@@ -6,6 +6,79 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.99.3 — 2026-07-12
+
+The operator-loop day: ten screenshot-driven passes, nine merged PRs
+(#59–#67), each installed and re-proven live between captures.
+
+### The language reaches the editor, by default
+- **Language identity enforced at runtime** — a `*.nika.yaml` opening
+  under another languageId (the association fight Cursor lost silently)
+  is set to `nika` on open; `filenamePatterns` joins the language
+  contribution (#60).
+- **The verb band, two layers** — each verb carries its own TextMate
+  scope riding a well-known family (blue · orange · teal · purple in
+  every theme, zero gestures), and `Nika: Apply Verb Colors` writes the
+  exact canonical hexes into user settings, consented (#59, #60).
+- **Required vs optional top keys** — `nika` · `workflow` · `tasks`
+  keep the keyword family; every optional key (`description` · `model`
+  · `vars` · `permits` · …) moves to `support.type` — two families
+  every theme colors apart (#67).
+- **The butterfly badge** — 🦋 on every workflow file in the Explorer
+  (FileDecoration: identity without replacing the user's icon theme —
+  icon themes match by extension and beat the language icon fallback).
+  `nika.explorerBadge` opts out (#61). The real per-file icon is
+  upstream: material-icon-theme PR #3530.
+
+### Install = everything on
+- **Auto-power** — first activation with the binary present silently
+  runs the engine's own `nika wire <host>` (idempotent); a binary
+  arriving MID-session (the download path) lights everything without a
+  reload. `nika.autoSetup` opts out (#60, #63).
+- **`Nika: Finish Setup`** — the one orchestrated gesture: verified
+  download → wire MCP → optional repo init (consented) → recap (#63).
+- **The download path tells the truth** — version via the quota-free
+  releases/latest redirect (the unauthenticated API rate limit made
+  the button a silent no-op), the aggregate SHA256SUMS is MANDATORY
+  (per-asset .sha256 lookups silently skipped verification on every
+  modern release), and a failed download answers with the error + two
+  exits (#63).
+- **The status menu reads the state** — no binary → Finish setup
+  leads · fresh workspace → « Run the 10-second proof » (01-hello ·
+  mock/echo · offline) · working workspace → operate verbs. Footer
+  gains the one earned ask: ⭐ Star nika on GitHub (#63).
+
+### The audit surface grows CTAs
+- **Two lens rows, each in its place** — actions (Check · DAG ·
+  Explain · Run) above the `nika:` envelope (never over the license
+  header); status (clean/findings · tasks · waves · ceiling) above
+  `tasks:` (#65).
+- **Report-driven CTAs** — undeclared boundary → `$(shield) declare
+  the boundary` (inferPermits) · required vars → `$(symbol-variable)
+  N vars ride --var` → `Nika: Copy Run Line` (ready-to-paste,
+  placeholder per var) (#67).
+- **Ctrl-clickable teaching links** — verbs → docs concepts/verbs ·
+  `nika:*` tools → nika.sh/tools · `permits:` → docs
+  concepts/security (page-level only) (#67).
+- **The envelope teaches, never warns** — hovering `nika: v1` got the
+  unknown-builtin warning; it now explains the envelope (#66).
+
+### Resilience
+- **The EPIPE toast is gone** — transport errors are `handled` (the
+  upstream client showed its raw toast even through #62's handler),
+  two quiet restarts, then a clean stop with one-click « Restart
+  server »; a successful restart re-arms the budget, so binary swaps
+  mid-session self-heal silently (#62, #67).
+- **The graph survives its tab** — a panel disposed under us (reload
+  races · serializer restores) no longer bricks every later open:
+  `show()` try/reveals, releases the corpse, builds fresh;
+  `postMessage` self-releases (#62).
+- **Version discipline** — the published 0.98.1 stomped a sideloaded
+  0.98.1 carrying five merged PRs (same number, marketplace wins):
+  every visible-feature merge now bumps the version (#64).
+
+### Earlier in this release line (unpublished since 0.98.1 — the first-install arc)
+
 - **The one earned ask** — after the FIRST completed run (and only then,
   once ever: the flag persists before the user answers, so a dismissal
   counts), a notification offers the two community doors, editor-aware:
