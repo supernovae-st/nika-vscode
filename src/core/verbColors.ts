@@ -6,11 +6,17 @@
 // exact brand band in every theme, reversible in settings.
 import { NIKA_VERB_HEX, type NikaVerbName } from '../design-tokens.generated';
 
-/** The grammar's per-verb capture scopes (syntaxes/nika.tmLanguage.json). */
+/**
+ * The grammar's per-verb capture scopes (syntaxes/nika.tmLanguage.json).
+ * Each rides a WELL-KNOWN TextMate family so every theme colors the four
+ * verbs DISTINCTLY out of the box (blue · orange · teal · purple ≈ the
+ * brand band); the `.verb.<verb>.nika` tail is the exact-hex target this
+ * command writes.
+ */
 export const VERB_SCOPE: Record<NikaVerbName, string> = {
-  infer: 'keyword.control.verb.infer.nika',
-  exec: 'keyword.control.verb.exec.nika',
-  invoke: 'keyword.control.verb.invoke.nika',
+  infer: 'constant.language.verb.infer.nika',
+  exec: 'string.other.verb.exec.nika',
+  invoke: 'support.type.verb.invoke.nika',
   agent: 'keyword.control.verb.agent.nika',
 };
 

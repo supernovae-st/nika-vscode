@@ -109,7 +109,11 @@
         "icon": {
           "light": "./icons/nika-light.svg",
           "dark": "./icons/nika-dark.svg"
-        }
+        },
+        "filenamePatterns": [
+          "*.nika.yaml",
+          "*.nika.yml"
+        ]
       }
     ],
     "grammars": [
@@ -599,6 +603,11 @@
           "type": "boolean",
           "default": true,
           "description": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle."
+        },
+        "nika.autoSetup": {
+          "type": "boolean",
+          "default": true,
+          "description": "On first activation with the binary present, wire MCP for this host automatically (nika wire is idempotent). Turn off for manual setup via 'Nika: Setup MCP'."
         }
       }
     },
