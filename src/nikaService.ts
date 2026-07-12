@@ -157,10 +157,14 @@ export class NikaService {
     // up on the next query; a change event re-renders open surfaces).
     this.intelValue = undefined;
     if (this.capsValue.schema && this.capsValue.spec) {
-      const [schemaRes, canonRes] = await Promise.all([
-        spawnCli(binaryPath, ['schema'], 10000),
+      // New door first (engine ≥ the Rams pass: `spec --schema`), the
+      // retired `schema` verb as the published-binary fallback.
+      const [schemaNew, canonRes] = await Promise.all([
+        spawnCli(binaryPath, ['spec', '--schema'], 10000),
         spawnCli(binaryPath, ['spec', '--canon'], 10000),
       ]);
+      const schemaRes =
+        schemaNew.code === 0 ? schemaNew : await spawnCli(binaryPath, ['schema'], 10000);
       try {
         this.intelValue = buildSchemaIntel(JSON.parse(schemaRes.stdout), canonRes.stdout);
       } catch {
@@ -174,10 +178,14 @@ export class NikaService {
     // spawn or the parse — every consumer keeps its fallback.
     this.toolCatsValue = undefined;
     this.catalogModelsValue = undefined;
-    const [toolsRes, catalogRes] = await Promise.all([
-      spawnCli(binaryPath, ['tools', '--json'], 10000),
+    // New door first (`catalog --tools` · the Rams pass), the retired
+    // `tools` verb as the published-binary fallback.
+    const [toolsNew, catalogRes] = await Promise.all([
+      spawnCli(binaryPath, ['catalog', '--tools', '--json'], 10000),
       spawnCli(binaryPath, ['catalog', '--json'], 10000),
     ]);
+    const toolsRes =
+      toolsNew.code === 0 ? toolsNew : await spawnCli(binaryPath, ['tools', '--json'], 10000);
     if (toolsRes.code === 0) {
       this.toolCatsValue = parseToolMeta(toolsRes.stdout);
     }
@@ -387,6 +395,10 @@ export class NikaService {
 
   async schemaText(): Promise<string | undefined> {
     if (!this.caps.schema) { return undefined; }
+    // New door first (`spec --schema` · the Rams pass), the retired
+    // `schema` verb as the published-binary fallback.
+    const fresh = await this.runCli(['spec', '--schema']);
+    if (fresh.code === EXIT.OK) { return fresh.stdout; }
     const res = await this.runCli(['schema']);
     return res.code === EXIT.OK ? res.stdout : undefined;
   }
