@@ -75,6 +75,7 @@ import { buildSessionPicks } from './core/sessionLauncher';
 import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
+import { initCommunityAsk } from './features/communityAsk';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
 import { costDelta } from './core/costDelta';
@@ -303,6 +304,7 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 // ─── Activation ─────────────────────────────────────────────────────────────
 
 export function activate(context: ExtensionContext): void {
+  initCommunityAsk(context);
   outputChannel = window.createOutputChannel('Nika Language Server');
   context.subscriptions.push(outputChannel);
   log('INFO', `Nika extension v${context.extension.packageJSON.version} activating`);
