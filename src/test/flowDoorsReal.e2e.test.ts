@@ -79,12 +79,13 @@ describe.skipIf(!BIN)('flow doors × the real binary', () => {
 
   it('the §219 law is real: a tasks.* gate without its edge is REJECTED', () => {
     const orphanGate = gateRewrite(BASE, taskOf(BASE, 'thread'), "tasks.gather.status == 'success'")!;
-    let rejected = false;
-    try {
-      rejected = check(BIN!, orphanGate).clean !== true;
-    } catch {
-      rejected = true; // non-zero exit — the parse rejection
-    }
+    const rejected = (() => {
+      try {
+        return check(BIN!, orphanGate).clean !== true;
+      } catch {
+        return true; // non-zero exit — the parse rejection
+      }
+    })();
     expect(rejected, 'the engine must refuse the unwired reference — the reason the picker wires it first').toBe(true);
   });
 });
