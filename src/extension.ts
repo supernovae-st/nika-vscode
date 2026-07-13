@@ -66,11 +66,11 @@ import { NikaService } from './nikaService';
 import { NikaStatusBar } from './features/statusBar';
 import { NikaLanguageStatus } from './features/languageStatus';
 import { WorkspaceLint } from './features/workspaceLint';
-import { registerStructureNav } from './features/structureNav';
+import { structureNavEntries } from './features/structureNav';
 import { registerDebugReplay } from './features/debugReplay';
 import { DiagnosticsController } from './features/diagnostics';
 import { NikaCodeActionProvider, NikaFixAllProvider } from './features/codeActions';
-import { registerIntel } from './features/intel';
+import { intelEntries } from './features/intel';
 import { AuditCodeLensProvider, AuditInlayHintsProvider } from './features/auditLens';
 import {
   declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
@@ -83,6 +83,7 @@ import type { NikaVerb } from './core/verbStarters.generated';
 import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
+import { YieldRegistry } from './core/capabilityYield';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
 import { commandOnPath } from './core/pathLookup';
@@ -421,10 +422,10 @@ export function activate(context: ExtensionContext): void {
   };
   context.subscriptions.push(workspace.onDidOpenTextDocument(enforceNikaLanguage));
   context.subscriptions.push(registerNikaBadge());
-  context.subscriptions.push(
-    languages.registerDocumentLinkProvider([{ language: 'nika' }], new NikaDocLinkProvider()),
-    languages.registerDefinitionProvider([{ language: 'nika' }], new NikaDefinitionProvider()),
-  );
+  // NikaDocLinkProvider + NikaDefinitionProvider register via the
+  // capability registry below (#103) — the server's definitionProvider
+  // silences the client twin; documentLinkProvider stays client until
+  // the server gains it.
   for (const doc of workspace.textDocuments) { void enforceNikaLanguage(doc); }
 
   // Finish setup — the ONE orchestrated gesture: binary (verified
@@ -631,8 +632,8 @@ export function activate(context: ExtensionContext): void {
   // controller — ownership hands over on open/close).
   context.subscriptions.push(new WorkspaceLint(service, log));
 
-  // Smart-expand selection + linked editing (task ids edit as one).
-  registerStructureNav(context);
+  // Smart-expand selection + linked editing register via the
+  // capability registry below (#103).
   const fixAllProvider = new NikaFixAllProvider(diagnosticsController);
   context.subscriptions.push(
     languages.registerCodeActionsProvider(
@@ -664,7 +665,36 @@ export function activate(context: ExtensionContext): void {
       await workspace.applyEdit(edit);
     }),
   );
-  registerIntel(context, service);
+  // The one-voice registry (#103): every client language provider,
+  // keyed by the LSP capability that replaces it. Boot = no server yet
+  // → full client intelligence; startClient reconciles on every
+  // (re)start; a crash restores the client voice (lspClient wires it).
+  const yieldRegistry = new YieldRegistry([
+    ...intelEntries(service),
+    ...structureNavEntries(),
+    {
+      cap: 'documentLinkProvider',
+      label: 'links:doc',
+      make: () => languages.registerDocumentLinkProvider([{ language: 'nika' }], new NikaDocLinkProvider()),
+    },
+    {
+      cap: 'definitionProvider',
+      label: 'definition:task',
+      make: () => languages.registerDefinitionProvider([{ language: 'nika' }], new NikaDefinitionProvider()),
+    },
+  ]);
+  context.subscriptions.push(yieldRegistry);
+  yieldRegistry.reconcile(undefined);
+  state.reconcileIntel = (caps) => {
+    const r = yieldRegistry.reconcile(caps);
+    if (r.silenced.length > 0) {
+      log('INFO', `one voice: server owns ${r.silenced.join(' · ')} — client twins silenced`);
+    }
+    if (r.restored.length > 0 && caps !== undefined) {
+      log('INFO', `client voices restored: ${r.restored.join(' · ')}`);
+    }
+    return r;
+  };
 
   // Audit lenses — inlay cost/when/fan-out + the header audit card.
   const inlayProvider = new AuditInlayHintsProvider(service);

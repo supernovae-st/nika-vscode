@@ -11,6 +11,7 @@
 
 import * as vscode from 'vscode';
 import { completionContextAt, refAt, scanRefs } from '../core/expr';
+import type { YieldEntry } from '../core/capabilityYield';
 import { findTaskRefs, isValidTaskId } from '../core/renameRefs';
 import { fieldInScope, type FieldDoc, type SchemaIntel } from '../core/schemaIntel';
 import { collectShapes, fieldsAt, renderShape, shapeAt } from '../core/schemaShape';
@@ -711,34 +712,85 @@ export class NikaWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvid
   }
 }
 
-export function registerIntel(context: vscode.ExtensionContext, service: NikaService): void {
+/**
+ * The intel providers as capability-keyed factories (#103): each entry
+ * names the LSP server capability that REPLACES it — the YieldRegistry
+ * silences the client twin when the shipped binary advertises it, and
+ * restores it on crash/downgrade. Server owns MEANING; the client keeps
+ * whatever the server does not speak.
+ */
+export function intelEntries(service: NikaService): YieldEntry[] {
   const selector: vscode.DocumentSelector = [
     { language: 'nika', scheme: 'file' },
     { language: 'nika', scheme: 'untitled' },
   ];
-  context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(
-      selector,
-      new TemplateCompletionProvider(),
-      ...TemplateCompletionProvider.triggers,
-    ),
-    vscode.languages.registerCompletionItemProvider(
-      selector,
-      new SchemaCompletionProvider(service),
-      ...SchemaCompletionProvider.triggers,
-    ),
-    vscode.languages.registerHoverProvider(selector, new TemplateHoverProvider(service)),
-    vscode.languages.registerDefinitionProvider(selector, new TemplateDefinitionProvider()),
-    vscode.languages.registerDocumentSymbolProvider(selector, new NikaDocumentSymbolProvider()),
-    vscode.languages.registerRenameProvider(selector, new TaskRenameProvider()),
-    vscode.languages.registerReferenceProvider(selector, new TaskReferenceProvider()),
-    vscode.languages.registerDocumentSemanticTokensProvider(
-      selector,
-      new NikaSemanticTokensProvider(service),
-      SEMANTIC_LEGEND,
-    ),
-    vscode.languages.registerDocumentHighlightProvider(selector, new TaskHighlightProvider()),
-    vscode.languages.registerFoldingRangeProvider(selector, new NikaFoldingProvider()),
-    vscode.languages.registerWorkspaceSymbolProvider(new NikaWorkspaceSymbolProvider()),
-  );
+  return [
+    {
+      cap: 'completionProvider',
+      label: 'completion:template',
+      make: () => vscode.languages.registerCompletionItemProvider(
+        selector,
+        new TemplateCompletionProvider(),
+        ...TemplateCompletionProvider.triggers,
+      ),
+    },
+    {
+      cap: 'completionProvider',
+      label: 'completion:schema',
+      make: () => vscode.languages.registerCompletionItemProvider(
+        selector,
+        new SchemaCompletionProvider(service),
+        ...SchemaCompletionProvider.triggers,
+      ),
+    },
+    {
+      cap: 'hoverProvider',
+      label: 'hover:template',
+      make: () => vscode.languages.registerHoverProvider(selector, new TemplateHoverProvider(service)),
+    },
+    {
+      cap: 'definitionProvider',
+      label: 'definition:template',
+      make: () => vscode.languages.registerDefinitionProvider(selector, new TemplateDefinitionProvider()),
+    },
+    {
+      cap: 'documentSymbolProvider',
+      label: 'symbols:document',
+      make: () => vscode.languages.registerDocumentSymbolProvider(selector, new NikaDocumentSymbolProvider()),
+    },
+    {
+      cap: 'renameProvider',
+      label: 'rename:task',
+      make: () => vscode.languages.registerRenameProvider(selector, new TaskRenameProvider()),
+    },
+    {
+      cap: 'referencesProvider',
+      label: 'references:task',
+      make: () => vscode.languages.registerReferenceProvider(selector, new TaskReferenceProvider()),
+    },
+    {
+      cap: 'semanticTokensProvider',
+      label: 'semanticTokens:document',
+      make: () => vscode.languages.registerDocumentSemanticTokensProvider(
+        selector,
+        new NikaSemanticTokensProvider(service),
+        SEMANTIC_LEGEND,
+      ),
+    },
+    {
+      cap: 'documentHighlightProvider',
+      label: 'highlight:task',
+      make: () => vscode.languages.registerDocumentHighlightProvider(selector, new TaskHighlightProvider()),
+    },
+    {
+      cap: 'foldingRangeProvider',
+      label: 'folding:document',
+      make: () => vscode.languages.registerFoldingRangeProvider(selector, new NikaFoldingProvider()),
+    },
+    {
+      cap: 'workspaceSymbolProvider',
+      label: 'symbols:workspace',
+      make: () => vscode.languages.registerWorkspaceSymbolProvider(new NikaWorkspaceSymbolProvider()),
+    },
+  ];
 }

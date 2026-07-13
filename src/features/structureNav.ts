@@ -6,6 +6,7 @@
 // find-references trust, so the surfaces can never disagree.
 
 import * as vscode from 'vscode';
+import type { YieldEntry } from '../core/capabilityYield';
 import { findTaskRefs } from '../core/renameRefs';
 import { parseRichWorkflow } from '../workflowParser';
 
@@ -161,10 +162,25 @@ class NikaTaskHierarchyProvider implements vscode.CallHierarchyProvider {
   }
 }
 
-export function registerStructureNav(context: vscode.ExtensionContext): void {
-  context.subscriptions.push(
-    vscode.languages.registerSelectionRangeProvider(SELECTOR, new NikaSelectionRangeProvider()),
-    vscode.languages.registerLinkedEditingRangeProvider(SELECTOR, new NikaLinkedEditingProvider()),
-    vscode.languages.registerCallHierarchyProvider(SELECTOR, new NikaTaskHierarchyProvider()),
-  );
+/** The structure-nav providers as capability-keyed factories (#103) —
+ * the server speaks none of these today; the day it gains one, the
+ * client twin silences with zero extension change. */
+export function structureNavEntries(): YieldEntry[] {
+  return [
+    {
+      cap: 'selectionRangeProvider',
+      label: 'selectionRange:structure',
+      make: () => vscode.languages.registerSelectionRangeProvider(SELECTOR, new NikaSelectionRangeProvider()),
+    },
+    {
+      cap: 'linkedEditingRangeProvider',
+      label: 'linkedEditing:taskId',
+      make: () => vscode.languages.registerLinkedEditingRangeProvider(SELECTOR, new NikaLinkedEditingProvider()),
+    },
+    {
+      cap: 'callHierarchyProvider',
+      label: 'callHierarchy:task',
+      make: () => vscode.languages.registerCallHierarchyProvider(SELECTOR, new NikaTaskHierarchyProvider()),
+    },
+  ];
 }
