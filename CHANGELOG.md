@@ -6,6 +6,32 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### One source for every piece of language knowledge (the SSOT consolidation)
+- **The guided-edit registers become spec truth** (#96) — the schema
+  shapes (« type its output ») and the armor walls (« make it
+  resilient ») now project from nika-spec
+  `stdlib/authoring-shapes-v0.1.yaml` (oracle-proven at projection,
+  like the starters) into `authoringShapes.generated.ts`; the CI gate
+  grows `authoring-projector.py --check` next to starters and design.
+  `schemaEdit`/`armorEdit` keep only the editor mechanics.
+- **The provider presentation order leaves code** (#96) — the
+  local-first ranking (operator lock 2026-06-12) is now
+  `presentation.providers_order` in the spec's `design/tokens.yaml`,
+  projected as `NIKA_PROVIDERS_ORDER`; the ledger gate greps any fork.
+- **The 25 hand-written snippets die** (#96) — every one was a second
+  (or third) copy: verb bodies duplicated the starters SSOT, the
+  workflow snippet hardcoded a 7-model list the catalog had already
+  outgrown. Add-a-task now lands the verb's FIRST spec starter (one
+  voice with the « choose a starter » door); new-file paths (command ·
+  `nika new` templates · walkthrough) already covered the rest.
+- **`SSOT.md` — the knowledge ledger, made structural** (#96) — every
+  artifact is declared in one of three lanes (runtime binary ·
+  projected+gated · declared prose), and `ssotLedger.test.ts` fails
+  the suite on a generated file outside the ledger, a row pointing
+  nowhere, a resurrected snippets dir, or a forked provider order.
+  The offline tool blurbs (Lane C courtesy cache) gain a real-binary
+  belt: fallback NAMES must equal the catalog's — no ghosts, no gaps.
+
 ### The agent register — « choose its tools » (#87)
 - **One lens on the agent's `tools:` line** (#94) — a `canPickMany`
   multi-pick over the binary's catalog (category-grouped, the offline

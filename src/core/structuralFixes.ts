@@ -10,6 +10,7 @@
 // (returns undefined when the declaration already exists).
 
 import { findTaskRefs } from './renameRefs';
+import { NIKA_VERB_STARTERS } from './verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
 export interface Dag003 { task: string; missing: string }
@@ -83,19 +84,13 @@ export function addDependsOn(text: string, taskId: string, dep: string): string 
 
 export type Verb = 'infer' | 'exec' | 'invoke' | 'agent';
 
-const SKELETONS: Record<Verb, string[]> = {
-  infer: ['infer:', '  prompt: "Describe what to infer"'],
-  exec: ['exec:', '  command: "echo hello"'],
-  invoke: ['invoke:', '  tool: nika:log', '  args:', '    message: "hello"'],
-  agent: [
-    'agent:',
-    '  model: mock/echo',
-    '  prompt: "Describe the goal"',
-    '  tools:',
-    '    - "nika:done"',
-    '  max_turns: 5',
-  ],
-};
+/** A fresh task's body IS the verb's FIRST spec starter (the minimal
+ * shape) — one voice with the « choose a starter » door: add-a-task
+ * and the starter picker land the identical block, and the SSOT
+ * (nika-spec stdlib · oracle-proven) owns both. */
+function skeletonFor(verb: Verb): string[] {
+  return NIKA_VERB_STARTERS[verb][0].body.replace(/\n$/, '').split('\n');
+}
 
 /** First free `<base>_N` id (engine grammar: snake_case). The base is
  *  the verb — or the bare tool name when the task palette picked one
@@ -132,7 +127,7 @@ export function insertTaskSkeleton(
   const taskId = nextTaskId(text, bare ?? verb);
   const skeleton = bare !== undefined
     ? ['invoke:', `  tool: nika:${bare}`]
-    : SKELETONS[verb];
+    : skeletonFor(verb);
 
   // Item indent mirrors existing tasks (2 spaces under `tasks:` default).
   const anchor = afterTaskId

@@ -59,7 +59,7 @@ export async function makeResilientFor(uri?: vscode.Uri, taskId?: string): Promi
   // recover asks for its source — an upstream output (acyclicity-safe)
   // or a literal SLOT the author fills.
   let recoverRef: string | undefined;
-  if (picked.shape.kind === 'recover') {
+  if (picked.shape.id === 'recover') {
     type SourcePick = vscode.QuickPickItem & { ref?: string };
     const sources: SourcePick[] = [
       {
@@ -79,7 +79,7 @@ export async function makeResilientFor(uri?: vscode.Uri, taskId?: string): Promi
     recoverRef = src.ref;
   }
 
-  const next = armorWrite(text, task, picked.shape.kind, recoverRef);
+  const next = armorWrite(text, task, picked.shape.id, recoverRef);
   if (next === undefined || next === text) { return; }
   await applyFullRewrite(doc, next);
 }

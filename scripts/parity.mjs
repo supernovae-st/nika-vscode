@@ -174,7 +174,7 @@ const ok = [];
 
 // ─── 7 · Volatile counts in teaching surfaces (projection law) ──────────────
 {
-  const teaching = ['snippets/nika.code-snippets', 'README.md', 'walkthrough'];
+  const teaching = ['README.md', 'walkthrough'];
   const volatile = /\b(the\s+)?(13|14|22|26|27|42)\s+(stdlib\s+)?(builtins?|providers?|extract modes?)\b|(builtins?|providers?|extract modes?)\s*\(\s*\d+\s*\)/i;
   for (const rel of teaching) {
     const full = path.join(root, rel);
