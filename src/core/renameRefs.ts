@@ -1,7 +1,7 @@
 // renameRefs.ts — task-id rename/references engine (pure · no vscode).
 //
 // A task id is referenced from FOUR syntactic homes:
-//   1. its declaration         `- id: extract`
+//   1. its declaration         `extract:` (the indent-2 map key · W1)
 //   2. depends_on entries      `depends_on: [extract]` · block `- extract`
 //   3. template islands        `${{ tasks.extract.output }}`
 //   4. bare CEL strings        `when: "tasks.extract.status == 'success'"`
@@ -40,19 +40,23 @@ export function findTaskRefs(text: string, taskId: string): RefSpan[] {
     lineStart.push(lineStart[i] + lines[i].length + 1);
   }
 
-  // 1 · declaration — `- id: taskId`
-  const declRe = new RegExp(`^(\\s*-\\s*id:\\s*)(${id})\\s*(#.*)?$`);
+  // 1 · declaration — the indent-2 map key inside the tasks block (W1:
+  // the key IS the identity; a same-named typed var never matches
+  // because declarations only count while inTasks).
+  const declRe = new RegExp(`^( {2})(${id})\\s*:\\s*(#.*)?$`);
   // 2 · depends_on — inline list or block items
   const dependsInlineRe = new RegExp(`depends_on:\\s*\\[([^\\]]*)\\]`);
   const blockItemRe = new RegExp(`^(\\s*-\\s*)(${id})\\s*(#.*)?$`);
 
   let inDependsBlock = false;
   let dependsIndent = 0;
+  let inTasks = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const base = lineStart[i];
+    if (/^[A-Za-z0-9_-]+\s*:/.test(line)) { inTasks = /^tasks\s*:/.test(line); }
 
-    const decl = line.match(declRe);
+    const decl = inTasks ? line.match(declRe) : null;
     if (decl) {
       refs.push({ start: base + decl[1].length, end: base + decl[1].length + taskId.length, home: 'declaration' });
     }

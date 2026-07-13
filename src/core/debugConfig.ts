@@ -7,14 +7,18 @@
 
 /** The `workflow:` name of a nika YAML — a light line-scan, no parser. */
 export function workflowNameOf(yamlText: string): string | undefined {
+  // W1: `workflow:` is an object — the name is its `id:` field. Quoted
+  // value first: a `#` INSIDE quotes is part of the name, not a comment —
+  // the single mixed regex truncated `"deploy #7"` to `deploy`, so a
+  // quoted-hash workflow could never exact-match its own journal (the
+  // 0.97.2 review's extractor-divergence finding).
+  let inWorkflow = false;
   for (const line of yamlText.split('\n')) {
-    // Quoted value first: a `#` INSIDE quotes is part of the name, not a
-    // comment — the single mixed regex truncated `"deploy #7"` to
-    // `deploy`, so a quoted-hash workflow could never exact-match its own
-    // journal (the 0.97.2 review's extractor-divergence finding).
-    const q = /^workflow:\s*"([^"]*)"\s*(#.*)?$/.exec(line) ?? /^workflow:\s*'([^']*)'\s*(#.*)?$/.exec(line);
+    if (/^\S/.test(line)) { inWorkflow = /^workflow:\s*(#.*)?$/.test(line); }
+    if (!inWorkflow) { continue; }
+    const q = /^ {2}id:\s*"([^"]*)"\s*(#.*)?$/.exec(line) ?? /^ {2}id:\s*'([^']*)'\s*(#.*)?$/.exec(line);
     if (q) { return q[1].trim() || undefined; }
-    const bare = /^workflow:\s*([^#\n]+?)\s*(#.*)?$/.exec(line);
+    const bare = /^ {2}id:\s*([^#\n]+?)\s*(#.*)?$/.exec(line);
     if (bare) { return bare[1].trim() || undefined; }
   }
   return undefined;

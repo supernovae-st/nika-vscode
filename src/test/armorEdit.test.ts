@@ -3,16 +3,17 @@ import { ARMOR_SHAPES, armorWrite, wornArmor } from '../core/armorEdit';
 import { findTaskKey, type TaskRange } from '../core/flowEdit';
 
 const WF = `nika: v1
-workflow: w
+workflow:
+  id: w
 tasks:
-  - id: fetch_data
+  fetch_data:
     depends_on: [gather]
     when: \${{ vars.live }}
     invoke:
       tool: "nika:fetch"
       args:
         url: "https://api.example.com"
-  - id: armored
+  armored:
     retry:
       max_attempts: 5
       backoff_ms: 200
@@ -21,13 +22,13 @@ tasks:
     timeout: "30s"
     exec:
       command: "true"
-  - id: gather
+  gather:
     infer:
       prompt: "a"
 `;
 
-const FETCH: TaskRange = { id: 'fetch_data', line: 3, endLine: 9, dependsOn: ['gather'] };
-const ARMORED: TaskRange = { id: 'armored', line: 10, endLine: 18, dependsOn: [] };
+const FETCH: TaskRange = { id: 'fetch_data', line: 4, endLine: 10, dependsOn: ['gather'] };
+const ARMORED: TaskRange = { id: 'armored', line: 11, endLine: 19, dependsOn: [] };
 
 describe('armorEdit (« make it resilient »)', () => {
   it('the register carries the spec\'s three walls (four shapes)', () => {
@@ -41,16 +42,16 @@ describe('armorEdit (« make it resilient »)', () => {
     expect(wornArmor(lines, FETCH)).toEqual(new Set());
     expect(wornArmor(lines, ARMORED)).toEqual(new Set(['retry', 'on_error', 'timeout']));
     // The block-map extent: retry: spans its two fields.
-    expect(findTaskKey(lines, ARMORED, 'retry')).toMatchObject({ line: 11, end: 13 });
+    expect(findTaskKey(lines, ARMORED, 'retry')).toMatchObject({ line: 12, end: 14 });
   });
 
   it('retry inserts after when: — the canonical order, spec-exact fields', () => {
     const next = armorWrite(WF, FETCH, 'retry')!;
     const lines = next.split('\n');
-    expect(lines[6]).toBe('    retry:');
-    expect(lines[7]).toContain('max_attempts: 3');
-    expect(lines[8]).toContain('backoff_ms: 1000');
-    expect(lines[5]).toContain('when:');
+    expect(lines[7]).toBe('    retry:');
+    expect(lines[8]).toContain('max_attempts: 3');
+    expect(lines[9]).toContain('backoff_ms: 1000');
+    expect(lines[6]).toContain('when:');
   });
 
   it('recover writes the ref it was given — or the literal SLOT', () => {

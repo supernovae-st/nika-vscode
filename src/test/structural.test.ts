@@ -77,26 +77,27 @@ describe('structuralFixes parsers', () => {
 
 const DOC = [
   'nika: v1',
-  'workflow: t',
+  'workflow:',
+  '  id: t',
   'model: mock/echo',
   '',
   'tasks:',
-  '  - id: first',
+  '  first:',
   '    infer:',
   '      prompt: "one"',
   '',
-  '  - id: second',
+  '  second:',
   '    with:',
   '      prev: ${{ tasks.first.output }}',
   '    infer:',
   '      prompt: "two"',
   '',
-  '  - id: third',
+  '  third:',
   '    depends_on: [first]',
   '    exec:',
   '      command: echo hi',
   '',
-  '  - id: fourth',
+  '  fourth:',
   '    depends_on:',
   '      - first',
   '    exec:',
@@ -107,7 +108,7 @@ describe('addDependsOn', () => {
   it('inserts a fresh depends_on under the id line', () => {
     const out = addDependsOn(DOC, 'second', 'first')!;
     const lines = out.split('\n');
-    const idLine = lines.findIndex((l) => l.includes('- id: second'));
+    const idLine = lines.findIndex((l) => l.includes('second:'));
     expect(lines[idLine + 1]).toBe('    depends_on: [first]');
   });
 
@@ -119,7 +120,7 @@ describe('addDependsOn', () => {
   it('appends to a block list', () => {
     const out = addDependsOn(DOC, 'fourth', 'second')!;
     const lines = out.split('\n');
-    const blockIdx = lines.findIndex((l, i) => l.trim() === 'depends_on:' && i > lines.findIndex((x) => x.includes('- id: fourth')));
+    const blockIdx = lines.findIndex((l, i) => l.trim() === 'depends_on:' && i > lines.findIndex((x) => x.includes('fourth:')));
     expect(lines[blockIdx + 1].trim()).toBe('- first');
     expect(lines[blockIdx + 2].trim()).toBe('- second');
   });
@@ -132,7 +133,7 @@ describe('addDependsOn', () => {
 describe('graph editing backends (the n8n loop)', () => {
   it('mints collision-free snake_case ids', () => {
     expect(nextTaskId(DOC, 'infer')).toBe('infer');
-    const withInfer = DOC.replace('- id: first', '- id: infer');
+    const withInfer = DOC.replace('first:', 'infer:');
     expect(nextTaskId(withInfer, 'infer')).toBe('infer_2');
   });
 
@@ -156,7 +157,7 @@ describe('graph editing backends (the n8n loop)', () => {
   });
 
   it('creates the tasks block when the document has none', () => {
-    const res = insertTaskSkeleton('nika: v1\nworkflow: t\nmodel: mock/echo\n', 'exec')!;
+    const res = insertTaskSkeleton('nika: v1\nworkflow:\n  id: t\nmodel: mock/echo\n', 'exec')!;
     const wf = parseRichWorkflow(res.text);
     expect(wf.tasks.map((t) => t.id)).toEqual(['exec']);
   });
@@ -212,7 +213,7 @@ describe('graph editing backends (the n8n loop)', () => {
     const out = removeDependsOn(DOC, 'fourth', 'first')!;
     const wf = parseRichWorkflow(out);
     expect(wf.tasks.find((t) => t.id === 'fourth')?.dependsOn).toEqual([]);
-    expect(out).not.toMatch(/- id: fourth[\s\S]{0,40}depends_on/);
+    expect(out).not.toMatch(/^ {2}fourth:[\s\S]{0,40}depends_on/m);
   });
 
   it('is undefined for an absent dep', () => {
@@ -277,7 +278,7 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(wf.tasks.find((t) => t.id === 'third')?.dependsOn).toEqual(['first']);
     expect(wf.tasks.find((t) => t.id === 'fourth')?.dependsOn).toEqual(['first']);
     const referenced = res.text.match(/first_copy/g) ?? [];
-    expect(referenced.length).toBe(1); // only its own `- id:` line
+    expect(referenced.length).toBe(1); // only its own key line
   });
 
   it('splices a task INTO a dependency edge (insert-on-edge)', () => {
@@ -313,12 +314,13 @@ describe('edge-case hunt 2026-07-06 · confirmed YAML-surgery bugs', () => {
   // the editors must not corrupt them (was: strict > indent scan).
   const SAME_INDENT = [
     'nika: v1',
-    'workflow: t',
+    'workflow:',
+    '  id: t',
     'tasks:',
-    '  - id: a',
+    '  a:',
     '    exec: { command: echo a }',
     '',
-    '  - id: b',
+    '  b:',
     '    depends_on:',
     '    - a',
     '    exec: { command: echo b }',
@@ -355,13 +357,14 @@ describe('edge-case hunt 2026-07-06 · confirmed YAML-surgery bugs', () => {
   it('addVarDeclaration never splices INTO a multi-line var value', () => {
     const doc = [
       'nika: v1',
-      'workflow: t',
+      'workflow:',
+      '  id: t',
       'vars:',
       '  prompt: |',
       '    Summarize the input.',
       '    Keep it short.',
       'tasks:',
-      '  - id: a',
+      '  a:',
       '    infer: { prompt: "x" }',
     ].join('\n');
     const out = addVarDeclaration(doc, 'missing')!;
@@ -374,13 +377,14 @@ describe('edge-case hunt 2026-07-06 · confirmed YAML-surgery bugs', () => {
   it('a trailing comment documents the NEXT task — spans exclude it', () => {
     const doc = [
       'nika: v1',
-      'workflow: t',
+      'workflow:',
+      '  id: t',
       'tasks:',
-      '  - id: a',
+      '  a:',
       '    exec: { command: echo a }',
       '',
       '  # b needs network access',
-      '  - id: b',
+      '  b:',
       '    exec: { command: echo b }',
     ].join('\n');
     // Delete a → b keeps its doc comment.

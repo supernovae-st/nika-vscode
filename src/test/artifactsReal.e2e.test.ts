@@ -49,13 +49,14 @@ const BIN = found?.bin;
 const HAS_CATALOG = found?.caps?.catalog === true;
 
 const WORKFLOW = `nika: v1
-workflow: artifacts-e2e
+workflow:
+  id: artifacts-e2e
 permits:
   fs:
     write:
       - "out/*"
 tasks:
-  - id: save
+  save:
     invoke:
       tool: "nika:write"
       args:
@@ -108,13 +109,14 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
     try {
       const wf = path.join(dir, 'chart-e2e.nika.yaml');
       fs.writeFileSync(wf, `nika: v1
-workflow: chart-card-e2e
+workflow:
+  id: chart-card-e2e
 permits:
   fs:
     write:
       - "out/*"
 tasks:
-  - id: novelty_chart
+  novelty_chart:
     invoke:
       tool: "nika:chart"
       args:

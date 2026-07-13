@@ -42,7 +42,7 @@ export function addDependsOn(text: string, taskId: string, dep: string): string 
   if (task.dependsOn.includes(dep)) { return undefined; }
 
   const lines = text.split('\n');
-  const fieldIndent = ' '.repeat(lines[task.line].indexOf('-') + 2);
+  const fieldIndent = ' '.repeat(Math.max(lines[task.line].search(/\S/), 0) + 2);
 
   for (let i = task.line; i <= task.endLine; i++) {
     const line = lines[i];
@@ -75,7 +75,7 @@ export function addDependsOn(text: string, taskId: string, dep: string): string 
     }
   }
 
-  // No depends_on yet — insert directly under the `- id:` line.
+  // No depends_on yet — insert directly under the task key line.
   lines.splice(task.line + 1, 0, `${fieldIndent}depends_on: [${dep}]`);
   return lines.join('\n');
 }
@@ -129,18 +129,18 @@ export function insertTaskSkeleton(
     ? ['invoke:', `  tool: nika:${bare}`]
     : skeletonFor(verb);
 
-  // Item indent mirrors existing tasks (2 spaces under `tasks:` default).
+  // Key indent mirrors existing tasks (2 spaces under `tasks:` · W1 map).
   const anchor = afterTaskId
     ? wf.tasks.find((t) => t.id === afterTaskId)
     : wf.tasks[wf.tasks.length - 1];
   const itemIndent = anchor !== undefined
-    ? ' '.repeat(lines[anchor.line].indexOf('-'))
+    ? ' '.repeat(Math.max(lines[anchor.line].search(/\S/), 0))
     : '  ';
   const fieldIndent = `${itemIndent}  `;
 
   const block = [
     '',
-    `${itemIndent}- id: ${taskId}`,
+    `${itemIndent}${taskId}:`,
     ...(afterTaskId ? [`${fieldIndent}depends_on: [${afterTaskId}]`] : []),
     ...skeleton.map((l) => `${fieldIndent}${l}`),
   ];
@@ -163,7 +163,7 @@ export function insertTaskSkeleton(
 /**
  * Set (or insert) a task-level `model:` — the canvas params-bar edit.
  * Replace when the task already declares one; else insert right under
- * the `- id:` line at task-property indent. Undefined when the task is
+ * the task key line at task-property indent. Undefined when the task is
  * unknown or the value fails the provider/model shape.
  */
 export function setTaskModel(text: string, taskId: string, model: string): string | undefined {
@@ -180,7 +180,7 @@ export function setTaskModel(text: string, taskId: string, model: string): strin
       return lines.join('\n');
     }
   }
-  const itemIndent = lines[task.line].indexOf('-');
+  const itemIndent = lines[task.line].search(/\S/);
   if (itemIndent < 0) { return undefined; }
   const fieldIndent = ' '.repeat(itemIndent + 2);
   lines.splice(task.line + 1, 0, `${fieldIndent}model: ${model}`);
@@ -314,7 +314,8 @@ export function duplicateTask(
 
   const lines = text.split('\n');
   const span = lines.slice(task.line, task.endLine + 1);
-  const idPattern = new RegExp(`^(\\s*-\\s*id:\\s*)${taskId}(\\s*(#.*)?)$`);
+  // W1 map form: the identity is the declaring key line (span line 0).
+  const idPattern = new RegExp(`^(\\s*)${taskId}(\\s*:\\s*(#.*)?)$`);
   const idIdx = span.findIndex((l) => idPattern.test(l));
   if (idIdx === -1) { return undefined; }
   const copy = [...span];

@@ -2186,7 +2186,7 @@ export function activate(context: ExtensionContext): void {
       }
 
       const content = Buffer.from(
-        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow: ${name}\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  - id: start\n    infer:\n      prompt: ""\n`,
+        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
         'utf-8',
       );
       await workspace.fs.writeFile(filePath, content);

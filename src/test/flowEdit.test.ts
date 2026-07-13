@@ -5,17 +5,18 @@ import {
 } from '../core/flowEdit';
 
 const WF = `nika: v1
-workflow: w
+workflow:
+  id: w
 tasks:
-  - id: gather
+  gather:
     infer:
       prompt: "a"
-  - id: thread
+  thread:
     depends_on: [gather]
     when: \${{ vars.publish }}
     infer:
       prompt: "b"
-  - id: sign
+  sign:
     depends_on:
       - thread
     exec:
@@ -23,18 +24,18 @@ tasks:
 `;
 
 const TASKS: TaskRange[] = [
-  { id: 'gather', line: 3, endLine: 5, dependsOn: [] },
-  { id: 'thread', line: 6, endLine: 10, dependsOn: ['gather'] },
-  { id: 'sign', line: 11, endLine: 15, dependsOn: ['thread'] },
+  { id: 'gather', line: 4, endLine: 6, dependsOn: [] },
+  { id: 'thread', line: 7, endLine: 11, dependsOn: ['gather'] },
+  { id: 'sign', line: 12, endLine: 16, dependsOn: ['thread'] },
 ];
 
 describe('flowEdit (wire · gate · fan out)', () => {
   it('finds flow and block task keys, block extent included', () => {
     const lines = WF.split('\n');
-    expect(findTaskKey(lines, TASKS[1], 'depends_on')).toMatchObject({ line: 7, end: 7 });
-    expect(findTaskKey(lines, TASKS[1], 'when')).toMatchObject({ line: 8 });
+    expect(findTaskKey(lines, TASKS[1], 'depends_on')).toMatchObject({ line: 8, end: 8 });
+    expect(findTaskKey(lines, TASKS[1], 'when')).toMatchObject({ line: 9 });
     const block = findTaskKey(lines, TASKS[2], 'depends_on');
-    expect(block).toMatchObject({ line: 12, end: 13 });
+    expect(block).toMatchObject({ line: 13, end: 14 });
     expect(findTaskKey(lines, TASKS[0], 'depends_on')).toBeUndefined();
   });
 
@@ -55,9 +56,9 @@ describe('flowEdit (wire · gate · fan out)', () => {
     expect(next).not.toContain('      - thread');
   });
 
-  it('inserts a fresh depends_on right after the id line', () => {
+  it('inserts a fresh depends_on right after the key line', () => {
     const next = dependsRewrite(WF, TASKS[0], ['sign'])!;
-    expect(next.split('\n')[4]).toBe('    depends_on: [sign]');
+    expect(next.split('\n')[5]).toBe('    depends_on: [sign]');
   });
 
   it('an empty pick removes the key — and removing the absent is a no-op', () => {
@@ -75,15 +76,15 @@ describe('flowEdit (wire · gate · fan out)', () => {
   it('a fresh when: lands after depends_on — the canonical order', () => {
     const next = gateRewrite(WF, TASKS[2], 'vars.publish')!;
     const lines = next.split('\n');
-    expect(lines[14]).toBe('    when: ${{ vars.publish }}');
-    expect(lines[13]).toBe('      - thread');
+    expect(lines[15]).toBe('    when: ${{ vars.publish }}');
+    expect(lines[14]).toBe('      - thread');
   });
 
   it('a fresh for_each lands after when:, unquoted like the spec', () => {
     const next = fanoutRewrite(WF, TASKS[1], 'vars.urls')!;
     const lines = next.split('\n');
-    expect(lines[9]).toBe('    for_each: ${{ vars.urls }}');
-    expect(lines[8]).toContain('when:');
+    expect(lines[10]).toBe('    for_each: ${{ vars.urls }}');
+    expect(lines[9]).toContain('when:');
   });
 
   it('the gate register speaks CEL v0.1 and names the edge it needs', () => {
@@ -99,7 +100,7 @@ describe('flowEdit (wire · gate · fan out)', () => {
   });
 
   it('refuses a moved anchor — never a blind write', () => {
-    expect(taskKeyRewrite(WF, { ...TASKS[0], line: 4 }, 'when', 'x')).toBeUndefined();
+    expect(taskKeyRewrite(WF, { ...TASKS[0], line: 5 }, 'when', 'x')).toBeUndefined();
   });
 });
 

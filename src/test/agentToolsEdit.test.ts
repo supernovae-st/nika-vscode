@@ -4,9 +4,10 @@ import { findAgentTools, ownedRef, toolsRewrite } from '../core/agentToolsEdit';
 const CATALOG = new Set(['fetch', 'read', 'write', 'jq']);
 
 const FLOW = `nika: v1
-workflow: w
+workflow:
+  id: w
 tasks:
-  - id: judge
+  judge:
     agent:
       prompt: "rule"
       tools: ["nika:fetch", "mcp:browser/navigate", "nika:fs_*", "nika:doesnotexist"]
@@ -15,7 +16,7 @@ tasks:
 
 const BLOCK = `nika: v1
 tasks:
-  - id: judge
+  judge:
     agent:
       prompt: "rule"
       tools:
@@ -26,7 +27,7 @@ tasks:
 
 describe('agentToolsEdit (« choose its tools »)', () => {
   it('reads flow and block forms, refs in file order', () => {
-    expect(findAgentTools(FLOW.split('\n'), 4, 4)?.refs).toEqual([
+    expect(findAgentTools(FLOW.split('\n'), 5, 4)?.refs).toEqual([
       'nika:fetch', 'mcp:browser/navigate', 'nika:fs_*', 'nika:doesnotexist',
     ]);
     const block = findAgentTools(BLOCK.split('\n'), 3, 4);
@@ -35,7 +36,7 @@ describe('agentToolsEdit (« choose its tools »)', () => {
   });
 
   it('an empty list reads as the meaningful default-deny choice', () => {
-    const wf = 'tasks:\n  - id: a\n    agent:\n      prompt: "p"\n      tools: []\n';
+    const wf = 'tasks:\n  a:\n    agent:\n      prompt: "p"\n      tools: []\n';
     expect(findAgentTools(wf.split('\n'), 2, 4)?.refs).toEqual([]);
   });
 
@@ -47,14 +48,14 @@ describe('agentToolsEdit (« choose its tools »)', () => {
   });
 
   it('rewrites: keeps author sentences verbatim, appends new picks, drops unpicked owned', () => {
-    const next = toolsRewrite(FLOW, 4, 4, ['read', 'jq'], CATALOG)!;
+    const next = toolsRewrite(FLOW, 5, 4, ['read', 'jq'], CATALOG)!;
     // fetch (owned · unpicked) drops; mcp + glob + stranger survive; read/jq append.
     expect(next).toContain('      tools: ["mcp:browser/navigate", "nika:fs_*", "nika:doesnotexist", "nika:read", "nika:jq"]');
     expect(next).toContain('max_turns: 10');
   });
 
   it('a re-picked owned ref keeps its place (minimal diff)', () => {
-    const next = toolsRewrite(FLOW, 4, 4, ['fetch'], CATALOG)!;
+    const next = toolsRewrite(FLOW, 5, 4, ['fetch'], CATALOG)!;
     expect(next).toContain('      tools: ["nika:fetch", "mcp:browser/navigate", "nika:fs_*", "nika:doesnotexist"]');
   });
 
@@ -65,14 +66,14 @@ describe('agentToolsEdit (« choose its tools »)', () => {
   });
 
   it('an empty pick with no author refs writes tools: [] — least privilege, never removal', () => {
-    const wf = 'tasks:\n  - id: a\n    agent:\n      prompt: "p"\n      tools: ["nika:fetch"]\n';
+    const wf = 'tasks:\n  a:\n    agent:\n      prompt: "p"\n      tools: ["nika:fetch"]\n';
     const next = toolsRewrite(wf, 2, 4, [], CATALOG)!;
     expect(next).toContain('      tools: []');
   });
 
   it('refuses a moved anchor and exotic forms', () => {
-    expect(toolsRewrite(FLOW, 5, 4, ['read'], CATALOG)).toBeUndefined();
-    const exotic = 'tasks:\n  - id: a\n    agent:\n      prompt: "p"\n      tools: something\n';
+    expect(toolsRewrite(FLOW, 6, 4, ['read'], CATALOG)).toBeUndefined();
+    const exotic = 'tasks:\n  a:\n    agent:\n      prompt: "p"\n      tools: something\n';
     expect(toolsRewrite(exotic, 2, 4, ['read'], CATALOG)).toBeUndefined();
   });
 });

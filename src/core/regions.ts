@@ -17,7 +17,7 @@ const MARKER = /^\s*#\s*nika:region\s+(.+?)\s*$/;
 
 /**
  * Region groupings in author order. A task's region is the LAST marker
- * whose line precedes the task's `- id:` line; tasks before any marker
+ * whose line precedes the task's declaring key line; tasks before any marker
  * belong to none. Empty regions (no task follows) are dropped.
  */
 export function parseRegions(text: string): Region[] {

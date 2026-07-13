@@ -9,7 +9,7 @@
 
 export interface TaskRange {
   id: string;
-  /** Line of `- id:`. */
+  /** Line of the declaring `name:` map key. */
   line: number;
   /** Last line of the task item (inclusive). */
   endLine: number;
@@ -30,9 +30,9 @@ function indentOf(line: string): number {
   return m ? m[1].length : -1;
 }
 
-/** Field indent for a task item: the `- ` marker's column + 2. */
+/** Field indent for a task body: the key's column + 2 (W1 map form). */
 function fieldIndentOf(lines: readonly string[], task: TaskRange): number {
-  const m = lines[task.line]?.match(/^( *)- /);
+  const m = lines[task.line]?.match(/^( *)[a-z]/);
   return m ? m[1].length + 2 : 4;
 }
 
@@ -102,7 +102,7 @@ const KEY_ORDER: readonly string[] = [
 ];
 
 export function insertionLine(lines: readonly string[], task: TaskRange, key: string): number {
-  let at = task.line; // after `- id:` by default
+  let at = task.line; // after the declaring key by default
   for (const prior of KEY_ORDER.slice(0, KEY_ORDER.indexOf(key))) {
     const found = findTaskKey(lines, task, prior);
     if (found) { at = found.end; }
@@ -123,7 +123,7 @@ export function taskBlockInsert(
   body: string,
 ): string | undefined {
   const lines = text.split('\n');
-  if (!/^\s*- /.test(lines[task.line] ?? '')) { return undefined; }
+  if (!/^ {2}[a-z][a-z0-9_]*\s*:/.test(lines[task.line] ?? '')) { return undefined; }
   if (findTaskKey(lines, task, key)) { return undefined; }
   const pad = ' '.repeat(fieldIndentOf(lines, task));
   const block = body
@@ -138,7 +138,7 @@ export function taskBlockInsert(
  * Write a task-level key: replace the existing line (block lists
  * collapse to the flow form) or insert at the canonical position.
  * `value === undefined` removes the key. Undefined result: the anchor
- * moved (no `- id:` at task.line) — refuse a blind write.
+ * moved (no task key at task.line) — refuse a blind write.
  */
 export function taskKeyRewrite(
   text: string,
@@ -147,7 +147,7 @@ export function taskKeyRewrite(
   value: string | undefined,
 ): string | undefined {
   const lines = text.split('\n');
-  if (!/^\s*- /.test(lines[task.line] ?? '')) { return undefined; }
+  if (!/^ {2}[a-z][a-z0-9_]*\s*:/.test(lines[task.line] ?? '')) { return undefined; }
   const indent = fieldIndentOf(lines, task);
   const existing = findTaskKey(lines, task, key);
   if (existing) {

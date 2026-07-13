@@ -2,31 +2,32 @@ import { describe, expect, it } from 'vitest';
 import { collectBodyFacts } from '../core/bodyFacts';
 
 const WF = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: gather
+  gather:
     infer:
       prompt: "Summarize the latest news about workflow engines in three bullets."
-  - id: long_block
+  long_block:
     infer:
       prompt: |
         First display line of the block.
         Second display line.
         Third display line.
         Fourth line must be cut by the clamp.
-  - id: shell_step
+  shell_step:
     exec:
       command: echo processing && sleep 1
     depends_on: [gather]
-  - id: jq_step
+  jq_step:
     invoke:
       tool: "nika:jq"
       args:
         expr: ".items | length"
         input: "\${{ tasks.gather.output }}"
     depends_on: [gather]
-  - id: bare
+  bare:
     invoke:
       tool: "nika:read"
 `;
@@ -63,10 +64,11 @@ describe('collectBodyFacts', () => {
 });
 
 const POLICY_WF = `nika: v1
-workflow: policy_probe
+workflow:
+  id: policy_probe
 model: mock/echo
 tasks:
-  - id: guarded
+  guarded:
     infer:
       prompt: "Summarize."
     timeout: "30s"
@@ -78,12 +80,12 @@ tasks:
     output:
       summary: ".text"
       title: ".title"
-  - id: flow_forms
+  flow_forms:
     exec:
       command: echo hi
     retry: { max_attempts: 2 }
     on_error: { recover: "fallback" }
-  - id: decoy
+  decoy:
     invoke:
       tool: "nika:jq"
       args:

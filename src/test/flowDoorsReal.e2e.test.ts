@@ -31,7 +31,8 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
 
 const BASE = [
   'nika: v1',
-  'workflow: flow-doors-proof',
+  'workflow:',
+  '  id: flow-doors-proof',
   'model: mock/echo',
   '',
   'vars:',
@@ -40,10 +41,10 @@ const BASE = [
   '    default: ["https://example.com"]',
   '',
   'tasks:',
-  '  - id: gather',
+  '  gather:',
   '    infer:',
   '      prompt: "collect"',
-  '  - id: thread',
+  '  thread:',
   '    infer:',
   '      prompt: "weave"',
   '',

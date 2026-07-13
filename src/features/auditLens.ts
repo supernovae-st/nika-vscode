@@ -27,7 +27,7 @@ function usd(n: number): string {
   return `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
 }
 
-// ─── Inlay hints — per-task static facts at the `- id:` line ────────────────
+// ─── Inlay hints — per-task static facts at the task key line ───────────────
 
 export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<void>();
@@ -73,8 +73,8 @@ export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscod
     const lines = text.split('\n');
 
     for (const node of doc.nodes) {
-      // Locate the `- id: <node.id>` line (client anchor for engine facts).
-      const lineIdx = lines.findIndex((l) => new RegExp(`^\\s*-\\s*id:\\s*["']?${escapeRe(node.id)}["']?\\s*(#.*)?$`).test(l));
+      // Locate the `<node.id>:` task key line (client anchor for engine facts).
+      const lineIdx = lines.findIndex((l) => new RegExp(`^ {2}${escapeRe(node.id)}\\s*:\\s*(#.*)?$`).test(l));
       if (lineIdx === -1 || lineIdx < range.start.line || lineIdx > range.end.line) { continue; }
 
       // Interactive label parts (rust-analyzer pattern): each fact carries

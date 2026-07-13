@@ -74,11 +74,12 @@ describe('damerau + didYouMean', () => {
 
 const DOC = [
   'nika: v1',
-  'workflow: shapes',
+  'workflow:',
+  '  id: shapes',
   'model: mock/echo',
   '',
   'tasks:',
-  '  - id: extract',
+  '  extract:',
   '    infer:',
   '      prompt: "extract the article"',
   '      schema:',
@@ -96,7 +97,7 @@ const DOC = [
   '                type: string',
   '        required: [title]',
   '',
-  '  - id: use',
+  '  use:',
   '    depends_on: [extract]',
   '    infer:',
   '      prompt: "use ${{ tasks.extract.output.title }}"',

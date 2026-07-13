@@ -51,56 +51,59 @@ function tmpWorkflow(content: string): string {
 }
 
 const FANOUT_WF = `nika: v1
-workflow: runwire-fanout
+workflow:
+  id: runwire-fanout
 
 model: mock/echo
 
 tasks:
-  - id: seed
+  seed:
     infer:
       prompt: "Name three colors, one per line."
 
-  - id: branch_a
+  branch_a:
     depends_on: [seed]
     infer:
       prompt: "Comment on \${{ tasks.seed.output }} briefly."
 
-  - id: branch_b
+  branch_b:
     depends_on: [seed]
     infer:
       prompt: "Count the lines in \${{ tasks.seed.output }}."
 
-  - id: join
+  join:
     depends_on: [branch_a, branch_b]
     infer:
       prompt: "Merge \${{ tasks.branch_a.output }} and \${{ tasks.branch_b.output }}."
 `;
 
 const FAILING_WF = `nika: v1
-workflow: runwire-fail
+workflow:
+  id: runwire-fail
 
 model: mock/echo
 
 tasks:
-  - id: ok_step
+  ok_step:
     infer:
       prompt: "Say ok."
 
-  - id: boom
+  boom:
     depends_on: [ok_step]
     exec:
-      command: "exit 7"
+      shell: "exit 7"
 `;
 
 // Envelope pins a CLOUD model — only the --model override makes this
 // runnable with zero keys. Exactly the ▶ mock preview path.
 const CLOUD_WF = `nika: v1
-workflow: runwire-cloud
+workflow:
+  id: runwire-cloud
 
 model: mistral/mistral-small
 
 tasks:
-  - id: only
+  only:
     infer:
       prompt: "One short sentence."
 `;

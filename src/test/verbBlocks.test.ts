@@ -2,23 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { findVerbLines, invokeBodyFor, verbBlockEdit, verbBlockEnd } from '../core/verbBlocks';
 
 const WF = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: gather
+  gather:
     invoke:
       tool: "nika:read"
       args:
         path: "./README.md"
-  - id: think
+  think:
     depends_on: [gather]
     infer:
       prompt: "Summarize"
 
-  - id: act
+  act:
     exec:
       command: "echo ok"
-  - id: finish
+  finish:
     agent:
       prompt: "wrap up"
       tools: ["nika:fetch"]
@@ -30,7 +31,7 @@ describe('findVerbLines (the 4 doors)', () => {
   it('finds all four verbs with their lines', () => {
     const found = findVerbLines(lines(WF));
     expect(found.map((v) => v.verb)).toEqual(['invoke', 'infer', 'exec', 'agent']);
-    expect(found[0]).toEqual({ line: 5, verb: 'invoke', indent: 4 });
+    expect(found[0]).toEqual({ line: 6, verb: 'invoke', indent: 4 });
   });
 
   it('never matches comments, flow style, or args-nested decoys', () => {
@@ -53,48 +54,48 @@ describe('findVerbLines (the 4 doors)', () => {
 describe('verbBlockEnd (block measurement)', () => {
   it('measures through nested fields and stops at the next sibling', () => {
     const ls = lines(WF);
-    expect(verbBlockEnd(ls, 5, 4)).toBe(9); // invoke block: tool + args + path
+    expect(verbBlockEnd(ls, 6, 4)).toBe(10); // invoke block: tool + args + path
   });
 
   it('leaves trailing blanks outside the block', () => {
     const ls = lines(WF);
-    expect(verbBlockEnd(ls, 11, 4)).toBe(13); // infer: prompt — the blank line stays out
+    expect(verbBlockEnd(ls, 12, 4)).toBe(14); // infer: prompt — the blank line stays out
   });
 
   it('handles an empty block and end-of-file', () => {
-    expect(verbBlockEnd(['  - id: a', '    infer:', '  - id: b'], 1, 4)).toBe(2);
-    expect(verbBlockEnd(['  - id: a', '    infer:', '      prompt: "x"'], 1, 4)).toBe(3);
+    expect(verbBlockEnd(['  a:', '    infer:', '  b:'], 1, 4)).toBe(2);
+    expect(verbBlockEnd(['  a:', '    infer:', '      prompt: "x"'], 1, 4)).toBe(3);
   });
 });
 
 describe('verbBlockEdit (the surgical swap)', () => {
   it('replaces the block re-indented to the site', () => {
-    const edit = verbBlockEdit(WF, 11, 'infer', 'infer:\n  prompt: "New"\n  max_tokens: 100\n');
+    const edit = verbBlockEdit(WF, 12, 'infer', 'infer:\n  prompt: "New"\n  max_tokens: 100\n');
     expect(edit).toBeDefined();
-    expect(edit!.startLine).toBe(11);
-    expect(edit!.endLine).toBe(13);
+    expect(edit!.startLine).toBe(12);
+    expect(edit!.endLine).toBe(14);
     expect(edit!.newText).toBe('    infer:\n      prompt: "New"\n      max_tokens: 100\n');
   });
 
   it('keeps SLOT comments riding the body', () => {
-    const edit = verbBlockEdit(WF, 15, 'exec', 'exec:\n  command: "ls"   # SLOT: the command\n');
+    const edit = verbBlockEdit(WF, 16, 'exec', 'exec:\n  command: "ls"   # SLOT: the command\n');
     expect(edit!.newText).toContain('# SLOT: the command');
   });
 
   it('refuses a moved anchor or a verb mismatch', () => {
-    expect(verbBlockEdit(WF, 10, 'infer', 'infer:\n  prompt: "x"\n')).toBeUndefined();
-    expect(verbBlockEdit(WF, 11, 'exec', 'exec:\n  command: "x"\n')).toBeUndefined();
+    expect(verbBlockEdit(WF, 11, 'infer', 'infer:\n  prompt: "x"\n')).toBeUndefined();
+    expect(verbBlockEdit(WF, 12, 'exec', 'exec:\n  command: "x"\n')).toBeUndefined();
     expect(verbBlockEdit(WF, 9999, 'infer', 'infer:\n  prompt: "x"\n')).toBeUndefined();
   });
 
   it('round-trips: applying the edit leaves siblings untouched', () => {
-    const edit = verbBlockEdit(WF, 5, 'invoke', 'invoke:\n  tool: "nika:fetch"\n  args:\n    url: ""   # SLOT\n')!;
+    const edit = verbBlockEdit(WF, 6, 'invoke', 'invoke:\n  tool: "nika:fetch"\n  args:\n    url: ""   # SLOT\n')!;
     const ls = lines(WF);
     ls.splice(edit.startLine, edit.endLine - edit.startLine, ...edit.newText.replace(/\n$/, '').split('\n'));
     const out = ls.join('\n');
     expect(out).toContain('tool: "nika:fetch"');
     expect(out).not.toContain('nika:read');
-    expect(out).toContain('- id: think'); // the next task survives byte-identical
+    expect(out).toContain('think:'); // the next task survives byte-identical
     expect(out).toContain('prompt: "Summarize"');
   });
 });

@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { findOutputsBlock, outputsRewrite, parseOutputs } from '../core/outputsEdit';
 
 const WITH_BLOCK = `nika: v1
-workflow: w
+workflow:
+  id: w
 tasks:
-  - id: gather
+  gather:
     infer:
       prompt: "a"
 
@@ -20,7 +21,7 @@ describe('outputsEdit (« choose what it publishes »)', () => {
   it('finds the block and separates owned rows from author sentences', () => {
     const lines = WITH_BLOCK.split('\n');
     const block = findOutputsBlock(lines)!;
-    expect(block.line).toBe(7);
+    expect(block.line).toBe(8);
     const view = parseOutputs(lines, block);
     expect(view.published).toEqual(['gather']);
     expect(view.customLines).toEqual([
@@ -46,14 +47,14 @@ describe('outputsEdit (« choose what it publishes »)', () => {
   });
 
   it('publishes .output — never the bare tasks.X trap', () => {
-    const next = outputsRewrite('nika: v1\nworkflow: w\n', ['a'])!;
+    const next = outputsRewrite('nika: v1\nworkflow:\n  id: w\n', ['a'])!;
     expect(next).toContain('outputs:\n  a: "${{ tasks.a.output }}"');
     expect(next).not.toMatch(/\$\{\{ tasks\.a \}\}/);
   });
 
   it('appends at EOF when the block is absent — trailing blanks trimmed', () => {
-    const next = outputsRewrite('nika: v1\nworkflow: w\n\n\n', ['a'])!;
-    expect(next.endsWith('workflow: w\n\noutputs:\n  a: "${{ tasks.a.output }}"\n')).toBe(true);
+    const next = outputsRewrite('nika: v1\nworkflow:\n  id: w\n\n\n', ['a'])!;
+    expect(next.endsWith('  id: w\n\noutputs:\n  a: "${{ tasks.a.output }}"\n')).toBe(true);
   });
 
   it('an empty pick with no customs removes the whole block', () => {

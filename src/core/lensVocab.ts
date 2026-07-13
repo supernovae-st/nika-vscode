@@ -18,10 +18,10 @@ export function verbDoorTitle(verb: string, glyph: string): string {
   return `${glyph} ${verb === 'invoke' ? 'choose your tool' : 'choose a starter'}`;
 }
 
-/** `- id:` — run THIS task and its upstream cone only. */
+/** task key — run THIS task and its upstream cone only. */
 export const RERUN_DOOR = '$(debug-restart) re-run';
 
-/** `- id:` — focus the task in the DAG; the refs tail keeps ⇧F12 honest. */
+/** task key — focus the task in the DAG; the refs tail keeps ⇧F12 honest. */
 export function graphDoorTitle(refCount: number): string {
   const tail = refCount > 0 ? ` · ${refCount} ref${refCount === 1 ? '' : 's'}` : '';
   return `$(target) see it in the graph${tail}`;

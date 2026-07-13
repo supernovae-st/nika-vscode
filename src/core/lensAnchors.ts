@@ -36,8 +36,14 @@ export function findLensAnchors(lines: readonly string[]): LensAnchors {
   for (let i = 0; i < cap; i++) {
     const text = lines[i];
     if (env < 0 && /^nika:\s/.test(text)) { env = i; }
+    // W1: `workflow:` is an object head (bare key) — and its
+    // `description:` lives one level under it, never at top level.
+    if (workflow < 0 && /^workflow:\s*(#.*)?$/.test(text)) { workflow = i; }
     if (workflow < 0 && /^workflow:\s/.test(text)) { workflow = i; }
-    if (description < 0 && /^description:\s/.test(text)) { description = i; }
+    if (description < 0
+      && ((workflow >= 0 && /^ {2}description:\s/.test(text)) || /^description:\s/.test(text))) {
+      description = i;
+    }
     if (tasks < 0 && /^tasks:\s*$/.test(text)) { tasks = i; break; }
   }
   if (env < 0) { env = 0; }

@@ -12,7 +12,7 @@ describe('parseWorkflowTasks', () => {
 
   it('extracts single task with infer verb', () => {
     const yaml = `tasks:
-  - id: hello
+  hello:
     infer: "Say hello"`;
     const tasks = parseWorkflowTasks(yaml);
     expect(tasks).toHaveLength(1);
@@ -23,11 +23,11 @@ describe('parseWorkflowTasks', () => {
 
   it('extracts multiple tasks with different verbs', () => {
     const yaml = `tasks:
-  - id: step1
+  step1:
     infer: "Generate"
-  - id: step2
+  step2:
     exec: "echo done"
-  - id: step3
+  step3:
     invoke: "https://example.com"`;
     const tasks = parseWorkflowTasks(yaml);
     expect(tasks).toHaveLength(3);
@@ -37,7 +37,8 @@ describe('parseWorkflowTasks', () => {
   });
 
   it('handles invoke verb', () => {
-    const yaml = `  - id: run_tool
+    const yaml = `tasks:
+  run_tool:
     invoke: "nika:log"`;
     const tasks = parseWorkflowTasks(yaml);
     expect(tasks).toHaveLength(1);
@@ -45,7 +46,8 @@ describe('parseWorkflowTasks', () => {
   });
 
   it('handles agent verb', () => {
-    const yaml = `  - id: research
+    const yaml = `tasks:
+  research:
     agent:
       prompt: "Find info"
       max_turns: 5`;
@@ -55,8 +57,9 @@ describe('parseWorkflowTasks', () => {
   });
 
   it('marks task as unknown when no verb found', () => {
-    const yaml = `  - id: orphan
-  - id: next
+    const yaml = `tasks:
+  orphan:
+  next:
     infer: "test"`;
     const tasks = parseWorkflowTasks(yaml);
     expect(tasks).toHaveLength(2);
@@ -65,7 +68,8 @@ describe('parseWorkflowTasks', () => {
   });
 
   it('handles last task without verb', () => {
-    const yaml = `  - id: lonely`;
+    const yaml = `tasks:
+  lonely:`;
     const tasks = parseWorkflowTasks(yaml);
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ id: 'lonely', verb: 'unknown' });
@@ -73,24 +77,25 @@ describe('parseWorkflowTasks', () => {
 
   it('preserves correct line numbers', () => {
     const yaml = `schema: "nika/workflow@0.12"
-workflow: test
+workflow:
+  id: test
 tasks:
-  - id: first
+  first:
     infer: "a"
-  - id: second
+  second:
     exec: "b"`;
     const tasks = parseWorkflowTasks(yaml);
-    expect(tasks[0].line).toBe(3); // line index of "- id: first"
-    expect(tasks[1].line).toBe(5); // line index of "- id: second"
+    expect(tasks[0].line).toBe(4); // line index of "first:"
+    expect(tasks[1].line).toBe(6); // line index of "second:"
   });
 
-  it('handles quoted task IDs', () => {
-    const yaml = `  - id: "my-task"
+  it('a kebab key is not a task id (snake_case grammar)', () => {
+    // W1: the key IS the identity and the client-side grammar mirrors
+    // the engine's ([a-z][a-z0-9_]*) — a kebab key never becomes a task.
+    const yaml = `tasks:
+  my-task:
     infer: "test"`;
-    const tasks = parseWorkflowTasks(yaml);
-    expect(tasks).toHaveLength(1);
-    // The regex captures the quoted string including quotes
-    expect(tasks[0].id).toContain('my-task');
+    expect(parseWorkflowTasks(yaml)).toHaveLength(0);
   });
 
   it('ignores non-task YAML with similar patterns', () => {
@@ -102,7 +107,8 @@ provider: anthropic`;
   });
 
   it('handles verb on line with colon and space', () => {
-    const yaml = `  - id: step
+    const yaml = `tasks:
+  step:
     infer:
       prompt: "hello"`;
     const tasks = parseWorkflowTasks(yaml);
