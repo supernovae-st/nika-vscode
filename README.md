@@ -47,7 +47,7 @@ messages and positions come from the engine, not the extension.*
 ## 30 seconds to the wow
 
 The **🦋 status-bar item** is the one door: its menu opens on *your*
-next step — no engine yet → **Finish Setup** (verified download · MCP ·
+next step · no engine yet → **Finish Setup** (verified download · MCP ·
 LSP, one gesture) · fresh repo → **Init this project** · then the
 10-second proof and your files' Run · Check · Graph.
 
@@ -112,25 +112,25 @@ theme*, not to extensions:
 - **Static cost audit** · per-task `$min–max` inlay hints + the workflow
   ceiling on a code lens · audited before a single token is spent
 - **A door on every language line** · a lens title is a call, not a
-  caption — each line offers the gesture it's for, fed by the SSOT
+  caption · each line offers the gesture it's for, fed by the SSOT
   that owns it (the spec's oracle-proven starters · THIS binary's
   catalog · the file's own DAG). The full map:
 
   | line | door | writes |
   |---|---|---|
-  | `nika:` | GitHub | — (the project door) |
-  | `workflow:` | Check · DAG · Run | — (the action row) |
-  | `description:` | Explain | — (the offline narrative) |
+  | `nika:` | GitHub | (the project door) |
+  | `workflow:` | Check · DAG · Run | (the action row) |
+  | `description:` | Explain | (the offline narrative) |
   | `model:` | *choose your model* | the catalog ref (local-first) |
   | `vars:` | *declare an input* · *make it callable · N untyped* | a typed/untyped input · untyped→typed promotion |
   | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N vars ride --var* | each run-blocking gap, one gesture |
   | `- id:` | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
-  | `depends_on:` | *wire its inputs* | pre-checked multi-pick — descendants never offered (cycle-safe) |
-  | `when:` | *choose a gate* | a CEL v0.1 shape from THIS file's vars + upstream tasks — a `tasks.*` gate wires its edge first |
+  | `depends_on:` | *wire its inputs* | pre-checked multi-pick · descendants never offered (cycle-safe) |
+  | `when:` | *choose a gate* | a CEL v0.1 shape from THIS file's vars + upstream tasks · a `tasks.*` gate wires its edge first |
   | `for_each:` | *choose the collection* | typed array vars · upstream outputs (edge wired too) |
   | `infer:`/`exec:`/`agent:` | *choose a starter* · *type its output* (schema missing) | the spec's shapes · a proven schema (fields · list · verdict · grade) |
   | `invoke:` | *choose your tool* | starters + every builtin THIS binary carries, args skeleton from the tool's own schema |
-  | agent `tools:` | *choose its tools* | the catalog multi-pick — MCP/globs/strangers survive verbatim; `[]` is least privilege |
+  | agent `tools:` | *choose its tools* | the catalog multi-pick · MCP/globs/strangers survive verbatim; `[]` is least privilege |
   | `outputs:` | *choose what it publishes* | owned rows re-picked; typed/jq/commented rows survive verbatim |
   | `permits:` | *tighten the boundary* | the `--infer-permits` recompute (one undo) |
 
@@ -170,7 +170,7 @@ theme*, not to extensions:
 - **Syntax + snippets + semantic scopes** for the 4-verb surface · every
   snippet is own-corpus tested against `nika check`
 - **Add Task from anywhere** (`⌘⌥T` · `Nika: Add Task`) · one picker
-  speaking the canvas palette's vocabulary — the 4 verbs and every
+  speaking the canvas palette's vocabulary · the 4 verbs and every
   builtin as a pre-wired `invoke:` (the binary's own catalog with its
   descriptions when present) · the skeleton lands after the task under
   your cursor, selection on the new id
@@ -407,7 +407,7 @@ theme*, not to extensions:
   `claude plugin marketplace add supernovae-st/nika-agents` + `claude
   plugin install nika@nika`. This extension is the IDE surface; the
   [nika-agents](https://github.com/supernovae-st/nika-agents) plugin is
-  the agent surface — its README carries the who-does-what map (plugin =
+  the agent surface · its README carries the who-does-what map (plugin =
   per-agent · `nika init` = per-repo · `nika wire` = per-machine).
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
