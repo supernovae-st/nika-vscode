@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildSchemaIntel, fieldInScope, parseCanonErrorCodes, parseCanonItems } from '../core/schemaIntel';
 import { yamlContextAt } from '../core/yamlContext';
-import { findTaskRefs, isValidTaskId, renameTask } from '../core/renameRefs';
+import { countTaskRefs, findTaskRefs, isValidTaskId, renameTask } from '../core/renameRefs';
 
 // Trimmed mirror of the REAL embedded schema shape (contract.test.ts pins
 // the full thing against the live binary).
@@ -246,6 +246,29 @@ describe('renameRefs', () => {
     const doc = 'tasks:\n  - id: ex\n    when: "tasks.exam.status == 1"\n    exec:\n      command: echo';
     const refs = findTaskRefs(doc, 'ex');
     expect(refs.map((r) => r.home)).toEqual(['declaration']); // tasks.exam NOT matched
+  });
+
+  it('countTaskRefs agrees with the single-id walk — every id, one pass', () => {
+    // The equivalence contract: the aggregate counter must report, for
+    // EVERY id, exactly what findTaskRefs (minus the declaration) finds.
+    const ids = new Set(['extract', 'use', 'other']);
+    const counts = countTaskRefs(RENAME_DOC, ids);
+    for (const id of ids) {
+      const expected = findTaskRefs(RENAME_DOC, id)
+        .filter((r) => r.home !== 'declaration').length;
+      expect(counts.get(id) ?? 0, `count for ${id}`).toBe(expected);
+    }
+    // And at scale: a generated fan-in stays instant and exact.
+    const big = ['tasks:']
+      .concat(Array.from({ length: 800 }, (_, i) =>
+        `  - id: t${i}\n    depends_on: [${i > 0 ? `t${i - 1}` : ''}]\n    when: "tasks.t0.status == 'success'"\n    exec:\n      command: echo`))
+      .join('\n');
+    const bigIds = new Set(Array.from({ length: 800 }, (_, i) => `t${i}`));
+    const started = Date.now();
+    const bigCounts = countTaskRefs(big, bigIds);
+    expect(Date.now() - started).toBeLessThan(500);
+    expect(bigCounts.get('t0')).toBe(findTaskRefs(big, 't0').filter((r) => r.home !== 'declaration').length);
+    expect(bigCounts.get('t42')).toBe(findTaskRefs(big, 't42').filter((r) => r.home !== 'declaration').length);
   });
 
   it('enforces the engine id grammar on rename', () => {
