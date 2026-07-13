@@ -1,0 +1,7 @@
+# The nika-spec commit the generated surfaces are projected from
+# (verbStarters · authoringShapes · design-tokens). The CI parity gate
+# checks against THIS rev — never a floating HEAD, so a spec merge can
+# never red unrelated PRs here (the registry's SPEC_PIN law). The daily
+# spec-pin-heal advances it: re-project → one idempotent PR → this
+# repo's own gates judge. Bump deliberately the same way.
+a35b68b69422c3397eb1a693b2cc1012705913be
