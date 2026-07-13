@@ -6,6 +6,20 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The lens path goes linear — and the seam gets its law
+- **One pass for every ref count** (#102) — the per-task lens row
+  called `findTaskRefs` per task (O(V·L) per repaint); `countTaskRefs`
+  walks the document once for every id, with an EQUIVALENCE test
+  against the single-id walk (and an 800-task fan-in under an
+  interactive budget). Paired with **linear `descendantsOf`** (#101 —
+  reverse adjacency + BFS, pinned on a 2000-task chain), the per-task
+  lens path is linear end-to-end.
+- **The server-convergence map** (#100) — SSOT.md names the law of the
+  LSP seam: a KNOWLEDGE register duplicated across it (gate shapes ·
+  collection candidates) converges on the server as shipped binaries
+  reach its lanes (engine ≥ 0.103); a GESTURE (the lens doors) stays
+  editor-side forever. New pickers must say which they are to ship.
+
 ## 0.102.0 — 2026-07-13
 
 Lockstep on the engine's 0.102 wave (**the editor speaks the
