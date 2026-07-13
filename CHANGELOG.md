@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.102.0 — 2026-07-13
+
+Lockstep on the engine's 0.102 wave (**the editor speaks the
+language** — the LSP arc lands server-side: space-trigger completions,
+args/modes/members from the file and the catalog, hover cards that
+read the graph, closure-aware references). Extension-side, the wave
+folds the guided-edit arc below — the doors and their SSOT
+consolidation.
+
 ### One source for every piece of language knowledge (the SSOT consolidation)
 - **The guided-edit registers become spec truth** (#96) — the schema
   shapes (« type its output ») and the armor walls (« make it
