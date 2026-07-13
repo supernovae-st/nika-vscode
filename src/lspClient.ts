@@ -60,6 +60,13 @@ export interface ClientState {
   statusSink?: (state: 'starting' | 'running' | 'failed') => void;
   /** Canon-derived provider groups for generated rules (extension wires it). */
   rulesIntel?: () => import('./mcpConfig').RulesIntel | undefined;
+  /** The one-voice reconciler (#103): called with the server's
+   * initialize capabilities on every (re)start — client twins the
+   * server replaces are silenced; called with `undefined` when the
+   * server dies, restoring full client intelligence. */
+  reconcileIntel?: (
+    caps: Readonly<Record<string, unknown>> | undefined,
+  ) => import('./core/capabilityYield').ReconcileReport;
 }
 
 export function getNikaPath(): string {
@@ -204,6 +211,10 @@ export function startClient(
         if (closedCount <= 2) {
           return { action: CloseAction.Restart };
         }
+        // The toast below PROMISES client-side intelligence — make it
+        // mechanically true: the dead server's capabilities no longer
+        // own anything, restore every client voice (#103).
+        state.reconcileIntel?.(undefined);
         void window.showWarningMessage(
           'Nika language server stopped (it may have crashed or the binary changed). Client-side intelligence stays active.',
           'Restart server',
@@ -231,6 +242,12 @@ export function startClient(
   state.client.start().then(() => {
     log('INFO', 'Language server started successfully');
     state.statusSink?.('running');
+    // One voice (#103): the server's advertised capabilities silence
+    // their client twins — capability-gated, never version-gated; a
+    // future server capability silences its twin with zero ext change.
+    state.reconcileIntel?.(
+      state.client?.initializeResult?.capabilities as Readonly<Record<string, unknown>> | undefined,
+    );
     // A successful (re)start heals the crash budget: the binary-swap
     // routine (a sister build replacing the PATH binary mid-session)
     // kills servers repeatedly — each recovery must re-arm the two

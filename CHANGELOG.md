@@ -6,6 +6,23 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### One voice — the client yields capability-wise when the server speaks
+- **The double voice dies** (#105 · closes #103) — on a 0.102 pair,
+  completion/hover/definition/documentSymbol answered TWICE (merged
+  duplicate suggestions, stacked hover cards — or subtly different
+  answers, worse). Every client language provider now registers
+  through a capability-keyed registry (`core/capabilityYield`): the
+  server's `initializeResult.capabilities` silence their client twins
+  on every (re)start; a crash or downgrade RESTORES the client voice
+  — the « client-side intelligence stays active » toast is now
+  mechanically true. Capability-gated, never version-gated: an older
+  binary keeps full client intelligence, and a capability the server
+  GAINS in a future release silences its twin with zero extension
+  change (rename · references · semanticTokens · folding · links ·
+  selectionRange · linkedEditing · callHierarchy are all pre-keyed).
+  The capability KEYS are pinned against the LSP ServerCapabilities
+  names (a typo'd key would double-voice forever, silently).
+
 ### The lens path goes linear — and the seam gets its law
 - **One pass for every ref count** (#102) — the per-task lens row
   called `findTaskRefs` per task (O(V·L) per repaint); `countTaskRefs`
