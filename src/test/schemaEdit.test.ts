@@ -2,18 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { SCHEMA_SHAPES, schemaInsert, verbHasSchema, verbTakesSchema } from '../core/schemaEdit';
 
 const WF = `nika: v1
-workflow: w
+workflow:
+  id: w
 tasks:
-  - id: gather
+  gather:
     infer:
       prompt: "collect"
-  - id: judge
+  judge:
     agent:
       prompt: "rule"
       tools: ["nika:read"]
       schema:
         type: object
-  - id: build
+  build:
     exec:
       command: "make"
 `;
@@ -30,14 +31,14 @@ describe('schemaEdit (« type its output »)', () => {
   });
 
   it('sees the schema an agent already carries — and the infer that lacks one', () => {
-    expect(verbHasSchema(lines, 4, 4)).toBe(false);  // gather's infer:
+    expect(verbHasSchema(lines, 5, 4)).toBe(false);  // gather's infer:
     expect(verbHasSchema(lines, 8, 4)).toBe(true);   // judge's agent:
   });
 
   it('appends the shape at the end of the verb block, child-indented', () => {
-    const ins = schemaInsert(WF, 4, 'infer', fields);
+    const ins = schemaInsert(WF, 5, 'infer', fields);
     expect(ins).toBeDefined();
-    expect(ins!.atLine).toBe(6); // right after prompt:, before `- id: judge`
+    expect(ins!.atLine).toBe(7); // right after prompt:, before `judge:`
     expect(ins!.text.startsWith('      schema:')).toBe(true);
     expect(ins!.text).toContain('        type: object');
     expect(ins!.text.endsWith('\n')).toBe(true);
@@ -53,7 +54,7 @@ describe('schemaEdit (« type its output »)', () => {
   it('refuses a second schema, a schema-less verb, and a moved anchor', () => {
     expect(schemaInsert(WF, 8, 'agent', fields)).toBeUndefined();  // already typed
     expect(schemaInsert(WF, 13, 'exec', fields)).toBeUndefined();  // exec never
-    expect(schemaInsert(WF, 5, 'infer', fields)).toBeUndefined();  // anchor moved
-    expect(schemaInsert(WF, 4, 'agent', fields)).toBeUndefined();  // wrong verb
+    expect(schemaInsert(WF, 6, 'infer', fields)).toBeUndefined();  // anchor moved
+    expect(schemaInsert(WF, 5, 'agent', fields)).toBeUndefined();  // wrong verb
   });
 });

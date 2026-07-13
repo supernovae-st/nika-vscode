@@ -48,7 +48,7 @@ suite('nika-lang · real extension host', () => {
   test('a .nika.yaml opens as the nika language', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-int-'));
     const file = path.join(dir, 'smoke.nika.yaml');
-    fs.writeFileSync(file, 'nika: v1\nworkflow: smoke\nmodel: mock/echo\ntasks:\n  - id: a\n    infer:\n      prompt: "hi"\n');
+    fs.writeFileSync(file, 'nika: v1\nworkflow:\n  id: smoke\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n');
     const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);
     assert.strictEqual(doc.languageId, 'nika', 'the .nika.yaml must bind to the nika language');
@@ -58,7 +58,7 @@ suite('nika-lang · real extension host', () => {
   test('the DAG webview panel opens (CSP + asWebviewUri load path)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-int-'));
     const file = path.join(dir, 'graph.nika.yaml');
-    fs.writeFileSync(file, 'nika: v1\nworkflow: g\nmodel: mock/echo\ntasks:\n  - id: a\n    infer:\n      prompt: "hi"\n  - id: b\n    depends_on: [a]\n    infer:\n      prompt: "bye"\n');
+    fs.writeFileSync(file, 'nika: v1\nworkflow:\n  id: g\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n  b:\n    depends_on: [a]\n    infer:\n      prompt: "bye"\n');
     const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);
     // Show the DAG — if the webview HTML or its CSP were malformed, panel

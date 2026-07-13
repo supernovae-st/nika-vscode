@@ -151,7 +151,7 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
       const task = wf.tasks.find((t) => t.id === ref.path[0]);
       if (task) {
         const md = new vscode.MarkdownString();
-        md.appendCodeblock(`- id: ${task.id}`, 'yaml');
+        md.appendCodeblock(`${task.id}:`, 'yaml');
         const facts = [`verb \`${task.verb}\``];
         if (task.model ?? wf.defaultModel) { facts.push(`model \`${task.model ?? wf.defaultModel}\``); }
         if (task.tool) { facts.push(`tool \`${task.tool}\``); }
@@ -616,11 +616,13 @@ export class NikaSemanticTokensProvider implements vscode.DocumentSemanticTokens
       }
     }
 
-    // Task id declarations (`- id: X`) + builtin tool literals.
+    // Task key declarations (`X:` under tasks) + builtin tool literals.
     const tools = new Set(this.service?.intel?.builtinTools ?? []);
     const lines = text.split('\n');
+    let inTasks = false;
     for (let i = 0; i < lines.length; i++) {
-      const id = lines[i].match(/^(\s*-\s*id:\s*)([a-z][a-z0-9_]*)/);
+      if (/^[A-Za-z0-9_-]+\s*:/.test(lines[i])) { inTasks = /^tasks\s*:/.test(lines[i]); }
+      const id = inTasks ? lines[i].match(/^( {2})([a-z][a-z0-9_]*)(?=\s*:\s*(?:#.*)?$)/) : null;
       if (id) {
         builder.push(i, id[1].length, id[2].length, 4, 1);
       }

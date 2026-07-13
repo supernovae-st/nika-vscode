@@ -4,7 +4,8 @@ import {
 } from '../core/varsEdit';
 
 const WF = `nika: v1
-workflow: w
+workflow:
+  id: w
 model: mock/echo
 
 vars:
@@ -16,7 +17,7 @@ vars:
   config: { type: object, default: { type: "custom" } }
 
 tasks:
-  - id: a
+  a:
     infer:
       prompt: "\${{ vars.topic }}"
 `;
@@ -53,13 +54,13 @@ describe('varsEdit (« declare an input » · « make it callable »)', () => {
   });
 
   it('declares the untyped shorthand when no type is chosen', () => {
-    const next = declareInput('nika: v1\nworkflow: w\nvars:\n  a: 1\n', { name: 'b', def: '"x"' })!;
+    const next = declareInput('nika: v1\nworkflow:\n  id: w\nvars:\n  a: 1\n', { name: 'b', def: '"x"' })!;
     expect(next).toContain('vars:\n  a: 1\n  b: "x"');
   });
 
   it('creates the vars block after the envelope head when absent', () => {
-    const next = declareInput('nika: v1\nworkflow: w\ntasks:\n', { name: 'topic', type: 'string' })!;
-    expect(next).toContain('workflow: w\n\nvars:\n  topic:\n    type: string\ntasks:');
+    const next = declareInput('nika: v1\nworkflow:\n  id: w\ntasks:\n', { name: 'topic', type: 'string' })!;
+    expect(next).toContain('  id: w\n\nvars:\n  topic:\n    type: string\ntasks:');
   });
 
   it('refuses duplicates, flow-form blocks, and headless fragments', () => {

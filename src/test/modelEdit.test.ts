@@ -27,13 +27,13 @@ describe('modelEdit (the missing-brain door)', () => {
     })).toEqual({ needy: ['b'] });
   });
 
-  it('inserts after description — the envelope\'s canonical slot', () => {
-    const next = insertDefaultModel('nika: v1\nworkflow: w\ndescription: "d"\ntasks:\n', 'ollama/qwen3.5:4b')!;
-    expect(next.split('\n')[3]).toBe('model: ollama/qwen3.5:4b');
+  it('inserts after the workflow object — the envelope\'s canonical slot', () => {
+    const next = insertDefaultModel('nika: v1\nworkflow:\n  id: w\n  description: "d"\ntasks:\n', 'ollama/qwen3.5:4b')!;
+    expect(next.split('\n')[4]).toBe('model: ollama/qwen3.5:4b');
   });
 
   it('falls back up the envelope chain (workflow · nika)', () => {
-    expect(insertDefaultModel('nika: v1\nworkflow: w\ntasks:\n', 'mock/echo')!.split('\n')[2])
+    expect(insertDefaultModel('nika: v1\nworkflow:\n  id: w\ntasks:\n', 'mock/echo')!.split('\n')[3])
       .toBe('model: mock/echo');
     expect(insertDefaultModel('nika: v1\ntasks:\n', 'mock/echo')!.split('\n')[1])
       .toBe('model: mock/echo');
@@ -44,11 +44,11 @@ describe('modelEdit (the missing-brain door)', () => {
   });
 
   it('refuses a headless fragment — nothing to anchor the envelope', () => {
-    expect(insertDefaultModel('tasks:\n  - id: a\n', 'mock/echo')).toBeUndefined();
+    expect(insertDefaultModel('tasks:\n  a:\n', 'mock/echo')).toBeUndefined();
   });
 
   it('a task-level model: (indented) never blocks the envelope insert', () => {
-    const wf = 'nika: v1\nworkflow: w\ntasks:\n  - id: a\n    model: ollama/x\n    infer:\n      prompt: "p"\n';
+    const wf = 'nika: v1\nworkflow:\n  id: w\ntasks:\n  a:\n    model: ollama/x\n    infer:\n      prompt: "p"\n';
     expect(insertDefaultModel(wf, 'mock/echo')).toBeDefined();
   });
 });

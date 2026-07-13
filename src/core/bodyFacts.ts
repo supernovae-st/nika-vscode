@@ -90,17 +90,18 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
     let onErrorIndent = -1;
     let outputIndent = -1;
 
-    // Task-LEVEL keys sit at the minimum key indent of the span (the
-    // `- id:` line itself never matches — the dash breaks the pattern).
+    // Task-LEVEL keys sit at the minimum key indent of the BODY — the
+    // declaring key line is excluded (W1 map form: `name:` matches the
+    // key regex, and counting it would pull the level up to 2).
     // `timeout:`/`retry:`/`on_error:`/`output:` are read at that level
     // only, so a `with:` alias named `timeout` can never impersonate one.
     let taskIndent = Number.MAX_SAFE_INTEGER;
-    for (let i = task.line; i <= task.endLine && i < lines.length; i++) {
+    for (let i = task.line + 1; i <= task.endLine && i < lines.length; i++) {
       const key = lines[i].match(/^(\s*)([A-Za-z_]+):/);
       if (key) { taskIndent = Math.min(taskIndent, key[1].length); }
     }
 
-    for (let i = task.line; i <= task.endLine && i < lines.length; i++) {
+    for (let i = task.line + 1; i <= task.endLine && i < lines.length; i++) {
       const line = lines[i];
       const key = line.match(/^(\s*)([A-Za-z_]+):/);
       const indent = key ? key[1].length : -1;

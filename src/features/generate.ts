@@ -142,7 +142,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
 
   return {
     prompt,
-    templateBody: topTemplate?.body ?? 'nika: v1\nworkflow: generated\n\nmodel: mock/echo\n\ntasks: []\n',
+    templateBody: topTemplate?.body ?? 'nika: v1\nworkflow:\n  id: generated\n\nmodel: mock/echo\n\ntasks: []\n',
     templateSlug: topTemplate?.slug ?? 'chain',
   };
 }

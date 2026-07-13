@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { setTaskModel } from '../core/structuralFixes';
 
 const WF = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: has_model
+  has_model:
     model: mistral/mistral-small
     infer:
       prompt: "a"
-  - id: no_model
+  no_model:
     infer:
       prompt: "b"
     depends_on: [has_model]
@@ -28,11 +29,11 @@ describe('setTaskModel (the canvas model-chip edit)', () => {
     const out = setTaskModel(WF, 'no_model', 'ollama/qwen3.5');
     expect(out).toBeDefined();
     const lines = out!.split('\n');
-    const idLine = lines.findIndex((l) => l.includes('- id: no_model'));
+    const idLine = lines.findIndex((l) => l.includes('no_model:'));
     expect(lines[idLine + 1].trim()).toBe('model: ollama/qwen3.5');
     // Field indent = item indent + 2 (sibling of infer:).
     expect(lines[idLine + 1].match(/^ */)![0].length)
-      .toBe(lines[idLine].indexOf('-') + 2);
+      .toBe(lines[idLine].search(/\S/) + 2);
   });
 
   it('refuses unknown tasks and malformed model ids', () => {

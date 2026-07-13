@@ -8,7 +8,8 @@ import {
 import type { CheckReport } from '../core/cliContract';
 
 const YAML = `nika: v1
-workflow: release-notes
+workflow:
+  id: release-notes
 model: anthropic/claude-sonnet-4-6
 secrets:
   gh_token:
@@ -23,14 +24,14 @@ permits:
     - api.github.com
   exec: false
 tasks:
-  - id: fetch
+  fetch:
     invoke:
       tool: "nika:fetch"
-  - id: digest
+  digest:
     depends_on: [fetch]
     infer:
       prompt: "Summarize \${{ tasks.fetch.output }} for \${{ env.REGION }} org \${{ env.GITHUB_ORG }}"
-  - id: local_pass
+  local_pass:
     depends_on: [fetch]
     infer:
       model: ollama/qwen3.5
@@ -187,7 +188,7 @@ describe('buildPreflight + renderPreflight', () => {
   });
 
   it('mock provider is zero-key zero-spend', () => {
-    const facts = collectPreflightFacts('nika: v1\nmodel: mock/echo\ntasks:\n  - id: a\n    infer:\n      prompt: hi\n');
+    const facts = collectPreflightFacts('nika: v1\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: hi\n');
     const m = buildPreflight({ workflowName: 'x', facts, envPresent: () => false });
     expect(m.modelRows[0].status).toBe('local');
     expect(m.blockers).toEqual([]);

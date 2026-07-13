@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPreflight, collectPreflightFacts, renderPreflight } from '../core/preflight';
 import type { CheckReport } from '../core/cliContract';
 
-const YAML = 'nika: v1\nworkflow: rates\nmodel: anthropic/claude-sonnet-5\ntasks:\n  - id: think\n    infer:\n      prompt: hi\n';
+const YAML = 'nika: v1\nworkflow:\n  id: rates\nmodel: anthropic/claude-sonnet-5\ntasks:\n  think:\n    infer:\n      prompt: hi\n';
 
 function reportWith(pricing: CheckReport['pricing']): CheckReport {
   return {

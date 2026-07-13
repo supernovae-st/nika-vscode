@@ -8,17 +8,17 @@ describe('workflowNameOf', () => {
     // `"deploy #7"` to `deploy`, so a quoted-hash workflow never
     // exact-matched its own journal in the F5 direction while fork
     // (the real parser) matched it fine.
-    expect(workflowNameOf('workflow: "deploy #7"\n')).toBe('deploy #7');
-    expect(workflowNameOf("workflow: 'deploy #7'\n")).toBe('deploy #7');
-    expect(workflowNameOf('workflow: deploy #7 is a comment\n')).toBe('deploy');
-    expect(workflowNameOf('workflow: ""\n')).toBeUndefined();
+    expect(workflowNameOf('workflow:\n  id: "deploy #7"\n')).toBe('deploy #7');
+    expect(workflowNameOf("workflow:\n  id: 'deploy #7'\n")).toBe('deploy #7');
+    expect(workflowNameOf('workflow:\n  id: deploy #7 is a comment\n')).toBe('deploy');
+    expect(workflowNameOf('workflow:\n  id: ""\n')).toBeUndefined();
   });
 
   it('reads the workflow name across quoting styles and comments', () => {
-    expect(workflowNameOf('nika: v1\nworkflow: deploy\ntasks: []\n')).toBe('deploy');
-    expect(workflowNameOf('workflow: "quoted name"\n')).toBe('quoted name');
-    expect(workflowNameOf("workflow: 'single'\n")).toBe('single');
-    expect(workflowNameOf('workflow: tail # trailing comment\n')).toBe('tail');
+    expect(workflowNameOf('nika: v1\nworkflow:\n  id: deploy\ntasks: []\n')).toBe('deploy');
+    expect(workflowNameOf('workflow:\n  id: "quoted name"\n')).toBe('quoted name');
+    expect(workflowNameOf("workflow:\n  id: 'single'\n")).toBe('single');
+    expect(workflowNameOf('workflow:\n  id: tail # trailing comment\n')).toBe('tail');
   });
 
   it('never matches nested or commented keys', () => {
@@ -31,9 +31,9 @@ describe('workflowNameOf', () => {
 describe('matchWorkflowFiles', () => {
   it('returns every match in document order', () => {
     const files = [
-      { path: '/a/one.nika.yaml', text: 'workflow: alpha\n' },
-      { path: '/b/two.nika.yaml', text: 'workflow: beta\n' },
-      { path: '/c/three.nika.yaml', text: 'workflow: alpha\n' },
+      { path: '/a/one.nika.yaml', text: 'workflow:\n  id: alpha\n' },
+      { path: '/b/two.nika.yaml', text: 'workflow:\n  id: beta\n' },
+      { path: '/c/three.nika.yaml', text: 'workflow:\n  id: alpha\n' },
     ];
     expect(matchWorkflowFiles(files, 'alpha')).toEqual(['/a/one.nika.yaml', '/c/three.nika.yaml']);
     expect(matchWorkflowFiles(files, 'gamma')).toEqual([]);

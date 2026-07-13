@@ -5,7 +5,7 @@ import { lfNormalForm, workflowDrifted } from '../core/workflowDrift';
 const sha = (s: Buffer | string): string =>
   createHash('sha256').update(s).digest('hex');
 
-const LF = 'nika: v1\nworkflow: proof\ntasks:\n  - id: alpha\n';
+const LF = 'nika: v1\nworkflow:\n  id: proof\ntasks:\n  alpha:\n';
 const CRLF = LF.replace(/\n/g, '\r\n');
 const BOM_LF = '\uFEFF' + LF;
 

@@ -227,7 +227,7 @@ describe('secretsScan', () => {
   it('flags literal vendor credentials with an env suggestion', () => {
     const yaml = [
       'tasks:',
-      '  - id: ship',
+      '  ship:',
       '    infer:',
       '      api_key: sk-ant-abc123def456ghi789jkl012',
     ].join('\n');
@@ -292,7 +292,7 @@ describe('permitsEdit', () => {
   });
 
   it('creates the whole boundary when absent (default-deny once present)', () => {
-    const doc = 'nika: v1\nworkflow: t\ntasks: []\n';
+    const doc = 'nika: v1\nworkflow:\n  id: t\ntasks: []\n';
     const out = applyPermitsFix(doc, { value: 'example.com', path: ['net', 'hosts'] })!;
     expect(out).toContain('\npermits:\n  net:\n    hosts:\n      - "example.com"');
   });
@@ -354,7 +354,8 @@ describe('permitsEdit', () => {
 describe('parseRichWorkflow', () => {
   const YAML = [
     'nika: v1',
-    'workflow: audit',
+    'workflow:',
+    '  id: audit',
     'model: anthropic/claude-sonnet-4-6',
     'secrets:',
     '  github_token: required',
@@ -362,11 +363,11 @@ describe('parseRichWorkflow', () => {
     '  depth: 3',
     '',
     'tasks:',
-    '  - id: fetch_page',
+    '  fetch_page:',
     '    invoke:',
     '      tool: nika:fetch',
     '',
-    '  - id: summarize',
+    '  summarize:',
     '    depends_on: [fetch_page]',
     '    with:',
     '      page: ${{ tasks.fetch_page.output }}',
@@ -374,7 +375,7 @@ describe('parseRichWorkflow', () => {
     '      model: mock/echo',
     '      prompt: "sum ${{ with.page }}"',
     '',
-    '  - id: ship',
+    '  ship:',
     '    depends_on:',
     '      - summarize',
     '    exec:',
@@ -421,17 +422,17 @@ describe('parseRichWorkflow', () => {
     expect(taskAtLine(wf, 0)).toBeUndefined();
   });
 
-  it('does not promote nested `- id:` lines into phantom tasks', () => {
+  it('does not promote nested deeper keys into phantom tasks', () => {
     const nested = [
       'tasks:',
-      '  - id: real_task',
+      '  real_task:',
       '    invoke:',
       '      tool: nika:read',
       '      args:',
       '        items:',
-      '          - id: nested_option',
+      '          nested_option:',
       '            value: 1',
-      '  - id: second_task',
+      '  second_task:',
       '    exec:',
       '      command: echo ok',
     ].join('\n');
@@ -445,17 +446,17 @@ describe('parseRichWorkflow', () => {
   it('keeps depends_on items separated by blank lines', () => {
     const spaced = [
       'tasks:',
-      '  - id: a',
+      '  a:',
       '    exec:',
       '      command: echo a',
-      '  - id: b',
+      '  b:',
       '    depends_on:',
       '      - a',
       '',
       '      - c',
       '    exec:',
       '      command: echo b',
-      '  - id: c',
+      '  c:',
       '    exec:',
       '      command: echo c',
     ].join('\n');

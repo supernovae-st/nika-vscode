@@ -152,19 +152,20 @@ describe('parseCanonErrorCodes', () => {
 
 const DOC = [
   'nika: v1',          // 0
-  'workflow: t',       // 1
-  '',                  // 2
-  'tasks:',            // 3
-  '  - id: fetch',     // 4
-  '    invoke:',       // 5
-  '      tool: nika:fetch', // 6
-  '      args:',       // 7
-  '        mode: ',    // 8
-  '  - id: sum',       // 9
-  '    ',              // 10  (typing a task key)
-  '    infer:',        // 11
-  '      ',            // 12  (typing a verb key)
-  '',                  // 13
+  'workflow:',         // 1
+  '  id: t',           // 2
+  '',                  // 3
+  'tasks:',            // 4
+  '  fetch:',          // 5
+  '    invoke:',       // 6
+  '      tool: nika:fetch', // 7
+  '      args:',       // 8
+  '        mode: ',    // 9
+  '  sum:',            // 10
+  '    ',              // 11  (typing a task key)
+  '    infer:',        // 12
+  '      ',            // 13  (typing a verb key)
+  '',                  // 14
 ].join('\n');
 
 describe('yamlContextAt', () => {
@@ -173,38 +174,39 @@ describe('yamlContextAt', () => {
   });
 
   it('classifies task-key position inside a task item', () => {
-    expect(yamlContextAt(DOC, 10, 4)).toMatchObject({ kind: 'task-key', partial: '' });
+    expect(yamlContextAt(DOC, 11, 4)).toMatchObject({ kind: 'task-key', partial: '' });
   });
 
   it('classifies verb-key position inside a verb body', () => {
-    expect(yamlContextAt(DOC, 12, 6)).toMatchObject({ kind: 'verb-key', verb: 'infer' });
+    expect(yamlContextAt(DOC, 13, 6)).toMatchObject({ kind: 'verb-key', verb: 'infer' });
   });
 
   it('classifies value position with verb + nearby tool (fetch mode)', () => {
-    const ctx = yamlContextAt(DOC, 8, '        mode: '.length);
+    const ctx = yamlContextAt(DOC, 9, '        mode: '.length);
     expect(ctx).toMatchObject({ kind: 'value', key: 'mode', verb: 'invoke', tool: 'nika:fetch' });
   });
 
-  it('classifies the task id value position', () => {
-    const ctx = yamlContextAt(DOC, 4, '  - id: fe'.length);
-    expect(ctx).toMatchObject({ kind: 'value', key: 'id', partial: 'fe' });
-  });
+  // W1 « the map »: the task identity is the KEY, not an `id:` VALUE —
+  // there is no id-value completion position anymore (keys are authored,
+  // not offered), so the old « task id value » classification died with
+  // the list form.
 });
 
 // ─── renameRefs ──────────────────────────────────────────────────────────────
 
 const RENAME_DOC = [
   'nika: v1',
-  'workflow: t',
+  'workflow:',
+  '  id: t',
   'model: mock/echo',
   '',
   'tasks:',
-  '  - id: extract',
+  '  extract:',
   '    invoke:',
   '      tool: nika:fetch',
   '      args: { url: "https://x.com" }',
   '',
-  '  - id: use',
+  '  use:',
   '    depends_on: [extract, other]',
   '    when: "tasks.extract.status == \'success\'"',
   '    with:',
@@ -212,7 +214,7 @@ const RENAME_DOC = [
   '    infer:',
   '      prompt: "p ${{ with.page }}"',
   '',
-  '  - id: other',
+  '  other:',
   '    depends_on:',
   '      - extract',
   '    exec:',
@@ -233,7 +235,7 @@ describe('renameRefs', () => {
   it('renames every home and nothing else', () => {
     const out = renameTask(RENAME_DOC, 'extract', 'fetch_page')!;
     expect(out).not.toMatch(/\bextract\b/);
-    expect(out).toContain('- id: fetch_page');
+    expect(out).toContain('fetch_page:');
     expect(out).toContain('depends_on: [fetch_page, other]');
     expect(out).toContain('when: "tasks.fetch_page.status');
     expect(out).toContain('${{ tasks.fetch_page.output }}');
@@ -243,7 +245,7 @@ describe('renameRefs', () => {
   });
 
   it('does not touch prefixed/suffixed ids', () => {
-    const doc = 'tasks:\n  - id: ex\n    when: "tasks.exam.status == 1"\n    exec:\n      command: echo';
+    const doc = 'tasks:\n  ex:\n    when: "tasks.exam.status == 1"\n    exec:\n      command: echo';
     const refs = findTaskRefs(doc, 'ex');
     expect(refs.map((r) => r.home)).toEqual(['declaration']); // tasks.exam NOT matched
   });
@@ -261,7 +263,7 @@ describe('renameRefs', () => {
     // And at scale: a generated fan-in stays instant and exact.
     const big = ['tasks:']
       .concat(Array.from({ length: 800 }, (_, i) =>
-        `  - id: t${i}\n    depends_on: [${i > 0 ? `t${i - 1}` : ''}]\n    when: "tasks.t0.status == 'success'"\n    exec:\n      command: echo`))
+        `  t${i}:\n    depends_on: [${i > 0 ? `t${i - 1}` : ''}]\n    when: "tasks.t0.status == 'success'"\n    exec:\n      command: echo`))
       .join('\n');
     const bigIds = new Set(Array.from({ length: 800 }, (_, i) => `t${i}`));
     const started = Date.now();

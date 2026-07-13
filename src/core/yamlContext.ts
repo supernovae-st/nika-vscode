@@ -99,7 +99,7 @@ export function yamlContextAt(text: string, lineIdx: number, character: number):
     return indent === 0 ? { kind: 'top-key', partial } : undefined;
   }
 
-  const taskFieldIndent = (lines[task.line].indexOf('-')) + 2;
+  const taskFieldIndent = Math.max(lines[task.line].search(/\S/), 0) + 2;
   if (indent === taskFieldIndent) {
     return { kind: 'task-key', partial };
   }

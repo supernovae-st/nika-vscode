@@ -1,15 +1,19 @@
 // Go-to-definition, pure (the features/ provider owns the vscode
 // wiring). The three navigable reference classes the spec defines:
-//   depends_on: [NAME]        → the `- id: NAME` declaration
-//   ${{ tasks.NAME... }}      → the `- id: NAME` declaration
+//   depends_on: [NAME]        → the `NAME:` task-key declaration
+//   ${{ tasks.NAME... }}      → the `NAME:` task-key declaration
 //   ${{ vars.KEY... }}        → the KEY under the top-level vars: block
 export interface DefTarget { line: number; start: number; end: number }
 
-/** The `- id: NAME` declaration line, or undefined. */
+/** The `NAME:` task-key declaration line (W1 map form), or undefined. */
 export function findTaskDeclaration(text: string, name: string): DefTarget | undefined {
   const lines = text.split('\n');
+  let inTasks = false;
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(/^(\s*-\s*id:\s*["']?)([\w-]+)/);
+    const line = lines[i];
+    if (/^[A-Za-z0-9_-]+\s*:/.test(line)) { inTasks = /^tasks\s*:/.test(line); }
+    if (!inTasks) { continue; }
+    const m = line.match(/^( {2})([a-z][a-z0-9_]*)\s*:\s*(?:#.*)?$/);
     if (m && m[2] === name) {
       return { line: i, start: m[1].length, end: m[1].length + m[2].length };
     }

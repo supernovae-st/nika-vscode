@@ -27,10 +27,12 @@ describe('topoKey — blind to prose, sensitive to topology', () => {
 
   it('moves when a task is added, renamed, or an edge changes', () => {
     const base = keyOf(SIGNATURE);
-    expect(keyOf(SIGNATURE.replace('- id: draft', '- id: draft2'))).not.toBe(base);
+    expect(keyOf(SIGNATURE.replace('draft:', 'draft2:'))).not.toBe(base);
     expect(keyOf(SIGNATURE.replace('depends_on: [draft]', 'depends_on: [digest]'))).not.toBe(base);
+    // W1: a task must live INSIDE the tasks block (the old list form let
+    // an appended `- id:` count from anywhere — the map parser is scoped).
     expect(
-      keyOf(SIGNATURE + '\n  - id: extra\n    exec:\n      command: ["true"]\n'),
+      keyOf(SIGNATURE.replace('\noutputs:', '\n  extra:\n    exec:\n      command: ["true"]\n\noutputs:')),
     ).not.toBe(base);
   });
 

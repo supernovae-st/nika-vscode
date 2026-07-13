@@ -67,8 +67,8 @@ describe('intentRank · BM25', () => {
 
 describe('generatePipeline · extractYaml', () => {
   it('takes the fenced yaml block', () => {
-    const text = 'Reasoning…\n```yaml\nnika: v1\nworkflow: x\n```\n';
-    expect(extractYaml(text)).toBe('nika: v1\nworkflow: x');
+    const text = 'Reasoning…\n```yaml\nnika: v1\nworkflow:\n  id: x\n```\n';
+    expect(extractYaml(text)).toBe('nika: v1\nworkflow:\n  id: x');
   });
 
   it('the LAST envelope-bearing block wins (reasoning may quote snippets)', () => {
@@ -76,19 +76,21 @@ describe('generatePipeline · extractYaml', () => {
       'First a sketch:',
       '```yaml',
       'nika: v1',
-      'workflow: draft',
+      'workflow:',
+      '  id: draft',
       '```',
       'Final version:',
       '```yaml',
       'nika: v1',
-      'workflow: final',
+      'workflow:',
+      '  id: final',
       '```',
     ].join('\n');
-    expect(extractYaml(text)).toContain('workflow: final');
+    expect(extractYaml(text)).toContain('workflow:\n  id: final');
   });
 
   it('accepts raw text already opening with the envelope', () => {
-    expect(extractYaml('nika: v1\nworkflow: raw\n')).toBe('nika: v1\nworkflow: raw');
+    expect(extractYaml('nika: v1\nworkflow:\n  id: raw\n')).toBe('nika: v1\nworkflow:\n  id: raw');
   });
 
   it('prose without yaml → undefined', () => {
@@ -98,8 +100,8 @@ describe('generatePipeline · extractYaml', () => {
 
 describe('generatePipeline · dedup + ordering', () => {
   it('normalization erases comments and blank lines, not structure', () => {
-    const a = 'nika: v1\n\n# comment\nworkflow: x  # trailing\n';
-    const b = 'nika: v1\nworkflow: x\n';
+    const a = 'nika: v1\n\n# comment\nworkflow:\n  id: x  # trailing\n';
+    const b = 'nika: v1\nworkflow:\n  id: x\n';
     expect(normalizeForDedup(a)).toBe(normalizeForDedup(b));
   });
 

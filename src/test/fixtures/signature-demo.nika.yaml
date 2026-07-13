@@ -4,8 +4,9 @@
 # Deep chain × wide fanout · all four verbs (infer · exec · invoke · agent) ·
 # CEL gate + jq fan-in · runs OFFLINE on mock/echo (zero key · zero network).
 nika: v1
-workflow: release-notes-i18n
-description: "digest local changes · draft release notes · translate ×4 locales · agent-verify · publish"
+workflow:
+  id: release-notes-i18n
+  description: "digest local changes · draft release notes · translate ×4 locales · agent-verify · publish"
 
 model: mock/echo
 
@@ -14,17 +15,17 @@ vars:
   locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]
 
 tasks:
-  - id: discover
+  discover:
     invoke:
       tool: "nika:glob"
       args: { pattern: "${{ vars.changes_dir }}/*.md" }
 
-  - id: digest
+  digest:
     depends_on: [discover]
     exec:
       command: ["cat", "items/item-1.md", "items/item-2.md", "items/item-3.md", "items/item-4.md", "items/item-5.md"]
 
-  - id: stats
+  stats:
     depends_on: [discover]
     invoke:
       tool: "nika:jq"
@@ -32,7 +33,7 @@ tasks:
         input: ${{ tasks.discover.output }}
         expression: "{ files: length }"
 
-  - id: draft
+  draft:
     depends_on: [digest]
     infer:
       max_tokens: 400
@@ -40,7 +41,7 @@ tasks:
         Draft concise release notes from these changes:
         ${{ tasks.digest.output }}
 
-  - id: translate
+  translate:
     depends_on: [draft]
     for_each: ${{ vars.locales }}
     max_parallel: 4
@@ -58,7 +59,7 @@ tasks:
         Translate these release notes to ${{ item }}:
         ${{ tasks.draft.output }}
 
-  - id: survivors
+  survivors:
     depends_on: [translate]
     invoke:
       tool: "nika:jq"
@@ -66,7 +67,7 @@ tasks:
         input: ${{ tasks.translate.output }}
         expression: "[ .[] | select(. != null) ]"
 
-  - id: verify
+  verify:
     depends_on: [survivors]
     agent:
       max_tokens_total: 2000
@@ -75,13 +76,13 @@ tasks:
         Reply APPROVED if every locale is present.
         ${{ tasks.survivors.output }}
 
-  - id: publish
+  publish:
     depends_on: [verify, survivors]
     when: ${{ tasks.survivors.output.size() > 0 }}
     exec:
       command: ["printf", "%s", "published: release notes ready"]
 
-  - id: report
+  report:
     depends_on: [publish, stats]
     infer:
       max_tokens: 120

@@ -47,7 +47,7 @@ describe('xrayHintsForText', () => {
   it('resolves output refs and drills paths; unrecorded stays silent', () => {
     const yaml = [
       'tasks:',
-      '  - id: digest',
+      '  digest:',
       '    infer:',
       '      prompt: "Use ${{ tasks.fetch.output.title }} and ${{ tasks.fetch.output }}"',
       '      note: "${{ tasks.ghost.output }} ${{ tasks.silent.output }}"',

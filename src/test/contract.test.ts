@@ -62,18 +62,19 @@ function tmpWorkflow(content: string): string {
 }
 
 const CLEAN_WF = `nika: v1
-workflow: contract-smoke
+workflow:
+  id: contract-smoke
 
 model: mock/echo
 
 tasks:
-  - id: fetch_page
+  fetch_page:
     invoke:
       tool: nika:fetch
       args:
         url: https://example.com
 
-  - id: summarize
+  summarize:
     depends_on: [fetch_page]
     with:
       page: \${{ tasks.fetch_page.output }}
@@ -88,7 +89,9 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     const caps = buildCapabilities(help, version);
     // The static suite is the floor — every generation that gets here
     // ships it (a binary without `check` is not a Nika binary).
-    for (const cmd of ['check', 'graph', 'inspect', 'explain', 'spec', 'schema', 'examples', 'new', 'trace', 'completions']) {
+    // `graph` retired on main (the ONE projector lives on `inspect
+    // --format`) — the floor names the living verbs only.
+    for (const cmd of ['check', 'inspect', 'explain', 'spec', 'examples', 'new', 'trace', 'completions']) {
       expect(caps.commands.has(cmd), `--help must list ${cmd}`).toBe(true);
     }
     // The CONTRACT under test is the probe LOGIC, not a fixed feature
@@ -139,7 +142,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   it('graph --format json adapts into the webview DagGraph', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
-      const res = run(['graph', file, '--format', 'json']);
+      const res = run(['inspect', file, '--format', 'json']);
       expect(res.code).toBe(EXIT.OK);
       const doc: unknown = JSON.parse(res.stdout);
       expect(isGraphDoc(doc)).toBe(true);
@@ -160,14 +163,15 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // JSON predates the policy fields (brew 0.99.0) soft-passes — the
     // floor stays green while dev/next binaries PIN the contract.
     const file = tmpWorkflow(`nika: v1
-workflow: policy-seam
+workflow:
+  id: policy-seam
 model: mock/echo
 permits:
   fs:
     write:
       - "out/*"
 tasks:
-  - id: guarded
+  guarded:
     infer:
       prompt: "p"
       max_tokens: 5
@@ -178,7 +182,7 @@ tasks:
       skip: true
     output:
       summary: ".text"
-  - id: save
+  save:
     depends_on: [guarded]
     invoke:
       tool: "nika:write"
@@ -187,7 +191,7 @@ tasks:
         content: "hi"
 `);
     try {
-      const res = run(['graph', file, '--format', 'json']);
+      const res = run(['inspect', file, '--format', 'json']);
       expect(res.code).toBe(EXIT.OK);
       const doc = JSON.parse(res.stdout) as Parameters<typeof graphDocToDag>[0];
       expect(isGraphDoc(doc)).toBe(true);
@@ -247,7 +251,7 @@ tasks:
   });
 
   it('the embedded schema pins the enums the snippets teach', () => {
-    const res = run(['schema']);
+    const res = run(['spec', '--schema']);
     expect(res.code).toBe(EXIT.OK);
     const schema = JSON.parse(res.stdout) as {
       $defs: {
@@ -292,7 +296,7 @@ tasks:
 
   it('schema + canon project into the full intel (the completion vocabulary)', async () => {
     const { buildSchemaIntel } = await import('../core/schemaIntel');
-    const schema = JSON.parse(run(['schema']).stdout);
+    const schema = JSON.parse(run(['spec', '--schema']).stdout);
     const canon = run(['spec', '--canon']).stdout;
     const intel = buildSchemaIntel(schema, canon);
     expect(intel).toBeDefined();
@@ -317,14 +321,18 @@ tasks:
     expect(intel!.extractModes).toHaveLength(canonCount('extract_modes')!);
     expect(intel!.builtinTools).toHaveLength(canonCount('builtins')!);
     expect(intel!.taskFields.map((f) => f.name)).toEqual(
-      expect.arrayContaining(['id', 'depends_on', 'when', 'for_each', 'retry', 'infer', 'exec', 'invoke', 'agent']),
+      // W1: the key IS the identity — `id` left the task property set.
+      expect.arrayContaining(['depends_on', 'when', 'for_each', 'retry', 'infer', 'exec', 'invoke', 'agent']),
     );
     expect(intel!.verbFields.infer.map((f) => f.name)).toContain('prompt');
   });
 
   it('graph-edit skeletons pass their own check (own-corpus · the n8n loop is safe)', async () => {
     const { insertTaskSkeleton } = await import('../core/structuralFixes');
-    const base = 'nika: v1\nworkflow: edit-corpus\n\nmodel: mock/echo\n\ntasks:\n  - id: seed\n    infer:\n      prompt: "hello"\n';
+    // The graft law the spec's starters-projector uses: every `vars.X`
+    // a starter references is declared before the check (the SLOT teaches
+    // the author to wire THEIR input — the corpus proves the SHAPE).
+    const base = 'nika: v1\nworkflow:\n  id: edit-corpus\n\nmodel: mock/echo\n\nvars:\n  topic: "probe"\n  input: "probe"\n\ntasks:\n  seed:\n    infer:\n      prompt: "hello"\n';
     for (const verb of ['infer', 'exec', 'invoke', 'agent'] as const) {
       const inserted = insertTaskSkeleton(base, verb, 'seed');
       expect(inserted).toBeDefined();
@@ -345,11 +353,12 @@ tasks:
     const { collectShapes, shapeAt } = await import('../core/schemaShape');
     const wf = (field: string): string => [
       'nika: v1',
-      'workflow: shape-agreement',
+      'workflow:',
+      '  id: shape-agreement',
       'model: mock/echo',
       '',
       'tasks:',
-      '  - id: extract',
+      '  extract:',
       '    infer:',
       '      prompt: "extract"',
       '      schema:',
@@ -359,7 +368,7 @@ tasks:
       '            type: string',
       '        required: [title]',
       '',
-      '  - id: use',
+      '  use:',
       '    depends_on: [extract]',
       '    infer:',
       `      prompt: "use \${{ tasks.extract.output.${field} }}"`,
@@ -386,16 +395,17 @@ tasks:
     const { redundantEdges } = await import('../core/graphIntel');
     const doc = [
       'nika: v1',
-      'workflow: redundancy',
+      'workflow:',
+      '  id: redundancy',
       'model: mock/echo',
       '',
       'tasks:',
-      '  - id: a',
+      '  a:',
       '    exec: { command: "echo a" }',
-      '  - id: b',
+      '  b:',
       '    depends_on: [a]',
       '    exec: { command: "echo b" }',
-      '  - id: c',
+      '  c:',
       '    depends_on: [a, b]',
       '    exec: { command: "echo c" }',
     ].join('\n');
@@ -531,7 +541,7 @@ describe.skipIf(!BIN)('dag insights on the real graph projection', () => {
   it('analyzeDag invariants hold on the engine-projected graph', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
-      const res = run(['graph', file, '--format', 'json']);
+      const res = run(['inspect', file, '--format', 'json']);
       expect(res.code).toBe(EXIT.OK);
       const doc: unknown = JSON.parse(res.stdout);
       expect(isGraphDoc(doc)).toBe(true);
@@ -561,26 +571,27 @@ describe.skipIf(!BIN)('dag insights on the real graph projection', () => {
 // without the field skip the agreement (never a false claim).
 
 const DIAMOND_WF = `nika: v1
-workflow: analysis-agreement
+workflow:
+  id: analysis-agreement
 
 model: mock/echo
 
 tasks:
-  - id: root
+  root:
     infer:
       prompt: "seed"
 
-  - id: left
+  left:
     depends_on: [root]
     infer:
       prompt: "l"
 
-  - id: right
+  right:
     depends_on: [root]
     infer:
       prompt: "r"
 
-  - id: join
+  join:
     depends_on: [left, right]
     infer:
       prompt: "j"
@@ -595,7 +606,7 @@ describe.skipIf(!BIN)('analysis agreement (real binary)', () => {
       expect(report).toBeDefined();
       if (!report?.analysis) { return; } // older binary — nothing to disagree with
 
-      const graphRes = run(['graph', file, '--format', 'json']);
+      const graphRes = run(['inspect', file, '--format', 'json']);
       const doc: unknown = JSON.parse(graphRes.stdout);
       expect(isGraphDoc(doc)).toBe(true);
       if (!isGraphDoc(doc)) { return; }

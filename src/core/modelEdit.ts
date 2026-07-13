@@ -24,16 +24,24 @@ export function needsDefaultModel(wf: {
   return { needy: inferring.filter((t) => !t.model).map((t) => t.id) };
 }
 
-/** Insert `model: <ref>` after the first of description:/workflow:/
- * nika: — the envelope's canonical order. Refuses when a top-level
- * model already exists or no envelope line anchors. */
+/** Insert `model: <ref>` after the workflow OBJECT (W1: id + optional
+ * description live inside it), falling back to `nika:` — the envelope's
+ * canonical order. Refuses when a top-level model already exists or no
+ * envelope line anchors. */
 export function insertDefaultModel(text: string, ref: string): string | undefined {
   const lines = text.split('\n');
   if (lines.some((l) => /^model:\s/.test(l))) { return undefined; }
-  for (const key of ['description', 'workflow', 'nika']) {
-    const at = lines.findIndex((l) => new RegExp(`^${key}:\\s`).test(l));
-    if (at === -1) { continue; }
+  const wfAt = lines.findIndex((l) => /^workflow:\s*(#.*)?$/.test(l) || /^workflow:\s/.test(l));
+  if (wfAt !== -1) {
+    // skip the object body (indented lines) — the slot is right after it
+    let at = wfAt;
+    while (at + 1 < lines.length && /^ {2}\S/.test(lines[at + 1])) { at += 1; }
     lines.splice(at + 1, 0, `model: ${ref}`);
+    return lines.join('\n');
+  }
+  const nikaAt = lines.findIndex((l) => /^nika:\s/.test(l));
+  if (nikaAt !== -1) {
+    lines.splice(nikaAt + 1, 0, `model: ${ref}`);
     return lines.join('\n');
   }
   return undefined;

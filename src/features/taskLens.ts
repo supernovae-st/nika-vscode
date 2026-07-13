@@ -1,5 +1,5 @@
 // taskLens.ts — per-task editor surfaces: a code lens row above every
-// `- id:` (focus the node in the DAG · peek its references) and subtle
+// the task key (focus the node in the DAG · peek its references) and subtle
 // verb-tinted gutter dots. The editor and the graph become ONE surface:
 // the lens drives the webview, the webview's double-click drives the
 // editor back.

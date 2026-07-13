@@ -2,27 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { parseRegions } from '../core/regions';
 
 const WF = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: setup
+  setup:
     exec:
       command: "echo start"
 
   # nika:region Gather
-  - id: fetch_a
+  fetch_a:
     invoke:
       tool: "nika:fetch"
       args:
         url: https://a.example
-  - id: fetch_b
+  fetch_b:
     invoke:
       tool: "nika:fetch"
       args:
         url: https://b.example
 
   #   nika:region  Summarize
-  - id: summarize
+  summarize:
     depends_on: [fetch_a, fetch_b]
     infer:
       prompt: "Merge."
@@ -44,16 +45,16 @@ describe('parseRegions', () => {
   });
 
   it('tolerates loose whitespace in the marker', () => {
-    expect(parseRegions('#nika:region Tight\ntasks:\n  - id: a\n    exec: { command: x }\n')[0]?.name)
+    expect(parseRegions('#nika:region Tight\ntasks:\n  a:\n    exec: { command: x }\n')[0]?.name)
       .toBe('Tight');
-    expect(parseRegions('   #  nika:region   Spaced Name  \ntasks:\n  - id: a\n    exec: { command: x }\n')[0]?.name)
+    expect(parseRegions('   #  nika:region   Spaced Name  \ntasks:\n  a:\n    exec: { command: x }\n')[0]?.name)
       .toBe('Spaced Name');
   });
 
   it('drops an empty region (no task follows the marker)', () => {
     const trailing = `nika: v1
 tasks:
-  - id: a
+  a:
     exec: { command: x }
   # nika:region Empty
 `;
@@ -64,10 +65,10 @@ tasks:
     const dup = `nika: v1
 tasks:
   # nika:region Loop
-  - id: a
+  a:
     exec: { command: x }
   # nika:region Loop
-  - id: b
+  b:
     exec: { command: y }
 `;
     expect(parseRegions(dup)).toEqual([

@@ -3,21 +3,22 @@ import { computeDirty, taskFingerprints } from '../core/dirtyNodes';
 import { mergeRunHashes, parseCanvasState } from '../core/canvasState';
 
 const WF = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: seed
+  seed:
     infer:
       prompt: "Name three colors."
-  - id: branch_a
+  branch_a:
     depends_on: [seed]
     infer:
       prompt: "Comment briefly."
-  - id: branch_b
+  branch_b:
     depends_on: [seed]
     infer:
       prompt: "Count lines."
-  - id: join
+  join:
     depends_on: [branch_a, branch_b]
     infer:
       prompt: "Merge."
@@ -27,23 +28,24 @@ describe('taskFingerprints (reformat-stable · change-sensitive)', () => {
   it('is stable under reindentation, blank lines, comments and key order', () => {
     const base = taskFingerprints(WF);
     const reformatted = `nika: v1
-workflow: probe
+workflow:
+  id: probe
 model: mock/echo
 tasks:
-  - id: seed
+  seed:
     infer:
         prompt:    "Name three colors."
 
     # a new comment does not dirty anything
-  - id: branch_a
+  branch_a:
     infer:
       prompt: "Comment briefly."
     depends_on: [seed]
-  - id: branch_b
+  branch_b:
     depends_on: [seed]
     infer:
       prompt: "Count lines."
-  - id: join
+  join:
     depends_on: [branch_a, branch_b]
     infer:
       prompt: "Merge."
@@ -60,7 +62,7 @@ tasks:
       .not.toBe(base.get('seed'));
     expect(taskFingerprints(WF.replace('depends_on: [branch_a, branch_b]', 'depends_on: [branch_a]')).get('join'))
       .not.toBe(base.get('join'));
-    expect(taskFingerprints(WF.replace('  - id: join\n', '  - id: join\n    when: "${{ 1 > 0 }}"\n')).get('join'))
+    expect(taskFingerprints(WF.replace('  join:\n', '  join:\n    when: "${{ 1 > 0 }}"\n')).get('join'))
       .not.toBe(base.get('join'));
   });
 
@@ -93,11 +95,11 @@ describe('computeDirty (direct + downstream cone)', () => {
   });
 
   it('a NEW task is stale (and stales its cone) once a record exists', () => {
-    const withNew = WF.replace('  - id: join', `  - id: extra
+    const withNew = WF.replace('  join:', `  extra:
     depends_on: [seed]
     infer:
       prompt: "Extra."
-  - id: join`);
+  join:`);
     const res = computeDirty(withNew, recorded);
     expect(res.direct.has('extra')).toBe(true);
   });

@@ -32,14 +32,15 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
 
 const BASE = [
   'nika: v1',
-  'workflow: contract-doors-proof',
+  'workflow:',
+  '  id: contract-doors-proof',
   'model: mock/echo',
   '',
   'vars:',
   '  topic: "Rust async 2026"',
   '',
   'tasks:',
-  '  - id: gather',
+  '  gather:',
   '    infer:',
   '      prompt: "Collect notes on ${{ vars.topic }}"',
   '',
