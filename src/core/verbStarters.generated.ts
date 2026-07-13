@@ -39,22 +39,22 @@ export const NIKA_VERB_STARTERS: Record<NikaVerb, readonly VerbStarter[]> = {
   ],
   exec: [
     {
-      id: "exec-shell",
-      label: "shell command",
-      hint: "String form runs via the OS shell — pipes and redirects work.",
-      body: "exec:\n  command: \"cargo test --workspace --lib\"   # SLOT: the command\n",
+      id: "exec-argv",
+      label: "command · argv",
+      hint: "The default: execve, no shell — an interpolated value can never break out of its argument.",
+      body: "exec:\n  command: [\"cargo\", \"test\", \"--workspace\", \"--lib\"]   # SLOT: program + args · each element substituted independently\n",
     },
     {
-      id: "exec-argv",
-      label: "argv · no shell",
-      hint: "Array form is direct execve — the one obvious way to carry interpolated or untrusted values.",
-      body: "exec:\n  command: [\"echo\", \"${{ vars.message }}\"]   # SLOT: program + args · each element substituted independently\n",
+      id: "exec-shell",
+      label: "shell · the explicit door",
+      hint: "One /bin/sh line — pipes · redirects · globs. The blocklist applies here; own your interpolations.",
+      body: "exec:\n  shell: \"git log --oneline | head -20\"   # SLOT: the shell line (pipes/redirects live HERE)\n",
     },
     {
       id: "exec-captured",
       label: "capture structured",
       hint: "cwd + structured capture — stdout, stderr and the exit code become fields.",
-      body: "exec:\n  command: \"git status --short\"   # SLOT: the command\n  cwd: \".\"                        # SLOT: working directory\n  capture: structured\n",
+      body: "exec:\n  command: [\"git\", \"status\", \"--short\"]   # SLOT: program + args\n  cwd: \".\"                        # SLOT: working directory\n  capture: structured\n",
     },
   ],
   invoke: [
