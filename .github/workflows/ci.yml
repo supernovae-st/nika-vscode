@@ -38,8 +38,15 @@ jobs:
       # and authoring shape against the conformance oracle first.
       # SECURITY: no github.event data is interpolated — the only
       # expression is the runner-controlled workspace path.
-      - name: Fetch the spec SSOT (sibling layout)
-        run: git clone --depth 1 https://github.com/supernovae-st/nika-spec ../spec
+      - name: Fetch the spec SSOT at the PIN (sibling layout)
+        # SPEC_PIN, never a floating HEAD: a spec merge must not red
+        # unrelated PRs here. The spec-pin-heal advances the pin daily
+        # through an idempotent PR these same gates judge.
+        run: |
+          git clone --filter=blob:none https://github.com/supernovae-st/nika-spec ../spec
+          pin="$(grep -v '^#' SPEC_PIN | head -1 | tr -d '[:space:]')"
+          git -C ../spec checkout --quiet "$pin"
+          echo "spec pinned at $pin"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

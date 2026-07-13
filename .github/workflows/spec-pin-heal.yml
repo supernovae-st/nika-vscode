@@ -1,0 +1,56 @@
+name: spec-pin-heal
+
+# The pin advances itself: daily, if nika-spec main moved past SPEC_PIN,
+# re-project every generated surface at the new rev and open ONE
+# idempotent PR — this repo's full gate (tests · parity · projector
+# checks at the new pin) judges. Never a direct push: generated TS
+# feeds the shipped extension. SECURITY: no github.event data.
+
+on:
+  schedule:
+    - cron: '43 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: The pin follows the spec
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/supernovae-st/nika-spec ../spec
+          head="$(git -C ../spec rev-parse HEAD)"
+          pin="$(grep -v '^#' SPEC_PIN | head -1 | tr -d '[:space:]')"
+          if [ "$head" = "$pin" ]; then echo "pin current ($pin) — nothing to heal"; exit 0; fi
+          pip install pyyaml jsonschema >/dev/null
+          export NIKA_VSCODE_SRC="$GITHUB_WORKSPACE/src"
+          python3 ../spec/scripts/starters-projector.py --write
+          python3 ../spec/scripts/authoring-projector.py --write
+          python3 ../spec/scripts/design-projector.py --write || true # absent legs skip
+          python3 - "$head" <<'PYEOF'
+          import io, re, sys
+          s = io.open('SPEC_PIN', encoding='utf-8').read()
+          s = re.sub(r'^[0-9a-f]{40}$', sys.argv[1], s, count=1, flags=re.M)
+          io.open('SPEC_PIN', 'w', encoding='utf-8').write(s)
+          PYEOF
+          git add -A
+          git config user.name "nika-release[bot]"
+          git config user.email "nika@supernovae.studio"
+          git checkout -B bot/spec-pin
+          git commit -m "chore(spec-pin): the generated surfaces follow the spec — $(git -C ../spec rev-parse --short HEAD)"
+          git push -f origin bot/spec-pin
+          gh pr create --head bot/spec-pin \
+            --title "chore(spec-pin): the generated surfaces follow the spec" \
+            --body "Automated pin advance + re-projection (spec-pin-heal). The full gate judges at the new pin; merge on green." \
+            2>/dev/null || echo "PR already open — refreshed"
