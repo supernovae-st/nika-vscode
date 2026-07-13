@@ -4,12 +4,13 @@ Every Nika file starts with the frozen envelope:
 
 ```yaml
 nika: v1
-workflow: hello
+workflow:
+  id: hello
 
 model: mock/echo   # deterministic · no API key needed
 
 tasks:
-  - id: greet
+  greet:
     infer:
       prompt: "Say hello in French, in one short sentence."
 ```

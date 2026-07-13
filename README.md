@@ -427,12 +427,13 @@ theme*, not to extensions:
 
 ```yaml
 nika: v1
-workflow: hello
+workflow:
+  id: hello
 
 model: mock/echo          # deterministic · swap for ollama/qwen3.5:4b or any provider
 
 tasks:
-  - id: greet
+  greet:
     infer:
       prompt: "Say hello in French, in one short sentence."
 ```
@@ -449,16 +450,16 @@ never sees it, so it costs nothing at runtime:
 ```yaml
 tasks:
   # nika:region Ingest
-  - id: fetch_pr
-    invoke: { tool: "nika:fetch", args: { url: "${{ env.PR_URL }}" } }
-  - id: analyze_diff
+  fetch_pr:
+    invoke: { tool: "nika:fetch", args: { url: "${{ vars.pr_url }}" } }
+  analyze_diff:
     depends_on: [fetch_pr]
     infer: { prompt: "Plan the review of ${{ tasks.fetch_pr.output }}." }
 
   # nika:region Ship
-  - id: post_comment
+  post_comment:
     depends_on: [analyze_diff]
-    exec: { command: "gh pr comment $PR --body-file verdict.md" }
+    exec: { command: ["gh", "pr", "comment", "${{ vars.pr }}", "--body-file", "verdict.md"] }
 ```
 
 ## Links
