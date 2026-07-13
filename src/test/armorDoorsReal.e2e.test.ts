@@ -38,14 +38,14 @@ const BASE = [
   'tasks:',
   '  - id: cache_read',
   '    exec:',
-  '      command: "cat cache.json"',
+  '      command: ["cat", "cache.json"]',
   '  - id: live_fetch',
   '    infer:',
   '      prompt: "fetch the live data"',
   '  - id: consume',
   '    depends_on: [live_fetch]',
   '    exec:',
-  '      command: "true"',
+  '      command: ["true"]',
   '',
 ].join('\n');
 
