@@ -128,3 +128,80 @@ export function renameTask(text: string, oldId: string, newId: string): string |
   out += text.slice(cursor);
   return out;
 }
+
+/**
+ * Non-declaration reference COUNTS for every id in one pass — the
+ * per-task lens row needs only the number, and calling
+ * [`findTaskRefs`] per task made the repaint O(V·L) (quadratic on the
+ * generated hundreds-of-tasks DAGs). One line walk + one island scan,
+ * same reference classes (depends_on inline/block · `tasks.<id>`
+ * template/CEL); equivalence with the single-id walk is pinned by
+ * test, not asserted by hope.
+ */
+export function countTaskRefs(text: string, ids: ReadonlySet<string>): Map<string, number> {
+  const counts = new Map<string, number>();
+  const bump = (id: string): void => {
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  };
+  const lines = text.split('\n');
+  const lineStart: number[] = [0];
+  for (let i = 0; i < lines.length - 1; i++) {
+    lineStart.push(lineStart[i] + lines[i].length + 1);
+  }
+
+  const dependsInlineRe = /depends_on:\s*\[([^\]]*)\]/;
+  const blockItemRe = /^(\s*-\s*)([A-Za-z0-9_]+)\s*(#.*)?$/;
+  const counted = new Set<number>(); // absolute offsets already counted
+
+  let inDependsBlock = false;
+  let dependsIndent = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const base = lineStart[i];
+
+    const inline = line.match(dependsInlineRe);
+    if (inline && inline.index !== undefined) {
+      const inner = inline[1];
+      const innerStart = base + inline.index + inline[0].indexOf('[') + 1;
+      const itemRe = /(^|[,\s"'])([A-Za-z0-9_]+)(?=[,\s"']|$)/g;
+      for (const m of inner.matchAll(itemRe)) {
+        const id = m[2];
+        if (!ids.has(id)) { continue; }
+        bump(id);
+        counted.add(innerStart + (m.index ?? 0) + m[1].length);
+      }
+    }
+
+    if (/^\s*depends_on:\s*$/.test(line)) {
+      inDependsBlock = true;
+      dependsIndent = indentOf(line);
+      continue;
+    }
+    if (inDependsBlock) {
+      const trimmed = line.trim();
+      if (trimmed === '') { continue; }
+      if (!trimmed.startsWith('-') || indentOf(line) <= dependsIndent) {
+        inDependsBlock = false;
+      } else {
+        const item = line.match(blockItemRe);
+        if (item && ids.has(item[2])) {
+          bump(item[2]);
+          counted.add(base + item[1].length);
+        }
+        continue;
+      }
+    }
+  }
+
+  const tasksRefRe = /\btasks\.([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g;
+  for (const m of text.matchAll(tasksRefRe)) {
+    const id = m[1];
+    if (!ids.has(id)) { continue; }
+    const idStart = (m.index ?? 0) + 'tasks.'.length;
+    if (counted.has(idStart)) { continue; }
+    bump(id);
+    counted.add(idStart);
+  }
+
+  return counts;
+}

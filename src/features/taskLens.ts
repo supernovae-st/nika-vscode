@@ -11,7 +11,7 @@ import {
   ARMOR_DOOR, COLLECTION_DOOR, GATE_DOOR, graphDoorTitle, RERUN_DOOR,
   WIRE_INPUTS_DOOR,
 } from '../core/lensVocab';
-import { findTaskRefs } from '../core/renameRefs';
+import { countTaskRefs } from '../core/renameRefs';
 import { traceStore } from '../core/traceStore';
 import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
@@ -66,6 +66,10 @@ export class TaskLensProvider implements vscode.CodeLensProvider, vscode.Disposa
     const lines = text.split('\n');
     const wf = parseRichWorkflow(text);
     const fold = traceStore.get(document.uri.fsPath)?.fold;
+    // ONE aggregate pass for every task's ref count — the per-task
+    // findTaskRefs walk made this repaint O(V·L), quadratic on the
+    // generated hundreds-of-tasks DAGs (equivalence pinned in tests).
+    const refCounts = countTaskRefs(text, new Set(wf.tasks.map((t) => t.id)));
     const lenses: vscode.CodeLens[] = [];
 
     for (const task of wf.tasks) {
@@ -83,7 +87,6 @@ export class TaskLensProvider implements vscode.CodeLensProvider, vscode.Disposa
       // ONE fused lens per task — two lines of lens per task on a 20-task
       // file is noise, not signal. References stay reachable natively
       // (⇧F12 · our ReferenceProvider) and via the peek command.
-      const refs = findTaskRefs(text, task.id).filter((r) => r.home !== 'declaration');
       lenses.push(new vscode.CodeLens(range, {
         command: 'nika.rerunTask',
         title: RERUN_DOOR,
@@ -92,7 +95,7 @@ export class TaskLensProvider implements vscode.CodeLensProvider, vscode.Disposa
       }));
       lenses.push(new vscode.CodeLens(range, {
         command: 'nika.focusTaskInDag',
-        title: graphDoorTitle(refs.length),
+        title: graphDoorTitle(refCounts.get(task.id) ?? 0),
         tooltip: 'Focus this task in the DAG (lineage lit) — ⇧F12 peeks its references',
         arguments: [document.uri, task.id],
       }));
