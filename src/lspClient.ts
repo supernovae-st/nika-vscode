@@ -173,19 +173,19 @@ export function startClient(
     },
     outputChannelName: 'Nika Language Server',
     diagnosticCollectionName: 'nika-lsp',
-    // Capability handshake: the server learns WHICH editor host it serves
-    // (VS Code · Cursor · Windsurf report distinct appName/version) and
-    // that the CLIENT keeps owning expression-level intel + enum
-    // completions — its v0.1 structure surface must not double-report.
+    // Who is calling — the server MAY read the host/version for
+    // diagnostics (it reads none of it today; probed 0.102). The old
+    // `capabilities: { enumCompletions: 'client', … }` hint block is
+    // GONE: it was never read server-side, and after #105 it had
+    // become a dormant lie — the client YIELDS meaning surfaces
+    // capability-wise now (core/capabilityYield), so a future server
+    // honoring « the client owns enums » while the client had already
+    // yielded them would have orphaned the lane. The LSP capability
+    // advertisement IS the partition protocol; no side-channel.
     initializationOptions: {
       client: {
         host: env.appName,
         extensionVersion: context.extension.packageJSON.version as string,
-      },
-      capabilities: {
-        expressionIntel: 'client',
-        enumCompletions: 'client',
-        secretsLint: 'client',
       },
     },
     markdown: {
