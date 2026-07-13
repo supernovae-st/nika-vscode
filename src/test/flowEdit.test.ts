@@ -102,3 +102,36 @@ describe('flowEdit (wire · gate · fan out)', () => {
     expect(taskKeyRewrite(WF, { ...TASKS[0], line: 4 }, 'when', 'x')).toBeUndefined();
   });
 });
+
+describe('descendantsOf at scale (the linear-walk law)', () => {
+  const chain = (n: number): TaskRange[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `t${i}`,
+      line: i,
+      endLine: i,
+      dependsOn: i > 0 ? [`t${i - 1}`] : [],
+    }));
+
+  it('a 2000-task chain resolves instantly and completely', () => {
+    const tasks = chain(2000);
+    const started = Date.now();
+    const desc = descendantsOf(tasks, 't0');
+    expect(desc.size).toBe(1999);
+    expect(desc.has('t1999')).toBe(true);
+    expect(desc.has('t0')).toBe(false);
+    // The naive O(V·E) form took seconds here; linear stays far under
+    // an interactive budget even on CI's slowest runner.
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it('a diamond converges once — shared descendants are not re-walked', () => {
+    const tasks: TaskRange[] = [
+      { id: 'root', line: 0, endLine: 0, dependsOn: [] },
+      { id: 'left', line: 1, endLine: 1, dependsOn: ['root'] },
+      { id: 'right', line: 2, endLine: 2, dependsOn: ['root'] },
+      { id: 'join', line: 3, endLine: 3, dependsOn: ['left', 'right'] },
+    ];
+    expect(descendantsOf(tasks, 'root')).toEqual(new Set(['left', 'right', 'join']));
+    expect(upstreamCandidates(tasks, 'left').map((t) => t.id)).toEqual(['root', 'right']);
+  });
+});

@@ -64,16 +64,25 @@ export function findTaskKey(
 }
 
 /** Tasks whose dependency chain reaches `id` — picking one of these as
- * an INPUT of `id` would close a cycle; they leave the candidate list. */
+ * an INPUT of `id` would close a cycle; they leave the candidate list.
+ * One reverse-adjacency pass then a plain BFS — O(V+E): the naive form
+ * rescanned every task per frontier pop (O(V·E)), invisible on a
+ * hand-written file, quadratic on generated hundreds-of-tasks DAGs. */
 export function descendantsOf(tasks: readonly TaskRange[], id: string): Set<string> {
+  const children = new Map<string, string[]>();
+  for (const t of tasks) {
+    for (const dep of t.dependsOn) {
+      (children.get(dep) ?? children.set(dep, []).get(dep)!).push(t.id);
+    }
+  }
   const out = new Set<string>();
   const frontier = [id];
   while (frontier.length > 0) {
     const cur = frontier.pop()!;
-    for (const t of tasks) {
-      if (!out.has(t.id) && t.dependsOn.includes(cur)) {
-        out.add(t.id);
-        frontier.push(t.id);
+    for (const child of children.get(cur) ?? []) {
+      if (!out.has(child)) {
+        out.add(child);
+        frontier.push(child);
       }
     }
   }
