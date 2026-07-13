@@ -27,64 +27,11 @@ export function verbHasSchema(
   return false;
 }
 
-export interface SchemaShape {
-  id: string;
-  /** The picker row (≤ 40 chars). */
-  label: string;
-  /** The picker detail — teaches the why. */
-  hint: string;
-  /** The schema block, unindented (first line is `schema:`). */
-  body: string;
-}
-
-/** The proven shapes — every one a top-level object (the portable
- * structured-output form on every provider; the starters teach the
- * same). SLOT comments mark what the author renames. */
-export const SCHEMA_SHAPES: readonly SchemaShape[] = [
-  {
-    id: 'fields',
-    label: 'named fields',
-    hint: 'The workhorse — an object whose required fields ARE the contract.',
-    body: 'schema:                # the response MUST match — structured output\n'
-      + '  type: object\n'
-      + '  required: [summary]   # SLOT: the fields you demand\n'
-      + '  properties:\n'
-      + '    summary: { type: string }\n',
-  },
-  {
-    id: 'list',
-    label: 'a list',
-    hint: 'items: an array field — extraction, findings, batch results.',
-    body: 'schema:\n'
-      + '  type: object\n'
-      + '  required: [items]\n'
-      + '  properties:\n'
-      + '    items:\n'
-      + '      type: array\n'
-      + '      items: { type: string }   # SLOT: the element shape\n',
-  },
-  {
-    id: 'verdict',
-    label: 'a verdict',
-    hint: 'boolean + reason — the judge shape gates and goldens consume.',
-    body: 'schema:\n'
-      + '  type: object\n'
-      + '  required: [verdict, reason]\n'
-      + '  properties:\n'
-      + '    verdict: { type: boolean }\n'
-      + '    reason: { type: string }\n',
-  },
-  {
-    id: 'grade',
-    label: 'a grade',
-    hint: 'enum: the closed set — the model cannot invent a fifth answer.',
-    body: 'schema:\n'
-      + '  type: object\n'
-      + '  required: [grade]\n'
-      + '  properties:\n'
-      + '    grade: { type: string, enum: [A, B, C] }   # SLOT: the closed set\n',
-  },
-];
+// The proven shapes — SSOT nika-spec stdlib/authoring-shapes-v0.1.yaml,
+// oracle-proven at projection time. This module only re-exports: the
+// register is spec truth, the surgical edit below is editor mechanics.
+export { NIKA_SCHEMA_SHAPES as SCHEMA_SHAPES, type SchemaShape } from './authoringShapes.generated';
+import type { SchemaShape } from './authoringShapes.generated';
 
 export interface SchemaInsert {
   /** Line index to insert AT (exclusive end of the verb block). */

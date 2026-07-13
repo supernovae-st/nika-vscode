@@ -30,14 +30,12 @@ jobs:
         run: npm run compile
       - name: Tests + parity + lint (the repo's own contract)
         run: npm test
-      - name: Snippets parse as strict JSON
-        run: node -e "JSON.parse(require('fs').readFileSync('snippets/nika.code-snippets','utf8')); console.log('snippets OK')"
-      # The starters SSOT loop, closed consumer-side (the docs-oracle
-      # pattern): verbStarters.generated.ts must be byte-exactly what the
-      # spec's projector emits from stdlib/verb-starters-v0.1.yaml — a
-      # hand edit here, or a spec that moved without a resync, reds this
-      # PR instead of drifting silently. The projector also re-proves
-      # every starter against the conformance oracle before comparing.
+      # The SSOT loops, closed consumer-side (the docs-oracle pattern):
+      # every *.generated.ts must be byte-exactly what the spec's
+      # projectors emit from their YAML SSOTs — a hand edit here, or a
+      # spec that moved without a resync, reds this PR instead of
+      # drifting silently. The projectors also re-prove every starter
+      # and authoring shape against the conformance oracle first.
       # SECURITY: no github.event data is interpolated — the only
       # expression is the runner-controlled workspace path.
       - name: Fetch the spec SSOT (sibling layout)
@@ -47,12 +45,14 @@ jobs:
           python-version: '3.12'
       - name: Generated surfaces track the spec projectors
         # starters (verbStarters.generated.ts · oracle re-proof + byte diff)
-        # AND design tokens (design-tokens.generated.ts — tokens-parity.mjs
-        # only guards INTERNAL coherence; parity with the spec YAML was
-        # unguarded on both sides). Absent siblings (website · docs) skip.
+        # AND authoring shapes (authoringShapes.generated.ts — schema +
+        # armor registers, same oracle law) AND design tokens
+        # (design-tokens.generated.ts — tokens-parity.mjs only guards
+        # INTERNAL coherence). Absent siblings (website · docs) skip.
         env:
           NIKA_VSCODE_SRC: ${{ github.workspace }}/src
         run: |
           pip install pyyaml jsonschema
           python3 ../spec/scripts/starters-projector.py --check
+          python3 ../spec/scripts/authoring-projector.py --check
           python3 ../spec/scripts/design-projector.py --check

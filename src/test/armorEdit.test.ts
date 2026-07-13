@@ -31,7 +31,7 @@ const ARMORED: TaskRange = { id: 'armored', line: 10, endLine: 18, dependsOn: []
 
 describe('armorEdit (« make it resilient »)', () => {
   it('the register carries the spec\'s three walls (four shapes)', () => {
-    expect(ARMOR_SHAPES.map((s) => `${s.kind}→${s.key}`)).toEqual([
+    expect(ARMOR_SHAPES.map((s) => `${s.id}→${s.key}`)).toEqual([
       'retry→retry', 'recover→on_error', 'skip→on_error', 'timeout→timeout',
     ]);
   });

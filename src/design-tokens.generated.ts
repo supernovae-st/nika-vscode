@@ -37,3 +37,25 @@ export const NIKA_BRAND = {
   markGlow: '#cfe6ff',
   markInk: '#04050d',
 } as const
+
+/** The provider PRESENTATION order (operator lock 2026-06-12):
+ *  local & open-weight lead, cloud incumbents never the first
+ *  suggestion. Providers absent here rank after, alphabetically.
+ *  Binds the TEACHING surface (pickers · docs), never adapters. */
+export const NIKA_PROVIDERS_ORDER: readonly string[] = [
+  'ollama',
+  'lmstudio',
+  'llamacpp',
+  'localai',
+  'vllm',
+  'mistral',
+  'groq',
+  'deepseek',
+  'openrouter',
+  'huggingface',
+  'nvidia',
+  'anthropic',
+  'openai',
+  'google',
+  'xai',
+] as const

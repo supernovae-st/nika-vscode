@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import { MODEL_DOOR } from '../core/lensVocab';
 import { insertDefaultModel } from '../core/modelEdit';
+import { NIKA_PROVIDERS_ORDER } from '../design-tokens.generated';
 import type { NikaService } from '../nikaService';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
@@ -16,18 +17,12 @@ function isNikaDoc(doc: vscode.TextDocument): boolean {
 /** `model: openai/gpt-5.2` (any indent · optional quotes/comment). */
 const MODEL_LINE = /^(\s*)model:\s*["']?([A-Za-z0-9_./:-]*)["']?\s*(#.*)?$/;
 
-/** The presentation-order doctrine (operator lock 2026-06-12): local &
- * open-weight lead, then Mistral (EU · open-weight), then the rest —
- * cloud incumbents never the first suggestion. */
-const PROVIDER_ORDER = [
-  'ollama', 'lmstudio', 'llamacpp', 'localai', 'vllm',
-  'mistral', 'groq', 'deepseek', 'openrouter', 'huggingface', 'nvidia',
-  'anthropic', 'openai', 'google', 'xai',
-];
-
 function providerRank(p: string): number {
-  const i = PROVIDER_ORDER.indexOf(p);
-  return i === -1 ? PROVIDER_ORDER.length : i;
+  // The presentation-order doctrine — SSOT nika-spec design/tokens.yaml
+  // (presentation.providers_order · operator lock 2026-06-12): local &
+  // open-weight lead, cloud incumbents never the first suggestion.
+  const i = NIKA_PROVIDERS_ORDER.indexOf(p);
+  return i === -1 ? NIKA_PROVIDERS_ORDER.length : i;
 }
 
 export class ModelLensProvider implements vscode.CodeLensProvider {

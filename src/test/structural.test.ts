@@ -12,6 +12,7 @@ import {
   parseVar001,
   removeDependsOn,
 } from '../core/structuralFixes';
+import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
 describe('topoWaves + criticalPath', () => {
@@ -174,16 +175,18 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(span).not.toContain('args:');
   });
 
-  it('a malformed tool ref falls back to the plain invoke skeleton', () => {
+  it('a malformed tool ref falls back to the verb\'s FIRST spec starter', () => {
     const res = insertTaskSkeleton(DOC, 'invoke', undefined, 'mcp:srv/tool')!;
     expect(res.taskId).toBe('invoke');
-    expect(res.text).toContain('tool: nika:log'); // the default skeleton
+    // One voice with the « choose a starter » door — the SSOT's minimal
+    // invoke shape, not a hand-rolled skeleton.
+    expect(res.text).toContain(NIKA_VERB_STARTERS.invoke[0].body.split('\n')[1].trim());
   });
 
-  it('a tool pick never reshapes a non-invoke verb', () => {
+  it('a tool pick never reshapes a non-invoke verb — the starter body lands', () => {
     const res = insertTaskSkeleton(DOC, 'infer', undefined, 'nika:jq')!;
     expect(res.taskId).toBe('infer');
-    expect(res.text).toContain('prompt: "Describe what to infer"');
+    expect(res.text).toContain(NIKA_VERB_STARTERS.infer[0].body.split('\n')[1].trim());
   });
 
   it('splice with a pinned tool — insertBetween carries it (one palette everywhere)', () => {
