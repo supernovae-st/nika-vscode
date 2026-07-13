@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## 0.103.0 — 2026-07-13
+
+Lockstep on the engine's 0.103 wave — **the language tightens**
+(BREAKING: `command:` is argv-only · `shell:` is the explicit door ·
+bare `${{ tasks.X }}` is an error · the gate algebra is normative).
+Editor-side, the starters and guided-edit registers re-projected from
+the 0.103 spec (#108 — `command · argv` default, `shell · the
+explicit door`); the sections below fold the one-voice arc.
+
+
 ### One voice — the client yields capability-wise when the server speaks
 - **The double voice dies** (#105 · closes #103) — on a 0.102 pair,
   completion/hover/definition/documentSymbol answered TWICE (merged
