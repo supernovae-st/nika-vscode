@@ -41,6 +41,22 @@ titles compose generated glyphs (`lensVocab`).
 | `FALLBACK_TOOL_BLURBS` + `VERB_ITEMS` blurbs (`verbPalette.ts`) | offline courtesy cache — the binary's own descriptions WIN whenever it is wired | `toolVocabReal.e2e.test.ts` diffs the fallback NAMES against the real catalog (self-skips without a binary) |
 | gate/collection expression shapes (`flowEdit.gateShapes`) | derived from THIS file's vars/tasks at click time — parameterized code, not data | `flowDoorsReal.e2e` proves the writes against the binary |
 
+## The server-convergence map (nika#557 · engine ≥ 0.102)
+
+The engine's LSP now carries authoring lanes the extension also
+speaks. Two kinds — only one converges:
+
+| extension surface | server lane | verdict |
+|---|---|---|
+| lens **doors** (pickers · surgical edits) | — | never retire: doors are GESTURES (compose `depends_on` edges, rewrite blocks); the LSP informs, a door acts |
+| `flowEdit.gateShapes` (when-gate register) | `when:` islands (engine ≥ 0.103) | CONVERGE: same registry, two dialects today — when the shipped-binary floor reaches the island lanes, the picker should offer the SERVER's items when wired, keeping shapes only as the offline fallback |
+| collection candidates (`flowDoors`) | `for_each:` islands (engine ≥ 0.103) | same law as gateShapes |
+| `FALLBACK_TOOL_BLURBS` | catalog (Lane A) | never retire: the offline courtesy cache — but names stay belt-checked |
+
+The rule: a KNOWLEDGE register duplicated across the seam converges
+on the server as binaries reach it; a GESTURE stays editor-side
+forever. A new picker must say which it is before it ships.
+
 ## What is FORBIDDEN
 
 - A new `*.generated.ts` without a projector + CI gate + a row here.
@@ -49,3 +65,5 @@ titles compose generated glyphs (`lensVocab`).
 - Any hardcoded model/provider/tool list outside Lane B (`providers
   order` lives in `design/tokens.yaml`; models live in the catalog).
 - Fixing a generated file consumer-side (values change SPEC-FIRST).
+- A knowledge register duplicated across the LSP seam without a
+  convergence row above (gesture vs knowledge, named at ship time).
