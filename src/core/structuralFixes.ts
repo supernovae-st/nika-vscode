@@ -1,27 +1,24 @@
-// structuralFixes.ts — quick-fix builders for the two conformance classes
-// the corpus work proved most common (pure · no vscode):
+// structuralFixes.ts — structural graph edits + quick-fix builders (pure ·
+// no vscode):
 //
-//   NIKA-DAG-003  task `X` references `tasks.Y` without declaring `Y` in
-//                 depends_on   → add/extend depends_on on task X
-//   NIKA-VAR-001  unresolved reference `vars.x` in task `X`
-//                 → declare x under the top-level vars: block
+//   after entries   add/remove one `{producer: predicate}` control edge
+//                   (the canvas connect gesture · `after: {a: succeeded}`)
+//   NIKA-VAR-001    unresolved reference `vars.x` in task `X`
+//                   → declare x under the top-level vars: block
 //
-// Both edits are textual and indentation-faithful; both are idempotent
-// (returns undefined when the declaration already exists).
+// All edits are textual and indentation-faithful; all are idempotent
+// (returns undefined when the target state already holds). The pre-W2
+// NIKA-DAG-003 machinery (declare a missing depends_on) died with the
+// code itself: in W2 the binding IS the edge — there is no « missing
+// wire » class left to repair, only NIKA-VAR-021's hoist, which
+// `nika check --fix` owns.
 
+import { findTaskKey, insertionLine } from './flowEdit';
 import { findTaskRefs } from './renameRefs';
 import { NIKA_VERB_STARTERS } from './verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
-export interface Dag003 { task: string; missing: string }
 export interface Var001 { varName: string; task?: string }
-
-/** Parse the DAG-003 message shape (tolerant of the nested-backtick form). */
-export function parseDag003(message: string): Dag003 | undefined {
-  const m = message.match(/task\s+`+([a-z][a-z0-9_]*)`+\s+references\s+`tasks\.([a-z][a-z0-9_]*)`?[^`]*without declaring/);
-  if (!m) { return undefined; }
-  return { task: m[1], missing: m[2] };
-}
 
 /** Parse the VAR-001 message shape for `vars.x` references. */
 export function parseVar001(message: string): Var001 | undefined {
@@ -31,52 +28,92 @@ export function parseVar001(message: string): Var001 | undefined {
 }
 
 /**
- * Add `dep` to `taskId`'s depends_on — extends an inline list, appends a
- * block item, or inserts a fresh `depends_on: [dep]` right after the id
- * line. Returns the rewritten document, or undefined when already present.
+ * Add `{producer: predicate}` to `taskId`'s `after:` — extends an inline
+ * flow map, appends a block entry, or inserts a fresh
+ * `after: { producer: predicate }` at the canonical position (after
+ * `with:` when present). Returns the rewritten document, or undefined
+ * when the entry is already declared (any predicate — tightening an
+ * existing entry is a hand edit, never a blind rewrite).
  */
-export function addDependsOn(text: string, taskId: string, dep: string): string | undefined {
+export function addAfterEntry(
+  text: string,
+  taskId: string,
+  producer: string,
+  predicate = 'succeeded',
+): string | undefined {
   const wf = parseRichWorkflow(text);
   const task = wf.tasks.find((t) => t.id === taskId);
   if (!task) { return undefined; }
-  if (task.dependsOn.includes(dep)) { return undefined; }
+  if (producer in task.after) { return undefined; }
 
   const lines = text.split('\n');
-  const fieldIndent = ' '.repeat(Math.max(lines[task.line].search(/\S/), 0) + 2);
-
-  for (let i = task.line; i <= task.endLine; i++) {
-    const line = lines[i];
-    const inline = line.match(/^(\s*depends_on:\s*\[)([^\]]*)(\].*)$/);
-    if (inline) {
-      const inner = inline[2].trim();
-      lines[i] = inline[1] + (inner.length > 0 ? `${inline[2].replace(/\s+$/, '')}, ${dep}` : dep) + inline[3];
+  const existing = findTaskKey(lines, task, 'after');
+  if (existing) {
+    const inline = existing.value.replace(/#.*$/, '').trim();
+    if (inline.startsWith('{') && inline.endsWith('}')) {
+      const body = inline.slice(1, -1).trim();
+      const grown = body.length > 0 ? `${body}, ${producer}: ${predicate}` : `${producer}: ${predicate}`;
+      lines.splice(existing.line, 1, `${' '.repeat(existing.indent)}after: { ${grown} }`);
       return lines.join('\n');
     }
-    if (/^\s*depends_on:\s*$/.test(line)) {
-      // Block form — append after the last item. YAML allows list items
-      // at the SAME indent as the key (a legal style the parser reads),
-      // so the scan accepts >= — but only for `- ` lines, so the next
-      // sibling task item (shallower) still terminates it.
-      let last = i;
-      const keyIndent = line.match(/^( *)/)?.[1].length ?? 0;
-      for (let j = i + 1; j <= task.endLine; j++) {
-        if (lines[j].trim() === '') { continue; }
-        if (/^\s*-\s/.test(lines[j]) && (lines[j].match(/^( *)/)?.[1].length ?? 0) >= keyIndent) {
-          last = j;
-          continue;
-        }
-        break;
-      }
-      const itemIndent = last === i
-        ? `${line.match(/^( *)/)?.[1] ?? ''}  `
-        : (lines[last].match(/^( *)/)?.[1] ?? '');
-      lines.splice(last + 1, 0, `${itemIndent}- ${dep}`);
-      return lines.join('\n');
-    }
+    // Block form — append after the last entry line.
+    lines.splice(existing.end + 1, 0, `${' '.repeat(existing.indent + 2)}${producer}: ${predicate}`);
+    return lines.join('\n');
   }
 
-  // No depends_on yet — insert directly under the task key line.
-  lines.splice(task.line + 1, 0, `${fieldIndent}depends_on: [${dep}]`);
+  const fieldIndent = ' '.repeat(Math.max(lines[task.line].search(/\S/), 0) + 2);
+  lines.splice(insertionLine(lines, task, 'after'), 0, `${fieldIndent}after: { ${producer}: ${predicate} }`);
+  return lines.join('\n');
+}
+
+/**
+ * Remove `producer` from `taskId`'s `after:` (inline flow map or block
+ * form). Drops the whole key when the map empties. Undefined when the
+ * entry is not declared. Data edges are NOT touchable here — a `with:`
+ * binding is a ref the body reads, never blind-rewritten.
+ */
+export function removeAfterEntry(text: string, taskId: string, producer: string): string | undefined {
+  const wf = parseRichWorkflow(text);
+  const task = wf.tasks.find((t) => t.id === taskId);
+  if (!task || !(producer in task.after)) { return undefined; }
+
+  const lines = text.split('\n');
+  const existing = findTaskKey(lines, task, 'after');
+  if (!existing) { return undefined; }
+  const inline = existing.value.replace(/#.*$/, '').trim();
+  if (inline.startsWith('{') && inline.endsWith('}')) {
+    const entries = inline.slice(1, -1).split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !new RegExp(`^${producer}\\s*:`).test(s));
+    if (entries.length === 0) {
+      lines.splice(existing.line, 1);
+    } else {
+      lines.splice(existing.line, 1, `${' '.repeat(existing.indent)}after: { ${entries.join(', ')} }`);
+    }
+    return lines.join('\n');
+  }
+  // Block form — drop the entry line; drop the key when nothing remains.
+  // The walk is INDENT-bounded (not index-bounded): a splice shifts the
+  // following lines into the old window, and counting a shallower line
+  // as a « remaining entry » left a dangling `after:` key behind.
+  let removed = false;
+  let remaining = 0;
+  for (let j = existing.line + 1; j < lines.length; j++) {
+    if (lines[j].trim() === '') { continue; }
+    const indent = lines[j].match(/^( *)\S/)?.[1].length ?? 0;
+    if (indent <= existing.indent) { break; } // the block ended
+    const m = lines[j].match(/^\s*([a-z][a-z0-9_]*)\s*:/);
+    if (!m) { continue; }
+    if (m[1] === producer) {
+      lines.splice(j, 1);
+      removed = true;
+      j -= 1;
+    } else {
+      remaining += 1;
+    }
+  }
+  if (!removed) { return undefined; }
+  if (remaining === 0) { lines.splice(existing.line, 1); }
   return lines.join('\n');
 }
 
@@ -106,10 +143,11 @@ export function nextTaskId(text: string, base: string): string {
 }
 
 /**
- * Insert a new task skeleton — after `afterTaskId` when given, else at the
- * end of the `tasks:` block (creating the block when absent). Returns the
- * rewritten document + the new id, or undefined when the insert anchor
- * cannot be resolved.
+ * Insert a new task skeleton — after `afterTaskId` when given (wired
+ * `after: { <id>: succeeded }` — the W2 spelling of a bare ordering),
+ * else at the end of the `tasks:` block (creating the block when
+ * absent). Returns the rewritten document + the new id, or undefined
+ * when the insert anchor cannot be resolved.
  *
  * `tool` (task palette · invoke only): the skeleton pins THAT tool and
  * deliberately writes NO args — the check's findings teach the tool's
@@ -141,7 +179,7 @@ export function insertTaskSkeleton(
   const block = [
     '',
     `${itemIndent}${taskId}:`,
-    ...(afterTaskId ? [`${fieldIndent}depends_on: [${afterTaskId}]`] : []),
+    ...(afterTaskId ? [`${fieldIndent}after: { ${afterTaskId}: succeeded }`] : []),
     ...skeleton.map((l) => `${fieldIndent}${l}`),
   ];
 
@@ -188,51 +226,6 @@ export function setTaskModel(text: string, taskId: string, model: string): strin
 }
 
 /**
- * Remove `dep` from `taskId`'s depends_on (inline or block form). Drops
- * the whole key when the list empties. Undefined when not present.
- */
-export function removeDependsOn(text: string, taskId: string, dep: string): string | undefined {
-  const wf = parseRichWorkflow(text);
-  const task = wf.tasks.find((t) => t.id === taskId);
-  if (!task || !task.dependsOn.includes(dep)) { return undefined; }
-
-  const lines = text.split('\n');
-  for (let i = task.line; i <= task.endLine; i++) {
-    const inline = lines[i].match(/^(\s*depends_on:\s*\[)([^\]]*)(\].*)$/);
-    if (inline) {
-      const unquote = (s: string): string => s.replace(/^['"]|['"]$/g, '');
-      const items = inline[2].split(',').map((s) => s.trim()).filter((s) => s.length > 0 && unquote(s) !== dep);
-      if (items.length === 0) {
-        lines.splice(i, 1);
-      } else {
-        lines[i] = inline[1] + items.join(', ') + inline[3];
-      }
-      return lines.join('\n');
-    }
-    if (/^\s*depends_on:\s*$/.test(lines[i])) {
-      const keyIndent = lines[i].search(/\S/);
-      let removed = false;
-      let remaining = 0;
-      for (let j = i + 1; j <= task.endLine + 1 && j < lines.length; j++) {
-        if (lines[j].trim() === '') { continue; }
-        const indent = lines[j].search(/\S/);
-        if (indent <= keyIndent || !lines[j].trim().startsWith('-')) { break; }
-        if (new RegExp(`^\\s*-\\s*(['"]?)${dep}\\1\\s*(#.*)?$`).test(lines[j])) {
-          lines.splice(j, 1);
-          removed = true;
-          j -= 1;
-        } else {
-          remaining += 1;
-        }
-      }
-      if (removed && remaining === 0) { lines.splice(i, 1); }
-      return removed ? lines.join('\n') : undefined;
-    }
-  }
-  return undefined;
-}
-
-/**
  * Delete a task's whole item span. REFUSES (returns the referencing ids)
  * when other homes still point at it — a graph edit must not silently
  * break the DAG; the caller surfaces « referenced by X · Y ».
@@ -270,11 +263,11 @@ export function deleteTask(
 }
 
 /**
- * Splice a new task INTO an edge (the n8n insert-on-edge move): the
- * skeleton lands right after `from` wired `depends_on: [from]`, and the
- * edge REROUTES — `to` drops its `from` dependency (when declared; a
- * data-only edge has none) and gains the spliced task. Data refs are
- * never rewritten. Undefined when either end is unknown.
+ * Splice a new task INTO a control edge (the n8n insert-on-edge move):
+ * the skeleton lands right after `from` wired `after: { from: succeeded }`,
+ * and the edge REROUTES — `to` drops its `from` entry (when declared; a
+ * data edge has none) and gains the spliced task. Data refs are never
+ * rewritten. Undefined when either end is unknown.
  */
 export function insertBetween(
   text: string,
@@ -289,15 +282,15 @@ export function insertBetween(
   }
   const ins = insertTaskSkeleton(text, verb, from, tool);
   if (!ins) { return undefined; }
-  let out = removeDependsOn(ins.text, to, from) ?? ins.text;
-  out = addDependsOn(out, to, ins.taskId) ?? out;
+  let out = removeAfterEntry(ins.text, to, from) ?? ins.text;
+  out = addAfterEntry(out, to, ins.taskId) ?? out;
   return { text: out, taskId: ins.taskId };
 }
 
 /**
  * Duplicate a task's whole item span right after the original — the ⌘D
  * move. The copy gets a fresh `<id>_copy` id (collision-suffixed); its
- * inbound wiring (depends_on · with refs) is kept verbatim, downstream
+ * inbound wiring (after · with refs) is kept verbatim, downstream
  * refs stay on the original. Undefined when the task is unknown.
  */
 export function duplicateTask(

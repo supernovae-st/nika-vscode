@@ -12,7 +12,7 @@ tasks:
       args:
         path: "./README.md"
   think:
-    depends_on: [gather]
+    after: { gather: succeeded }
     infer:
       prompt: "Summarize"
 

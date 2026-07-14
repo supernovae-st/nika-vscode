@@ -9,13 +9,13 @@ import type { CheckReport, DagGraph } from '../core/cliContract';
 const graph: DagGraph = {
   workflowName: 'seo-brief',
   nodes: [
-    { id: 'fetch', label: 'fetch', verb: 'invoke', tool: 'nika:fetch', status: 'pending', dependsOn: [] },
-    { id: 'summarize', label: 'summarize', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', dependsOn: ['fetch'] },
-    { id: 'title', label: 'title', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', dependsOn: ['fetch'], when: 'vars.want_title' },
+    { id: 'fetch', label: 'fetch', verb: 'invoke', tool: 'nika:fetch', status: 'pending', producers: [] },
+    { id: 'summarize', label: 'summarize', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', producers: ['fetch'] },
+    { id: 'title', label: 'title', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', producers: ['fetch'], when: 'vars.want_title' },
   ],
   edges: [
-    { id: 'fetch->summarize', source: 'fetch', target: 'summarize', isDataEdge: false },
-    { id: 'fetch->title', source: 'fetch', target: 'title', isDataEdge: false },
+    { id: 'fetch->summarize:value:page', source: 'fetch', target: 'summarize', kind: 'value', label: 'page' },
+    { id: 'fetch->title:control:succeeded', source: 'fetch', target: 'title', kind: 'control', predicate: 'succeeded' },
   ],
 };
 
@@ -50,7 +50,7 @@ describe('explainWorkflow (deterministic narration)', () => {
   it('narrates the engine waves with verbs, models, gates and parallelism', () => {
     const md = explainWorkflow(graph, report);
     expect(md).toContain('# seo-brief — what this workflow does');
-    expect(md).toContain('**3 tasks · 2 dependencies**');
+    expect(md).toContain('**3 tasks · 2 typed edges**');
     expect(md).toContain('1. **fetch** (invoke · nika:fetch)');
     expect(md).toContain('2 tasks run in parallel');
     expect(md).toContain('runs only when `vars.want_title`');
@@ -88,21 +88,33 @@ describe('explainWorkflow (deterministic narration)', () => {
     expect(md).not.toContain('Bounded ceiling');
   });
 
-  it('surfaces ghost edges and cycle leftovers instead of hiding them', () => {
+  it('surfaces cycle leftovers instead of hiding them', () => {
     const cyclic: DagGraph = {
       workflowName: 'loop',
       nodes: [
-        { id: 'a', label: 'a', verb: 'exec', status: 'pending', dependsOn: ['b'] },
-        { id: 'b', label: 'b', verb: 'exec', status: 'pending', dependsOn: ['a'] },
+        { id: 'a', label: 'a', verb: 'exec', status: 'pending', producers: ['b'] },
+        { id: 'b', label: 'b', verb: 'exec', status: 'pending', producers: ['a'] },
       ],
       edges: [
-        { id: 'a->b', source: 'a', target: 'b', isDataEdge: false },
-        { id: 'b->a', source: 'b', target: 'a', isDataEdge: false },
-        { id: 'ghost', source: 'a', target: 'b', isDataEdge: true, ghost: true },
+        { id: 'a->b:control:succeeded', source: 'a', target: 'b', kind: 'control', predicate: 'succeeded' },
+        { id: 'b->a:control:succeeded', source: 'b', target: 'a', kind: 'control', predicate: 'succeeded' },
       ],
     };
     const md = explainWorkflow(cyclic);
     expect(md).toContain('never reached a wave');
-    expect(md).toContain('ghost edge');
+  });
+
+  it('a recovery edge never orders the waves (a parking read)', () => {
+    const withRecovery: DagGraph = {
+      ...graph,
+      edges: [
+        ...graph.edges,
+        // summarize's on_error.recover reads title — NOT an ordering
+        // edge; the waves must not serialize summarize behind title.
+        { id: 'title->summarize:recovery:', source: 'title', target: 'summarize', kind: 'recovery' },
+      ],
+    };
+    const md = explainWorkflow(withRecovery);
+    expect(md).not.toContain('never reached a wave');
   });
 });

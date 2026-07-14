@@ -285,7 +285,7 @@ interface DagNode {
   fanOutCount?: number;
   costMin?: number;
   costMax?: number;
-  dependsOn: string[];
+  producers: string[];
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
   promptPreview?: string;
   commandPreview?: string;
@@ -324,9 +324,24 @@ interface DagEdge {
   id: string;
   source: string;
   target: string;
-  isDataEdge: boolean;
+  /** graph_format 2 kind — value · terminal-observation ·
+   *  failure-observation · control · recovery (unknown → data render). */
+  kind: string;
+  /** control edges — the after: predicate. */
+  predicate?: string;
+  /** data/observation edges — the with: binding name. */
   label?: string;
-  ghost?: boolean;
+}
+
+/** Data crosses this kind (value + the two observations). */
+function isDataKind(kind: string): boolean {
+  return kind === 'value' || kind === 'terminal-observation' || kind === 'failure-observation';
+}
+
+/** Recovery/finally edges PARK (a settled-record read · cleanup) — they
+ *  never schedule, never flow, never glow, never join waves. */
+function isParkedKind(kind: string): boolean {
+  return kind === 'recovery' || kind === 'finally';
 }
 
 interface DagRegion {
@@ -690,7 +705,9 @@ class DagRenderer {
   /** Edge ids on the critical path. */
   private criticalEdges = new Set<string>();
   /** Ghost edge ids (never flow · never critical · click = fix). */
-  private ghostIds = new Set<string>();
+  /** Recovery/finally edge ids — parked reads, excluded from every
+   *  live-truth surface (flow · afterglow · critical · waves). */
+  private parkedIds = new Set<string>();
   private focusedId: string | null = null;
   /** All nodes terminal at last look — the aurora fires on the flip only. */
   private wasAllTerminal = false;
@@ -966,10 +983,10 @@ class DagRenderer {
     this.edgeEnds.clear();
     this.upstreamOf.clear();
     this.downstreamOf.clear();
-    this.ghostIds.clear();
+    this.parkedIds.clear();
     for (const e of graph.edges) {
       this.edgeEnds.set(e.id, { source: e.source, target: e.target });
-      if (e.ghost) { this.ghostIds.add(e.id); }
+      if (isParkedKind(e.kind)) { this.parkedIds.add(e.id); }
       (this.upstreamOf.get(e.target) ?? this.upstreamOf.set(e.target, []).get(e.target)!).push(e.source);
       (this.downstreamOf.get(e.source) ?? this.downstreamOf.set(e.source, []).get(e.source)!).push(e.target);
     }
@@ -979,7 +996,7 @@ class DagRenderer {
       (this.nodeEdges.get(e.target) ?? this.nodeEdges.set(e.target, []).get(e.target)!).push(e.id);
     }
     this.waveOf.clear();
-    const waves = topoWaves(graph.nodes, graph.edges);
+    const waves = topoWaves(graph.nodes, graph.edges.filter((e) => !isParkedKind(e.kind)));
     waves.forEach((wave, i) => wave.forEach((id) => this.waveOf.set(id, i)));
     this.waveCount = waves.length;
     // Restore this workflow's hand-dragged positions (ids may have moved
@@ -1107,10 +1124,12 @@ class DagRenderer {
   private recomputeCritical(): void {
     this.criticalEdges.clear();
     if (!this.currentGraph || this.currentGraph.nodes.length < 2) { return; }
-    // Ghost edges are MISSING wires — they must not define the wall-clock.
+    // Parked edges (recovery) never order — they must not define the
+    // wall-clock. criticalEdges holds PAIR keys: typed ids carry a kind
+    // suffix, so membership goes through edgeEnds.
     const path = criticalPath(
       this.currentGraph.nodes,
-      this.currentGraph.edges.filter((e) => !e.ghost),
+      this.currentGraph.edges.filter((e) => !isParkedKind(e.kind)),
     );
     for (let i = 0; i + 1 < path.length; i++) {
       this.criticalEdges.add(`${path[i]}->${path[i + 1]}`);
@@ -2278,7 +2297,7 @@ class DagRenderer {
   private updateEdgeFlow(): void {
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('flowing', (d) => {
-        if (this.ghostIds.has(d.id)) { return false; } // nothing crosses a missing wire
+        if (this.parkedIds.has(d.id)) { return false; } // a parked read never flows
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return false; }
         return isFlowing(
@@ -2287,13 +2306,17 @@ class DagRenderer {
         );
       })
       .classed('done', (d) => {
-        if (this.ghostIds.has(d.id)) { return false; }
+        if (this.parkedIds.has(d.id)) { return false; }
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return false; }
         return this.nodeMap.get(ends.source)?.status === 'success'
           && this.nodeMap.get(ends.target)?.status === 'success';
       })
-      .classed('critical', (d) => this.criticalEdges.has(d.id));
+      .classed('critical', (d) => {
+        if (this.parkedIds.has(d.id)) { return false; }
+        const ends = this.edgeEnds.get(d.id);
+        return ends !== undefined && this.criticalEdges.has(`${ends.source}->${ends.target}`);
+      });
     this.syncParticles();
   }
 
@@ -2315,7 +2338,7 @@ class DagRenderer {
     if (hov !== null) {
       const lit = new Set(hov.litEdges);
       for (const [id, ends] of this.edgeEnds) {
-        if (this.ghostIds.has(id)) { continue; }
+        if (this.parkedIds.has(id)) { continue; }
         if (lit.has(`${ends.source}->${ends.target}`)) { want.set(id, 'trace'); }
       }
       return want;
@@ -2323,7 +2346,7 @@ class DagRenderer {
     // The live frontier: source settled → target computing, and the wire
     // is actually VISIBLE (a lineage/filter dim mutes its particles too).
     for (const [id, ends] of this.edgeEnds) {
-      if (this.ghostIds.has(id)) { continue; }
+      if (this.parkedIds.has(id)) { continue; }
       if (!isFlowing(this.nodeMap.get(ends.source)?.status, this.nodeMap.get(ends.target)?.status)) { continue; }
       if (this.edgePathEl.get(id)?.classList.contains('dimmed')) { continue; }
       want.set(id, 'run');
@@ -2408,7 +2431,7 @@ class DagRenderer {
         .classed('afterglow-fail', false);
     }
     const verdictOf = (d: ElkExtendedEdge): 'hot-success' | 'hot-fail' | 'cold' => {
-      if (this.ghostIds.has(d.id)) { return 'cold'; } // nothing fired a missing wire
+      if (this.parkedIds.has(d.id)) { return 'cold'; } // a parked read never fires
       const ends = this.edgeEnds.get(d.id);
       if (!ends) { return 'cold'; }
       return afterglowVerdict(this.nodeMap.get(ends.source), this.nodeMap.get(ends.target));
@@ -2514,7 +2537,7 @@ class DagRenderer {
       .attr('r', 3.5);
     portsIn.append('title').text((d) => {
       const wires = d.bindingsIn?.length ?? 0;
-      const deps = d.dependsOn.length;
+      const deps = d.producers.length;
       if (wires > 0) {
         return `${wires} named wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer — the card's io row)`;
       }
@@ -3136,12 +3159,16 @@ class DagRenderer {
       .append('path')
       .attr('class', (d) => {
         const meta = dagEdgeMap.get(d.id);
-        if (meta?.ghost) { return 'dag-edge edge-ghost'; }
-        return `dag-edge ${meta?.isDataEdge ? 'edge-data' : 'edge-dep'}`;
+        if (meta?.kind === 'recovery') { return 'dag-edge edge-recovery'; }
+        if (meta?.kind === 'control') { return 'dag-edge edge-dep'; }
+        // value + the two observations (+ unknown future kinds — the
+        // reader-tolerance rule renders them as data, never drops them).
+        const obs = meta?.kind === 'terminal-observation' || meta?.kind === 'failure-observation';
+        return `dag-edge edge-data${obs ? ' edge-obs' : ''}`;
       })
       .attr('marker-end', (d) => {
         const meta = dagEdgeMap.get(d.id);
-        return meta?.ghost ? '' : `url(#arrow-${meta?.isDataEdge ? 'data' : 'dep'})`;
+        return `url(#arrow-${meta?.kind === 'control' || meta?.kind === 'recovery' ? 'dep' : 'data'})`;
       })
       // Entering wires get their geometry AT ONCE (they fade in in place,
       // like the cards) — particles measure/ride the path immediately;
@@ -3157,23 +3184,14 @@ class DagRenderer {
       return (src ? (this.waveOf.get(src) ?? 0) : 0) * 70 + 160;
     };
 
-    // Edge clicks: GHOST = one click declares the missing depends_on (the
-    // beginner's #1 error becomes a repair gesture) · real edge ⌥click
-    // removes the dependency.
+    // Edge clicks: ⌥click removes a CONTROL entry (after: {from: pred}).
+    // Data/observation wires are BINDINGS — the body reads them, so the
+    // gesture never deletes one (edit the with: line); recovery is
+    // declared armor (on_error.recover), same law.
     enter.on('click', (event: MouseEvent, d: ElkExtendedEdge) => {
       const ends = this.edgeEnds.get(d.id);
       if (!ends) { return; }
-      const meta = dagEdgeMap.get(d.id);
-      if (meta?.ghost) {
-        event.stopPropagation();
-        vscode.postMessage({
-          kind: 'dag:connect',
-          from: ends.source,
-          to: ends.target,
-          workflowUri: this.currentGraph?.workflowUri,
-        });
-        return;
-      }
+      if (dagEdgeMap.get(d.id)?.kind !== 'control') { return; }
       if (!event.altKey) { return; }
       event.stopPropagation();
       vscode.postMessage({
@@ -3189,46 +3207,57 @@ class DagRenderer {
       const ends = this.edgeEnds.get(d.id);
       if (!ends) { return ''; }
       const meta = dagEdgeMap.get(d.id);
-      if (meta?.ghost) {
-        return `${ends.target} reads ${ends.source} (${meta.label ?? ''}) but never declares it\nNIKA-DAG-003 — data refs do NOT imply ordering\nCLICK to declare depends_on`;
+      switch (meta?.kind) {
+        case 'control':
+          return `${ends.source} → ${ends.target}\ncontrol — runs when ${ends.source} settles ${meta.predicate ?? 'succeeded'} (after:)\n⌥click to remove the entry`;
+        case 'recovery':
+          return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery — a parking read at recovery time, never an ordering edge`;
+        case 'terminal-observation':
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation — every outcome admits (the binding reads the settled record)`;
+        case 'failure-observation':
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nfailure observation — admits on failure/skipped (.error read)`;
+        default:
+          return `${ends.source} ── ${meta?.label ?? ''} ──▶ ${ends.target}\nvalue — data travels here (the with: binding IS the edge)`;
       }
-      const head = meta?.isDataEdge && meta.label
-        ? `${ends.source} ── ${meta.label} ──▶ ${ends.target}\n(data travels here)`
-        : `${ends.source} → ${ends.target}\n(ordering only — no binding crosses this edge)`;
-      return `${head}\n⌥click to remove the dependency`;
     };
     enter.append('title').text(titleOf);
 
-    // Binding labels — the wire's NAME riding the data edge midpoint.
+    // Edge labels — the wire's NAME riding a data edge's midpoint (the
+    // with: binding) · the PREDICATE riding a control edge's (after:).
     const labels = this.edgeGroup
       .selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
       .data(elkEdges.filter((e) => {
         const meta = dagEdgeMap.get(e.id);
-        return meta?.isDataEdge === true && !!meta.label;
+        if (!meta) { return false; }
+        return meta.kind === 'control' ? !!meta.predicate : isDataKind(meta.kind) && !!meta.label;
       }), (d) => d.id);
     labels.exit().remove();
     labels
       .enter()
       .append('text')
-      .attr('class', 'edge-label')
+      .attr('class', (d) =>
+        `edge-label${dagEdgeMap.get(d.id)?.kind === 'control' ? ' edge-label-ctl' : ''}`)
       .merge(labels)
       .attr('x', (d) => this.edgeLabelPoint(d)[0])
       .attr('y', (d) => this.edgeLabelPoint(d)[1] - 5)
       .attr('text-anchor', 'middle')
-      .text((d) => dagEdgeMap.get(d.id)?.label ?? '');
+      .text((d) => {
+        const meta = dagEdgeMap.get(d.id);
+        return meta?.kind === 'control' ? meta.predicate ?? '' : meta?.label ?? '';
+      });
 
     // Direction chevrons — end arrowheads drown under the target cards
     // (the n8n 1.70 read); one quiet ⌃ at the wire's WAIST carries the
     // flow direction at any pan. Ghost wires keep their red march.
     const dirs = this.edgeGroup
       .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-dir')
-      .data(elkEdges.filter((e) => !dagEdgeMap.get(e.id)?.ghost), (d) => d.id);
+      .data(elkEdges.filter((e) => !isParkedKind(dagEdgeMap.get(e.id)?.kind ?? '')), (d) => d.id);
     dirs.exit().remove();
     dirs
       .enter()
       .append('path')
       .attr('class', (d) =>
-        `edge-dir ${dagEdgeMap.get(d.id)?.isDataEdge ? 'edge-dir-data' : 'edge-dir-dep'}`)
+        `edge-dir ${isDataKind(dagEdgeMap.get(d.id)?.kind ?? '') ? 'edge-dir-data' : 'edge-dir-dep'}`)
       .attr('d', 'M -3.4 -3.1 L 3 0 L -3.4 3.1')
       .merge(dirs)
       .attr('transform', (d) => this.edgeDirTransformFor(d))
@@ -3241,18 +3270,15 @@ class DagRenderer {
       .attr('opacity', 1)
       .attr('d', (d) => this.edgePathFor(d));
 
-    // Hover twins for EVERY real wire — a 2px stroke is an undiscoverable
+    // Hover twins for EVERY wire — a 2px stroke is an undiscoverable
     // hit target; each edge gets an invisible 16px-wide twin (the n8n/
     // React Flow hit convention) that lights the wire + its label and
-    // carries the gestures: the insert-on-edge + rides DEP wires only
-    // (splicing reroutes depends_on; a binding is a ref, never rewritten
-    // — DESIGN.md §6b), ⌥click removes the dependency (both kinds).
+    // carries the gestures: the insert-on-edge + rides CONTROL wires
+    // only (splicing reroutes an after: entry; a binding is a ref,
+    // never rewritten — DESIGN.md §6b), ⌥click removes a control entry.
     const hits = this.edgeGroup
       .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-hit')
-      .data(elkEdges.filter((e) => {
-        const meta = dagEdgeMap.get(e.id);
-        return meta !== undefined && !meta.ghost;
-      }), (d) => d.id);
+      .data(elkEdges.filter((e) => dagEdgeMap.has(e.id)), (d) => d.id);
     hits.exit().remove();
     const hitsEnter = hits
       .enter()
@@ -3262,7 +3288,7 @@ class DagRenderer {
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return; }
         this.setEdgeLit(d.id, true);
-        if (dagEdgeMap.get(d.id)?.isDataEdge !== true) {
+        if (dagEdgeMap.get(d.id)?.kind === 'control') {
           this.showEdgePlus(event.currentTarget as SVGPathElement, ends.source, ends.target);
         }
       })
@@ -3273,8 +3299,10 @@ class DagRenderer {
       .on('click', (event: MouseEvent, d: ElkExtendedEdge) => {
         // The twin sits ABOVE the wire — it must carry the wire's ⌥click
         // (before the twins widened to every edge, the path's own handler
-        // was already unreachable under a twin).
+        // was already unreachable under a twin). Control entries only —
+        // a binding/recovery read is authored, never gesture-deleted.
         if (!event.altKey) { return; }
+        if (dagEdgeMap.get(d.id)?.kind !== 'control') { return; }
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return; }
         event.stopPropagation();
@@ -3958,14 +3986,14 @@ function buildExplainer(): void {
     ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
     ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
-    ['ex-glyph-connect', '⌥ drag node → node', 'create a dependency — the YAML gets the depends_on (⌘Z undoes) · ⌥click an edge removes it'],
-    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb or a tool, the wire reroutes through it (dependency wires only)'],
+    ['ex-glyph-connect', '⌥ drag node → node', 'order on state — the YAML gets `after: { from: succeeded }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
+    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb or a tool, the wire reroutes through it (control wires only; a binding is authored, never rerouted)'],
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
-    ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here (the label is the binding alias) — gray dashed edges are ordering only'],
+    ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here — the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
     ['ex-glyph-data', 'Lineage — follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades — Esc clears'],
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance — ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
-    ['ex-glyph-ghost', 'Red dashed edges', 'a task READS another without declaring depends_on (NIKA-DAG-003) — click the edge to declare it'],
+    ['ex-glyph-dep', 'Gray dashed edges', 'control — after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read — cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
   ];
   for (const [glyphClass, head, body] of rows) {

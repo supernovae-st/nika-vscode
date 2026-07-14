@@ -17,12 +17,9 @@ import {
   type UnifiedFinding,
 } from '../core/cliContract';
 import { scanSecrets, type SecretFinding } from '../core/credentialLint';
-import { collectDataFlow } from '../core/dataflow';
-import { redundantEdges } from '../core/graphIntel';
 import { collectShapes } from '../core/schemaShape';
 import { severityOverrideFor, type SeverityName } from '../core/severityMap';
-import { parseDag003 } from '../core/structuralFixes';
-import { parseRichWorkflow, type RichWorkflow } from '../workflowParser';
+import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
 
 export const NIKA_DIAG_SOURCE = 'nika';
@@ -37,40 +34,10 @@ export interface StoredSecret {
   range: vscode.Range;
 }
 
-export interface StoredRedundant {
-  task: string;
-  dep: string;
-  range: vscode.Range;
-}
-
 /** Escape a client-parsed id for RegExp use — the loose parser accepts
  * WIP garbage like `a(b)`, which must never throw out of the linter. */
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Range of `dep` inside `task`'s depends_on (inline item or block line). */
-function dependsOnEntryRange(
-  doc: vscode.TextDocument,
-  wf: RichWorkflow,
-  taskId: string,
-  dep: string,
-): vscode.Range | undefined {
-  const task = wf.tasks.find((t) => t.id === taskId);
-  if (!task) { return undefined; }
-  for (let i = task.line; i <= task.endLine && i < doc.lineCount; i++) {
-    const line = doc.lineAt(i).text;
-    if (/^\s*depends_on:/.test(line)) {
-      const idx = line.indexOf(dep, line.indexOf(':'));
-      if (idx !== -1) { return new vscode.Range(i, idx, i, idx + dep.length); }
-      continue;
-    }
-    const block = line.match(new RegExp(`^(\\s*-\\s*)(${escapeRe(dep)})\\s*(#.*)?$`));
-    if (block) {
-      return new vscode.Range(i, block[1].length, i, block[1].length + dep.length);
-    }
-  }
-  return undefined;
 }
 
 function severityOf(f: UnifiedFinding): vscode.DiagnosticSeverity {
@@ -112,7 +79,6 @@ export class DiagnosticsController implements vscode.Disposable {
   private readonly collection = vscode.languages.createDiagnosticCollection(NIKA_DIAG_SOURCE);
   private readonly findings = new Map<string, StoredFinding[]>();
   private readonly secrets = new Map<string, StoredSecret[]>();
-  private readonly redundant = new Map<string, StoredRedundant[]>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly disposables: vscode.Disposable[] = [];
   /** Fires around each lint pass — the language status busy indicator. */
@@ -120,7 +86,7 @@ export class DiagnosticsController implements vscode.Disposable {
   readonly onDidRunState = this.runStateEmitter.event;
   /** When true, the LSP owns VISIBLE check diagnostics — the client check
    *  still runs to feed the quick-fix findings store, but publishes only
-   *  the local lints (secrets · redundant-dep · unused-schema). */
+   *  the local lints (secrets · unused-schema). */
   lspOwnsDiagnostics = false;
 
   constructor(private readonly service: NikaService) {
@@ -163,10 +129,6 @@ export class DiagnosticsController implements vscode.Disposable {
 
   secretsAt(uri: vscode.Uri, range: vscode.Range): StoredSecret[] {
     return (this.secrets.get(uri.toString()) ?? []).filter((s) => s.range.intersection(range) !== undefined);
-  }
-
-  redundantAt(uri: vscode.Uri, range: vscode.Range): StoredRedundant[] {
-    return (this.redundant.get(uri.toString()) ?? []).filter((s) => s.range.intersection(range) !== undefined);
   }
 
   /** Latest check outcome facts for the code lens (ceiling · waves). */
@@ -220,54 +182,24 @@ export class DiagnosticsController implements vscode.Disposable {
     }
     this.secrets.set(doc.uri.toString(), storedSecrets);
 
-    // 1bis · transitive reduction (Aho-Garey-Ullman 1972): an order-only
-    // depends_on already guaranteed through a longer path narrows the
-    // parallelism for nothing — surface it as an Information hint with a
-    // one-click removal. Data-carrying edges are exempt: a wire the task
-    // READS stays, even when ordering survives without it.
-    const storedRedundant: StoredRedundant[] = [];
-    {
-      const wf = parseRichWorkflow(text);
-      const flow = collectDataFlow(text);
-      // Reachability uses ALL edges; only data-free ones may be removed.
-      const allEdges = wf.tasks.flatMap((t) => t.dependsOn.map((d) => ({ source: d, target: t.id })));
-      const redundantAll = redundantEdges(wf.tasks.map((t) => t.id), allEdges);
-      for (const edge of redundantAll) {
-        const carries = (flow.inputs.get(edge.target) ?? []).some((b) => b.from === edge.source);
-        if (carries) { continue; }
-        const range = dependsOnEntryRange(doc, wf, edge.target, edge.source);
-        if (!range) { continue; }
-        const d = new vscode.Diagnostic(
-          range,
-          `redundant depends_on: \`${edge.target}\` already runs after \`${edge.source}\` through a longer path — removing this widens parallelism (transitive reduction)`,
-          vscode.DiagnosticSeverity.Information,
-        );
-        d.source = NIKA_DIAG_SOURCE;
-        d.code = 'nika.redundant-dep';
-        d.tags = [vscode.DiagnosticTag.Unnecessary];
-        const srcTask = wf.tasks.find((t) => t.id === edge.source);
-        if (srcTask) {
-          d.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-            new vscode.Location(doc.uri, doc.lineAt(Math.min(srcTask.line, doc.lineCount - 1)).range),
-            `\`${edge.source}\` already orders \`${edge.target}\` through the longer path from here`,
-          )];
-        }
-        if (applySeverityRemap(d)) { diagnostics.push(d); }
-        storedRedundant.push({ task: edge.target, dep: edge.source, range });
-      }
-    }
-    this.redundant.set(doc.uri.toString(), storedRedundant);
+    // (The pre-W2 « redundant depends_on » transitive-reduction lint is
+    // RETIRED: under the gate algebra v2 a longer path does not imply
+    // the direct edge's admission semantics — pass-sets compose per
+    // edge, so removing a « redundant » control edge can change what
+    // runs. The one legal narrow class — a non-tightening `after:`
+    // restatement beside a value edge — is the reference linter's
+    // one-obvious-way/010, the engine's voice, not a client re-guess.)
 
-    // 1ter · declared-but-unconsumed schema: a task PROMISES a typed shape
+    // 1bis · declared-but-unconsumed schema: a task PROMISES a typed shape
     // (`schema:`) but nothing downstream ever reads `tasks.X…`. Sinks are
     // exempt — their output IS the workflow's result. Consumption is the
-    // bare-regex scan (when:/outputs:/CEL live OUTSIDE ${{ }} islands).
+    // bare-regex scan over the whole document.
     {
       const wf = parseRichWorkflow(text);
       const shapes = collectShapes(text);
       const dependedUpon = new Set<string>();
       for (const t of wf.tasks) {
-        for (const d of t.dependsOn) { dependedUpon.add(d); }
+        for (const producer of t.producers) { dependedUpon.add(producer); }
       }
       for (const t of wf.tasks) {
         if (!dependedUpon.has(t.id)) { continue; } // sink — result carrier
@@ -330,18 +262,6 @@ export class DiagnosticsController implements vscode.Disposable {
             : f.code.startsWith('NIKA-')
               ? { value: f.code, target: vscode.Uri.parse(`https://nika.sh/errors/${f.code}`) }
               : f.code;
-          // DAG-003 names two tasks — light the producer's declaration so
-          // the Problems panel walks the user to both ends of the wire.
-          if (f.code === 'NIKA-DAG-003') {
-            const dag = parseDag003(f.message);
-            const declLine = dag ? taskLine.get(dag.missing) : undefined;
-            if (dag && declLine !== undefined) {
-              d.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-                new vscode.Location(doc.uri, doc.lineAt(Math.min(declLine, doc.lineCount - 1)).range),
-                `\`${dag.missing}\` is produced here — declare it in \`${dag.task}\`'s depends_on`,
-              )];
-            }
-          }
           if (applySeverityRemap(d)) { diagnostics.push(d); }
         }
       }

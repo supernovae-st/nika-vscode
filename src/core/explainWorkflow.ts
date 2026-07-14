@@ -2,7 +2,7 @@
 //
 // `Nika: Explain Workflow` renders THIS markdown: what the workflow does,
 // wave by wave, what it costs, what it touches — composed strictly from
-// the engine's own projections (`graph --format json` + `check --json`).
+// the engine's own projections (`inspect --format json` + `check --json`).
 // Zero invention, zero LLM, works offline: every sentence is traceable to
 // an engine fact. An agent-enriched version can layer ON TOP of this
 // (never replace it) — the deterministic read is the floor of truth.
@@ -17,6 +17,7 @@ function kahnWaves(graph: DagGraph): string[][] {
   const out = new Map<string, string[]>();
   for (const n of graph.nodes) { indeg.set(n.id, 0); }
   for (const e of graph.edges) {
+    if (e.kind === 'recovery' || e.kind === 'finally') { continue; } // parking reads never order
     if (!indeg.has(e.source) || !indeg.has(e.target)) { continue; }
     indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
     out.set(e.source, [...(out.get(e.source) ?? []), e.target]);
@@ -69,8 +70,8 @@ export function explainWorkflow(graph: DagGraph, report?: CheckReport): string {
   lines.push('');
   lines.push(
     `**${nodes.length} task${nodes.length === 1 ? '' : 's'} · ${graph.edges.length} ` +
-    `dependenc${graph.edges.length === 1 ? 'y' : 'ies'}** — a deterministic read derived from ` +
-    'the engine\'s `graph` + `check` projections. Nothing here is invented or inferred by an LLM.',
+    `typed edge${graph.edges.length === 1 ? '' : 's'}** — a deterministic read derived from ` +
+    'the engine\'s `inspect` + `check` projections. Nothing here is invented or inferred by an LLM.',
   );
   lines.push('');
 
@@ -145,10 +146,6 @@ export function explainWorkflow(graph: DagGraph, report?: CheckReport): string {
   const risks: string[] = [];
   if (report && report.conformance.length > 0) {
     risks.push(`${report.conformance.length} conformance finding${report.conformance.length === 1 ? '' : 's'} (open the check report for the NIKA-XXX detail)`);
-  }
-  const ghosts = graph.edges.filter((e) => e.ghost === true);
-  if (ghosts.length > 0) {
-    risks.push(`${ghosts.length} ghost edge${ghosts.length === 1 ? '' : 's'} — a data reference without its \`depends_on\` (${ghosts.map((g) => `\`${g.source}→${g.target}\``).join(', ')})`);
   }
   const analysis = report?.analysis;
   if (analysis) {

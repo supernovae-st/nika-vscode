@@ -47,7 +47,7 @@ describe('lensVocab (one voice for the lens doors)', () => {
   });
 
   it('the flow doors speak the same voice — the gate wears the when-glyph', () => {
-    expect(WIRE_INPUTS_DOOR).toBe('$(link) wire its inputs');
+    expect(WIRE_INPUTS_DOOR).toBe('$(link) order on state');
     expect(GATE_DOOR).toBe('⌁ choose a gate');
     expect(COLLECTION_DOOR).toBe('$(symbol-array) choose the collection');
   });

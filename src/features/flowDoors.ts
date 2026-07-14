@@ -1,18 +1,21 @@
-// flowDoors.ts — the flow pickers behind the V2 doors: « wire its
-// inputs » (depends_on) · « choose a gate » (when:) · « choose the
-// collection » (for_each:). The §219 law composes here: a gate or
-// collection that reads `tasks.<id>` wires the depends_on edge FIRST
-// (two chained pure edits, re-anchored by id between them) — the door
-// can never write the parse rejection the spec promises.
+// flowDoors.ts — the flow pickers behind the V2 doors: « order on
+// state » (after:) · « choose a gate » (when:) · « choose the
+// collection » (for_each:). W2 « the flow » composes here: `when:` and
+// `for_each:` read LOCAL namespaces only (a `tasks.*` ref there is
+// NIKA-VAR-021), so a pick that reads an upstream VALUE hoists it
+// through `with:` FIRST (the binding IS the edge) and a pick that
+// reads upstream STATE becomes an `after:` entry — two chained pure
+// edits, re-anchored by id between them: the doors can never write
+// the parse rejection the spec promises.
 
 import * as vscode from 'vscode';
 import {
-  dependsRewrite, fanoutRewrite, gateRewrite, gateShapes, upstreamCandidates,
-  type CollectionRef, type GateShape, type TaskRange,
+  afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, upstreamCandidates,
+  type CollectionRef, type GateShape,
 } from '../core/flowEdit';
 import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
-import { parseRichWorkflow } from '../workflowParser';
+import { parseRichWorkflow, type RichTask } from '../workflowParser';
 
 const VERB_GLYPH: Record<string, string> = Object.fromEntries(
   VERB_ITEMS.map((v) => [v.verb, v.glyph]),
@@ -21,8 +24,8 @@ const VERB_GLYPH: Record<string, string> = Object.fromEntries(
 interface Anchored {
   doc: vscode.TextDocument;
   text: string;
-  tasks: ReturnType<typeof parseRichWorkflow>['tasks'];
-  task: ReturnType<typeof parseRichWorkflow>['tasks'][number];
+  tasks: RichTask[];
+  task: RichTask;
   varsKeys: string[];
 }
 
@@ -42,24 +45,32 @@ async function applyFullRewrite(doc: vscode.TextDocument, next: string): Promise
   await vscode.workspace.applyEdit(edit);
 }
 
-/** The §219 compose: wire the edge first, re-anchor, then write the
- * key — one caller-visible gesture, two surgical edits. */
-function withEdge(
+/** The W2 hoist compose: bind the upstream value through `with:` first,
+ * re-anchor, then write the local read — one caller-visible gesture,
+ * two surgical edits. */
+function withBinding(
   a: Anchored,
-  needsTask: string | undefined,
-  write: (text: string, task: TaskRange) => string | undefined,
+  producer: string,
+  path: string,
+  aliasBase: string,
+  write: (text: string, task: RichTask, alias: string) => string | undefined,
 ): string | undefined {
-  if (!needsTask || a.task.dependsOn.includes(needsTask)) {
-    return write(a.text, a.task);
+  const already = a.task.withRefs.find((r) => r.from === producer && r.path === path);
+  if (already) {
+    return write(a.text, a.task, already.alias);
   }
-  const wired = dependsRewrite(a.text, a.task, [...a.task.dependsOn, needsTask]);
-  if (wired === undefined) { return undefined; }
-  const again = parseRichWorkflow(wired).tasks.find((t) => t.id === a.task.id);
+  const bound = bindingInsert(
+    a.text, a.task, aliasBase,
+    `tasks.${producer}.${path}`,
+    a.task.withAliases,
+  );
+  if (bound === undefined) { return undefined; }
+  const again = parseRichWorkflow(bound.text).tasks.find((t) => t.id === a.task.id);
   if (!again) { return undefined; }
-  return write(wired, again);
+  return write(bound.text, again, bound.alias);
 }
 
-// ─── « wire its inputs » ─────────────────────────────────────────────────────
+// ─── « order on state » (after:) ─────────────────────────────────────────────
 
 type InputPick = vscode.QuickPickItem & { id: string };
 
@@ -69,25 +80,34 @@ export async function wireInputsFor(uri: vscode.Uri, taskId: string): Promise<vo
   const candidates = upstreamCandidates(a.tasks, taskId);
   if (candidates.length === 0) {
     void vscode.window.showInformationMessage(
-      `Nika: nothing can feed \`${taskId}\` — every other task already depends on it.`,
+      `Nika: nothing can order \`${taskId}\` — every other task already runs after it.`,
     );
     return;
   }
-  const current = new Set(a.task.dependsOn);
+  const current = a.task.after;
+  const dataFed = new Set(a.task.withRefs.map((r) => r.from));
   const picked = await vscode.window.showQuickPick<InputPick>(
     candidates.map((t) => ({
       label: `${VERB_GLYPH[(t as { verb?: string }).verb ?? ''] ?? ''} ${t.id}`.trim(),
-      description: current.has(t.id) ? 'wired today' : undefined,
-      picked: current.has(t.id),
+      description: t.id in current
+        ? `after: ${current[t.id]}`
+        : dataFed.has(t.id)
+          ? 'already feeds it via with: (data edge) — pick to TIGHTEN the gate'
+          : undefined,
+      picked: t.id in current,
       id: t.id,
     })),
     {
       canPickMany: true,
-      placeHolder: `what \`${taskId}\` waits for — descendants stay out (a cycle is never offered)`,
+      placeHolder: `what \`${taskId}\` waits for (control · state, never data) — descendants stay out (a cycle is never offered)`,
     },
   );
   if (!picked) { return; }
-  const next = dependsRewrite(a.text, a.task, picked.map((p) => p.id));
+  // Kept picks keep their declared predicate; fresh picks gate on
+  // succeeded (the strict default — terminal/failed/skipped are hand
+  // tunings the lens leaves in place once written).
+  const entries = picked.map((p) => [p.id, current[p.id] ?? 'succeeded'] as const);
+  const next = afterRewrite(a.text, a.task, entries);
   if (next === undefined || next === a.text) { return; }
   await applyFullRewrite(a.doc, next);
 }
@@ -96,11 +116,22 @@ export async function wireInputsFor(uri: vscode.Uri, taskId: string): Promise<vo
 
 type GatePick = vscode.QuickPickItem & { shape?: GateShape };
 
+function gateDetail(s: GateShape): string {
+  switch (s.action.kind) {
+    case 'when': return `when: \${{ ${s.action.expr} }}`;
+    case 'after': return `after: { ${s.action.producer}: ${s.action.predicate} }`;
+    case 'bind-when': {
+      const alias = s.action.aliasBase;
+      return `with: { ${alias}: \${{ tasks.${s.action.producer}.${s.action.path} }} } · when: \${{ ${s.action.exprOf(alias)} }}`;
+    }
+  }
+}
+
 export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<void> {
   const a = await anchor(uri, taskId);
   if (!a) { return; }
   const upstream = upstreamCandidates(a.tasks, taskId);
-  const shapes = gateShapes(a.varsKeys, upstream);
+  const shapes = gateShapes(a.varsKeys, a.task.withAliases, upstream);
   if (shapes.length === 0) {
     void vscode.window.showInformationMessage(
       'Nika: nothing to gate on yet — declare an input (vars:) or add an upstream task.',
@@ -108,21 +139,41 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
     return;
   }
   const rows: GatePick[] = [];
-  let group: 'vars' | 'tasks' | undefined;
+  let group: 'local' | 'tasks' | undefined;
   for (const s of shapes) {
-    const g = s.needsTask ? 'tasks' : 'vars';
+    const g = s.action.kind === 'when' ? 'local' : 'tasks';
     if (g !== group) {
-      rows.push({ label: g === 'vars' ? 'inputs' : 'upstream tasks', kind: vscode.QuickPickItemKind.Separator });
+      rows.push({
+        label: g === 'local' ? 'local reads (vars · with)' : 'upstream tasks (after: / hoist)',
+        kind: vscode.QuickPickItemKind.Separator,
+      });
       group = g;
     }
-    rows.push({ label: `⌁ ${s.label}`, description: s.hint, detail: `when: \${{ ${s.expr} }}`, shape: s });
+    rows.push({ label: `⌁ ${s.label}`, description: s.hint, detail: gateDetail(s), shape: s });
   }
   const picked = await vscode.window.showQuickPick(rows, {
-    placeHolder: 'the CEL v0.1 gate this task runs behind — a tasks.* gate wires its depends_on edge too',
+    placeHolder: 'when: reads LOCAL values only — upstream state becomes after:, an upstream value crosses through with: first',
     matchOnDescription: true,
   });
   if (!picked?.shape) { return; }
-  const next = withEdge(a, picked.shape.needsTask, (t, task) => gateRewrite(t, task, picked.shape!.expr));
+  const action = picked.shape.action;
+  let next: string | undefined;
+  switch (action.kind) {
+    case 'when':
+      next = gateRewrite(a.text, a.task, action.expr);
+      break;
+    case 'after': {
+      const entries: Array<readonly [string, string]> = Object.entries(a.task.after)
+        .filter(([p]) => p !== action.producer);
+      entries.push([action.producer, action.predicate]);
+      next = afterRewrite(a.text, a.task, entries);
+      break;
+    }
+    case 'bind-when':
+      next = withBinding(a, action.producer, action.path, action.aliasBase,
+        (t, task, alias) => gateRewrite(t, task, action.exprOf(alias)));
+      break;
+  }
   if (next === undefined || next === a.text) { return; }
   await applyFullRewrite(a.doc, next);
 }
@@ -152,13 +203,21 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
       });
     }
   }
+  const bound = new Map(a.task.withRefs.map((r) => [`${r.from}.${r.path}`, r.alias]));
   if (upstream.length > 0) {
-    rows.push({ label: 'upstream outputs', kind: vscode.QuickPickItemKind.Separator });
+    rows.push({ label: 'upstream outputs (cross through with:)', kind: vscode.QuickPickItemKind.Separator });
     for (const t of upstream) {
+      const alias = bound.get(`${t.id}.output`);
       rows.push({
         label: `${VERB_GLYPH[(t as { verb?: string }).verb ?? ''] ?? ''} tasks.${t.id}.output`.trim(),
-        description: 'a prior task\'s array output — wires the depends_on edge too',
-        collection: { label: t.id, ref: `tasks.${t.id}.output`, needsTask: t.id },
+        description: alias !== undefined
+          ? `already bound as with.${alias} — for_each reads the binding`
+          : 'binds with: { … } first — the binding IS the edge, for_each reads it',
+        collection: {
+          label: t.id,
+          ref: `with.${alias ?? t.id}`,
+          needsBinding: { producer: t.id, path: 'output', aliasBase: t.id },
+        },
       });
     }
   }
@@ -183,7 +242,10 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
   });
   if (!picked?.collection) { return; }
   const c = picked.collection;
-  const next = withEdge(a, c.needsTask, (t, task) => fanoutRewrite(t, task, c.ref));
+  const next = c.needsBinding
+    ? withBinding(a, c.needsBinding.producer, c.needsBinding.path, c.needsBinding.aliasBase,
+        (t, task, alias) => fanoutRewrite(t, task, `with.${alias}`))
+    : fanoutRewrite(a.text, a.task, c.ref);
   if (next === undefined || next === a.text) { return; }
   await applyFullRewrite(a.doc, next);
 }

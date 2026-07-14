@@ -13,7 +13,7 @@ import {
 } from '../core/cliContract';
 
 const DOC: GraphDoc = {
-  graph_format: 1,
+  graph_format: 2,
   workflow: 'audit-site',
   nodes: [
     { id: 'fetch_page', verb: 'invoke', tool: 'nika:fetch', when: 'true', permits: [] },
@@ -28,28 +28,44 @@ const DOC: GraphDoc = {
     {
       id: 'fanout',
       verb: 'exec',
-      when: 'tasks.summarize.status == "success"',
+      when: '${{ size(with.summary) > 0 }}',
       fan_out: { kind: 'list', count: 3 },
       permits: [],
     },
   ],
   edges: [
-    { from: 'fetch_page', to: 'summarize', kind: 'depends_on' },
-    { from: 'summarize', to: 'fanout', kind: 'depends_on' },
+    { from: 'fetch_page', to: 'summarize', kind: 'value', binding: 'page' },
+    { from: 'summarize', to: 'fanout', kind: 'control', predicate: 'succeeded' },
+    { from: 'summarize', to: 'fanout', kind: 'value', binding: 'summary' },
+    { from: 'fetch_page', to: 'fanout', kind: 'recovery' },
   ],
 };
 
 describe('graphDocToDag', () => {
-  it('adapts the CLI GraphDoc into the webview DagGraph', () => {
+  it('adapts the CLI GraphDoc into the webview DagGraph — typed edges carried', () => {
     const dag = graphDocToDag(DOC);
     expect(dag.workflowName).toBe('audit-site');
     expect(dag.nodes).toHaveLength(3);
-    expect(dag.edges).toHaveLength(2);
+    expect(dag.edges).toHaveLength(4);
 
     const byId = new Map(dag.nodes.map((n) => [n.id, n]));
-    expect(byId.get('summarize')?.dependsOn).toEqual(['fetch_page']);
-    expect(byId.get('fanout')?.dependsOn).toEqual(['summarize']);
-    expect(byId.get('fetch_page')?.dependsOn).toEqual([]);
+    expect(byId.get('summarize')?.producers).toEqual(['fetch_page']);
+    // Recovery PARKS — fetch_page never becomes a scheduling producer of
+    // fanout through it; the control + value pair dedupes to one producer.
+    expect(byId.get('fanout')?.producers).toEqual(['summarize']);
+    expect(byId.get('fetch_page')?.producers).toEqual([]);
+
+    // Two edges may share endpoints (control + value is the spec's own
+    // gate-tightening pairing) — the kind qualifies the id, nothing drops.
+    const ids = dag.edges.map((e) => e.id);
+    expect(new Set(ids).size).toBe(4);
+    const ctl = dag.edges.find((e) => e.kind === 'control')!;
+    expect(ctl.predicate).toBe('succeeded');
+    expect(ctl.label).toBeUndefined();
+    const val = dag.edges.find((e) => e.kind === 'value' && e.target === 'fanout')!;
+    expect(val.label).toBe('summary');
+    const rec = dag.edges.find((e) => e.kind === 'recovery')!;
+    expect(rec.source).toBe('fetch_page');
 
     // Every node starts pending — the static graph never carries run state.
     for (const n of dag.nodes) { expect(n.status).toBe('pending'); }
@@ -67,7 +83,7 @@ describe('graphDocToDag', () => {
   it('drops the implicit "true" gate but keeps real conditions', () => {
     const dag = graphDocToDag(DOC);
     expect(dag.nodes.find((x) => x.id === 'fetch_page')?.when).toBeUndefined();
-    expect(dag.nodes.find((x) => x.id === 'fanout')?.when).toContain('summarize');
+    expect(dag.nodes.find((x) => x.id === 'fanout')?.when).toContain('with.summary');
     expect(dag.nodes.find((x) => x.id === 'fanout')?.fanOutCount).toBe(3);
   });
 
@@ -76,10 +92,15 @@ describe('graphDocToDag', () => {
     expect(dag.nodes.find((x) => x.id === 'fetch_page')?.tool).toBe('nika:fetch');
   });
 
-  it('guards the envelope shape', () => {
+  it('guards the envelope shape — and REFUSES format 1 (no fallback)', () => {
     expect(isGraphDoc(DOC)).toBe(true);
     expect(isGraphDoc({ nodes: [] })).toBe(false);
     expect(isGraphDoc(null)).toBe(false);
+    // A v1 reader assuming every edge orders would MIS-READ an
+    // observation edge — the format number moved for that reason, and a
+    // reader refuses what it does not speak rather than guess.
+    expect(isGraphDoc({ graph_format: 1, workflow: 'w', nodes: [], edges: [] })).toBe(false);
+    expect(isGraphDoc({ graph_format: 3, workflow: 'w', nodes: [], edges: [] })).toBe(false);
   });
 });
 

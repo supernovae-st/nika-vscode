@@ -75,7 +75,6 @@ tasks:
         url: https://example.com
 
   summarize:
-    depends_on: [fetch_page]
     with:
       page: \${{ tasks.fetch_page.output }}
     infer:
@@ -139,7 +138,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     }
   });
 
-  it('graph --format json adapts into the webview DagGraph', () => {
+  it('inspect --format json adapts into the webview DagGraph (graph_format 2)', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
       const res = run(['inspect', file, '--format', 'json']);
@@ -150,7 +149,8 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
       expect(dag.nodes.map((n) => n.id)).toEqual(['fetch_page', 'summarize']);
       expect(dag.nodes[0].tool).toBe('nika:fetch');
       expect(dag.edges).toEqual([
-        { id: 'fetch_page->summarize', source: 'fetch_page', target: 'summarize', isDataEdge: false },
+        // The with: binding IS the edge — typed value, the alias rides it.
+        { id: 'fetch_page->summarize:value:page', source: 'fetch_page', target: 'summarize', kind: 'value', label: 'page' },
       ]);
     } finally {
       fs.unlinkSync(file);
@@ -183,7 +183,7 @@ tasks:
     output:
       summary: ".text"
   save:
-    depends_on: [guarded]
+    after: { guarded: succeeded }
     invoke:
       tool: "nika:write"
       args:
@@ -321,8 +321,8 @@ tasks:
     expect(intel!.extractModes).toHaveLength(canonCount('extract_modes')!);
     expect(intel!.builtinTools).toHaveLength(canonCount('builtins')!);
     expect(intel!.taskFields.map((f) => f.name)).toEqual(
-      // W1: the key IS the identity — `id` left the task property set.
-      expect.arrayContaining(['depends_on', 'when', 'for_each', 'retry', 'infer', 'exec', 'invoke', 'agent']),
+      // W2: the two boundary doors lead the task shape — depends_on is dead.
+      expect.arrayContaining(['with', 'after', 'when', 'for_each', 'retry', 'infer', 'exec', 'invoke', 'agent']),
     );
     expect(intel!.verbFields.infer.map((f) => f.name)).toContain('prompt');
   });
@@ -369,9 +369,10 @@ tasks:
       '        required: [title]',
       '',
       '  use:',
-      '    depends_on: [extract]',
+      '    with:',
+      `      picked: \${{ tasks.extract.output.${field} }}`,
       '    infer:',
-      `      prompt: "use \${{ tasks.extract.output.${field} }}"`,
+      '      prompt: "use ${{ with.picked }}"',
     ].join('\n');
 
     for (const [field, valid] of [['title', true], ['titel', false]] as const) {
@@ -391,8 +392,12 @@ tasks:
     }
   });
 
-  it('redundant-dep hint is ADDITIVE (the oracle stays clean · we suggest tighter)', async () => {
-    const { redundantEdges } = await import('../core/graphIntel');
+  it('a restated control edge stays LEGAL (redundancy is the linter\'s, never a hard error)', () => {
+    // The pre-W2 client transitive-reduction hint died with the gate
+    // algebra v2 (pass-sets compose per edge — a longer path does not
+    // imply the direct edge's admission). The surviving claim: the
+    // triangle shape is CONFORMANT; any nudge is the engine's own
+    // one-obvious-way lane, never a client re-guess.
     const doc = [
       'nika: v1',
       'workflow:',
@@ -401,24 +406,18 @@ tasks:
       '',
       'tasks:',
       '  a:',
-      '    exec: { command: "echo a" }',
+      '    exec: { command: ["echo", "a"] }',
       '  b:',
-      '    depends_on: [a]',
-      '    exec: { command: "echo b" }',
+      '    after: { a: succeeded }',
+      '    exec: { command: ["echo", "b"] }',
       '  c:',
-      '    depends_on: [a, b]',
-      '    exec: { command: "echo c" }',
+      '    after: { a: succeeded, b: succeeded }',
+      '    exec: { command: ["echo", "c"] }',
     ].join('\n');
     const file = tmpWorkflow(doc);
     try {
       const report = parseCheckReport(run(['check', file, '--json']).stdout)!;
-      expect(report.conformance).toHaveLength(0); // redundancy is legal
-      const redundant = redundantEdges(['a', 'b', 'c'], [
-        { source: 'a', target: 'b' },
-        { source: 'a', target: 'c' },
-        { source: 'b', target: 'c' },
-      ]);
-      expect(redundant).toEqual([{ source: 'a', target: 'c' }]); // we still teach
+      expect(report.conformance).toHaveLength(0);
     } finally {
       fs.unlinkSync(file);
     }
@@ -440,35 +439,52 @@ tasks:
 // error_codes table — both halves of that seam are pinned here.
 
 describe.skipIf(!BIN)('explain ↔ canon error codes (real binary)', () => {
-  it('spec conformance codes either teach natively or trigger the fallback', () => {
-    // Two binary generations: ≥ the explain-canon fix, NIKA-DAG-003
-    // answers exit 0 with the canon row (binary = SSOT, the fallback is
-    // dormant); older binaries answer exit 2 (typed signal) and the
-    // extension projects the same canon row itself. Both are correct —
-    // a third behavior is drift.
-    const res = run(['explain', 'NIKA-DAG-003']);
-    if (res.code === EXIT.OK) {
-      expect(res.stdout).toContain('NIKA-DAG-003');
-      expect(res.stdout).toContain('validation_error');
+  it('spec conformance codes teach natively — a RETIRED code keeps its page', () => {
+    // A live spec code teaches its canon row (category + failure); a
+    // retired one (NIKA-DAG-003 died with W2 — the binding IS the edge)
+    // still answers: the page says « retired » and names the successor
+    // (NIKA-VAR-021). Older binaries answer exit 2 (typed signal) and
+    // the extension projects the canon itself. A third behavior is drift.
+    const live = run(['explain', 'NIKA-DAG-005']);
+    if (live.code === EXIT.OK) {
+      expect(live.stdout).toContain('NIKA-DAG-005');
+      expect(live.stdout).toContain('validation_error');
     } else {
-      expect(res.code).toBe(EXIT.FILE_FINDINGS);
+      expect(live.code).toBe(EXIT.FILE_FINDINGS);
+    }
+    const retired = run(['explain', 'NIKA-DAG-003']);
+    if (retired.code === EXIT.OK) {
+      expect(retired.stdout).toContain('NIKA-DAG-003');
+      expect(retired.stdout.toLowerCase()).toContain('retired');
+      expect(retired.stdout).toContain('NIKA-VAR-021'); // the successor teaching
+    } else {
+      expect(retired.code).toBe(EXIT.FILE_FINDINGS);
     }
   });
 
-  it('the canon error_codes table carries every namespace the checker emits', () => {
+  it('the canon error_codes table carries every W2 flow code the checker emits', () => {
     const canon = run(['spec', '--canon']).stdout;
     const rows = parseCanonErrorCodes(canon);
     expect(rows.length).toBeGreaterThan(0);
 
-    // Derived count, never hand-written: the canon's own count field.
+    // The fallback carries AT LEAST what the canon declares for itself.
+    // (Exact count-vs-items equality is the SPEC repo's own derive gate —
+    // canon-spec-counts-derive.sh — not a client re-check: as of the W2
+    // window the table holds 61 items against a declared 59, an upstream
+    // count drift the client must not paper over NOR crash on.)
     const declared = canon.match(/error_codes:\s*\n\s*count:\s*(\d+)/);
     expect(declared, 'canon declares error_codes.count').not.toBeNull();
-    expect(rows).toHaveLength(Number(declared![1]));
+    expect(rows.length).toBeGreaterThanOrEqual(Number(declared![1]));
 
-    const dag3 = rows.find((r) => r.code === 'NIKA-DAG-003');
-    expect(dag3).toBeDefined();
-    expect(dag3!.category).toBe('validation_error');
-    expect(dag3!.failure.length).toBeGreaterThan(10);
+    // The W2 flow codes are rows; the retired DAG-003 is a COMMENT (an
+    // allocation hole, never a row) — the fallback must reflect both.
+    for (const code of ['NIKA-PARSE-024', 'NIKA-DAG-005', 'NIKA-VAR-021']) {
+      const row = rows.find((r) => r.code === code);
+      expect(row, `${code} in the canon table`).toBeDefined();
+      expect(row!.category).toBe('validation_error');
+      expect(row!.failure.length).toBeGreaterThan(10);
+    }
+    expect(rows.find((r) => r.code === 'NIKA-DAG-003')).toBeUndefined();
   });
 
   it('numeric registry codes still answer exit 0 (native explain)', () => {
@@ -483,7 +499,7 @@ describe.skipIf(!BIN)('explain ↔ canon error codes (real binary)', () => {
 describe('graphDocToDag adaptation (pure)', () => {
   it('engine-projected policy wins the card fields (0.99+ graph)', () => {
     const doc = {
-      graph_format: 1,
+      graph_format: 2,
       workflow: 'policy_probe',
       nodes: [
         {
@@ -518,13 +534,13 @@ describe('graphDocToDag adaptation (pure)', () => {
 
   it('carries per-task permits onto the node (#367 contract)', () => {
     const doc = {
-      graph_format: 1,
+      graph_format: 2,
       workflow: 'permits_probe',
       nodes: [
         { id: 'a', verb: 'invoke', tool: 'nika:fetch', permits: ['net.http: api.example.org'] },
         { id: 'b', verb: 'infer', permits: [] },
       ],
-      edges: [{ from: 'a', to: 'b', kind: 'depends_on' }],
+      edges: [{ from: 'a', to: 'b', kind: 'control', predicate: 'succeeded' }],
     };
     const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
     expect(dag.nodes[0].permits).toEqual(['net.http: api.example.org']);
@@ -582,17 +598,17 @@ tasks:
       prompt: "seed"
 
   left:
-    depends_on: [root]
+    after: { root: succeeded }
     infer:
       prompt: "l"
 
   right:
-    depends_on: [root]
+    after: { root: succeeded }
     infer:
       prompt: "r"
 
   join:
-    depends_on: [left, right]
+    after: { left: succeeded, right: succeeded }
     infer:
       prompt: "j"
 `;

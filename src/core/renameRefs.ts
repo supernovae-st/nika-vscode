@@ -1,10 +1,11 @@
 // renameRefs.ts — task-id rename/references engine (pure · no vscode).
 //
-// A task id is referenced from FOUR syntactic homes:
-//   1. its declaration         `extract:` (the indent-2 map key · W1)
-//   2. depends_on entries      `depends_on: [extract]` · block `- extract`
-//   3. template islands        `${{ tasks.extract.output }}`
-//   4. bare CEL strings        `when: "tasks.extract.status == 'success'"`
+// A task id is referenced from FOUR syntactic homes (W2 « the flow »):
+//   1. its declaration    `extract:` (the indent-2 map key · W1)
+//   2. after entries      `after: { extract: succeeded }` · block `extract: succeeded`
+//   3. template islands   `${{ tasks.extract.output }}` (with: values · recover:)
+//   4. bare CEL strings   an un-islanded `tasks.extract…` (WIP text — the
+//                         engine refuses it at parse, the rename still follows)
 // Rename must hit all four or it produces a broken DAG — which is why
 // this lives in ONE scanner shared by rename and find-references.
 
@@ -21,7 +22,7 @@ export interface RefSpan {
   /** UTF-16 offset of the id token. */
   start: number;
   end: number;
-  home: 'declaration' | 'depends_on' | 'island' | 'cel';
+  home: 'declaration' | 'after' | 'island' | 'cel';
 }
 
 function escapeRe(s: string): string {
@@ -44,12 +45,12 @@ export function findTaskRefs(text: string, taskId: string): RefSpan[] {
   // the key IS the identity; a same-named typed var never matches
   // because declarations only count while inTasks).
   const declRe = new RegExp(`^( {2})(${id})\\s*:\\s*(#.*)?$`);
-  // 2 · depends_on — inline list or block items
-  const dependsInlineRe = new RegExp(`depends_on:\\s*\\[([^\\]]*)\\]`);
-  const blockItemRe = new RegExp(`^(\\s*-\\s*)(${id})\\s*(#.*)?$`);
+  // 2 · after — inline flow map keys or block entries
+  const afterInlineRe = /after:\s*\{([^}]*)\}/;
+  const blockEntryRe = new RegExp(`^(\\s*)(${id})\\s*:\\s*[a-z]+\\s*(#.*)?$`);
 
-  let inDependsBlock = false;
-  let dependsIndent = 0;
+  let inAfterBlock = false;
+  let afterIndent = 0;
   let inTasks = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -61,31 +62,31 @@ export function findTaskRefs(text: string, taskId: string): RefSpan[] {
       refs.push({ start: base + decl[1].length, end: base + decl[1].length + taskId.length, home: 'declaration' });
     }
 
-    const inline = line.match(dependsInlineRe);
+    const inline = line.match(afterInlineRe);
     if (inline && inline.index !== undefined) {
       const inner = inline[1];
-      const innerStart = base + inline.index + inline[0].indexOf('[') + 1;
-      const itemRe = new RegExp(`(^|[,\\s"'])(${id})(?=[,\\s"']|$)`, 'g');
-      for (const m of inner.matchAll(itemRe)) {
+      const innerStart = base + inline.index + inline[0].indexOf('{') + 1;
+      const keyRe = new RegExp(`(^|[,{\\s])(${id})(?=\\s*:)`, 'g');
+      for (const m of inner.matchAll(keyRe)) {
         const off = innerStart + (m.index ?? 0) + m[1].length;
-        refs.push({ start: off, end: off + taskId.length, home: 'depends_on' });
+        refs.push({ start: off, end: off + taskId.length, home: 'after' });
       }
     }
 
-    if (/^\s*depends_on:\s*$/.test(line)) {
-      inDependsBlock = true;
-      dependsIndent = indentOf(line);
+    if (/^\s*after:\s*$/.test(line)) {
+      inAfterBlock = true;
+      afterIndent = indentOf(line);
       continue;
     }
-    if (inDependsBlock) {
+    if (inAfterBlock) {
       const trimmed = line.trim();
       if (trimmed === '') { continue; }
-      if (!trimmed.startsWith('-') || indentOf(line) <= dependsIndent) {
-        inDependsBlock = false;
+      if (indentOf(line) <= afterIndent) {
+        inAfterBlock = false;
       } else {
-        const item = line.match(blockItemRe);
-        if (item) {
-          refs.push({ start: base + item[1].length, end: base + item[1].length + taskId.length, home: 'depends_on' });
+        const entry = line.match(blockEntryRe);
+        if (entry) {
+          refs.push({ start: base + entry[1].length, end: base + entry[1].length + taskId.length, home: 'after' });
         }
         continue;
       }
@@ -101,7 +102,7 @@ export function findTaskRefs(text: string, taskId: string): RefSpan[] {
     const idStart = (m.index ?? 0) + 'tasks.'.length;
     if (seen.has(idStart)) { continue; }
     const insideIsland = islandRanges.some(([s, e]) => idStart >= s && idStart < e);
-    // 4 · outside islands = bare CEL (when:) — still a real reference.
+    // 4 · outside islands = bare CEL (WIP text) — still a real reference.
     refs.push({
       start: idStart,
       end: idStart + taskId.length,
@@ -138,7 +139,7 @@ export function renameTask(text: string, oldId: string, newId: string): string |
  * per-task lens row needs only the number, and calling
  * [`findTaskRefs`] per task made the repaint O(V·L) (quadratic on the
  * generated hundreds-of-tasks DAGs). One line walk + one island scan,
- * same reference classes (depends_on inline/block · `tasks.<id>`
+ * same reference classes (after inline/block · `tasks.<id>`
  * template/CEL); equivalence with the single-id walk is pinned by
  * test, not asserted by hope.
  */
@@ -153,22 +154,22 @@ export function countTaskRefs(text: string, ids: ReadonlySet<string>): Map<strin
     lineStart.push(lineStart[i] + lines[i].length + 1);
   }
 
-  const dependsInlineRe = /depends_on:\s*\[([^\]]*)\]/;
-  const blockItemRe = /^(\s*-\s*)([A-Za-z0-9_]+)\s*(#.*)?$/;
+  const afterInlineRe = /after:\s*\{([^}]*)\}/;
+  const blockEntryRe = /^(\s*)([a-z][a-z0-9_]*)\s*:\s*[a-z]+\s*(#.*)?$/;
   const counted = new Set<number>(); // absolute offsets already counted
 
-  let inDependsBlock = false;
-  let dependsIndent = 0;
+  let inAfterBlock = false;
+  let afterIndent = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const base = lineStart[i];
 
-    const inline = line.match(dependsInlineRe);
+    const inline = line.match(afterInlineRe);
     if (inline && inline.index !== undefined) {
       const inner = inline[1];
-      const innerStart = base + inline.index + inline[0].indexOf('[') + 1;
-      const itemRe = /(^|[,\s"'])([A-Za-z0-9_]+)(?=[,\s"']|$)/g;
-      for (const m of inner.matchAll(itemRe)) {
+      const innerStart = base + inline.index + inline[0].indexOf('{') + 1;
+      const keyRe = /(^|[,{\s])([a-z][a-z0-9_]*)(?=\s*:)/g;
+      for (const m of inner.matchAll(keyRe)) {
         const id = m[2];
         if (!ids.has(id)) { continue; }
         bump(id);
@@ -176,21 +177,21 @@ export function countTaskRefs(text: string, ids: ReadonlySet<string>): Map<strin
       }
     }
 
-    if (/^\s*depends_on:\s*$/.test(line)) {
-      inDependsBlock = true;
-      dependsIndent = indentOf(line);
+    if (/^\s*after:\s*$/.test(line)) {
+      inAfterBlock = true;
+      afterIndent = indentOf(line);
       continue;
     }
-    if (inDependsBlock) {
+    if (inAfterBlock) {
       const trimmed = line.trim();
       if (trimmed === '') { continue; }
-      if (!trimmed.startsWith('-') || indentOf(line) <= dependsIndent) {
-        inDependsBlock = false;
+      if (indentOf(line) <= afterIndent) {
+        inAfterBlock = false;
       } else {
-        const item = line.match(blockItemRe);
-        if (item && ids.has(item[2])) {
-          bump(item[2]);
-          counted.add(base + item[1].length);
+        const entry = line.match(blockEntryRe);
+        if (entry && ids.has(entry[2])) {
+          bump(entry[2]);
+          counted.add(base + entry[1].length);
         }
         continue;
       }

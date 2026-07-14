@@ -31,7 +31,7 @@
       "include": "#verbs"
     },
     {
-      "include": "#depends-on-line"
+      "include": "#after-line"
     },
     {
       "include": "#task-fields"
@@ -197,7 +197,7 @@
       ]
     },
     "task-fields": {
-      "match": "^\\s+(artifact|as|concurrency|context_budget|decompose|depends_on|description|fail_fast|for_each|guardrails|log|model|on_error|output|preset|provider|record|retry|routing|structured|timeout|trust|when|with)(:)",
+      "match": "^\\s+(after|artifact|as|concurrency|context_budget|decompose|description|fail_fast|for_each|guardrails|log|model|on_error|output|preset|provider|record|retry|routing|structured|timeout|trust|when|with)(:)",
       "captures": {
         "1": {
           "name": "support.type.field.nika"
@@ -280,31 +280,6 @@
       "match": "(?<=:\\s)(null|~)\\b",
       "name": "constant.language.null.nika"
     },
-    "depends-on-line": {
-      "match": "^\\s+(depends_on)(:)\\s*(\\[)([^\\]]*)(\\])",
-      "captures": {
-        "1": {
-          "name": "support.type.field.nika"
-        },
-        "2": {
-          "name": "punctuation.separator.key-value.nika"
-        },
-        "3": {
-          "name": "punctuation.definition.array.begin.nika"
-        },
-        "4": {
-          "patterns": [
-            {
-              "match": "[\\w-]+",
-              "name": "variable.other.task-reference.nika"
-            }
-          ]
-        },
-        "5": {
-          "name": "punctuation.definition.array.end.nika"
-        }
-      }
-    },
     "model-line": {
       "match": "^(model)(:)\\s*([\\w.:/-]+)",
       "captures": {
@@ -316,6 +291,35 @@
         },
         "3": {
           "name": "support.constant.provider-name.nika"
+        }
+      }
+    },
+    "after-line": {
+      "match": "^\\s+(after)(:)\\s*(\\{)([^}]*)(\\})",
+      "captures": {
+        "1": {
+          "name": "support.type.field.nika"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.nika"
+        },
+        "3": {
+          "name": "punctuation.definition.dictionary.begin.nika"
+        },
+        "4": {
+          "patterns": [
+            {
+              "match": "\\b(succeeded|failed|skipped|terminal)\\b",
+              "name": "keyword.control.predicate.nika"
+            },
+            {
+              "match": "[a-z][a-z0-9_]*(?=\\s*:)",
+              "name": "variable.other.task-reference.nika"
+            }
+          ]
+        },
+        "5": {
+          "name": "punctuation.definition.dictionary.end.nika"
         }
       }
     }

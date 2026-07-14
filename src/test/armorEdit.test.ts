@@ -7,7 +7,7 @@ workflow:
   id: w
 tasks:
   fetch_data:
-    depends_on: [gather]
+    after: { gather: succeeded }
     when: \${{ vars.live }}
     invoke:
       tool: "nika:fetch"
@@ -21,14 +21,14 @@ tasks:
       skip: true
     timeout: "30s"
     exec:
-      command: "true"
+      command: ["true"]
   gather:
     infer:
       prompt: "a"
 `;
 
-const FETCH: TaskRange = { id: 'fetch_data', line: 4, endLine: 10, dependsOn: ['gather'] };
-const ARMORED: TaskRange = { id: 'armored', line: 11, endLine: 19, dependsOn: [] };
+const FETCH: TaskRange = { id: 'fetch_data', line: 4, endLine: 10, after: { gather: 'succeeded' }, producers: ['gather'] };
+const ARMORED: TaskRange = { id: 'armored', line: 11, endLine: 19, after: {}, producers: [] };
 
 describe('armorEdit (« make it resilient »)', () => {
   it('the register carries the spec\'s three walls (four shapes)', () => {

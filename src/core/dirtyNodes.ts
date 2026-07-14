@@ -50,7 +50,7 @@ export function taskFingerprints(text: string): Map<string, string> {
       // Envelope model is part of the EFFECTIVE substance: changing the
       // workflow default re-runs every task that inherits it.
       `model=${task.model ?? wf.defaultModel ?? ''}`,
-      `deps=${[...task.dependsOn].sort().join(',')}`,
+      `deps=${[...task.producers].sort().join(',')}`,
       ...normalizedTaskLines(lines, task.line, task.endLine),
     ].join('\n');
     prints.set(task.id, fnv1a(material));
@@ -82,12 +82,13 @@ export function computeDirty(text: string, recorded: ReadonlyMap<string, string>
     }
   }
 
-  // Downstream cone: children of stale are stale (BFS over dependsOn).
+  // Downstream cone: children of stale are stale (BFS over the
+  // scheduling producers — after entries AND with-binding sources).
   const wf = parseRichWorkflow(text);
   const childrenOf = new Map<string, string[]>();
   for (const t of wf.tasks) {
-    for (const dep of t.dependsOn) {
-      (childrenOf.get(dep) ?? childrenOf.set(dep, []).get(dep)!).push(t.id);
+    for (const producer of t.producers) {
+      (childrenOf.get(producer) ?? childrenOf.set(producer, []).get(producer)!).push(t.id);
     }
   }
   const stale = new Set<string>(direct);

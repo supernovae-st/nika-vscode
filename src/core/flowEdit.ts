@@ -1,11 +1,15 @@
-// flowEdit.ts — the flow doors (pure): wire its inputs (`depends_on`) ·
-// choose a gate (`when:`) · choose the collection (`for_each:`). One
-// shared discipline: find the task-level key inside the task item,
-// replace its value surgically, or insert at the spec's canonical
-// position (id → depends_on → when → for_each · 03-dag task shape).
-// The §219 law rides along: any `tasks.<id>` reference REQUIRES an
-// explicit depends_on edge — the gate/collection helpers surface the
-// ids they reference so the caller can wire the edge FIRST.
+// flowEdit.ts — the flow doors (pure): order on state (`after:`) ·
+// choose a gate (`when:`) · choose the collection (`for_each:`) · bind
+// data across the boundary (`with:`). One shared discipline: find the
+// task-level key inside the task item, replace its value surgically, or
+// insert at the spec's canonical position (with → after → when →
+// for_each · 03-dag task shape).
+//
+// W2 « the flow »: `when:` reads LOCAL namespaces only (a `tasks.*` ref
+// there is NIKA-VAR-021) — so a gate that used to read an upstream
+// record now either becomes an `after:` entry (state → control edge) or
+// hoists the value through `with:` FIRST and reads the binding. The
+// doors can never write the parse rejection the spec promises.
 
 export interface TaskRange {
   id: string;
@@ -13,15 +17,21 @@ export interface TaskRange {
   line: number;
   /** Last line of the task item (inclusive). */
   endLine: number;
-  dependsOn: string[];
+  /** `after:` control entries — producer → predicate. */
+  after: Record<string, string>;
+  /** Scheduling producers (after keys ∪ with-binding sources). */
+  producers: string[];
 }
+
+/** The closed `after:` predicate set (03-dag §after · NIKA-DAG-005). */
+export const AFTER_PREDICATES = ['succeeded', 'failed', 'skipped', 'terminal'] as const;
 
 interface KeyLine {
   line: number;
   indent: number;
   /** Raw value after the colon (comment kept aside). */
   value: string;
-  /** Last line of a block-list value (inclusive) — flow forms end on `line`. */
+  /** Last line of a block value (inclusive) — flow forms end on `line`. */
   end: number;
 }
 
@@ -37,9 +47,8 @@ function fieldIndentOf(lines: readonly string[], task: TaskRange): number {
 }
 
 /** Find a task-level `key:` inside the item. A block value's extent
- * (list items AND map children — `retry:`'s fields as much as
- * `depends_on:`'s dashes) is any deeper-indented run; blanks stay
- * inside, the parser's own law. */
+ * (map children — `retry:`'s fields as much as `after:`'s entries) is
+ * any deeper-indented run; blanks stay inside, the parser's own law. */
 export function findTaskKey(
   lines: readonly string[],
   task: TaskRange,
@@ -63,16 +72,17 @@ export function findTaskKey(
   return undefined;
 }
 
-/** Tasks whose dependency chain reaches `id` — picking one of these as
- * an INPUT of `id` would close a cycle; they leave the candidate list.
- * One reverse-adjacency pass then a plain BFS — O(V+E): the naive form
- * rescanned every task per frontier pop (O(V·E)), invisible on a
- * hand-written file, quadratic on generated hundreds-of-tasks DAGs. */
+/** Tasks whose edge chain reaches `id` — picking one of these as an
+ * INPUT of `id` would close a cycle; they leave the candidate list.
+ * Edges = the scheduling producers (control AND data — G_p is their
+ * union). One reverse-adjacency pass then a plain BFS — O(V+E): the
+ * naive form rescanned every task per frontier pop (O(V·E)), invisible
+ * on a hand-written file, quadratic on generated hundreds-of-tasks DAGs. */
 export function descendantsOf(tasks: readonly TaskRange[], id: string): Set<string> {
   const children = new Map<string, string[]>();
   for (const t of tasks) {
-    for (const dep of t.dependsOn) {
-      (children.get(dep) ?? children.set(dep, []).get(dep)!).push(t.id);
+    for (const producer of t.producers) {
+      (children.get(producer) ?? children.set(producer, []).get(producer)!).push(t.id);
     }
   }
   const out = new Set<string>();
@@ -96,9 +106,10 @@ export function upstreamCandidates(tasks: readonly TaskRange[], id: string): Tas
 }
 
 /** The spec's canonical task-key order (03-dag task shape) — the
- * anchor chain a fresh key inserts after. */
+ * anchor chain a fresh key inserts after. `with` leads: the boundary
+ * imports sit at the top of the task, the spec's own reading order. */
 const KEY_ORDER: readonly string[] = [
-  'depends_on', 'when', 'for_each', 'retry', 'on_error', 'timeout',
+  'with', 'after', 'when', 'for_each', 'retry', 'on_error', 'timeout',
 ];
 
 export function insertionLine(lines: readonly string[], task: TaskRange, key: string): number {
@@ -135,7 +146,7 @@ export function taskBlockInsert(
 }
 
 /**
- * Write a task-level key: replace the existing line (block lists
+ * Write a task-level key: replace the existing line (block values
  * collapse to the flow form) or insert at the canonical position.
  * `value === undefined` removes the key. Undefined result: the anchor
  * moved (no task key at task.line) — refuse a blind write.
@@ -161,16 +172,60 @@ export function taskKeyRewrite(
   return lines.join('\n');
 }
 
-// ─── The three doors ─────────────────────────────────────────────────────────
+// ─── The doors ───────────────────────────────────────────────────────────────
 
-/** `depends_on: [a, b]` — the flow form the spec teaches; empty removes. */
-export function dependsRewrite(
+/** `after: { a: succeeded, b: terminal }` — the compact flow form the
+ *  doors write (block forms collapse); empty removes the key. */
+export function afterRewrite(
   text: string,
   task: TaskRange,
-  picked: readonly string[],
+  entries: ReadonlyArray<readonly [string, string]>,
 ): string | undefined {
-  return taskKeyRewrite(text, task, 'depends_on',
-    picked.length > 0 ? `[${picked.join(', ')}]` : undefined);
+  return taskKeyRewrite(text, task, 'after',
+    entries.length > 0
+      ? `{ ${entries.map(([p, pred]) => `${p}: ${pred}`).join(', ')} }`
+      : undefined);
+}
+
+/**
+ * Add (or grow) a `with:` binding — the data door. Returns the new
+ * document + the alias actually written (collision-suffixed against
+ * `takenAliases`). Block entry under an existing block `with:`, grown
+ * in place for the inline flow form, created at the canonical position
+ * otherwise. Undefined when the anchor moved.
+ */
+export function bindingInsert(
+  text: string,
+  task: TaskRange,
+  aliasBase: string,
+  expr: string,
+  takenAliases: readonly string[],
+): { text: string; alias: string } | undefined {
+  const lines = text.split('\n');
+  if (!/^ {2}[a-z][a-z0-9_]*\s*:/.test(lines[task.line] ?? '')) { return undefined; }
+  let alias = aliasBase;
+  for (let n = 2; takenAliases.includes(alias); n++) { alias = `${aliasBase}_${n}`; }
+  const indent = fieldIndentOf(lines, task);
+  const existing = findTaskKey(lines, task, 'with');
+  if (existing) {
+    const inline = existing.value.replace(/#.*$/, '').trim();
+    if (inline.startsWith('{') && inline.endsWith('}')) {
+      const body = inline.slice(1, -1).trim();
+      const grown = body.length > 0
+        ? `${body}, ${alias}: \${{ ${expr} }}`
+        : `${alias}: \${{ ${expr} }}`;
+      lines.splice(existing.line, 1, `${' '.repeat(indent)}with: { ${grown} }`);
+      return { text: lines.join('\n'), alias };
+    }
+    lines.splice(existing.end + 1, 0, `${' '.repeat(indent + 2)}${alias}: \${{ ${expr} }}`);
+    return { text: lines.join('\n'), alias };
+  }
+  lines.splice(
+    insertionLine(lines, task, 'with'), 0,
+    `${' '.repeat(indent)}with:`,
+    `${' '.repeat(indent + 2)}${alias}: \${{ ${expr} }}`,
+  );
+  return { text: lines.join('\n'), alias };
 }
 
 export interface GateShape {
@@ -178,17 +233,21 @@ export interface GateShape {
   /** Picker row. */
   label: string;
   hint: string;
-  /** The CEL v0.1 expression (unwrapped). */
-  expr: string;
-  /** Task id the expression reads — the edge §219 demands. */
-  needsTask?: string;
+  /** What the pick writes — the three W2-legal forms. */
+  action:
+    | { kind: 'when'; expr: string }
+    | { kind: 'after'; producer: string; predicate: string }
+    | { kind: 'bind-when'; producer: string; path: string; aliasBase: string; exprOf: (alias: string) => string };
 }
 
-/** The gate register, built from THIS file's vars and upstream tasks —
- * every expression inside the CEL v0.1 subset (comparison · boolean ·
- * size() — the one function). */
+/** The gate register, built from THIS file's vars, the task's own
+ * bindings and its upstream tasks — every `when:` expression inside
+ * the CEL v0.1 subset and LOCAL (vars · with · never tasks.*): an
+ * upstream STATE becomes an `after:` entry, an upstream VALUE crosses
+ * through `with:` first (the hoist the spec teaches). */
 export function gateShapes(
   varNames: readonly string[],
+  withAliases: readonly string[],
   upstream: readonly TaskRange[],
 ): GateShape[] {
   const shapes: GateShape[] = [];
@@ -197,29 +256,41 @@ export function gateShapes(
       id: `var-eq-${v}`,
       label: `vars.${v} equals …`,
       hint: `run only when \`vars.${v}\` matches a value you name`,
-      expr: `vars.${v} == 'value'`,
+      action: { kind: 'when', expr: `vars.${v} == 'value'` },
     });
     shapes.push({
       id: `var-flag-${v}`,
       label: `vars.${v} is on`,
       hint: `\`vars.${v}\` as a boolean switch`,
-      expr: `vars.${v}`,
+      action: { kind: 'when', expr: `vars.${v}` },
+    });
+  }
+  for (const a of withAliases) {
+    shapes.push({
+      id: `with-content-${a}`,
+      label: `with.${a} has content`,
+      hint: `size() — the v0.1 empty-check idiom on the \`${a}\` binding`,
+      action: { kind: 'when', expr: `size(with.${a}) > 0` },
     });
   }
   for (const t of upstream) {
     shapes.push({
-      id: `status-${t.id}`,
+      id: `after-${t.id}`,
       label: `${t.id} succeeded`,
-      hint: `run only when \`${t.id}\` ended in success`,
-      expr: `tasks.${t.id}.status == 'success'`,
-      needsTask: t.id,
+      hint: `state is control — writes \`after: { ${t.id}: succeeded }\`, never a when:`,
+      action: { kind: 'after', producer: t.id, predicate: 'succeeded' },
     });
     shapes.push({
       id: `content-${t.id}`,
       label: `${t.id} has content`,
-      hint: `size() — the v0.1 empty-check idiom on \`${t.id}\`'s output`,
-      expr: `size(tasks.${t.id}.output) > 0`,
-      needsTask: t.id,
+      hint: 'hoists the output through with: (the binding IS the edge) · then size() > 0',
+      action: {
+        kind: 'bind-when',
+        producer: t.id,
+        path: 'output',
+        aliasBase: t.id,
+        exprOf: (alias) => `size(with.${alias}) > 0`,
+      },
     });
   }
   return shapes;
@@ -233,10 +304,13 @@ export function gateRewrite(text: string, task: TaskRange, expr: string): string
 export interface CollectionRef {
   /** Picker row. */
   label: string;
-  /** The `${{ … }}` body. */
+  /** The `${{ … }}` body — LOCAL (vars.* or with.*). */
   ref: string;
-  /** Task id the ref reads (the §219 edge), when it reads one. */
-  needsTask?: string;
+  /** Upstream task whose output must cross the boundary first — the
+   *  door binds `with: { <alias>: ${{ tasks.<id>.output }} }` and the
+   *  `for_each:` reads the binding (for_each is a body surface —
+   *  a `tasks.*` ref there is NIKA-VAR-021). */
+  needsBinding?: { producer: string; path: string; aliasBase: string };
 }
 
 /** `for_each: ${{ <ref> }}` — unquoted, the spec's own form. */

@@ -17,7 +17,7 @@ export interface FieldDoc {
 export interface SchemaIntel {
   /** Top-level workflow keys (nika · workflow · model · tasks · …). */
   topLevel: FieldDoc[];
-  /** Task-item keys (id · depends_on · when · retry · the 4 verbs · …). */
+  /** Task-item keys (with · after · when · retry · the 4 verbs · …). */
   taskFields: FieldDoc[];
   /** Per-verb body keys (infer.prompt · exec.command · …). */
   verbFields: Record<string, FieldDoc[]>;

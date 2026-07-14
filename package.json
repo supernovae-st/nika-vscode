@@ -260,7 +260,7 @@
       },
       {
         "command": "nika.wireInputs",
-        "title": "Wire Task Inputs (depends_on)",
+        "title": "Order on State (after)",
         "icon": "$(link)",
         "category": "Nika"
       },
@@ -1040,7 +1040,7 @@
         "displayName": "Nika Graph",
         "toolReferenceName": "nikaGraph",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Project the canonical execution DAG of a Nika workflow (graph_format 1 JSON): topologically sorted task nodes with verb, model, when-gates, fan-out and static cost intervals, plus depends_on edges. Requires the workflow to pass conformance first.",
+        "modelDescription": "Project the canonical execution DAG of a Nika workflow (graph_format 2 JSON): topologically sorted task nodes with verb, model, when-gates, fan-out and static cost intervals, plus TYPED edges (value/terminal-observation/failure-observation carry a with: binding · control carries its after: predicate · recovery is on_error.recover's parking read). Requires the workflow to pass conformance first.",
         "inputSchema": {
           "type": "object",
           "properties": {

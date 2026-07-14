@@ -13,7 +13,7 @@ tasks:
   no_model:
     infer:
       prompt: "b"
-    depends_on: [has_model]
+    after: { has_model: succeeded }
 `;
 
 describe('setTaskModel (the canvas model-chip edit)', () => {

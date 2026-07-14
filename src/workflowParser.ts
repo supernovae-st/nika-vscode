@@ -8,10 +8,19 @@
 // W1 « the map »: `tasks:` is a YAML MAP whose key IS the task identity —
 // a task starts at its indent-2 bare `name:` key inside the tasks block
 // (the `- id:` list form is dead engine-side · NIKA-PARSE-022).
+//
+// W2 « the flow »: `depends_on` is dead (NIKA-PARSE-024). A task crosses
+// its boundary through exactly two doors — `with:` bindings (data edges:
+// every `${{ tasks.X.* }}` ref IS an edge) and `after:` entries (control
+// edges: `{producer: succeeded|failed|skipped|terminal}`). The fallback
+// stays as strict as the server: a `tasks.*` ref anywhere else is
+// NIKA-VAR-021 territory, never an edge.
 
 const TASK_KEY_REGEX = /^ {2}([a-z][a-z0-9_]*)\s*:\s*(?:#.*)?$/;
 const VERB_REGEX = /^\s+(infer|exec|invoke|agent)\s*:/;
 const TOP_KEY = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/;
+/** `tasks.X(.path)` inside a boundary value — the ref that IS an edge. */
+const TASK_REF_RE = /\btasks\.([a-z][a-z0-9_]*)((?:\.[A-Za-z0-9_]+)*)/g;
 
 export interface ParsedTask {
   id: string;
@@ -79,7 +88,18 @@ export function parseWorkflowTasks(content: string): ParsedTask[] {
 
 // ─── Rich parse (v2) ─────────────────────────────────────────────────────────
 // Indentation-scoped, regex-based, zero-dependency. Captures what the
-// client-side features need: task spans, with-aliases, declared keys.
+// client-side features need: task spans, the two boundary doors (with ·
+// after), declared keys.
+
+/** One `${{ tasks.X.path }}` reference crossing the data boundary. */
+export interface TaskDataRef {
+  /** The `with:` alias whose value carries the reference. */
+  alias: string;
+  /** Producer task id. */
+  from: string;
+  /** Referenced path under the task record (`output` · `status` · …). */
+  path: string;
+}
 
 export interface RichTask {
   id: string;
@@ -90,9 +110,16 @@ export interface RichTask {
   verb: string;
   model?: string;
   tool?: string;
-  dependsOn: string[];
+  /** `after:` control entries — producer → predicate (03-dag §after). */
+  after: Record<string, string>;
   /** `with:` aliases declared on this task. */
   withAliases: string[];
+  /** `${{ tasks.* }}` refs inside `with:` values — the data edges. */
+  withRefs: TaskDataRef[];
+  /** `on_error.recover:` refs — recovery edges (parking reads, no order). */
+  recoverRefs: string[];
+  /** Scheduling producers: after keys ∪ withRefs sources (deduped). */
+  producers: string[];
 }
 
 export interface RichWorkflow {
@@ -107,11 +134,36 @@ export interface RichWorkflow {
   permitsLine?: number;
 }
 
-const LIST_ITEM = /^\s*-\s*(?:"([^"]*)"|'([^']*)'|([^#\s][^#]*?))\s*(?:#.*)?$/;
-
 function scalarOf(rest: string): string | undefined {
   const value = rest.replace(/#.*$/, '').trim().replace(/^["']|["']$/g, '');
   return value.length > 0 ? value : undefined;
+}
+
+/** Split a flow-map body (`a: x, b: y`) on top-level commas only. */
+function splitFlowEntries(body: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === '{' || ch === '[') { depth += 1; }
+    if (ch === '}' || ch === ']') { depth -= 1; }
+    if (ch === ',' && depth === 0) {
+      parts.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(body.slice(start));
+  return parts.map((p) => p.trim()).filter((p) => p.length > 0);
+}
+
+/** Every `tasks.X(.path)` reference in a value snippet. */
+function taskRefsIn(value: string): Array<{ from: string; path: string }> {
+  const refs: Array<{ from: string; path: string }> = [];
+  for (const m of value.matchAll(TASK_REF_RE)) {
+    refs.push({ from: m[1], path: m[2] ? m[2].slice(1) : 'output' });
+  }
+  return refs;
 }
 
 export function parseRichWorkflow(content: string): RichWorkflow {
@@ -214,13 +266,23 @@ export function parseRichWorkflow(content: string): RichWorkflow {
       line: start,
       endLine,
       verb: 'unknown',
-      dependsOn: [],
+      after: {},
       withAliases: [],
+      withRefs: [],
+      recoverRefs: [],
+      producers: [],
     };
 
     let inWith = false;
-    let inDepends = false;
+    let inAfter = false;
     let withIndent = 0;
+    let afterIndent = 0;
+    let currentAlias: string | undefined;
+    const pushWithRef = (alias: string, from: string, path: string): void => {
+      if (from === task.id) { return; }
+      if (task.withRefs.some((r) => r.alias === alias && r.from === from && r.path === path)) { return; }
+      task.withRefs.push({ alias, from, path });
+    };
     // Body starts AFTER the declaring key line (the key itself would
     // otherwise read as a field named like the task — e.g. a task
     // named `model`).
@@ -228,14 +290,13 @@ export function parseRichWorkflow(content: string): RichWorkflow {
       const line = lines[i];
       const ind = line.match(/^( *)[^\s]/);
       const indent = ind ? ind[1].length : Number.MAX_SAFE_INTEGER;
+      const blank = line.trim() === '';
 
-      if (inWith && indent <= withIndent) { inWith = false; }
-      // Blank lines inside a depends_on block do not end it — only a
-      // non-blank non-item line does (a blank between two `- dep` items
-      // must not silently drop the second one).
-      if (inDepends && line.trim() !== '' && !line.trimStart().startsWith('-')) {
-        inDepends = false;
-      }
+      if (inWith && !blank && indent <= withIndent) { inWith = false; currentAlias = undefined; }
+      // Blank lines inside an `after:` block do not end it — only a
+      // shallower non-blank line does (a blank between two entries must
+      // not silently drop the second one).
+      if (inAfter && !blank && indent <= afterIndent) { inAfter = false; }
 
       const verbMatch = line.match(VERB_REGEX);
       if (verbMatch && task.verb === 'unknown') { task.verb = verbMatch[1]; }
@@ -243,38 +304,78 @@ export function parseRichWorkflow(content: string): RichWorkflow {
       const fieldMatch = line.match(/^\s*([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
       if (fieldMatch) {
         const [, fkey, rest] = fieldMatch;
-        if (fkey === 'model' && !task.model) { task.model = scalarOf(rest); }
-        if (fkey === 'tool' && !task.tool) { task.tool = scalarOf(rest); }
-        if (fkey === 'with' && rest.trim() === '') {
-          inWith = true;
-          withIndent = indent;
-          continue;
-        }
-        if (fkey === 'depends_on') {
-          const inline = rest.match(/^\[(.*)\]\s*$/);
-          if (inline) {
-            for (const part of inline[1].split(',')) {
-              const v = part.trim().replace(/^["']|["']$/g, '');
-              if (v) { task.dependsOn.push(v); }
-            }
-          } else if (rest.trim() === '') {
-            inDepends = true;
-          }
+        if (inAfter && indent > afterIndent) {
+          // Block entry: `producer: predicate`.
+          const predicate = scalarOf(rest);
+          if (predicate) { task.after[fkey] = predicate; }
           continue;
         }
         if (inWith && indent === withIndent + 2) {
           task.withAliases.push(fkey);
+          currentAlias = fkey;
+          for (const r of taskRefsIn(rest)) { pushWithRef(fkey, r.from, r.path); }
+          continue;
+        }
+        if (!inWith) {
+          if (fkey === 'model' && !task.model) { task.model = scalarOf(rest); }
+          if (fkey === 'tool' && !task.tool) { task.tool = scalarOf(rest); }
+          if (fkey === 'with') {
+            const inline = rest.replace(/#.*$/, '').trim().match(/^\{(.*)\}$/);
+            if (inline) {
+              for (const entry of splitFlowEntries(inline[1])) {
+                const kv = entry.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
+                if (!kv) { continue; }
+                task.withAliases.push(kv[1]);
+                for (const r of taskRefsIn(kv[2])) { pushWithRef(kv[1], r.from, r.path); }
+              }
+            } else if (rest.trim() === '') {
+              inWith = true;
+              withIndent = indent;
+              currentAlias = undefined;
+            }
+            continue;
+          }
+          if (fkey === 'after') {
+            const inline = rest.replace(/#.*$/, '').trim().match(/^\{(.*)\}$/);
+            if (inline) {
+              for (const entry of splitFlowEntries(inline[1])) {
+                const kv = entry.match(/^([a-z][a-z0-9_]*)\s*:\s*([a-z]+)\s*$/);
+                if (kv) { task.after[kv[1]] = kv[2]; }
+              }
+            } else if (rest.trim() === '') {
+              inAfter = true;
+              afterIndent = indent;
+            }
+            continue;
+          }
+          // `on_error.recover:` — a settled-record read (recovery edge).
+          if (fkey === 'recover') {
+            for (const r of taskRefsIn(rest)) {
+              if (r.from !== task.id && !task.recoverRefs.includes(r.from)) {
+                task.recoverRefs.push(r.from);
+              }
+            }
+            continue;
+          }
         }
       }
 
-      if (inDepends) {
-        const item = line.match(LIST_ITEM);
-        if (item) {
-          const v = (item[1] ?? item[2] ?? item[3] ?? '').trim();
-          if (v) { task.dependsOn.push(v); }
-        }
+      // Continuation lines of a with entry (nested map/list/multiline
+      // scalar) — refs there still belong to the entry's alias.
+      if (inWith && currentAlias !== undefined && indent > withIndent + 2) {
+        for (const r of taskRefsIn(line)) { pushWithRef(currentAlias, r.from, r.path); }
       }
     }
+
+    // Scheduling producers — after keys first (doc order), then data refs.
+    const producers: string[] = [];
+    for (const p of Object.keys(task.after)) {
+      if (!producers.includes(p)) { producers.push(p); }
+    }
+    for (const r of task.withRefs) {
+      if (!producers.includes(r.from)) { producers.push(r.from); }
+    }
+    task.producers = producers;
 
     wf.tasks.push(task);
   }
@@ -290,13 +391,19 @@ export function taskAtLine(wf: RichWorkflow, line: number): RichTask | undefined
 /**
  * Stable topology fingerprint of a workflow — the anti-flicker gate for
  * the keystroke DAG (liveDag). Two texts with the same key have the same
- * GRAPH (ids, verbs, tools, dependency edges, in document order); typing
- * inside a prompt, a `with:` block or a comment must not move it.
- * Deliberately EXCLUDES models/params: those change card cosmetics, not
- * topology, and a keystroke reload for them would fight the editor.
+ * GRAPH (ids, verbs, tools, typed edges, in document order); typing
+ * inside a prompt, a `with:` LITERAL or a comment must not move it —
+ * but editing an `after:` entry or a `${{ tasks.* }}` binding does (in
+ * W2 the binding IS the edge). Deliberately EXCLUDES models/params:
+ * those change card cosmetics, not topology, and a keystroke reload for
+ * them would fight the editor.
  */
 export function topoKey(wf: RichWorkflow): string {
   return wf.tasks
-    .map((t) => `${t.id}${t.verb}${t.tool ?? ''}${t.dependsOn.join(',')}`)
-    .join('');
+    .map((t) => {
+      const control = Object.entries(t.after).map(([p, pred]) => `${p}=${pred}`).join(',');
+      const data = t.withRefs.map((r) => `${r.from}.${r.path}`).join(',');
+      return `${t.id}${t.verb}${t.tool ?? ''}|${control}|${data}`;
+    })
+    .join(';');
 }

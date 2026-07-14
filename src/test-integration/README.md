@@ -45,6 +45,7 @@ What it asserts (`suite/activation.test.ts`):
 4. **Run**: ▶ mock → the DAG lights wave by wave, aurora sweep on close.
 5. **Scrub**: click a run in the Runs view → the scrubber; play + drag.
 6. **Edit**: change a prompt → the `△ stale` badge + the run-pill `△N`.
-7. **Check**: introduce a NIKA-DAG-003 (a `${{ tasks.x }}` without
-   `depends_on`) → the `⚠N` card chip → click → the report.
+7. **Check**: introduce a NIKA-VAR-021 (a `${{ tasks.x }}` in a verb
+   body — the boundary refuses it) → the `⚠N` card chip → click → the
+   report.
 8. High contrast + a screen reader pass on the panel.

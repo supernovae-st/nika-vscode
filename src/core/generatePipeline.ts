@@ -91,7 +91,7 @@ export function compareOutcomes(a: GenCheckOutcome, b: GenCheckOutcome): number 
 const VARIANT_HINTS = [
   '',
   '\nVariant pressure: prefer the SIMPLEST decomposition that satisfies the intent — fewest tasks.',
-  '\nVariant pressure: maximize safe parallelism — independent steps must NOT be chained; declare depends_on only where data or order truly requires it.',
+  '\nVariant pressure: maximize safe parallelism — independent steps must NOT be chained; a `with:` binding only where data truly flows, an `after:` entry only where order truly matters.',
   '\nVariant pressure: be defensive — declare schema: on inference outputs and route failures (retry / on_error) where the intent implies flakiness.',
 ];
 

@@ -28,8 +28,9 @@ tasks:
       args: { pattern: "${{ vars.collection_source }}/*.md" }
 
   process:
-    depends_on: [discover]
-    for_each: ${{ tasks.discover.output }}
+    with:
+      items: ${{ tasks.discover.output }}   # the binding IS the edge
+    for_each: ${{ with.items }}
     max_parallel: 4                 # SLOT: the polite ceiling
     fail_fast: false
     timeout: "60s"                  # SLOT: per-iteration bound
@@ -44,20 +45,22 @@ tasks:
         Process this item · ${{ item }}
 
   survivors:
-    depends_on: [process]
+    with:
+      batch: ${{ tasks.process.output }}
     invoke:                         # the null-aware fan-in · order preserved
       tool: "nika:jq"
       args:
-        input: ${{ tasks.process.output }}
+        input: ${{ with.batch }}
         expression: "[ .[] | select(. != null) ]"
 
 
   merge:
-    depends_on: [survivors]
+    with:
+      results: ${{ tasks.survivors.output }}
     infer:
       prompt: |
         # SLOT: the fan-in · the survivors array (failed items filtered)
-        Merge these results into one report · ${{ tasks.survivors.output }}
+        Merge these results into one report · ${{ with.results }}
 
 outputs:
   report: ${{ tasks.merge.output }}

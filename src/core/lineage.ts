@@ -3,15 +3,13 @@
 // « Select ${{ tasks.fetch.output }} and SEE the data's path »: from one
 // focus task, compute who feeds it (producers), who consumes it, in two
 // tiers (direct vs transitive), plus the exact edges that belong to the
-// story. Ghost edges (a data ref WITHOUT depends_on · NIKA-DAG-003)
-// count as real consumption — the missing wire is part of the lineage,
-// not hidden by it.
+// story. Every graph_format 2 kind counts — a recovery edge is a real
+// read (the fallback consumes the settled record), so it lights too.
 
 export interface LineageEdge {
   source: string;
   target: string;
-  isDataEdge?: boolean;
-  ghost?: boolean;
+  kind?: string;
 }
 
 export interface LineageView {

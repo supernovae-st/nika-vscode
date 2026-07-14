@@ -10,11 +10,8 @@ import * as vscode from 'vscode';
 import { didYouMean } from '../core/graphIntel';
 import { applyPermitsFix, parseFix } from '../core/permitsEdit';
 import {
-  addDependsOn,
   addVarDeclaration,
-  parseDag003,
   parseVar001,
-  removeDependsOn,
 } from '../core/structuralFixes';
 import { parseRichWorkflow } from '../workflowParser';
 import type { DiagnosticsController } from './diagnostics';
@@ -36,8 +33,8 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
     /** True when the LANGUAGE SERVER advertises codeActionProvider —
      *  the rename-shaped quickfixes (tool · task-id did-you-mean) are
      *  then the server's (one fix engine, 0.99.7+ engines); the client
-     *  keeps its structural classes (permits repair · add depends_on ·
-     *  secret → env · add var), which the server does not carry. Same
+     *  keeps its structural classes (permits repair · secret → env ·
+     *  add var), which the server does not carry. Same
      *  yield pattern as the expressionIntel capability handshake. */
     private readonly serverOwnsRenames: () => boolean = () => false,
   ) {}
@@ -104,21 +101,10 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
         }
       }
 
-      // 3 · structural conformance repairs (the two most common classes)
+      // 3 · structural conformance repairs (client classes — the W2
+      // boundary fixes [NIKA-VAR-021 hoist · NIKA-PARSE-024 migration]
+      // are `nika check --fix`'s, surfaced by the server: one fix engine)
       if (finding.source === 'conformance') {
-        const dag = parseDag003(finding.message);
-        if (dag) {
-          const rewritten = addDependsOn(text, dag.task, dag.missing);
-          if (rewritten !== undefined) {
-            const action = new vscode.CodeAction(
-              `Nika: declare \`${dag.missing}\` in depends_on of \`${dag.task}\``,
-              vscode.CodeActionKind.QuickFix,
-            );
-            action.edit = this.fullRewrite(document, rewritten);
-            action.isPreferred = true;
-            actions.push(action);
-          }
-        }
         // Unknown TASK id in a ref → did-you-mean (Damerau ≤2 · same UX
         // contract as the engine's tool suggestions, client-side).
         const badTask = parseUnresolvedTaskRef(finding.message);
@@ -182,20 +168,6 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
       actions.push(action);
     }
 
-    // 6 · redundant depends_on → remove (transitive reduction hint)
-    for (const { task, dep } of this.controller.redundantAt(document.uri, range)) {
-      const rewritten = removeDependsOn(text, task, dep);
-      if (rewritten !== undefined) {
-        const action = new vscode.CodeAction(
-          `Nika: remove redundant dependency \`${dep}\` (ordering already guaranteed)`,
-          vscode.CodeActionKind.QuickFix,
-        );
-        action.edit = this.fullRewrite(document, rewritten);
-        action.isPreferred = true;
-        actions.push(action);
-      }
-    }
-
     return actions;
   }
 
@@ -208,10 +180,10 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
 }
 
 // ─── Fix All · the check→repair convergence loop as ONE editor action ──────
-// Applies every machine-applicable repair (permits fixes · DAG-003
-// declares · redundant-dep removals) to a fixpoint, bounded. This is the
-// same loop agents run in CI — `source.fixAll.nika` makes it a save
-// action (`editor.codeActionsOnSave`).
+// Applies every machine-applicable repair (permits fixes · var
+// declarations) to a fixpoint, bounded. This is the same loop agents
+// run in CI — `source.fixAll.nika` makes it a save action
+// (`editor.codeActionsOnSave`).
 
 export const NIKA_FIX_ALL = vscode.CodeActionKind.SourceFixAll.append('nika');
 
@@ -259,11 +231,6 @@ export class NikaFixAllProvider implements vscode.CodeActionProvider {
         }
       }
       if (finding.source === 'conformance') {
-        const dag = parseDag003(finding.message);
-        if (dag) {
-          const next = addDependsOn(text, dag.task, dag.missing);
-          if (next !== undefined && next !== text) { text = next; changed = true; }
-        }
         const varRef = parseVar001(finding.message);
         if (varRef) {
           const next = addVarDeclaration(text, varRef.varName);
@@ -271,11 +238,6 @@ export class NikaFixAllProvider implements vscode.CodeActionProvider {
         }
       }
     }
-    for (const { task, dep } of this.controller.redundantAt(document.uri, fullRange)) {
-      const next = removeDependsOn(text, task, dep);
-      if (next !== undefined && next !== text) { text = next; changed = true; }
-    }
-
     return changed ? text : undefined;
   }
 }

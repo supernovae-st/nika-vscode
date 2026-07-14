@@ -39,7 +39,7 @@ boundary, secret flows and schema parity are all static facts the editor
 paints in the margin, before a single token is spent. Apache-2.0 spec ·
 AGPL engine.
 
-![The static audit painted as you type: real nika check diagnostics (NIKA-DAG-003, NIKA-VAR-001 with did-you-mean), the three-line fix, then a clean verdict](media/check-as-you-type.gif)
+![The static audit painted as you type: real nika check diagnostics (NIKA-VAR-021, NIKA-VAR-001 with did-you-mean), the three-line fix, then a clean verdict](media/check-as-you-type.gif)
 
 *The diagnostics above are the real `nika check --json` output: codes,
 messages and positions come from the engine, not the extension.*
@@ -125,9 +125,9 @@ theme*, not to extensions:
   | `vars:` | *declare an input* · *make it callable · N untyped* | a typed/untyped input · untyped→typed promotion |
   | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N vars ride --var* | each run-blocking gap, one gesture |
   | `- id:` | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
-  | `depends_on:` | *wire its inputs* | pre-checked multi-pick · descendants never offered (cycle-safe) |
-  | `when:` | *choose a gate* | a CEL v0.1 shape from THIS file's vars + upstream tasks · a `tasks.*` gate wires its edge first |
-  | `for_each:` | *choose the collection* | typed array vars · upstream outputs (edge wired too) |
+  | `after:` | *order on state* | pre-checked multi-pick of `{producer: predicate}` control entries · descendants never offered (cycle-safe) |
+  | `when:` | *choose a gate* | a CEL v0.1 shape over LOCAL reads (vars · with) · upstream state becomes `after:` · an upstream value hoists through `with:` first |
+  | `for_each:` | *choose the collection* | typed array vars · upstream outputs (bound through `with:` — the binding IS the edge) |
   | `infer:`/`exec:`/`agent:` | *choose a starter* · *type its output* (schema missing) | the spec's shapes · a proven schema (fields · list · verdict · grade) |
   | `invoke:` | *choose your tool* | starters + every builtin THIS binary carries, args skeleton from the tool's own schema |
   | agent `tools:` | *choose its tools* | the catalog multi-pick · MCP/globs/strangers survive verbatim; `[]` is least privilege |
@@ -150,8 +150,8 @@ theme*, not to extensions:
   go-to-definition for `tasks.` / `with.` / `env.` / `secrets.` / `vars.`
   references
 - **Task rename & find-references** · hits all 4 syntactic homes
-  (declaration · `depends_on` · `${{ tasks.X }}` islands · bare CEL in
-  `when:`) and enforces the engine id grammar (snake_case · CEL-safe)
+  (declaration · `after:` entries · `${{ tasks.X }}` islands · bare CEL
+  in WIP text) and enforces the engine id grammar (snake_case · CEL-safe)
 - **Linked editing** · type in ANY home of a task id and every reference
   follows live · **selection ranges** (word → line → task → tasks →
   document smart-expand) · **task dependency hierarchy** in the native
@@ -259,7 +259,8 @@ theme*, not to extensions:
   reduced-motion opt-out). The **model chip edits** (provider picker →
   one undoable YAML edit), `⌀` badges carry the mean duration across
   your recorded runs, ports appear on hover (drag out-port → card =
-  `depends_on`, or drop on empty canvas → a new pre-wired task), and a
+  `after: { from: succeeded }`, or drop on empty canvas → a new
+  pre-wired task), and a
   **verb palette + omnibar** sits at the bottom: `+ infer after gather`
   inserts deterministically, `/text` filters, a sentence routes to
   oracle-checked generation. Semantic zoom keeps 100-task graphs
@@ -453,12 +454,12 @@ tasks:
   fetch_pr:
     invoke: { tool: "nika:fetch", args: { url: "${{ vars.pr_url }}" } }
   analyze_diff:
-    depends_on: [fetch_pr]
-    infer: { prompt: "Plan the review of ${{ tasks.fetch_pr.output }}." }
+    with: { diff: ${{ tasks.fetch_pr.output }} }
+    infer: { prompt: "Plan the review of ${{ with.diff }}." }
 
   # nika:region Ship
   post_comment:
-    depends_on: [analyze_diff]
+    after: { analyze_diff: succeeded }
     exec: { command: ["gh", "pr", "comment", "${{ vars.pr }}", "--body-file", "verdict.md"] }
 ```
 
