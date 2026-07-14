@@ -24,16 +24,16 @@ function isNikaDoc(doc: vscode.TextDocument): boolean {
  * the id row: an absent key is discoverable via LSP, not lens noise). */
 const FLOW_DOORS = [
   {
-    key: 'depends_on',
+    key: 'after',
     command: 'nika.wireInputs',
     title: WIRE_INPUTS_DOOR,
-    tooltip: 'Re-pick what this task waits for — descendants never offered (cycle-safe); block lists collapse to the flow form',
+    tooltip: 'Re-pick what this task waits for (control · {producer: predicate}) — descendants never offered (cycle-safe); block maps collapse to the flow form',
   },
   {
     key: 'when',
     command: 'nika.chooseGate',
     title: GATE_DOOR,
-    tooltip: 'Swap the CEL v0.1 gate — built from THIS file\'s inputs and upstream tasks; a tasks.* gate wires its depends_on edge too',
+    tooltip: 'Swap the CEL v0.1 gate — LOCAL reads only (vars · with): upstream state becomes after:, an upstream value crosses through with: first',
   },
   {
     key: 'for_each',

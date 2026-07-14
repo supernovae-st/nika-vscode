@@ -6,6 +6,38 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### W2 « the flow » — the client speaks the typed-edge grammar
+
+- **BREAKING (language · engine wave)**: `depends_on` is dead
+  (`NIKA-PARSE-024` · `nika check --fix` migrates). The two boundary
+  doors replace it — `with:` bindings ARE the data edges,
+  `after: { producer: succeeded|failed|skipped|terminal }` is the
+  control edge. `when:` reads LOCAL namespaces only (`tasks.*` there is
+  `NIKA-VAR-021` · the hoist is machine-applicable) and `NIKA-DAG-005`
+  guards the closed predicate set.
+- **graph_format 2, no fallback**: the canvas consumes the typed
+  projection (`nika inspect --format json`) — edges carry
+  `kind` (`value` · `terminal-observation` · `failure-observation` ·
+  `control` · `recovery`), a control edge shows its predicate riding
+  the wire, observation reads get a long-dash tinge, and
+  `on_error.recover`'s parking read draws as a dim dotted thread that
+  never flows, never glows, never joins waves or the critical path. A
+  format-1 document is refused (a reader never guesses a format it
+  does not speak); the client keystroke sketch emits the same typed
+  shape from the same two doors.
+- **The doors speak W2**: « order on state » re-picks `after:` entries
+  (predicates preserved), the gate picker writes LOCAL `when:` shapes —
+  upstream state becomes an `after:` entry, an upstream value hoists
+  through `with:` first — and the collection picker binds an upstream
+  array through `with:` before `for_each:` reads the binding. Canvas
+  connect writes `after: { from: succeeded }`; ⌥click removes CONTROL
+  entries only (a binding is authored, never gesture-deleted).
+- **Retired with their premise**: the ghost-edge overlay and the
+  DAG-003 quick fixes (the binding IS the edge — the class is
+  inexpressible), and the « redundant depends_on » transitive-reduction
+  hint (pass-sets compose per edge; the engine's `one-obvious-way/010`
+  owns the surviving narrow class).
+
 ## 0.103.0 — 2026-07-13
 
 Lockstep on the engine's 0.103 wave — **the language tightens**

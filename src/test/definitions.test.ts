@@ -12,23 +12,38 @@ const WF = [
   '    invoke:',         // 7
   '      args: { path: "${{ vars.source }}" }', // 8
   '  think:',            // 9
-  '    depends_on: [gather]',                    // 10
-  '    infer:',          // 11
-  '      prompt: "x ${{ tasks.gather.output }}"', // 12
+  '    after: { gather: succeeded }',            // 10
+  '    with:',           // 11
+  '      doc: ${{ tasks.gather.output }}',       // 12
+  '    infer:',          // 13
+  '      prompt: "x ${{ with.doc }}"',           // 14
+  '  ship:',             // 15
+  '    after:',          // 16
+  '      think: terminal',                       // 17
+  '    exec:',           // 18
+  '      command: ["echo", "done"]',             // 19
 ].join('\n');
 
 describe('go-to-definition, the three navigable classes', () => {
   it('finds task and var declarations', () => {
     expect(findTaskDeclaration(WF, 'gather')).toEqual({ line: 6, start: 2, end: 8 });
-    expect(findTaskDeclaration(WF, 'ghost')).toBeUndefined();
+    expect(findTaskDeclaration(WF, 'phantom')).toBeUndefined();
     expect(findVarDeclaration(WF, 'source')).toEqual({ line: 4, start: 2, end: 8 });
     expect(findVarDeclaration(WF, 'nope')).toBeUndefined();
   });
 
-  it('resolves depends_on names at the cursor', () => {
+  it('resolves after producer keys at the cursor — inline flow map', () => {
     const col = WF.split('\n')[10].indexOf('gather') + 2;
     expect(resolveDefinition(WF, 10, col)?.line).toBe(6);
     expect(resolveDefinition(WF, 10, 4)).toBeUndefined(); // on the key, not a name
+  });
+
+  it('resolves after producer keys at the cursor — block entry', () => {
+    const col = WF.split('\n')[17].indexOf('think') + 2;
+    expect(resolveDefinition(WF, 17, col)?.line).toBe(9);
+    // The predicate is a keyword, never a task ref.
+    const predCol = WF.split('\n')[17].indexOf('terminal') + 2;
+    expect(resolveDefinition(WF, 17, predCol)).toBeUndefined();
   });
 
   it('resolves island refs — tasks.X and vars.Y', () => {

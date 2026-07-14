@@ -43,8 +43,9 @@ confidence gate between "the pyramid is green" and "a stranger's first
                 contrast still legible; toggle back to nika
 □ AUDIT READ    a bounded workflow shows a green cost chip on the pill;
                 drop a max_tokens → it flips amber `≥ $X`; introduce a
-                NIKA-DAG-003 (a ${{ tasks.x }} with no depends_on) → the
-                ⚠N card chip appears → click → the report opens
+                NIKA-VAR-021 (a ${{ tasks.x }} in a verb body — hoist it
+                into with:) → the ⚠N card chip appears → click → the
+                report opens
 □ EDIT LOOP     change a prompt → the △ stale badge + the pill △N; the
                 model chip edits (provider picker → one undoable edit);
                 drag a port onto empty canvas → the verb cmdk at the

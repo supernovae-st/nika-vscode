@@ -48,7 +48,7 @@ speaks. Two kinds — only one converges:
 
 | extension surface | server lane | verdict |
 |---|---|---|
-| lens **doors** (pickers · surgical edits) | — | never retire: doors are GESTURES (compose `depends_on` edges, rewrite blocks); the LSP informs, a door acts |
+| lens **doors** (pickers · surgical edits) | — | never retire: doors are GESTURES (compose `after:` entries, hoist `with:` bindings, rewrite blocks); the LSP informs, a door acts |
 | `flowEdit.gateShapes` (when-gate register) | `when:` islands (engine ≥ 0.103) | CONVERGE: same registry, two dialects today — when the shipped-binary floor reaches the island lanes, the picker should offer the SERVER's items when wired, keeping shapes only as the offline fallback |
 | collection candidates (`flowDoors`) | `for_each:` islands (engine ≥ 0.103) | same law as gateShapes |
 | `FALLBACK_TOOL_BLURBS` | catalog (Lane A) | never retire: the offline courtesy cache — but names stay belt-checked |

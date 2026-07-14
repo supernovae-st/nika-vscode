@@ -51,13 +51,13 @@ tasks:
     exec:
       command: ["echo", "hello-seed"]
   flaky:
-    depends_on: [seed]
+    after: { seed: succeeded }
     retry:
       max_attempts: 2
     exec:
       command: ["false"]
   right:
-    depends_on: [seed]
+    after: { seed: succeeded }
     exec:
       command: ["echo", "right-out"]
 `;
@@ -157,8 +157,8 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
         '      tool: "nika:prompt"',
         '      args:',
         '        message: "Ship it?"',
-        '  after:',
-        '    depends_on: [approve]',
+        '  ship:',
+        '    after: { approve: succeeded }',
         '    exec:',
         '      command: ["echo", "shipped"]',
       ].join('\n'));
@@ -175,7 +175,7 @@ describe.skipIf(!BIN)('the journey on the real engine', () => {
       const t2 = traceFiles(dir).filter((t) => !t1.includes(t));
       const fold2 = foldTrace(fs.readFileSync(t2[t2.length - 1], 'utf-8'));
       expect(fold2.workflowStatus).toBe('completed');
-      expect(fold2.tasks.get('after')?.status).toBe('success');
+      expect(fold2.tasks.get('ship')?.status).toBe('success');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

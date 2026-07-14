@@ -29,20 +29,22 @@ flags. This is the JSON-Schema-as-type-system move:
   declaring a schema nothing consumes is a broken promise · wire it or
   drop it. Additive over the oracle, conservative (sinks exempt).
 
-### Transitive reduction (redundant depends_on) · `core/graphIntel.ts`
+### Transitive reduction · RETIRED with the gate algebra v2 (W2)
 
 - Aho, Garey & Ullman · *The Transitive Reduction of a Directed Graph* ·
-  SIAM J. Comput. 1(2), 1972. Unique on DAGs; our O(V·E) DFS is right at
-  IDE scale.
-- arXiv:2504.18161 · *Fully Dynamic Algorithms for Transitive Reduction*
-  (2025) · incremental maintenance exists but its (BMM-conditional)
-  bounds say: below ~10³ nodes, recompute-per-edit wins. We recompute.
-- arXiv:2404.13295 · *Detecting Build Dependency Errors in Incremental
-  Builds* (2024) · the declared-vs-actual edge diff is EXACTLY our pair:
-  ghost edges (data ref without ordering · « missing ») + redundancy
-  hints (declared edge inside the closure of the rest · « redundant »).
-- arXiv:2406.00180 · Airflow workflows-as-code study (2024) · dependency
-  authoring is a top empirical pain class; the diagnostics earn their keep.
+  SIAM J. Comput. 1(2), 1972 — powered the pre-W2 « redundant
+  depends_on » hint. Under graph_format 2 every edge carries a
+  PASS-SET (value admits {success, skipped} · `after: succeeded` admits
+  {success} · …) and admission composes per edge, so an edge that is
+  redundant for REACHABILITY is not redundant for ADMISSION: removing
+  it can change what runs. The client hint and its quick fix left with
+  the math's premise; the one narrow class that survives (a
+  non-tightening `after:` restated beside a value edge) is the
+  reference linter's `one-obvious-way/010` — the engine's voice.
+- (The « ghost edge » half of the same pre-W2 pair died with
+  NIKA-DAG-003 itself: in W2 the binding IS the edge, so a data ref
+  without ordering is inexpressible — `NIKA-VAR-021` refuses the
+  out-of-boundary ref at parse.)
 
 ### Bounded Damerau-Levenshtein did-you-mean · `core/graphIntel.ts`
 
@@ -204,7 +206,7 @@ fixed-schema single-file generation) · GPTSwarm graph optimization
 ### The explain fallback · canon projection (`schemaIntel.parseCanonErrorCodes`)
 
 Not research · a one-voice repair: `nika explain` knows the numeric
-registry; the SPEC conformance codes (`NIKA-DAG-003` …) answer exit 2
+registry; the SPEC conformance codes (`NIKA-DAG-005` …) answer exit 2
 (typed signal, never string-sniffed). The canon's `error_codes` table is
 the projection source; engine-side unification is filed as the upstream
 fix.

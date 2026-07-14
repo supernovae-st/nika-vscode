@@ -12,11 +12,11 @@
 // The hash is the anti-flicker gate: typing inside a prompt, a `with:`
 // block or a comment produces the SAME key → total no-op (no parse
 // output is even compared — one string equality). Only real topology
-// moves (task added/removed/renamed · verb swapped · depends_on edited)
+// moves (task added/removed/renamed · verb swapped · after/with edges edited)
 // reload the panel, so ELK relayouts exactly when the shape changed.
 //
 // The engine projection stays the truth: on SAVE the canon path
-// (service.dagForDocument · `nika graph` when available) re-syncs the
+// (service.dagForDocument · `nika inspect` when available) re-syncs the
 // panel. A live run OWNS the DAG (statuses are painting) — liveDag
 // suspends while one is active and resumes on the next edit after.
 

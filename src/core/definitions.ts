@@ -1,8 +1,8 @@
 // Go-to-definition, pure (the features/ provider owns the vscode
 // wiring). The three navigable reference classes the spec defines:
-//   depends_on: [NAME]        → the `NAME:` task-key declaration
-//   ${{ tasks.NAME... }}      → the `NAME:` task-key declaration
-//   ${{ vars.KEY... }}        → the KEY under the top-level vars: block
+//   after: { NAME: succeeded } / block `NAME: pred` → the `NAME:` task-key declaration
+//   ${{ tasks.NAME... }}                            → the `NAME:` task-key declaration
+//   ${{ vars.KEY... }}                              → the KEY under the top-level vars: block
 export interface DefTarget { line: number; start: number; end: number }
 
 /** The `NAME:` task-key declaration line (W1 map form), or undefined. */
@@ -39,6 +39,20 @@ export function findVarDeclaration(text: string, key: string): DefTarget | undef
   return undefined;
 }
 
+/** True when `line` is an entry line of a block-form `after:` (the
+ *  nearest shallower non-blank line above is `after:`). */
+function inAfterBlock(lines: string[], line: number): boolean {
+  const indent = lines[line]?.match(/^( *)\S/)?.[1].length ?? -1;
+  if (indent <= 0) { return false; }
+  for (let i = line - 1; i >= 0; i--) {
+    const t = lines[i];
+    if (t.trim() === '') { continue; }
+    const ind = t.match(/^( *)\S/)?.[1].length ?? 0;
+    if (ind < indent) { return /^\s*after:\s*(#.*)?$/.test(t); }
+  }
+  return false;
+}
+
 /**
  * Resolve the reference under (line, character) to its declaration.
  * Returns undefined off any navigable reference — including on the
@@ -49,17 +63,27 @@ export function resolveDefinition(
   line: number,
   character: number,
 ): DefTarget | undefined {
-  const lineText = text.split('\n')[line] ?? '';
+  const lines = text.split('\n');
+  const lineText = lines[line] ?? '';
 
-  // depends_on: [a, b] — a name whose span covers the cursor.
-  const dep = lineText.match(/^\s+depends_on:\s*\[([^\]]*)\]/);
-  if (dep) {
-    const open = lineText.indexOf('[') + 1;
-    for (const m of dep[1].matchAll(/[\w-]+/g)) {
+  // after: { a: succeeded, b: terminal } — a producer key under the cursor.
+  const inline = lineText.match(/after:\s*\{([^}]*)\}/);
+  if (inline && inline.index !== undefined) {
+    const open = inline.index + inline[0].indexOf('{') + 1;
+    for (const m of inline[1].matchAll(/([a-z][a-z0-9_]*)\s*:/g)) {
       const s = open + (m.index ?? 0);
-      if (character >= s && character <= s + m[0].length) {
-        return findTaskDeclaration(text, m[0]);
+      if (character >= s && character <= s + m[1].length) {
+        return findTaskDeclaration(text, m[1]);
       }
+    }
+    return undefined;
+  }
+  // Block entry `  producer: succeeded` under an `after:` line.
+  const entry = lineText.match(/^(\s+)([a-z][a-z0-9_]*)\s*:\s*[a-z]+\s*(#.*)?$/);
+  if (entry && inAfterBlock(lines, line)) {
+    const s = entry[1].length;
+    if (character >= s && character <= s + entry[2].length) {
+      return findTaskDeclaration(text, entry[2]);
     }
     return undefined;
   }

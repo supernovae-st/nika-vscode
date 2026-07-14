@@ -90,16 +90,16 @@ class NikaLinkedEditingProvider implements vscode.LinkedEditingRangeProvider {
 
 // ─── Call hierarchy ≙ task dependency hierarchy ─────────────────────────────
 // The editor's native hierarchy UI, mapped onto the DAG: outgoing calls =
-// what this task NEEDS (upstream depends_on) · incoming calls = what it
-// UNLOCKS (downstream dependents). Same peek/tree affordances users know
-// from functions, zero new UI to learn.
+// what this task NEEDS (upstream producers — after entries AND with
+// bindings) · incoming calls = what it UNLOCKS (downstream dependents).
+// Same peek/tree affordances users know from functions, zero new UI to learn.
 
 interface TaskShape {
   id: string;
   verb: string;
   line: number;
   endLine: number;
-  dependsOn: string[];
+  producers: string[];
 }
 
 function hierarchyItem(document: vscode.TextDocument, task: TaskShape): vscode.CallHierarchyItem {
@@ -139,8 +139,8 @@ class NikaTaskHierarchyProvider implements vscode.CallHierarchyProvider {
     const wf = parseRichWorkflow(document.getText());
     const self = wf.tasks.find((t) => t.id === item.name);
     if (!self) { return []; }
-    return self.dependsOn
-      .map((dep) => wf.tasks.find((t) => t.id === dep))
+    return self.producers
+      .map((producer) => wf.tasks.find((t) => t.id === producer))
       .filter((t): t is NonNullable<typeof t> => t !== undefined)
       .map((dep) => new vscode.CallHierarchyOutgoingCall(
         hierarchyItem(document, dep),
@@ -154,7 +154,7 @@ class NikaTaskHierarchyProvider implements vscode.CallHierarchyProvider {
     const document = await vscode.workspace.openTextDocument(item.uri);
     const wf = parseRichWorkflow(document.getText());
     return wf.tasks
-      .filter((t) => t.dependsOn.includes(item.name))
+      .filter((t) => t.producers.includes(item.name))
       .map((dependent) => new vscode.CallHierarchyIncomingCall(
         hierarchyItem(document, dependent),
         [new vscode.Range(dependent.line, 0, Math.min(dependent.endLine, document.lineCount - 1), 0)],

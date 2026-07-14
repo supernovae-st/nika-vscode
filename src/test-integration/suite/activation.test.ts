@@ -58,7 +58,7 @@ suite('nika-lang · real extension host', () => {
   test('the DAG webview panel opens (CSP + asWebviewUri load path)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-int-'));
     const file = path.join(dir, 'graph.nika.yaml');
-    fs.writeFileSync(file, 'nika: v1\nworkflow:\n  id: g\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n  b:\n    depends_on: [a]\n    infer:\n      prompt: "bye"\n');
+    fs.writeFileSync(file, 'nika: v1\nworkflow:\n  id: g\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n  b:\n    after: { a: succeeded }\n    infer:\n      prompt: "bye"\n');
     const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);
     // Show the DAG — if the webview HTML or its CSP were malformed, panel

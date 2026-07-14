@@ -44,7 +44,7 @@ const BASE = [
   '    infer:',
   '      prompt: "fetch the live data"',
   '  consume:',
-  '    depends_on: [live_fetch]',
+  '    after: { live_fetch: succeeded }',
   '    exec:',
   '      command: ["true"]',
   '',

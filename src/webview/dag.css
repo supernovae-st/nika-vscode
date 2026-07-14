@@ -1589,34 +1589,38 @@ body.vscode-light .logo-dark { display: none; }
   opacity: 0.8;
 }
 
-/* ─── Ghost edges · the wire the author MEANT (DAG-003 · click to fix) ──── */
+/* ─── Typed edge kinds (graph_format 2) · beyond data/control ───────────── */
 
-.dag-edge.edge-ghost {
-  stroke: var(--nk-st-failed);
-  stroke-width: 1.8;
-  stroke-dasharray: 4 5;
-  opacity: 0.75;
-  cursor: pointer;
-  animation: ghost-march 1.6s linear infinite;
+/* Observation reads (.status/.duration_ms/.error through with:) — data
+ * family, but the wire carries a RECORD read, not the value: same hue,
+ * a long-dash cadence keeps it apart from the solid value wire. */
+.dag-edge.edge-data.edge-obs {
+  stroke-dasharray: 7 4;
+  opacity: 0.85;
 }
 
-.dag-edge.edge-ghost:hover {
-  opacity: 1;
-  stroke-width: 2.4;
+/* Recovery — on_error.recover's parking read: never orders, never
+ * flows. Dim dotted amber-ish thread; no cursor affordance (declared
+ * armor is edited in the YAML, never gesture-deleted). */
+.dag-edge.edge-recovery {
+  stroke: var(--nk-st-retrying, var(--nk-st-muted));
+  stroke-width: 1.4;
+  stroke-dasharray: 2 6;
+  stroke-linecap: round;
+  opacity: 0.55;
 }
 
-@keyframes ghost-march {
-  to {
-    stroke-dashoffset: -9;
-  }
+.dag-edge.edge-recovery:hover {
+  opacity: 0.9;
 }
 
-.ex-glyph-ghost {
-  background: repeating-linear-gradient(90deg, var(--nk-st-failed) 0 4px, transparent 4px 8px);
+.ex-glyph-dep {
+  background: repeating-linear-gradient(90deg, var(--nk-st-muted) 0 4px, transparent 4px 8px);
   height: 3px;
 }
 
-/* ─── Edge labels · the wire's name rides the data edge ─────────────────── */
+/* ─── Edge labels · a binding name rides a data edge · a predicate rides
+   a control edge ────────────────────────────────────────────────────── */
 
 .edge-label {
   font-size: 9px;
@@ -1629,6 +1633,13 @@ body.vscode-light .logo-dark { display: none; }
   stroke-linejoin: round;
   pointer-events: none;
   opacity: 0.9;
+}
+
+/* The control predicate (succeeded · failed · skipped · terminal) —
+ * muted like its wire; the gate is scaffolding, not data. */
+.edge-label.edge-label-ctl {
+  fill: var(--nk-ink-dim);
+  opacity: 0.75;
 }
 
 .ex-glyph-data { background: var(--nk-data); height: 3px; }
@@ -1825,7 +1836,6 @@ body.vscode-light .logo-dark { display: none; }
     transition: none !important;
   }
 
-  .dag-edge.edge-ghost,
   #first-hint,
   .dag-node.status-running .node-bg,
   .dag-node.status-running .node-spinner,

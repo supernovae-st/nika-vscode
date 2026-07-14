@@ -1,49 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { damerau, didYouMean, redundantEdges } from '../core/graphIntel';
+import { damerau, didYouMean } from '../core/graphIntel';
 import { collectShapes, fieldsAt, renderShape, shapeAt } from '../core/schemaShape';
-
-// ─── transitive reduction ────────────────────────────────────────────────────
-
-describe('redundantEdges (Aho-Garey-Ullman transitive reduction)', () => {
-  const nodes = ['a', 'b', 'c', 'd'];
-
-  it('flags the classic triangle shortcut a→c when a→b→c exists', () => {
-    const edges = [
-      { source: 'a', target: 'b' },
-      { source: 'b', target: 'c' },
-      { source: 'a', target: 'c' }, // redundant: ordering already guaranteed
-    ];
-    expect(redundantEdges(nodes, edges)).toEqual([{ source: 'a', target: 'c' }]);
-  });
-
-  it('keeps a diamond intact (no edge is implied by the others)', () => {
-    const edges = [
-      { source: 'a', target: 'b' },
-      { source: 'a', target: 'c' },
-      { source: 'b', target: 'd' },
-      { source: 'c', target: 'd' },
-    ];
-    expect(redundantEdges(nodes, edges)).toEqual([]);
-  });
-
-  it('finds long-path redundancy (a→d when a→b→c→d exists)', () => {
-    const edges = [
-      { source: 'a', target: 'b' },
-      { source: 'b', target: 'c' },
-      { source: 'c', target: 'd' },
-      { source: 'a', target: 'd' },
-    ];
-    expect(redundantEdges(nodes, edges).map((e) => `${e.source}->${e.target}`)).toEqual(['a->d']);
-  });
-
-  it('handles parallel branches without false positives', () => {
-    const edges = [
-      { source: 'a', target: 'b' },
-      { source: 'a', target: 'c' },
-    ];
-    expect(redundantEdges(nodes, edges)).toEqual([]);
-  });
-});
 
 // ─── damerau did-you-mean ────────────────────────────────────────────────────
 
@@ -98,9 +55,10 @@ const DOC = [
   '        required: [title]',
   '',
   '  use:',
-  '    depends_on: [extract]',
+  '    with:',
+  '      title: ${{ tasks.extract.output.title }}',
   '    infer:',
-  '      prompt: "use ${{ tasks.extract.output.title }}"',
+  '      prompt: "use ${{ with.title }}"',
 ].join('\n');
 
 describe('schemaShape', () => {

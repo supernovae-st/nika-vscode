@@ -13,8 +13,7 @@ Usage: nika-cli <COMMAND>
 
 Commands:
   check        Static pre-flight: the ADR-092 ladder (audit BEFORE run)
-  inspect      Static anatomy: tasks · verbs · DAG tree · cost · permits
-  graph        The ONE graph projector (json canonical · mermaid/dot derived)
+  inspect      Static anatomy: tasks · verbs · cost · permits — and the ONE graph projector
   explain      Teach one error code (cause · category · fix-form)
   spec         The embedded spec identity
   schema       The embedded JSON Schema
@@ -37,13 +36,13 @@ describe('capabilities', () => {
     expect(cmds.has('completions')).toBe(true);
     expect(cmds.has('help')).toBe(false);
     expect(cmds.has('run')).toBe(false);
-    expect(cmds.size).toBe(10);
+    expect(cmds.size).toBe(9);
   });
 
   it('builds the gate set — run/lsp/mcp stay off until the engine ships them', () => {
     const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.80.0\n');
     expect(caps.check).toBe(true);
-    expect(caps.graph).toBe(true);
+    expect(caps.inspect).toBe(true);
     expect(caps.newTemplate).toBe(true);
     expect(caps.run).toBe(false);
     expect(caps.lsp).toBe(false);
@@ -82,13 +81,13 @@ describe('capabilities', () => {
 
   it('never promotes wrapped description lines into phantom commands', () => {
     const wrapped = CLAP_HELP.replace(
-      '  inspect      Static anatomy: tasks · verbs · DAG tree · cost · permits\n',
-      '  inspect      Static anatomy: tasks · verbs · DAG tree ·\n               cost and permits boundary audit\n',
+      '  inspect      Static anatomy: tasks · verbs · cost · permits — and the ONE graph projector\n',
+      '  inspect      Static anatomy: tasks · verbs ·\n               cost and permits boundary audit\n',
     );
     const cmds = parseHelpCommands(wrapped);
     expect(cmds.has('inspect')).toBe(true);
     expect(cmds.has('cost')).toBe(false); // the wrapped-line first word
-    expect(cmds.size).toBe(10);
+    expect(cmds.size).toBe(9);
   });
 
   // ─── stdin dash (engine #190 · `nika check - --json`) ─────────────────────
@@ -195,7 +194,7 @@ describe('expr', () => {
   });
 
   it('ignores refs outside islands', () => {
-    expect(scanRefs('depends_on: [tasks.fetch]')).toHaveLength(0);
+    expect(scanRefs('after: { fetch: succeeded }')).toHaveLength(0);
   });
 
   it('resolves the ref under the cursor', () => {
@@ -368,7 +367,6 @@ describe('parseRichWorkflow', () => {
     '      tool: nika:fetch',
     '',
     '  summarize:',
-    '    depends_on: [fetch_page]',
     '    with:',
     '      page: ${{ tasks.fetch_page.output }}',
     '    infer:',
@@ -376,10 +374,10 @@ describe('parseRichWorkflow', () => {
     '      prompt: "sum ${{ with.page }}"',
     '',
     '  ship:',
-    '    depends_on:',
-    '      - summarize',
+    '    after:',
+    '      summarize: succeeded',
     '    exec:',
-    '      command: echo done',
+    '      command: ["echo", "done"]',
     '',
     'permits:',
     '  net:',
@@ -395,24 +393,61 @@ describe('parseRichWorkflow', () => {
     expect(wf.permitsLine).toBe(YAML.split('\n').findIndex((l) => l === 'permits:'));
   });
 
-  it('captures tasks with spans, verbs, deps and with-aliases', () => {
+  it('captures tasks with spans, verbs, boundary edges and with-aliases', () => {
     const wf = parseRichWorkflow(YAML);
     expect(wf.tasks.map((t) => t.id)).toEqual(['fetch_page', 'summarize', 'ship']);
 
     const sum = wf.tasks[1];
     expect(sum.verb).toBe('infer');
-    expect(sum.dependsOn).toEqual(['fetch_page']);
+    // The binding IS the edge — the with: ref makes fetch_page a producer.
+    expect(sum.withRefs).toEqual([{ alias: 'page', from: 'fetch_page', path: 'output' }]);
+    expect(sum.producers).toEqual(['fetch_page']);
     expect(sum.withAliases).toEqual(['page']);
     expect(sum.model).toBe('mock/echo');
 
     const ship = wf.tasks[2];
     expect(ship.verb).toBe('exec');
-    expect(ship.dependsOn).toEqual(['summarize']);
+    expect(ship.after).toEqual({ summarize: 'succeeded' });
+    expect(ship.producers).toEqual(['summarize']);
 
     const fetch = wf.tasks[0];
     expect(fetch.verb).toBe('invoke');
     expect(fetch.tool).toBe('nika:fetch');
     expect(fetch.endLine).toBeLessThan(sum.line);
+  });
+
+  it('parses the inline flow forms the spec teaches (with: {…} · after: {…})', () => {
+    const inline = [
+      'tasks:',
+      '  a:',
+      '    infer: { prompt: "First" }',
+      '  b:',
+      '    with: { prev: ${{ tasks.a.output }}, style: "concise" }',
+      '    after: { a: succeeded }',
+      '    infer: { prompt: "Second · ${{ with.prev }}" }',
+    ].join('\n');
+    const wf = parseRichWorkflow(inline);
+    const b = wf.tasks.find((t) => t.id === 'b')!;
+    expect(b.withAliases).toEqual(['prev', 'style']);
+    expect(b.withRefs).toEqual([{ alias: 'prev', from: 'a', path: 'output' }]);
+    expect(b.after).toEqual({ a: 'succeeded' });
+    expect(b.producers).toEqual(['a']); // deduped across both doors
+  });
+
+  it('collects on_error.recover refs as recovery reads (never producers)', () => {
+    const doc = [
+      'tasks:',
+      '  cache:',
+      '    exec: { command: ["cat", "cache.json"] }',
+      '  live:',
+      '    on_error:',
+      '      recover: ${{ tasks.cache.output }}',
+      '    exec: { command: ["fetch-live"] }',
+    ].join('\n');
+    const wf = parseRichWorkflow(doc);
+    const live = wf.tasks.find((t) => t.id === 'live')!;
+    expect(live.recoverRefs).toEqual(['cache']);
+    expect(live.producers).toEqual([]); // recovery parks — never orders
   });
 
   it('resolves the enclosing task for a line', () => {
@@ -443,24 +478,24 @@ describe('parseRichWorkflow', () => {
     expect(flat.map((t) => t.id)).toEqual(['real_task', 'second_task']);
   });
 
-  it('keeps depends_on items separated by blank lines', () => {
+  it('keeps after entries separated by blank lines', () => {
     const spaced = [
       'tasks:',
       '  a:',
       '    exec:',
-      '      command: echo a',
+      '      command: ["echo", "a"]',
       '  b:',
-      '    depends_on:',
-      '      - a',
+      '    after:',
+      '      a: succeeded',
       '',
-      '      - c',
+      '      c: terminal',
       '    exec:',
-      '      command: echo b',
+      '      command: ["echo", "b"]',
       '  c:',
       '    exec:',
-      '      command: echo c',
+      '      command: ["echo", "c"]',
     ].join('\n');
     const wf = parseRichWorkflow(spaced);
-    expect(wf.tasks.find((t) => t.id === 'b')?.dependsOn).toEqual(['a', 'c']);
+    expect(wf.tasks.find((t) => t.id === 'b')?.after).toEqual({ a: 'succeeded', c: 'terminal' });
   });
 });

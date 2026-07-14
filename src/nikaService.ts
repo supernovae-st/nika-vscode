@@ -284,10 +284,10 @@ export class NikaService {
     return text.includes('permits:') ? text : undefined;
   }
 
-  // ─── graph ────────────────────────────────────────────────────────────────
+  // ─── graph projection (`inspect --format` · graph_format 2) ──────────────
 
   async graphDocument(doc: TextDocument): Promise<GraphDoc | undefined> {
-    if (!this.caps.graph) { return undefined; }
+    if (!this.caps.inspect) { return undefined; }
     const key = doc.uri.toString();
     const cached = this.graphCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
@@ -298,7 +298,7 @@ export class NikaService {
     const inFlight = this.graphInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
-    const promise: Promise<GraphDoc | undefined> = this.runDocCli(doc, (file) => ['graph', file, '--format', 'json']).then((res) => {
+    const promise: Promise<GraphDoc | undefined> = this.runDocCli(doc, (file) => ['inspect', file, '--format', 'json']).then((res) => {
       if (res.code !== EXIT.OK) { return undefined; }
       try {
         const parsed: unknown = JSON.parse(res.stdout);
@@ -337,11 +337,11 @@ export class NikaService {
     if (projected) {
       const dag = graphDocToDag(projected);
       dag.workflowUri = doc.uri.toString();
-      // The engine projects ORDER; the data story (which edges CARRY
-      // bindings, under which alias) derives from the text.
-      const flow = annotateDataFlow(text, dag.nodes, dag.edges);
+      // The engine projects the TYPED edges (kind · predicate · binding);
+      // the client only overlays the hover io row (alias ← from.path —
+      // a declared-bindings read, card substance not edge truth).
+      const flow = annotateDataFlow(text, dag.nodes);
       dag.nodes = flow.nodes;
-      dag.edges = [...flow.edges, ...flow.ghosts];
       mergeBodyFacts(text, dag.nodes);
       const regions = parseRegions(text);
       if (regions.length > 0) { dag.regions = regions; }
@@ -352,8 +352,8 @@ export class NikaService {
   }
 
   async graphFormat(doc: TextDocument, format: 'mermaid' | 'dot'): Promise<string | undefined> {
-    if (!this.caps.graph) { return undefined; }
-    const res = await this.runDocCli(doc, (file) => ['graph', file, '--format', format]);
+    if (!this.caps.inspect) { return undefined; }
+    const res = await this.runDocCli(doc, (file) => ['inspect', file, '--format', format]);
     return res.code === EXIT.OK ? res.stdout : undefined;
   }
 

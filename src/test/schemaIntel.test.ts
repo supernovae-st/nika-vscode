@@ -17,7 +17,7 @@ const SCHEMA = {
     task: {
       properties: {
         id: { description: 'Task id (snake_case).' },
-        depends_on: {},
+        after: {},
         when: { description: 'Conditional execution gate · CEL.' },
         timeout: { description: 'Go-duration string.' },
         infer: {}, exec: {}, invoke: {}, agent: {},
@@ -207,25 +207,26 @@ const RENAME_DOC = [
   '      args: { url: "https://x.com" }',
   '',
   '  use:',
-  '    depends_on: [extract, other]',
-  '    when: "tasks.extract.status == \'success\'"',
+  '    after: { extract: succeeded, other: succeeded }',
   '    with:',
   '      page: ${{ tasks.extract.output }}',
   '    infer:',
-  '      prompt: "p ${{ with.page }}"',
+  '      prompt: "p ${{ with.page }} tasks.extract.status"',
   '',
   '  other:',
-  '    depends_on:',
-  '      - extract',
+  '    after:',
+  '      extract: terminal',
   '    exec:',
-  '      command: echo hi',
+  '      command: ["echo", "hi"]',
 ].join('\n');
 
 describe('renameRefs', () => {
   it('finds all 4 syntactic homes', () => {
     const refs = findTaskRefs(RENAME_DOC, 'extract');
     const homes = refs.map((r) => r.home).sort();
-    expect(homes).toEqual(['cel', 'declaration', 'depends_on', 'depends_on', 'island']);
+    // inline after entry + block after entry + declaration + with island
+    // + a bare un-islanded ref (WIP text — still followed).
+    expect(homes).toEqual(['after', 'after', 'cel', 'declaration', 'island']);
     // Every span is exactly the id token.
     for (const r of refs) {
       expect(RENAME_DOC.slice(r.start, r.end)).toBe('extract');
@@ -236,16 +237,16 @@ describe('renameRefs', () => {
     const out = renameTask(RENAME_DOC, 'extract', 'fetch_page')!;
     expect(out).not.toMatch(/\bextract\b/);
     expect(out).toContain('fetch_page:');
-    expect(out).toContain('depends_on: [fetch_page, other]');
-    expect(out).toContain('when: "tasks.fetch_page.status');
+    expect(out).toContain('after: { fetch_page: succeeded, other: succeeded }');
     expect(out).toContain('${{ tasks.fetch_page.output }}');
-    expect(out).toContain('- fetch_page');
+    expect(out).toContain('tasks.fetch_page.status');
+    expect(out).toContain('fetch_page: terminal');
     // Untouched parts stay byte-identical in count.
     expect(out.split('\n')).toHaveLength(RENAME_DOC.split('\n').length);
   });
 
   it('does not touch prefixed/suffixed ids', () => {
-    const doc = 'tasks:\n  ex:\n    when: "tasks.exam.status == 1"\n    exec:\n      command: echo';
+    const doc = 'tasks:\n  ex:\n    with:\n      x: ${{ tasks.exam.status }}\n    exec:\n      command: ["echo"]';
     const refs = findTaskRefs(doc, 'ex');
     expect(refs.map((r) => r.home)).toEqual(['declaration']); // tasks.exam NOT matched
   });
@@ -263,7 +264,7 @@ describe('renameRefs', () => {
     // And at scale: a generated fan-in stays instant and exact.
     const big = ['tasks:']
       .concat(Array.from({ length: 800 }, (_, i) =>
-        `  t${i}:\n    depends_on: [${i > 0 ? `t${i - 1}` : ''}]\n    when: "tasks.t0.status == 'success'"\n    exec:\n      command: echo`))
+        `  t${i}:\n    after: {${i > 0 ? ` t${i - 1}: succeeded ` : ''}}\n    with:\n      seed: \${{ tasks.t0.output }}\n    exec:\n      command: ["echo"]`))
       .join('\n');
     const bigIds = new Set(Array.from({ length: 800 }, (_, i) => `t${i}`));
     const started = Date.now();

@@ -99,7 +99,7 @@ export class NikaStatusBar implements vscode.Disposable {
       add(true, sep(active));
       add(caps.run, { label: '$(play) Run', description: active, command: 'nika.runWorkflow' });
       add(caps.check, { label: '$(check) Check', description: 'the audit, before a token is spent', command: 'nika.checkWorkflow' });
-      add(caps.graph, { label: '$(type-hierarchy) Graph', description: 'the DAG canvas', command: 'nika.showDag' });
+      add(caps.inspect, { label: '$(type-hierarchy) Graph', description: 'the DAG canvas', command: 'nika.showDag' });
       add(!caps.run && caps.trace, { label: '$(play-circle) Watch demo replay', description: 'run ships with the engine runtime', command: 'nika.watchDemo' });
     }
 

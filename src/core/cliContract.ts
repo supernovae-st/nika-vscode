@@ -1,14 +1,16 @@
 // cliContract.ts — the grounded contracts of the `nika` CLI (pure · no vscode).
 //
 // Mirrors, field-for-field, what the engine actually emits today:
-//   · `nika graph <file> --format json`  → GraphDoc (graph_format: 1 · spec §6)
-//   · `nika check <file> --json`         → CheckReport (report_version: 1 · ADR-092)
-// Source of truth: crates/nika-cli/src/verbs/{graph,check}.rs +
+//   · `nika inspect <file> --format json` → GraphDoc (graph_format: 2 · 03-dag §projection)
+//   · `nika check <file> --json`          → CheckReport (report_version: 1 · ADR-092)
+// Source of truth: crates/nika-cli/src/verbs/{inspect,check}.rs +
 // crates/nika-schema/src/check/mod.rs. If a field here disagrees with the
-// binary, the binary wins — adapters below are tolerant (optional fields,
-// unknown keys ignored).
+// binary, the binary wins — adapters below are tolerant WITHIN the format
+// (optional fields, unknown keys and unknown edge kinds ignored — the
+// fold-tolerance law), but a reader MUST refuse a graph_format it does
+// not speak: format 1 is dead, no fallback survives W2.
 
-// ─── graph --format json ────────────────────────────────────────────────────
+// ─── inspect --format json ──────────────────────────────────────────────────
 
 export interface GraphDocFanOut {
   kind: string; // "list" | "expression"
@@ -33,17 +35,45 @@ export interface GraphDocNode {
   outputs?: string[] | null;
 }
 
+/** The graph_format 2 edge kinds (closed at six · additive within the
+ *  format · a reader ignores kinds it does not know). `finally` is
+ *  RESERVED — named so the enum is complete, never emitted in W2. */
+export type GraphEdgeKind =
+  | 'value'
+  | 'terminal-observation'
+  | 'failure-observation'
+  | 'control'
+  | 'recovery'
+  | 'finally';
+
 export interface GraphDocEdge {
   from: string;
   to: string;
-  kind: string; // "depends_on" today (closed enum, grows with the spec)
+  /** Typed kind (GraphEdgeKind values today — unknown kinds tolerated). */
+  kind: string;
+  /** control edges — the `after:` predicate (succeeded · failed · skipped · terminal). */
+  predicate?: string;
+  /** data/observation edges — the `with:` binding name that created it. */
+  binding?: string;
 }
 
 export interface GraphDoc {
+  /** Always 2 — `isGraphDoc` refuses any other format (no v1 fallback). */
   graph_format: number;
   workflow: string;
   nodes: GraphDocNode[];
   edges: GraphDocEdge[];
+}
+
+/** Data crosses this kind (value + the two observations). */
+export function isDataKind(kind: string): boolean {
+  return kind === 'value' || kind === 'terminal-observation' || kind === 'failure-observation';
+}
+
+/** The kinds that SCHEDULE (G_p = E_d ∪ E_c) — recovery is a parking
+ *  read and `finally` a cleanup attachment: neither orders execution. */
+export function isSchedulingKind(kind: string): boolean {
+  return kind !== 'recovery' && kind !== 'finally';
 }
 
 // ─── The webview DAG shape (mirrored in dagPanel.ts / webview/dag.ts) ───────
@@ -81,14 +111,15 @@ export interface DagNode {
   model?: string;
   tool?: string;
   when?: string;
-  /** Per-task capability grants (`graph --format json` · the #367
+  /** Per-task capability grants (`inspect --format json` · the #367
    *  affirmative permits contract) — engine truth, never parsed here. */
   permits?: string[];
   fanOutKind?: string;
   fanOutCount?: number;
   costMin?: number;
   costMax?: number;
-  dependsOn: string[];
+  /** Inbound SCHEDULING producers (control + data edges) — the port fact. */
+  producers: string[];
   /** Inbound data bindings (alias ← from.path) — the wires, named. */
   bindingsIn?: Array<{ alias: string; from: string; path: string }>;
   /** Card body — what the task SAYS (client YAML read · ≤3 lines). */
@@ -139,14 +170,14 @@ export interface DagEdge {
   id: string;
   source: string;
   target: string;
-  isDataEdge: boolean;
-  /** Binding name(s) the edge carries (`page` · `output.title`). */
+  /** graph_format 2 typed kind — value · terminal-observation ·
+   *  failure-observation · control · recovery (unknown kinds tolerated,
+   *  rendered as data). There is no untyped edge anymore. */
+  kind: string;
+  /** control edges — the `after:` predicate (succeeded · failed · skipped · terminal). */
+  predicate?: string;
+  /** data/observation edges — the `with:` binding name riding the wire. */
   label?: string;
-  /**
-   * A data ref WITHOUT its depends_on (NIKA-DAG-003): the wire the
-   * author MEANT — rendered red dashed, click declares the dependency.
-   */
-  ghost?: boolean;
 }
 
 /** Author-declared task grouping (`# nika:region <name>`). */
@@ -182,19 +213,30 @@ export function goishDuration(ms: number): string {
   return rest === 0 ? `${m}m` : `${m}m${rest}s`;
 }
 
+/** Accepts ONLY `graph_format: 2` — a reader refuses a format it does
+ *  not speak rather than guess (format 1's untyped edges would be
+ *  mis-read as ordering; the format number moved for that reason). */
 export function isGraphDoc(value: unknown): value is GraphDoc {
   if (typeof value !== 'object' || value === null) { return false; }
   const v = value as Record<string, unknown>;
-  return typeof v.graph_format === 'number' && Array.isArray(v.nodes) && Array.isArray(v.edges);
+  return v.graph_format === 2 && Array.isArray(v.nodes) && Array.isArray(v.edges);
+}
+
+/** Stable id for one typed edge — TWO edges may share endpoints (a
+ *  control edge next to a value edge is the spec's own gate-tightening
+ *  pairing), so the kind + its qualifier join the key. */
+export function dagEdgeId(e: GraphDocEdge): string {
+  return `${e.from}->${e.to}:${e.kind}:${e.binding ?? e.predicate ?? ''}`;
 }
 
 /** Adapt the CLI's canonical GraphDoc into the webview DagGraph shape. */
 export function graphDocToDag(doc: GraphDoc): DagGraph {
-  const dependsOn = new Map<string, string[]>();
+  const producers = new Map<string, string[]>();
   for (const edge of doc.edges) {
-    const list = dependsOn.get(edge.to) ?? [];
-    list.push(edge.from);
-    dependsOn.set(edge.to, list);
+    if (!isSchedulingKind(edge.kind)) { continue; } // recovery parks, never orders
+    const list = producers.get(edge.to) ?? [];
+    if (!list.includes(edge.from)) { list.push(edge.from); }
+    producers.set(edge.to, list);
   }
 
   return {
@@ -206,7 +248,7 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
         label: n.id,
         verb: n.verb,
         status: 'pending',
-        dependsOn: dependsOn.get(n.id) ?? [],
+        producers: producers.get(n.id) ?? [],
       };
       if (model) {
         node.model = model;
@@ -236,12 +278,17 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
       }
       return node;
     }),
-    edges: doc.edges.map((e) => ({
-      id: `${e.from}->${e.to}`,
-      source: e.from,
-      target: e.to,
-      isDataEdge: e.kind !== 'depends_on',
-    })),
+    edges: doc.edges.map((e) => {
+      const edge: DagEdge = {
+        id: dagEdgeId(e),
+        source: e.from,
+        target: e.to,
+        kind: e.kind,
+      };
+      if (typeof e.predicate === 'string') { edge.predicate = e.predicate; }
+      if (typeof e.binding === 'string') { edge.label = e.binding; }
+      return edge;
+    }),
   };
 }
 

@@ -27,12 +27,12 @@ import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
-  addDependsOn,
+  addAfterEntry,
   deleteTask,
   duplicateTask,
   insertBetween,
   insertTaskSkeleton,
-  removeDependsOn,
+  removeAfterEntry,
   setTaskModel,
   type Verb,
 } from './core/structuralFixes';
@@ -393,7 +393,7 @@ export function activate(context: ExtensionContext): void {
     void commands.executeCommand('setContext', 'nika.hasBinary', service.available);
     void commands.executeCommand('setContext', 'nika.capRun', caps.run);
     void commands.executeCommand('setContext', 'nika.capCheck', caps.check);
-    void commands.executeCommand('setContext', 'nika.capGraph', caps.graph);
+    void commands.executeCommand('setContext', 'nika.capGraph', caps.inspect);
     void commands.executeCommand('setContext', 'nika.capTrace', caps.trace);
     log('INFO', `Capabilities: ${[...caps.commands].sort().join(' ') || '(none)'} · ${caps.version}`);
   }));
@@ -765,7 +765,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.pickOutputs', (uri?: Uri) => pickOutputsFor(uri)),
     commands.registerCommand('nika.declareInput', (uri?: Uri) => declareInputFor(uri)),
     commands.registerCommand('nika.promoteVars', (uri?: Uri) => promoteVarsFor(uri)),
-    // The flow doors (V2): depends_on · when · for_each.
+    // The flow doors (V2): after · when · for_each.
     commands.registerCommand('nika.wireInputs', (uri: Uri, taskId: string) =>
       wireInputsFor(uri, taskId),
     ),
@@ -1108,11 +1108,16 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       case 'dag:connect':
-        // Edge from → to means « to depends_on from ». Idempotent.
-        newText = addDependsOn(text, request.to, request.from);
+        // Edge from → to means « to runs after from » — the canvas
+        // gesture writes the strict control default (succeeded); the
+        // data door stays with: (the binding is authored, not drawn).
+        // Idempotent.
+        newText = addAfterEntry(text, request.to, request.from);
         break;
       case 'dag:disconnect':
-        newText = removeDependsOn(text, request.to, request.from);
+        // Control edges only — a with: binding is a ref the body
+        // reads, never blind-deleted from a canvas gesture.
+        newText = removeAfterEntry(text, request.to, request.from);
         break;
       case 'dag:deleteTask': {
         const res = deleteTask(text, request.taskId);
@@ -1410,7 +1415,7 @@ export function activate(context: ExtensionContext): void {
         const newId = await window.showInputBox({
           title: `Rename task \`${oldId}\``,
           value: oldId,
-          prompt: 'Every reference follows — ${{ tasks.X }} islands · depends_on · when: CEL.',
+          prompt: 'Every reference follows — ${{ tasks.X }} islands · after: entries.',
           validateInput: (v) => {
             if (!/^[a-z][a-z0-9_]*$/.test(v)) { return 'snake_case — ^[a-z][a-z0-9_]*$'; }
             if (v !== oldId && findTaskRefs(text, v).length > 0) {

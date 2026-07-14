@@ -159,8 +159,8 @@ export interface PreflightInputs {
   workflowName: string;
   facts: PreflightFacts;
   report?: CheckReport;
-  /** Graph for wave narration (real dependencies only — ghosts excluded). */
-  graph?: { nodes: Array<{ id: string; verb?: string }>; edges: Array<{ source: string; target: string; ghost?: boolean }> };
+  /** Graph for wave narration (scheduling edges only — recovery parks). */
+  graph?: { nodes: Array<{ id: string; verb?: string }>; edges: Array<{ source: string; target: string; kind?: string }> };
   catalog?: Record<string, ProviderKeyInfo>;
   /** Injected environment probe — tests never read the real env. */
   envPresent: (name: string) => boolean;
@@ -203,13 +203,14 @@ export interface PreflightModel {
   blockers: string[];
 }
 
-/** Kahn waves over real edges, stable in node order — the plan narration. */
+/** Kahn waves over SCHEDULING edges (recovery parks, never orders),
+ *  stable in node order — the plan narration. */
 function wavesOf(graph: NonNullable<PreflightInputs['graph']>): string[][] {
   const indeg = new Map<string, number>();
   const down = new Map<string, string[]>();
   for (const n of graph.nodes) { indeg.set(n.id, 0); }
   for (const e of graph.edges) {
-    if (e.ghost || !indeg.has(e.source) || !indeg.has(e.target)) { continue; }
+    if (e.kind === 'recovery' || e.kind === 'finally' || !indeg.has(e.source) || !indeg.has(e.target)) { continue; }
     indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
     (down.get(e.source) ?? down.set(e.source, []).get(e.source)!).push(e.target);
   }

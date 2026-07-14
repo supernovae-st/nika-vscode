@@ -2,7 +2,7 @@
 //
 // The extension adapts to what the binary ACTUALLY ships instead of
 // hardcoding a feature matrix: today's static suite (check · inspect ·
-// graph · explain · spec · schema · examples · new · completions · trace)
+// explain · spec · schema · examples · new · completions · trace)
 // lights up immediately; `run` / `lsp` / `mcp` light up the day the
 // engine ships them — same extension, zero release needed. The probe
 // parses `--help` (clap's "Commands:" section), never guesses.
@@ -13,8 +13,9 @@ export interface CapabilitySet {
   /** `--version` output, trimmed (e.g. "nika-cli 0.80.0"). */
   version: string;
   check: boolean;
+  /** `nika inspect` — anatomy AND the one graph projector
+   *  (`--format json|mermaid|dot` · graph_format 2). */
   inspect: boolean;
-  graph: boolean;
   explain: boolean;
   init: boolean;
   spec: boolean;
@@ -104,7 +105,6 @@ export function buildCapabilities(
     version: versionText.trim(),
     check: commands.has('check'),
     inspect: commands.has('inspect'),
-    graph: commands.has('graph'),
     explain: commands.has('explain'),
     init: commands.has('init'),
     spec: commands.has('spec'),
@@ -145,7 +145,7 @@ export function describeCapabilities(caps: CapabilitySet): string {
   if (caps.commands.size === 0) { return 'no binary'; }
   const have: string[] = [];
   if (caps.check) { have.push('check'); }
-  if (caps.graph) { have.push('graph'); }
+  if (caps.inspect) { have.push('inspect'); }
   if (caps.run) { have.push('run'); }
   if (caps.lsp) { have.push('lsp'); }
   if (caps.mcp) { have.push('mcp'); }

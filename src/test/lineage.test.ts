@@ -33,7 +33,7 @@ describe('lineageOf', () => {
   });
 
   it('ghost data edge counts as consumption', () => {
-    const edges = [E('x', 'y'), E('y', 'z', { ghost: true, isDataEdge: true })];
+    const edges = [E('x', 'y'), E('y', 'z', { kind: 'recovery' })];
     const v = lineageOf(edges, 'y');
     expect(v.downDirect).toEqual(['z']);
     expect(v.litEdges).toContain('y->z');

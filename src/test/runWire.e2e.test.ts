@@ -62,19 +62,23 @@ tasks:
       prompt: "Name three colors, one per line."
 
   branch_a:
-    depends_on: [seed]
+    with:
+      colors: \${{ tasks.seed.output }}
     infer:
-      prompt: "Comment on \${{ tasks.seed.output }} briefly."
+      prompt: "Comment on \${{ with.colors }} briefly."
 
   branch_b:
-    depends_on: [seed]
+    with:
+      colors: \${{ tasks.seed.output }}
     infer:
-      prompt: "Count the lines in \${{ tasks.seed.output }}."
+      prompt: "Count the lines in \${{ with.colors }}."
 
   join:
-    depends_on: [branch_a, branch_b]
+    with:
+      a: \${{ tasks.branch_a.output }}
+      b: \${{ tasks.branch_b.output }}
     infer:
-      prompt: "Merge \${{ tasks.branch_a.output }} and \${{ tasks.branch_b.output }}."
+      prompt: "Merge \${{ with.a }} and \${{ with.b }}."
 `;
 
 const FAILING_WF = `nika: v1
@@ -89,7 +93,7 @@ tasks:
       prompt: "Say ok."
 
   boom:
-    depends_on: [ok_step]
+    after: { ok_step: succeeded }
     exec:
       shell: "exit 7"
 `;

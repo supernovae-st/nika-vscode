@@ -49,10 +49,20 @@ describe('descendantSets', () => {
     expect([...desc.get('b')!]).toEqual(['d']);
   });
 
-  it('ignores ghost edges — they are not real ordering', () => {
-    const ghosted: AnalysisEdge[] = [...TWO_CHAINS_E, { source: 'a2', target: 'b1', ghost: true }];
-    const desc = descendantSets(TWO_CHAINS_N, ghosted);
+  it('ignores recovery edges — a parking read is not real ordering', () => {
+    const parked: AnalysisEdge[] = [...TWO_CHAINS_E, { source: 'a2', target: 'b1', kind: 'recovery' }];
+    const desc = descendantSets(TWO_CHAINS_N, parked);
     expect(desc.get('a2')!.size).toBe(0);
+  });
+
+  it('typed scheduling kinds all order (value · observations · control)', () => {
+    const typed: AnalysisEdge[] = [
+      { source: 'a1', target: 'a2', kind: 'value' },
+      { source: 'a2', target: 'b1', kind: 'terminal-observation' },
+      { source: 'b1', target: 'b2', kind: 'control' },
+    ];
+    const desc = descendantSets(TWO_CHAINS_N, typed);
+    expect([...desc.get('a1')!].sort()).toEqual(['a2', 'b1', 'b2']);
   });
 });
 
@@ -227,9 +237,9 @@ describe('analyzeDag (the full read)', () => {
     expect(ins.work).toBe(4); // unit weights
   });
 
-  it('ghost edges shape nothing', () => {
-    const withGhost: AnalysisEdge[] = [...DIAMOND_E, { source: 'b', target: 'c', ghost: true }];
-    const ins = analyzeDag(DIAMOND_N, withGhost);
+  it('recovery edges shape nothing (a parking read never schedules)', () => {
+    const withParked: AnalysisEdge[] = [...DIAMOND_E, { source: 'b', target: 'c', kind: 'recovery' }];
+    const ins = analyzeDag(DIAMOND_N, withParked);
     expect(ins.width).toBe(2);
     expect(ins.edgeCount).toBe(DIAMOND_E.length);
   });

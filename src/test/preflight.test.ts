@@ -28,11 +28,11 @@ tasks:
     invoke:
       tool: "nika:fetch"
   digest:
-    depends_on: [fetch]
+    after: { fetch: succeeded }
     infer:
       prompt: "Summarize \${{ tasks.fetch.output }} for \${{ env.REGION }} org \${{ env.GITHUB_ORG }}"
   local_pass:
-    depends_on: [fetch]
+    after: { fetch: succeeded }
     infer:
       model: ollama/qwen3.5
       prompt: "rank"

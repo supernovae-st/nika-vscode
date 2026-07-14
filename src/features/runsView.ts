@@ -548,7 +548,7 @@ export async function replayIntoDag(
       label: t.id,
       verb: 'invoke',
       status: 'pending' as TaskStatus,
-      dependsOn: [] as string[],
+      producers: [] as string[],
     })),
     edges: [],
   };

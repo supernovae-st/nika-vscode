@@ -155,7 +155,7 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
         const facts = [`verb \`${task.verb}\``];
         if (task.model ?? wf.defaultModel) { facts.push(`model \`${task.model ?? wf.defaultModel}\``); }
         if (task.tool) { facts.push(`tool \`${task.tool}\``); }
-        if (task.dependsOn.length > 0) { facts.push(`depends on ${task.dependsOn.map((d) => `\`${d}\``).join(' · ')}`); }
+        if (task.producers.length > 0) { facts.push(`runs after ${task.producers.map((p) => `\`${p}\``).join(' · ')}`); }
         md.appendMarkdown(`${facts.join(' · ')}  \n_line ${task.line + 1}_`);
 
         // Hover ACTIONS (rust-analyzer pattern): the card can drive the
@@ -375,8 +375,8 @@ export class SchemaCompletionProvider implements vscode.CompletionItemProvider {
         return undefined;
       case 'when':
         return enumItems(['true', 'false'], vscode.CompletionItemKind.Value);
-      case 'depends_on': {
-        // Complete OTHER task ids — the most-typed value in any DAG.
+      case 'after': {
+        // Complete OTHER task ids — the producer keys of the control map.
         if (!document || line === undefined) { return undefined; }
         const wf = parseRichWorkflow(document.getText());
         const current = taskAtLine(wf, line);
@@ -385,6 +385,7 @@ export class SchemaCompletionProvider implements vscode.CompletionItemProvider {
           .map((t) => {
             const item = new vscode.CompletionItem(t.id, vscode.CompletionItemKind.Reference);
             item.detail = `${t.verb} task (line ${t.line + 1})`;
+            item.insertText = new vscode.SnippetString(`${t.id}: \${1|succeeded,failed,skipped,terminal|}`);
             return item;
           });
       }
@@ -520,10 +521,10 @@ export class TemplateDefinitionProvider implements vscode.DefinitionProvider {
       }
     }
 
-    // 2 · a task id inside depends_on
+    // 2 · a task id inside an after: entry (inline map or block form)
     const lineText = document.lineAt(position.line).text;
     const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z0-9_-]+/);
-    if (wordRange && /depends_on|^\s*-\s/.test(lineText)) {
+    if (wordRange && /after:\s*\{|^\s*[a-z][a-z0-9_]*\s*:\s*(succeeded|failed|skipped|terminal)\b/.test(lineText)) {
       const word = document.getText(wordRange);
       const task = wf.tasks.find((t) => t.id === word);
       if (task && task.line !== position.line) {

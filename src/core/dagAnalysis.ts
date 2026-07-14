@@ -17,7 +17,7 @@
 // one (a replayed/live run), else unit weights — never mix real
 // milliseconds with synthetic 1s (that lesson is paid for).
 
-import { topoWaves } from './cliContract';
+import { isSchedulingKind, topoWaves } from './cliContract';
 
 export interface AnalysisNode {
   id: string;
@@ -27,8 +27,9 @@ export interface AnalysisNode {
 export interface AnalysisEdge {
   source: string;
   target: string;
-  /** Ghost edges (data ref without depends_on) are NOT real ordering. */
-  ghost?: boolean;
+  /** graph_format 2 kind — recovery/finally edges are NOT real ordering
+   *  (parking reads · cleanup attachments); absent = scheduling. */
+  kind?: string;
 }
 
 export interface MakespanEstimate {
@@ -73,7 +74,7 @@ function adjacency(nodes: AnalysisNode[], edges: AnalysisEdge[]): Adjacency {
   const down = new Map<string, string[]>(ids.map((id) => [id, []]));
   const up = new Map<string, string[]>(ids.map((id) => [id, []]));
   for (const e of edges) {
-    if (e.ghost) { continue; }
+    if (!isSchedulingKind(e.kind ?? 'control')) { continue; }
     if (!known.has(e.source) || !known.has(e.target)) { continue; }
     down.get(e.source)!.push(e.target);
     up.get(e.target)!.push(e.source);
@@ -88,7 +89,7 @@ function adjacency(nodes: AnalysisNode[], edges: AnalysisEdge[]): Adjacency {
  */
 export function descendantSets(nodes: AnalysisNode[], edges: AnalysisEdge[]): Map<string, Set<string>> {
   const { down } = adjacency(nodes, edges);
-  const real = edges.filter((e) => !e.ghost);
+  const real = edges.filter((e) => isSchedulingKind(e.kind ?? 'control'));
   const waves = topoWaves(nodes, real);
   const desc = new Map<string, Set<string>>();
   for (let w = waves.length - 1; w >= 0; w--) {
@@ -247,7 +248,7 @@ export function weightedSpan(
   weight: Map<string, number>,
 ): number {
   const { up } = adjacency(nodes, edges);
-  const real = edges.filter((e) => !e.ghost);
+  const real = edges.filter((e) => isSchedulingKind(e.kind ?? 'control'));
   const finish = new Map<string, number>();
   let span = 0;
   for (const wave of topoWaves(nodes, real)) {
@@ -278,7 +279,7 @@ export function listScheduleMakespan(
 ): number {
   if (nodes.length === 0 || k < 1) { return 0; }
   const { down, up } = adjacency(nodes, edges);
-  const real = edges.filter((e) => !e.ghost);
+  const real = edges.filter((e) => isSchedulingKind(e.kind ?? 'control'));
   const waves = topoWaves(nodes, real);
 
   // Upward rank, reverse topological.
@@ -344,7 +345,7 @@ export function listScheduleMakespan(
 
 /** The full engineering read of a DAG — one call, every insight. */
 export function analyzeDag(nodes: AnalysisNode[], edges: AnalysisEdge[]): DagInsights {
-  const real = edges.filter((e) => !e.ghost);
+  const real = edges.filter((e) => isSchedulingKind(e.kind ?? 'control'));
   const { width, witness } = maxAntichain(nodes, real);
   const desc = descendantSets(nodes, real);
 

@@ -57,8 +57,8 @@ export function makeCallableDoorTitle(untypedCount: number): string {
   return `$(plug) make it callable · ${untypedCount} untyped`;
 }
 
-/** `depends_on:` — re-pick what this task waits for (cycle-safe). */
-export const WIRE_INPUTS_DOOR = '$(link) wire its inputs';
+/** `after:` — re-pick what this task waits for (cycle-safe). */
+export const WIRE_INPUTS_DOOR = '$(link) order on state';
 
 /** `when:` — swap the CEL gate (⌁ is the when-inlay's own glyph). */
 export const GATE_DOOR = '⌁ choose a gate';

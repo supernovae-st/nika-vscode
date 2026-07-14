@@ -21,28 +21,31 @@ tasks:
       args: { pattern: "${{ vars.changes_dir }}/*.md" }
 
   digest:
-    depends_on: [discover]
+    after: { discover: succeeded }
     exec:
       command: ["cat", "items/item-1.md", "items/item-2.md", "items/item-3.md", "items/item-4.md", "items/item-5.md"]
 
   stats:
-    depends_on: [discover]
+    with:
+      files: ${{ tasks.discover.output }}
     invoke:
       tool: "nika:jq"
       args:
-        input: ${{ tasks.discover.output }}
+        input: ${{ with.files }}
         expression: "{ files: length }"
 
   draft:
-    depends_on: [digest]
+    with:
+      changes: ${{ tasks.digest.output }}
     infer:
       max_tokens: 400
       prompt: |
         Draft concise release notes from these changes:
-        ${{ tasks.digest.output }}
+        ${{ with.changes }}
 
   translate:
-    depends_on: [draft]
+    with:
+      notes: ${{ tasks.draft.output }}
     for_each: ${{ vars.locales }}
     max_parallel: 4
     fail_fast: false
@@ -57,38 +60,44 @@ tasks:
       max_tokens: 400
       prompt: |
         Translate these release notes to ${{ item }}:
-        ${{ tasks.draft.output }}
+        ${{ with.notes }}
 
   survivors:
-    depends_on: [translate]
+    with:
+      translations: ${{ tasks.translate.output }}
     invoke:
       tool: "nika:jq"
       args:
-        input: ${{ tasks.translate.output }}
+        input: ${{ with.translations }}
         expression: "[ .[] | select(. != null) ]"
 
   verify:
-    depends_on: [survivors]
+    with:
+      localized: ${{ tasks.survivors.output }}
     agent:
       max_tokens_total: 2000
       prompt: |
         Review these localized release notes for coverage and consistency.
         Reply APPROVED if every locale is present.
-        ${{ tasks.survivors.output }}
+        ${{ with.localized }}
 
   publish:
-    depends_on: [verify, survivors]
-    when: ${{ tasks.survivors.output.size() > 0 }}
+    after: { verify: succeeded }
+    with:
+      survivors: ${{ tasks.survivors.output }}
+    when: ${{ size(with.survivors) > 0 }}
     exec:
       command: ["printf", "%s", "published: release notes ready"]
 
   report:
-    depends_on: [publish, stats]
+    with:
+      files: ${{ tasks.stats.output }}
+      published: ${{ tasks.publish.output }}
     infer:
       max_tokens: 120
       prompt: |
-        One-line ship report for the team (files: ${{ tasks.stats.output }}):
-        ${{ tasks.publish.output }}
+        One-line ship report for the team (files: ${{ with.files }}):
+        ${{ with.published }}
 
 outputs:
   notes: ${{ tasks.report.output }}
