@@ -97,24 +97,29 @@ export function registerLmTools(
       },
     }),
   );
-  // The workspace aggregate (engine `nika context --json` · 0.99 line):
-  // registered only when the probed binary carries the verb — the tool
-  // list itself stays version-honest (a host asking for nika_workspace
-  // on an old binary would get a permanent error, so it never appears).
-  if (service.caps.context) {
+  // The workspace aggregate — `welcome --deep --json` on the 0.104
+  // line (the RENAMED context verb; the old spelling stays as the
+  // dev-build fallback). Registered only when the probed binary
+  // carries one of the doors — the tool list itself stays honest (a
+  // host asking for nika_workspace on an old binary would get a
+  // permanent error, so it never appears).
+  if (service.caps.welcome || service.caps.context) {
+    const args = service.caps.welcome
+      ? ['welcome', '--deep', '--json']
+      : ['context', '--json'];
     context.subscriptions.push(
       lm.registerTool('nika_workspace', {
         invoke: async () => {
-          const res = await service.runCli(['context', '--json'], 30000, undefined,
+          const res = await service.runCli(args, 30000, undefined,
             vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
           if (res.code !== 0) {
-            return text(`nika context failed (exit ${res.code}): ${res.stderr || res.stdout}`);
+            return text(`nika ${args[0]} failed (exit ${res.code}): ${res.stderr || res.stdout}`);
           }
           return text(res.stdout);
         },
       }),
     );
-    log('INFO', 'Registered LM tool: nika_workspace (context capability probed)');
+    log('INFO', `Registered LM tool: nika_workspace (${args[0]} capability probed)`);
   }
   log('INFO', 'Registered LM tools: nika_check · nika_explain · nika_graph');
 }

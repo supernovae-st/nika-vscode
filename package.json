@@ -91,6 +91,10 @@
         {
           "id": "nikaRuns",
           "name": "Runs (flight recorder)"
+        },
+        {
+          "id": "nikaStation",
+          "name": "Station"
         }
       ]
     },
@@ -558,6 +562,33 @@
         "command": "nika.exportDag",
         "title": "Export DAG (Mermaid · Graphviz)",
         "category": "Nika"
+      },
+      {
+        "command": "nika.showStation",
+        "title": "Open the Station (engine · agents · doctor)",
+        "icon": "$(radio-tower)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.refresh",
+        "title": "Refresh Station",
+        "icon": "$(refresh)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.wire",
+        "title": "Wire an Agent Client (MCP)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.applyFix",
+        "title": "Apply Doctor Fix",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.doctorReport",
+        "title": "Doctor — Full Report",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -933,6 +964,11 @@
           "command": "nika.newWorkflow",
           "when": "view == 'nikaWorkflows'",
           "group": "navigation"
+        },
+        {
+          "command": "nika.station.refresh",
+          "when": "view == 'nikaStation'",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -1056,7 +1092,7 @@
         "displayName": "Nika Workspace",
         "toolReferenceName": "nikaWorkspace",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS — never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the context verb (0.99+); on older binaries this tool is not registered.",
+        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS — never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the workspace aggregate (`welcome --deep` on 0.104+, `context` on older dev builds); without one this tool is not registered.",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -1232,6 +1268,11 @@
       {
         "view": "nikaRuns",
         "contents": "No recorded runs yet — every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[▤ Try an embedded example](command:nika.browseExamples)"
+      },
+      {
+        "view": "nikaStation",
+        "when": "nika.journey == 'noBinary'",
+        "contents": "The station lights up with the engine — install it and every row below becomes live machine truth.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)"
       }
     ],
     "breakpoints": [

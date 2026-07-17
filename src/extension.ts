@@ -77,6 +77,7 @@ import {
 } from './features/contractDoors';
 import { makeResilientFor } from './features/armorDoors';
 import { chooseCollectionFor, chooseGateFor, setServerIslandsProbe, wireInputsFor } from './features/flowDoors';
+import { registerStation } from './features/stationView';
 import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { chooseAgentToolsFor, VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -538,6 +539,12 @@ export function activate(context: ExtensionContext): void {
   const runsTree = new RunsTreeProvider();
   context.subscriptions.push(window.registerTreeDataProvider('nikaRuns', runsTree));
 
+  // The Station — the cockpit tree (engine · doctor · agents ·
+  // providers · workspace). Lane A pure: everything it shows comes
+  // from `welcome --deep --json` + `doctor --json` + the grammar
+  // canary; it degrades honestly to the one install action.
+  const station = registerStation(context, service, () => state.resolvedServerPath);
+
   // Trace watcher: refresh the runs view AND live-overlay a growing trace
   // onto the open DAG (an engine writing a run animates the graph in real
   // time — debounced per file, majority-overlap gated).
@@ -631,6 +638,7 @@ export function activate(context: ExtensionContext): void {
   state.statusSink = (s) => {
     statusBar.setLspState(s);
     langStatus.setLspState(s);
+    station.setLspState(s === 'running' ? 'running' : s === 'starting' ? 'starting' : 'failed');
   };
 
   // Problems-panel coverage for CLOSED workflows (open ones stay with the

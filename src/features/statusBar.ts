@@ -123,6 +123,7 @@ export class NikaStatusBar implements vscode.Disposable {
     add(caps.schema, { label: '$(json) Open JSON schema', command: 'nika.openSchema' });
 
     add(true, sep('Machine'));
+    add(true, { label: '$(radio-tower) Station — engine · agents · doctor', description: 'the cockpit view: what is wired, what to fix, what it costs', command: 'nika.showStation' });
     add(caps.doctor, { label: '$(pulse) Doctor — diagnose environment', description: 'binary · config · keys · never mutates (--ping in a terminal probes local ports)', command: 'nika.doctor' });
     add(this.service.available, { label: '$(plug) Re-wire MCP + agent rules', description: 'idempotent — auto-ran once at first activation', command: 'nika.setupMcp' });
     add(caps.lsp, { label: '$(refresh) Restart language server', command: 'nika.restartServer' });
