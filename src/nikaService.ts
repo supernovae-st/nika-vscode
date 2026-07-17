@@ -33,6 +33,7 @@ import { annotateDataFlow } from './core/dataflow';
 import { collectBodyFacts } from './core/bodyFacts';
 import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
+import { parseSemanticDocument, type TaskSpans } from './core/semanticDoc';
 import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
 
 export type { CliResult } from './core/spawn';
@@ -79,10 +80,22 @@ export class NikaService {
 
   private readonly checkCache = new Map<string, CacheEntry<CheckOutcome>>();
   private readonly graphCache = new Map<string, CacheEntry<GraphDoc | undefined>>();
+  private readonly spansCache = new Map<string, CacheEntry<TaskSpans>>();
   // In-flight dedup: concurrent callers for the same (uri, version) share
   // one spawn instead of racing on the same tmp file.
   private readonly checkInFlight = new Map<string, Promise<CheckOutcome>>();
   private readonly graphInFlight = new Map<string, Promise<GraphDoc | undefined>>();
+
+  // The `nika/semanticDocument` lane — set while a format-2 server runs
+  // (extension.ts wires it on initialize, clears it on server death).
+  // The oracle is the SAME projection as `inspect --format json` minus
+  // one process spawn per refresh, plus the spans the CLI cannot carry.
+  private semanticOracle: ((doc: TextDocument) => Promise<unknown>) | undefined;
+
+  /** Wire (or clear) the LSP semantic-document lane. */
+  setSemanticOracle(fn: ((doc: TextDocument) => Promise<unknown>) | undefined): void {
+    this.semanticOracle = fn;
+  }
 
   get binaryPath(): string | undefined {
     return this.binary;
@@ -198,6 +211,7 @@ export class NikaService {
   invalidate(uriString: string): void {
     this.checkCache.delete(uriString);
     this.graphCache.delete(uriString);
+    this.spansCache.delete(uriString);
     // Detach in-flight runs for this doc too — their completion would
     // re-insert the pre-invalidation result into the cache.
     const prefix = `${uriString}#`;
@@ -284,10 +298,10 @@ export class NikaService {
     return text.includes('permits:') ? text : undefined;
   }
 
-  // ─── graph projection (`inspect --format` · graph_format 2) ──────────────
+  // ─── graph projection (LSP oracle first · `inspect --format` fallback) ───
 
   async graphDocument(doc: TextDocument): Promise<GraphDoc | undefined> {
-    if (!this.caps.inspect) { return undefined; }
+    if (!this.caps.inspect && !this.semanticOracle) { return undefined; }
     const key = doc.uri.toString();
     const cached = this.graphCache.get(key);
     if (cached && cached.version === doc.version) { return cached.value; }
@@ -298,15 +312,7 @@ export class NikaService {
     const inFlight = this.graphInFlight.get(flightKey);
     if (inFlight) { return inFlight; }
 
-    const promise: Promise<GraphDoc | undefined> = this.runDocCli(doc, (file) => ['inspect', file, '--format', 'json']).then((res) => {
-      if (res.code !== EXIT.OK) { return undefined; }
-      try {
-        const parsed: unknown = JSON.parse(res.stdout);
-        return isGraphDoc(parsed) ? parsed : undefined;
-      } catch {
-        return undefined;
-      }
-    }).then((value) => {
+    const promise: Promise<GraphDoc | undefined> = this.projectDocument(doc, key, checkedVersion).then((value) => {
       if (this.graphInFlight.get(flightKey) === promise) {
         this.graphCache.set(key, { version: checkedVersion, value });
         this.updateEmitter.fire(key);
@@ -321,9 +327,50 @@ export class NikaService {
     return promise;
   }
 
+  /** The projection ladder. Oracle lane first — one LSP request against
+   *  the server's live didChange text (zero process spawn · spans ride
+   *  along). A server « parse »/« findings » answer is FINAL: the CLI
+   *  is the same engine and would repeat it; only a TRANSPORT miss
+   *  (server hiccup · document not open server-side, e.g. the
+   *  workspace lint of closed files) falls through to the CLI lane. */
+  private async projectDocument(
+    doc: TextDocument,
+    key: string,
+    version: number,
+  ): Promise<GraphDoc | undefined> {
+    if (this.semanticOracle) {
+      try {
+        const payload = parseSemanticDocument(await this.semanticOracle(doc));
+        if (payload) {
+          if (Object.keys(payload.spans).length > 0) {
+            this.spansCache.set(key, { version, value: payload.spans });
+          }
+          return payload.graph;
+        }
+      } catch {
+        // Server died mid-request — the CLI lane still speaks.
+      }
+    }
+    if (!this.caps.inspect) { return undefined; }
+    const res = await this.runDocCli(doc, (file) => ['inspect', file, '--format', 'json']);
+    if (res.code !== EXIT.OK) { return undefined; }
+    try {
+      const parsed: unknown = JSON.parse(res.stdout);
+      return isGraphDoc(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   /** Latest cached graph, any version — for cheap reads on dirty buffers. */
   peekGraph(uriString: string): GraphDoc | undefined {
     return this.graphCache.get(uriString)?.value;
+  }
+
+  /** Task id → declaring range, from the last oracle answer (absent on
+   *  the CLI lane — the projection JSON cannot carry ranges). */
+  peekSpans(uriString: string): TaskSpans | undefined {
+    return this.spansCache.get(uriString)?.value;
   }
 
   /**

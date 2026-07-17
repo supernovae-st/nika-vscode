@@ -84,6 +84,11 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { YieldRegistry } from './core/capabilityYield';
+import {
+  SEMANTIC_DOCUMENT_FORMAT,
+  SEMANTIC_DOCUMENT_METHOD,
+  semanticDocumentFormat,
+} from './core/semanticDoc';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
 import { commandOnPath } from './core/pathLookup';
@@ -686,6 +691,26 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(yieldRegistry);
   yieldRegistry.reconcile(undefined);
   state.reconcileIntel = (caps) => {
+    // The semantic-document lane rides the same two moments as the
+    // yield registry: a server advertising the oracle IN OUR FORMAT
+    // owns graph projection (one request per refresh — no spawn, and
+    // spans the CLI cannot carry); its death restores the CLI lane.
+    // A format-1 engine is refused here exactly like isGraphDoc
+    // refuses its CLI output — capability-gated, never version-gated.
+    const fmt = semanticDocumentFormat(caps);
+    const client = state.client;
+    if (caps !== undefined && fmt === SEMANTIC_DOCUMENT_FORMAT && client) {
+      service.setSemanticOracle((doc) => client.sendRequest(
+        SEMANTIC_DOCUMENT_METHOD,
+        client.code2ProtocolConverter.asTextDocumentIdentifier(doc),
+      ));
+      log('INFO', 'one voice: server owns graph projection (nika/semanticDocument · format 2)');
+    } else {
+      service.setSemanticOracle(undefined);
+      if (caps !== undefined && fmt !== undefined) {
+        log('INFO', `graph projection stays on the CLI lane (server speaks format ${fmt})`);
+      }
+    }
     const r = yieldRegistry.reconcile(caps);
     if (r.silenced.length > 0) {
       log('INFO', `one voice: server owns ${r.silenced.join(' · ')} — client twins silenced`);
