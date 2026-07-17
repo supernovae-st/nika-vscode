@@ -301,6 +301,21 @@ export function gateRewrite(text: string, task: TaskRange, expr: string): string
   return taskKeyRewrite(text, task, 'when', `\${{ ${expr} }}`);
 }
 
+/** `when: ` / `for_each: ` with an EMPTY value — the server-island
+ *  position (engine ≥0.103): the LSP completion serves whole
+ *  `${{ … }}` islands composed from THIS document's declarations
+ *  exactly there. The door writes the key, the server speaks — the
+ *  SSOT convergence lane; the client shapes stay as the offline
+ *  fallback. Trailing space matters: the island lane serves
+ *  `key:` + whitespace-only. */
+export function islandKeyRewrite(
+  text: string,
+  task: TaskRange,
+  key: 'when' | 'for_each',
+): string | undefined {
+  return taskKeyRewrite(text, task, key, '');
+}
+
 export interface CollectionRef {
   /** Picker row. */
   label: string;

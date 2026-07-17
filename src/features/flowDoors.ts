@@ -10,8 +10,8 @@
 
 import * as vscode from 'vscode';
 import {
-  afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, upstreamCandidates,
-  type CollectionRef, type GateShape,
+  afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, islandKeyRewrite,
+  upstreamCandidates, type CollectionRef, type GateShape,
 } from '../core/flowEdit';
 import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
@@ -43,6 +43,51 @@ async function applyFullRewrite(doc: vscode.TextDocument, next: string): Promise
   const edit = new vscode.WorkspaceEdit();
   edit.replace(doc.uri, new vscode.Range(0, 0, doc.lineCount, 0), next);
   await vscode.workspace.applyEdit(edit);
+}
+
+// ─── The server-island lane (SSOT convergence · engine ≥0.103) ─────────────
+//
+// The engine's LSP serves whole `${{ … }}` islands at an EMPTY
+// `when:` / `for_each:` value — composed from THIS document's own
+// declarations. When a server is wired, the doors offer that lane
+// FIRST: write the key, park the cursor, let the engine speak through
+// the native suggest widget. The curated shapes below stay as the
+// offline fallback AND as the gestures the server cannot make (an
+// `after:` entry · the with:-hoist compose) — knowledge converges on
+// the server, gestures stay editor-side (the SSOT.md law).
+
+let serverIslandsReady: () => boolean = () => false;
+
+/** extension.ts wires this at every LSP (re)start/death reconcile. */
+export function setServerIslandsProbe(fn: () => boolean): void {
+  serverIslandsReady = fn;
+}
+
+async function openServerIsland(a: Anchored, key: 'when' | 'for_each'): Promise<void> {
+  const next = islandKeyRewrite(a.text, a.task, key);
+  if (next === undefined) { return; }
+  if (next !== a.text) { await applyFullRewrite(a.doc, next); }
+  // Re-read the applied document and park the cursor at the empty
+  // value (end of the `key: ` line inside THIS task's block).
+  const lines = a.doc.getText().split('\n');
+  const wf = parseRichWorkflow(a.doc.getText());
+  const fresh = wf.tasks.find((t) => t.id === a.task.id);
+  if (!fresh) { return; }
+  const bound = wf.tasks
+    .map((t) => t.line)
+    .filter((l) => l > fresh.line)
+    .reduce((min, l) => Math.min(min, l), lines.length);
+  const keyRe = new RegExp(`^\\s*${key}:\\s*$`);
+  let at = -1;
+  for (let i = fresh.line; i < bound; i += 1) {
+    if (keyRe.test(lines[i] ?? '')) { at = i; break; }
+  }
+  if (at < 0) { return; }
+  const editor = await vscode.window.showTextDocument(a.doc);
+  const pos = new vscode.Position(at, (lines[at] ?? '').length);
+  editor.selection = new vscode.Selection(pos, pos);
+  editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+  await vscode.commands.executeCommand('editor.action.triggerSuggest');
 }
 
 /** The W2 hoist compose: bind the upstream value through `with:` first,
@@ -114,7 +159,7 @@ export async function wireInputsFor(uri: vscode.Uri, taskId: string): Promise<vo
 
 // ─── « choose a gate » ───────────────────────────────────────────────────────
 
-type GatePick = vscode.QuickPickItem & { shape?: GateShape };
+type GatePick = vscode.QuickPickItem & { shape?: GateShape; island?: boolean };
 
 function gateDetail(s: GateShape): string {
   switch (s.action.kind) {
@@ -139,6 +184,13 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
     return;
   }
   const rows: GatePick[] = [];
+  if (serverIslandsReady()) {
+    rows.push({
+      label: '$(sparkle) type it — the engine suggests',
+      description: 'server islands · working expressions from THIS file',
+      island: true,
+    });
+  }
   let group: 'local' | 'tasks' | undefined;
   for (const s of shapes) {
     const g = s.action.kind === 'when' ? 'local' : 'tasks';
@@ -155,6 +207,7 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
     placeHolder: 'when: reads LOCAL values only — upstream state becomes after:, an upstream value crosses through with: first',
     matchOnDescription: true,
   });
+  if (picked?.island) { return openServerIsland(a, 'when'); }
   if (!picked?.shape) { return; }
   const action = picked.shape.action;
   let next: string | undefined;
@@ -180,7 +233,7 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
 
 // ─── « choose the collection » ───────────────────────────────────────────────
 
-type CollectionPick = vscode.QuickPickItem & { collection?: CollectionRef };
+type CollectionPick = vscode.QuickPickItem & { collection?: CollectionRef; island?: boolean };
 
 export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Promise<void> {
   const a = await anchor(uri, taskId);
@@ -231,6 +284,13 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
       });
     }
   }
+  if (serverIslandsReady()) {
+    rows.unshift({
+      label: '$(sparkle) type it — the engine suggests',
+      description: 'server islands · typed arrays float first',
+      island: true,
+    });
+  }
   if (rows.length === 0) {
     void vscode.window.showInformationMessage(
       'Nika: no collection in sight — declare an array input (vars:) or add an upstream task.',
@@ -240,6 +300,7 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
   const picked = await vscode.window.showQuickPick(rows, {
     placeHolder: 'the collection this task maps over — ${{ item }} is the element, ${{ index }} its position',
   });
+  if (picked?.island) { return openServerIsland(a, 'for_each'); }
   if (!picked?.collection) { return; }
   const c = picked.collection;
   const next = c.needsBinding

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   afterRewrite, bindingInsert, descendantsOf, fanoutRewrite, findTaskKey, gateRewrite,
-  gateShapes, taskKeyRewrite, upstreamCandidates, type TaskRange,
+  gateShapes, islandKeyRewrite, taskKeyRewrite, upstreamCandidates, type TaskRange,
 } from '../core/flowEdit';
+import { parseRichWorkflow } from '../workflowParser';
 
 const WF = `nika: v1
 workflow:
@@ -157,6 +158,43 @@ describe('flowEdit (order on state · gate · fan out)', () => {
 
   it('refuses a moved anchor — never a blind write', () => {
     expect(taskKeyRewrite(WF, { ...TASKS[0], line: 5 }, 'when', 'x')).toBeUndefined();
+  });
+});
+
+describe('islandKeyRewrite (the server-island position)', () => {
+  const DOC = [
+    'nika: v1',
+    'workflow:',
+    '  id: w',
+    'model: mock/echo',
+    'tasks:',
+    '  a:',
+    '    infer:',
+    '      prompt: "hi"',
+    '',
+  ].join('\n');
+
+  it('writes the key with an EMPTY value — trailing space, island-servable', () => {
+    const wf = parseRichWorkflow(DOC);
+    const next = islandKeyRewrite(DOC, wf.tasks[0], 'when');
+    expect(next).toBeDefined();
+    expect(next).toContain('    when: \n');
+  });
+
+  it('an existing value is cleared to the island position, not duplicated', () => {
+    const wf = parseRichWorkflow(DOC);
+    const gated = gateRewrite(DOC, wf.tasks[0], 'vars.publish');
+    const wf2 = parseRichWorkflow(gated ?? '');
+    const next = islandKeyRewrite(gated ?? '', wf2.tasks[0], 'when');
+    expect(next).toBeDefined();
+    expect(next).toContain('    when: \n');
+    expect((next?.match(/when:/g) ?? []).length).toBe(1);
+  });
+
+  it('for_each rides the same door', () => {
+    const wf = parseRichWorkflow(DOC);
+    const next = islandKeyRewrite(DOC, wf.tasks[0], 'for_each');
+    expect(next).toContain('    for_each: \n');
   });
 });
 

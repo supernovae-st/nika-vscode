@@ -48,9 +48,8 @@ export interface CapabilitySet {
    *  honesty · touches · run/trace hand-off) with an `--json` machine
    *  twin. Probed on the REAL `explain --help` doc line (same law as
    *  stdinDash: help text over version numbers — dev builds lie about
-   *  versions, never about their own help). DORMANT until consumed:
-   *  the swap point is nika.explainWorkflow → `explain <file> --json`
-   *  once a release carries it. */
+   *  versions, never about their own help). Consumed: the explain
+   *  command speaks the ENGINE's narration when this probes true. */
   explainFile: boolean;
   /** `nika context` aggregates the workspace (engine 0.99 line · the
    *  30s arc W4): every workflow audited + runs folded + environment,

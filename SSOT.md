@@ -12,11 +12,11 @@ knowledge artifact is missing from this ledger (or points nowhere).
 | surface | source |
 |---|---|
 | validation · diagnostics · quickfixes | `nika check -` (stdin · keystroke-fresh) |
-| key/enum completions · hover docs | `nika schema` + `nika spec --canon` + `nika lsp` |
+| key/enum completions · hover docs | `nika spec --schema` + `nika spec --canon` + `nika lsp` |
 | model catalog (pickers · missing-brain door) | `nika catalog --json` |
 | builtin tools register (invoke door · agent tools door · palette) | `nika catalog --tools --json` |
 | error-code pedagogy | `nika explain` |
-| graph facts (cost interval · when · fan-out inlays) | `nika graph --format json` |
+| graph facts (cost interval · when · fan-out inlays) | `nika inspect --format json` (graph_format 2) — over the LSP, `nika/semanticDocument` serves the SAME document + spans |
 | new-workflow templates | `nika new` (embedded engine templates) |
 | permits boundary (declare · tighten) | `nika check --infer-permits` |
 
@@ -49,8 +49,9 @@ speaks. Two kinds — only one converges:
 | extension surface | server lane | verdict |
 |---|---|---|
 | lens **doors** (pickers · surgical edits) | — | never retire: doors are GESTURES (compose `after:` entries, hoist `with:` bindings, rewrite blocks); the LSP informs, a door acts |
-| `flowEdit.gateShapes` (when-gate register) | `when:` islands (engine ≥ 0.103) | CONVERGE: same registry, two dialects today — when the shipped-binary floor reaches the island lanes, the picker should offer the SERVER's items when wired, keeping shapes only as the offline fallback |
-| collection candidates (`flowDoors`) | `for_each:` islands (engine ≥ 0.103) | same law as gateShapes |
+| `flowEdit.gateShapes` (when-gate register) | `when:` islands (engine ≥ 0.103) | **CONVERGED**: when a server with completion runs, the gate door's FIRST row hands the empty `when: ` value to the native suggest (the engine's islands speak); shapes stay as the offline fallback + the gesture rows (`after:` · the hoist) the server cannot make. `islandsReal.e2e` belt-checks the shared LOCAL names (client ⊆ server) |
+| collection candidates (`flowDoors`) | `for_each:` islands (engine ≥ 0.103) | **CONVERGED**: same lane, same belt |
+| graph projection (`inspect --format json` spawn per refresh) | `nika/semanticDocument` (advertised since 0.102 · adopted at `graphFormat` 2) | **CONVERGED**: the oracle is the projection VERBATIM plus per-task spans; the CLI is the no-server fallback, the client sketch the last rung. `semanticDocReal.e2e` proves both floors |
 | `FALLBACK_TOOL_BLURBS` | catalog (Lane A) | never retire: the offline courtesy cache — but names stay belt-checked |
 
 The rule: a KNOWLEDGE register duplicated across the seam converges

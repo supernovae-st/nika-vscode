@@ -76,7 +76,7 @@ import {
   declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
 } from './features/contractDoors';
 import { makeResilientFor } from './features/armorDoors';
-import { chooseCollectionFor, chooseGateFor, wireInputsFor } from './features/flowDoors';
+import { chooseCollectionFor, chooseGateFor, setServerIslandsProbe, wireInputsFor } from './features/flowDoors';
 import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { chooseAgentToolsFor, VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -697,6 +697,12 @@ export function activate(context: ExtensionContext): void {
     // spans the CLI cannot carry); its death restores the CLI lane.
     // A format-1 engine is refused here exactly like isGraphDoc
     // refuses its CLI output — capability-gated, never version-gated.
+    // The flow doors' server-island lane: alive exactly while a
+    // server with completion runs (the islands ride standard
+    // textDocument/completion at the empty when:/for_each: value).
+    const completion = caps !== undefined &&
+      Boolean((caps as { completionProvider?: unknown }).completionProvider);
+    setServerIslandsProbe(() => completion);
     const fmt = semanticDocumentFormat(caps);
     const client = state.client;
     if (caps !== undefined && fmt === SEMANTIC_DOCUMENT_FORMAT && client) {
