@@ -8,6 +8,7 @@
 // assertion targets events, never exit-code folklore.
 
 import { describe, expect, it } from 'vitest';
+import { speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -80,7 +81,7 @@ function traceFiles(dir: string): string[] {
     .sort();
 }
 
-describe.skipIf(!BIN)('the journey on the real engine', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () => {
   it('run → journal → fold/outputs/ladder/report → fork rehydrates upstream', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-journey-'));
     try {

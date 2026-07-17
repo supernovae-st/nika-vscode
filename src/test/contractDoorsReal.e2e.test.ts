@@ -7,6 +7,7 @@
 // shield: PATH may carry a sister session's in-flight build).
 
 import { describe, expect, it } from 'vitest';
+import { speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { SCHEMA_SHAPES, schemaInsert } from '../core/schemaEdit';
@@ -54,7 +55,7 @@ function check(bin: string, text: string): { clean?: boolean; findings?: unknown
   return JSON.parse(out) as { clean?: boolean; findings?: unknown[] };
 }
 
-describe.skipIf(!BIN)('contract doors × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN))('contract doors × the real binary', () => {
   it('the chained door edits produce a workflow check calls clean', () => {
     // « type its output » — every proven shape, appended to the infer.
     const infLine = BASE.split('\n').findIndex((l) => /^\s+infer:/.test(l));

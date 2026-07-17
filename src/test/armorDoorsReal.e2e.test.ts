@@ -7,6 +7,7 @@
 // come from upstreamCandidates. Self-skips without a binary.
 
 import { describe, expect, it } from 'vitest';
+import { speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { armorWrite } from '../core/armorEdit';
@@ -64,7 +65,7 @@ function taskOf(text: string, id: string): TaskRange {
   return t as unknown as TaskRange;
 }
 
-describe.skipIf(!BIN)('armor doors × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN))('armor doors × the real binary', () => {
   it('retry + recover + timeout + the envelope model check clean', () => {
     // The status-row model door first (infer present, no model).
     const withModel = insertDefaultModel(BASE, 'mock/echo')!;
