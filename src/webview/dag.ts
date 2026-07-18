@@ -2371,15 +2371,18 @@ class DagRenderer {
    *  running/retrying); both-settled edges rest as a quiet success tint.
    *  Never the whole graph. */
   private updateEdgeFlow(): void {
+    const flowingNow = new Set<string>();
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('flowing', (d) => {
         if (this.parkedIds.has(d.id)) { return false; } // a parked read never flows
         const ends = this.edgeEnds.get(d.id);
         if (!ends) { return false; }
-        return isFlowing(
+        const on = isFlowing(
           this.nodeMap.get(ends.source)?.status,
           this.nodeMap.get(ends.target)?.status,
         );
+        if (on) { flowingNow.add(d.id); }
+        return on;
       })
       .classed('done', (d) => {
         if (this.parkedIds.has(d.id)) { return false; }
@@ -2393,6 +2396,24 @@ class DagRenderer {
         const ends = this.edgeEnds.get(d.id);
         return ends !== undefined && this.criticalEdges.has(`${ends.source}->${ends.target}`);
       });
+    // The LIVE FRONTIER wears the stream (wave C): data crossing NOW
+    // reads as a tapered current under the particles — arriving edges
+    // grow one, settling edges shed theirs. The hover taper shares the
+    // same paint (one mechanism; hover simply wins the same id).
+    for (const id of [...this.frontierTapers]) {
+      if (!flowingNow.has(id)) {
+        this.frontierTapers.delete(id);
+        if (!this.edgePathEl.get(id)?.classList.contains('edge-lit')) {
+          this.paintTaper(id, false);
+        }
+      }
+    }
+    for (const id of flowingNow) {
+      if (!this.frontierTapers.has(id)) {
+        this.frontierTapers.add(id);
+        this.paintTaper(id, true, 'frontier');
+      }
+    }
     this.syncParticles();
   }
 
@@ -3507,8 +3528,9 @@ class DagRenderer {
    *  (one def serves both). halfW clamps to 0.8·segment so no miter
    *  machinery is ever needed (taper.c's bevel case, sidestepped). */
   private taperEls = new Map<string, SVGPathElement>();
+  private frontierTapers = new Set<string>();
 
-  private paintTaper(edgeId: string, on: boolean): void {
+  private paintTaper(edgeId: string, on: boolean, mode: 'hover' | 'frontier' = 'hover'): void {
     const existing = this.taperEls.get(edgeId);
     if (!on) {
       existing?.remove();
@@ -3546,7 +3568,7 @@ class DagRenderer {
     }
     const d = `M ${left.join(' L ')} L ${right.reverse().join(' L ')} Z`;
     const poly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    poly.setAttribute('class', 'nk-taper');
+    poly.setAttribute('class', mode === 'frontier' ? 'nk-taper nk-taper-live' : 'nk-taper');
     poly.setAttribute('d', d);
     // UNDER the stroke: first child of the edge group keeps the wire's
     // own ink (and the waist glyph) on top of the stream.
