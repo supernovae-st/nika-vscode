@@ -5089,3 +5089,26 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
 @media (forced-colors: active) {
   .nc-chip.nc-sub-wf:hover { text-decoration: underline; }
 }
+
+/* ─── Dead gate — NIKA-DAG-006, the statically-false when: ──────────
+   The engine PROVED this task can never run as written. A calm doc
+   FACT (muted family · dashed · faint hatch) — not a runtime state,
+   not an error shout: the ⚠ badge carries the finding, the card
+   carries the consequence. */
+.dag-node.dead-gate .nc {
+  opacity: 0.55;
+  border-style: dashed;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 7px,
+    color-mix(in srgb, var(--nk-st-muted) 12%, transparent) 7px 8px
+  );
+  filter: saturate(0.5);
+}
+.dag-node.dead-gate .nc-sub-v {
+  color: var(--nk-st-muted);
+  font-style: italic;
+}
+@media (forced-colors: active) {
+  .dag-node.dead-gate .nc { border-style: dashed; opacity: 1; filter: none; background-image: none; }
+}
