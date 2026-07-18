@@ -71,9 +71,27 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
   }
 }
 
+// 4 · the per-verb MOTION identities (design/motion.yaml v1) — the
+// canvas implements the canonical keyframes names (the same names the
+// website's CSS and the terminal's braille families carry). A rename
+// here would silently fork the motion vocabulary across surfaces.
+{
+  const css = read('src/webview/dag.css');
+  const identity = read('src/core/cardIdentity.ts');
+  for (const v of VERBS) {
+    const name = `nika-motion-${v}`;
+    if (!css.includes(`@keyframes ${name}`)) {
+      findings.push(`dag.css: @keyframes ${name} missing (motion.yaml canonical name)`);
+    }
+    if (!identity.includes(`'${name}'`)) {
+      findings.push(`cardIdentity.ts: motion id ${name} missing`);
+    }
+  }
+}
+
 if (findings.length) {
   console.error(`tokens-parity: ${findings.length} finding(s)`);
   for (const f of findings) { console.error(`  ✗ ${f}`); }
   process.exit(1);
 }
-console.log(`tokens-parity: OK — 4 verb hues + glyphs pinned to the SSOT across dag.css (:root + phosphor wake), dag.ts, verbPalette.ts`);
+console.log(`tokens-parity: OK — 4 verb hues + glyphs + motion identities pinned to the SSOT across dag.css (:root + phosphor wake + keyframes), dag.ts, verbPalette.ts, cardIdentity.ts`);
