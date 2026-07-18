@@ -11,6 +11,30 @@
       getState: () => __state,
       setState: (s) => { __state = s; },
     });
+    // Harness canary — the pixel-proof page must never lie by silence.
+    // A boot exception once left 7 handler-less cards and three judges
+    // called the corpse healthy. This strip is fixture-side on purpose:
+    // the canary cannot depend on the bundle it guards.
+    (() => {
+      const scream = (msg) => {
+        console.log('[HARNESS-WALL] ' + msg);
+        let el = document.getElementById('harness-wall');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'harness-wall';
+          el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;'
+            + 'background:#5c1a1a;color:#ffd7d7;font:600 12px/1.6 monospace;'
+            + 'padding:4px 10px;border-top:2px solid #ff5555;';
+          document.documentElement.appendChild(el);
+        }
+        el.textContent = 'HARNESS WALL — ' + msg;
+      };
+      window.addEventListener('error', (ev) => scream(ev.message || 'script error'));
+      window.addEventListener('unhandledrejection', (ev) => {
+        const r = ev.reason;
+        scream((r && r.message) ? r.message : String(r));
+      });
+    })();
   </script>
 </head>
 <body data-nk-theme="nika" class="vscode-dark">
@@ -144,13 +168,13 @@
           id: 'history', label: 'history', verb: 'exec', status: 'pending',
           commandPreview: 'git log --oneline --no-merges -8',
           permits: ['exec: git'],
-          dependsOn: [],
+          producers: [],
         },
         {
           id: 'stats', label: 'stats', verb: 'exec', status: 'pending',
           commandPreview: 'git shortlog -sn HEAD',
           permits: ['exec: git'],
-          dependsOn: [],
+          producers: [],
         },
         {
           id: 'digest', label: 'digest', verb: 'infer', status: 'pending',
@@ -158,14 +182,14 @@
           promptPreview: 'Group these commits into a headline and highlights for the release notes.',
           retryMax: 3, timeout: '45s', outputNames: ['headline', 'highlights'],
           bindingsIn: [{ alias: 'commits', from: 'history', path: 'output' }],
-          dependsOn: ['history'],
+          producers: ['history'],
         },
         {
           id: 'chart', label: 'chart', verb: 'invoke', status: 'pending',
           tool: 'nika:chart',
           argsPreview: 'kind: bar · title: commits by author',
           bindingsIn: [{ alias: 'rows', from: 'stats', path: 'output' }],
-          dependsOn: ['stats'],
+          producers: ['stats'],
         },
         {
           id: 'polish', label: 'polish', verb: 'infer', status: 'pending',
@@ -173,7 +197,7 @@
           promptPreview: 'Tighten the headline. Keep the maintainer voice — plain, direct.',
           costMin: 0.001, costMax: 0.006, timeout: '30s',
           bindingsIn: [{ alias: 'draft', from: 'digest', path: 'headline' }],
-          dependsOn: ['digest'],
+          producers: ['digest'],
         },
         {
           id: 'notes', label: 'notes', verb: 'invoke', status: 'pending',
@@ -185,7 +209,7 @@
             { alias: 'body', from: 'polish', path: 'output' },
             { alias: 'chart', from: 'chart', path: 'output' },
           ],
-          dependsOn: ['polish', 'chart'],
+          producers: ['polish', 'chart'],
         },
         {
           id: 'review', label: 'review', verb: 'agent', status: 'pending',
@@ -194,7 +218,7 @@
           promptPreview: 'Verify every claim against the commits — flag anything overstated.',
           retryMax: 2,
           bindingsIn: [{ alias: 'notes', from: 'notes', path: 'notes_path' }],
-          dependsOn: ['notes'],
+          producers: ['notes'],
         },
       ],
       edges: [
