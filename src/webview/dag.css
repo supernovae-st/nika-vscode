@@ -5136,3 +5136,14 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
 @media (forced-colors: active) {
   .tl-ghost { stroke: CanvasText; }
 }
+
+/* The scrub cursor on the lens — the replay's NOW, one thin rule in
+   the running hue (time, not verdict). */
+.tl-cursor {
+  stroke: var(--nk-st-running);
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+@media (forced-colors: active) {
+  .tl-cursor { stroke: Highlight; }
+}
