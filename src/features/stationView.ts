@@ -92,8 +92,15 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
         this.service.speaksGrammar(),
       ]);
       if (seq !== this.snapshotSeq) { return; }
-      snap.doctor = doctor;
-      snap.deep = deep;
+      // Probe → snapshot: ok lands the value; a probe that ANSWERED
+      // and broke lands its story (honest row); unsupported stays
+      // absent (the « predates the station surfaces » row owns it).
+      if (doctor.kind === 'ok') { snap.doctor = doctor.value; }
+      else if (doctor.kind === 'no-output') { snap.doctorBroke = 'the engine answered nothing'; }
+      else if (doctor.kind === 'unparseable') { snap.doctorBroke = doctor.detail; }
+      if (deep.kind === 'ok') { snap.deep = deep.value; }
+      else if (deep.kind === 'no-output') { snap.deepBroke = 'the engine answered nothing'; }
+      else if (deep.kind === 'unparseable') { snap.deepBroke = deep.detail; }
       snap.speaksGrammar = grammar;
     }
     this.rows = buildStationRows(snap);

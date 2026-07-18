@@ -39,6 +39,7 @@ import {
   parseDoctorReport,
   parseWelcomeDeep,
   type DoctorReport,
+  type Probe,
   type WelcomeDeep,
 } from './core/stationModel';
 import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
@@ -415,34 +416,41 @@ export class NikaService {
   }
 
   /** The workspace aggregate — `welcome --deep --json` (0.104 line),
-   *  the retired `context --json` as the dev-build fallback. */
-  async welcomeDeep(cwd?: string): Promise<WelcomeDeep | undefined> {
-    if (!this.caps.welcome && !this.caps.context) { return undefined; }
+   *  the retired `context --json` as the dev-build fallback. The
+   *  Probe union keeps « no verb », « no answer » and « broken
+   *  answer » as three separate stories (census pattern 5: the old
+   *  collapsed `undefined` painted blank UIs with no story). */
+  async welcomeDeep(cwd?: string): Promise<Probe<WelcomeDeep>> {
+    if (!this.caps.welcome && !this.caps.context) { return { kind: 'unsupported' }; }
     const args = this.caps.welcome
       ? ['welcome', '--deep', '--json']
       : ['context', '--json'];
     const res = await this.runCli(args, 20000, undefined, cwd);
-    if (res.code !== 0 || !res.stdout) { return undefined; }
+    if (res.code !== 0 || !res.stdout) { return { kind: 'no-output' }; }
     try {
-      return parseWelcomeDeep(JSON.parse(res.stdout));
-    } catch {
-      return undefined;
+      const deep = parseWelcomeDeep(JSON.parse(res.stdout));
+      return deep
+        ? { kind: 'ok', value: deep }
+        : { kind: 'unparseable', detail: 'shape mismatch (context_version envelope)' };
+    } catch (err) {
+      return { kind: 'unparseable', detail: err instanceof Error ? err.message.slice(0, 120) : String(err) };
     }
   }
 
   /** `doctor --json` — findings carry their exact fix command. A
    *  failing environment may exit non-zero WITH the report: read
    *  stdout regardless. */
-  async doctorJson(cwd?: string): Promise<DoctorReport | undefined> {
-    if (!this.caps.doctor) { return undefined; }
+  async doctorJson(cwd?: string): Promise<Probe<DoctorReport>> {
+    if (!this.caps.doctor) { return { kind: 'unsupported' }; }
     const res = await this.runCli(['doctor', '--json'], 20000, undefined, cwd);
-    if (!res.stdout) { return undefined; }
+    if (!res.stdout) { return { kind: 'no-output' }; }
     try {
       const report = parseDoctorReport(JSON.parse(res.stdout));
-      if (report) { this.doctorFailsValue = report.summary.fail; }
-      return report;
-    } catch {
-      return undefined;
+      if (!report) { return { kind: 'unparseable', detail: 'shape mismatch (summary/findings)' }; }
+      this.doctorFailsValue = report.summary.fail;
+      return { kind: 'ok', value: report };
+    } catch (err) {
+      return { kind: 'unparseable', detail: err instanceof Error ? err.message.slice(0, 120) : String(err) };
     }
   }
 

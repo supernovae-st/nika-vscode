@@ -150,3 +150,32 @@ describe('buildStationRows — pure derivation', () => {
     expect(ws?.children?.[0].command?.id).toBe('nika.newSession');
   });
 });
+
+describe('buildStationRows — probe honesty (census pattern 5)', () => {
+  const base = {
+    binaryPath: '/opt/homebrew/bin/nika',
+    engineVersion: 'nika 0.104.0',
+    lspState: 'running' as const,
+  };
+
+  it('a broken probe earns its own row: warn · the detail · click retries', () => {
+    const rows = buildStationRows({ ...base, doctorBroke: 'Unexpected token < in JSON' });
+    const broke = rows.find((r) => r.id === 'doctor.broke');
+    expect(broke?.level).toBe('warn');
+    expect(broke?.description).toBe('Unexpected token < in JSON');
+    expect(broke?.command?.id).toBe('nika.station.refresh');
+  });
+
+  it('a broken probe NEVER wears the « predates 0.104 » row — that would be a lie', () => {
+    const rows = buildStationRows({ ...base, deepBroke: 'shape mismatch (context_version envelope)' });
+    expect(rows.find((r) => r.id === 'engine.predates')).toBeUndefined();
+    expect(rows.find((r) => r.id === 'deep.broke')).toBeDefined();
+  });
+
+  it('an unsupported engine keeps the predates row and earns no broke rows', () => {
+    const rows = buildStationRows(base);
+    expect(rows.find((r) => r.id === 'engine.predates')).toBeDefined();
+    expect(rows.find((r) => r.id === 'doctor.broke')).toBeUndefined();
+    expect(rows.find((r) => r.id === 'deep.broke')).toBeUndefined();
+  });
+});

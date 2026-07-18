@@ -158,6 +158,20 @@ export function parseWelcomeDeep(value: unknown): WelcomeDeep | undefined {
 
 // ─── The snapshot + pure row derivation ─────────────────────────────────────
 
+/** One CLI probe, discriminated — « the verb doesn't exist », « it
+ *  answered nothing » and « it answered garbage » are three different
+ *  stories, and the census caught them collapsed into one silent
+ *  `undefined` (an 0.104 engine with broken JSON read as « engine too
+ *  old »). The Station tells each one apart. */
+export type Probe<T> =
+  | { kind: 'ok'; value: T }
+  /** The capability ladder says this binary has no such verb. */
+  | { kind: 'unsupported' }
+  /** The spawn failed or stdout came back empty. */
+  | { kind: 'no-output' }
+  /** Real output that would not parse — engine/extension mismatch. */
+  | { kind: 'unparseable'; detail: string };
+
 export interface StationSnapshot {
   /** Which binary won the resolution ladder (absent = none found). */
   binaryPath?: string;
@@ -168,6 +182,10 @@ export interface StationSnapshot {
   lspState: 'running' | 'starting' | 'failed' | 'off';
   doctor?: DoctorReport;
   deep?: WelcomeDeep;
+  /** A probe that ANSWERED but broke (no-output · unparseable) — the
+   *  honest row's text. Absent when ok or unsupported. */
+  doctorBroke?: string;
+  deepBroke?: string;
   /** Workspace scaffold facts (rules files the extension can see). */
   rulesPresent?: boolean;
 }
@@ -270,8 +288,11 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
   });
 
   // An engine without the station surfaces says so — a missing
-  // section must never read as « all clear » (silent ≠ healthy).
-  if (snap.binaryPath && !snap.doctor && !snap.deep) {
+  // section must never read as « all clear » (silent ≠ healthy). A
+  // BROKEN probe is a different story and must never wear this row:
+  // « too old » on a current engine whose JSON broke is a lie.
+  if (snap.binaryPath && !snap.doctor && !snap.deep
+      && snap.doctorBroke === undefined && snap.deepBroke === undefined) {
     rows.push({
       kind: 'fact',
       id: 'engine.predates',
@@ -280,6 +301,27 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
       icon: 'info',
       level: 'warn',
     });
+  }
+
+  // A probe that answered and broke gets its own honest row — never a
+  // blank section, never a stale one. Click retries (the cheap move);
+  // persistence means an engine/extension mismatch worth reporting.
+  const brokeRow = (id: string, surface: string, detail: string): StationRow => ({
+    kind: 'fact',
+    id,
+    label: `${surface} unreadable`,
+    description: detail,
+    tooltip: 'The engine answered but the JSON did not parse — an engine/extension '
+      + 'mismatch, not your project. Click to retry; report it if it persists.',
+    icon: 'warning',
+    level: 'warn',
+    command: { id: 'nika.station.refresh' },
+  });
+  if (snap.doctorBroke !== undefined) {
+    rows.push(brokeRow('doctor.broke', 'doctor --json', snap.doctorBroke));
+  }
+  if (snap.deepBroke !== undefined) {
+    rows.push(brokeRow('deep.broke', 'workspace snapshot', snap.deepBroke));
   }
 
   // ── FIX (doctor findings that carry a next step) ──
