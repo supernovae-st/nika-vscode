@@ -1395,7 +1395,7 @@ export function activate(context: ExtensionContext): void {
     // Failed hover ⑂ — fork from THIS task: the newest trace for the
     // open graph rehydrates upstream (the Runs-view lever, reachable
     // where the failure is actually seen).
-    (taskId, workflowUri) => {
+    (taskId, _workflowUri) => {
       void (async () => {
         const ids = dagPanel.currentGraphIds();
         const latest = ids ? await latestTraceForGraph(ids) : undefined;
