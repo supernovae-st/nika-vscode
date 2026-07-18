@@ -669,6 +669,11 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
       'elk.layered.mergeEdges': 'false',
       'elk.spacing.edgeNode': '24',
       'elk.spacing.edgeEdge': '12',
+      // Labels are LAYOUT participants (annexe I2 · the mermaid-elk
+      // recipe): declared boxes make ELK reserve space and route the
+      // wire AROUND its own label — the structural anti-collision the
+      // midpoint drop could never give.
+      'elk.spacing.edgeLabel': '8',
       'elk.layered.spacing.edgeNodeBetweenLayers': '20',
       'elk.layered.spacing.edgeEdgeBetweenLayers': '15',
       'elk.padding': `[top=${PADDING},left=${PADDING},bottom=${PADDING},right=${PADDING}]`,
@@ -679,11 +684,28 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
       width: NODE_WIDTH,
       height: nodeHeightOf(node),
     })),
-    edges: graph.edges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
+    edges: graph.edges.map((edge) => {
+      // Mono metrics, never DOM measure (the Dagster law): 10px
+      // Martian Mono ≈ 6px/char + breathing room.
+      const text = edge.kind === 'control' ? edge.predicate : edge.label;
+      const labels = text
+        ? [{
+            text,
+            width: text.length * 6 + 8,
+            height: 12,
+            layoutOptions: {
+              'edgeLabels.inline': 'true',
+              'edgeLabels.placement': 'CENTER',
+            },
+          }]
+        : undefined;
+      return {
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+        ...(labels ? { labels } : {}),
+      };
+    }),
   };
 
   const laid = await elk.layout(elkGraph);
@@ -3615,6 +3637,16 @@ class DagRenderer {
 
   /** Label anchor — bezier midpoint for pinned edges, ELK midpoint else. */
   private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
+    // ELK placed this label as a layout participant — its coords are
+    // the collision-free truth (top-left; center it · mermaid consume
+    // rule). Manual drags fall back to the live midpoint below.
+    const ends0 = this.edgeEnds.get(edge.id);
+    const dragged = ends0 !== undefined
+      && (this.manualPos.has(ends0.source) || this.manualPos.has(ends0.target));
+    const placed = edge.labels?.[0];
+    if (!dragged && placed && typeof placed.x === 'number' && typeof placed.y === 'number') {
+      return [placed.x + (placed.width ?? 0) / 2, placed.y + (placed.height ?? 0) / 2];
+    }
     const ends = this.edgeEnds.get(edge.id);
     if (ends && (this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
       const s = this.layoutBox.get(ends.source);
