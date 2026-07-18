@@ -433,6 +433,44 @@ interface WebviewState {
 declare function acquireVsCodeApi(): VsCodeApi;
 const vscode = acquireVsCodeApi();
 
+// ─── The wall — no silent half-paint ──────────────────────────────────────────────
+// A render/layout exception used to vanish into a rejected promise:
+// the canvas kept a half-built DOM (dead handlers, no story) and the
+// user stared at a graph that quietly stopped answering. One seam
+// catches every webview wall, paints it, and tells the extension.
+let wallSeen = false;
+const showWall = (message: string): void => {
+  const line = message.trim() || 'unknown error';
+  let wall = document.getElementById('nk-wall');
+  if (!wall) {
+    wall = document.createElement('div');
+    wall.id = 'nk-wall';
+    wall.setAttribute('role', 'alert');
+    const text = document.createElement('span');
+    text.className = 'nk-wall-text';
+    wall.appendChild(text);
+    const close = document.createElement('button');
+    close.className = 'nk-wall-close';
+    close.textContent = '×';
+    close.title = 'Dismiss';
+    close.addEventListener('click', () => document.getElementById('nk-wall')?.remove());
+    wall.appendChild(close);
+    document.body.appendChild(wall);
+  }
+  const text = wall.querySelector('.nk-wall-text');
+  if (text) { text.textContent = `the canvas hit a wall — ${line}`; }
+  if (!wallSeen) {
+    wallSeen = true; // first wall speaks to the extension; repeats only repaint
+    vscode.postMessage({ kind: 'dag:wall', message: line });
+  }
+};
+window.addEventListener('error', (ev) => showWall(ev.message ?? String(ev.error ?? 'script error')));
+window.addEventListener('unhandledrejection', (ev) => {
+  const r = (ev as PromiseRejectionEvent).reason;
+  showWall(r instanceof Error ? r.message : String(r));
+});
+
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const NODE_WIDTH = 248;
@@ -1193,7 +1231,21 @@ class DagRenderer {
 
   // ─── Render Pipeline ────────────────────────────────────────────────────
 
+  /** The one public render door. A layout/build exception inside the
+   *  pipeline rides ELK's own promise chain — a chain whose rejections
+   *  NEVER reach window listeners (empirical: the harness corpse of
+   *  2026-07-18) — so the wall is raised HERE, at the source, then the
+   *  error keeps flowing to callers unchanged. */
   async render(graph: DagGraph): Promise<void> {
+    try {
+      await this.renderCore(graph);
+    } catch (err) {
+      showWall(err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  }
+
+  private async renderCore(graph: DagGraph): Promise<void> {
     this.currentGraph = graph;
     this.nodeMap.clear();
     graph.nodes.forEach((n) => this.nodeMap.set(n.id, n));

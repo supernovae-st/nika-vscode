@@ -103,6 +103,8 @@ export type WebviewToExtMessage =
   // Run ONE task + its upstream cone (hover-card ▶ · engine `run --task`).
   | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:explainCode'; code: string }
+  // The webview's error seam — a canvas exception, said out loud.
+  | { kind: 'dag:wall'; message: string }
   | { kind: 'timeline:request'; workflowUri?: string }
   | { kind: 'dag:forkFromTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
@@ -668,6 +670,19 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:nodeClicked':
         this.onNodeClicked?.(msg.taskId, msg.workflowUri);
+        break;
+
+      // The canvas hit an internal wall (webview exception). The webview
+      // already painted its strip; here the user gets ONE actionable
+      // toast — walls are bugs, and silence is how they stay bugs.
+      case 'dag:wall':
+        void vscode.window
+          .showWarningMessage(`Nika: the canvas hit a wall — ${msg.message}`, 'Copy details')
+          .then((pick) => {
+            if (pick === 'Copy details') {
+              void vscode.env.clipboard.writeText(`nika-vscode canvas wall: ${msg.message}`);
+            }
+          });
         break;
 
       case 'dag:nodeDoubleClicked':

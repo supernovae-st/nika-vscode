@@ -5023,3 +5023,49 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
   .dag-node.sim-dead .nc { opacity: 0.4 !important; }
   .dag-node.sim-lit .nc { border-color: Highlight !important; box-shadow: none !important; }
 }
+
+/* ─── The wall — the canvas never dies silently ─────────────────────
+   A webview exception paints THIS strip (role=alert) instead of a
+   half-built graph with dead handlers. Failed hue · mono · one line. */
+#nk-wall {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(720px, calc(100vw - 48px));
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 55%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-st-failed) 14%, var(--nk-bg, #0d0d0e));
+  color: var(--nk-fg, #ddd);
+  font: 500 11px/1.5 var(--nk-mono, monospace);
+  animation: nk-wall-in 160ms ease-out;
+}
+#nk-wall .nk-wall-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#nk-wall .nk-wall-close {
+  flex: none;
+  border: 0;
+  padding: 0 2px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+#nk-wall .nk-wall-close:hover { opacity: 1; }
+@keyframes nk-wall-in { from { opacity: 0; transform: translateX(-50%) translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  #nk-wall { animation: none; }
+}
+@media (forced-colors: active) {
+  #nk-wall { border: 1px solid LinkText; background: Canvas; color: CanvasText; }
+}
