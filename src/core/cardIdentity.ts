@@ -48,7 +48,14 @@ export interface CardIdentity {
   preview: PreviewKind;
   /** The running-motion identity (canonical keyframes name). */
   motion?: string;
+  /** Composition (spec 14): `invoke workflow:<path>` — the child
+   *  workflow's path, as written. The card becomes a door into it. */
+  subWorkflow?: string;
 }
+
+/** The composition glyph — a page pointing at another page (⎘). Not a
+ *  category: the target is a WORKFLOW, outside the tool catalog. */
+export const SUB_WORKFLOW_GLYPH = '⎘';
 
 /** Builtins whose OUTPUT is a file the run writes — the card lands a
  *  file row at settle (artifacts.ts already proves existence). */
@@ -75,6 +82,17 @@ export function resolveCardIdentity(
     ...(MOTION[node.verb] !== undefined ? { motion: MOTION[node.verb] } : {}),
   };
   const tool = node.tool;
+  // The union form (`invoke: { tool: | workflow: }`) rides the
+  // projection as a `workflow:`-prefixed tool ref (probed on the
+  // engine, 2026-07-19) — a sub-workflow call, not a catalog tool.
+  if (typeof tool === 'string' && tool.startsWith('workflow:')) {
+    const path = tool.slice('workflow:'.length).trim();
+    if (path.length > 0) {
+      identity.subWorkflow = path;
+      identity.glyph = SUB_WORKFLOW_GLYPH;
+    }
+    return identity;
+  }
   if (typeof tool === 'string' && tool.startsWith('nika:')) {
     const builtin = tool.slice('nika:'.length);
     identity.builtin = builtin;

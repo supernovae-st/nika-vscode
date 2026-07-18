@@ -75,3 +75,24 @@ describe('resolveCardIdentity — verb × builtin × category', () => {
     expect(resolveCardIdentity({ verb: 'future' }, CATS).motion).toBeUndefined();
   });
 });
+
+describe('resolveCardIdentity · composition (spec 14 — invoke workflow:)', () => {
+  it('a workflow: tool ref becomes a sub-workflow door: path + ⎘, never a catalog tool', () => {
+    const id = resolveCardIdentity(
+      { verb: 'invoke', tool: 'workflow:./sub.nika.yaml' },
+      { fetch: { cat: 'network' } } as never,
+    );
+    expect(id.subWorkflow).toBe('./sub.nika.yaml');
+    expect(id.glyph).toBe('⎘');
+    expect(id.builtin).toBeUndefined();
+    expect(id.category).toBeUndefined();
+    expect(id.preview).toBe('none');
+    expect(id.family).toBe('invoke');
+  });
+
+  it('an empty workflow: ref earns nothing (check owns the finding)', () => {
+    const id = resolveCardIdentity({ verb: 'invoke', tool: 'workflow:' }, undefined);
+    expect(id.subWorkflow).toBeUndefined();
+    expect(id.glyph).toBeUndefined();
+  });
+});
