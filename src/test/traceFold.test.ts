@@ -565,3 +565,27 @@ describe('task_recovered · the REAL wire (engine-main capture, 2026-07-09)', ()
     expect(summarizeRun(m)).toContain('✚ 1 recovered');
   });
 });
+
+describe('the red teaches — the failure story crosses the wire (wave G)', () => {
+  it('a failed fold carries preview + whyWhen/blockedBy for the card', () => {
+    const kv = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
+      JSON.stringify({ id: '0', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+    const lines = [
+      kv('task_started', [{ key: 'task', value: 'a' }], 1),
+      kv('task_failed', [
+        { key: 'task', value: 'a' },
+        { key: 'detail', value: 'NIKA-AGENT-003 · tool loop exceeded max_turns (2)' },
+      ], 2),
+      kv('task_skipped', [
+        { key: 'task', value: 'b' },
+        { key: 'when', value: 'vars.publish' },
+      ], 3),
+    ].join('\n');
+    const model = foldTrace(lines);
+    const a = model.tasks.get('a');
+    expect(a?.status).toBe('failed');
+    expect(a?.preview).toContain('NIKA-AGENT-003');
+    const b = model.tasks.get('b');
+    expect(b?.whyWhen).toBe('vars.publish');
+  });
+});

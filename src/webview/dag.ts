@@ -317,6 +317,13 @@ interface DagNode {
     count?: number;
     durationMs?: number;
   };
+  /** Failure story (first line of the terminal detail — carries the
+   *  NIKA code). Set on failed, cleared on any other status. */
+  failPreview?: string;
+  /** Skip pedagogy: the when: expression that gated this run out. */
+  whyWhen?: string;
+  /** Cancel pedagogy: the dependency whose outcome blocked admission. */
+  blockedBy?: string;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -334,6 +341,9 @@ interface DagEdge {
   /** data/observation edges — the with: binding name. */
   label?: string;
 }
+
+/** The NIKA code inside a failure story (namespaced or bare). */
+const NIKA_CODE_RE = /NIKA-[A-Z]+-\d+|NIKA-\d+/;
 
 /** Data crosses this kind (value + the two observations). */
 function isDataKind(kind: string): boolean {
@@ -2910,6 +2920,9 @@ class DagRenderer {
     const subV = document.createElement('span');
     subV.className = 'nc-sub-v';
     subV.textContent = this.subValue(node);
+    const why = node.whyWhen ? `gate false: ${node.whyWhen}`
+      : node.blockedBy ? `blocked by ${node.blockedBy}` : '';
+    if (why) { subV.title = why; }
     sub.append(subK, subV);
     host.appendChild(sub);
 
@@ -2917,6 +2930,17 @@ class DagRenderer {
     if (body) {
       const el = document.createElement('div');
       el.className = `nc-body nc-body-${body.kind}`;
+      // The red teaches: a failed swap makes this the error line —
+      // clicking it (only then) opens the code's explain doc.
+      el.addEventListener('mousedown', (e) => {
+        if (el.classList.contains('nc-body-err')) { e.stopPropagation(); }
+      });
+      el.addEventListener('click', (e) => {
+        if (!el.classList.contains('nc-body-err')) { return; }
+        e.stopPropagation();
+        const code = NIKA_CODE_RE.exec(el.textContent ?? '')?.[0];
+        if (code) { vscode.postMessage({ kind: 'dag:explainCode', code }); }
+      });
       const shown = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
       el.textContent = shown;
       el.title = body.text;
@@ -3153,6 +3177,41 @@ class DagRenderer {
         workflowUri: this.currentGraph?.workflowUri,
       });
     });
+    // The red teaches (wave G): a FAILED task's hover leads with its
+    // next steps — explain the code · fork from here (upstream
+    // rehydrates from the newest trace). The loop rouge→compris→
+    // réparé→relancé, one hover away.
+    if (live.status === 'failed') {
+      const code = NIKA_CODE_RE.exec(live.failPreview ?? '')?.[0];
+      if (code) {
+        const exBtn = document.createElement('button');
+        exBtn.className = 'hc-run hc-explain';
+        exBtn.textContent = `\u270e ${code}`;
+        exBtn.title = `Explain ${code} — cause, category, the fix form`;
+        exBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        exBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.hideHoverCard(true);
+          vscode.postMessage({ kind: 'dag:explainCode', code });
+        });
+        head.append(exBtn);
+      }
+      const forkBtn = document.createElement('button');
+      forkBtn.className = 'hc-run hc-fork';
+      forkBtn.textContent = '\u2442 fork';
+      forkBtn.title = 'Fork from this task — upstream rehydrates from the newest recorded run, this task and its cone re-run';
+      forkBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+      forkBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.hideHoverCard(true);
+        vscode.postMessage({
+          kind: 'dag:forkFromTask',
+          taskId: live.id,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+      head.append(forkBtn);
+    }
     head.append(verb, id, status, dupBtn, runBtn);
     this.hoverCard.appendChild(head);
 
@@ -3734,9 +3793,14 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string }): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
+    // The red teaches (wave G): the failure story and the didn't-run
+    // reasons ride the node — the card and the hover read them.
+    node.failPreview = status === 'failed' ? extra?.failPreview : undefined;
+    node.whyWhen = extra?.whyWhen;
+    node.blockedBy = extra?.blockedBy;
 
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs, cached);
@@ -3774,10 +3838,18 @@ class DagRenderer {
         bodyNode.textContent = `\u2192 ${outputPreview}`;
         bodyNode.title = outputPreview;
         bodyNode.classList.add('nc-body-live');
+        bodyNode.classList.remove('nc-body-err');
+      } else if (status === 'failed' && extra?.failPreview) {
+        // The red teaches: the failure story lands where the prompt
+        // was — and CLICKING it opens the code's explain doc (the
+        // same pedagogy the editor's quick fix carries).
+        bodyNode.textContent = `\u2717 ${extra.failPreview}`;
+        bodyNode.title = `${extra.failPreview}\n\nclick — explain the code`;
+        bodyNode.classList.add('nc-body-live', 'nc-body-err');
       } else if (bodyNode.classList.contains('nc-body-live')) {
         bodyNode.textContent = bodyNode.dataset.base ?? '';
         bodyNode.title = bodyNode.dataset.base ?? '';
-        bodyNode.classList.remove('nc-body-live');
+        bodyNode.classList.remove('nc-body-live', 'nc-body-err');
       }
     }
 
@@ -3820,10 +3892,10 @@ class DagRenderer {
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }>): void {
     let touched = false;
     for (const u of updates) {
-      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd) || touched;
+      touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd, u) || touched;
     }
     if (touched) { this.afterStatusChange(); }
   }

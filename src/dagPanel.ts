@@ -25,8 +25,8 @@ export type ExtToWebviewMessage =
   // Recorded media artifacts landing ON the cards (run close · replay) —
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -101,6 +101,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:runRequest'; preview?: boolean; resume?: boolean; workflowUri?: string }
   // Run ONE task + its upstream cone (hover-card ▶ · engine `run --task`).
   | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
+  | { kind: 'dag:explainCode'; code: string }
+  | { kind: 'dag:forkFromTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
   | { kind: 'dag:export'; format: 'svg' | 'png'; data: string; name: string }
@@ -153,6 +155,10 @@ export class DagPanel implements vscode.Disposable {
     private readonly onCancelRun?: () => void,
     /** Hover-card ▶ — run ONE task + its upstream cone (`run --task`). */
     private readonly onRunTask?: (taskId: string, workflowUri?: string) => void,
+    /** The red teaches (wave G): a failed card's code chip → explain. */
+    private readonly onExplainCode?: (code: string) => void,
+    /** Failed hover ⑂ — fork from this task (upstream rehydrates). */
+    private readonly onForkFromTask?: (taskId: string, workflowUri?: string) => void,
     /** Welcome surface — open recent · whitelisted command · describe. */
     private readonly onWelcome?: (msg: Extract<WebviewToExtMessage,
       { kind: 'welcome:open' | 'welcome:cmd' | 'welcome:describe' }>) => void,
@@ -489,7 +495,7 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Batch update multiple task statuses at once */
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
@@ -711,6 +717,12 @@ export class DagPanel implements vscode.Disposable {
         this.onRunRequest?.(msg.preview === true, msg.workflowUri, msg.resume === true);
         break;
 
+      case 'dag:explainCode':
+        this.onExplainCode?.(msg.code);
+        break;
+      case 'dag:forkFromTask':
+        this.onForkFromTask?.(msg.taskId, msg.workflowUri);
+        break;
       case 'dag:runTask':
         this.onRunTask?.(msg.taskId, msg.workflowUri);
         break;

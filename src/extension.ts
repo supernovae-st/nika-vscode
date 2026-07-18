@@ -1389,6 +1389,26 @@ export function activate(context: ExtensionContext): void {
         taskId,
       );
     },
+    // The red teaches (wave G): the failed card's code → the explain
+    // doc (the SAME pedagogy the editor's quick fix opens).
+    (code) => { void commands.executeCommand('nika.explainCode', code); },
+    // Failed hover ⑂ — fork from THIS task: the newest trace for the
+    // open graph rehydrates upstream (the Runs-view lever, reachable
+    // where the failure is actually seen).
+    (taskId, workflowUri) => {
+      void (async () => {
+        const ids = dagPanel.currentGraphIds();
+        const latest = ids ? await latestTraceForGraph(ids) : undefined;
+        if (!latest) {
+          void window.showWarningMessage('Nika: no recorded run to fork from yet.');
+          return;
+        }
+        await commands.executeCommand('nika.forkFromTask', {
+          traceUri: Uri.file(latest.fsPath),
+          taskId,
+        });
+      })();
+    },
     // The welcome surface (empty canvas) — open recent · WHITELISTED
     // command · describe → the oracle-checked generate flow.
     (msg) => {
