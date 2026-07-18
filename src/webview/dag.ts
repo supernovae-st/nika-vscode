@@ -880,6 +880,7 @@ class DagRenderer {
   /** L1 timeline lens — the alternate reading of the SAME panel. */
   timelineOn = false;
   private timelineGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
+  private tlGeom: { startMs: number; spanMs: number; gutter: number; w: number; height: number } | undefined;
 
   toggleTimeline(): void {
     this.timelineOn = !this.timelineOn;
@@ -904,6 +905,8 @@ class DagRenderer {
     const ROW_H = 26;
     const BAR_H = 12;
     const x = (ms: number): number => GUTTER + ((ms - data.startMs) / data.spanMs) * (W - GUTTER - 70);
+    // The scrub cursor reads this mapping later (same x(), same rows).
+    this.tlGeom = { startMs: data.startMs, spanMs: data.spanMs, gutter: GUTTER, w: W, height: data.rows.length * ROW_H };
     if (data.rows.length === 0) {
       g.append('text').attr('class', 'tl-empty').attr('x', 0).attr('y', 20)
         .text('no recorded run yet — the timeline reads recorded truth (▶ run first)');
@@ -996,6 +999,26 @@ class DagRenderer {
       this.zoomBehavior.transform as D3ZoomCall,
       zoomIdentity.translate(tx, ty).scale(scale),
     );
+  }
+
+  /** The replay scrubber's time cursor ON the lens — one vertical
+   *  rule at the scrub instant (the two time surfaces finally agree).
+   *  undefined clears (replay closed). */
+  timelineCursor(atMs: number | undefined): void {
+    if (!this.timelineOn || !this.timelineGroup || !this.tlGeom) { return; }
+    const g = this.timelineGroup;
+    let cursor = g.select<SVGLineElement>('.tl-cursor');
+    if (atMs === undefined) { cursor.remove(); return; }
+    const { startMs, spanMs, gutter, w, height } = this.tlGeom;
+    const cx = gutter + ((atMs - startMs) / spanMs) * (w - gutter - 70);
+    const clamped = Math.min(Math.max(cx, gutter), w - 70);
+    if (cursor.empty()) {
+      cursor = g.append('line').attr('class', 'tl-cursor');
+    }
+    cursor
+      .attr('x1', clamped).attr('x2', clamped)
+      .attr('y1', -6).attr('y2', height + 2)
+      .raise();
   }
 
   /** Edge ids on the critical path. */
@@ -4910,6 +4933,7 @@ class Replayer {
     this.el?.setAttribute('hidden', '');
     document.body.classList.remove('replaying');
     this.timeline = [];
+    renderer.timelineCursor(undefined);
   }
 
   private seekToClientX(clientX: number): void {
@@ -4929,6 +4953,7 @@ class Replayer {
       this.timeLabel.textContent = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(1)}s` : `${Math.round(elapsed)}ms`;
     }
     renderer.paintFrame(frameAt(this.timeline, atMs, renderer.nodeIds()));
+    renderer.timelineCursor(atMs);
   }
 
   toggle(): void {
