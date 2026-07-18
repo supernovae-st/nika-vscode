@@ -423,6 +423,16 @@ export class DagPanel implements vscode.Disposable {
     return (this.currentGraph?.edges ?? []).map((e) => ({ source: e.source, target: e.target }));
   }
 
+  /** Per-task recorded means (avgMs — flight recorder) of the SHOWN
+   *  graph; the timeline lens paints them as ghost ceilings. */
+  public currentGraphAvgs(): Map<string, number> {
+    const avgs = new Map<string, number>();
+    for (const n of this.currentGraph?.nodes ?? []) {
+      if (n.avgMs !== undefined && n.avgMs > 0) { avgs.set(n.id, n.avgMs); }
+    }
+    return avgs;
+  }
+
   /** BARE builtin → category from `nika tools --json` — rides every
    *  dag:load so the canvas glyphs speak the binary's vocabulary. */
   private toolCats: Record<string, ToolMeta> | undefined;

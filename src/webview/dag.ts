@@ -923,6 +923,24 @@ class DagRenderer {
       rowG.append('text').attr('class', 'tl-id').attr('x', GUTTER - 10).attr('y', ROW_H / 2 + 3)
         .attr('text-anchor', 'end')
         .text(row.id.length > 20 ? `…${row.id.slice(-19)}` : row.id);
+      // The ghost ceiling — the recorded mean across prior runs,
+      // painted UNDER the actual bar: est-vs-actual at a glance (a
+      // longer-than-usual task overshoots its ghost). History only —
+      // no history, no ghost; never a forecast.
+      if (row.estMs !== undefined && row.bar) {
+        const gw = Math.max(x(row.bar.startMs + row.estMs) - x(row.bar.startMs), 1.5);
+        const ghost = rowG.append('rect').attr('class', 'tl-ghost')
+          .attr('x', x(row.bar.startMs))
+          .attr('y', (ROW_H - BAR_H) / 2 - 2)
+          .attr('width', gw)
+          .attr('height', BAR_H + 4)
+          .attr('rx', 4);
+        const actual = (row.bar.endMs - row.bar.startMs) / row.estMs;
+        ghost.append('title').text(
+          `usually ~${row.estMs >= 1000 ? `${(row.estMs / 1000).toFixed(1)}s` : `${Math.round(row.estMs)}ms`} across recorded runs`
+          + (actual > 1.15 ? ` — this run took ${actual.toFixed(1)}× that` : ''),
+        );
+      }
       if (row.bar) {
         for (const seg of row.segments) {
           rowG.append('rect')

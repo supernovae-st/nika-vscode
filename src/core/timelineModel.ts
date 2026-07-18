@@ -32,6 +32,9 @@ export interface TimelineRow {
   pausedQuestion?: string;
   /** Didn't-run pedagogy (gate false · blocked by). */
   why?: string;
+  /** Recorded mean across prior runs (flight recorder) — the GHOST
+   *  ceiling behind the actual bar; absent when no history exists. */
+  estMs?: number;
   /** Wave index (the left gutter groups rows by plan step). */
   wave: number;
 }
@@ -84,6 +87,8 @@ export function buildTimeline(
   model: RunModel,
   ladders: Map<string, Attempt[]>,
   waves: string[][],
+  /** Per-task recorded means (node avgMs — flight recorder). */
+  avgs?: ReadonlyMap<string, number>,
 ): TimelineData {
   const waveOf = new Map<string, number>();
   waves.forEach((wave, i) => { for (const id of wave) { waveOf.set(id, i); } });
@@ -115,6 +120,8 @@ export function buildTimeline(
     const why = t.whyWhen ? `gate false: ${t.whyWhen}`
       : t.blockedBy ? `blocked by ${t.blockedBy}` : undefined;
     if (why !== undefined) { row.why = why; }
+    const est = avgs?.get(t.id);
+    if (est !== undefined && est > 0) { row.estMs = est; }
     return row;
   });
 

@@ -4968,6 +4968,14 @@ body.timeline .region-label { display: none; }
   stroke: color-mix(in srgb, var(--nk-ink) 10%, transparent);
   stroke-width: 1;
 }
+/* The ghost ceiling — recorded mean, an outline UNDER the bar (a fact
+   about history, never a forecast: hollow, muted, whisper-quiet). */
+.tl-ghost {
+  fill: none;
+  stroke: color-mix(in srgb, var(--nk-st-muted) 45%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
 .tl-seg {
   fill: var(--nk-st-muted);
   opacity: 0.45;
@@ -5124,4 +5132,7 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
   color: var(--nk-verb-infer);
   border-color: color-mix(in srgb, var(--nk-verb-infer) 40%, transparent);
   background: color-mix(in srgb, var(--nk-verb-infer) 8%, transparent);
+}
+@media (forced-colors: active) {
+  .tl-ghost { stroke: CanvasText; }
 }
