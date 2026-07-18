@@ -466,6 +466,17 @@ body.heatmap .edge-dir {
 /* Arrow heads paint with context-stroke (ONE ink — the wire's own
  * color in every state); the old per-class fills died with it. */
 
+/* ONE direction voice per distance (the Well signature · wave F):
+ * near, the WAIST chevron carries direction and the port dots mark
+ * the endpoints — the arrival heads went double-voice and stacked at
+ * card mouths where wires converge. The heads sleep at near and wake
+ * at FAR, exactly where the waist glyphs hide (lod-far .edge-dir
+ * display:none) — every distance keeps exactly one direction voice. */
+body:not(.lod-far) .dag-edge {
+  marker-end: none;
+}
+
+
 /* ─── Nodes — Base ──────────────────────────────────────────────────────── */
 
 .dag-node {
