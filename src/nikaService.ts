@@ -63,6 +63,7 @@ function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNod
     node.timeout ??= f.timeout;
     node.onError ??= f.onError;
     node.outputNames ??= f.outputNames;
+    node.finallyCount ??= f.finallyCount;
   }
 }
 

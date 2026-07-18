@@ -3024,6 +3024,14 @@ body.running .dag-node.status-success .nc::after {
   background: color-mix(in srgb, var(--nk-st-failed) 7%, transparent);
 }
 
+/* finally — the cleanup promise: calm, neutral, always-there. The
+   cached hue family (a fact about the run's shape, not a state). */
+.nc-pol-finally {
+  color: var(--nk-st-muted);
+  border-color: color-mix(in srgb, var(--nk-st-muted) 45%, transparent);
+  background: color-mix(in srgb, var(--nk-st-muted) 8%, transparent);
+}
+
 .nc-pol-outs {
   color: var(--nk-data);
   border-color: color-mix(in srgb, var(--nk-data) 35%, transparent);

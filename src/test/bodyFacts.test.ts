@@ -122,3 +122,54 @@ describe('collectBodyFacts · policy facts (retry · timeout · on_error · outp
     expect(facts.get('decoy')?.timeout).toBeUndefined();
   });
 });
+
+describe('collectBodyFacts · on_finally (spec 03 §on_finally)', () => {
+  it('counts the cleanup list members and survives on a scalar-verb task', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  process:',
+      '    exec: ./process.sh',
+      '    on_finally:',
+      '      - exec:',
+      '          command: ["rm", "-f", "/tmp/x"]',
+      '      - invoke:',
+      '          tool: nika:emit',
+      '          args: { event: done }',
+      '  plain:',
+      '    exec: echo hi',
+    ].join('\n'));
+    expect(facts.get('process')?.finallyCount).toBe(2);
+    expect(facts.get('plain')).toBeUndefined();
+  });
+
+  it('an empty or non-list on_finally counts nothing (check owns conformance)', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  a:',
+      '    exec: echo hi',
+      '    on_finally:',
+      '  b:',
+      '    exec: echo ho',
+      '    prompt: never',
+    ].join('\n'));
+    expect(facts.get('a')?.finallyCount).toBeUndefined();
+  });
+
+  it('a with-alias named on_finally can never impersonate the task-level hook', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  a:',
+      '    exec: echo hi',
+      '    with:',
+      '      on_finally:',
+      '        - not-a-cleanup',
+    ].join('\n'));
+    expect(facts.get('a')?.finallyCount).toBeUndefined();
+  });
+});
