@@ -589,3 +589,59 @@ describe('the red teaches — the failure story crosses the wire (wave G)', () =
     expect(b?.whyWhen).toBe('vars.publish');
   });
 });
+
+describe('foldTrace · the agent loop\'s inner life (agent_* annotations)', () => {
+  // Field shapes: probed live on the engine (tools_selected ·
+  // budget_checkpoint · 2026-07-19 trace) + pinned by the engine's own
+  // telemetry tests (nudge reason slugs · stalled period/repeats ·
+  // compose valid/violations).
+  const agentLine = (kind: string, kv: Record<string, unknown>): string =>
+    JSON.stringify({
+      id: { uuid: '019f0000-0000-0000-0000-000000000000' },
+      timestamp: 1784415337953000000,
+      kind,
+      run: null,
+      fields: Object.entries({ task: 'scout', ...kv }).map(([key, value]) => ({ key, value })),
+    });
+
+  it('folds the five kinds into facts — annotations, never a status transition', () => {
+    const model = foldTrace([
+      agentLine('task_started', {}),
+      agentLine('agent_tools_selected', { turn: 1, offered: 2, universe: 9, builtin: 2, mcp: 0 }),
+      agentLine('agent_budget_checkpoint', { turn: 1, total_tokens: 22, budget: 2000 }),
+      agentLine('agent_nudge', { turn: 2, reason: 'repeated_actions' }),
+      agentLine('agent_nudge', { turn: 3, reason: 'error_streak' }),
+      agentLine('agent_tools_selected', { turn: 3, offered: 4, universe: 9 }),
+      agentLine('agent_budget_checkpoint', { turn: 3, total_tokens: 610, budget: 2000 }),
+      agentLine('agent_compose_checked', { valid: true, violations: 0 }),
+      agentLine('agent_stalled', { period: 1, repeats: 5 }),
+    ].join('\n'));
+    const t = model.tasks.get('scout');
+    expect(t?.status).toBe('running'); // annotations never transition
+    expect(t?.agent).toEqual({
+      turns: 3,
+      offered: 4, // LAST turn's routing wins
+      universe: 9,
+      nudges: 2,
+      lastNudgeReason: 'error_streak',
+      stalled: { period: 1, repeats: 5 },
+      compose: { checked: 1, valid: 1 },
+      budget: { totalTokens: 610, budget: 2000 },
+    });
+  });
+
+  it('a terminal task stays frozen — late agent lines are corruption, not information', () => {
+    const model = foldTrace([
+      agentLine('task_started', {}),
+      agentLine('task_completed', {}),
+      agentLine('agent_nudge', { turn: 9, reason: 'error_streak' }),
+    ].join('\n'));
+    expect(model.tasks.get('scout')?.agent).toBeUndefined();
+  });
+
+  it('the REAL captured line folds (the engine trace shape, byte-faithful fields)', () => {
+    const real = '{"chain": "c499caa", "correlation": null, "fields": [{"key": "task", "value": "scout"}, {"key": "turn", "value": 1}, {"key": "offered", "value": 2}, {"key": "universe", "value": 2}, {"key": "builtin", "value": 2}, {"key": "mcp", "value": 0}, {"key": "other", "value": 0}, {"key": "attempt", "value": 1}], "id": {"uuid": "019f7771-3de1-75a2-a2ff-6ea8a22ae1f3"}, "kind": "agent_tools_selected", "run": null, "timestamp": 1784415337953000000}';
+    const model = foldTrace([agentLine('task_started', {}), real].join('\n'));
+    expect(model.tasks.get('scout')?.agent).toMatchObject({ turns: 1, offered: 2, universe: 2 });
+  });
+});

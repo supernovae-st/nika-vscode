@@ -59,6 +59,30 @@ export interface FoldedTask {
   whyWhen?: string;
   /** Cascade cancel (0.95+): the first unsatisfied upstream dependency. */
   blockedBy?: string;
+  /** The agent loop's inner life (the five `agent_*` kinds — shapes
+   *  probed on the engine + pinned by its telemetry tests, 2026-07-19).
+   *  Annotations, never status transitions. */
+  agent?: AgentFacts;
+}
+
+export interface AgentFacts {
+  /** Highest turn observed — the loop's progress counter. */
+  turns?: number;
+  /** LAST turn's tool routing (MCP-Zero-style active discovery made
+   *  visible): how many definitions the model saw / could have seen. */
+  offered?: number;
+  universe?: number;
+  /** Reflexion nudges injected, and the last reason
+   *  (`repeated_actions` · `error_streak`). */
+  nudges?: number;
+  lastNudgeReason?: string;
+  /** The loop stopped on a no-progress cycle — the evidence. */
+  stalled?: { period: number; repeats: number };
+  /** `agent:compose` drafts statically checked (generation is not
+   *  permission): how many, how many came back valid. */
+  compose?: { checked: number; valid: number };
+  /** Last per-turn budget snapshot — the spend curve while it runs. */
+  budget?: { totalTokens: number; budget?: number };
 }
 
 export interface TimelineEntry {
@@ -123,6 +147,20 @@ interface NormalizedEvent {
   workflowSha256Lf?: string;
   /** workflow_started only — the run's workflow name. */
   workflowName?: string;
+  /** agent_* kinds only — the loop's inner-life fields (turn rides
+   *  tools_selected AND budget_checkpoint; the rest are per-kind). */
+  turn?: number;
+  offered?: number;
+  universe?: number;
+  totalTokens?: number;
+  budget?: number;
+  /** agent_nudge — `repeated_actions` · `error_streak`. */
+  reason?: string;
+  /** agent_stalled — the no-progress cycle evidence. */
+  period?: number;
+  repeats?: number;
+  /** agent_compose_checked — the draft's static verdict. */
+  valid?: boolean;
   /** task_skipped only — the gate's CEL text (0.95+). */
   whenExpr?: string;
   /** task_cancelled only — the culprit upstream (0.95+). */
@@ -260,6 +298,15 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       choices: Array.isArray(fields.get('choices'))
         ? (fields.get('choices') as unknown[]).filter((c): c is string => typeof c === 'string')
         : undefined,
+      turn: asNumber(fields.get('turn')),
+      offered: asNumber(fields.get('offered')),
+      universe: asNumber(fields.get('universe')),
+      totalTokens: asNumber(fields.get('total_tokens')),
+      budget: asNumber(fields.get('budget')),
+      reason: typeof fields.get('reason') === 'string' ? fields.get('reason') as string : undefined,
+      period: asNumber(fields.get('period')),
+      repeats: asNumber(fields.get('repeats')),
+      valid: typeof fields.get('valid') === 'boolean' ? fields.get('valid') as boolean : undefined,
     };
   }
 
@@ -383,6 +430,52 @@ export function foldTrace(ndjson: string): RunModel {
           t.recoveredFrom = ev.code ?? '';
           model.tasks.set(ev.taskId, t);
         }
+      }
+      continue;
+    }
+
+    // The agent loop's inner life — annotations on the RUNNING task,
+    // never a status transition (a terminal task stays frozen: agent
+    // events after settle would be trace corruption, same law).
+    if (ev.kind.startsWith('agent_') && ev.taskId !== undefined) {
+      const t = model.tasks.get(ev.taskId)
+        ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
+      if (!TERMINAL.has(t.status)) {
+        const a = t.agent ?? (t.agent = {});
+        if (ev.turn !== undefined) { a.turns = Math.max(a.turns ?? 0, ev.turn); }
+        switch (ev.kind) {
+          case 'agent_tools_selected':
+            if (ev.offered !== undefined) { a.offered = ev.offered; }
+            if (ev.universe !== undefined) { a.universe = ev.universe; }
+            break;
+          case 'agent_nudge':
+            a.nudges = (a.nudges ?? 0) + 1;
+            if (ev.reason !== undefined) { a.lastNudgeReason = ev.reason; }
+            break;
+          case 'agent_stalled':
+            if (ev.period !== undefined && ev.repeats !== undefined) {
+              a.stalled = { period: ev.period, repeats: ev.repeats };
+            }
+            break;
+          case 'agent_compose_checked': {
+            const c = a.compose ?? { checked: 0, valid: 0 };
+            c.checked += 1;
+            if (ev.valid === true) { c.valid += 1; }
+            a.compose = c;
+            break;
+          }
+          case 'agent_budget_checkpoint':
+            if (ev.totalTokens !== undefined) {
+              a.budget = {
+                totalTokens: ev.totalTokens,
+                ...(ev.budget !== undefined ? { budget: ev.budget } : {}),
+              };
+            }
+            break;
+          default:
+            break;
+        }
+        model.tasks.set(ev.taskId, t);
       }
       continue;
     }

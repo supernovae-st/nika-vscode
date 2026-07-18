@@ -499,6 +499,7 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
       failPreview: t.status === 'failed' ? t.preview : undefined,
       whyWhen: t.whyWhen,
       blockedBy: t.blockedBy,
+      agent: t.agent,
     })),
   );
   // The overlap gate just PROVED this trace belongs to the displayed

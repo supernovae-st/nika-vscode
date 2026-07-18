@@ -177,6 +177,7 @@ export function runWorkflowLive(
         failPreview: t.status === 'failed' ? t.preview : undefined,
         whyWhen: t.whyWhen,
         blockedBy: t.blockedBy,
+        agent: t.agent,
         pausedQuestion: model.paused?.task === t.id ? (model.paused.message ?? 'awaiting an answer') : undefined,
       })),
     );
