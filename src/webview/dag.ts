@@ -21,6 +21,7 @@ import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
+import type { AgentFacts } from '../core/traceFold';
 import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
 import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
@@ -332,6 +333,8 @@ interface DagNode {
   blockedBy?: string;
   /** `on_finally:` cleanup steps — ALWAYS run on a started task. */
   finallyCount?: number;
+  /** The agent loop's inner life (fold annotations — live + replay). */
+  agent?: AgentFacts;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -3497,6 +3500,33 @@ class DagRenderer {
       add('repaired', `✚ recovered from ${live.recoveredFrom} — on_error.recover absorbed the failure`);
     }
     add('output', live.outputPreview);
+    // The agent loop's inner life (the RUN STORY this hover exists
+    // for): tool routing · budget curve · nudges · the stall evidence.
+    const af = live.agent;
+    if (af) {
+      if (af.turns !== undefined) {
+        const routing = af.offered !== undefined && af.universe !== undefined
+          ? ` · saw ${af.offered}/${af.universe} tools`
+          : '';
+        add('loop', `turn ${af.turns}${routing}`);
+      }
+      if (af.budget !== undefined) {
+        add('budget', af.budget.budget !== undefined
+          ? `${af.budget.totalTokens} of ${af.budget.budget} tokens`
+          : `${af.budget.totalTokens} tokens so far`);
+      }
+      if (af.nudges !== undefined && af.nudges > 0) {
+        add('nudged', `${af.nudges}× — ${af.lastNudgeReason === 'error_streak'
+          ? 'an error streak drew a corrective reflection'
+          : 'repeated actions drew a corrective reflection'}`);
+      }
+      if (af.stalled !== undefined) {
+        add('stalled', `no-progress cycle (period ${af.stalled.period} · ×${af.stalled.repeats}) — the loop stopped itself`);
+      }
+      if (af.compose !== undefined) {
+        add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
+      }
+    }
     const wave = this.waveOf.get(live.id);
     if (wave !== undefined && this.waveOf.size > 0) {
       add('wave', `${wave + 1} of ${1 + Math.max(...this.waveOf.values())}`);
@@ -4056,7 +4086,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts }): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
     // The red teaches (wave G): the failure story and the didn't-run
@@ -4065,6 +4095,7 @@ class DagRenderer {
     node.whyWhen = extra?.whyWhen;
     node.blockedBy = extra?.blockedBy;
     node.pausedQuestion = extra?.pausedQuestion;
+    node.agent = extra?.agent;
     // The ⏸ paints through subValue (the ticker reads it too — one
     // voice); the QUESTION rides the sub cell's title.
     const subEl = this.nodeGroup
@@ -4165,7 +4196,7 @@ class DagRenderer {
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts }>): void {
     let touched = false;
     for (const u of updates) {
       touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd, u) || touched;
@@ -4300,6 +4331,17 @@ class DagRenderer {
     return node.verb;
   }
 
+  /** The agent loop's pulse for the value column (`t3 · 610tk · `) —
+   *  the inner life narrated live (agent_* fold annotations). */
+  private agentPulse(node: DagNode): string {
+    const a = node.agent;
+    if (!a || node.verb !== 'agent') { return ''; }
+    const parts: string[] = [];
+    if (a.turns !== undefined) { parts.push(`t${a.turns}`); }
+    if (a.budget !== undefined) { parts.push(`${a.budget.totalTokens}tk`); }
+    return parts.length > 0 ? `${parts.join(' · ')} · ` : '';
+  }
+
   /** `12.4s` · `74s` · `2m05` — the live elapsed, compact. */
   private elapsedText(startTs: number): string {
     const s = (performance.now() - startTs) / 1000;
@@ -4319,7 +4361,7 @@ class DagRenderer {
       if (node.pausedQuestion) { return '\u23f8 asks\u2026'; }
       const started = this.liveStart.get(node.id);
       const prefix = node.status === 'retrying' ? '↻ ' : '';
-      if (started !== undefined) { return `${prefix}${this.elapsedText(started)} ⋯`; }
+      if (started !== undefined) { return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)} ⋯`; }
       return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
     }
     // ADR-099 rehydration — no clock fact exists (nothing executed).

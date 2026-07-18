@@ -25,9 +25,9 @@ export type ExtToWebviewMessage =
   // Recorded media artifacts landing ON the cards (run close · replay) —
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: import('./core/traceFold').AgentFacts }
   | { kind: 'dag:timeline'; data: import('./core/timelineModel').TimelineData }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }> }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: import('./core/traceFold').AgentFacts }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -515,7 +515,7 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'dag:timeline', data });
   }
 
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: import('./core/traceFold').AgentFacts }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
