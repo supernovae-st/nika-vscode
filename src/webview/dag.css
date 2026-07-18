@@ -4621,9 +4621,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   border-radius: 6px;
 }
 .dag-node.verb-infer.status-running .nc-tile {
-  animation: nk-think 2.2s ease-in-out infinite;
+  animation: nika-motion-infer 2.2s ease-in-out infinite;
 }
-@keyframes nk-think {
+@keyframes nika-motion-infer {
   0%, 100% { box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 -1.5px 0 rgb(0 0 0 / 0.25),
     0 0 4px 0 color-mix(in srgb, var(--dv-hue) 25%, transparent); }
@@ -4643,9 +4643,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   content: '▍';
   color: var(--dv-hue);
   margin-left: 2px;
-  animation: nk-caret 1s steps(2, jump-none) infinite;
+  animation: nika-motion-exec 1s steps(2, jump-none) infinite;
 }
-@keyframes nk-caret { 50% { opacity: 0; } }
+@keyframes nika-motion-exec { 50% { opacity: 0; } }
 
 /* 3 · INVOKE — the connector. A socket gradient sits on the head's left
  * edge at rest; while the tool call is in flight, current flows across. */
@@ -4659,9 +4659,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
     color-mix(in srgb, var(--dv-hue) 16%, transparent) 50%, transparent 100%);
   background-size: 45% 100%;
   background-repeat: no-repeat;
-  animation: nk-current 1.6s linear infinite;
+  animation: nika-motion-invoke 1.6s linear infinite;
 }
-@keyframes nk-current {
+@keyframes nika-motion-invoke {
   from { background-position: -45% 0; }
   to { background-position: 145% 0; }
 }
@@ -4678,9 +4678,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   pointer-events: none;
 }
 .dag-node.verb-agent.status-running .nc-tile::after {
-  animation: nk-orbit-tile 3.2s linear infinite;
+  animation: nika-motion-agent 3.2s linear infinite;
 }
-@keyframes nk-orbit-tile { to { transform: rotate(360deg); } }
+@keyframes nika-motion-agent { to { transform: rotate(360deg); } }
 
 /* The recovered legend chip — the amber of the absorbed failure. */
 .legend-chip.st-recovered .legend-dot { background: var(--nk-st-retrying); }
