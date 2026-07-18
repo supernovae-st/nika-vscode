@@ -152,6 +152,7 @@ export class NikaService {
     this.checkInFlight.clear();
     this.graphInFlight.clear();
     this.grammarValue = undefined;
+    this.doctorFailsValue = undefined;
     if (!binaryPath) {
       this.capsValue = noCapabilities();
       this.changeEmitter.fire();
@@ -386,6 +387,20 @@ export class NikaService {
 
   private grammarValue: boolean | undefined;
 
+  /** The canary's cached verdict, synchronously — the status pill reads
+   *  this every render; `speaksGrammar()` fills it (once per binary). */
+  get gen1(): boolean | undefined {
+    return this.grammarValue;
+  }
+
+  private doctorFailsValue: number | undefined;
+
+  /** Last `doctor --json` fail count — filled by whoever probes the
+   *  doctor (Station · pill); undefined until the first probe lands. */
+  get doctorFails(): number | undefined {
+    return this.doctorFailsValue;
+  }
+
   /** Does THIS binary parse the refonte grammar? (D-V8 product probe —
    *  the Station says it honestly instead of letting doors crash.) */
   async speaksGrammar(): Promise<boolean | undefined> {
@@ -423,7 +438,9 @@ export class NikaService {
     const res = await this.runCli(['doctor', '--json'], 20000, undefined, cwd);
     if (!res.stdout) { return undefined; }
     try {
-      return parseDoctorReport(JSON.parse(res.stdout));
+      const report = parseDoctorReport(JSON.parse(res.stdout));
+      if (report) { this.doctorFailsValue = report.summary.fail; }
+      return report;
     } catch {
       return undefined;
     }

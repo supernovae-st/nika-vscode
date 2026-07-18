@@ -267,10 +267,18 @@ export function startClient(
   }).catch((err: Error) => {
     log('ERROR', `LSP failed to start: ${err.message}`);
     state.statusSink?.('failed');
-    window.showErrorMessage(
-      `Failed to start Nika language server: ${err.message}. ` +
-      `Make sure 'nika' is installed and in your PATH, or set nika.server.path.`,
-    );
+    void window
+      .showErrorMessage(
+        `Nika: the language server failed to start — ${err.message}`,
+        'Retry', 'Set server path', 'Show log',
+      )
+      .then((pick) => {
+        if (pick === 'Retry') { void commands.executeCommand('nika.restartServer'); }
+        if (pick === 'Set server path') {
+          void commands.executeCommand('workbench.action.openSettings', 'nika.server.path');
+        }
+        if (pick === 'Show log') { void commands.executeCommand('nika.showOutput'); }
+      });
   });
 
   context.subscriptions.push({
