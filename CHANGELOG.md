@@ -4,6 +4,13 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.104.0] · 2026-07-18
+
+Lockstep on the engine's 0.104 line (moonshot — the 17th provider —
+joins the catalog the pickers read live from the binary; the
+extension's own surfaces are unchanged from 0.103.0). The refonte
+wave keeps landing on main and ships with the engine's 1.0 train.
+
 ## [Unreleased]
 
 ## 0.103.0 — 2026-07-13
