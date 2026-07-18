@@ -146,8 +146,10 @@ export function registerStation(
       await vscode.commands.executeCommand('nikaStation.focus');
     }),
     vscode.commands.registerCommand('nika.station.refresh', () => provider.refresh()),
-    vscode.commands.registerCommand('nika.station.wire', (client: string) => {
-      if (!/^[a-z-]+$/.test(client)) { return; }
+    vscode.commands.registerCommand('nika.station.wire', (client: unknown) => {
+      // Palette invocation passes undefined — String coercion would run
+      // `nika wire undefined` (the refuter's counterexample). Type first.
+      if (typeof client !== 'string' || !/^[a-z-]+$/.test(client)) { return; }
       inTerminal(`nika wire ${client}`);
       setTimeout(() => { void provider.refresh(); }, 4000);
     }),
@@ -170,7 +172,15 @@ export function registerStation(
   );
 
   // Engine truth changed (binary swap · caps re-probe) → re-derive.
-  context.subscriptions.push(service.onDidChange(() => { void provider.refresh(); }));
+  // Debounced: setBinary fires up to three pulses per resolution
+  // (caps · intel · catalog) — one trailing refresh serves them all
+  // instead of three doctor+welcome+canary spawn storms at boot.
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  context.subscriptions.push(service.onDidChange(() => {
+    if (refreshTimer) { clearTimeout(refreshTimer); }
+    refreshTimer = setTimeout(() => { void provider.refresh(); }, 300);
+  }));
+  context.subscriptions.push({ dispose: () => { if (refreshTimer) { clearTimeout(refreshTimer); } } });
   void provider.refresh();
   return provider;
 }

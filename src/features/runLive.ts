@@ -229,7 +229,7 @@ export function runWorkflowLive(
     // ADR-099: paused is a QUESTION, not a failure — amber, the message
     // itself, and the answer flow one click away (exit 4 · human-gate).
     const icon = verdict === 'completed' ? '✓'
-      : verdict === 'cancelled' ? '◼'
+      : verdict === 'cancelled' ? '⊘'
       : verdict === 'paused' ? '⏸' : '✗';
     const cls = verdict === 'completed' ? 'st-success'
       : verdict === 'cancelled' ? 'st-cancelled'
@@ -250,7 +250,7 @@ export function runWorkflowLive(
       dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}${suffix}`, undefined, cls);
       // The verdict banner — the same summary, visible WITHOUT opening the
       // feed (summarizeRun leads with its own icon; the banner owns it).
-      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗◼…] /, '')}${suffix}`, cls);
+      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`, cls);
       // The one earned ask, ever — fires on the FIRST completed run only
       // (communityAsk owns the flag; a dismissal counts as answered).
       maybeAskCommunity(verdict);
@@ -286,6 +286,6 @@ const FEED_ICON: Record<string, string> = {
   success: '✓',
   failed: '✗',
   skipped: '⤼',
-  cancelled: '◼',
+  cancelled: '⊘',
 };
 

@@ -228,7 +228,7 @@ async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument 
   const uri = toUri(rawUri);
   if (uri) {
     if (!NIKA_FILE_RE.test(uri.fsPath)) {
-      void window.showWarningMessage('Nika commands target .nika.yaml files.');
+      void window.showWarningMessage('Nika: commands target .nika.yaml files.');
       return undefined;
     }
     try {
@@ -239,7 +239,7 @@ async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument 
   }
   const doc = activeNikaDocument();
   if (!doc) {
-    void window.showWarningMessage('Open a .nika.yaml file first.');
+    void window.showWarningMessage('Nika: open a .nika.yaml file first.');
   }
   return doc;
 }
@@ -357,7 +357,7 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 export function activate(context: ExtensionContext): void {
   extContext = context;
   initCommunityAsk(context);
-  outputChannel = window.createOutputChannel('Nika Language Server');
+  outputChannel = window.createOutputChannel('Nika');
   context.subscriptions.push(outputChannel);
   log('INFO', `Nika extension v${context.extension.packageJSON.version} activating`);
   log('INFO', `Platform: ${process.platform}/${process.arch}`);
@@ -442,7 +442,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.finishSetup', async () => {
       await context.globalState.update('nika.downloadDeclined', undefined);
       if (!service.available) {
-        const fresh = await resolveBinary(context);
+        const fresh = await resolveBinary(context, true);
         state.resolvedServerPath = fresh;
         await service.setBinary(fresh);
         if (!fresh) { return; } // the download path already spoke
@@ -512,7 +512,7 @@ export function activate(context: ExtensionContext): void {
       const merged = mergeVerbBand(config.get('tokenColorCustomizations'));
       await config.update('tokenColorCustomizations', merged, ConfigurationTarget.Global);
       void window.showInformationMessage(
-        'Nika verb band applied — infer · exec · invoke · agent carry their canonical hues in every theme.',
+        'Nika: verb band applied — infer · exec · invoke · agent carry their canonical hues in every theme.',
       );
     }),
   );
@@ -2113,7 +2113,7 @@ export function activate(context: ExtensionContext): void {
           : { label: x.label, description: x.description, pick: x },
       );
       const picked = await window.showQuickPick(items as { label: string; pick?: import('./core/sessionLauncher').SessionPick }[], {
-        title: 'New Nika session',
+        title: 'New session',
         placeHolder: 'what do you want to do?',
       });
       const pick = picked?.pick;
@@ -2185,7 +2185,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.newWorkflow', async () => {
       const folder = workspace.workspaceFolders?.[0];
       if (!folder) {
-        window.showErrorMessage('Open a folder first.');
+        window.showErrorMessage('Nika: open a folder first.');
         return;
       }
       const name = await window.showInputBox({
@@ -2777,14 +2777,14 @@ export function activate(context: ExtensionContext): void {
       // An explicit gesture also re-opens the download question a user
       // previously declined (the auto path stays silent after a decline).
       await context.globalState.update('nika.downloadDeclined', undefined);
-      const fresh = await resolveBinary(context);
+      const fresh = await resolveBinary(context, true);
       state.resolvedServerPath = fresh;
       await service.setBinary(fresh);
       if (fresh) { checkVersionMismatch(context, log, fresh); }
       void state.pushWelcomeData?.();
       if (service.caps.lsp) {
         startClient(context, state, log, state.resolvedServerPath);
-        window.showInformationMessage('Nika language server restarted.');
+        window.showInformationMessage('Nika: language server restarted.');
       } else {
         window.showInformationMessage('`nika lsp` is not available from this binary yet — client-side intelligence stays active.');
       }
@@ -2957,7 +2957,7 @@ async function configureMcpForHost(
     await ensureCursorMcpConfig(resolvedServerPath, log);
     await ensureCursorRules(log, providers);
     if (notify) {
-      window.showInformationMessage('Nika MCP + .cursor/rules wired for Cursor.');
+      window.showInformationMessage('Nika: MCP + .cursor/rules wired for Cursor.');
     }
   } else if (isWindsurf()) {
     await ensureWindsurfMcpConfig(resolvedServerPath, log);
@@ -2992,7 +2992,7 @@ async function configureMcpForHost(
 }
 
 /** Discovery priority: explicit config → bundled → PATH (`nika` · `nika-cli`) → cached → download. */
-async function resolveBinary(context: ExtensionContext): Promise<string | undefined> {
+async function resolveBinary(context: ExtensionContext, explicit = false): Promise<string | undefined> {
   const configPath = getNikaPath();
   if (configPath !== 'nika') {
     if (await isBinaryWorking(configPath)) {
@@ -3048,6 +3048,16 @@ async function resolveBinary(context: ExtensionContext): Promise<string | undefi
   // the explicit restart/re-detect gesture asks again.
   if (!context.globalState.get<boolean>('nika.downloadConsent')) {
     if (context.globalState.get<boolean>('nika.downloadDeclined')) { return undefined; }
+    // The first-EVER activation just auto-opened the walkthrough — a
+    // modal on top of it is two surfaces shouting at once (the boot
+    // collision · one door per moment). That first boot stays silent:
+    // the walkthrough's « Finish Setup » button IS the download door,
+    // and the status bar + welcome views keep the affordance. The
+    // modal may ask from the SECOND boot on.
+    if (!explicit && !context.globalState.get<boolean>('nika.bootAskArmed')) {
+      await context.globalState.update('nika.bootAskArmed', true);
+      return undefined;
+    }
     const pick = await window.showInformationMessage(
       'Nika engine not found. Download the official binary from GitHub releases? (HTTPS · SHA-256 verified · ~10 MB)',
       { modal: true },

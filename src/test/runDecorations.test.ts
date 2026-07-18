@@ -69,17 +69,17 @@ describe('formatRunBadge', () => {
 });
 
 describe('badges from real flight-recorder captures (nika 0.92.0 wire)', () => {
-  it('failed run folds the full quartet: ✓ · ⊘ · ✗ · ◼', () => {
+  it('failed run folds the full quartet: ✓ · ↷ · ✗ · ⊘', () => {
     const model = fixtureFold('fixture-run-failed.ndjson');
     expect(model.workflowStatus).toBe('failed');
     // discover completed (duration_ms: 0 on the wire) — green with a fact.
     expect(formatRunBadge(model.tasks.get('discover')!)).toBe(' ✓ 0ms');
     // process skipped (empty for_each collection) — bare glyph, no facts.
-    expect(formatRunBadge(model.tasks.get('process')!)).toBe(' ⊘');
+    expect(formatRunBadge(model.tasks.get('process')!)).toBe(' ↷');
     // survivors failed (jq runtime error) — the red badge.
     expect(formatRunBadge(model.tasks.get('survivors')!)).toBe(' ✗ 0ms');
     // merge cancelled (upstream failed) — §3.1: a decision, never red.
-    expect(formatRunBadge(model.tasks.get('merge')!)).toBe(' ◼');
+    expect(formatRunBadge(model.tasks.get('merge')!)).toBe(' ⊘');
   });
 
   it('green run badges every task ✓ with its wire duration', () => {

@@ -10,8 +10,8 @@
 
 import * as vscode from 'vscode';
 import {
-  afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, islandKeyRewrite,
-  upstreamCandidates, type CollectionRef, type GateShape,
+  afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, islandCleanupRewrite,
+  islandKeyRewrite, upstreamCandidates, type CollectionRef, type GateShape,
 } from '../core/flowEdit';
 import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
@@ -88,6 +88,47 @@ async function openServerIsland(a: Anchored, key: 'when' | 'for_each'): Promise<
   editor.selection = new vscode.Selection(pos, pos);
   editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
   await vscode.commands.executeCommand('editor.action.triggerSuggest');
+
+  // The abandon path (the refuter's counterexample): Esc on the suggest
+  // widget would leave a dangling `key: ` (YAML null) in the file. One
+  // one-shot janitor: the moment the caret LEAVES the island line — or
+  // 90s pass — if the line still holds the empty key, the key goes
+  // (taskKeyRewrite with undefined removes); a filled value disposes
+  // the watch untouched. Line-content based, so a completion accepted
+  // without moving the caret simply ages out clean.
+  const emptyKey = new RegExp(`^\\s*${key}:\\s*$`);
+  const disposables: vscode.Disposable[] = [];
+  const dispose = (): void => { for (const d of disposables) { d.dispose(); } };
+  const revertIfAbandoned = async (): Promise<void> => {
+    dispose();
+    const now = a.doc.getText();
+    const nowLines = now.split('\n');
+    const wfNow = parseRichWorkflow(now);
+    const taskNow = wfNow.tasks.find((t) => t.id === a.task.id);
+    if (!taskNow) { return; }
+    const boundNow = wfNow.tasks
+      .map((t) => t.line)
+      .filter((l) => l > taskNow.line)
+      .reduce((min, l) => Math.min(min, l), nowLines.length);
+    for (let i = taskNow.line; i < boundNow; i += 1) {
+      if (emptyKey.test(nowLines[i] ?? '')) {
+        const cleaned = islandCleanupRewrite(now, taskNow, key);
+        if (cleaned !== undefined && cleaned !== now) {
+          await applyFullRewrite(a.doc, cleaned);
+        }
+        return;
+      }
+    }
+  };
+  disposables.push(
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (e.textEditor.document !== a.doc) { return; }
+      if (e.selections.some((sel) => sel.active.line === at)) { return; }
+      void revertIfAbandoned();
+    }),
+  );
+  const timer = setTimeout(() => { void revertIfAbandoned(); }, 90000);
+  disposables.push({ dispose: () => clearTimeout(timer) });
 }
 
 /** The W2 hoist compose: bind the upstream value through `with:` first,

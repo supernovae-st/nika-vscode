@@ -163,7 +163,7 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
   return window.withProgress(
     {
       location: ProgressLocation.Notification,
-      title: 'Nika: Downloading language server...',
+      title: 'Nika: downloading the engine…',
       cancellable: false,
     },
     async (progress) => {
