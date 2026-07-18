@@ -1904,7 +1904,7 @@ class DagRenderer {
     this.edgePlusHideTimer = window.setTimeout(() => {
       this.edgePlus?.attr('display', 'none');
       this.edgePlusEnds = null;
-    }, 260);
+    }, 600);
   }
 
   private endConnect(): void {
