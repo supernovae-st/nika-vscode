@@ -30,6 +30,11 @@ export interface BodyFacts {
   /** `on_finally:` cleanup steps — list members (spec 03 §on_finally:
    *  ALWAYS runs on a started task · sequential · best-effort). */
   finallyCount?: number;
+  /** infer `thinking:` — the scratch budget (budget_tokens), or -1
+   *  when enabled without an explicit budget (spec 02 §fields). */
+  thinkingBudget?: number;
+  /** infer `vision:` — image inputs riding the prompt (list count). */
+  visionCount?: number;
 }
 
 /** The on_error action keys (schema $defs/onError — exactly one). */
@@ -205,6 +210,32 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         else { onErrorIndent = indent; }
       } else if (indent === taskIndent && name === 'output') {
         outputIndent = indent;
+      } else if (name === 'thinking' && fact.thinkingBudget === undefined && indent > taskIndent) {
+        // Verb-body block (spec 02): enabled + budget_tokens one level
+        // down. Best-effort client read — `nika check` owns conformance.
+        let enabled = false;
+        let budget: number | undefined;
+        for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
+          const kj = lines[j].match(/^(\s*)([A-Za-z_]+):\s*(.*)$/);
+          if (!kj) { if (lines[j].trim().length > 0) { break; } continue; }
+          if (kj[1].length <= indent) { break; }
+          if (kj[2] === 'enabled') { enabled = kj[3].trim().startsWith('true'); }
+          if (kj[2] === 'budget_tokens') {
+            const n = Number(kj[3].trim());
+            if (Number.isInteger(n) && n > 0) { budget = n; }
+          }
+        }
+        if (enabled || budget !== undefined) { fact.thinkingBudget = budget ?? -1; }
+      } else if (name === 'vision' && fact.visionCount === undefined && indent > taskIndent) {
+        let n = 0;
+        for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
+          const t2 = lines[j];
+          if (t2.trim().length === 0) { continue; }
+          const kj = t2.match(/^(\s*)\S/);
+          if (kj && kj[1].length <= indent) { break; }
+          if (t2.trim().startsWith('- ')) { n += 1; }
+        }
+        if (n > 0) { fact.visionCount = n; }
       } else if (indent === taskIndent && name === 'on_finally' && fact.finallyCount === undefined) {
         // Cleanup steps = the list members one level down. Only `- `
         // entries count (each is a mini-task); a non-list body is a
@@ -228,7 +259,8 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
     if (fact.prompt || fact.command || fact.args
         || fact.retryMax !== undefined || fact.timeout !== undefined
         || fact.onError !== undefined || fact.toolsCount !== undefined
-        || fact.outputNames !== undefined || fact.finallyCount !== undefined) {
+        || fact.outputNames !== undefined || fact.finallyCount !== undefined
+        || fact.thinkingBudget !== undefined || fact.visionCount !== undefined) {
       facts.set(task.id, fact);
     }
   }

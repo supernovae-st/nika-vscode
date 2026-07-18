@@ -173,3 +173,45 @@ describe('collectBodyFacts · on_finally (spec 03 §on_finally)', () => {
     expect(facts.get('a')?.finallyCount).toBeUndefined();
   });
 });
+
+describe('collectBodyFacts · infer senses (spec 02 — thinking · vision)', () => {
+  it('reads the thinking budget and counts vision sources', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  see:',
+      '    infer:',
+      '      prompt: describe the diagram',
+      '      thinking:',
+      '        enabled: true',
+      '        budget_tokens: 4000',
+      '      vision:',
+      '        - source: file',
+      '          path: ./a.png',
+      '        - source: url',
+      '          url: https://x/y.png',
+    ].join('\n'));
+    expect(facts.get('see')?.thinkingBudget).toBe(4000);
+    expect(facts.get('see')?.visionCount).toBe(2);
+  });
+
+  it('enabled-without-budget reads as -1 (on, uncapped); absent stays silent', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  think:',
+      '    infer:',
+      '      prompt: hard question',
+      '      thinking:',
+      '        enabled: true',
+      '  plain:',
+      '    infer:',
+      '      prompt: easy',
+    ].join('\n'));
+    expect(facts.get('think')?.thinkingBudget).toBe(-1);
+    expect(facts.get('plain')?.thinkingBudget).toBeUndefined();
+    expect(facts.get('plain')?.visionCount).toBeUndefined();
+  });
+});
