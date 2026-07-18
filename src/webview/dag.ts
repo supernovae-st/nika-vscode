@@ -953,33 +953,26 @@ class DagRenderer {
   }
 
   private createArrowMarkers(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {
-    // Data edge arrow (solid — slender, not a traffic sign)
-    defs
-      .append('marker')
-      .attr('id', 'arrow-data')
-      .attr('viewBox', '0 0 10 10')
-      .attr('refX', 9.5)
-      .attr('refY', 5)
-      .attr('markerWidth', 6.5)
-      .attr('markerHeight', 6.5)
-      .attr('orient', 'auto-start-reverse')
-      .append('path')
-      .attr('d', 'M 0 1 L 9.5 5 L 0 9 z')
-      .attr('class', 'arrow-data');
-
-    // Dependency arrow (subtle, gray)
-    defs
-      .append('marker')
-      .attr('id', 'arrow-dep')
-      .attr('viewBox', '0 0 10 10')
-      .attr('refX', 9.5)
-      .attr('refY', 5)
-      .attr('markerWidth', 5)
-      .attr('markerHeight', 5)
-      .attr('orient', 'auto-start-reverse')
-      .append('path')
-      .attr('d', 'M 0 1 L 9.5 5 L 0 9 z')
-      .attr('class', 'arrow-dep');
+    // ONE ink (annexe D · context-stroke ships in our Chromium floor):
+    // the head paints with the REFERENCING wire's own stroke — lit,
+    // adjacent, critical amber, failure-mixed and far-demixed heads
+    // all follow for free; the two ids survive only for their SIZE
+    // (data slender 6.5 · dep subtle 5). markerUnits stays the
+    // default strokeWidth, so the zoom-band weights scale the heads.
+    for (const [id, size] of [['arrow-data', 6.5], ['arrow-dep', 5]] as const) {
+      defs
+        .append('marker')
+        .attr('id', id)
+        .attr('viewBox', '0 0 10 10')
+        .attr('refX', 9.5)
+        .attr('refY', 5)
+        .attr('markerWidth', size)
+        .attr('markerHeight', size)
+        .attr('orient', 'auto-start-reverse')
+        .append('path')
+        .attr('d', 'M 0 1 L 9.5 5 L 0 9 z')
+        .attr('fill', 'context-stroke');
+    }
   }
 
   private createGlowFilter(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {

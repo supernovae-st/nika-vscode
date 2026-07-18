@@ -435,14 +435,8 @@ body.heatmap .edge-dir {
   display: none;
 }
 
-/* Arrow markers inherit from CSS */
-.arrow-data {
-  fill: var(--nk-data);
-}
-
-.arrow-dep {
-  fill: var(--nk-st-muted);
-}
+/* Arrow heads paint with context-stroke (ONE ink — the wire's own
+ * color in every state); the old per-class fills died with it. */
 
 /* ─── Nodes — Base ──────────────────────────────────────────────────────── */
 
@@ -3113,6 +3107,13 @@ body.heatmap .dag-node:hover .nc {
 body.lod-mid .nc-params { visibility: hidden; }
 body.lod-mid .nc-io,
 body.lod-mid .nc-policy { visibility: hidden; }
+/* Zoom-band ink weight — mid keeps the author weight; far widens the
+ * scheduling wires a step so the (demixed) topology still carries;
+ * heads scale with the stroke (markerUnits). Observations stay slim
+ * (reads are secondary at map distance). */
+body.lod-far .dag-edge.edge-data:not(.edge-obs) { stroke-width: 2.2; }
+body.lod-far .dag-edge.edge-dep { stroke-width: 1.9; }
+
 /* Far zoom — the map read (annexe D · n8n zoom-derived color): wires
  * recede toward the page so TOPOLOGY carries; the failure hue demixes
  * LAST (a red read must survive the overview) and the critical amber
