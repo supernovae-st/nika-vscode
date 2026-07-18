@@ -168,6 +168,11 @@ export function runWorkflowLive(
         recoveredFrom: t.recoveredFrom,
         usd: t.usd,
         outputPreview: t.outputPreview,
+        // The red teaches (wave G): the failure story + the didn't-run
+        // reasons finally CROSS the wire — the card can speak them.
+        failPreview: t.status === 'failed' ? t.preview : undefined,
+        whyWhen: t.whyWhen,
+        blockedBy: t.blockedBy,
       })),
     );
     // Narrate only NEW terminal transitions (the feed is a story, not

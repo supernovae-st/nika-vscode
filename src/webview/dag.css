@@ -2634,6 +2634,16 @@ body.running .dag-node.status-success .nc::after {
   display: block;
 }
 
+/* The red teaches — the failure story where the prompt was: the
+ * card's own body becomes the error line, clickable (explain). */
+.nc-body.nc-body-err {
+  color: var(--nk-st-failed);
+  cursor: pointer;
+}
+.nc-body.nc-body-err:hover { text-decoration: underline dotted; }
+.hc-run.hc-explain { color: var(--nk-st-failed); }
+.hc-run.hc-fork { color: var(--nk-st-retrying, var(--nk-ink-dim)); }
+
 /* The recorded output ON the card (success + preview) — the data the
  * task produced, where its prompt was; rises in like the verdict. */
 .nc-body.nc-body-live {
