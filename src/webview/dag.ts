@@ -3461,6 +3461,7 @@ class DagRenderer {
   private setEdgeLit(edgeId: string, lit: boolean): void {
     this.edgePathEl.get(edgeId)?.classList.toggle('edge-lit', lit);
     this.paintHoverChord(edgeId, lit);
+    this.paintTaper(edgeId, lit);
     this.edgeLabelEl.get(edgeId)?.classList.toggle('lit', lit);
     this.edgeDirEl.get(edgeId)?.classList.toggle('lit', lit);
     // The connection is ONE object: the wire and its two ends light
@@ -3474,6 +3475,61 @@ class DagRenderer {
         .node();
       g?.classList.toggle('edge-touch', lit);
     }
+  }
+
+  /** The Holten taper — a filled stream under the hovered wire (fat
+   *  source → hairline target · Holten & van Wijk 2009: tapered beats
+   *  arrowheads for direction). Samples the LIVE path (n≈20), offsets
+   *  each point along its normal by a lerped half-width, closes the
+   *  polygon, fills with the SAME chord gradient the stroke wears
+   *  (one def serves both). halfW clamps to 0.8·segment so no miter
+   *  machinery is ever needed (taper.c's bevel case, sidestepped). */
+  private taperEls = new Map<string, SVGPathElement>();
+
+  private paintTaper(edgeId: string, on: boolean): void {
+    const existing = this.taperEls.get(edgeId);
+    if (!on) {
+      existing?.remove();
+      this.taperEls.delete(edgeId);
+      return;
+    }
+    if (existing) { return; }
+    const path = this.edgePathEl.get(edgeId);
+    if (!path || !path.classList.contains('edge-data')) { return; }
+    const total = path.getTotalLength();
+    if (!Number.isFinite(total) || total < 28) { return; }
+    // Adaptive sampling: segments stay ≥12px so the anti-miter clamp
+    // (0.8·seg) never eats the stream's mouth on short wires.
+    const N = Math.max(8, Math.min(24, Math.round(total / 12)));
+    const pts: Array<{ x: number; y: number }> = [];
+    for (let i = 0; i <= N; i += 1) {
+      pts.push(path.getPointAtLength((total * i) / N));
+    }
+    const seg = total / N;
+    const left: string[] = [];
+    const right: string[] = [];
+    for (let i = 0; i <= N; i += 1) {
+      const prev = pts[Math.max(0, i - 1)];
+      const next = pts[Math.min(N, i + 1)];
+      let tx = next.x - prev.x;
+      let ty = next.y - prev.y;
+      const len = Math.hypot(tx, ty) || 1;
+      tx /= len; ty /= len;
+      const t = i / N;
+      const halfW = Math.min((1 - t) * (1 - t) * 5.2 + 0.7, seg * 0.8);
+      const nx = -ty * halfW;
+      const ny = tx * halfW;
+      left.push(`${(pts[i].x + nx).toFixed(1)} ${(pts[i].y + ny).toFixed(1)}`);
+      right.push(`${(pts[i].x - nx).toFixed(1)} ${(pts[i].y - ny).toFixed(1)}`);
+    }
+    const d = `M ${left.join(' L ')} L ${right.reverse().join(' L ')} Z`;
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    poly.setAttribute('class', 'nk-taper');
+    poly.setAttribute('d', d);
+    // UNDER the stroke: first child of the edge group keeps the wire's
+    // own ink (and the waist glyph) on top of the stream.
+    this.edgeGroup.node()?.insertBefore(poly, this.edgeGroup.node()!.firstChild);
+    this.taperEls.set(edgeId, poly);
   }
 
   /** The hover chord: aim the shared gradient def at THIS edge's
