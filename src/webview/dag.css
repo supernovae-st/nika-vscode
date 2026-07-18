@@ -1942,7 +1942,28 @@ body.vscode-light .logo-dark { display: none; }
     display: none;
   }
 
-  .dag-node:hover .nc {
+  /* ── The connection speaks (MV10) ─────────────────────────────────
+ * Hovering a WIRE lights its two ends: the connection is one object,
+ * never a lone stroke (answers « between whom? » in place). Kept
+ * quieter than :hover/selected — a touch, not a claim. */
+.dag-node.edge-touch .nc {
+  border-color: var(--nk-border-strong);
+  box-shadow: var(--nk-card-shadow-hover);
+}
+.dag-node.edge-touch .nc-tile { opacity: 1; }
+
+/* The focused card claims its incident wires: a quiet accent raise —
+ * calmer than .edge-lit (hover keeps the loudest voice), louder than
+ * rest. Dimmed neighbors stay dimmed (the lineage lens outranks). */
+.dag-edge.edge-adjacent:not(.dimmed) {
+  stroke-width: 2px;
+  opacity: 1;
+}
+.dag-edge.edge-data.edge-adjacent:not(.dimmed) {
+  stroke: color-mix(in srgb, var(--nk-accent, var(--nk-data)) 45%, var(--nk-data));
+}
+
+.dag-node:hover .nc {
     transform: none;
   }
 
