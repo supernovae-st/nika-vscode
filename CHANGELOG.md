@@ -6,6 +6,40 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The day waves — cards know themselves · the canvas earns its craft
+
+- **Card intelligence**: every card resolves its identity from the
+  graph SSOT (`cardIdentity`: verb × builtin × the engine's own
+  catalog categories — never guessed). An image-making builtin owns a
+  developing frame BEFORE any artifact exists (calm dashed at rest ·
+  develop sweep while running · the recorded artifact replaces it in
+  the same box); a run that only wrote lands its file receipt row
+  (click opens); nika:fetch pulses its round-trip on the tool chip.
+  The per-verb running identities carry the canonical
+  design/motion.yaml names (one motion vocabulary across site ·
+  terminal · canvas — parity-belted).
+- **The connection speaks**: hovering a wire lights BOTH endpoint
+  cards; the focused card claims its incident wires; hovering a
+  card's io-row chip lights the wire it names on the canvas.
+- **Layout craft**: the production ELK set (straight value wires ·
+  the author's YAML order IS the layout order, diff-stable ·
+  recovery routes as feedback loops · typed kinds never merge) ·
+  every card snaps to the 8px survey grid · far zoom recedes the
+  wires so topology carries (the failure hue demixes last).
+- **One predicate register** (`core/predicates`): spellings ·
+  default · the gate-algebra pass-sets in one table — the doors, the
+  shapes and the hover pedagogy all read it (the R5 respelling flips
+  one line, when the engine's lane lands). SPEC_PIN carries a
+  machine-readable HOLD: the daily heal parks instead of advancing
+  past what shipped engines speak.
+- **Voice + honesty**: one toast prefix · cancelled=⊘ / skipped=↷ on
+  every surface · the download progress stops calling the engine a
+  language server · ⌘⌥K validates (⌘⇧K stays Delete Line) · ⌘⌥M
+  opens the menu · the first-ever boot never stacks the download
+  modal on the walkthrough · Station wire/fix commands are palette-
+  safe · nika_workspace refuses to aggregate without a folder ·
+  forced-colors covers the new edge kinds.
+
 ### The station · the oracle · the kind vocabulary
 
 - **The Station** — a third view in the container: the cockpit the

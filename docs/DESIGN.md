@@ -74,6 +74,24 @@ every visible pixel.
   extension feeds categories from `nika tools --json`); and a settled
   task's RECORDED OUTPUT lands on the card (`→ …`, green-tinted) where
   its prompt was — the run shows its data, a re-run restores the rest.
+- **The card knows itself** (MV8 · `core/cardIdentity`): identity
+  resolves from the graph SSOT — verb × builtin × the engine's own
+  catalog category (`catalog --tools`), never guessed. An image-making
+  builtin owns a **developing frame** before any artifact exists (calm
+  dashed slot at rest — « this task produces an image » · a develop
+  sweep in the verb's hue while running · the recorded artifact
+  replaces it in the SAME box, so a status flip never relayouts); a
+  file writer lands its **receipt row** (`▤ name` · click opens ·
+  existence proven by artifacts.ts); the network category **pulses**
+  its glyph on the running tool chip. Per-verb RUNNING identities
+  carry the canonical `design/motion.yaml` names (`nika-motion-*` —
+  one motion vocabulary across site · terminal · canvas; the
+  tokens-parity belt guards the names).
+- **The connection is one object** (MV10): hovering a wire lights
+  BOTH endpoint cards (`edge-touch` — a touch, not a claim); the
+  focused card claims its incident wires (`edge-adjacent`, calmer
+  than hover · the lineage lens outranks); hovering an io-row chip
+  lights the wire it names.
 - **The io row** (dense-card 2026-07-11): the inbound wires, named ON
   the card — `alias ← producer`, data-hue alias, click jumps to the
   producer; ≤2 wires + a `+N` counter (title lists the rest). The
@@ -113,6 +131,12 @@ rides the wire's midpoint), **motion = liveness only**.
 - Critical path: amber; flow (source settled → target running):
   SMIL particles on the LIVE FRONTIER only — never a dash march on
   the whole graph.
+- **Layout law** (MV9): production ELK set — straight value wires ·
+  `considerModelOrder` (the author's YAML order IS the layout order ·
+  diff-stable) · recovery routes as feedback loops · typed kinds
+  never merge · post-layout every card snaps to the 8px survey grid.
+  Far zoom recedes wires toward the page so TOPOLOGY carries; the
+  failure hue demixes LAST, critical keeps its ink.
 
 ## 3 · Chrome floats (the ElevenLabs read)
 
