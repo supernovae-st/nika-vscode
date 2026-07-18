@@ -23,8 +23,11 @@ export interface TaskRange {
   producers: string[];
 }
 
-/** The closed `after:` predicate set (03-dag §after · NIKA-DAG-005). */
-export const AFTER_PREDICATES = ['succeeded', 'failed', 'skipped', 'terminal'] as const;
+// The closed `after:` predicate set lives in core/predicates (the R5
+// flip point · D-V10) — re-exported so existing consumers keep their
+// import; new code imports the home module.
+export { AFTER_PREDICATES, DEFAULT_PREDICATE } from './predicates';
+import { DEFAULT_PREDICATE } from './predicates';
 
 interface KeyLine {
   line: number;
@@ -278,7 +281,7 @@ export function gateShapes(
       id: `after-${t.id}`,
       label: `${t.id} succeeded`,
       hint: `state is control — writes \`after: { ${t.id}: succeeded }\`, never a when:`,
-      action: { kind: 'after', producer: t.id, predicate: 'succeeded' },
+      action: { kind: 'after', producer: t.id, predicate: DEFAULT_PREDICATE },
     });
     shapes.push({
       id: `content-${t.id}`,

@@ -33,6 +33,7 @@ jobs:
           head="$(git -C ../spec rev-parse HEAD)"
           pin="$(grep -v '^#' SPEC_PIN | head -1 | tr -d '[:space:]')"
           if [ "$head" = "$pin" ]; then echo "pin current ($pin) — nothing to heal"; exit 0; fi
+          if grep -q '^# HOLD:' SPEC_PIN; then echo "pin HELD (see SPEC_PIN) — deliberate, not drift"; exit 0; fi
           pip install pyyaml jsonschema >/dev/null
           export NIKA_VSCODE_SRC="$GITHUB_WORKSPACE/src"
           python3 ../spec/scripts/starters-projector.py --write

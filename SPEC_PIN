@@ -4,4 +4,7 @@
 # never red unrelated PRs here (the registry's SPEC_PIN law). The daily
 # spec-pin-heal advances it: re-project → one idempotent PR → this
 # repo's own gates judge. Bump deliberately the same way.
+# HOLD: pinned deliberately (D-V10) — the #118 predicate respellings are
+# ahead of every shipped engine; the heal must NOT advance until the
+# engine's pc lane lands. Delete this HOLD block to release the pin.
 8e21866a6966927cd565b724550464c11665e407

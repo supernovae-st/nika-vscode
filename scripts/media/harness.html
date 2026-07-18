@@ -14,6 +14,17 @@
   </script>
 </head>
 <body data-nk-theme="nika" class="vscode-dark">
+  <script>
+    // The pixel-proof page honors ?skin=nika|editor|phosphor — the same
+    // body attribute dagPanel stamps. Without this the page silently
+    // shot the NIKA skin three times and called it three proofs.
+    (() => {
+      const skin = new URLSearchParams(location.search).get('skin');
+      if (skin === 'editor' || skin === 'phosphor' || skin === 'nika') {
+        document.body.dataset.nkTheme = skin;
+      }
+    })();
+  </script>
   <div id="aurora" aria-hidden="true"></div>
   <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden aria-label="Filter tasks">
   <div id="dag-toolbar">
@@ -185,12 +196,16 @@
         },
       ],
       edges: [
-        { id: 'history->digest', source: 'history', target: 'digest', isDataEdge: true, label: 'commits' },
-        { id: 'stats->chart', source: 'stats', target: 'chart', isDataEdge: true, label: 'rows' },
-        { id: 'digest->polish', source: 'digest', target: 'polish', isDataEdge: true, label: 'draft' },
-        { id: 'polish->notes', source: 'polish', target: 'notes', isDataEdge: true, label: 'body' },
-        { id: 'chart->notes', source: 'chart', target: 'notes', isDataEdge: true, label: 'chart' },
-        { id: 'notes->review', source: 'notes', target: 'review', isDataEdge: true, label: 'notes' },
+        // The typed-kind fixture (graph_format 2): every closed-set kind
+        // on one canvas — the harness IS the vocabulary's pixel proof.
+        { id: 'history->digest', source: 'history', target: 'digest', kind: 'value', isDataEdge: true, label: 'commits' },
+        { id: 'stats->chart', source: 'stats', target: 'chart', kind: 'value', isDataEdge: true, label: 'rows' },
+        { id: 'digest->polish', source: 'digest', target: 'polish', kind: 'value', isDataEdge: true, label: 'draft' },
+        { id: 'polish->notes', source: 'polish', target: 'notes', kind: 'value', isDataEdge: true, label: 'body' },
+        { id: 'stats->digest', source: 'stats', target: 'digest', kind: 'control', predicate: 'succeeded' },
+        { id: 'chart->notes', source: 'chart', target: 'notes', kind: 'terminal-observation', isDataEdge: true, label: 'chart' },
+        { id: 'notes->review', source: 'notes', target: 'review', kind: 'failure-observation', isDataEdge: true, label: 'errors' },
+        { id: 'digest->review', source: 'digest', target: 'review', kind: 'recovery' },
       ],
     };
 
