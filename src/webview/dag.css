@@ -509,47 +509,6 @@ body.heatmap .edge-dir {
   initial-value: 0deg;
 }
 
-/* ─── Per-verb MOTION identities (design/motion.yaml v1 · the SSOT) ──
- * The running card's TILE GLYPH performs its verb's identity — the
- * same four names the website's keyframes and the terminal's braille
- * families carry (belt: tokens-parity). Compositor props only; the
- * n8n ring stays the halo, the identity is the glyph's own gesture.
- * infer = SAMPLING (scattered dots settle · calm) · exec = SCANLINE
- * (steady band) · invoke = ROUNDTRIP (pendulum · snap) · agent =
- * ORBIT (continuous · calm). */
-@keyframes nika-motion-infer {
-  0%, 100% { transform: none; opacity: 1; }
-  25% { transform: translate(0.5px, -0.5px); opacity: 0.55; }
-  50% { transform: translate(-0.6px, 0.3px); opacity: 0.8; }
-  75% { transform: translate(0.3px, 0.5px); opacity: 0.5; }
-}
-@keyframes nika-motion-exec {
-  0%, 100% { transform: translateY(-1.2px); }
-  50% { transform: translateY(1.2px); }
-}
-@keyframes nika-motion-invoke {
-  0%, 100% { transform: translateX(-1.4px); }
-  50% { transform: translateX(1.4px); }
-}
-@keyframes nika-motion-agent {
-  to { transform: rotate(360deg); }
-}
-.dag-node.status-running.verb-infer .nc-tile svg {
-  animation: nika-motion-infer 800ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-.dag-node.status-running.verb-exec .nc-tile svg {
-  animation: nika-motion-exec 800ms linear infinite;
-}
-.dag-node.status-running.verb-invoke .nc-tile svg {
-  animation: nika-motion-invoke 800ms cubic-bezier(0.2, 0, 0, 1) infinite;
-}
-.dag-node.status-running.verb-agent .nc-tile svg {
-  animation: nika-motion-agent 800ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .dag-node.status-running .nc-tile svg { animation: none; }
-}
-
 .dag-node.status-running .nc {
   border-color: color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 40%, var(--nk-card-border));
   box-shadow:
@@ -4662,9 +4621,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   border-radius: 6px;
 }
 .dag-node.verb-infer.status-running .nc-tile {
-  animation: nk-think 2.2s ease-in-out infinite;
+  animation: nika-motion-infer 2.2s ease-in-out infinite;
 }
-@keyframes nk-think {
+@keyframes nika-motion-infer {
   0%, 100% { box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.09), inset 0 -1.5px 0 rgb(0 0 0 / 0.25),
     0 0 4px 0 color-mix(in srgb, var(--dv-hue) 25%, transparent); }
@@ -4684,9 +4643,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   content: '▍';
   color: var(--dv-hue);
   margin-left: 2px;
-  animation: nk-caret 1s steps(2, jump-none) infinite;
+  animation: nika-motion-exec 1s steps(2, jump-none) infinite;
 }
-@keyframes nk-caret { 50% { opacity: 0; } }
+@keyframes nika-motion-exec { 50% { opacity: 0; } }
 
 /* 3 · INVOKE — the connector. A socket gradient sits on the head's left
  * edge at rest; while the tool call is in flight, current flows across. */
@@ -4700,9 +4659,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
     color-mix(in srgb, var(--dv-hue) 16%, transparent) 50%, transparent 100%);
   background-size: 45% 100%;
   background-repeat: no-repeat;
-  animation: nk-current 1.6s linear infinite;
+  animation: nika-motion-invoke 1.6s linear infinite;
 }
-@keyframes nk-current {
+@keyframes nika-motion-invoke {
   from { background-position: -45% 0; }
   to { background-position: 145% 0; }
 }
@@ -4719,9 +4678,9 @@ body.vscode-high-contrast .dag-edge.edge-data {
   pointer-events: none;
 }
 .dag-node.verb-agent.status-running .nc-tile::after {
-  animation: nk-orbit-tile 3.2s linear infinite;
+  animation: nika-motion-agent 3.2s linear infinite;
 }
-@keyframes nk-orbit-tile { to { transform: rotate(360deg); } }
+@keyframes nika-motion-agent { to { transform: rotate(360deg); } }
 
 /* The recovered legend chip — the amber of the absorbed failure. */
 .legend-chip.st-recovered .legend-dot { background: var(--nk-st-retrying); }
