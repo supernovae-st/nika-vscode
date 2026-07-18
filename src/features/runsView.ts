@@ -500,6 +500,8 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
       whyWhen: t.whyWhen,
       blockedBy: t.blockedBy,
       agent: t.agent,
+      liveUsd: t.liveUsd,
+      chunks: t.chunks,
     })),
   );
   // The overlap gate just PROVED this trace belongs to the displayed

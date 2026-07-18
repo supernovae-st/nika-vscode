@@ -63,6 +63,14 @@ export interface FoldedTask {
    *  probed on the engine + pinned by its telemetry tests, 2026-07-19).
    *  Annotations, never status transitions. */
   agent?: AgentFacts;
+  /** In-flight spend (cost_incurred deltas SUMMED — contract §3.3's
+   *  live ~$ meter). Distinct from `usd`: ~$ is a curve still moving,
+   *  $ is the recorded verdict. */
+  liveUsd?: number;
+  liveTokens?: number;
+  /** Streaming deltas observed (infer_chunk count — the card can say
+   *  the model is actually TALKING, not hanging). */
+  chunks?: number;
 }
 
 export interface AgentFacts {
@@ -101,6 +109,9 @@ export interface RunModel {
   workflowName?: string;
   tasks: Map<string, FoldedTask>;
   totalUsd?: number;
+  /** In-flight run spend (cost_incurred deltas — the ~$ curve). */
+  liveUsd?: number;
+  liveTokens?: number;
   /** Σ `tokens` across terminal task events (the v2 wire carries them). */
   totalTokens?: number;
   startMs?: number;
@@ -410,8 +421,23 @@ export function foldTrace(ndjson: string): RunModel {
         }
         continue;
       case 'cost_incurred':
+        // Legacy read preserved: the old dialect carried run spend ONLY
+        // on these lines. The v2 wire's live ~$ curve (contract §3.3)
+        // folds alongside — run-level always, task-level when the delta
+        // is attributed, terminal-frozen like every annotation.
         if (ev.usd !== undefined) {
           model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
+          model.liveUsd = (model.liveUsd ?? 0) + ev.usd;
+        }
+        if (ev.tokens !== undefined) { model.liveTokens = (model.liveTokens ?? 0) + ev.tokens; }
+        if (ev.taskId !== undefined) {
+          const lt = model.tasks.get(ev.taskId)
+            ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
+          if (!TERMINAL.has(lt.status)) {
+            if (ev.usd !== undefined) { lt.liveUsd = (lt.liveUsd ?? 0) + ev.usd; }
+            if (ev.tokens !== undefined) { lt.liveTokens = (lt.liveTokens ?? 0) + ev.tokens; }
+            model.tasks.set(ev.taskId, lt);
+          }
         }
         continue;
       default:
@@ -428,6 +454,20 @@ export function foldTrace(ndjson: string): RunModel {
           ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
         if (!TERMINAL.has(t.status)) {
           t.recoveredFrom = ev.code ?? '';
+          model.tasks.set(ev.taskId, t);
+        }
+      }
+      continue;
+    }
+
+    // The stream is MOVING (contract §3.3): infer_chunk counts prove
+    // the model is talking, not hanging. Terminal-frozen annotation.
+    if (ev.kind === 'infer_chunk') {
+      if (ev.taskId !== undefined) {
+        const t = model.tasks.get(ev.taskId)
+          ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
+        if (!TERMINAL.has(t.status)) {
+          t.chunks = (t.chunks ?? 0) + 1;
           model.tasks.set(ev.taskId, t);
         }
       }

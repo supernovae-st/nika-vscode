@@ -645,3 +645,42 @@ describe('foldTrace · the agent loop\'s inner life (agent_* annotations)', () =
     expect(model.tasks.get('scout')?.agent).toMatchObject({ turns: 1, offered: 2, universe: 2 });
   });
 });
+
+describe('foldTrace · live meters (cost_incurred · infer_chunk — contract §3.3)', () => {
+  const line = (kind: string, kv: Record<string, unknown>): string =>
+    JSON.stringify({
+      id: { uuid: '019f0000-0000-0000-0000-000000000001' },
+      timestamp: 1784415337953000000,
+      kind,
+      run: null,
+      fields: Object.entries(kv).map(([key, value]) => ({ key, value })),
+    });
+
+  it('cost deltas SUM into the ~$ curve — run-level always, task-level when attributed', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('cost_incurred', { task: 'draft', usd: 0.001, tokens: 40 }),
+      line('cost_incurred', { task: 'draft', usd: 0.002, tokens: 60 }),
+      line('cost_incurred', { usd: 0.0005 }), // unattributed — run curve only
+    ].join('\n'));
+    expect(model.liveUsd).toBeCloseTo(0.0035, 6);
+    expect(model.liveTokens).toBe(100);
+    expect(model.tasks.get('draft')?.liveUsd).toBeCloseTo(0.003, 6);
+    expect(model.tasks.get('draft')?.liveTokens).toBe(100);
+  });
+
+  it('chunks count the stream; a settled task is frozen against late meters', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('infer_chunk', { task: 'draft', delta: 'hel' }),
+      line('infer_chunk', { task: 'draft', delta: 'lo' }),
+      line('task_completed', { task: 'draft' }),
+      line('infer_chunk', { task: 'draft', delta: '!' }),
+      line('cost_incurred', { task: 'draft', usd: 9 }),
+    ].join('\n'));
+    expect(model.tasks.get('draft')?.chunks).toBe(2);
+    expect(model.tasks.get('draft')?.liveUsd).toBeUndefined();
+    // The RUN curve still counts the late delta (run-level truth).
+    expect(model.liveUsd).toBe(9);
+  });
+});
