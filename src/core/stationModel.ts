@@ -269,6 +269,19 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
     children: engineChildren,
   });
 
+  // An engine without the station surfaces says so — a missing
+  // section must never read as « all clear » (silent ≠ healthy).
+  if (snap.binaryPath && !snap.doctor && !snap.deep) {
+    rows.push({
+      kind: 'fact',
+      id: 'engine.predates',
+      label: 'this engine predates the station surfaces',
+      description: 'doctor --json · welcome --deep arrive with 0.104+',
+      icon: 'info',
+      level: 'warn',
+    });
+  }
+
   // ── FIX (doctor findings that carry a next step) ──
   if (snap.doctor) {
     const actionable = snap.doctor.findings.filter((f) => f.level !== 'ok');

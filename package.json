@@ -893,6 +893,14 @@
         {
           "command": "nika.starOnGitHub",
           "when": "false"
+        },
+        {
+          "command": "nika.station.wire",
+          "when": "false"
+        },
+        {
+          "command": "nika.station.applyFix",
+          "when": "false"
         }
       ],
       "editor/title": [

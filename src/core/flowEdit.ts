@@ -316,6 +316,16 @@ export function islandKeyRewrite(
   return taskKeyRewrite(text, task, key, '');
 }
 
+/** Remove an ABANDONED island key (`when: ` left empty — the suggest
+ *  was dismissed): the janitor twin of islandKeyRewrite. */
+export function islandCleanupRewrite(
+  text: string,
+  task: TaskRange,
+  key: 'when' | 'for_each',
+): string | undefined {
+  return taskKeyRewrite(text, task, key, undefined);
+}
+
 export interface CollectionRef {
   /** Picker row. */
   label: string;

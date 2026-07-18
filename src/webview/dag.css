@@ -580,6 +580,13 @@ body.heatmap .edge-dir {
 /* ─── High Contrast Theme Overrides ─────────────────────────────────────── */
 
 @media (forced-colors: active) {
+  /* The kind vocabulary strips to system colors — forms survive,
+   * authored hues never override an OS High Contrast palette. */
+  .dag-edge.edge-data.edge-obs,
+  .dag-edge.edge-data.edge-obs.edge-obs-fail { stroke: Highlight !important; }
+  .edge-dir-obs, .edge-dir-rec { stroke: CanvasText !important; fill: none !important; }
+  .edge-dir-obsfail { fill: CanvasText !important; stroke: none !important; }
+
   /* !important: the nika skin's body-scoped rules out-specify these —
    * high contrast must win over BOTH skins (spec-sanctioned use). */
   .dag-node .nc {

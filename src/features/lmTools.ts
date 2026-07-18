@@ -110,12 +110,21 @@ export function registerLmTools(
     context.subscriptions.push(
       lm.registerTool('nika_workspace', {
         invoke: async () => {
+          // Scope honesty: no folder → refuse (an undefined cwd would
+          // silently aggregate the extension host's OWN directory);
+          // multi-root → say which root the aggregate covers.
+          const folders = vscode.workspace.workspaceFolders ?? [];
+          if (folders.length === 0) {
+            return text('No workspace folder open — nika_workspace aggregates a folder.');
+          }
           const res = await service.runCli(args, 30000, undefined,
-            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath);
+            folders[0].uri.fsPath);
           if (res.code !== 0) {
             return text(`nika ${args[0]} failed (exit ${res.code}): ${res.stderr || res.stdout}`);
           }
-          return text(res.stdout);
+          return text(folders.length > 1
+            ? `NOTE: multi-root workspace — this aggregate covers only ${folders[0].name}.\n${res.stdout}`
+            : res.stdout);
         },
       }),
     );
