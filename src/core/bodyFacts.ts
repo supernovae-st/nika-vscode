@@ -27,6 +27,9 @@ export interface BodyFacts {
   onError?: string;
   /** Named `output:` bindings the task produces (≤4 names). */
   outputNames?: string[];
+  /** `on_finally:` cleanup steps — list members (spec 03 §on_finally:
+   *  ALWAYS runs on a started task · sequential · best-effort). */
+  finallyCount?: number;
 }
 
 /** The on_error action keys (schema $defs/onError — exactly one). */
@@ -202,11 +205,32 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         else { onErrorIndent = indent; }
       } else if (indent === taskIndent && name === 'output') {
         outputIndent = indent;
+      } else if (indent === taskIndent && name === 'on_finally' && fact.finallyCount === undefined) {
+        // Cleanup steps = the list members one level down. Only `- `
+        // entries count (each is a mini-task); a non-list body is a
+        // conformance problem `nika check` owns — we count nothing.
+        let n = 0;
+        for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
+          const t = lines[j];
+          if (t.trim().length === 0) { continue; }
+          const kj = t.match(/^(\s*)\S/);
+          if (kj && kj[1].length <= indent) { break; }
+          if (t.trim().startsWith('- ')) { n += 1; }
+        }
+        if (n > 0) { fact.finallyCount = n; }
       }
     }
 
     if (argPairs.length > 0) { fact.args = argPairs.join(' · '); }
-    if (fact.prompt || fact.command || fact.args) { facts.set(task.id, fact); }
+    // Any declared fact earns the entry — a scalar-verb task
+    // (`exec: echo hi`) with only an `on_finally:` block must not
+    // vanish because it carries no prompt/command/args substance.
+    if (fact.prompt || fact.command || fact.args
+        || fact.retryMax !== undefined || fact.timeout !== undefined
+        || fact.onError !== undefined || fact.toolsCount !== undefined
+        || fact.outputNames !== undefined || fact.finallyCount !== undefined) {
+      facts.set(task.id, fact);
+    }
   }
   return facts;
 }

@@ -142,6 +142,9 @@ export interface DagNode {
   onError?: string;
   /** Named `output:` bindings this task PRODUCES (client YAML read · ≤4). */
   outputNames?: string[];
+  /** `on_finally:` cleanup steps declared on this task (client YAML
+   *  read) — ALWAYS run on a started task, whatever the outcome. */
+  finallyCount?: number;
   /** Mean success duration across recorded traces (flight recorder). */
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */

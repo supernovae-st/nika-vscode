@@ -330,6 +330,8 @@ interface DagNode {
   whyWhen?: string;
   /** Cancel pedagogy: the dependency whose outcome blocked admission. */
   blockedBy?: string;
+  /** `on_finally:` cleanup steps — ALWAYS run on a started task. */
+  finallyCount?: number;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -531,6 +533,7 @@ function hasPolicyRow(node: DagNode): boolean {
   return node.retryMax !== undefined
     || node.timeout !== undefined
     || node.onError !== undefined
+    || node.finallyCount !== undefined
     || (node.outputNames?.length ?? 0) > 0
     || (node.permits?.length ?? 0) > 0
     || (node.verb === 'agent' && node.toolsCount !== undefined);
@@ -3296,6 +3299,10 @@ class DagRenderer {
       } else if (node.onError === 'fail_workflow') {
         chip('nc-pol-fail', '⛔ fail',
           'on_error: fail_workflow — a failure here stops the whole run');
+      }
+      if (node.finallyCount !== undefined) {
+        chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
+          `on_finally — ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
       }
       const outs = node.outputNames ?? [];
       if (outs.length > 0) {
