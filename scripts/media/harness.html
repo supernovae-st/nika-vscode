@@ -14,6 +14,17 @@
   </script>
 </head>
 <body data-nk-theme="nika" class="vscode-dark">
+  <script>
+    // The pixel-proof page honors ?skin=nika|editor|phosphor — the same
+    // body attribute dagPanel stamps. Without this the page silently
+    // shot the NIKA skin three times and called it three proofs.
+    (() => {
+      const skin = new URLSearchParams(location.search).get('skin');
+      if (skin === 'editor' || skin === 'phosphor' || skin === 'nika') {
+        document.body.dataset.nkTheme = skin;
+      }
+    })();
+  </script>
   <div id="aurora" aria-hidden="true"></div>
   <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden aria-label="Filter tasks">
   <div id="dag-toolbar">
