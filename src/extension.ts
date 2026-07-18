@@ -134,6 +134,8 @@ import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
 import { attemptLadders } from './core/attempts';
+import { buildTimeline } from './core/timelineModel';
+import { topoWaves } from './core/cliContract';
 import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
@@ -1407,6 +1409,29 @@ export function activate(context: ExtensionContext): void {
           traceUri: Uri.file(latest.fsPath),
           taskId,
         });
+      })();
+    },
+    // The timeline lens (L1): the webview asks, the extension builds
+    // the truth — the newest recorded trace for the OPEN graph folds
+    // into wave-ordered rows (real clocks · retry ladders · the $
+    // column) and posts back. One mechanism: the same fold the Runs
+    // view and the replay read.
+    (_timelineUri) => {
+      void (async () => {
+        const ids = dagPanel.currentGraphIds();
+        const latest = ids ? await latestTraceForGraph(ids) : undefined;
+        if (!latest) {
+          void window.setStatusBarMessage('Nika: no recorded run yet — the timeline reads recorded truth', 4000);
+          dagPanel.postTimeline({ rows: [], startMs: 0, spanMs: 1 });
+          return;
+        }
+        const model = foldTrace(latest.ndjson);
+        const ladders = attemptLadders(latest.ndjson);
+        const waves = topoWaves(
+          [...(ids ?? new Set<string>())].map((id) => ({ id })),
+          dagPanel.currentGraphEdges(),
+        );
+        dagPanel.postTimeline(buildTimeline(model, ladders, waves));
       })();
     },
     // The welcome surface (empty canvas) — open recent · WHITELISTED
