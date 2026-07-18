@@ -178,6 +178,8 @@ export function runWorkflowLive(
         whyWhen: t.whyWhen,
         blockedBy: t.blockedBy,
         agent: t.agent,
+        liveUsd: t.liveUsd,
+        chunks: t.chunks,
         pausedQuestion: model.paused?.task === t.id ? (model.paused.message ?? 'awaiting an answer') : undefined,
       })),
     );

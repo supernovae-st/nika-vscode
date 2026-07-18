@@ -247,6 +247,12 @@
     const post = (m) => window.postMessage(m, '*');
     const batch = (updates) => post({ kind: 'dag:batchUpdateStatus', updates });
 
+    // ?still — the graph loads, the scripted run STAYS QUIET. A judge
+    // driving its own statuses must not wrestle the demo timeline
+    // (assign-never-accumulate means the sim would erase its facts).
+    const STILL = new URLSearchParams(location.search).has('still');
+    const sim = (fn, ms) => { if (!STILL) { setTimeout(fn, ms); } };
+
     // t=0 is page load. dag:load waits out the load race (≥500ms).
     setTimeout(() => {
       post({
@@ -258,7 +264,7 @@
       });
     }, 600);
 
-    setTimeout(() => {
+    sim(() => {
       post({ kind: 'run:state', running: true });
       batch([
         { taskId: 'history', status: 'running' },
@@ -267,7 +273,7 @@
       post({ kind: 'run:progress', done: 0, total: 7 });
     }, 1900);
 
-    setTimeout(() => {
+    sim(() => {
       batch([
         { taskId: 'history', status: 'success', durationMs: 245, outputPreview: '8 commits' },
         { taskId: 'stats', status: 'success', durationMs: 182 },
@@ -277,12 +283,12 @@
       post({ kind: 'run:progress', done: 2, total: 7 });
     }, 3100);
 
-    setTimeout(() => {
+    sim(() => {
       batch([{ taskId: 'digest', status: 'success', durationMs: 2840, outputPreview: 'headline: « the release train picks up parallel rails »' }]);
       post({ kind: 'run:progress', done: 3, total: 7 });
     }, 6000);
 
-    setTimeout(() => {
+    sim(() => {
       batch([{ taskId: 'chart', status: 'success', durationMs: 3405 }]);
       post({
         kind: 'dag:artifacts',
@@ -295,16 +301,16 @@
       post({ kind: 'run:progress', done: 4, total: 7 });
     }, 6700);
 
-    setTimeout(() => { batch([{ taskId: 'polish', status: 'running' }]); }, 7200);
+    sim(() => { batch([{ taskId: 'polish', status: 'running' }]); }, 7200);
 
-    setTimeout(() => {
+    sim(() => {
       batch([{ taskId: 'polish', status: 'success', durationMs: 2130, usd: 0.0031 }]);
       post({ kind: 'run:progress', done: 5, total: 7 });
     }, 9400);
 
-    setTimeout(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 9900);
+    sim(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 9900);
 
-    setTimeout(() => {
+    sim(() => {
       batch([{ taskId: 'notes', status: 'success', durationMs: 96, outputPreview: 'RELEASE_NOTES.md · 1.4 KB' }]);
       post({
         kind: 'dag:artifacts',
@@ -320,14 +326,14 @@
       post({ kind: 'run:progress', done: 6, total: 7 });
     }, 10700);
 
-    setTimeout(() => { batch([{ taskId: 'review', status: 'running' }]); }, 11200);
+    sim(() => { batch([{ taskId: 'review', status: 'running' }]); }, 11200);
 
-    setTimeout(() => {
+    sim(() => {
       batch([{ taskId: 'review', status: 'success', durationMs: 2760 }]);
       post({ kind: 'run:progress', done: 7, total: 7 });
     }, 14000);
 
-    setTimeout(() => {
+    sim(() => {
       post({ kind: 'run:state', running: false });
       post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
     }, 14500);

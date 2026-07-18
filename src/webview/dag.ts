@@ -335,6 +335,9 @@ interface DagNode {
   finallyCount?: number;
   /** The agent loop's inner life (fold annotations — live + replay). */
   agent?: AgentFacts;
+  /** In-flight spend (~$ curve · cost_incurred deltas) + stream proof. */
+  liveUsd?: number;
+  chunks?: number;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -3527,6 +3530,12 @@ class DagRenderer {
         add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
       }
     }
+    if (live.liveUsd !== undefined && live.status === 'running') {
+      add('spending', `~${usd(live.liveUsd)} so far — still moving`);
+    }
+    if (live.chunks !== undefined && live.chunks > 0 && live.status === 'running') {
+      add('stream', `${live.chunks} deltas received — the model is talking`);
+    }
     const wave = this.waveOf.get(live.id);
     if (wave !== undefined && this.waveOf.size > 0) {
       add('wave', `${wave + 1} of ${1 + Math.max(...this.waveOf.values())}`);
@@ -4086,7 +4095,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts }): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number }): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
     // The red teaches (wave G): the failure story and the didn't-run
@@ -4096,6 +4105,8 @@ class DagRenderer {
     node.blockedBy = extra?.blockedBy;
     node.pausedQuestion = extra?.pausedQuestion;
     node.agent = extra?.agent;
+    node.liveUsd = extra?.liveUsd;
+    node.chunks = extra?.chunks;
     // The ⏸ paints through subValue (the ticker reads it too — one
     // voice); the QUESTION rides the sub cell's title.
     const subEl = this.nodeGroup
@@ -4196,7 +4207,7 @@ class DagRenderer {
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number }>): void {
     let touched = false;
     for (const u of updates) {
       touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd, u) || touched;
@@ -4361,7 +4372,12 @@ class DagRenderer {
       if (node.pausedQuestion) { return '\u23f8 asks\u2026'; }
       const started = this.liveStart.get(node.id);
       const prefix = node.status === 'retrying' ? '↻ ' : '';
-      if (started !== undefined) { return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)} ⋯`; }
+      if (started !== undefined) {
+        // The ~$ curve while it moves (contract §3.3) — approx-marked:
+        // ~$ is in-flight, plain $ stays the recorded verdict.
+        const spend = node.liveUsd !== undefined ? ` · ~${usd(node.liveUsd)}` : '';
+        return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)} ⋯${spend}`;
+      }
       return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
     }
     // ADR-099 rehydration — no clock fact exists (nothing executed).
