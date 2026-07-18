@@ -11,6 +11,7 @@
 
 import * as vscode from 'vscode';
 import { completionContextAt, refAt, scanRefs } from '../core/expr';
+import { EXTRACT_MODE_FACTS, extractModeRank } from '../core/extractModes';
 import type { YieldEntry } from '../core/capabilityYield';
 import { findTaskRefs, isValidTaskId } from '../core/renameRefs';
 import { fieldInScope, type FieldDoc, type SchemaIntel } from '../core/schemaIntel';
@@ -370,7 +371,19 @@ export class SchemaCompletionProvider implements vscode.CompletionItemProvider {
       }
       case 'mode':
         if (verb === 'invoke' && tool === 'nika:fetch') {
-          return enumItems(intel.extractModes);
+          // List = engine truth (embedded canon) · teaching = spec SSOT
+          // (extract-modes-v0.1). A mode the register does not know
+          // still completes, bare — neither source invents for the other.
+          return intel.extractModes.map((mode, i) => {
+            const item = new vscode.CompletionItem(mode, vscode.CompletionItemKind.EnumMember);
+            const fact = EXTRACT_MODE_FACTS.get(mode);
+            if (fact) {
+              item.detail = `→ ${fact.output}`;
+              item.documentation = fact.use;
+            }
+            item.sortText = String(extractModeRank(mode)).padStart(2, '0') + String(i).padStart(3, '0');
+            return item;
+          });
         }
         return undefined;
       case 'when':
