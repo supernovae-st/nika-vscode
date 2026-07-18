@@ -21,6 +21,7 @@ import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
+import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
@@ -378,6 +379,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }> }
   | { kind: 'dag:artifacts'; artifacts: CardArtifactMsg[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
+  | { kind: 'dag:timeline'; data: TimelineData }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
@@ -769,6 +771,109 @@ class DagRenderer {
   private edgeEnds = new Map<string, { source: string; target: string }>();
   private upstreamOf = new Map<string, string[]>();
   private downstreamOf = new Map<string, string[]>();
+  /** L1 timeline lens — the alternate reading of the SAME panel. */
+  timelineOn = false;
+  private timelineGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
+
+  toggleTimeline(): void {
+    this.timelineOn = !this.timelineOn;
+    document.body.classList.toggle('timeline', this.timelineOn);
+    if (this.timelineOn) {
+      vscode.postMessage({ kind: 'timeline:request', workflowUri: this.currentGraph?.workflowUri });
+    } else {
+      this.timelineGroup?.remove();
+      this.timelineGroup = undefined;
+    }
+  }
+
+  /** Render the lens rows (extension-built truth · dumb paint). The
+   *  geometry is plain SVG in root coords — d3 zoom/pan apply free. */
+  renderTimeline(data: TimelineData): void {
+    if (!this.timelineOn) { return; }
+    this.timelineGroup?.remove();
+    const g = this.rootGroup.append<SVGGElement>('g').attr('class', 'tl-group');
+    this.timelineGroup = g;
+    const W = 860;
+    const GUTTER = 150;
+    const ROW_H = 26;
+    const BAR_H = 12;
+    const x = (ms: number): number => GUTTER + ((ms - data.startMs) / data.spanMs) * (W - GUTTER - 70);
+    if (data.rows.length === 0) {
+      g.append('text').attr('class', 'tl-empty').attr('x', 0).attr('y', 20)
+        .text('no recorded run yet — the timeline reads recorded truth (▶ run first)');
+      this.fitTimeline();
+      return;
+    }
+    let lastWave = -1;
+    data.rows.forEach((row, i) => {
+      const y = i * ROW_H;
+      const rowG = g.append('g').attr('class', `tl-row st-${row.status}`).attr('transform', `translate(0, ${y})`);
+      // wave separator — the plan grammar as quiet rules
+      if (row.wave !== lastWave) {
+        lastWave = row.wave;
+        rowG.append('line').attr('class', 'tl-wave-rule')
+          .attr('x1', 0).attr('x2', W).attr('y1', -1).attr('y2', -1);
+      }
+      rowG.append('text').attr('class', 'tl-id').attr('x', GUTTER - 10).attr('y', ROW_H / 2 + 3)
+        .attr('text-anchor', 'end')
+        .text(row.id.length > 20 ? `…${row.id.slice(-19)}` : row.id);
+      if (row.bar) {
+        for (const seg of row.segments) {
+          rowG.append('rect')
+            .attr('class', `tl-seg${seg.final ? ' tl-final' : ''}`)
+            .attr('x', x(seg.startMs))
+            .attr('y', (ROW_H - BAR_H) / 2)
+            .attr('width', Math.max(x(seg.endMs) - x(seg.startMs), 1.5))
+            .attr('height', BAR_H)
+            .attr('rx', 3);
+        }
+      } else if (row.cached) {
+        rowG.append('rect').attr('class', 'tl-cached')
+          .attr('x', GUTTER).attr('y', (ROW_H - BAR_H) / 2)
+          .attr('width', 16).attr('height', BAR_H).attr('rx', 3);
+      }
+      if (row.pausedQuestion) {
+        const px = row.bar ? x(row.bar.endMs) + 6 : GUTTER + 22;
+        const pg = rowG.append('g').attr('class', 'tl-pause')
+          .attr('transform', `translate(${px}, ${ROW_H / 2})`);
+        pg.append('path').attr('d', 'M 0 -5 L 5 0 L 0 5 L -5 0 Z');
+        pg.append('title').text(`⏸ asks: ${row.pausedQuestion}`);
+      }
+      const usd = formatTlUsd(row.usd);
+      const tail = usd || (row.why ? '·' : '');
+      if (tail) {
+        const t = rowG.append('text').attr('class', 'tl-usd')
+          .attr('x', W - 4).attr('y', ROW_H / 2 + 3).attr('text-anchor', 'end')
+          .text(tail);
+        if (row.why) { t.append('title').text(row.why); }
+      }
+    });
+    this.fitTimeline();
+  }
+
+  /** Fit the LENS, not the sleeping map: fitToView aims the stored
+   *  graph extent — in timeline mode the lens's own bbox is the truth. */
+  private fitTimeline(): void {
+    const node = this.timelineGroup?.node();
+    const svgEl = this.svg.node();
+    if (!node || !svgEl) { return; }
+    const box = node.getBBox();
+    if (box.width === 0 || box.height === 0) { return; }
+    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const pad = 48;
+    const scale = Math.min(
+      (svgW - pad * 2) / box.width,
+      (svgH - pad * 2) / box.height,
+      1.6,
+    );
+    const tx = (svgW - box.width * scale) / 2 - box.x * scale;
+    const ty = (svgH - box.height * scale) / 2 - box.y * scale;
+    this.svg.call(
+      this.zoomBehavior.transform as D3ZoomCall,
+      zoomIdentity.translate(tx, ty).scale(scale),
+    );
+  }
+
   /** Edge ids on the critical path. */
   private criticalEdges = new Set<string>();
   /** Ghost edge ids (never flow · never critical · click = fix). */
@@ -4684,6 +4789,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       transport.deactivate();
       renderer.updateNodeStatus(msg.taskId, msg.status, msg.durationMs, msg.cached, msg.outputPreview, msg.recoveredFrom, msg.usd);
       break;
+    case 'dag:timeline':
+      renderer.renderTimeline(msg.data);
+      break;
     case 'dag:batchUpdateStatus':
       transport.deactivate();
       renderer.batchUpdateStatus(msg.updates);
@@ -5018,6 +5126,13 @@ omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
+const timelineBtn = document.getElementById('btn-timeline');
+const syncTimelineBtn = (): void => { timelineBtn?.classList.toggle('active', renderer.timelineOn); };
+timelineBtn?.addEventListener('click', () => {
+  renderer.toggleTimeline();
+  syncTimelineBtn();
+});
+
 const wavesBtn = document.getElementById('btn-waves');
 const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); };
 wavesBtn?.addEventListener('click', () => {
@@ -5136,6 +5251,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     renderer.clearFocus();
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
+  if (e.key === 't' || e.key === 'T') timelineBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }

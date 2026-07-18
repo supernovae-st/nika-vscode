@@ -26,6 +26,7 @@ export type ExtToWebviewMessage =
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }
+  | { kind: 'dag:timeline'; data: import('./core/timelineModel').TimelineData }
   | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
@@ -102,6 +103,7 @@ export type WebviewToExtMessage =
   // Run ONE task + its upstream cone (hover-card ▶ · engine `run --task`).
   | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:explainCode'; code: string }
+  | { kind: 'timeline:request'; workflowUri?: string }
   | { kind: 'dag:forkFromTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
   // Image export — the webview serializes (styles embedded), we save.
@@ -159,6 +161,8 @@ export class DagPanel implements vscode.Disposable {
     private readonly onExplainCode?: (code: string) => void,
     /** Failed hover ⑂ — fork from this task (upstream rehydrates). */
     private readonly onForkFromTask?: (taskId: string, workflowUri?: string) => void,
+    /** The timeline lens asks for the run's truth (L1 slice 2). */
+    private readonly onTimelineRequest?: (workflowUri?: string) => void,
     /** Welcome surface — open recent · whitelisted command · describe. */
     private readonly onWelcome?: (msg: Extract<WebviewToExtMessage,
       { kind: 'welcome:open' | 'welcome:cmd' | 'welcome:describe' }>) => void,
@@ -406,6 +410,11 @@ export class DagPanel implements vscode.Disposable {
     return new Set(this.currentGraph.nodes.map((n) => n.id));
   }
 
+  /** Scheduling edges of the loaded graph — the timeline's wave order. */
+  public currentGraphEdges(): Array<{ source: string; target: string }> {
+    return (this.currentGraph?.edges ?? []).map((e) => ({ source: e.source, target: e.target }));
+  }
+
   /** BARE builtin → category from `nika tools --json` — rides every
    *  dag:load so the canvas glyphs speak the binary's vocabulary. */
   private toolCats: Record<string, ToolMeta> | undefined;
@@ -495,6 +504,11 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Batch update multiple task statuses at once */
+  /** L1 — hand the timeline lens its rows (webview renders dumbly). */
+  public postTimeline(data: import('./core/timelineModel').TimelineData): void {
+    this.postMessage({ kind: 'dag:timeline', data });
+  }
+
   public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
@@ -720,6 +734,9 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:explainCode':
         this.onExplainCode?.(msg.code);
         break;
+      case 'timeline:request':
+        this.onTimelineRequest?.(msg.workflowUri);
+        break;
       case 'dag:forkFromTask':
         this.onForkFromTask?.(msg.taskId, msg.workflowUri);
         break;
@@ -855,6 +872,7 @@ export class DagPanel implements vscode.Disposable {
     </div>
     <div class="tb-group">
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline — the run's truth as a Gantt (recorded clocks · retries · cost)">▤<kbd>T</kbd></button>
       <button id="btn-curve" title="Smooth edges">∿</button>
       <button id="btn-heat" title="Heatmap — tint cards by duration (or static cost before a run)">▥<kbd>H</kbd></button>
       <button id="btn-follow" title="Follow the run — the camera tracks the frontier (your pan pauses it)">⌖<kbd>G</kbd></button>
