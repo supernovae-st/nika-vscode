@@ -154,7 +154,7 @@ export interface DagNode {
    *  stays host-absolute for the open-artifact jump. Engine truth: the
    *  file the run actually wrote (artifacts.ts), never a guess. */
   artifact?: {
-    kind: 'image' | 'audio';
+    kind: 'image' | 'audio' | 'file';
     src: string;
     path: string;
     name: string;

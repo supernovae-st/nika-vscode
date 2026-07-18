@@ -166,7 +166,7 @@ export function extractRunArtifacts(ndjson: string): Map<string, RunArtifact[]> 
 /** The ONE preview a card carries (pure pick + label — the caller
  *  resolves the path to disk and mints the webview URI). */
 export interface CardArtifactPick {
-  kind: 'image' | 'audio';
+  kind: 'image' | 'audio' | 'file';
   /** As recorded in the trace (relative or absolute). */
   path: string;
   name: string;
@@ -184,8 +184,10 @@ const baseNameOf = (p: string): string => p.split(/[\\/]/).pop() ?? p;
  * image, else the first audio — a card is a card, not a gallery.
  */
 export function pickCardArtifact(list: RunArtifact[]): CardArtifactPick | undefined {
-  const pick = list.find((a) => a.kind === 'image') ?? list.find((a) => a.kind === 'audio');
-  if (!pick || (pick.kind !== 'image' && pick.kind !== 'audio')) { return undefined; }
+  const pick = list.find((a) => a.kind === 'image')
+    ?? list.find((a) => a.kind === 'audio')
+    ?? list.find((a) => a.kind === 'file');
+  if (!pick) { return undefined; }
   const siblings = list.filter((a) => a.kind === pick.kind).length;
   const facts = [
     pick.provider && pick.model ? `${pick.provider}/${pick.model}` : pick.provider ?? pick.model,
