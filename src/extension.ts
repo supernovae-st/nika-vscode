@@ -1431,7 +1431,7 @@ export function activate(context: ExtensionContext): void {
           [...(ids ?? new Set<string>())].map((id) => ({ id })),
           dagPanel.currentGraphEdges(),
         );
-        dagPanel.postTimeline(buildTimeline(model, ladders, waves));
+        dagPanel.postTimeline(buildTimeline(model, ladders, waves, dagPanel.currentGraphAvgs()));
       })();
     },
     // The welcome surface (empty canvas) — open recent · WHITELISTED

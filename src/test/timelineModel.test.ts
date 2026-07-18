@@ -105,3 +105,31 @@ describe('formatUsd — the one cost grammar (blank beats a fake zero)', () => {
     expect(formatUsd(undefined)).toBe('');
   });
 });
+
+describe('buildTimeline — the ghost ceiling (est-vs-actual · history only)', () => {
+  it('a recorded mean lands as estMs; a task without history earns no ghost', () => {
+    const tl = buildTimeline(
+      model([
+        task({ id: 'a', startMs: 1000, endMs: 3000, durationMs: 2000 }),
+        task({ id: 'b', startMs: 3000, endMs: 4000 }),
+      ]),
+      new Map(),
+      [['a'], ['b']],
+      new Map([['a', 1500]]),
+    );
+    expect(tl.rows[0].estMs).toBe(1500);
+    expect(tl.rows[1].estMs).toBeUndefined();
+  });
+
+  it('a zero/absent avgs map changes nothing — never a fake forecast', () => {
+    const tl = buildTimeline(
+      model([task({ id: 'a', startMs: 1000, endMs: 3000 })]),
+      new Map(),
+      [['a']],
+      new Map([['a', 0]]),
+    );
+    expect(tl.rows[0].estMs).toBeUndefined();
+    const tl2 = buildTimeline(model([task({ id: 'a' })]), new Map(), [['a']]);
+    expect(tl2.rows[0].estMs).toBeUndefined();
+  });
+});
