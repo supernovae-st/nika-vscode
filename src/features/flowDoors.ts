@@ -13,6 +13,7 @@ import {
   afterRewrite, bindingInsert, fanoutRewrite, gateRewrite, gateShapes, islandCleanupRewrite,
   islandKeyRewrite, upstreamCandidates, type CollectionRef, type GateShape,
 } from '../core/flowEdit';
+import { DEFAULT_PREDICATE } from '../core/predicates';
 import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
 import { parseRichWorkflow, type RichTask } from '../workflowParser';
@@ -192,7 +193,7 @@ export async function wireInputsFor(uri: vscode.Uri, taskId: string): Promise<vo
   // Kept picks keep their declared predicate; fresh picks gate on
   // succeeded (the strict default — terminal/failed/skipped are hand
   // tunings the lens leaves in place once written).
-  const entries = picked.map((p) => [p.id, current[p.id] ?? 'succeeded'] as const);
+  const entries = picked.map((p) => [p.id, current[p.id] ?? DEFAULT_PREDICATE] as const);
   const next = afterRewrite(a.text, a.task, entries);
   if (next === undefined || next === a.text) { return; }
   await applyFullRewrite(a.doc, next);

@@ -20,6 +20,7 @@ import { easeCubicOut } from 'd3-ease';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
+import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
 import { nextFocus, type NavDir } from '../core/canvasNav';
@@ -3217,9 +3218,9 @@ class DagRenderer {
       // hover is where the algebra teaches itself.
       switch (meta?.kind) {
         case 'control': {
-          const pred = meta.predicate ?? 'succeeded';
-          const admits = pred === 'terminal'
-            ? '{success · failure · skipped · cancelled}'
+          const pred = meta.predicate ?? DEFAULT_PREDICATE;
+          const admits = isAfterPredicate(pred)
+            ? `{${PREDICATE_ADMITS[pred].join(' · ')}}`
             : `{${pred}}`;
           return `${ends.source} → ${ends.target}\ncontrol — runs when ${ends.source} settles ${pred} (after:)\nadmits ${admits}\n⌥click to remove the entry`;
         }
