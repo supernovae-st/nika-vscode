@@ -443,6 +443,22 @@ body.heatmap .edge-dir {
   opacity: 0.3;
   pointer-events: none;
 }
+
+/* The LIVE stream — the frontier's current: the data hue itself (the
+ * shared chord def belongs to the hover), a breath quieter, breathing
+ * with the run (the same 1.6s cadence as the develop sweep). */
+.nk-taper.nk-taper-live {
+  fill: var(--nk-data);
+  opacity: 0.22;
+  animation: nk-stream-breathe 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes nk-stream-breathe {
+  0%, 100% { opacity: 0.14; }
+  50% { opacity: 0.26; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nk-taper.nk-taper-live { animation: none; opacity: 0.18; }
+}
 @media (forced-colors: active) {
   .nk-taper { display: none; }
 }
