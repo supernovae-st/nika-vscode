@@ -58,6 +58,7 @@ function mergeBodyFacts(text: string, nodes: import('./core/cliContract').DagNod
     node.commandPreview = f.command;
     node.argsPreview = f.args;
     node.retryMax ??= f.retryMax;
+    node.toolsCount ??= f.toolsCount;
     node.timeout ??= f.timeout;
     node.onError ??= f.onError;
     node.outputNames ??= f.outputNames;

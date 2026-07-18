@@ -317,6 +317,10 @@ interface DagNode {
     count?: number;
     durationMs?: number;
   };
+  /** Agent register size (default-deny — the card says the capability). */
+  toolsCount?: number;
+  /** A live pause parked ON this task — the human question. */
+  pausedQuestion?: string;
   /** Failure story (first line of the terminal detail — carries the
    *  NIKA code). Set on failed, cleared on any other status. */
   failPreview?: string;
@@ -487,7 +491,8 @@ function hasPolicyRow(node: DagNode): boolean {
     || node.timeout !== undefined
     || node.onError !== undefined
     || (node.outputNames?.length ?? 0) > 0
-    || (node.permits?.length ?? 0) > 0;
+    || (node.permits?.length ?? 0) > 0
+    || (node.verb === 'agent' && node.toolsCount !== undefined);
 }
 
 /** Card height from content — the layout must know the TRUE box. */
@@ -2920,7 +2925,8 @@ class DagRenderer {
     const subV = document.createElement('span');
     subV.className = 'nc-sub-v';
     subV.textContent = this.subValue(node);
-    const why = node.whyWhen ? `gate false: ${node.whyWhen}`
+    const why = node.pausedQuestion ? `⏸ asks: ${node.pausedQuestion}`
+      : node.whyWhen ? `gate false: ${node.whyWhen}`
       : node.blockedBy ? `blocked by ${node.blockedBy}` : '';
     if (why) { subV.title = why; }
     sub.append(subK, subV);
@@ -3100,6 +3106,13 @@ class DagRenderer {
       if (grants.length > 0) {
         chip('nc-pol-permits', `▦ ${grants.length}`,
           `Capability effects this task pins (engine-attributed — the same walk --infer-permits aggregates):\n${grants.join('\n')}`);
+      }
+      // The agent register (spec: default-deny) — the card says what
+      // this agent MAY call; absent register paints nothing (no tools
+      // is the default, not a fact worth ink).
+      if (node.verb === 'agent' && node.toolsCount !== undefined) {
+        chip('nc-pol-tools', `⚒ ${node.toolsCount}`,
+          `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny — an agent without a register can call nothing)`);
       }
       host.appendChild(policy);
     }
@@ -3793,7 +3806,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string }): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
     // The red teaches (wave G): the failure story and the didn't-run
@@ -3801,6 +3814,16 @@ class DagRenderer {
     node.failPreview = status === 'failed' ? extra?.failPreview : undefined;
     node.whyWhen = extra?.whyWhen;
     node.blockedBy = extra?.blockedBy;
+    node.pausedQuestion = extra?.pausedQuestion;
+    // The ⏸ paints through subValue (the ticker reads it too — one
+    // voice); the QUESTION rides the sub cell's title.
+    const subEl = this.nodeGroup
+      .select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`)
+      .select<HTMLElement>('.nc-sub-v').node();
+    if (subEl) {
+      subEl.textContent = this.subValue(node);
+      if (extra?.pausedQuestion) { subEl.title = extra.pausedQuestion; }
+    }
 
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs, cached);
@@ -3892,7 +3915,7 @@ class DagRenderer {
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }>): void {
     let touched = false;
     for (const u of updates) {
       touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd, u) || touched;
@@ -4041,6 +4064,9 @@ class DagRenderer {
     // event — real wall time; the ⋯ marks it live, the engine's measured
     // duration replaces it at settle). No start observed → no number.
     if (node.status === 'running' || node.status === 'retrying') {
+      // A parked question outranks the clock: the run is WAITING on a
+      // human, not spending time — the card says so until the answer.
+      if (node.pausedQuestion) { return '\u23f8 asks\u2026'; }
       const started = this.liveStart.get(node.id);
       const prefix = node.status === 'retrying' ? '↻ ' : '';
       if (started !== undefined) { return `${prefix}${this.elapsedText(started)} ⋯`; }

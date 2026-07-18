@@ -96,6 +96,12 @@ export interface DagNode {
   verb: string;
   status: TaskStatus;
   durationMs?: number;
+  /** Agent register size (client YAML read — default-deny means an
+   *  absent register is NO tools; the card says the capability). */
+  toolsCount?: number;
+  /** A live pause parked ON this task — the human question
+   *  (nika:prompt · workflow_paused). Cleared on any status move. */
+  pausedQuestion?: string;
   /** ADR-099 resume — settled from the recorded output, NOT re-executed
    *  (paints success; this flag keeps the story honest on every surface). */
   cached?: boolean;
