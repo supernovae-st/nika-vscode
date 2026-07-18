@@ -1755,7 +1755,15 @@ export function activate(context: ExtensionContext): void {
       try {
         fold = foldTrace(fs.readFileSync(traceUri.fsPath, 'utf-8'));
       } catch {
-        void window.showWarningMessage('Nika: this trace is unreadable.');
+        void window
+          .showWarningMessage(
+            'Nika: this trace is unreadable — it may be truncated (a killed run) or from another engine generation.',
+            'Reveal in Finder', 'Copy path',
+          )
+          .then((pick) => {
+            if (pick === 'Reveal in Finder') { void commands.executeCommand('revealFileInOS', traceUri); }
+            if (pick === 'Copy path') { void env.clipboard.writeText(traceUri.fsPath); }
+          });
         return;
       }
       if (!taskId) {
@@ -1979,7 +1987,14 @@ export function activate(context: ExtensionContext): void {
         graph = undefined;
       }
       if (!graph || graph.nodes.length === 0) {
-        void window.showWarningMessage('Nika: cannot explain — the graph did not parse (fix conformance findings first).');
+        void window
+          .showWarningMessage(
+            'Nika: cannot explain — the graph did not parse.',
+            'Open check report',
+          )
+          .then((pick) => {
+            if (pick === 'Open check report') { void commands.executeCommand('nika.showReport'); }
+          });
         return;
       }
       const md = explainWorkflow(graph, service.peekCheck(doc.uri.toString())?.report);
@@ -2046,7 +2061,15 @@ export function activate(context: ExtensionContext): void {
       if (!doc) { return; }
       const permits = await service.inferPermits(doc);
       if (!permits) {
-        void window.showWarningMessage('Nika: could not infer a permits boundary (binary missing or workflow not parseable).');
+        if (!service.available) {
+          void window
+            .showWarningMessage('Nika: permits need the engine binary — it is not on this machine yet.', 'Finish setup')
+            .then((pick) => { if (pick === 'Finish setup') { void commands.executeCommand('nika.finishSetup'); } });
+        } else {
+          void window
+            .showWarningMessage('Nika: could not infer a permits boundary — the workflow did not parse.', 'Open check report')
+            .then((pick) => { if (pick === 'Open check report') { void commands.executeCommand('nika.showReport'); } });
+        }
         return;
       }
       const editor = await window.showTextDocument(doc);
@@ -2364,7 +2387,15 @@ export function activate(context: ExtensionContext): void {
       try {
         ndjson = fs.readFileSync(target.fsPath, 'utf-8');
       } catch {
-        void window.showWarningMessage('Nika: this trace is unreadable.');
+        void window
+          .showWarningMessage(
+            'Nika: this trace is unreadable — it may be truncated (a killed run) or from another engine generation.',
+            'Reveal in Finder', 'Copy path',
+          )
+          .then((pick) => {
+            if (pick === 'Reveal in Finder') { void commands.executeCommand('revealFileInOS', target); }
+            if (pick === 'Copy path') { void env.clipboard.writeText(target.fsPath); }
+          });
         return;
       }
       // Artifact paths in the journal are as-recorded (often run-cwd

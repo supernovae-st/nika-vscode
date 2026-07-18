@@ -78,7 +78,11 @@ export function runWorkflowLive(
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
-    void vscode.window.showWarningMessage('Nika: no binary resolved — cannot run.');
+    void vscode.window
+      .showWarningMessage('Nika: running needs the engine binary — it is not on this machine yet.', 'Finish setup')
+      .then((pick) => {
+        if (pick === 'Finish setup') { void vscode.commands.executeCommand('nika.finishSetup'); }
+      });
     return;
   }
 

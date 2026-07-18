@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import { journeyPlaceholder } from '../core/journey';
 import { describeCapabilities } from '../core/capabilities';
+import { statusTruth, type Truth } from '../core/statusTruth';
 import type { NikaService } from '../nikaService';
 
 export class NikaStatusBar implements vscode.Disposable {
@@ -37,30 +38,52 @@ export class NikaStatusBar implements vscode.Disposable {
     this.render();
   }
 
+  /** The one degradation snapshot (core/statusTruth) — render and menu
+   *  read the SAME truth, so the pill never contradicts its head row. */
+  private truth(): Truth {
+    const caps = this.service.caps;
+    return statusTruth({
+      available: this.service.available,
+      version: caps.version.match(/(\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?)/)?.[1] ?? caps.version,
+      lspCapable: caps.lsp,
+      lspState: this.lspState,
+      runCapable: caps.run,
+      gen1: this.service.gen1,
+      doctorFails: this.service.doctorFails,
+    });
+  }
+
   private render(): void {
     const caps = this.service.caps;
+    const truth = this.truth();
+    this.item.text = truth.text;
+    this.item.backgroundColor = truth.severity === 'ok'
+      ? undefined
+      : new vscode.ThemeColor(truth.severity === 'error'
+        ? 'statusBarItem.errorBackground'
+        : 'statusBarItem.warningBackground');
     if (!this.service.available) {
-      this.item.text = '$(zap) nika: no binary';
       this.item.tooltip = 'Click for install options';
-      this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
       return;
     }
-    this.item.backgroundColor = undefined;
-
-    const version = caps.version.match(/(\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?)/)?.[1] ?? caps.version;
-    const rung = caps.lsp && this.lspState === 'running' ? '$(check) lsp'
-      : caps.run ? '$(play) run'
-      : 'static';
-    this.item.text = `$(zap) nika ${version} · ${rung}`;
+    // Feed the canary once per binary (cached; a no-op after the first
+    // verdict) — a gen-0 floor must not wait for the Station to open.
+    if (this.service.gen1 === undefined && caps.check) {
+      void this.service.speaksGrammar().then((v) => {
+        if (v !== undefined) { this.render(); }
+      });
+    }
     this.item.tooltip = new vscode.MarkdownString(
       [
         `**nika** \`${this.service.binaryPath ?? ''}\``,
         '',
+        ...truth.tooltip.map((line) => `⚠ ${line}`),
+        truth.tooltip.length > 0 ? '' : undefined,
         `surface: ${describeCapabilities(caps)}`,
         caps.lsp ? `LSP: ${this.lspState}` : 'LSP: unavailable from this binary; client-side intelligence active',
         '',
         '_click for the command menu_',
-      ].join('  \n'),
+      ].filter((line): line is string => line !== undefined).join('  \n'),
     );
   }
 
@@ -82,6 +105,18 @@ export class NikaStatusBar implements vscode.Disposable {
       : undefined;
     const sep = (label: string): Item =>
       ({ label, kind: vscode.QuickPickItemKind.Separator } as Item);
+
+    // ── Fix first — a degraded lane outranks every journey step: the
+    // pill warned, the menu's head row IS the exact move it promised.
+    const truth = this.truth();
+    if (truth.severity !== 'ok' && truth.headline && j.stage !== 'noBinary') {
+      add(true, sep('Fix first'));
+      add(true, {
+        label: truth.headline.label,
+        description: truth.headline.description,
+        command: truth.headline.command,
+      });
+    }
 
     // ── The next step, per stage — exactly one head section.
     if (j.stage === 'noBinary') {
