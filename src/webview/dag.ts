@@ -1445,6 +1445,15 @@ class DagRenderer {
     };
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('.dag-edge')
       .classed('dimmed', dimEdge)
+      // The focused card claims its wires: every incident edge takes a
+      // quiet accent raise — selection answers « connected to what? »
+      // in place, before any lineage lens opens.
+      .classed('edge-adjacent', (d) => {
+        if (this.focusedId === null) { return false; }
+        const ends = this.edgeEnds.get(d.id);
+        return ends !== undefined
+          && (ends.source === this.focusedId || ends.target === this.focusedId);
+      })
       .classed('lin-path', (d) => {
         if (litEdges === null) { return false; }
         const ends = this.edgeEnds.get(d.id);
@@ -2881,6 +2890,8 @@ class DagRenderer {
         from.className = 'nc-io-from';
         from.textContent = b.from;
         wire.append(alias, arr, from);
+        wire.addEventListener('mouseenter', () => this.setIoWireLit(node.id, b.from, true));
+        wire.addEventListener('mouseleave', () => this.setIoWireLit(node.id, b.from, false));
         wire.addEventListener('mousedown', (e) => e.stopPropagation());
         wire.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -3438,6 +3449,27 @@ class DagRenderer {
     this.edgePathEl.get(edgeId)?.classList.toggle('edge-lit', lit);
     this.edgeLabelEl.get(edgeId)?.classList.toggle('lit', lit);
     this.edgeDirEl.get(edgeId)?.classList.toggle('lit', lit);
+    // The connection is ONE object: the wire and its two ends light
+    // together (hovering an edge answers « between whom? » without a
+    // glance to the labels).
+    const ends = this.edgeEnds.get(edgeId);
+    if (!ends) { return; }
+    for (const id of [ends.source, ends.target]) {
+      const g = this.nodeGroup
+        .select<SVGGElement>(`[data-id="${CSS.escape(id)}"]`)
+        .node();
+      g?.classList.toggle('edge-touch', lit);
+    }
+  }
+
+  /** Light the EDGE that carries a card's io-row wire (hover the
+   *  binding chip → its wire answers on the canvas). */
+  setIoWireLit(consumerId: string, producerId: string, lit: boolean): void {
+    for (const [id, ends] of this.edgeEnds) {
+      if (ends.source === producerId && ends.target === consumerId) {
+        this.setEdgeLit(id, lit);
+      }
+    }
   }
 
   /** Chevron placement: midpoint + tangent of the edge's FINAL path,
