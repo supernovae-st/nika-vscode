@@ -484,12 +484,12 @@ export function formatUsd(usd: number): string {
 }
 
 // Status → badge glyph. §3.1 vocabulary honored: cancelled is a decision
-// (◼ dim, never red) · retrying is the attempt failing, not the task.
+// (⊘ dim, never red) · retrying is the attempt failing, not the task.
 const BADGE_ICON: Partial<Record<FoldedStatus, string>> = {
   success: '✓',
   failed: '✗',
-  skipped: '⊘',
-  cancelled: '◼',
+  skipped: '↷',
+  cancelled: '⊘',
   retrying: '↻',
   running: '…',
 };
@@ -520,7 +520,7 @@ export function summarizeRun(model: RunModel): string {
   const icon =
     model.workflowStatus === 'completed' ? '✓'
     : model.workflowStatus === 'failed' ? '✗'
-    : model.workflowStatus === 'cancelled' ? '◼'
+    : model.workflowStatus === 'cancelled' ? '⊘'
     : model.workflowStatus === 'paused' ? '⏸'
     : '…';
   const parts = [`${icon} ${model.tasks.size} task${model.tasks.size === 1 ? '' : 's'}`];

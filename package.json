@@ -15,7 +15,7 @@
     "url": "https://github.com/supernovae-st/nika-vscode/issues"
   },
   "galleryBanner": {
-    "color": "#08090b",
+    "color": "#0d0d0e",
     "theme": "dark"
   },
   "pricing": "Free",
@@ -481,7 +481,7 @@
       },
       {
         "command": "nika.doctorPing",
-        "title": "Doctor + Ping Local Providers (0.94+)",
+        "title": "Doctor + Ping Local Providers",
         "icon": "$(radio-tower)",
         "category": "Nika"
       },
@@ -1018,8 +1018,8 @@
       },
       {
         "command": "nika.checkWorkflow",
-        "key": "ctrl+shift+k",
-        "mac": "cmd+shift+k",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k",
         "when": "resourceLangId == 'nika'"
       },
       {
@@ -1033,6 +1033,11 @@
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",
         "when": "resourceLangId == 'nika'"
+      },
+      {
+        "command": "nika.showMenu",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
       }
     ],
     "languageModelTools": [
