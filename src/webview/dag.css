@@ -830,6 +830,9 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dag-node.status-running .nc-developing::after,
+  .dag-node.status-running .nc-cat-network { animation: none; }
+
   /* Opacity/glow decay carries no motion — it STAYS, just quicker. */
   .dag-edge.afterglow,
   .dag-edge.afterglow-fail {
@@ -2693,6 +2696,60 @@ body.running .dag-node.status-success .nc::after {
 
 /* Audio artifact — a playable row (ONE player canvas-wide; the ▶ is the
  * only trigger — nothing autoplays). */
+/* The write receipt — one-line file row (rides the audio row height). */
+.nc-preview-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  margin: 6px 8px 0;
+  padding: 0 8px;
+  border: 1px solid var(--nk-card-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-card) 88%, var(--nk-ink));
+  color: var(--nk-ink-dim);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.nc-preview-file:hover { color: var(--nk-ink); border-color: var(--nk-card-border-hover, var(--nk-card-border)); }
+.nc-file-glyph { opacity: 0.7; }
+.nc-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The developing frame — an image-making builtin owns its slot before
+ * any artifact exists: resting = a calm dashed frame (pending is calm ·
+ * DESIGN.md) · running = one soft develop sweep · the recorded artifact
+ * replaces it at settle (same box, zero relayout). */
+.nc-developing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 92px;
+  margin: 6px 8px 0;
+  border: 1px dashed color-mix(in srgb, var(--nk-ink) 22%, transparent);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.nc-dev-glyph { font-size: 18px; opacity: 0.3; }
+.dag-node.status-running .nc-developing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--dv-hue) 14%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: nk-develop 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.dag-node.status-running .nc-developing .nc-dev-glyph { opacity: 0.55; }
+@keyframes nk-develop { to { transform: translateX(100%); } }
+
+/* nika:fetch (network category) — the round-trip made visible: the
+ * tool chip's category glyph pulses while the task runs. */
+.dag-node.status-running .nc-cat-network { animation: nk-fetch-pulse 800ms cubic-bezier(0.2, 0, 0, 1) infinite; }
+@keyframes nk-fetch-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
 .nc-preview-audio {
   display: flex;
   align-items: center;
@@ -3025,6 +3082,7 @@ body.lod-far .nc-io,
 body.lod-far .nc-policy,
 body.lod-far .nc-preview,
 body.lod-far .nc-preview-audio,
+body.lod-far .nc-preview-file,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,

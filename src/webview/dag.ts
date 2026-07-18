@@ -20,6 +20,7 @@ import { easeCubicOut } from 'd3-ease';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
+import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
@@ -308,7 +309,7 @@ interface DagNode {
   /** The task's RECORDED media artifact (webview URI in `src`, host path
    *  in `path` for the open jump) — engine truth from the trace. */
   artifact?: {
-    kind: 'image' | 'audio';
+    kind: 'image' | 'audio' | 'file';
     src: string;
     path: string;
     name: string;
@@ -483,7 +484,12 @@ function hasPolicyRow(node: DagNode): boolean {
 function nodeHeightOf(node: DagNode): number {
   let h = CARD_PAD_Y * 2 + HEAD_H + DIVIDER_H + SUB_H;
   if (node.artifact) {
+    // file rides the audio row height (one-line receipt row).
     h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
+  } else if (resolveCardIdentity(node, toolCatsMap).preview === 'image') {
+    // The developing frame reserves the SAME box the artifact will
+    // take — constant height, so a status flip never needs relayout.
+    h += PREVIEW_GAP + PREVIEW_IMG_H;
   }
   const body = bodyTextOf(node);
   if (body) {
@@ -532,9 +538,7 @@ function usd(n: number): string {
 }
 
 /** One glyph per builtin CATEGORY (`nika tools --json` vocabulary). */
-const CATEGORY_GLYPH: Record<string, string> = {
-  core: '◦', file: '▤', data: '⧉', network: '⇄', introspection: '⌕', media: '▣',
-};
+const CATEGORY_GLYPH = IDENTITY_GLYPHS;
 
 /** Category glyph per canonical builtin — the PRESENTATION FALLBACK for
  *  binaries older than `nika tools --json` (engine E1). When the
@@ -2122,9 +2126,11 @@ class DagRenderer {
     clone.querySelector('g.dag-particles')?.replaceChildren();
     // Artifact previews reference vscode-webview:// URIs that die outside
     // the panel — the exported file keeps the card box, sheds the bytes.
-    for (const el of clone.querySelectorAll('.nc-preview, .nc-preview-audio')) {
+    for (const el of clone.querySelectorAll('.nc-preview, .nc-preview-audio, .nc-preview-file')) {
       el.replaceChildren();
       el.classList.add('nc-preview-exported');
+      // The developing shimmer must not export mid-frame — the class
+      // above already freezes it (rules key off .nc-preview-exported).
     }
     for (const p of clone.querySelectorAll('.dag-edge.afterglow, .dag-edge.afterglow-fail')) {
       p.classList.remove('afterglow', 'afterglow-fail');
@@ -2720,6 +2726,20 @@ class DagRenderer {
     // from the trace: only a file a run actually wrote and that still
     // exists). Image = thumb (click opens the real file) · audio = a
     // playable row. Identity above, the output next, the facts below.
+    // An image-MAKING builtin owns its frame before any artifact
+    // exists (cardIdentity.preview): resting = a calm dashed slot
+    // (« this task produces an image ») · running = the develop
+    // shimmer · the recorded artifact replaces it at settle.
+    if (!node.artifact && resolveCardIdentity(node, toolCatsMap).preview === 'image') {
+      const frame = document.createElement('div');
+      frame.className = 'nc-preview nc-developing';
+      frame.title = 'this task produces an image — the recorded output lands here';
+      const glyph = document.createElement('span');
+      glyph.className = 'nc-dev-glyph';
+      glyph.textContent = CATEGORY_GLYPH.media ?? '▣';
+      frame.appendChild(glyph);
+      host.appendChild(frame);
+    }
     if (node.artifact) {
       const a = node.artifact;
       if (a.kind === 'image') {
@@ -2740,6 +2760,26 @@ class DagRenderer {
           vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
         });
         host.appendChild(zone);
+      } else if (a.kind === 'file') {
+        // The write receipt — a run that only WROTE lands its file on
+        // the card face: name + open (existence already proven by
+        // artifacts.ts; no bytes preview to fake).
+        const row = document.createElement('button');
+        row.className = 'nc-preview-file';
+        row.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · written by this run (click to open)`;
+        const glyph = document.createElement('span');
+        glyph.className = 'nc-file-glyph';
+        glyph.textContent = '▤';
+        const name = document.createElement('span');
+        name.className = 'nc-file-name';
+        name.textContent = a.count ? `${a.name} · 1/${a.count}` : a.name;
+        row.append(glyph, name);
+        row.addEventListener('mousedown', (e) => e.stopPropagation());
+        row.addEventListener('click', (e) => {
+          e.stopPropagation();
+          vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
+        });
+        host.appendChild(row);
       } else {
         const row = document.createElement('div');
         row.className = 'nc-preview-audio';
@@ -2862,7 +2902,7 @@ class DagRenderer {
           const cat = toolCatOf(target.replace(/^nika:/, ''));
           const icon = cat ? makeCategoryGlyph(cat, 11) : null;
           if (icon) {
-            icon.classList.add('nc-chip-icon');
+            icon.classList.add('nc-chip-icon', `nc-cat-${cat}`);
             chip.append(icon, document.createTextNode(target));
           } else {
             chip.textContent = toolWithGlyph(target);

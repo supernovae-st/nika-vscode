@@ -271,6 +271,17 @@
 
     setTimeout(() => {
       batch([{ taskId: 'notes', status: 'success', durationMs: 96, outputPreview: 'RELEASE_NOTES.md · 1.4 KB' }]);
+      post({
+        kind: 'dag:artifacts',
+        artifacts: [
+          { taskId: 'chart', kind: 'image', src: CHART_SVG,
+            path: '/work/out/commits-by-author.svg', name: 'commits-by-author.svg',
+            tip: 'nika:chart · deterministic SVG' },
+          { taskId: 'notes', kind: 'file',
+            src: '/work/RELEASE_NOTES.md', path: '/work/RELEASE_NOTES.md',
+            name: 'RELEASE_NOTES.md', tip: 'nika:write · 4.1 KB' },
+        ],
+      });
       post({ kind: 'run:progress', done: 6, total: 7 });
     }, 10700);
 

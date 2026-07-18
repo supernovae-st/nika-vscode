@@ -119,7 +119,7 @@ export async function collectTaskAverages(
 /** One card preview per task, resolved to a real on-disk file. */
 export interface CardArtifactHost {
   taskId: string;
-  kind: 'image' | 'audio';
+  kind: 'image' | 'audio' | 'file';
   /** Host-absolute — DagPanel maps it to a webview URI at post time. */
   src: string;
   path: string;
