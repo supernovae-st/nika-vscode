@@ -8,6 +8,7 @@
 // never writes the dead key). Self-skips without a binary (CELLAR-first).
 
 import { describe, expect, it } from 'vitest';
+import { speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { afterRewrite, bindingInsert, fanoutRewrite, gateRewrite } from '../core/flowEdit';
@@ -79,7 +80,7 @@ function taskOf(text: string, id: string) {
   return t!;
 }
 
-describe.skipIf(!BIN)('flow doors × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN))('flow doors × the real binary', () => {
   it('order → bind → gate → fan-out, chained like the pickers, checks clean', () => {
     // « order on state » — thread waits for gather (control edge).
     const ordered = afterRewrite(BASE, taskOf(BASE, 'thread'), [['gather', 'succeeded']])!;

@@ -3163,7 +3163,12 @@ class DagRenderer {
         if (meta?.kind === 'control') { return 'dag-edge edge-dep'; }
         // value + the two observations (+ unknown future kinds — the
         // reader-tolerance rule renders them as data, never drops them).
-        const obs = meta?.kind === 'terminal-observation' || meta?.kind === 'failure-observation';
+        // The two observations are NOT one thing: a failure read admits
+        // on {failure, skipped} — it rides the failure hue so the wire
+        // itself says which outcomes feed it (gate algebra v2 made
+        // visible; hue = outcome class, dash = ontology).
+        if (meta?.kind === 'failure-observation') { return 'dag-edge edge-data edge-obs edge-obs-fail'; }
+        const obs = meta?.kind === 'terminal-observation';
         return `dag-edge edge-data${obs ? ' edge-obs' : ''}`;
       })
       .attr('marker-end', (d) => {
@@ -3207,17 +3212,25 @@ class DagRenderer {
       const ends = this.edgeEnds.get(d.id);
       if (!ends) { return ''; }
       const meta = dagEdgeMap.get(d.id);
+      // Every wire states its PASS-SET verbatim (gate algebra v2,
+      // spec 03: admission composes per edge by intersection) — the
+      // hover is where the algebra teaches itself.
       switch (meta?.kind) {
-        case 'control':
-          return `${ends.source} → ${ends.target}\ncontrol — runs when ${ends.source} settles ${meta.predicate ?? 'succeeded'} (after:)\n⌥click to remove the entry`;
+        case 'control': {
+          const pred = meta.predicate ?? 'succeeded';
+          const admits = pred === 'terminal'
+            ? '{success · failure · skipped · cancelled}'
+            : `{${pred}}`;
+          return `${ends.source} → ${ends.target}\ncontrol — runs when ${ends.source} settles ${pred} (after:)\nadmits ${admits}\n⌥click to remove the entry`;
+        }
         case 'recovery':
-          return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery — a parking read at recovery time, never an ordering edge`;
+          return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery — a parking read at recovery time, never an ordering edge\nadmits — (parked · outside the precedence graph)`;
         case 'terminal-observation':
-          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation — every outcome admits (the binding reads the settled record)`;
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation — the binding reads the settled record\nadmits {success · failure · skipped · cancelled}`;
         case 'failure-observation':
-          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nfailure observation — admits on failure/skipped (.error read)`;
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nfailure observation — the .error read\nadmits {failure · skipped}`;
         default:
-          return `${ends.source} ── ${meta?.label ?? ''} ──▶ ${ends.target}\nvalue — data travels here (the with: binding IS the edge)`;
+          return `${ends.source} ── ${meta?.label ?? ''} ──▶ ${ends.target}\nvalue — data travels here (the with: binding IS the edge)\nadmits {success · skipped}`;
       }
     };
     enter.append('title').text(titleOf);
@@ -3246,19 +3259,36 @@ class DagRenderer {
         return meta?.kind === 'control' ? meta.predicate ?? '' : meta?.label ?? '';
       });
 
-    // Direction chevrons — end arrowheads drown under the target cards
-    // (the n8n 1.70 read); one quiet ⌃ at the wire's WAIST carries the
-    // flow direction at any pan. Ghost wires keep their red march.
+    // The WAIST is where an edge says its KIND — end arrowheads drown
+    // under the target cards (the n8n 1.70 read), so the glyph rides
+    // the wire's midpoint at any pan. One form per kind (the closed
+    // set, spec 03 §graph-projection): value/control keep the quiet
+    // chevron, a terminal observation wears a HOLLOW DOT (reads every
+    // outcome), a failure observation a DIAMOND in the failure hue
+    // (admits on failure/skipped), recovery an open HOOK (the parking
+    // read loops back). `finally` stays reserved — parked without a
+    // waist until the engine emits it.
+    const DIR_FORM: Record<string, { cls: string; d: string }> = {
+      'value': { cls: 'edge-dir-data', d: 'M -3.4 -3.1 L 3 0 L -3.4 3.1' },
+      'control': { cls: 'edge-dir-dep', d: 'M -3.4 -3.1 L 3 0 L -3.4 3.1' },
+      'terminal-observation': { cls: 'edge-dir-obs', d: 'M 2.9 0 A 2.9 2.9 0 1 0 -2.9 0 A 2.9 2.9 0 1 0 2.9 0' },
+      'failure-observation': { cls: 'edge-dir-obsfail', d: 'M 0 -3.3 L 3.3 0 L 0 3.3 L -3.3 0 Z' },
+      'recovery': { cls: 'edge-dir-rec', d: 'M 2.6 -2.2 A 3.2 3.2 0 1 0 2.6 2.2' },
+    };
+    const dirFormOf = (d: ElkExtendedEdge): { cls: string; d: string } => {
+      const kind = dagEdgeMap.get(d.id)?.kind ?? '';
+      // Unknown future kinds read as data (reader tolerance).
+      return DIR_FORM[kind] ?? DIR_FORM[isDataKind(kind) ? 'value' : 'control'] ?? DIR_FORM.value;
+    };
     const dirs = this.edgeGroup
       .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-dir')
-      .data(elkEdges.filter((e) => !isParkedKind(dagEdgeMap.get(e.id)?.kind ?? '')), (d) => d.id);
+      .data(elkEdges.filter((e) => dagEdgeMap.get(e.id)?.kind !== 'finally'), (d) => d.id);
     dirs.exit().remove();
     dirs
       .enter()
       .append('path')
-      .attr('class', (d) =>
-        `edge-dir ${isDataKind(dagEdgeMap.get(d.id)?.kind ?? '') ? 'edge-dir-data' : 'edge-dir-dep'}`)
-      .attr('d', 'M -3.4 -3.1 L 3 0 L -3.4 3.1')
+      .attr('class', (d) => `edge-dir ${dirFormOf(d).cls}`)
+      .attr('d', (d) => dirFormOf(d).d)
       .merge(dirs)
       .attr('transform', (d) => this.edgeDirTransformFor(d))
       .attr('display', (d) => this.edgeDirTransformFor(d) === '' ? 'none' : null);

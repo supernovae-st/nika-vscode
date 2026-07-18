@@ -6,6 +6,7 @@
 // Self-skips without a binary (CELLAR-first).
 
 import { describe, expect, it } from 'vitest';
+import { speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { toolsRewrite } from '../core/agentToolsEdit';
@@ -67,7 +68,7 @@ function catalogBares(bin: string): Set<string> {
   return new Set(bares);
 }
 
-describe.skipIf(!BIN)('agent register × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN))('agent register × the real binary', () => {
   it('a catalog-fed rewrite checks clean — and the register reads back', () => {
     const bares = catalogBares(BIN!);
     expect(bares.size).toBeGreaterThan(0);

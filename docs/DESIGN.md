@@ -89,15 +89,30 @@ every visible pixel.
   the NODE box (right flank, flips left) — a steady inspector with a
   predictable pointer path, not a cursor-chaser.
 
-## 2 · Wires
+## 2 · Wires — the kind vocabulary (graph_format 2 · one channel per question)
 
-- **Dependency edges — dotted** (the Well signature): round dots
-  (`stroke-linecap: round · dasharray 0.1 7`), muted.
-- **Data edges — solid** thin accent bezier/orthogonal, the binding
-  alias riding the midpoint as a label.
-- Ghost edges (undeclared reads · NIKA-DAG-003): red dashed, animated
-  march — a repair affordance, click declares the dep.
-- Critical path: amber; flow (source settled): traveling dashes.
+Channel allocation (the Bertin discipline): **dash = ontology** (solid
+carries a value · long-dash carries a RECORD read · dotted carries
+control), **hue = outcome class** (data blue · failure hue on the
+failure read · amber on recovery), **the WAIST glyph = the kind** (end
+arrowheads drown under target cards — the n8n 1.70 read — so the form
+rides the wire's midpoint), **motion = liveness only**.
+
+| kind | stroke | waist form | hue |
+|---|---|---|---|
+| value (`with:` binding) | solid 1.6px | chevron ⌃ | data accent |
+| control (`after:` predicate) | dotted bead-chain | slim chevron | muted (predicate label rides the wire) |
+| terminal-observation | long-dash `7 4` | **hollow dot** (reads every outcome) | data accent |
+| failure-observation | long-dash `7 4` | **diamond** (admits on failure/skipped) | mixed toward `--nk-st-failed` |
+| recovery (`on_error.recover`) | dotted `2 6` thin | **open hook** (loops back) | amber · parked (never flows · never critical) |
+| `finally` (reserved · never emitted in W2) | — | none (parked until the engine speaks it) | — |
+
+- Every hover title states the edge's **pass-set verbatim** (gate
+  algebra v2 — `admits {failure · skipped}` on a failure read): the
+  hover is where the algebra teaches itself.
+- Critical path: amber; flow (source settled → target running):
+  SMIL particles on the LIVE FRONTIER only — never a dash march on
+  the whole graph.
 
 ## 3 · Chrome floats (the ElevenLabs read)
 

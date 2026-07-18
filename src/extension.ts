@@ -76,7 +76,8 @@ import {
   declareInputFor, pickOutputsFor, promoteVarsFor, typeOutputForLine,
 } from './features/contractDoors';
 import { makeResilientFor } from './features/armorDoors';
-import { chooseCollectionFor, chooseGateFor, wireInputsFor } from './features/flowDoors';
+import { chooseCollectionFor, chooseGateFor, setServerIslandsProbe, wireInputsFor } from './features/flowDoors';
+import { registerStation } from './features/stationView';
 import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { chooseAgentToolsFor, VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -84,6 +85,11 @@ import { TaskLensProvider, VerbGutterDecorations } from './features/taskLens';
 import { RunDecorations } from './features/runDecorations';
 import { LiveDag } from './features/liveDag';
 import { YieldRegistry } from './core/capabilityYield';
+import {
+  SEMANTIC_DOCUMENT_FORMAT,
+  SEMANTIC_DOCUMENT_METHOD,
+  semanticDocumentFormat,
+} from './core/semanticDoc';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
 import { commandOnPath } from './core/pathLookup';
@@ -533,6 +539,12 @@ export function activate(context: ExtensionContext): void {
   const runsTree = new RunsTreeProvider();
   context.subscriptions.push(window.registerTreeDataProvider('nikaRuns', runsTree));
 
+  // The Station — the cockpit tree (engine · doctor · agents ·
+  // providers · workspace). Lane A pure: everything it shows comes
+  // from `welcome --deep --json` + `doctor --json` + the grammar
+  // canary; it degrades honestly to the one install action.
+  const station = registerStation(context, service, () => state.resolvedServerPath);
+
   // Trace watcher: refresh the runs view AND live-overlay a growing trace
   // onto the open DAG (an engine writing a run animates the graph in real
   // time — debounced per file, majority-overlap gated).
@@ -626,6 +638,7 @@ export function activate(context: ExtensionContext): void {
   state.statusSink = (s) => {
     statusBar.setLspState(s);
     langStatus.setLspState(s);
+    station.setLspState(s === 'running' ? 'running' : s === 'starting' ? 'starting' : 'failed');
   };
 
   // Problems-panel coverage for CLOSED workflows (open ones stay with the
@@ -686,6 +699,32 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(yieldRegistry);
   yieldRegistry.reconcile(undefined);
   state.reconcileIntel = (caps) => {
+    // The semantic-document lane rides the same two moments as the
+    // yield registry: a server advertising the oracle IN OUR FORMAT
+    // owns graph projection (one request per refresh — no spawn, and
+    // spans the CLI cannot carry); its death restores the CLI lane.
+    // A format-1 engine is refused here exactly like isGraphDoc
+    // refuses its CLI output — capability-gated, never version-gated.
+    // The flow doors' server-island lane: alive exactly while a
+    // server with completion runs (the islands ride standard
+    // textDocument/completion at the empty when:/for_each: value).
+    const completion = caps !== undefined &&
+      Boolean((caps as { completionProvider?: unknown }).completionProvider);
+    setServerIslandsProbe(() => completion);
+    const fmt = semanticDocumentFormat(caps);
+    const client = state.client;
+    if (caps !== undefined && fmt === SEMANTIC_DOCUMENT_FORMAT && client) {
+      service.setSemanticOracle((doc) => client.sendRequest(
+        SEMANTIC_DOCUMENT_METHOD,
+        client.code2ProtocolConverter.asTextDocumentIdentifier(doc),
+      ));
+      log('INFO', 'one voice: server owns graph projection (nika/semanticDocument · format 2)');
+    } else {
+      service.setSemanticOracle(undefined);
+      if (caps !== undefined && fmt !== undefined) {
+        log('INFO', `graph projection stays on the CLI lane (server speaks format ${fmt})`);
+      }
+    }
     const r = yieldRegistry.reconcile(caps);
     if (r.silenced.length > 0) {
       log('INFO', `one voice: server owns ${r.silenced.join(' · ')} — client twins silenced`);

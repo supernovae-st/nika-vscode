@@ -401,6 +401,26 @@ body.running .dag-edge.edge-dep {
   stroke: var(--nk-data);
 }
 
+/* The kind vocabulary at the waist (one form per closed-set kind) —
+ * forms carry the semantics, hues carry the outcome class. */
+.edge-dir-obs {
+  stroke: var(--nk-data);
+  fill: none;
+  opacity: 0.85;
+}
+
+.edge-dir-obsfail {
+  stroke: none;
+  fill: color-mix(in srgb, var(--nk-st-failed) 78%, var(--nk-data));
+  opacity: 0.9;
+}
+
+.edge-dir-rec {
+  stroke: var(--nk-st-retrying, var(--nk-st-muted));
+  fill: none;
+  opacity: 0.6;
+}
+
 .edge-dir.dimmed {
   opacity: 0.1;
 }
@@ -1597,6 +1617,14 @@ body.vscode-light .logo-dark { display: none; }
 .dag-edge.edge-data.edge-obs {
   stroke-dasharray: 7 4;
   opacity: 0.85;
+}
+
+/* Failure observation — admits on {failure, skipped} (gate algebra
+ * v2): the wire rides toward the failure hue so the OUTCOME CLASS it
+ * feeds on is visible before any run. Same long-dash ontology as its
+ * terminal sibling; hue is the channel that separates them. */
+.dag-edge.edge-data.edge-obs.edge-obs-fail {
+  stroke: color-mix(in srgb, var(--nk-st-failed) 55%, var(--nk-data));
 }
 
 /* Recovery — on_error.recover's parking read: never orders, never

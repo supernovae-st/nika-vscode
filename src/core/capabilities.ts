@@ -48,16 +48,19 @@ export interface CapabilitySet {
    *  honesty · touches · run/trace hand-off) with an `--json` machine
    *  twin. Probed on the REAL `explain --help` doc line (same law as
    *  stdinDash: help text over version numbers — dev builds lie about
-   *  versions, never about their own help). DORMANT until consumed:
-   *  the swap point is nika.explainWorkflow → `explain <file> --json`
-   *  once a release carries it. */
+   *  versions, never about their own help). Consumed: the explain
+   *  command speaks the ENGINE's narration when this probes true. */
   explainFile: boolean;
   /** `nika context` aggregates the workspace (engine 0.99 line · the
    *  30s arc W4): every workflow audited + runs folded + environment,
-   *  one versioned JSON. A plain subcommand — the clap tree carries it.
-   *  Consumed by the `nika_workspace` LM tool (registered only when
-   *  this capability probes true, so the tool list stays honest). */
+   *  one versioned JSON. RENAMED to `welcome --deep` on the 0.104
+   *  line — this probe keeps the old verb alive for the dev builds
+   *  that still carry it; `welcome` is the current door. */
   context: boolean;
+  /** `nika welcome` (0.104 line) — `--json` machine snapshot ·
+   *  `--deep --json` = the full context aggregate (context_version 1).
+   *  Powers the Station view and the `nika_workspace` LM tool. */
+  welcome: boolean;
 }
 
 /** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
@@ -132,6 +135,10 @@ export function buildCapabilities(
     // FILE »).
     explainFile: commands.has('explain') && /narrate a workflow FILE/.test(explainHelpText),
     context: commands.has('context'),
+    // `welcome --deep` IS the renamed context verb (0.104 line): the
+    // machine/workspace aggregate one JSON — wired clients · local
+    // providers · key COUNTS (never values) · workflow/run rollups.
+    welcome: commands.has('welcome'),
   };
 }
 

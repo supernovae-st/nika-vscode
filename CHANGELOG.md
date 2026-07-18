@@ -6,6 +6,48 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The station · the oracle · the kind vocabulary
+
+- **The Station** — a third view in the container: the cockpit the
+  engine always carried and the extension never asked for.
+  `doctor --json` findings render as rows whose CLICK is the exact
+  fix (`nika …` lines run in a terminal; `export KEY=…` lines go to
+  the clipboard — the human owns secrets), `welcome --deep --json`
+  supplies the wired agent clients (one-click `nika wire <client>`),
+  the local providers with pulled models, cloud key COUNTS (never
+  values), and the workspace audit rollup with the honest `≥` cost
+  floor. The container badge counts doctor FAILS only. The engine row
+  says which binary won the resolution ladder AND whether it speaks
+  this extension's grammar generation — a fact with a door, never a
+  crash.
+- **The LSP oracle adopted** — graph projection now rides
+  `nika/semanticDocument` when the server advertises format 2: one
+  request against the live buffer (no spawn per refresh) carrying the
+  canonical projection VERBATIM plus per-task declaration spans; the
+  CLI lane stays as fallback, the client sketch last. Capability-
+  gated — a format-1 server keeps the CLI lane.
+- **The islands convergence** — when a server with completion runs,
+  the gate and collection doors offer the engine's own suggestions
+  first (the empty `when: `/`for_each: ` island position); the
+  curated shapes remain offline fallback + the gestures no island can
+  make. Belt-checked against the real server (`islandsReal.e2e`).
+- **The edge speaks its kind** — the waist glyph becomes the kind
+  vocabulary: chevron (value/control) · hollow dot (terminal
+  observation) · diamond in the failure hue (failure observation —
+  the wire says which outcomes feed it) · open hook (recovery's
+  parking loop). Every hover title states its pass-set verbatim
+  (gate algebra v2: `admits {failure · skipped}`).
+- **nika_workspace lives again** — the LM tool follows the renamed
+  verb (`welcome --deep --json` on 0.104+, `context` on older dev
+  builds): agents get the workspace aggregate back.
+- **The generation floor is honest** — e2e suites probe whether the
+  binary parses this grammar generation and skip WITH their reason on
+  older engines instead of lying red (run them for real with
+  `NIKA_BIN=<refonte build>`).
+- SPEC_PIN advances to `8e21866` — the newest spec point a real
+  engine honors tonight (the predicate respellings beyond it land
+  when the engine's lane does).
+
 ### W2 « the flow » — the client speaks the typed-edge grammar
 
 - **BREAKING (language · engine wave)**: `depends_on` is dead
