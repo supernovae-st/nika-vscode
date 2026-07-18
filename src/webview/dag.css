@@ -2581,6 +2581,21 @@ body.running .dag-node.status-success .nc::after {
   word-break: break-word;
 }
 
+/* The PROMPT voice — composition reads as quotation: dim « » marks
+ * in the verb's hue frame what the author ASKS (infer thinks it ·
+ * agent pursues it). The recorded output (.nc-body-live) swaps into
+ * the same element and must never inherit the quotes — data is not
+ * a quotation. cmd/args already speak their verb (tinted below);
+ * this completes the four voices. */
+.nc-body-prompt:not(.nc-body-live)::before {
+  content: '« ';
+  color: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 55%, transparent);
+}
+.nc-body-prompt:not(.nc-body-live)::after {
+  content: ' »';
+  color: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 55%, transparent);
+}
+
 .nc-body-cmd {
   color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-ink));
   white-space: nowrap;
