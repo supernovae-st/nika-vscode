@@ -9,6 +9,10 @@
 import { parseRichWorkflow } from '../workflowParser';
 
 export interface BodyFacts {
+  /** Agent register size — `tools: [a, b]` count (default-deny: an
+   *  absent register means NO tools; 0 entries stays undefined so the
+   *  card paints nothing false). */
+  toolsCount?: number;
   /** infer/agent prompt — up to 3 display lines, whitespace-collapsed. */
   prompt?: string;
   /** exec command — first line. */
@@ -130,6 +134,30 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
 
       if (!key) { continue; }
       const name = key[2];
+
+      // The agent register (spec: default-deny whitelist) — the flow
+      // form `tools: ["nika:fetch", …]` is what the doors write; a
+      // block-sequence register counts its `- ` members below.
+      if (name === 'tools' && fact.toolsCount === undefined) {
+        const inline = line.slice(line.indexOf(':') + 1).trim();
+        if (inline.startsWith('[')) {
+          const inner = inline.replace(/^\[/, '').replace(/\].*$/, '').trim();
+          const n = inner.length === 0 ? 0 : inner.split(',').length;
+          if (n > 0) { fact.toolsCount = n; }
+        } else if (inline.length === 0) {
+          let n = 0;
+          for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
+            const t = lines[j];
+            if (t.trim().startsWith('- ')) { n += 1; continue; }
+            if (t.trim().length === 0) { continue; }
+            const kj = t.match(/^(\s*)[A-Za-z_]+:/);
+            if (kj && kj[1].length <= indent) { break; }
+            if (!t.trim().startsWith('-')) { break; }
+          }
+          if (n > 0) { fact.toolsCount = n; }
+        }
+        continue;
+      }
 
       // Inside an open policy block — one level down carries the fact.
       if (retryIndent >= 0 && indent > retryIndent) {

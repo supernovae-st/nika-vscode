@@ -173,6 +173,7 @@ export function runWorkflowLive(
         failPreview: t.status === 'failed' ? t.preview : undefined,
         whyWhen: t.whyWhen,
         blockedBy: t.blockedBy,
+        pausedQuestion: model.paused?.task === t.id ? (model.paused.message ?? 'awaiting an answer') : undefined,
       })),
     );
     // Narrate only NEW terminal transitions (the feed is a story, not

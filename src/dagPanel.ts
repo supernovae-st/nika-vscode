@@ -25,8 +25,8 @@ export type ExtToWebviewMessage =
   // Recorded media artifacts landing ON the cards (run close · replay) —
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
-  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }
-  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }> }
+  | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }
+  | { kind: 'dag:batchUpdateStatus'; updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }> }
   | { kind: 'dag:focus'; taskId: string }
   | { kind: 'dag:cursorHint'; taskId: string | null }
   | { kind: 'dag:lineage'; taskId: string | null }
@@ -495,7 +495,7 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Batch update multiple task statuses at once */
-  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string }>): void {
+  public batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string }>): void {
     this.pendingTransport = undefined; // live wins — never resurrect a replay
     if (this.currentGraph) {
       for (const u of updates) {
