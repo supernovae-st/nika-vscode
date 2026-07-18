@@ -338,6 +338,9 @@ interface DagNode {
   /** In-flight spend (~$ curve · cost_incurred deltas) + stream proof. */
   liveUsd?: number;
   chunks?: number;
+  /** NIKA-DAG-006 — the `when:` gate is FALSE under every reachable
+   *  combination: this task can NEVER run (static engine analysis). */
+  deadGate?: boolean;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -405,7 +408,7 @@ type ExtToWebviewMessage =
   | { kind: 'diff:clear' }
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
-  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>; deadGates?: string[] }
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   | { kind: 'run:progress'; done: number; total: number }
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
@@ -591,7 +594,8 @@ function nodeClassOf(node: DagNode): string {
     + (node.staleUpstream ? ' stale-up' : '')
     + (node.cached ? ' is-cached' : '')
     + (node.recoveredFrom !== undefined ? ' is-recovered' : '')
-    + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '');
+    + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '')
+    + (node.deadGate ? ' dead-gate' : '');
 }
 
 function verbIcon(verb: string): string {
@@ -2255,12 +2259,16 @@ class DagRenderer {
   }
 
   /** dag:audit — refresh the ⚠N chips in place (rebuild the card body). */
-  applyAudit(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+  applyAudit(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>, deadGates?: string[]): void {
     const byId = new Map(audits.map((a) => [a.taskId, a]));
+    const dead = new Set(deadGates ?? []);
     for (const node of this.nodeMap.values()) {
       const a = byId.get(node.id);
       node.auditCount = a?.count;
       node.auditWorst = a?.worst;
+      // NIKA-DAG-006 — statically unreachable: the card wears it as a
+      // FACT of the doc (assign-never-accumulate: a clean check clears).
+      node.deadGate = dead.has(node.id) ? true : undefined;
       const el = this.nodeGroup.select(`[data-id="${CSS.escape(node.id)}"]`);
       el.attr('class', nodeClassOf(node));
       const host = el.select<HTMLElement>('.nc').node();
@@ -3530,6 +3538,9 @@ class DagRenderer {
         add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
       }
     }
+    if (live.deadGate === true) {
+      add('gate', 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written');
+    }
     if (live.liveUsd !== undefined && live.status === 'running') {
       add('spending', `~${usd(live.liveUsd)} so far — still moving`);
     }
@@ -4397,6 +4408,9 @@ class DagRenderer {
       return dur;
     }
     if (node.status === 'failed') { return '\u2717 failed'; }
+    // The static verdict outranks an empty pending cell: this task can
+    // NEVER run — saying nothing would read as « just waiting ».
+    if (node.deadGate === true && node.status === 'pending') { return 'never runs'; }
     if (node.status === 'skipped') { return 'skipped'; }
     if (node.status === 'cancelled') { return 'cancelled'; }
     return '';
@@ -5051,7 +5065,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       renderer.applyArtifacts(msg.artifacts);
       break;
     case 'dag:audit':
-      renderer.applyAudit(msg.audits);
+      renderer.applyAudit(msg.audits, msg.deadGates);
       break;
     case 'dag:cost':
       applyCostChip(msg.forecast);

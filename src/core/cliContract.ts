@@ -145,6 +145,9 @@ export interface DagNode {
   /** `on_finally:` cleanup steps declared on this task (client YAML
    *  read) — ALWAYS run on a started task, whatever the outcome. */
   finallyCount?: number;
+  /** NIKA-DAG-006 (static gate analysis): the `when:` gate is FALSE
+   *  under every reachable combination — this task can never run. */
+  deadGate?: boolean;
   /** Mean success duration across recorded traces (flight recorder). */
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */

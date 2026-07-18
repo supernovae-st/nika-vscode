@@ -1656,9 +1656,16 @@ export function activate(context: ExtensionContext): void {
       // Per-card audit badges: the static-check moat surfaced on the
       // cards (⚠N · worst severity · click → report). Pushed on every
       // check completion, even a clean one (clears stale badges).
-      const rollup = auditByTask(collectFindings(report));
+      const unified = collectFindings(report);
+      const rollup = auditByTask(unified);
+      // NIKA-DAG-006 — the engine PROVED the gate false under every
+      // reachable combination: the card wears « never runs » as a fact.
+      const deadGates = [...new Set(unified
+        .filter((f) => f.code === 'NIKA-DAG-006' && f.task !== undefined)
+        .map((f) => f.task as string))];
       dagPanel.auditUpdate(
         [...rollup].map(([taskId, a]) => ({ taskId, count: a.count, worst: a.worst })),
+        deadGates,
       );
       // Static cost forecast on the run pill (forecasting on the wire —
       // audited before a token is spent · honest about unbounded).

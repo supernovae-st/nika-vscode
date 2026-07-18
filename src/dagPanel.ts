@@ -57,7 +57,7 @@ export type ExtToWebviewMessage =
   // Dirty-nodes refresh (badges only — run statuses stay painted).
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   // Per-card audit rollup from a completed check (⚠N badges).
-  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }> }
+  | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>; deadGates?: string[] }
   // Static cost forecast for the run pill (label · tooltip · unbounded).
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   // Time-travel: hand the whole timeline to the webview scrubber (it
@@ -219,16 +219,18 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Push per-card audit badges from a completed check (⚠N). */
-  public auditUpdate(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>): void {
+  public auditUpdate(audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>, deadGates?: string[]): void {
     if (this.currentGraph) {
       const byId = new Map(audits.map((a) => [a.taskId, a]));
+      const dead = new Set(deadGates ?? []);
       for (const node of this.currentGraph.nodes) {
         const a = byId.get(node.id);
         node.auditCount = a?.count;
         node.auditWorst = a?.worst;
+        node.deadGate = dead.has(node.id) ? true : undefined;
       }
     }
-    this.postMessage({ kind: 'dag:audit', audits });
+    this.postMessage({ kind: 'dag:audit', audits, deadGates });
   }
 
   /** Refresh stale badges in place (statuses stay painted post-run). */
