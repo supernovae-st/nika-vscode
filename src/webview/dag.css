@@ -435,6 +435,18 @@ body.heatmap .edge-dir {
   display: none;
 }
 
+/* The Holten stream — the hover taper under the wire: filled with
+ * the SAME chord gradient the stroke wears; quiet enough to read as
+ * flow, never a highlighter. Decoration: forced-colors drops it. */
+.nk-taper {
+  fill: url(#nk-hover-grad);
+  opacity: 0.3;
+  pointer-events: none;
+}
+@media (forced-colors: active) {
+  .nk-taper { display: none; }
+}
+
 /* Arrow heads paint with context-stroke (ONE ink — the wire's own
  * color in every state); the old per-class fills died with it. */
 
