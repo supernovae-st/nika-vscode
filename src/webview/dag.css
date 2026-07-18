@@ -1628,7 +1628,9 @@ body.vscode-light .logo-dark { display: none; }
  * feeds on is visible before any run. Same long-dash ontology as its
  * terminal sibling; hue is the channel that separates them. */
 .dag-edge.edge-data.edge-obs.edge-obs-fail {
-  stroke: color-mix(in srgb, var(--nk-st-failed) 55%, var(--nk-data));
+  stroke: color-mix(in srgb,
+    color-mix(in srgb, var(--nk-st-failed) 55%, var(--nk-data)) calc(max(var(--nk-edge-vis, 100) * 1%, 72%)),
+    var(--nk-page));
 }
 
 /* Recovery — on_error.recover's parking read: never orders, never
@@ -3107,26 +3109,25 @@ body.heatmap .dag-node:hover .nc {
 body.lod-mid .nc-params { visibility: hidden; }
 body.lod-mid .nc-io,
 body.lod-mid .nc-policy { visibility: hidden; }
-/* Zoom-band ink weight — mid keeps the author weight; far widens the
- * scheduling wires a step so the (demixed) topology still carries;
- * heads scale with the stroke (markerUnits). Observations stay slim
- * (reads are secondary at map distance). */
-body.lod-far .dag-edge.edge-data:not(.edge-obs) { stroke-width: 2.2; }
-body.lod-far .dag-edge.edge-dep { stroke-width: 1.9; }
-
-/* Far zoom — the map read (annexe D · n8n zoom-derived color): wires
- * recede toward the page so TOPOLOGY carries; the failure hue demixes
- * LAST (a red read must survive the overview) and the critical amber
- * keeps its own ink (its rule owns the stroke later in the cascade). */
-body.lod-far .dag-edge.edge-dep:not(.critical) {
-  stroke: color-mix(in srgb, var(--nk-st-muted) 52%, var(--nk-page));
+/* Continuous zoom ink (annexe I2 · the n8n gamma read) — ONE number
+ * (--nk-edge-vis · 100 at k≥1 · gamma-eased toward 52 at far) mixes
+ * every wire toward the page as the camera pulls back: topology
+ * recedes SMOOTHLY, no band popping. The failure read keeps a color
+ * floor (a red must survive the overview) · critical amber owns its
+ * stroke later in the cascade · lit/adjacent hovers out-specify.
+ * Widths ride --zoom-comp (screen-constant, clamped) so the map read
+ * never thins into lint; heads follow via markerUnits. */
+.dag-edge.edge-dep:not(.critical) {
+  stroke: color-mix(in srgb, var(--nk-st-muted) calc(var(--nk-edge-vis, 100) * 1%), var(--nk-page));
 }
-body.lod-far .dag-edge.edge-data:not(.edge-obs-fail):not(.critical) {
-  stroke: color-mix(in srgb, var(--nk-data) 58%, var(--nk-page));
+.dag-edge.edge-data:not(.edge-obs-fail):not(.critical) {
+  stroke: color-mix(in srgb, var(--nk-data) calc(var(--nk-edge-vis, 100) * 1%), var(--nk-page));
 }
-body.lod-far .dag-edge.edge-recovery {
-  stroke: color-mix(in srgb, var(--nk-st-retrying, var(--nk-st-muted)) 45%, var(--nk-page));
+.dag-edge.edge-recovery {
+  stroke: color-mix(in srgb, var(--nk-st-retrying, var(--nk-st-muted)) calc(max(var(--nk-edge-vis, 100) * 1%, 45%)), var(--nk-page));
 }
+body.lod-far .dag-edge.edge-data:not(.edge-obs) { stroke-width: calc(1.6px * var(--zoom-comp, 1)); }
+body.lod-far .dag-edge.edge-dep { stroke-width: calc(1.3px * var(--zoom-comp, 1)); }
 
 body.lod-far .nc-params,
 body.lod-far .nc-io,

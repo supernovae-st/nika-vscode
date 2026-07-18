@@ -814,6 +814,16 @@ class DagRenderer {
     const defs = this.svg.append('defs');
     this.createArrowMarkers(defs);
     this.createGlowFilter(defs);
+    // The hover chord gradient (annexe I2 · the Dify read): ONE def,
+    // endpoints + stops mutated at lit time — the hovered wire paints
+    // source-verb hue → target-verb hue along its chord (on a layered
+    // DOWN graph the chord approximates the curve well enough; the
+    // slicing shimmer stays reserved for a future selected-edge lens).
+    const grad = defs.append('linearGradient')
+      .attr('id', 'nk-hover-grad')
+      .attr('gradientUnits', 'userSpaceOnUse');
+    grad.append('stop').attr('offset', '0%').attr('class', 'nk-hg-from');
+    grad.append('stop').attr('offset', '100%').attr('class', 'nk-hg-to');
     // The measuring path (defs = in-document but never painted).
     this.measurePath = defs.append<SVGPathElement>('path').node();
 
@@ -2101,6 +2111,16 @@ class DagRenderer {
       '--zoom-comp',
       String(Math.min(Math.max(1 / this.currentZoom, 1), 3)),
     );
+    // Edge visibility rides a GAMMA curve (the n8n read · annexe I2):
+    // continuous, not banded — at k≥1 the wires keep full token color;
+    // zooming out mixes them toward the page on a perceptual t^2.2
+    // ramp so topology recedes smoothly (no popping at band edges).
+    // One number drives every kind's color-mix; the failure hue and
+    // critical amber own later rules and stay unmixed longest.
+    const k = Math.min(Math.max(this.currentZoom, 0.2), 1);
+    const t = (1 - k) / (1 - 0.2);
+    const vis = Math.round(100 - Math.pow(t, 2.2) * 48);
+    document.body.style.setProperty('--nk-edge-vis', String(vis));
     this.syncRailActive();
     this.applyLod(this.currentZoom);
   }
@@ -3440,6 +3460,7 @@ class DagRenderer {
   /** Light one wire + its label + its chevron (hover through the twin). */
   private setEdgeLit(edgeId: string, lit: boolean): void {
     this.edgePathEl.get(edgeId)?.classList.toggle('edge-lit', lit);
+    this.paintHoverChord(edgeId, lit);
     this.edgeLabelEl.get(edgeId)?.classList.toggle('lit', lit);
     this.edgeDirEl.get(edgeId)?.classList.toggle('lit', lit);
     // The connection is ONE object: the wire and its two ends light
@@ -3453,6 +3474,36 @@ class DagRenderer {
         .node();
       g?.classList.toggle('edge-touch', lit);
     }
+  }
+
+  /** The hover chord: aim the shared gradient def at THIS edge's
+   *  endpoints, stops in the two verbs' hues; data wires only (a
+   *  control/recovery hover keeps its own quiet voice). One def is
+   *  enough — one pointer, one hover at a time. */
+  private paintHoverChord(edgeId: string, lit: boolean): void {
+    const path = this.edgePathEl.get(edgeId);
+    if (!path) { return; }
+    if (!lit) {
+      path.style.removeProperty('stroke');
+      return;
+    }
+    if (!path.classList.contains('edge-data')) { return; }
+    const ends = this.edgeEnds.get(edgeId);
+    if (!ends) { return; }
+    const from = this.nodeMap.get(ends.source);
+    const to = this.nodeMap.get(ends.target);
+    const box = path.getBBox();
+    const vertical = box.height >= box.width;
+    const grad = document.getElementById('nk-hover-grad');
+    if (!grad || !from || !to) { return; }
+    grad.setAttribute('x1', String(vertical ? box.x + box.width / 2 : box.x));
+    grad.setAttribute('y1', String(vertical ? box.y : box.y + box.height / 2));
+    grad.setAttribute('x2', String(vertical ? box.x + box.width / 2 : box.x + box.width));
+    grad.setAttribute('y2', String(vertical ? box.y + box.height : box.y + box.height / 2));
+    const stops = grad.querySelectorAll('stop');
+    (stops[0] as SVGElement | undefined)?.style.setProperty('stop-color', `var(--nk-verb-${from.verb}, var(--nk-data))`);
+    (stops[1] as SVGElement | undefined)?.style.setProperty('stop-color', `var(--nk-verb-${to.verb}, var(--nk-data))`);
+    path.style.setProperty('stroke', 'url(#nk-hover-grad)');
   }
 
   /** Light the EDGE that carries a card's io-row wire (hover the
