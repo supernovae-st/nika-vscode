@@ -3077,6 +3077,20 @@ body.heatmap .dag-node:hover .nc {
 body.lod-mid .nc-params { visibility: hidden; }
 body.lod-mid .nc-io,
 body.lod-mid .nc-policy { visibility: hidden; }
+/* Far zoom — the map read (annexe D · n8n zoom-derived color): wires
+ * recede toward the page so TOPOLOGY carries; the failure hue demixes
+ * LAST (a red read must survive the overview) and the critical amber
+ * keeps its own ink (its rule owns the stroke later in the cascade). */
+body.lod-far .dag-edge.edge-dep:not(.critical) {
+  stroke: color-mix(in srgb, var(--nk-st-muted) 52%, var(--nk-page));
+}
+body.lod-far .dag-edge.edge-data:not(.edge-obs-fail):not(.critical) {
+  stroke: color-mix(in srgb, var(--nk-data) 58%, var(--nk-page));
+}
+body.lod-far .dag-edge.edge-recovery {
+  stroke: color-mix(in srgb, var(--nk-st-retrying, var(--nk-st-muted)) 45%, var(--nk-page));
+}
+
 body.lod-far .nc-params,
 body.lod-far .nc-io,
 body.lod-far .nc-policy,

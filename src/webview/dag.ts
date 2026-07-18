@@ -653,7 +653,22 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
       'elk.layered.spacing.nodeNodeBetweenLayers': '60',
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      // Straightness is the workflow-canvas quality metric — value
+      // wires that run plumb read as flow, not as routing accidents.
+      'elk.layered.nodePlacement.favorStraightEdges': 'true',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      // The canvas is a READ projection of a YAML file: source order
+      // is the author's order — layout follows it (diff-stable across
+      // re-projections; a one-line edit never reshuffles the map).
+      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      // Recovery/backward reads route as explicit feedback loops
+      // instead of cutting through the layer stack.
+      'elk.layered.feedbackEdges': 'true',
+      // Typed edges are never merged into hyperedge stubs — each kind
+      // keeps its own path (the vocabulary needs its own ink).
+      'elk.layered.mergeEdges': 'false',
+      'elk.spacing.edgeNode': '24',
+      'elk.spacing.edgeEdge': '12',
       'elk.layered.spacing.edgeNodeBetweenLayers': '20',
       'elk.layered.spacing.edgeEdgeBetweenLayers': '15',
       'elk.padding': `[top=${PADDING},left=${PADDING},bottom=${PADDING},right=${PADDING}]`,
@@ -671,7 +686,17 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
     })),
   };
 
-  return elk.layout(elkGraph);
+  const laid = await elk.layout(elkGraph);
+  // Post-layout grid snap (the n8n read): every card rounds to the 8px
+  // survey grid — crisp hairlines at 1x, horizontally agreeing wire
+  // runs, the manual-alignment feel for free. Edges re-derive from the
+  // snapped boxes (edgePathFor reads node positions, never stale ELK
+  // bendpoints for the straight runs).
+  for (const child of laid.children ?? []) {
+    if (typeof child.x === 'number') { child.x = Math.round(child.x / 8) * 8; }
+    if (typeof child.y === 'number') { child.y = Math.round(child.y / 8) * 8; }
+  }
+  return laid;
 }
 
 // ─── D3 SVG Renderer ────────────────────────────────────────────────────────
