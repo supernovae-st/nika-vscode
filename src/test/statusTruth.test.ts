@@ -28,7 +28,7 @@ describe('statusTruth — the ladder (worst wins)', () => {
     expect(t.headline?.command).toBe('nika.finishSetup');
   });
 
-  it('a crashed server outranks a gen-0 floor and says the CLI lane survives', () => {
+  it('a crashed server outranks everything above the floor and says the CLI lane survives', () => {
     const t = statusTruth(input({ lspState: 'failed', gen1: false }));
     expect(t.severity).toBe('warn');
     expect(t.text).toContain('lsp down');
@@ -36,12 +36,16 @@ describe('statusTruth — the ladder (worst wins)', () => {
     expect(t.tooltip.join(' ')).toContain('CLI lane');
   });
 
-  it('a gen-0 engine warns and points at the engine, not the document', () => {
+  it('a generation gap is a quiet truth line, never a warn — the NORMAL state between releases', () => {
+    // Empirical (2026-07-19): brew 0.104 refuses the object-envelope
+    // canary while main requires it — every current pairing sits in
+    // this state, scaffolds delegate to `nika new` and daily flows
+    // work. A warn pill here would nag with a dead « update » action.
     const t = statusTruth(input({ gen1: false }));
-    expect(t.severity).toBe('warn');
-    expect(t.text).toContain('gen-0 engine');
-    expect(t.headline?.command).toBe('nika.finishSetup');
-    expect(t.tooltip.join(' ')).toContain('engine predates');
+    expect(t.severity).toBe('ok');
+    expect(t.headline).toBeUndefined();
+    expect(t.text).not.toContain('gen-0');
+    expect(t.tooltip.join(' ')).toContain('previous grammar generation');
   });
 
   it('an unprobed canary stays silent — undefined is never an alarm', () => {

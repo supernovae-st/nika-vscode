@@ -86,23 +86,14 @@ export function statusTruth(t: TruthInput): Truth {
     };
   }
 
-  // Rung 2 — a generation floor. This engine predates the map-form
-  // grammar: new-form documents will not parse, and that is an engine
-  // problem, not a document problem. Say so.
+  // A generation gap is the NORMAL state between engine releases (the
+  // extension tracks the incoming grammar; scaffolds delegate to
+  // `nika new`, so daily authoring follows THE ENGINE's generation).
+  // It reads as a quiet truth line — a warn pill with a dead action
+  // (« update » to a release that does not exist yet) would nag every
+  // current pairing. The Station's grammar row stays the deep surface.
   if (t.gen1 === false) {
-    return {
-      severity: 'warn',
-      text: `$(zap) nika ${t.version} · gen-0 engine`,
-      tooltip: [
-        'this engine predates the current grammar — new-form workflows will not parse',
-        ...tooltip,
-      ],
-      headline: {
-        label: '$(zap) Update the engine',
-        description: 'verified download of the current binary — one gesture',
-        command: 'nika.finishSetup',
-      },
-    };
+    tooltip.unshift('engine speaks the previous grammar generation — scaffolds adapt; the newest lenses arrive with the next engine');
   }
 
   return {
