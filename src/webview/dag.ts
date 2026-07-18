@@ -657,6 +657,12 @@ function paletteTools(): ToolItem[] {
 
 /** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
 function toolWithGlyph(tool: string): string {
+  // Composition ref — the fact row reads the CHILD's name, not the
+  // full prefixed path (« invoke · ⎘ sub.nika.yaml »).
+  if (tool.startsWith('workflow:')) {
+    const base = tool.slice('workflow:'.length).split('/').pop() || tool;
+    return `⎘ ${base}`;
+  }
   const bare = tool.replace(/^nika:/, '');
   const cat = toolCatOf(bare);
   const glyph = (cat ? CATEGORY_GLYPH[cat] : undefined) ?? BUILTIN_GLYPH[bare];
@@ -3215,7 +3221,28 @@ class DagRenderer {
         params.appendChild(gate);
       }
       const target = node.model ?? node.tool;
-      if (target) {
+      const subPath = node.tool?.startsWith('workflow:')
+        ? node.tool.slice('workflow:'.length).trim()
+        : undefined;
+      if (target && subPath) {
+        // Composition (spec 14): the chip IS the door — click opens
+        // the child workflow file. One gesture, same seam as every
+        // canvas→YAML jump (the extension resolves the relative path).
+        const chip = document.createElement('button');
+        chip.className = 'nc-chip nc-model nc-sub-wf';
+        chip.textContent = `⎘ ${subPath.split('/').pop() ?? subPath}`;
+        chip.title = `Sub-workflow: ${subPath}\nClick to open it`;
+        chip.addEventListener('mousedown', (e) => e.stopPropagation());
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          vscode.postMessage({
+            kind: 'dag:openSub',
+            path: subPath,
+            workflowUri: this.currentGraph?.workflowUri,
+          });
+        });
+        params.appendChild(chip);
+      } else if (target) {
         // The model chip EDITS (the Flows params-bar gesture): click →
         // provider/model QuickPick extension-side → YAML edit → reload.
         const chip = document.createElement('button');

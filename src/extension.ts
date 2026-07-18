@@ -1455,6 +1455,37 @@ export function activate(context: ExtensionContext): void {
     },
     // Empty canvas shown → push the recent list (async, degrades silent).
     () => { void state.pushWelcomeData?.(); },
+    // Composition chip ⎘ — resolve the child path against the PARENT
+    // workflow's directory (the path is as-written, usually relative).
+    (path, workflowUri) => {
+      void (async () => {
+        const parent = workflowUri ?? window.activeTextEditor?.document.uri.toString();
+        const base = parent !== undefined
+          ? Uri.joinPath(Uri.parse(parent), '..')
+          : workspace.workspaceFolders?.[0]?.uri;
+        const target = path.startsWith('/')
+          ? Uri.file(path)
+          : base !== undefined ? Uri.joinPath(base, path) : undefined;
+        if (!target) { return; }
+        try {
+          const doc = await workspace.openTextDocument(target);
+          await window.showTextDocument(doc);
+        } catch {
+          void window
+            .showWarningMessage(`Nika: the sub-workflow does not exist yet — ${path}`, 'Create it')
+            .then(async (pick) => {
+              if (pick !== 'Create it') { return; }
+              const name = path.split('/').pop()?.replace(/\.nika\.yaml$/, '') ?? 'sub';
+              await workspace.fs.writeFile(target, Buffer.from(
+                `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
+                'utf-8',
+              ));
+              const doc = await workspace.openTextDocument(target);
+              await window.showTextDocument(doc);
+            });
+        }
+      })();
+    },
   );
   state.activeDagPanel = dagPanel;
 

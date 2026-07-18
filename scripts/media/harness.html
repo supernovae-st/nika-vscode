@@ -213,6 +213,13 @@
           producers: ['polish', 'chart'],
         },
         {
+          id: 'brief', label: 'brief', verb: 'invoke', status: 'pending',
+          tool: 'workflow:./brief.nika.yaml',
+          argsPreview: 'topic: release',
+          bindingsIn: [{ alias: 'headline', from: 'digest', path: 'headline' }],
+          producers: ['digest'],
+        },
+        {
           id: 'review', label: 'review', verb: 'agent', status: 'pending',
           toolsCount: 2,
           model: 'ollama/qwen3.5:9b', provider: 'ollama',
@@ -233,6 +240,7 @@
         { id: 'chart->notes', source: 'chart', target: 'notes', kind: 'terminal-observation', isDataEdge: true, label: 'chart' },
         { id: 'notes->review', source: 'notes', target: 'review', kind: 'failure-observation', isDataEdge: true, label: 'errors' },
         { id: 'digest->review', source: 'digest', target: 'review', kind: 'recovery' },
+        { id: 'digest->brief', source: 'digest', target: 'brief', kind: 'value', isDataEdge: true, label: 'headline' },
       ],
     };
 

@@ -105,6 +105,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:explainCode'; code: string }
   // The webview's error seam — a canvas exception, said out loud.
   | { kind: 'dag:wall'; message: string }
+  // Composition door — a workflow-call chip opens its child file.
+  | { kind: 'dag:openSub'; path: string; workflowUri?: string }
   | { kind: 'timeline:request'; workflowUri?: string }
   | { kind: 'dag:forkFromTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
@@ -170,6 +172,8 @@ export class DagPanel implements vscode.Disposable {
       { kind: 'welcome:open' | 'welcome:cmd' | 'welcome:describe' }>) => void,
     /** Empty canvas became visible — refresh the welcome's recent list. */
     private readonly onWelcomeReady?: () => void,
+    /** Composition chip ⎘ — open the child workflow file. */
+    private readonly onOpenSub?: (path: string, workflowUri?: string) => void,
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -670,6 +674,10 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:nodeClicked':
         this.onNodeClicked?.(msg.taskId, msg.workflowUri);
+        break;
+
+      case 'dag:openSub':
+        this.onOpenSub?.(msg.path, msg.workflowUri);
         break;
 
       // The canvas hit an internal wall (webview exception). The webview

@@ -5077,3 +5077,15 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
 @media (forced-colors: active) {
   #nk-wall { border: 1px solid LinkText; background: Canvas; color: CanvasText; }
 }
+
+/* ─── Composition chip — the door into a child workflow ─────────────
+   Same chip anatomy as the model chip; the hover says « door » (lift
+   + underline), because this one NAVIGATES instead of editing. */
+.nc-chip.nc-sub-wf { cursor: pointer; }
+.nc-chip.nc-sub-wf:hover {
+  text-decoration: underline;
+  border-color: color-mix(in srgb, var(--nk-verb-invoke) 55%, transparent);
+}
+@media (forced-colors: active) {
+  .nc-chip.nc-sub-wf:hover { text-decoration: underline; }
+}
