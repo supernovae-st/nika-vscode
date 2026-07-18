@@ -22,6 +22,7 @@ import 'd3-transition';
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
 import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
+import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
@@ -771,6 +772,49 @@ class DagRenderer {
   private edgeEnds = new Map<string, { source: string; target: string }>();
   private upstreamOf = new Map<string, string[]>();
   private downstreamOf = new Map<string, string[]>();
+  /** L4 — the admission simulation (« what if X fails? »): verdicts
+   *  painted as classes; Esc or re-invoke clears. Preview only — no
+   *  run, no statuses touched. */
+  private simSeed: string | null = null;
+
+  toggleSimulate(taskId: string): void {
+    if (this.simSeed === taskId) { this.clearSimulation(); return; }
+    this.simSeed = taskId;
+    const edges = (this.currentGraph?.edges ?? []).map((e) => ({
+      source: e.source,
+      target: e.target,
+      kind: e.kind ?? 'value',
+      ...(e.predicate !== undefined ? { predicate: e.predicate } : {}),
+    }));
+    const ids = [...this.nodeMap.keys()];
+    const verdicts = simulateFailure(taskId, ids, edges);
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .classed('sim-failed', (d) => verdicts.get(d.id) === 'failed')
+      .classed('sim-dead', (d) => verdicts.get(d.id) === 'cancelled')
+      .classed('sim-lit', (d) => verdicts.get(d.id) === 'lit');
+    document.body.classList.add('simulating');
+    const dead = [...verdicts.values()].filter((v) => v === 'cancelled').length;
+    const lit = [...verdicts.values()].filter((v) => v === 'lit').length;
+    pushActivityLine('\u26a1', `simulating: ${taskId} fails \u2014 ${dead} cancelled \u00b7 ${lit} recovery path${lit === 1 ? '' : 's'} light \u00b7 Esc clears`, 'st-retrying');
+  }
+
+  /** Keyboard lane (X): what-if on the focused card — the same
+   *  toggle the hover button carries. */
+  simulateFocused(): void {
+    if (this.focusedId !== null) { this.toggleSimulate(this.focusedId); }
+  }
+
+  clearSimulation(): boolean {
+    if (this.simSeed === null) { return false; }
+    this.simSeed = null;
+    document.body.classList.remove('simulating');
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .classed('sim-failed', false)
+      .classed('sim-dead', false)
+      .classed('sim-lit', false);
+    return true;
+  }
+
   /** L1 timeline lens — the alternate reading of the SAME panel. */
   timelineOn = false;
   private timelineGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
@@ -3280,6 +3324,21 @@ class DagRenderer {
         workflowUri: this.currentGraph?.workflowUri,
       });
     });
+    // ⚡ what if — the admission simulation (L4): the ALGEBRA previews
+    // this task failing (dead paths dim · recovery paths light) —
+    // zero execution, Esc clears.
+    const simBtn = document.createElement('button');
+    simBtn.className = 'hc-run hc-sim';
+    simBtn.textContent = '\u26a1 what if';
+    simBtn.title = 'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears.';
+    simBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    simBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hideHoverCard(true);
+      this.toggleSimulate(live.id);
+    });
+    head.append(simBtn);
+
     // ⧉ duplicate — the n8n most-loved move, one click from the card.
     const dupBtn = document.createElement('button');
     dupBtn.className = 'hc-run';
@@ -4496,7 +4555,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -5245,6 +5304,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'ArrowRight') { e.preventDefault(); renderer.navFocus('next'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
+    if (renderer.clearSimulation()) { return; }
     if (renderer.cancelConnect()) { return; }
     const ex = document.getElementById('explainer');
     if (ex && !ex.hasAttribute('hidden')) { ex.setAttribute('hidden', ''); return; }
@@ -5252,6 +5312,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 't' || e.key === 'T') timelineBtn?.dispatchEvent(new Event('click'));
+  if (e.key === 'x' || e.key === 'X') { renderer.simulateFocused(); }
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }

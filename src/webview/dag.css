@@ -4995,3 +4995,31 @@ body.timeline .region-label { display: none; }
   .tl-cached { stroke: CanvasText !important; }
   .tl-pause path { fill: CanvasText !important; }
 }
+
+/* ─── L4 · the admission simulation (« what if X fails? ») ──────────
+ * A PREVIEW painted by the algebra — never a run. The seed wears the
+ * failure ring · dead paths dim to their cancelled read · the paths
+ * that exist ONLY because of failure LIGHT (why on_error exists). */
+body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
+  opacity: 0.75;
+}
+.dag-node.sim-failed .nc {
+  border-color: var(--nk-st-failed);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--nk-st-failed) 45%, transparent);
+}
+.dag-node.sim-dead .nc {
+  opacity: 0.32;
+  filter: saturate(0.4);
+}
+.dag-node.sim-lit .nc {
+  border-color: var(--nk-st-retrying);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--nk-st-retrying) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--nk-st-retrying) 30%, transparent);
+}
+.dag-node.sim-lit .nc-tile { opacity: 1; }
+@media (forced-colors: active) {
+  .dag-node.sim-failed .nc { border-color: Highlight !important; }
+  .dag-node.sim-dead .nc { opacity: 0.4 !important; }
+  .dag-node.sim-lit .nc { border-color: Highlight !important; box-shadow: none !important; }
+}
