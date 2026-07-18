@@ -148,6 +148,10 @@ export interface DagNode {
   /** NIKA-DAG-006 (static gate analysis): the `when:` gate is FALSE
    *  under every reachable combination — this task can never run. */
   deadGate?: boolean;
+  /** infer `thinking:` scratch budget (-1 = enabled, no explicit cap). */
+  thinkingBudget?: number;
+  /** infer `vision:` image inputs riding the prompt. */
+  visionCount?: number;
   /** Mean success duration across recorded traces (flight recorder). */
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */

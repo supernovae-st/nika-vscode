@@ -181,6 +181,7 @@
           model: 'ollama/qwen3.5:4b', provider: 'ollama',
           promptPreview: 'Group these commits into a headline and highlights for the release notes.',
           retryMax: 3, timeout: '45s', outputNames: ['headline', 'highlights'],
+          thinkingBudget: 4000, visionCount: 1,
           bindingsIn: [{ alias: 'commits', from: 'history', path: 'output' }],
           producers: ['history'],
         },

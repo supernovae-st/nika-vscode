@@ -341,6 +341,9 @@ interface DagNode {
   /** NIKA-DAG-006 — the `when:` gate is FALSE under every reachable
    *  combination: this task can NEVER run (static engine analysis). */
   deadGate?: boolean;
+  /** infer senses (spec 02): thinking budget (-1 = uncapped) · vision. */
+  thinkingBudget?: number;
+  visionCount?: number;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -543,6 +546,8 @@ function hasPolicyRow(node: DagNode): boolean {
     || node.timeout !== undefined
     || node.onError !== undefined
     || node.finallyCount !== undefined
+    || node.thinkingBudget !== undefined
+    || node.visionCount !== undefined
     || (node.outputNames?.length ?? 0) > 0
     || (node.permits?.length ?? 0) > 0
     || (node.verb === 'agent' && node.toolsCount !== undefined);
@@ -3340,6 +3345,19 @@ class DagRenderer {
       } else if (node.onError === 'fail_workflow') {
         chip('nc-pol-fail', '⛔ fail',
           'on_error: fail_workflow — a failure here stops the whole run');
+      }
+      if (node.thinkingBudget !== undefined) {
+        const cap = node.thinkingBudget > 0
+          ? (node.thinkingBudget >= 1000 ? `${Math.round(node.thinkingBudget / 1000)}k` : String(node.thinkingBudget))
+          : undefined;
+        chip('nc-pol-think', cap !== undefined ? `∴ thinking ${cap}` : '∴ thinking',
+          cap !== undefined
+            ? `Extended thinking — the model reasons in a scratch budget of ${node.thinkingBudget} tokens before answering (the spend is real and counted)`
+            : 'Extended thinking enabled — no explicit budget_tokens cap declared');
+      }
+      if (node.visionCount !== undefined) {
+        chip('nc-pol-vision', `▣ vision ×${node.visionCount}`,
+          `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources — spec 02 vision:)`);
       }
       if (node.finallyCount !== undefined) {
         chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
