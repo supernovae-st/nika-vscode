@@ -5421,3 +5421,8 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   .nc-contract { border-top: 1px solid CanvasText; }
   .nc-ct-state { color: CanvasText !important; }
 }
+
+/* The welcome gallery — each recent row leads with its real shape
+   (L5 small-multiples · the peek grammar at row scale). */
+.es-row.es-row-gallery { display: flex; align-items: center; gap: 10px; }
+.es-row .nk-mini { flex: none; opacity: 0.9; }

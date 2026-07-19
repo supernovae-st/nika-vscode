@@ -1684,15 +1684,34 @@ export function activate(context: ExtensionContext): void {
           return undefined;
         }
       }));
-      const recent = stats
+      const picked = stats
         .filter((v): v is { uri: Uri; mtime: number } => v !== undefined)
         .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, 6)
-        .map((v) => ({
+        .slice(0, 6);
+      const recent = await Promise.all(picked.map(async (v) => {
+        const row: { name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } } = {
           name: v.uri.path.split('/').pop() ?? v.uri.path,
           uri: v.uri.toString(),
           rel: relTime(v.mtime),
-        }));
+        };
+        // The gallery thumbnail (L5): each file's OWN projection in
+        // miniature — the peek renderer's data, same bounds, same
+        // garnish law (a broken file keeps its plain row).
+        try {
+          const rowDoc = await workspace.openTextDocument(v.uri);
+          const dag = await service.dagForDocument(rowDoc);
+          if (dag.nodes.length > 0 && dag.nodes.length <= 30) {
+            const rowWaves = topoWaves(dag.nodes, dag.edges);
+            const rowWaveOf = new Map<string, number>();
+            rowWaves.forEach((wave, w) => { for (const id of wave) { rowWaveOf.set(id, w); } });
+            row.skeleton = {
+              nodes: dag.nodes.map((n) => ({ id: n.id, verb: n.verb, wave: rowWaveOf.get(n.id) ?? 0 })),
+              edges: dag.edges.map((e) => ({ source: e.source, target: e.target })),
+            };
+          }
+        } catch { /* plain row */ }
+        return row;
+      }));
       dagPanel.welcomeData(recent, !service.available);
     } catch {
       // The welcome degrades to actions-only — never an error surface.
