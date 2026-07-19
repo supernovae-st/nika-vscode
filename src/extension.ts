@@ -997,6 +997,52 @@ export function activate(context: ExtensionContext): void {
       // Averages are garnish — the graph must never fail on them.
     }
     try {
+      // Composition preview (spec 14): a workflow-call card carries its
+      // CHILD's manifest — read from the child's OWN engine projection
+      // (never an invented rollup; the spec defers cross-file rollups).
+      // Garnish law: the parent graph must never fail on a child read.
+      const subNodes = graph.nodes.filter((n) => n.tool?.startsWith('workflow:'));
+      for (const node of subNodes.slice(0, 4)) {
+        const rel = node.tool!.slice('workflow:'.length).trim();
+        if (rel.length === 0) { continue; }
+        const childUri = rel.startsWith('/')
+          ? Uri.file(rel)
+          : Uri.joinPath(doc.uri, '..', rel);
+        const childDoc = await workspace.openTextDocument(childUri);
+        const child = await service.dagForDocument(childDoc);
+        if (child.nodes.length === 0) { continue; }
+        let costMin: number | undefined;
+        let costMax: number | undefined;
+        const grants = new Set<string>();
+        for (const c of child.nodes) {
+          if (c.costMin !== undefined) { costMin = (costMin ?? 0) + c.costMin; }
+          if (c.costMax !== undefined) { costMax = (costMax ?? 0) + c.costMax; }
+          for (const g of c.permits ?? []) { grants.add(g); }
+        }
+        const childWaves = topoWaves(child.nodes, child.edges);
+        const waveOf = new Map<string, number>();
+        childWaves.forEach((wave, w) => { for (const id of wave) { waveOf.set(id, w); } });
+        node.subManifest = {
+          tasks: child.nodes.length,
+          waves: childWaves.length,
+          ...(costMin !== undefined ? { costMin } : {}),
+          ...(costMax !== undefined ? { costMax } : {}),
+          ...(grants.size > 0 ? { permits: grants.size } : {}),
+          // The hover peek (UE collapsed-graph steal): a miniature of
+          // the child's REAL projection — bounded, counts past 30.
+          ...(child.nodes.length <= 30 ? {
+            skeleton: {
+              nodes: child.nodes.map((c) => ({ id: c.id, verb: c.verb, wave: waveOf.get(c.id) ?? 0 })),
+              edges: child.edges.map((e) => ({ source: e.source, target: e.target })),
+            },
+          } : {}),
+        };
+      }
+    } catch {
+      // A missing/unparseable child keeps its plain door — the chip
+      // already offers « Create it » on click.
+    }
+    try {
       // Recorded media artifacts land ON the cards at load — the latest
       // matching trace's real files (« your generation appears here »,
       // honestly: only what a run actually wrote and still exists).
