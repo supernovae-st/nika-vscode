@@ -391,6 +391,18 @@ engine projection.
    pressable.
 5. Wave captions speak the plan grammar — `[ 01 ]  start ·
    run together ×N · then` — always on; the band fills are the W toggle.
-6. Every visual claim is proven by the screenshot harness
-   (scratchpad `harness/` · `node shot.mjs <dir>`) — before/after,
-   both skins, light+dark, wide/narrow.
+6. Every visual claim is proven by the screenshot harness —
+   `scripts/media/harness.html`, opened headed under Playwright with
+   REAL gestures (trusted clicks · key presses · hovers; the page
+   boots the actual `out/webview/dag.js` bundle). Its judge flags:
+   - `?still` — the graph loads, the scripted demo run stays QUIET
+     (a judge driving its own statuses must not wrestle the sim);
+   - `?empty` — no graph at all: the welcome + hero ghost state;
+   - `?n=300` — the deterministic perf fixture (implies `?still`);
+   - `?skin=nika|editor|phosphor` — stamps the skin the way
+     dagPanel does (without it three « proofs » once shot ONE skin).
+   The page carries its own fixture-side canary strip (a canary must
+   never depend on the bundle it guards) — a boot exception paints
+   red instead of leaving handler-less corpse cards. Before/after,
+   all three skins, and never trust a 0-findings run without a
+   deliberate broken frame.
