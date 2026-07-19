@@ -454,6 +454,8 @@ interface WebviewState {
   smoothEdges?: boolean;
   showFeed?: boolean;
   seenHint?: boolean;
+  /** Shift+V density dial — which optional card rows the map renders. */
+  displayProps?: Partial<DisplayProps>;
   heatmap?: boolean;
   followRun?: boolean;
   /** Hand-dragged card positions per workflow (uri → id → root coords).
@@ -464,6 +466,95 @@ interface WebviewState {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 const vscode = acquireVsCodeApi();
+
+// ─── Display properties panel (Shift+V) — the density dial ─────────
+// The Raycast panel grammar reused: rows toggle on ⏎/click, R resets,
+// Esc closes. Toggling re-renders (heights follow the register — the
+// boxes stay TRUE). Choices persist per workspace via webview state.
+const DISPLAY_LABELS: Record<keyof DisplayProps, string> = {
+  body: 'Body — the prompt · command · essence line',
+  io: 'IO rows — alias ← producer wires',
+  params: 'Params — model · gate · cost · avg',
+  policy: 'Policy chips — retry · timeout · finally · permits…',
+  contract: 'Contract rows — a child workflow\u2019s inputs',
+};
+
+function persistDisplayProps(): void {
+  vscode.setState({ ...(vscode.getState() ?? {}), displayProps });
+}
+
+function restoreDisplayProps(): void {
+  const saved = (vscode.getState() as { displayProps?: Partial<DisplayProps> } | undefined)?.displayProps;
+  if (saved) { displayProps = { ...DISPLAY_DEFAULTS, ...saved }; }
+}
+
+function toggleDisplayPanel(): void {
+  const existing = document.getElementById('nk-display');
+  if (existing) { existing.remove(); return; }
+  const panel = document.createElement('div');
+  panel.id = 'nk-display';
+  panel.setAttribute('role', 'menu');
+  const title = document.createElement('div');
+  title.className = 'nk-act-title';
+  title.textContent = 'display properties';
+  panel.appendChild(title);
+  const keys = Object.keys(DISPLAY_LABELS) as Array<keyof DisplayProps>;
+  let active = 0;
+  const paint = (): void => {
+    rows.forEach((row, i) => {
+      row.classList.toggle('active', i === active);
+      const mark = row.querySelector('.nk-disp-state');
+      if (mark) { mark.textContent = displayProps[keys[i]] ? 'on' : 'off'; }
+      row.classList.toggle('nk-disp-off', !displayProps[keys[i]]);
+    });
+  };
+  const applyToggle = (i: number): void => {
+    displayProps[keys[i]] = !displayProps[keys[i]];
+    persistDisplayProps();
+    paint();
+    renderer.rerenderCurrent();
+  };
+  const rows: HTMLElement[] = keys.map((k, i) => {
+    const row = document.createElement('button');
+    row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
+    row.setAttribute('role', 'menuitemcheckbox');
+    const label = document.createElement('span');
+    label.textContent = DISPLAY_LABELS[k];
+    const state = document.createElement('span');
+    state.className = 'nk-disp-state';
+    row.append(label, state);
+    row.addEventListener('click', () => { active = i; applyToggle(i); });
+    row.addEventListener('mouseenter', () => { active = i; paint(); });
+    panel.appendChild(row);
+    return row;
+  });
+  const foot = document.createElement('div');
+  foot.className = 'nk-disp-foot';
+  foot.textContent = '⏎ toggle · R reset · Esc close';
+  panel.appendChild(foot);
+  const close = (): void => {
+    panel.remove();
+    window.removeEventListener('keydown', onKey, true);
+  };
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); active = (active + 1) % rows.length; paint(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); active = (active - 1 + rows.length) % rows.length; paint(); return; }
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); applyToggle(active); return; }
+    if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault(); e.stopPropagation();
+      displayProps = { ...DISPLAY_DEFAULTS };
+      persistDisplayProps();
+      paint();
+      renderer.rerenderCurrent();
+      return;
+    }
+    if (e.key === 'V' && e.shiftKey) { e.preventDefault(); e.stopPropagation(); close(); }
+  };
+  window.addEventListener('keydown', onKey, true);
+  document.body.appendChild(panel);
+  paint();
+}
 
 // ─── The dive trail — composition breadcrumb (parent ▸ child ▸ …) ──
 // Grows on ⎘ jumps, truncates on crumb jumps, clears when the user
@@ -570,7 +661,23 @@ const PREVIEW_GAP = 6;
 const IO_MAX_WIRES = 2;
 
 /** Body preview text for a node (verb decides which fact leads). */
+// ─── Display properties (Shift+V · the Linear read) ────────────────
+// Which optional card rows the MAP renders — a per-user density dial,
+// never a data filter (facts hide, they are not dropped: the hover
+// carries everything always). The row predicates AND nodeHeightOf
+// consult the same register, so a toggle re-renders with TRUE boxes.
+interface DisplayProps {
+  body: boolean;
+  io: boolean;
+  params: boolean;
+  policy: boolean;
+  contract: boolean;
+}
+const DISPLAY_DEFAULTS: DisplayProps = { body: true, io: true, params: true, policy: true, contract: true };
+let displayProps: DisplayProps = { ...DISPLAY_DEFAULTS };
+
 function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
+  if (!displayProps.body) { return undefined; }
   if (node.promptPreview) { return { kind: 'prompt', text: node.promptPreview }; }
   if (node.commandPreview) { return { kind: 'cmd', text: node.commandPreview }; }
   if (node.argsPreview) { return { kind: 'args', text: node.argsPreview }; }
@@ -617,6 +724,7 @@ function paintBodyRest(
 
 /** Whether the params row (gate · model chip · cost · avg) shows. */
 function hasParamsRow(node: DagNode): boolean {
+  if (!displayProps.params) { return false; }
   return node.model !== undefined || node.tool !== undefined
     || node.when !== undefined
     || (node.costMin != null && node.costMax != null)
@@ -625,12 +733,14 @@ function hasParamsRow(node: DagNode): boolean {
 
 /** Whether the io row shows — inbound wires, named ON the card. */
 function hasIoRow(node: DagNode): boolean {
+  if (!displayProps.io) { return false; }
   return (node.bindingsIn?.length ?? 0) > 0;
 }
 
 /** Whether the policy row shows — retry · timeout · on_error · outputs ·
  *  permits (declared facts only; an empty row never renders). */
 function hasPolicyRow(node: DagNode): boolean {
+  if (!displayProps.policy) { return false; }
   return node.retryMax !== undefined
     || node.timeout !== undefined
     || node.onError !== undefined
@@ -670,7 +780,7 @@ function nodeHeightOf(node: DagNode): number {
     h += BODY_GAP + wrapLines * BODY_LINE_H;
   }
   if (hasIoRow(node)) { h += IO_GAP + IO_H; }
-  const contractRows = Math.min(node.subManifest?.contract?.length ?? 0, 4);
+  const contractRows = displayProps.contract ? Math.min(node.subManifest?.contract?.length ?? 0, 4) : 0;
   if (contractRows > 0) { h += IO_GAP + contractRows * 15 + 4; }
   if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
   if (hasPolicyRow(node)) { h += POLICY_GAP + POLICY_H; }
@@ -3319,6 +3429,12 @@ class DagRenderer {
     // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => nodeClassOf(d));
     merged.select('.nc-sub-v').text((d) => this.subValue(d));
+    // The TRUE box follows the display register (Shift+V toggles change
+    // nodeHeightOf) — an existing card's frame must resize on update,
+    // not only on enter (the display-props probe caught bgH frozen).
+    merged.select('rect.node-bg').attr('height', (d) => nodeHeightOf(d));
+    merged.selectAll<SVGRectElement, DagNode>('rect.node-stack').attr('height', (d) => nodeHeightOf(d));
+    merged.select('foreignObject').attr('height', (d) => nodeHeightOf(d));
     // Native right-click: VS Code reads data-vscode-context off the DOM
     // path and shows the contributed webview/context menu — refreshed on
     // every render so the workflowUri never goes stale on a switch.
@@ -3530,7 +3646,7 @@ class DagRenderer {
     // the child's callable API ON the parent card — name · state
     // (← parent / = default / ⚠ required / optional) · type. Facts
     // from both files; `nika check` owns the verdicts.
-    const contract = node.subManifest?.contract ?? [];
+    const contract = displayProps.contract ? (node.subManifest?.contract ?? []) : [];
     if (contract.length > 0) {
       const block = document.createElement('div');
       block.className = 'nc-contract';
@@ -4136,6 +4252,25 @@ class DagRenderer {
    * Delayed hide so the pointer can travel from node to card (the
    * needs/unlocks chips are clickable); immediate on explicit actions.
    */
+  /** Re-render the CURRENT graph (display-property toggles change row
+   *  predicates AND heights — the boxes must recompute from truth). */
+  rerenderCurrent(): void {
+    if (!this.currentGraph) { return; }
+    // Heights changed → full layout pass; then the cards REBUILD (an
+    // existing card never re-enters buildCardHtml on update — the
+    // artifacts path's law), and the orthogonal marks re-paint.
+    void this.render(this.currentGraph).then(() => {
+      for (const node of this.nodeMap.values()) {
+        const host = this.nodeGroup
+          .select<SVGGElement>(`[data-id="${CSS.escape(node.id)}"]`)
+          .select<HTMLElement>('.nc').node();
+        if (host) { this.buildCardHtml(host, node); }
+      }
+      this.reapplySim();
+      this.reapplyAuditMarks();
+    });
+  }
+
   /** The Raycast action panel (K on a focused card): every action the
    *  card offers, each with its shortcut printed at the right — the
    *  panel teaches the keymap that later makes it obsolete. Renders
@@ -5347,7 +5482,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['⇧V', 'display properties (density)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -5594,6 +5729,7 @@ let resumeCapable = false;
 
 // Restore from webview state (e.g., after being hidden and re-shown)
 const savedState = vscode.getState();
+restoreDisplayProps();
 if (savedState?.showWaves !== undefined) { renderer.showWaves = savedState.showWaves; }
 if (savedState?.smoothEdges !== undefined) { renderer.smoothEdges = savedState.smoothEdges; }
 if (savedState?.showFeed) { toggleActivity(); }
@@ -6130,6 +6266,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (ex && !ex.hasAttribute('hidden')) { ex.setAttribute('hidden', ''); return; }
     renderer.clearFocus();
   }
+  if (e.key === 'V' && e.shiftKey) { e.preventDefault(); toggleDisplayPanel(); return; }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 't' || e.key === 'T') timelineBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'p' || e.key === 'P') auditBtn?.dispatchEvent(new Event('click'));

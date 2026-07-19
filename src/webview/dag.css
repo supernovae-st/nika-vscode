@@ -5624,3 +5624,60 @@ body.dataflow .nc-io {
   #nk-actions { border: 1px solid CanvasText; background: Canvas; }
   #nk-actions .nk-act-row.active { background: Highlight; color: HighlightText; }
 }
+
+/* The display panel (Shift+V) — the action-panel family. Off rows
+   dim their label; the state column says it in words. */
+#nk-display {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 70;
+  min-width: 340px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
+  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
+}
+#nk-display .nk-act-title {
+  padding: 4px 10px 6px;
+  font: 700 11px var(--nk-mono, monospace);
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  margin-bottom: 4px;
+}
+#nk-display .nk-act-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--nk-fg, #ddd);
+  font: 500 12px var(--nk-mono, monospace);
+  text-align: left;
+  cursor: pointer;
+}
+#nk-display .nk-act-row.active { background: color-mix(in srgb, var(--nk-data) 14%, transparent); }
+#nk-display .nk-act-row.nk-disp-off > span:first-child { opacity: 0.45; }
+#nk-display .nk-disp-state {
+  flex: none;
+  font: 600 9.5px var(--nk-mono, monospace);
+  color: var(--nk-st-success);
+}
+#nk-display .nk-act-row.nk-disp-off .nk-disp-state { color: var(--nk-st-muted); }
+#nk-display .nk-disp-foot {
+  padding: 5px 10px 3px;
+  font: 500 9.5px var(--nk-mono, monospace);
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 45%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  margin-top: 4px;
+}
+@media (forced-colors: active) {
+  #nk-display { border: 1px solid CanvasText; background: Canvas; }
+  #nk-display .nk-act-row.active { background: Highlight; color: HighlightText; }
+}
