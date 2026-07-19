@@ -271,6 +271,10 @@ class TraceTaskItem extends vscode.TreeItem {
     ladder: Attempt[] = [],
     /** The 0.95+ WHY: `gate false: <cel>` or `blocked by <id>`. */
     why?: string,
+    /** The agent loop's inner life (fold annotations · #144). */
+    agent?: import('../core/traceFold').AgentFacts,
+    /** In-flight spend recorded mid-run (cost_incurred curve · #145). */
+    liveUsd?: number,
   ) {
     super(
       taskId,
@@ -285,17 +289,45 @@ class TraceTaskItem extends vscode.TreeItem {
       status,
       dur,
       retries ? `↻${retries}` : undefined,
+      // The agent's pulse, compact (the full story rides the tooltip).
+      agent?.turns !== undefined ? `t${agent.turns}` : undefined,
+      agent?.stalled !== undefined ? 'stalled' : undefined,
       why,
       artifacts.length > 0 ? `${artifacts.length} artifact${artifacts.length > 1 ? 's' : ''}` : undefined,
     ]
       .filter(Boolean)
       .join(' · ');
     this.contextValue = 'nikaTraceTask';
-    if (ladder.length > 0) {
+    if (ladder.length > 0 || agent !== undefined) {
       const md = new vscode.MarkdownString(undefined, true);
-      md.appendMarkdown(`**${taskId}** — the attempt story\n\n`);
+      md.appendMarkdown(`**${taskId}** — the run story\n\n`);
       for (const line of renderLadder(ladder)) {
         md.appendMarkdown(`${line}\n\n`);
+      }
+      if (agent !== undefined) {
+        // The inner life (#144): the same narration the canvas hover
+        // carries — one vocabulary across surfaces.
+        if (agent.turns !== undefined) {
+          const routing = agent.offered !== undefined && agent.universe !== undefined
+            ? ` · saw ${agent.offered}/${agent.universe} tools`
+            : '';
+          md.appendMarkdown(`loop: turn ${agent.turns}${routing}\n\n`);
+        }
+        if (agent.budget !== undefined) {
+          md.appendMarkdown(`budget: ${agent.budget.totalTokens}${agent.budget.budget !== undefined ? ` of ${agent.budget.budget}` : ''} tokens\n\n`);
+        }
+        if (agent.nudges !== undefined && agent.nudges > 0) {
+          md.appendMarkdown(`nudged ${agent.nudges}× — ${agent.lastNudgeReason === 'error_streak' ? 'an error streak' : 'repeated actions'} drew a corrective reflection\n\n`);
+        }
+        if (agent.stalled !== undefined) {
+          md.appendMarkdown(`stalled: no-progress cycle (period ${agent.stalled.period} · ×${agent.stalled.repeats}) — the loop stopped itself\n\n`);
+        }
+        if (agent.compose !== undefined) {
+          md.appendMarkdown(`compose: ${agent.compose.valid}/${agent.compose.checked} self-drafted workflow${agent.compose.checked === 1 ? '' : 's'} passed check\n\n`);
+        }
+      }
+      if (liveUsd !== undefined) {
+        md.appendMarkdown(`~$${liveUsd.toFixed(4)} recorded mid-run (the in-flight curve)\n\n`);
       }
       md.appendMarkdown('_⑂ fork from here re-runs this task with upstream rehydrated._');
       this.tooltip = md;
@@ -393,6 +425,8 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           element.trace.ladders.get(t.id) ?? [],
           t.whyWhen !== undefined ? `gate false: ${t.whyWhen}`
             : t.blockedBy !== undefined ? `blocked by ${t.blockedBy}` : undefined,
+          t.agent,
+          t.liveUsd,
         ),
       );
     }
