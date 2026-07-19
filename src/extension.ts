@@ -2336,7 +2336,7 @@ export function activate(context: ExtensionContext): void {
       }
 
       const content = Buffer.from(
-        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
+        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n\n  # curriculum: uncomment this task and run again — it fails ON\n  # PURPOSE (offline, zero keys). The red teaches: the card carries\n  # the code, clicking it explains, ⑂ forks from the failure.\n  # break_me:\n  #   with:\n  #     got: \${{ tasks.start.output }}\n  #   invoke:\n  #     tool: nika:assert\n  #     args:\n  #       condition: \${{ with.got == "impossible" }}\n  #       message: "the scripted failure — read the red, then click the code"\n`,
         'utf-8',
       );
       await workspace.fs.writeFile(filePath, content);

@@ -1202,6 +1202,17 @@
             ]
           },
           {
+            "id": "break",
+            "title": "Break it on purpose",
+            "description": "Your scaffold carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; hover ⑂ forks from the failure; the Runs view keeps the autopsy.\n[Run Workflow](command:nika.runWorkflow)",
+            "media": {
+              "markdown": "walkthrough/10-break.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.explainCode"
+            ]
+          },
+          {
             "id": "dag",
             "title": "See the DAG",
             "description": "Visualize task dependencies · click a node to jump to its YAML.\n[Show DAG](command:nika.showDag)",
