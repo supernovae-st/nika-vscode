@@ -406,3 +406,9 @@ engine projection.
    red instead of leaving handler-less corpse cards. Before/after,
    all three skins, and never trust a 0-findings run without a
    deliberate broken frame.
+7. Interaction cost is BUDGETED — `scripts/media/journeys.cjs` runs
+   the common journeys as real gestures and asserts each one's
+   budget (why-failed 1 · what-feeds 1 · peek-walk 3-for-two-stories
+   · what-if 2 · each lens 1). A change that silently adds a gesture
+   to a journey fails the suite. Run it with the harness flags
+   toolchain (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
