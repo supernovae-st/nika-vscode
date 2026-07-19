@@ -302,11 +302,42 @@
     // (assign-never-accumulate means the sim would erase its facts).
     const STILL = new URLSearchParams(location.search).has('still');
     const EMPTY = new URLSearchParams(location.search).has('empty');
-    const sim = (fn, ms) => { if (!STILL && !EMPTY) { setTimeout(fn, ms); } };
+    // ?n=300 — the perf fixture: a generated layered DAG (deterministic,
+    // no randomness: index math only) replaces the demo. Implies ?still.
+    const PERF_N = Number(new URLSearchParams(location.search).get('n') || 0);
+    function perfGraph(n) {
+      const verbs = ['exec', 'infer', 'invoke', 'agent'];
+      const nodes = []; const edges = [];
+      const COLS = Math.ceil(Math.sqrt(n / 2));
+      for (let i = 0; i < n; i++) {
+        const id = 't' + i;
+        nodes.push({
+          id, label: id, verb: verbs[i % 4], status: 'pending',
+          ...(i % 4 === 1 ? { model: 'mock/echo', promptPreview: 'perf node ' + i } : {}),
+          ...(i % 4 === 2 ? { tool: 'nika:jq', argsPreview: 'query: .a' } : {}),
+          producers: [],
+        });
+        const wave = Math.floor(i / COLS);
+        if (wave > 0) {
+          const parent = 't' + ((wave - 1) * COLS + (i % COLS));
+          edges.push({ id: parent + '->' + id, source: parent, target: id, kind: i % 7 === 3 ? 'control' : 'value', ...(i % 7 === 3 ? { predicate: 'succeeded' } : { isDataEdge: true, label: 'd' + i }) });
+          nodes[i].producers = [parent];
+          if (i % 5 === 0 && i % COLS > 0) {
+            const uncle = 't' + ((wave - 1) * COLS + (i % COLS) - 1);
+            edges.push({ id: uncle + '->' + id, source: uncle, target: id, kind: 'value', isDataEdge: true, label: 'x' + i });
+            nodes[i].producers.push(uncle);
+          }
+        }
+      }
+      return { workflowUri: 'file:///work/perf.nika.yaml', workflowName: 'perf-' + n, nodes, edges };
+    }
+
+    const sim = (fn, ms) => { if (!STILL && !EMPTY && !(PERF_N > 0)) { setTimeout(fn, ms); } };
 
     // t=0 is page load. dag:load waits out the load race (≥500ms).
     setTimeout(() => {
       if (EMPTY) { return; }
+      if (PERF_N > 0) { post({ kind: 'dag:load', graph: perfGraph(PERF_N) }); return; }
       post({
         kind: 'dag:load', graph: GRAPH,
         toolCats: {

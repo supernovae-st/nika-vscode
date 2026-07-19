@@ -5438,3 +5438,23 @@ body.audit .dag-node.audit-secret .nc {
 @media (forced-colors: active) {
   body.audit .dag-node.audit-secret .nc { outline: 2px dashed LinkText; }
 }
+
+/* The layout note — a big graph must never be silently blank while
+   ELK thinks (300 nodes ≈ 3.6s measured). Neutral, centered, gone
+   the moment the paint lands. */
+#nk-layout-note {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  padding: 6px 14px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 16%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 75%, transparent);
+  font: 500 11.5px var(--nk-mono, monospace);
+}
+@media (forced-colors: active) {
+  #nk-layout-note { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+}
