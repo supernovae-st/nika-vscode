@@ -32,6 +32,9 @@ export interface TimelineRow {
   pausedQuestion?: string;
   /** Didn't-run pedagogy (gate false · blocked by). */
   why?: string;
+  /** The agent loop's turn count (fold annotation) — the lens gutter
+   *  says « t3 » so an agent row reads as a LOOP, not one call. */
+  agentTurns?: number;
   /** Recorded mean across prior runs (flight recorder) — the GHOST
    *  ceiling behind the actual bar; absent when no history exists. */
   estMs?: number;
@@ -122,6 +125,7 @@ export function buildTimeline(
     if (why !== undefined) { row.why = why; }
     const est = avgs?.get(t.id);
     if (est !== undefined && est > 0) { row.estMs = est; }
+    if (t.agent?.turns !== undefined) { row.agentTurns = t.agent.turns; }
     return row;
   });
 

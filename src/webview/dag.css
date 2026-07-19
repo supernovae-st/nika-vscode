@@ -5465,3 +5465,9 @@ body.audit .dag-node.audit-secret .nc {
 @media (forced-colors: active) {
   #nk-layout-note { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
 }
+
+/* The timeline's agent gutter — the loop's quiet mark. */
+.tl-agent-turns {
+  fill: var(--nk-verb-agent);
+  font-size: 8.5px;
+}
