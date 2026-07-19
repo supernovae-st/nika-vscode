@@ -58,6 +58,7 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   // Per-card audit rollup from a completed check (⚠N badges).
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>; deadGates?: string[] }
+  | { kind: 'dag:trail'; segments: Array<{ label: string; uri: string }>; active: number }
   // Static cost forecast for the run pill (label · tooltip · unbounded).
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   // Time-travel: hand the whole timeline to the webview scrubber (it
@@ -107,6 +108,8 @@ export type WebviewToExtMessage =
   | { kind: 'dag:wall'; message: string }
   // Composition door — a workflow-call chip opens its child file.
   | { kind: 'dag:openSub'; path: string; workflowUri?: string }
+  // Breadcrumb click — jump to a trail segment (composition nav).
+  | { kind: 'dag:openTrail'; uri: string }
   | { kind: 'timeline:request'; workflowUri?: string }
   | { kind: 'dag:forkFromTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:cancelRun' }
@@ -174,6 +177,8 @@ export class DagPanel implements vscode.Disposable {
     private readonly onWelcomeReady?: () => void,
     /** Composition chip ⎘ — open the child workflow file. */
     private readonly onOpenSub?: (path: string, workflowUri?: string) => void,
+    /** Breadcrumb segment click — open that trail document. */
+    private readonly onOpenTrail?: (uri: string) => void,
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -231,6 +236,12 @@ export class DagPanel implements vscode.Disposable {
       }
     }
     this.postMessage({ kind: 'dag:audit', audits, deadGates });
+  }
+
+  /** Composition breadcrumb — the dive trail (parent ▸ child ▸ …).
+   *  Fewer than 2 segments clears it (nothing to climb). */
+  public postTrail(segments: Array<{ label: string; uri: string }>, active: number): void {
+    this.postMessage({ kind: 'dag:trail', segments, active });
   }
 
   /** Refresh stale badges in place (statuses stay painted post-run). */
@@ -690,6 +701,10 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:openSub':
         this.onOpenSub?.(msg.path, msg.workflowUri);
+        break;
+
+      case 'dag:openTrail':
+        this.onOpenTrail?.(msg.uri);
         break;
 
       // The canvas hit an internal wall (webview exception). The webview
