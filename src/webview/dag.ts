@@ -5073,6 +5073,9 @@ function buildExplainer(): void {
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance — ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
     ['ex-glyph-dep', 'Gray dashed edges', 'control — after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read — cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
+    ['ex-glyph-focus', '⚡ what if? (X)', 'replay admission with a task failed — dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
+    ['ex-glyph-stack', '⎘ workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs — supplied · default · ⚠ required · the breadcrumb climbs back'],
+    ['ex-glyph-rail', 'One graph · five lenses', 'T timeline (ghost ceiling = your recorded mean) · P audit (what this file CAN DO) · D dataflow (where data goes) · H heatmap · same map, one key each'],
   ];
   for (const [glyphClass, head, body] of rows) {
     const row = document.createElement('div');
