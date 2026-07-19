@@ -22,6 +22,7 @@ import 'd3-transition';
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
 import type { AgentFacts } from '../core/traceFold';
+import { convexHull, deriveAuditFacts, type PermitDomain } from '../core/auditLens';
 import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
 import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
@@ -881,6 +882,87 @@ class DagRenderer {
   timelineOn = false;
   private timelineGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
   private tlGeom: { startMs: number; spanMs: number; gutter: number; w: number; height: number } | undefined;
+  auditOn = false;
+  private auditGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
+
+  /** L3 — the moat lens: « what can this file DO before a token is
+   *  spent ». Capability hulls painted UNDER the graph + the banner.
+   *  A read of the SAME map (One-DOM law) — no relayout. */
+  toggleAudit(): void {
+    this.auditOn = !this.auditOn;
+    document.body.classList.toggle('audit', this.auditOn);
+    if (this.auditOn) { this.renderAudit(); } else { this.clearAudit(); }
+  }
+
+  private clearAudit(): void {
+    this.auditGroup?.remove();
+    this.auditGroup = undefined;
+    document.getElementById('audit-banner')?.remove();
+  }
+
+  renderAudit(): void {
+    if (!this.auditOn || !this.currentGraph) { return; }
+    this.clearAudit();
+    const nodes = this.currentGraph.nodes;
+    // The honest client cost mirror: sum of declared intervals; any
+    // model task WITHOUT a ceiling makes the whole line a floor.
+    let min = 0; let max = 0; let priced = false; let unbounded = false;
+    for (const n of nodes) {
+      if (n.costMin !== undefined) { min += n.costMin; priced = true; }
+      if (n.costMax !== undefined) { max += n.costMax; }
+      else if (n.verb === 'infer' || n.verb === 'agent') { unbounded = true; }
+    }
+    const facts = deriveAuditFacts(nodes, priced ? { min, max, unbounded } : undefined);
+
+    // Hulls live UNDER the edges (between bands and wires).
+    const g = this.rootGroup.insert<SVGGElement>('g', '.dag-edges').attr('class', 'audit-hulls');
+    this.auditGroup = g;
+    const PAD = 20;
+    const labelAnchors = new Map<string, number>();
+    const ORDER: PermitDomain[] = ['net', 'exec', 'fs', 'tool'];
+    const LABEL: Record<PermitDomain, string> = {
+      net: '⇄ network egress', exec: '▶ runs programs', fs: '▤ touches files', tool: '⚒ calls tools',
+    };
+    for (const domain of ORDER) {
+      const ids = facts.domains.get(domain);
+      if (!ids || ids.length === 0) { continue; }
+      const corners: Array<[number, number]> = [];
+      for (const id of ids) {
+        const b = this.layoutBox.get(id);
+        if (!b) { continue; }
+        corners.push(
+          [b.x - PAD, b.y - PAD], [b.x + b.w + PAD, b.y - PAD],
+          [b.x + b.w + PAD, b.y + b.h + PAD], [b.x - PAD, b.y + b.h + PAD],
+        );
+      }
+      if (corners.length === 0) { continue; }
+      const hull = convexHull(corners);
+      const d = `M ${hull.map((pt) => pt.join(' ')).join(' L ')} Z`;
+      g.append('path').attr('class', `audit-hull audit-${domain}`).attr('d', d);
+      // Two hulls around the SAME cards share a topmost corner — the
+      // labels would overprint (the fs+tool pair on a single writer
+      // card, empirically). Same anchor → stack upward.
+      const topmost = hull.reduce((a, b) => (b[1] < a[1] ? b : a));
+      const anchorKey = `${Math.round(topmost[0] / 24)}:${Math.round(topmost[1] / 24)}`;
+      const bumped = labelAnchors.get(anchorKey) ?? 0;
+      labelAnchors.set(anchorKey, bumped + 1);
+      g.append('text')
+        .attr('class', `audit-hull-label audit-${domain}`)
+        .attr('x', topmost[0] + 6)
+        .attr('y', topmost[1] - 6 - bumped * 14)
+        .text(`${LABEL[domain]} · ${ids.length}`);
+    }
+
+    // The banner — the pitch line, in canvas.
+    const banner = document.createElement('div');
+    banner.id = 'audit-banner';
+    banner.setAttribute('role', 'status');
+    const strong = document.createElement('span');
+    strong.className = 'audit-banner-k';
+    strong.textContent = 'this file can:';
+    banner.append(strong, ` ${facts.banner}`);
+    document.body.appendChild(banner);
+  }
 
   toggleTimeline(): void {
     this.timelineOn = !this.timelineOn;
@@ -1545,6 +1627,7 @@ class DagRenderer {
       this.waveExtents.set(w, { top: ext.top, bottom: ext.bottom, count: countOf.get(w) ?? 0 });
     }
     this.buildPlanRail();
+    if (this.auditOn) { this.renderAudit(); }
 
     for (const [wave, ext] of byWave) {
       const band = this.bandGroup.append('g').attr('class', 'wave-band-group');
@@ -2070,6 +2153,7 @@ class DagRenderer {
 
   /** Settle a drag: persist the pin, refresh bands/regions/minimap. */
   private dragEnd(): void {
+    if (this.auditOn && this.dragging?.moved) { this.renderAudit(); }
     const drag = this.dragging;
     this.dragging = null;
     if (!drag?.moved) { return; }
@@ -5404,6 +5488,13 @@ omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
+const auditBtn = document.getElementById('btn-audit');
+const syncAuditBtn = (): void => { auditBtn?.classList.toggle('active', renderer.auditOn); };
+auditBtn?.addEventListener('click', () => {
+  renderer.toggleAudit();
+  syncAuditBtn();
+});
+
 const timelineBtn = document.getElementById('btn-timeline');
 const syncTimelineBtn = (): void => { timelineBtn?.classList.toggle('active', renderer.timelineOn); };
 timelineBtn?.addEventListener('click', () => {
@@ -5531,6 +5622,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 't' || e.key === 'T') timelineBtn?.dispatchEvent(new Event('click'));
+  if (e.key === 'p' || e.key === 'P') auditBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'x' || e.key === 'X') { renderer.simulateFocused(); }
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
