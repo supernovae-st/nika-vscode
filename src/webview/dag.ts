@@ -885,6 +885,16 @@ class DagRenderer {
   auditOn = false;
   private auditGroup: Selection<SVGGElement, unknown, null, undefined> | undefined;
 
+  /** L2 — the dataflow lens: « where does the data come from, where
+   *  does it go ». Pure CSS scope on the SAME map: control/recovery
+   *  scaffolding sleeps, the data wires + their binding labels carry
+   *  the whole story, cards slim to their io. */
+  dataflowOn = false;
+  toggleDataflow(): void {
+    this.dataflowOn = !this.dataflowOn;
+    document.body.classList.toggle('dataflow', this.dataflowOn);
+  }
+
   /** L3 — the moat lens: « what can this file DO before a token is
    *  spent ». Capability hulls painted UNDER the graph + the banner.
    *  A read of the SAME map (One-DOM law) — no relayout. */
@@ -5488,6 +5498,13 @@ omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
+const dataflowBtn = document.getElementById('btn-dataflow');
+const syncDataflowBtn = (): void => { dataflowBtn?.classList.toggle('active', renderer.dataflowOn); };
+dataflowBtn?.addEventListener('click', () => {
+  renderer.toggleDataflow();
+  syncDataflowBtn();
+});
+
 const auditBtn = document.getElementById('btn-audit');
 const syncAuditBtn = (): void => { auditBtn?.classList.toggle('active', renderer.auditOn); };
 auditBtn?.addEventListener('click', () => {
@@ -5623,6 +5640,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
   if (e.key === 't' || e.key === 'T') timelineBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'p' || e.key === 'P') auditBtn?.dispatchEvent(new Event('click'));
+  if (e.key === 'd' || e.key === 'D') { if (!e.metaKey && !e.ctrlKey) { dataflowBtn?.dispatchEvent(new Event('click')); } }
   if (e.key === 'x' || e.key === 'X') { renderer.simulateFocused(); }
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }

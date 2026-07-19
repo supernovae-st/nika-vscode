@@ -5207,3 +5207,31 @@ body.audit .dag-node .nc { opacity: 0.92; }
   .audit-hull-label { fill: CanvasText; }
   #audit-banner { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
 }
+
+/* ─── L2 · the dataflow lens — where the data comes from and goes ───
+   One CSS scope, zero relayout. The scaffolding (control wires ·
+   recovery parking · policy chips · previews) SLEEPS; what remains
+   is the io story: data wires + binding labels + each card's ports
+   and wire rows, always lit. */
+body.dataflow .dag-edge.edge-dep,
+body.dataflow .dag-edge.edge-recovery {
+  opacity: 0.07;
+}
+body.dataflow .edge-label.edge-label-ctl { opacity: 0.1; }
+body.dataflow .edge-label { opacity: 1; font-size: 10px; }
+body.dataflow .dag-edge.edge-data { opacity: 1; }
+/* Slim cards: the body prose, policy chips, params and sub verdict
+   rest — the io rows and output chips ARE the card. */
+body.dataflow .nc-body,
+body.dataflow .nc-policy,
+body.dataflow .nc-params,
+body.dataflow .nc-sub { opacity: 0.18; }
+body.dataflow .nc-io { opacity: 1; }
+body.dataflow .nc-io-wire { border-color: color-mix(in srgb, var(--nk-data) 45%, transparent); }
+/* Direction voice: heads matter MORE here — keep them awake even at
+   near LOD (the one-voice rule flips inside the lens on purpose). */
+body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
+@media (forced-colors: active) {
+  body.dataflow .dag-edge.edge-dep,
+  body.dataflow .dag-edge.edge-recovery { opacity: 0.35; }
+}
