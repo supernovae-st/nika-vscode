@@ -168,6 +168,10 @@ export interface DagNode {
   /** NIKA-DAG-006 (static gate analysis): the `when:` gate is FALSE
    *  under every reachable combination — this task can never run. */
   deadGate?: boolean;
+  /** Literal credentials pasted INSIDE this task's YAML span
+   *  (credentialLint scan — precision-first; the editor squiggle
+   *  carries the env-var rewrite). Count of findings. */
+  secretLiterals?: number;
   /** infer `thinking:` scratch budget (-1 = enabled, no explicit cap). */
   thinkingBudget?: number;
   /** infer `vision:` image inputs riding the prompt. */

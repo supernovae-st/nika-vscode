@@ -5426,3 +5426,15 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
    (L5 small-multiples · the peek grammar at row scale). */
 .es-row.es-row-gallery { display: flex; align-items: center; gap: 10px; }
 .es-row .nk-mini { flex: none; opacity: 0.9; }
+
+/* Literal-secret marker (audit lens · L3 S2) — the pasted-credential
+   task wears the failed family as a RING (the fact is severe, the
+   fix is one env-var away; the editor squiggle carries it). */
+body.audit .dag-node.audit-secret .nc {
+  outline: 2px dashed color-mix(in srgb, var(--nk-st-failed) 70%, transparent);
+  outline-offset: 3px;
+}
+#audit-banner .audit-banner-secret { color: var(--nk-st-failed); }
+@media (forced-colors: active) {
+  body.audit .dag-node.audit-secret .nc { outline: 2px dashed LinkText; }
+}

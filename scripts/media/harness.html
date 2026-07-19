@@ -230,7 +230,7 @@
           producers: ['digest'],
         },
         {
-          id: 'notes', label: 'notes', verb: 'invoke', status: 'pending',
+          id: 'notes', label: 'notes', verb: 'invoke', status: 'pending', secretLiterals: 1,
           tool: 'nika:write',
           argsPreview: 'path: RELEASE_NOTES.md',
           permits: ['fs.write: RELEASE_NOTES.md', 'tool: nika:write'],
