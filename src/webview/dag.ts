@@ -347,6 +347,8 @@ interface DagNode {
   deadGate?: boolean;
   /** Literal credentials pasted in this task's span (lint count). */
   secretLiterals?: number;
+  /** Declared output shape (schema:/returns: · client render). */
+  typedShape?: string;
   /** infer senses (spec 02): thinking budget (-1 = uncapped) · vision. */
   thinkingBudget?: number;
   visionCount?: number;
@@ -597,6 +599,7 @@ function hasPolicyRow(node: DagNode): boolean {
     || node.finallyCount !== undefined
     || node.thinkingBudget !== undefined
     || node.visionCount !== undefined
+    || node.typedShape !== undefined
     || node.maxParallel !== undefined
     || node.failFast !== undefined
     || (node.outputNames?.length ?? 0) > 0
@@ -3652,6 +3655,10 @@ class DagRenderer {
       if (node.visionCount !== undefined) {
         chip('nc-pol-vision', `▣ vision ×${node.visionCount}`,
           `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources — spec 02 vision:)`);
+      }
+      if (node.typedShape !== undefined) {
+        chip('nc-pol-typed', '⊨ typed',
+          `Declared output shape — ${node.typedShape}\nThe engine PROVES it at check time (schema:/returns:); downstream reads are typed against it.`);
       }
       if (node.maxParallel !== undefined) {
         chip('nc-pol-parallel', `∥ max ${node.maxParallel}`,
