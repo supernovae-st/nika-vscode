@@ -87,6 +87,23 @@ major.minor from 0.97).
   created workflow narrates its next moves.
 - README: « One graph · five lenses » section + a 15-second deck tour
   GIF captured from the real renderer with real gestures.
+- **The lens deck, completed after the tour**: the audit lens gains
+  the **secret overlay** (pasted-literal credentials at graph scale —
+  red dashed ring on the task, « ⚿ N literal credentials » in the
+  banner; the editor squiggle keeps the env-var rewrite) · the
+  welcome's recent rows lead with their file's real shape in
+  miniature (**the gallery** — small multiples, engine truth) · the
+  map's plan rail sleeps inside the timeline lens.
+- **The run story on every surface**: Runs-view task rows read the
+  fold's inner life (agent pulse · tooltip narration · mid-run ~$)
+  with the same vocabulary as the canvas hover, and the status menu
+  teaches the lens keys.
+- **The cache hit proves itself**: a cached task's hover carries its
+  ADR-099 identity — « same definition (…) and inputs (…) as the
+  recorded run » — the claim with its evidence inline.
+- **Big graphs never sit silent**: past 100 tasks the canvas says
+  « laying out N tasks… » while ELK thinks (300 nodes ≈ 3.6s,
+  measured); the media harness earns a deterministic ?n perf fixture.
 
 
 ### The day waves — cards know themselves · the canvas earns its craft
