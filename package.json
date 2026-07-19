@@ -20,7 +20,7 @@
   },
   "pricing": "Free",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Programming Languages",
@@ -1386,7 +1386,7 @@
     "@types/d3-zoom": "^3.0.8",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.75.0",
+    "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^2.22.0",
     "esbuild": "^0.24.0",
