@@ -3187,6 +3187,9 @@ class DagRenderer {
       if (this.suppressClick) { this.suppressClick = false; return; } // a drop, not a select
       if (event.altKey) { return; } // alt belongs to edge creation
       this.applyFocus(this.focusedId === d.id ? null : d.id);
+      // The hover stays open through a focus click — rebuild it so
+      // truth-gated affordances (the X hint) follow the focus state.
+      this.showHoverCard(d);
       vscode.postMessage({
         kind: 'dag:nodeClicked',
         taskId: d.id,
@@ -3618,12 +3621,32 @@ class DagRenderer {
     if (hasPolicyRow(node)) {
       const policy = document.createElement('div');
       policy.className = 'nc-policy';
+      // Calm density (the Linear read): a card can DECLARE ten
+      // policies; it never WEARS more than five — the overflow folds
+      // into « +N » whose title lists everything it holds. Facts are
+      // never dropped, only layered (the hover keeps the full story).
+      const pending: Array<{ cls: string; text: string; title: string }> = [];
       const chip = (cls: string, text: string, title: string): void => {
-        const el = document.createElement('span');
-        el.className = `nc-pol ${cls}`;
-        el.textContent = text;
-        el.title = title;
-        policy.appendChild(el);
+        pending.push({ cls, text, title });
+      };
+      const flushChips = (): void => {
+        const MAX = 5;
+        const shown = pending.slice(0, pending.length > MAX ? MAX - 1 : MAX);
+        for (const c of shown) {
+          const el = document.createElement('span');
+          el.className = `nc-pol ${c.cls}`;
+          el.textContent = c.text;
+          el.title = c.title;
+          policy.appendChild(el);
+        }
+        const rest = pending.slice(shown.length);
+        if (rest.length > 0) {
+          const more = document.createElement('span');
+          more.className = 'nc-pol nc-pol-more';
+          more.textContent = `+${rest.length}`;
+          more.title = rest.map((c) => `${c.text} — ${c.title.split('\n')[0]}`).join('\n');
+          policy.appendChild(more);
+        }
       };
       if (node.retryMax !== undefined) {
         chip('nc-pol-retry', `↻×${node.retryMax}`,
@@ -3693,6 +3716,7 @@ class DagRenderer {
         chip('nc-pol-tools', `⚒ ${node.toolsCount}`,
           `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny — an agent without a register can call nothing)`);
       }
+      flushChips();
       host.appendChild(policy);
     }
   }
@@ -3760,6 +3784,15 @@ class DagRenderer {
     const simBtn = document.createElement('button');
     simBtn.className = 'hc-run hc-sim';
     simBtn.textContent = '\u26a1 what if';
+    // The Raycast read: the shortcut rides the action — but only when
+    // it is TRUE (X fires on the focused card; an unfocused card's
+    // hint would advertise a keystroke aimed at another task).
+    if (this.focusedId === live.id) {
+      const kbd = document.createElement('kbd');
+      kbd.className = 'hc-kbd';
+      kbd.textContent = 'X';
+      simBtn.appendChild(kbd);
+    }
     simBtn.title = 'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears.';
     simBtn.addEventListener('mousedown', (e) => e.stopPropagation());
     simBtn.addEventListener('click', (e) => {
