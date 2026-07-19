@@ -2907,6 +2907,10 @@ class DagRenderer {
     if (!this.currentGraph) { return; }
     const target = nextFocus(this.currentGraph.nodes, this.currentGraph.edges, this.focusedId ?? undefined, dir);
     if (target) { this.focusAndCenter(target, true); }
+    if (this.peekPinned && this.focusedId !== null) {
+      const node = this.nodeMap.get(this.focusedId);
+      if (node) { this.showHoverCard(node); }
+    }
   }
 
   /** Editor-driven focus: light the lineage AND glide the node to center
@@ -4131,9 +4135,35 @@ class DagRenderer {
    * Delayed hide so the pointer can travel from node to card (the
    * needs/unlocks chips are clickable); immediate on explicit actions.
    */
+  /** The Linear peek (Space): the hover card PINNED to the focused
+   *  card — arrows walk the DAG and the peek live-updates; Space
+   *  again or Esc releases. Detail becomes a zero-click read. */
+  private peekPinned = false;
+
+  togglePeek(): boolean {
+    if (this.focusedId === null) { return false; }
+    if (this.peekPinned) { this.unpinPeek(); return true; }
+    const node = this.nodeMap.get(this.focusedId);
+    if (!node) { return false; }
+    this.peekPinned = true;
+    this.showHoverCard(node);
+    return true;
+  }
+
+  unpinPeek(): boolean {
+    if (!this.peekPinned) { return false; }
+    this.peekPinned = false;
+    this.hideHoverCard(true);
+    return true;
+  }
+
   private hideHoverCard(now = false): void {
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
+    // A pinned peek survives pointer-leaves — only explicit closes
+    // (Space · Esc · an action that force-hides) release it.
+    if (this.peekPinned && !now) { return; }
     if (now) {
+      this.peekPinned = false;
       this.hoverCard?.classList.remove('visible', 'gliding');
       return;
     }
@@ -5228,7 +5258,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -6004,6 +6034,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'ArrowRight') { e.preventDefault(); renderer.navFocus('next'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
+    if (renderer.unpinPeek()) { return; }
     if (renderer.clearSimulation()) { return; }
     if (renderer.cancelConnect()) { return; }
     const ex = document.getElementById('explainer');
@@ -6048,6 +6079,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     }
   }
   if (e.key === ' ' && replayer.active) { e.preventDefault(); replayer.toggle(); }
+  else if (e.key === ' ') { e.preventDefault(); renderer.togglePeek(); }
   if (e.key === 'Delete' || e.key === 'Backspace') renderer.requestDeleteFocused();
   if (e.key === 'Enter' && renderer.focused) {
     // Open the YAML at the focused task — the graph hands you back to text.

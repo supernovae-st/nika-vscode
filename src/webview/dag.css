@@ -333,7 +333,7 @@ body {
   stroke-width: 1.5;
   /* Edges are interactive: ⌥click removes the dependency. */
   pointer-events: stroke;
-  cursor: default;
+  cursor: pointer;
 }
 
 .dag-edge.edge-data {
@@ -3253,6 +3253,10 @@ body.lod-far .edge-label { display: none; }
   stroke: transparent;
   stroke-width: 16;
   pointer-events: stroke;
+  /* The wide hit lane carries the affordance too — the census found
+     interactive wires announcing nothing (cursor: default killed the
+     ⌥-click and + discoverability). */
+  cursor: pointer;
 }
 body.lod-far .edge-hit { pointer-events: none; }
 
