@@ -71,6 +71,11 @@ export interface FoldedTask {
   /** Streaming deltas observed (infer_chunk count — the card can say
    *  the model is actually TALKING, not hanging). */
   chunks?: number;
+  /** ADR-099 identity pair (terminal events): the engine reuses a
+   *  recorded output exactly when BOTH match the prior run. On a
+   *  cache_hit these ARE the proof of the reuse claim. */
+  defHash?: string;
+  inputHash?: string;
 }
 
 export interface AgentFacts {
@@ -172,6 +177,9 @@ interface NormalizedEvent {
   repeats?: number;
   /** agent_compose_checked — the draft's static verdict. */
   valid?: boolean;
+  /** ADR-099 identity pair (terminal task events). */
+  defHash?: string;
+  inputHash?: string;
   /** task_skipped only — the gate's CEL text (0.95+). */
   whenExpr?: string;
   /** task_cancelled only — the culprit upstream (0.95+). */
@@ -318,6 +326,8 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
       period: asNumber(fields.get('period')),
       repeats: asNumber(fields.get('repeats')),
       valid: typeof fields.get('valid') === 'boolean' ? fields.get('valid') as boolean : undefined,
+      defHash: typeof fields.get('def_hash') === 'string' ? fields.get('def_hash') as string : undefined,
+      inputHash: typeof fields.get('input_hash') === 'string' ? fields.get('input_hash') as string : undefined,
     };
   }
 
@@ -571,6 +581,8 @@ export function foldTrace(ndjson: string): RunModel {
         task.usd = ev.usd;
         model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
       }
+      if (ev.defHash !== undefined) { task.defHash = ev.defHash; }
+      if (ev.inputHash !== undefined) { task.inputHash = ev.inputHash; }
       // The settle line's story, one hover-safe line of it.
       if (ev.note !== undefined) {
         const firstLine = ev.note.split('\n')[0].trim();

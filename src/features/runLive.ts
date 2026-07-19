@@ -180,6 +180,8 @@ export function runWorkflowLive(
         agent: t.agent,
         liveUsd: t.liveUsd,
         chunks: t.chunks,
+        defHash: t.defHash,
+        inputHash: t.inputHash,
         pausedQuestion: model.paused?.task === t.id ? (model.paused.message ?? 'awaiting an answer') : undefined,
       })),
     );

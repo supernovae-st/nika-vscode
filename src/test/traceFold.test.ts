@@ -684,3 +684,24 @@ describe('foldTrace · live meters (cost_incurred · infer_chunk — contract §
     expect(model.liveUsd).toBe(9);
   });
 });
+
+describe('foldTrace · the ADR-099 identity pair (cache proof)', () => {
+  it('def/input hashes land on the settled task from its terminal event', () => {
+    const line = (kind: string, kv: Record<string, unknown>): string =>
+      JSON.stringify({
+        id: { uuid: '019f0000-0000-0000-0000-000000000002' },
+        timestamp: 1784415337953000000,
+        kind,
+        run: null,
+        fields: Object.entries({ task: 'seed', ...kv }).map(([key, value]) => ({ key, value })),
+      });
+    const model = foldTrace([
+      line('task_started', {}),
+      line('task_cache_hit', { def_hash: '15b188d151bf', input_hash: 'c120cc20e271' }),
+    ].join('\n'));
+    const t = model.tasks.get('seed');
+    expect(t?.cached).toBe(true);
+    expect(t?.defHash).toBe('15b188d151bf');
+    expect(t?.inputHash).toBe('c120cc20e271');
+  });
+});
