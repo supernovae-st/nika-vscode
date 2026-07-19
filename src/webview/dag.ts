@@ -5608,8 +5608,16 @@ function applyCostChip(forecast: { label: string; tooltip: string; unbounded: bo
   }
   // The delta (vs the last commit) is the review signal — it rides the
   // chip as a suffix and tints it only when the ceiling went UP.
-  chip.textContent = forecast.delta ? `${forecast.label} · ${forecast.delta.label}` : forecast.label;
-  chip.title = forecast.delta ? `${forecast.tooltip}\n${forecast.delta.tooltip}` : forecast.tooltip;
+  // The recorded ETA joins when history covers the graph: the weighted
+  // critical path over flight-recorder means — the floor no
+  // parallelism can beat, from YOUR runs, never a guess.
+  const ins = renderer.computeInsights();
+  const eta = ins?.weighted === true && ins.span > 0
+    ? ` · ~${ins.span >= 60000 ? `${Math.floor(ins.span / 60000)}m${String(Math.round((ins.span % 60000) / 1000)).padStart(2, '0')}` : `${(ins.span / 1000).toFixed(ins.span < 10000 ? 1 : 0)}s`}`
+    : '';
+  chip.textContent = (forecast.delta ? `${forecast.label} · ${forecast.delta.label}` : forecast.label) + eta;
+  chip.title = (forecast.delta ? `${forecast.tooltip}\n${forecast.delta.tooltip}` : forecast.tooltip)
+    + (eta !== '' ? `\n~ recorded pace: the weighted critical path over your recorded means — the time floor no parallelism can beat.` : '');
   chip.classList.toggle('unbounded', forecast.unbounded);
   chip.classList.toggle('cost-up', forecast.delta?.up === true);
   chip.removeAttribute('hidden');

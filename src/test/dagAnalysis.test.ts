@@ -281,3 +281,38 @@ describe('hopcroftKarp · the layered-phase details (review mirror)', () => {
     }
   });
 });
+
+describe('weights — history-informed (measured beats recorded beats hops)', () => {
+  it('an unrun graph with full flight-recorder means weighs by the means', () => {
+    const ins = analyzeDag(
+      [
+        { id: 'a', avgMs: 2000 },
+        { id: 'b', avgMs: 3000 },
+        { id: 'c', avgMs: 1000 },
+      ],
+      [
+        { source: 'a', target: 'b' },
+        { source: 'a', target: 'c' },
+      ],
+    );
+    expect(ins.weighted).toBe(true);
+    expect(ins.span).toBe(5000); // a → b, the weighted floor
+    expect(ins.work).toBe(6000);
+  });
+
+  it('a measured duration OUTRANKS the mean on the same task', () => {
+    const ins = analyzeDag(
+      [{ id: 'a', durationMs: 500, avgMs: 9000 }, { id: 'b', avgMs: 1000 }],
+      [{ source: 'a', target: 'b' }],
+    );
+    expect(ins.span).toBe(1500);
+  });
+
+  it('one task with NO history keeps the graph honest (hops, not a lie)', () => {
+    const ins = analyzeDag(
+      [{ id: 'a', avgMs: 2000 }, { id: 'b' }],
+      [{ source: 'a', target: 'b' }],
+    );
+    expect(ins.weighted).toBe(false);
+  });
+});
