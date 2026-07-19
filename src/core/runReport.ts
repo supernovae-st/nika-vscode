@@ -91,7 +91,13 @@ export function renderRunReport(inputs: RunReportInputs): string {
   out.push('|---|---|---|---|---|');
   for (const t of tasks) {
     const notes: string[] = [];
-    if (t.cached) { notes.push('cache hit'); }
+    if (t.cached) {
+      // The reuse claim carries its proof when the trace recorded the
+      // ADR-099 identity pair (the self-verify grammar).
+      notes.push(t.defHash !== undefined && t.inputHash !== undefined
+        ? `cache hit (def ${t.defHash.slice(0, 8)}… · inputs ${t.inputHash.slice(0, 8)}…)`
+        : 'cache hit');
+    }
     // A repaired success names what it absorbed (D-2026-07-08-N4).
     if (t.recoveredFrom !== undefined) {
       notes.push(t.recoveredFrom ? `recovered from ${t.recoveredFrom}` : 'recovered');
@@ -100,6 +106,19 @@ export function renderRunReport(inputs: RunReportInputs): string {
     if (t.whyWhen !== undefined) { notes.push(`gate false: ${t.whyWhen.replace(/\|/g, '·')}`); }
     if (t.blockedBy !== undefined) { notes.push(`blocked by \`${t.blockedBy}\``); }
     if (t.status === 'failed' && t.preview) { notes.push(t.preview.replace(/\|/g, '·')); }
+    // The agent loop's inner life (the five agent_* kinds) — the same
+    // narration every other surface speaks, compact for the table.
+    if (t.agent !== undefined) {
+      const a = t.agent;
+      const bits: string[] = [];
+      if (a.turns !== undefined) {
+        bits.push(`${a.turns} turn${a.turns === 1 ? '' : 's'}${a.offered !== undefined && a.universe !== undefined ? ` (saw ${a.offered}/${a.universe} tools)` : ''}`);
+      }
+      if (a.nudges !== undefined && a.nudges > 0) { bits.push(`nudged ${a.nudges}×`); }
+      if (a.stalled !== undefined) { bits.push('stalled — the loop stopped itself'); }
+      if (a.compose !== undefined) { bits.push(`compose ${a.compose.valid}/${a.compose.checked}`); }
+      if (bits.length > 0) { notes.push(bits.join(' · ')); }
+    }
     out.push(`| \`${t.id}\` | ${STATUS_ICON[t.status] ?? '·'} ${t.status} | ${t.durationMs !== undefined ? humanizeDuration(t.durationMs) : '—'} | ${t.usd !== undefined ? usd(t.usd) : '—'} | ${notes.join(' · ')} |`);
   }
   out.push('');
