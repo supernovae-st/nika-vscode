@@ -5478,3 +5478,41 @@ body.audit .dag-node.audit-secret .nc {
   border-color: color-mix(in srgb, var(--nk-data) 40%, transparent);
   background: color-mix(in srgb, var(--nk-data) 7%, transparent);
 }
+
+/* Calm density (Linear): the policy overflow chip — quiet, listing
+   everything it holds in its title. */
+.nc-pol-more {
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 55%, transparent);
+  border-color: color-mix(in srgb, var(--nk-ink) 20%, transparent);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+}
+
+/* The Raycast hint — a real shortcut riding its action (truth-gated:
+   painted only when the keystroke would hit THIS card). */
+.hc-kbd {
+  margin-left: 5px;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font: 600 8.5px var(--nk-mono, monospace);
+  opacity: 0.75;
+}
+
+/* ─── Lens transitions (the Linear read: 160ms ease-out, translate
+   4px, opacity — perceived speed without theater). One entrance
+   grammar for every lens surface; reduced-motion stills them all. */
+.tl-group, .audit-hulls, #audit-banner, #nk-trail {
+  animation: nk-lens-in 160ms ease-out;
+}
+@keyframes nk-lens-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+body.dataflow .dag-edge.edge-data,
+body.dataflow .nc-io {
+  transition: opacity 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl-group, .audit-hulls, #audit-banner, #nk-trail { animation: none; }
+  body.dataflow .dag-edge.edge-data, body.dataflow .nc-io { transition: none; }
+}
