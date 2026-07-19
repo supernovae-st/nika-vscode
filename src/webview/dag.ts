@@ -944,10 +944,8 @@ class DagRenderer {
     }));
     const ids = [...this.nodeMap.keys()];
     const verdicts = simulateFailure(taskId, ids, edges);
-    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
-      .classed('sim-failed', (d) => verdicts.get(d.id) === 'failed')
-      .classed('sim-dead', (d) => verdicts.get(d.id) === 'cancelled')
-      .classed('sim-lit', (d) => verdicts.get(d.id) === 'lit');
+    this.simVerdicts = verdicts;
+    this.reapplySim();
     document.body.classList.add('simulating');
     const dead = [...verdicts.values()].filter((v) => v === 'cancelled').length;
     const lit = [...verdicts.values()].filter((v) => v === 'lit').length;
@@ -960,9 +958,27 @@ class DagRenderer {
     if (this.focusedId !== null) { this.toggleSimulate(this.focusedId); }
   }
 
+  /** The armed simulation's verdicts — survives class overwrites. */
+  private simVerdicts: Map<string, import('../core/admissionSim').SimVerdict> | null = null;
+
+  /** Re-paint the sim classes. Every surface that overwrites a card's
+   *  class attribute (audit push · status update · rebuild) calls this
+   *  — the probe of 2026-07-19 caught an audit push leaving the body
+   *  `simulating` with ZERO verdicts painted: a grey canvas with no
+   *  story. One painter, every caller. */
+  private reapplySim(): void {
+    const verdicts = this.simVerdicts;
+    if (verdicts === null) { return; }
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .classed('sim-failed', (d) => verdicts.get(d.id) === 'failed')
+      .classed('sim-dead', (d) => verdicts.get(d.id) === 'cancelled')
+      .classed('sim-lit', (d) => verdicts.get(d.id) === 'lit');
+  }
+
   clearSimulation(): boolean {
     if (this.simSeed === null) { return false; }
     this.simSeed = null;
+    this.simVerdicts = null;
     document.body.classList.remove('simulating');
     this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
       .classed('sim-failed', false)
@@ -1540,6 +1556,9 @@ class DagRenderer {
   }
 
   private async renderCoreInner(graph: DagGraph): Promise<void> {
+    // A new graph is a new admission world — an armed simulation from
+    // the previous document must not haunt this one.
+    if (this.simSeed !== null && this.currentGraph !== graph) { this.clearSimulation(); }
     this.currentGraph = graph;
     this.nodeMap.clear();
     graph.nodes.forEach((n) => this.nodeMap.set(n.id, n));
@@ -2570,6 +2589,7 @@ class DagRenderer {
       const host = el.select<HTMLElement>('.nc').node();
       if (host) { this.buildCardHtml(host, node); }
     }
+    this.reapplySim();
     this.refreshDim();
   }
 
@@ -4624,6 +4644,7 @@ class DagRenderer {
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', nodeClassOf(node));
+    this.reapplySim();
     el.select('.nc-sub-v').text(this.subValue(node));
 
     // The recorded output lands ON the card once the task settles ✓ —
