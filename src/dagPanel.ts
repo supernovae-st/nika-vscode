@@ -67,7 +67,7 @@ export type ExtToWebviewMessage =
   // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
   | { kind: 'dag:replayEnd' }
   // The welcome (empty canvas): recent workflows for the resume list.
-  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }>; binaryMissing?: boolean };
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
 // Webview -> Extension
 // nodeClicked carries the workflowUri from the webview's OWN persisted
@@ -592,7 +592,7 @@ export class DagPanel implements vscode.Disposable {
   }
 
   /** Recent workflows for the welcome (empty canvas resume list). */
-  public welcomeData(recent: Array<{ name: string; uri: string; rel: string }>, binaryMissing = false): void {
+  public welcomeData(recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>, binaryMissing = false): void {
     this.postMessage({ kind: 'welcome:data', recent, binaryMissing });
   }
 

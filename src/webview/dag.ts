@@ -428,7 +428,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
-  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string }>; binaryMissing?: boolean };
+  | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
 
@@ -5938,8 +5938,54 @@ for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.es-c
   });
 }
 
+/** A miniature of a workflow's REAL projection (the gallery/peek
+ *  grammar): verb-hued dots in wave columns + the real edges. */
+function miniDag(
+  sk: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> },
+  maxWidth: number,
+): SVGSVGElement {
+  const perWave = new Map<number, string[]>();
+  for (const n of sk.nodes) {
+    const list = perWave.get(n.wave) ?? [];
+    list.push(n.id);
+    perWave.set(n.wave, list);
+  }
+  const COL = 26; const ROW = 12; const PAD = 8;
+  const pos = new Map<string, [number, number]>();
+  for (const n of sk.nodes) {
+    const col = perWave.get(n.wave) ?? [];
+    pos.set(n.id, [PAD + n.wave * COL, PAD + col.indexOf(n.id) * ROW]);
+  }
+  const w = PAD * 2 + (Math.max(...sk.nodes.map((n) => n.wave)) + 1) * COL - COL + 6;
+  const h = PAD * 2 + Math.max(...[...perWave.values()].map((l) => l.length)) * ROW - ROW + 6;
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNs, 'svg');
+  svg.setAttribute('class', 'nk-mini');
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('width', String(Math.min(w, maxWidth)));
+  for (const e of sk.edges) {
+    const a = pos.get(e.source); const b = pos.get(e.target);
+    if (!a || !b) { continue; }
+    const line = document.createElementNS(svgNs, 'line');
+    line.setAttribute('x1', String(a[0] + 2.5)); line.setAttribute('y1', String(a[1]));
+    line.setAttribute('x2', String(b[0] - 2.5)); line.setAttribute('y2', String(b[1]));
+    line.setAttribute('class', 'hc-peek-edge');
+    svg.appendChild(line);
+  }
+  for (const n of sk.nodes) {
+    const p = pos.get(n.id);
+    if (!p) { continue; }
+    const dot = document.createElementNS(svgNs, 'circle');
+    dot.setAttribute('cx', String(p[0])); dot.setAttribute('cy', String(p[1]));
+    dot.setAttribute('r', '2.6');
+    dot.setAttribute('class', `hc-peek-dot vp-${n.verb}`);
+    svg.appendChild(dot);
+  }
+  return svg;
+}
+
 /** The resume list — recent workflows, the sidebar-sessions read. */
-function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: string }>): void {
+function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>): void {
   const host = document.getElementById('es-recent-list');
   const section = document.getElementById('es-recent');
   if (!host || !section) { return; }
@@ -5958,7 +6004,12 @@ function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: str
     const rel = document.createElement('span');
     rel.className = 'es-row-rel';
     rel.textContent = r.rel;
-    row.append(name, rel);
+    if (r.skeleton !== undefined && r.skeleton.nodes.length > 0) {
+      row.classList.add('es-row-gallery');
+      row.append(miniDag(r.skeleton, 120), name, rel);
+    } else {
+      row.append(name, rel);
+    }
     row.addEventListener('click', () => {
       vscode.postMessage({ kind: 'welcome:open', uri: r.uri });
     });
