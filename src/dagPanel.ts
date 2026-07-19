@@ -909,6 +909,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
       <button id="btn-timeline" title="Timeline — the run's truth as a Gantt (recorded clocks · retries · cost)">▤<kbd>T</kbd></button>
       <button id="btn-audit" title="Audit — what this file can DO before a token is spent (permits hulls · egress · cost ceiling)">▦<kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow — where the data comes from and goes (bindings only; control scaffolding sleeps)">⧉<kbd>D</kbd></button>
       <button id="btn-curve" title="Smooth edges">∿</button>
       <button id="btn-heat" title="Heatmap — tint cards by duration (or static cost before a run)">▥<kbd>H</kbd></button>
       <button id="btn-follow" title="Follow the run — the camera tracks the frontier (your pan pauses it)">⌖<kbd>G</kbd></button>
