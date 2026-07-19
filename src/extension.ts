@@ -925,6 +925,7 @@ export function activate(context: ExtensionContext): void {
         const graph = await loadGraphFor(doc);
         dagPanel.loadGraph(graph);
         dagPanel.note('⇄', `following ${workspace.asRelativePath(doc.uri)}`, undefined, 'st-note');
+        postTrail(doc.uri.toString());
       }, 350);
     }),
     { dispose: () => { if (followTimer) { clearTimeout(followTimer); } } },
@@ -977,6 +978,18 @@ export function activate(context: ExtensionContext): void {
 
   // DAG webview panel — track the active workflow URI for node-click navigation
   let dagWorkflowUri: Uri | undefined;
+  // Composition trail (the dive path): grows on ⎘ jumps, truncates on
+  // crumb jumps, resets when the user wanders to a file outside it.
+  let compTrail: Array<{ label: string; uri: string }> = [];
+  const labelOf = (uri: Uri): string => uri.path.split('/').pop() ?? uri.path;
+  const postTrail = (currentUri: string): void => {
+    const i = compTrail.findIndex((seg) => seg.uri === currentUri);
+    if (i === -1) {
+      if (compTrail.length > 0) { compTrail = []; dagPanel.postTrail([], 0); }
+      return;
+    }
+    dagPanel.postTrail(compTrail, i);
+  };
 
   // Graph + flight-recorder averages (mean success duration per task
   // across recorded runs of this graph) — every canvas load rides this.
@@ -1513,6 +1526,19 @@ export function activate(context: ExtensionContext): void {
           ? Uri.file(path)
           : base !== undefined ? Uri.joinPath(base, path) : undefined;
         if (!target) { return; }
+        // Grow the dive trail: seed the parent on the first jump; a
+        // re-dive from a mid-trail parent truncates the deeper tail.
+        if (parent !== undefined) {
+          const pi = compTrail.findIndex((seg) => seg.uri === parent);
+          if (pi === -1) {
+            compTrail = [{ label: labelOf(Uri.parse(parent)), uri: parent }];
+          } else {
+            compTrail = compTrail.slice(0, pi + 1);
+          }
+          if (compTrail[compTrail.length - 1]?.uri !== target.toString()) {
+            compTrail.push({ label: labelOf(target), uri: target.toString() });
+          }
+        }
         try {
           const doc = await workspace.openTextDocument(target);
           await window.showTextDocument(doc);
@@ -1530,6 +1556,16 @@ export function activate(context: ExtensionContext): void {
               await window.showTextDocument(doc);
             });
         }
+      })();
+    },
+    // Breadcrumb crumb click — open that document; the follow handler
+    // repaints the graph and re-posts the trail with the new active.
+    (uri) => {
+      void (async () => {
+        try {
+          const doc = await workspace.openTextDocument(Uri.parse(uri));
+          await window.showTextDocument(doc);
+        } catch { /* a deleted trail file — the next follow clears it */ }
       })();
     },
   );

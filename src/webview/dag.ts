@@ -421,6 +421,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:state'; running: boolean }
   | { kind: 'dag:stale'; stale: string[]; direct: string[] }
   | { kind: 'dag:audit'; audits: Array<{ taskId: string; count: number; worst: 'error' | 'warning' | 'info' }>; deadGates?: string[] }
+  | { kind: 'dag:trail'; segments: Array<{ label: string; uri: string }>; active: number }
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   | { kind: 'run:progress'; done: number; total: number }
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
@@ -455,6 +456,39 @@ interface WebviewState {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 const vscode = acquireVsCodeApi();
+
+// ─── The dive trail — composition breadcrumb (parent ▸ child ▸ …) ──
+// Grows on ⎘ jumps, truncates on crumb jumps, clears when the user
+// wanders outside it. Fewer than 2 segments = nothing to climb.
+function applyTrail(segments: Array<{ label: string; uri: string }>, active: number): void {
+  let el = document.getElementById('nk-trail');
+  if (segments.length < 2) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement('nav');
+    el.id = 'nk-trail';
+    el.setAttribute('aria-label', 'composition trail');
+    document.body.appendChild(el);
+  }
+  el.replaceChildren();
+  segments.forEach((seg, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'nk-trail-sep';
+      sep.textContent = '▸';
+      el.appendChild(sep);
+    }
+    const crumb = document.createElement('button');
+    crumb.className = `nk-trail-crumb${i === active ? ' active' : ''}`;
+    crumb.textContent = seg.label;
+    crumb.title = i === active ? 'you are here' : `back to ${seg.label}`;
+    if (i !== active) {
+      crumb.addEventListener('click', () => {
+        vscode.postMessage({ kind: 'dag:openTrail', uri: seg.uri });
+      });
+    }
+    el.appendChild(crumb);
+  });
+}
 
 // ─── The wall — no silent half-paint ──────────────────────────────────────────────
 // A render/layout exception used to vanish into a rejected promise:
@@ -5301,6 +5335,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'dag:audit':
       renderer.applyAudit(msg.audits, msg.deadGates);
+      break;
+    case 'dag:trail':
+      applyTrail(msg.segments, msg.active);
       break;
     case 'dag:cost':
       applyCostChip(msg.forecast);

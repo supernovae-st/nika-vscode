@@ -5270,3 +5270,55 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   .hc-peek-edge { stroke: CanvasText; }
   .hc-peek-dot { fill: CanvasText; }
 }
+
+/* ─── The dive trail — composition breadcrumb ───────────────────────
+   Top-left under the toolbar, mono, quiet. The active crumb is where
+   you ARE; the others are doors back up. */
+#nk-trail {
+  position: fixed;
+  top: 52px;
+  left: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(560px, calc(100vw - 200px));
+  overflow: hidden;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 14%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
+  font: 500 10.5px var(--nk-mono, monospace);
+}
+#nk-trail .nk-trail-sep {
+  color: color-mix(in srgb, var(--nk-ink) 40%, transparent);
+  flex: none;
+}
+#nk-trail .nk-trail-crumb {
+  border: 0;
+  padding: 1px 3px;
+  background: none;
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 72%, transparent);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 3px;
+}
+#nk-trail .nk-trail-crumb:hover {
+  color: var(--nk-fg, #eee);
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  text-decoration: underline;
+}
+#nk-trail .nk-trail-crumb.active {
+  color: var(--nk-verb-invoke);
+  font-weight: 700;
+  cursor: default;
+}
+#nk-trail .nk-trail-crumb.active:hover { background: none; text-decoration: none; }
+@media (forced-colors: active) {
+  #nk-trail { border: 1px solid CanvasText; background: Canvas; }
+  #nk-trail .nk-trail-crumb { color: LinkText; }
+  #nk-trail .nk-trail-crumb.active { color: CanvasText; }
+}
