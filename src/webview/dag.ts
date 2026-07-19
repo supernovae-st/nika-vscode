@@ -339,6 +339,9 @@ interface DagNode {
   /** In-flight spend (~$ curve · cost_incurred deltas) + stream proof. */
   liveUsd?: number;
   chunks?: number;
+  /** ADR-099 identity pair — on a cache hit, the proof of reuse. */
+  defHash?: string;
+  inputHash?: string;
   /** NIKA-DAG-006 — the `when:` gate is FALSE under every reachable
    *  combination: this task can NEVER run (static engine analysis). */
   deadGate?: boolean;
@@ -3818,7 +3821,10 @@ class DagRenderer {
       add('spent', `$${live.usd.toFixed(live.usd < 0.1 ? 4 : 2)} recorded`);
     }
     if (live.cached) {
-      add('resume', '↻ cache hit — recorded output reused, not re-executed');
+      const proof = live.defHash !== undefined && live.inputHash !== undefined
+        ? ` — same definition (${live.defHash.slice(0, 8)}…) and inputs (${live.inputHash.slice(0, 8)}…) as the recorded run`
+        : '';
+      add('resume', `↻ cache hit — recorded output reused, not re-executed${proof}`);
     }
     if (live.recoveredFrom) {
       add('repaired', `✚ recovered from ${live.recoveredFrom} — on_error.recover absorbed the failure`);
@@ -4474,7 +4480,7 @@ class DagRenderer {
   // ─── Status Updates ──────────────────────────────────────────────────────
 
   /** Mutate one node + its DOM (no graph-wide recompute — callers batch that). */
-  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number }): boolean {
+  private applyStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number, extra?: { failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number; defHash?: string; inputHash?: string }): boolean {
     const node = this.nodeMap.get(taskId);
     if (!node) return false;
     // The red teaches (wave G): the failure story and the didn't-run
@@ -4486,6 +4492,8 @@ class DagRenderer {
     node.agent = extra?.agent;
     node.liveUsd = extra?.liveUsd;
     node.chunks = extra?.chunks;
+    node.defHash = extra?.defHash;
+    node.inputHash = extra?.inputHash;
     // The ⏸ paints through subValue (the ticker reads it too — one
     // voice); the QUESTION rides the sub cell's title.
     const subEl = this.nodeGroup
@@ -4586,7 +4594,7 @@ class DagRenderer {
     this.afterStatusChange();
   }
 
-  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number }>): void {
+  batchUpdateStatus(updates: Array<{ taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string; failPreview?: string; whyWhen?: string; blockedBy?: string; pausedQuestion?: string; agent?: AgentFacts; liveUsd?: number; chunks?: number; defHash?: string; inputHash?: string }>): void {
     let touched = false;
     for (const u of updates) {
       touched = this.applyStatus(u.taskId, u.status, u.durationMs, u.cached, u.outputPreview, u.recoveredFrom, u.usd, u) || touched;
