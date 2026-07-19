@@ -35,6 +35,11 @@ export interface BodyFacts {
   thinkingBudget?: number;
   /** infer `vision:` — image inputs riding the prompt (list count). */
   visionCount?: number;
+  /** `max_parallel:` — the fan-out's concurrency cap (spec 03). */
+  maxParallel?: number;
+  /** `fail_fast:` — false = per-item error handling (the « process N ·
+   *  report which failed » idiom); absent = engine default (true). */
+  failFast?: boolean;
 }
 
 /** The on_error action keys (schema $defs/onError — exactly one). */
@@ -210,6 +215,13 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         else { onErrorIndent = indent; }
       } else if (indent === taskIndent && name === 'output') {
         outputIndent = indent;
+      } else if (indent === taskIndent && name === 'max_parallel' && fact.maxParallel === undefined) {
+        const n = Number(line.slice(line.indexOf(':') + 1).trim());
+        if (Number.isInteger(n) && n >= 1) { fact.maxParallel = n; }
+      } else if (indent === taskIndent && name === 'fail_fast' && fact.failFast === undefined) {
+        const v = line.slice(line.indexOf(':') + 1).trim();
+        if (v.startsWith('true')) { fact.failFast = true; }
+        else if (v.startsWith('false')) { fact.failFast = false; }
       } else if (name === 'thinking' && fact.thinkingBudget === undefined && indent > taskIndent) {
         // Verb-body block (spec 02): enabled + budget_tokens one level
         // down. Best-effort client read — `nika check` owns conformance.
@@ -260,7 +272,8 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         || fact.retryMax !== undefined || fact.timeout !== undefined
         || fact.onError !== undefined || fact.toolsCount !== undefined
         || fact.outputNames !== undefined || fact.finallyCount !== undefined
-        || fact.thinkingBudget !== undefined || fact.visionCount !== undefined) {
+        || fact.thinkingBudget !== undefined || fact.visionCount !== undefined
+        || fact.maxParallel !== undefined || fact.failFast !== undefined) {
       facts.set(task.id, fact);
     }
   }

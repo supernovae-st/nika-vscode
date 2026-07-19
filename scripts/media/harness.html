@@ -189,7 +189,7 @@
         },
         {
           id: 'chart', label: 'chart', verb: 'invoke', status: 'pending',
-          tool: 'nika:chart',
+          tool: 'nika:chart', fanOutKind: 'each', fanOutCount: 6, maxParallel: 3, failFast: false,
           argsPreview: 'kind: bar · title: commits by author',
           bindingsIn: [{ alias: 'rows', from: 'stats', path: 'output' }],
           producers: ['stats'],
