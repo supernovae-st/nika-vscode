@@ -13,6 +13,7 @@ import {
 } from 'vscode';
 import * as fs from 'fs';
 import { parseWorkflowTasks } from './workflowParser';
+import { NIKA_VERB_CODICON, type NikaVerbName } from './design-tokens.generated';
 
 /** Cached-check reader — wired to NikaService.peekCheck (zero spawns). */
 export type BadgeReader = (uriString: string) => CheckBadge;
@@ -89,14 +90,14 @@ class WorkflowTaskItem extends TreeItem {
     } as Command;
   }
 
+  /** Codicon + canonical hue, both from the design SSOT — the tree
+   *  carries the same verb band as the canvas and the gutter. */
   private static verbIcon(verb: string): ThemeIcon {
-    switch (verb) {
-      case 'infer': return new ThemeIcon('sparkle');
-      case 'exec': return new ThemeIcon('terminal');
-      case 'invoke': return new ThemeIcon('plug');
-      case 'agent': return new ThemeIcon('robot');
-      default: return new ThemeIcon('circle-outline');
+    if (verb in NIKA_VERB_CODICON) {
+      const known = verb as NikaVerbName;
+      return new ThemeIcon(NIKA_VERB_CODICON[known], new ThemeColor(`nika.verb.${known}`));
     }
+    return new ThemeIcon('circle-outline');
   }
 }
 

@@ -1000,7 +1000,7 @@ export class DagPanel implements vscode.Disposable {
         <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">✨</button>
       </form>
       <div id="es-binary" hidden role="status">
-        <span class="es-binary-mark" aria-hidden>⚠</span>
+        <span class="es-binary-mark" aria-hidden="true">⚠</span>
         <span class="es-binary-text">The nika engine is not on this machine — every check, graph
         and run needs it. <code>brew install supernovae-st/tap/nika</code> or let the extension
         fetch the official binary (HTTPS · SHA-256 verified · ~10 MB).</span>
@@ -1033,11 +1033,11 @@ export class DagPanel implements vscode.Disposable {
     </div>
   </div>
   <div id="explainer" hidden></div>
-  <div id="verb-cmdk" hidden role="listbox" aria-label="Pick the new task's verb">
-    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" aria-label="Filter verbs and tools">
-    <div id="cmdk-list"></div>
+  <div id="verb-cmdk" hidden>
+    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
-  <div id="hover-card" role="tooltip"></div>
+  <div id="hover-card" role="dialog" aria-label="Task details and actions"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
@@ -1067,7 +1067,7 @@ export class DagPanel implements vscode.Disposable {
     <button id="scrub-close" title="Exit replay">✕</button>
   </div>
   <div id="dag-legend">
-    <span id="legend-heat" aria-hidden><i class="lh-bar"></i><span class="lh-label"></span></span>
+    <span id="legend-heat" aria-hidden="true"><i class="lh-bar"></i><span class="lh-label"></span></span>
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>
   </div>

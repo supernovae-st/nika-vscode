@@ -43,3 +43,26 @@ describe('dag.css · the hand-typed vocabulary IS the generated SSOT', () => {
     expect(css).not.toMatch(/--nk-st-running: #5b8cff;\n\s*--nk-st-success: (?!#34d399)/)
   })
 })
+
+describe('package.json contributes.colors · the nika.verb.* theme colors ARE the SSOT', () => {
+  /* the tree's verb ThemeIcons ride ThemeColor('nika.verb.<verb>') — the
+     contributed defaults are hand-typed JSON, so they get the same pin as
+     the hand-typed CSS above (every default slot, every verb) */
+  type ColorContribution = {
+    id: string
+    defaults: { dark: string; light: string; highContrast: string }
+  }
+  const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as {
+    contributes: { colors: ColorContribution[] }
+  }
+
+  it('every verb contributes its canonical hue in every default slot', () => {
+    for (const [verb, hex] of Object.entries(NIKA_VERB_HEX)) {
+      const entry = pkg.contributes.colors.find((c) => c.id === `nika.verb.${verb}`)
+      expect(entry, `nika.verb.${verb} contributed`).toBeDefined()
+      expect(entry?.defaults.dark, `${verb} dark`).toBe(hex)
+      expect(entry?.defaults.light, `${verb} light`).toBe(hex)
+      expect(entry?.defaults.highContrast, `${verb} highContrast`).toBe(hex)
+    }
+  })
+})

@@ -135,6 +135,7 @@ class VerbCmdk {
     this.el.style.left = `${Math.max(8, x)}px`;
     this.el.style.top = `${Math.max(8, y)}px`;
     this.el.removeAttribute('hidden');
+    this.input.setAttribute('aria-expanded', 'true');
     this.input.value = '';
     this.active = 0;
     this.render();
@@ -152,6 +153,7 @@ class VerbCmdk {
 
   close(): void {
     this.el?.setAttribute('hidden', '');
+    this.input?.setAttribute('aria-expanded', 'false');
     this.onPick = undefined;
   }
 
@@ -173,6 +175,8 @@ class VerbCmdk {
   private header(text: string): HTMLElement {
     const h = document.createElement('div');
     h.className = 'cmdk-cat';
+    // Visual group label only — a listbox's children must be options.
+    h.setAttribute('role', 'presentation');
     h.textContent = text;
     return h;
   }
@@ -199,6 +203,8 @@ class VerbCmdk {
       }
       const row = document.createElement('button');
       row.dataset.i = String(i);
+      row.id = `cmdk-opt-${i}`;
+      row.setAttribute('role', 'option');
       const glyph = document.createElement('span');
       glyph.className = 'cmdk-glyph';
       const name = document.createElement('span');
@@ -236,8 +242,14 @@ class VerbCmdk {
     rows?.forEach((r) => {
       const on = Number(r.dataset.i) === this.active;
       r.classList.toggle('active', on);
+      r.setAttribute('aria-selected', String(on));
       if (on) { r.scrollIntoView({ block: 'nearest' }); }
     });
+    if (this.items.length > 0) {
+      this.input?.setAttribute('aria-activedescendant', `cmdk-opt-${this.active}`);
+    } else {
+      this.input?.removeAttribute('aria-activedescendant');
+    }
   }
 }
 
@@ -3950,6 +3962,9 @@ class DagRenderer {
       this.hoverCard.classList.contains('visible'),
     );
     const live = this.nodeMap.get(node.id) ?? node;
+    // Non-modal dialog (it carries action buttons — a tooltip may not):
+    // the label names the task the card describes.
+    this.hoverCard.setAttribute('aria-label', `Task ${live.id} — details and actions`);
     this.hoverCard.replaceChildren();
 
     const head = document.createElement('div');
@@ -4972,7 +4987,7 @@ class DagRenderer {
     const running = (this.currentGraph?.nodes ?? [])
       .filter((n) => n.status === 'running' || n.status === 'retrying')
       .map((n) => n.id);
-    const sig = running.join(' ');
+    const sig = running.join('\x00');
     if (sig !== this.lastRunTick) {
       this.lastRunTick = sig;
       vscode.postMessage({ kind: 'transport:tick', running });
