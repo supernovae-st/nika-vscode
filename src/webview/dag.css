@@ -5516,3 +5516,35 @@ body.dataflow .nc-io {
   .tl-group, .audit-hulls, #audit-banner, #nk-trail { animation: none; }
   body.dataflow .dag-edge.edge-data, body.dataflow .nc-io { transition: none; }
 }
+
+/* ─── The essence line — each builtin's soul, styled by nature ──────
+   (the deep-card law: an invoke card leads with the ONE fact that
+   names its work). Category-agnostic grammar: code is mono-boxed,
+   paths breathe, urls underline quietly, guards and signals carry
+   their glyph. The rest of the args rests. */
+.nc-essence { font-weight: 600; }
+.nc-ess-code {
+  font-family: var(--nk-mono, monospace);
+  padding: 0 4px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--nk-ink) 10%, transparent);
+  color: var(--nk-data);
+}
+.nc-ess-url {
+  color: var(--nk-data);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--nk-data) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.nc-ess-path {
+  font-family: var(--nk-mono, monospace);
+  color: var(--nk-st-success);
+}
+.nc-ess-condition { color: var(--nk-st-retrying); }
+.nc-ess-event { color: var(--nk-verb-invoke); }
+.nc-ess-duration { color: var(--nk-st-muted); font-variant-numeric: tabular-nums; }
+.nc-ess-text { color: var(--nk-fg, #ddd); }
+.nc-ess-rest {
+  opacity: 0.55;
+  font-weight: 400;
+}

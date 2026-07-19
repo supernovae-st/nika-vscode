@@ -20,7 +20,7 @@ import { easeCubicOut } from 'd3-ease';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
-import { resolveCardIdentity, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
+import { resolveCardIdentity, splitEssence, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
 import type { AgentFacts } from '../core/traceFold';
 import { convexHull, deriveAuditFacts, type PermitDomain } from '../core/auditLens';
 import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
@@ -3433,11 +3433,38 @@ class DagRenderer {
         if (code) { vscode.postMessage({ kind: 'dag:explainCode', code }); }
       });
       const shown = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
-      el.textContent = shown;
-      el.title = body.text;
-      // The resting text — a success swaps in the RECORDED OUTPUT (the
-      // data on the canvas); a re-run restores this base (DESIGN.md §1).
-      el.dataset.base = shown;
+      // The deep-card law (invoke bodies): the builtin's ESSENCE leads,
+      // styled by its nature (jq query as code · fetch url as a link
+      // face · write path as a path · assert condition as a guard ·
+      // emit event as a signal) — the rest of the args rests muted.
+      // Unknown builtins and absent essence args keep the plain line.
+      const bare = node.tool?.startsWith('nika:') === true ? node.tool.slice('nika:'.length) : undefined;
+      const split = body.kind === 'args' ? splitEssence(bare, body.text) : {};
+      if (split.essence !== undefined) {
+        const ess = document.createElement('span');
+        ess.className = `nc-essence nc-ess-${split.essence.render}`;
+        ess.textContent = split.essence.render === 'condition'
+          ? `⊨ ${split.essence.value}`
+          : split.essence.render === 'event'
+          ? `⚡ ${split.essence.value}`
+          : split.essence.value;
+        ess.title = `${split.essence.key}: ${split.essence.value}`;
+        el.appendChild(ess);
+        if (split.rest !== undefined) {
+          const rest = document.createElement('span');
+          rest.className = 'nc-ess-rest';
+          rest.textContent = ` · ${split.rest}`;
+          el.appendChild(rest);
+        }
+        el.title = body.text;
+        el.dataset.base = body.text;
+      } else {
+        el.textContent = shown;
+        el.title = body.text;
+        // The resting text — a success swaps in the RECORDED OUTPUT (the
+        // data on the canvas); a re-run restores this base (DESIGN.md §1).
+        el.dataset.base = shown;
+      }
       host.appendChild(el);
     }
 

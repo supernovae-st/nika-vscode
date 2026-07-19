@@ -6,7 +6,7 @@
 // suite IS the map, provable without a webview.
 
 import { describe, it, expect } from 'vitest';
-import { resolveCardIdentity, CATEGORY_GLYPH } from '../core/cardIdentity';
+import { splitEssence, resolveCardIdentity, CATEGORY_GLYPH } from '../core/cardIdentity';
 
 const CATS = {
   fetch: { cat: 'network' },
@@ -94,5 +94,31 @@ describe('resolveCardIdentity · composition (spec 14 — invoke workflow:)', ()
     const id = resolveCardIdentity({ verb: 'invoke', tool: 'workflow:' }, undefined);
     expect(id.subWorkflow).toBeUndefined();
     expect(id.glyph).toBeUndefined();
+  });
+});
+
+describe('splitEssence — the deep-card law (the essence leads, the rest rests)', () => {
+  it('finds the soul arg and splits the preview around it', () => {
+    const s = splitEssence('jq', 'input: rows · query: .[] | select(.n > 3)');
+    expect(s.essence).toEqual({ key: 'query', value: '.[] | select(.n > 3)', render: 'code' });
+    expect(s.rest).toBe('input: rows');
+  });
+
+  it('an unknown builtin keeps the plain line — never a guess', () => {
+    const s = splitEssence('hologram', 'a: 1 · b: 2');
+    expect(s.essence).toBeUndefined();
+    expect(s.rest).toBe('a: 1 · b: 2');
+  });
+
+  it('a known builtin whose essence arg is absent degrades to the plain line', () => {
+    const s = splitEssence('fetch', 'mode: markdown');
+    expect(s.essence).toBeUndefined();
+    expect(s.rest).toBe('mode: markdown');
+  });
+
+  it('the essence alone leaves no rest', () => {
+    const s = splitEssence('emit', 'event: task_done');
+    expect(s.essence?.render).toBe('event');
+    expect(s.rest).toBeUndefined();
   });
 });
