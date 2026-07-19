@@ -946,6 +946,7 @@ class DagRenderer {
     const verdicts = simulateFailure(taskId, ids, edges);
     this.simVerdicts = verdicts;
     this.reapplySim();
+    this.reapplyAuditMarks();
     document.body.classList.add('simulating');
     const dead = [...verdicts.values()].filter((v) => v === 'cancelled').length;
     const lit = [...verdicts.values()].filter((v) => v === 'lit').length;
@@ -973,6 +974,16 @@ class DagRenderer {
       .classed('sim-failed', (d) => verdicts.get(d.id) === 'failed')
       .classed('sim-dead', (d) => verdicts.get(d.id) === 'cancelled')
       .classed('sim-lit', (d) => verdicts.get(d.id) === 'lit');
+  }
+
+  /** Re-paint the audit lens's per-card marks (the secret rings) —
+   *  the 4th overwrite-family member: a status update on a ringed
+   *  card erased `audit-secret` (probe 2026-07-19). Same law, same
+   *  shape: one painter, called by every class overwriter. */
+  private reapplyAuditMarks(): void {
+    if (!this.auditOn) { return; }
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .classed('audit-secret', (d) => (d.secretLiterals ?? 0) > 0);
   }
 
   clearSimulation(): boolean {
@@ -2590,6 +2601,7 @@ class DagRenderer {
       if (host) { this.buildCardHtml(host, node); }
     }
     this.reapplySim();
+    this.reapplyAuditMarks();
     this.refreshDim();
   }
 
@@ -4645,6 +4657,7 @@ class DagRenderer {
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', nodeClassOf(node));
     this.reapplySim();
+    this.reapplyAuditMarks();
     el.select('.nc-sub-v').text(this.subValue(node));
 
     // The recorded output lands ON the card once the task settles ✓ —
