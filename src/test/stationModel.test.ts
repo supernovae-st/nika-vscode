@@ -8,10 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildStationRows,
+  deriveStationBadge,
   formatBytes,
   formatCost,
   parseDoctorReport,
   parseWelcomeDeep,
+  type StationRow,
 } from '../core/stationModel';
 
 const DOCTOR = {
@@ -101,7 +103,12 @@ describe('formatters — the one cost grammar', () => {
   });
 });
 
-describe('buildStationRows — pure derivation', () => {
+/** Walk every row of the derived tree (sections included). */
+function flatten(rows: StationRow[]): StationRow[] {
+  return rows.flatMap((r) => [r, ...flatten(r.children ?? [])]);
+}
+
+describe('buildStationRows — pure derivation (now · next · recent)', () => {
   const snap = {
     binaryPath: '/opt/homebrew/bin/nika',
     engineVersion: 'nika 0.104.0',
@@ -110,44 +117,168 @@ describe('buildStationRows — pure derivation', () => {
     deep: parseWelcomeDeep(DEEP),
   };
 
-  it('sections in journey order: engine · doctor · agents · providers · workspace', () => {
+  it('three questions top-level — recent hides when no run happened', () => {
     const rows = buildStationRows(snap);
-    expect(rows.map((r) => r.id)).toEqual(['engine', 'doctor', 'wired', 'providers', 'workspace']);
+    expect(rows.map((r) => r.id)).toEqual(['now', 'next']);
+    const now = rows[0];
+    expect(now.children?.map((c) => c.id)).toEqual(['engine', 'wired', 'providers', 'workspace']);
   });
 
-  it('doctor rows carry their exact fix as the click action', () => {
-    const doctor = buildStationRows(snap).find((r) => r.id === 'doctor');
-    expect(doctor?.label).toBe('Doctor — 2 to look at');
-    const zed = doctor?.children?.find((c) => c.description === 'nika wire zed');
-    expect(zed?.command).toEqual({ id: 'nika.station.applyFix', args: ['nika wire zed'] });
+  it('findings group by severity under next — the count rides the description', () => {
+    const next = buildStationRows(snap).find((r) => r.id === 'next');
+    expect(next?.description).toBe('2 to look at');
+    expect(next?.children?.map((c) => c.id)).toEqual(['next.warn']);
+    expect(next?.children?.[0].label).toBe('Warnings — 2');
   });
 
-  it('unwired clients get the wire action; wired ones rest', () => {
-    const wired = buildStationRows(snap).find((r) => r.id === 'wired');
+  it('fails outrank warns and set the section level', () => {
+    const doctor = parseDoctorReport({
+      summary: { ok: 0, warn: 1, fail: 1 },
+      findings: [
+        { label: 'agent', level: 'warn', detail: 'zed not wired', fix: 'nika wire zed' },
+        { label: 'binary', level: 'fail', detail: 'engine too old', fix: 'brew upgrade nika' },
+      ],
+    });
+    const next = buildStationRows({ ...snap, doctor }).find((r) => r.id === 'next');
+    expect(next?.level).toBe('fail');
+    expect(next?.children?.map((c) => c.id)).toEqual(['next.fail', 'next.warn']);
+    expect(next?.children?.[0].label).toBe('Failing — 1');
+  });
+
+  it('a finding’s repair rides the wrench (fix), never the primary click', () => {
+    const next = buildStationRows(snap).find((r) => r.id === 'next');
+    const zed = flatten(next ? [next] : []).find((c) => c.description === 'nika wire zed');
+    expect(zed?.fix).toEqual({ id: 'nika.station.applyFix', args: ['nika wire zed'] });
+    expect(zed?.command).toBeUndefined();
+  });
+
+  it('all-clear doctor is a NOW fact carrying the report door — next hides', () => {
+    const doctor = parseDoctorReport({
+      summary: { ok: 3, warn: 0, fail: 0 },
+      findings: [{ label: 'binary', level: 'ok', detail: 'v0.104.0', fix: null }],
+    });
+    const rows = buildStationRows({ ...snap, doctor });
+    expect(rows.find((r) => r.id === 'next')).toBeUndefined();
+    const clear = rows[0].children?.find((c) => c.id === 'doctor.clear');
+    expect(clear?.level).toBe('ok');
+    expect(clear?.context).toBe('doctorHead');
+    expect(clear?.command).toBeUndefined();
+  });
+
+  it('unwired clients repair through the wrench; wired ones rest', () => {
+    const wired = buildStationRows(snap)[0].children?.find((r) => r.id === 'wired');
     expect(wired?.label).toBe('Agents — 1/3 wired');
     const zed = wired?.children?.find((c) => c.id === 'client.zed');
-    expect(zed?.command).toEqual({ id: 'nika.station.wire', args: ['zed'] });
+    expect(zed?.fix).toEqual({ id: 'nika.station.wire', args: ['zed'] });
+    expect(zed?.command).toBeUndefined();
     const cursor = wired?.children?.find((c) => c.id === 'client.cursor');
     expect(cursor?.command).toBeUndefined();
+    expect(cursor?.fix).toBeUndefined();
+  });
+
+  it('no row in the whole tree executes on its primary click', () => {
+    // Navigation-only commands may ride a click; anything that spawns
+    // a terminal, touches the clipboard or restarts a process must be
+    // a `fix` (the wrench) instead.
+    const executing = ['nika.station.applyFix', 'nika.station.wire', 'nika.station.doctorReport', 'nika.doctorPing', 'nika.restartServer'];
+    for (const row of flatten(buildStationRows({ ...snap, lspState: 'failed' }))) {
+      if (row.command) { expect(executing).not.toContain(row.command.id); }
+    }
+  });
+
+  it('a failed language server repairs through the wrench', () => {
+    const rows = buildStationRows({ ...snap, lspState: 'failed' });
+    const lsp = rows[0].children?.[0].children?.find((c) => c.id === 'engine.lsp');
+    expect(lsp?.fix).toEqual({ id: 'nika.restartServer' });
+    expect(lsp?.command).toBeUndefined();
   });
 
   it('no binary → the ONE install action, no dead sections', () => {
     const rows = buildStationRows({ lspState: 'off' });
     expect(rows).toHaveLength(1);
-    expect(rows[0].children?.[0].command?.id).toBe('nika.finishSetup');
+    expect(rows[0].id).toBe('now');
+    expect(rows[0].children?.[0].children?.[0].command?.id).toBe('nika.finishSetup');
   });
 
   it('an off-grammar engine says so — honestly, with the check door', () => {
     const rows = buildStationRows({ ...snap, speaksGrammar: false });
-    const grammar = rows[0].children?.find((c) => c.id === 'engine.grammar');
+    const grammar = rows[0].children?.[0].children?.find((c) => c.id === 'engine.grammar');
     expect(grammar?.level).toBe('warn');
     expect(grammar?.command?.id).toBe('nika.checkBinary');
   });
 
   it('empty workspace points at the first gesture, not a zero table', () => {
-    const rows = buildStationRows(snap);
-    const ws = rows.find((r) => r.id === 'workspace');
+    const ws = buildStationRows(snap)[0].children?.find((r) => r.id === 'workspace');
     expect(ws?.children?.[0].command?.id).toBe('nika.newSession');
+  });
+});
+
+describe('buildStationRows — cost rollups (presentation, floor stays source)', () => {
+  const deep = parseWelcomeDeep({
+    ...DEEP,
+    rollups: {
+      cost_bounded_usd: 0.42,
+      cost_is_floor: true,
+      permits_declared: 4,
+      runs_cost_usd: 0.12,
+      runs_unpriced_calls: 2,
+      workflows_clean: 2,
+      workflows_total: 3,
+      workflows_with_findings: 1,
+    },
+    workspace: { git: false, root: '.', runs: [{}, {}, {}], workflows: [{}, {}, {}] },
+  });
+  const snap = {
+    binaryPath: '/opt/homebrew/bin/nika',
+    lspState: 'running' as const,
+    deep,
+  };
+
+  it('the ceiling dims into the description; the floor `≥` survives', () => {
+    const ws = buildStationRows(snap)[0].children?.find((r) => r.id === 'workspace');
+    const cost = ws?.children?.find((c) => c.id === 'ws.cost');
+    expect(cost?.label).toBe('ceiling');
+    expect(cost?.description).toBe('≥ $0.42 · 4 permits');
+    expect(cost?.level).toBe('warn');
+  });
+
+  it('the cost tooltip is a markdown breakdown table with the floor honesty note', () => {
+    const ws = buildStationRows(snap)[0].children?.find((r) => r.id === 'workspace');
+    const cost = ws?.children?.find((c) => c.id === 'ws.cost');
+    expect(cost?.tooltipMarkdown).toContain('| ceiling | ≥ $0.42 |');
+    expect(cost?.tooltipMarkdown).toContain('| permits declared | 4 |');
+    expect(cost?.tooltipMarkdown).toContain('FLOOR, not a ceiling');
+  });
+
+  it('recent carries the runs row: spend dimmed · unpriced named · table tooltip', () => {
+    const recent = buildStationRows(snap).find((r) => r.id === 'recent');
+    const runs = recent?.children?.find((c) => c.id === 'ws.runs');
+    expect(runs?.label).toBe('3 runs');
+    expect(runs?.description).toBe('spent $0.12 · 2 unpriced');
+    expect(runs?.tooltipMarkdown).toContain('| spent | $0.12 |');
+    expect(runs?.tooltipMarkdown).toContain('| unpriced calls | 2 |');
+    expect(runs?.tooltipMarkdown).toContain('unpriced, never free');
+  });
+});
+
+describe('deriveStationBadge — the badge law (fails only)', () => {
+  const base = { binaryPath: '/x/nika', lspState: 'running' as const };
+
+  it('counts run-blocking findings — doctor FAILS — with a tooltip', () => {
+    const doctor = parseDoctorReport({
+      summary: { ok: 1, warn: 5, fail: 2 },
+      findings: [],
+    });
+    expect(deriveStationBadge({ ...base, doctor })).toEqual({
+      value: 2,
+      tooltip: 'nika doctor: 2 failing',
+    });
+  });
+
+  it('warns never ring the bell; no doctor, no badge — undefined clears', () => {
+    const doctor = parseDoctorReport({ summary: { ok: 1, warn: 9, fail: 0 }, findings: [] });
+    expect(deriveStationBadge({ ...base, doctor })).toBeUndefined();
+    expect(deriveStationBadge(base)).toBeUndefined();
   });
 });
 
@@ -158,9 +289,10 @@ describe('buildStationRows — probe honesty (census pattern 5)', () => {
     lspState: 'running' as const,
   };
 
-  it('a broken probe earns its own row: warn · the detail · click retries', () => {
+  it('a broken probe earns its own row under next: warn · the detail · click retries', () => {
     const rows = buildStationRows({ ...base, doctorBroke: 'Unexpected token < in JSON' });
-    const broke = rows.find((r) => r.id === 'doctor.broke');
+    const next = rows.find((r) => r.id === 'next');
+    const broke = next?.children?.find((r) => r.id === 'doctor.broke');
     expect(broke?.level).toBe('warn');
     expect(broke?.description).toBe('Unexpected token < in JSON');
     expect(broke?.command?.id).toBe('nika.station.refresh');
@@ -168,14 +300,15 @@ describe('buildStationRows — probe honesty (census pattern 5)', () => {
 
   it('a broken probe NEVER wears the « predates 0.104 » row — that would be a lie', () => {
     const rows = buildStationRows({ ...base, deepBroke: 'shape mismatch (context_version envelope)' });
-    expect(rows.find((r) => r.id === 'engine.predates')).toBeUndefined();
-    expect(rows.find((r) => r.id === 'deep.broke')).toBeDefined();
+    const all = flatten(rows);
+    expect(all.find((r) => r.id === 'engine.predates')).toBeUndefined();
+    expect(all.find((r) => r.id === 'deep.broke')).toBeDefined();
   });
 
   it('an unsupported engine keeps the predates row and earns no broke rows', () => {
-    const rows = buildStationRows(base);
-    expect(rows.find((r) => r.id === 'engine.predates')).toBeDefined();
-    expect(rows.find((r) => r.id === 'doctor.broke')).toBeUndefined();
-    expect(rows.find((r) => r.id === 'deep.broke')).toBeUndefined();
+    const all = flatten(buildStationRows(base));
+    expect(all.find((r) => r.id === 'engine.predates')).toBeDefined();
+    expect(all.find((r) => r.id === 'doctor.broke')).toBeUndefined();
+    expect(all.find((r) => r.id === 'deep.broke')).toBeUndefined();
   });
 });
