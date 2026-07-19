@@ -4962,6 +4962,13 @@ body.timeline .region-label { display: none; }
    is a second voice over the lens's own wave rules (3-skin matrix
    find, 2026-07-19). */
 body.timeline #plan-rail { display: none; }
+/* The audit lens is MAP-space (hulls hug card geometry) — under the
+   timeline that geometry means nothing, so it sleeps with the map
+   (fresh-eyes census find, empirically confirmed: both stayed
+   visible). Toggling the timeline off brings it straight back —
+   sleep, never clear. */
+body.timeline .audit-hulls,
+body.timeline #audit-banner { display: none; }
 
 .tl-id {
   font: 10px var(--nk-mono, monospace);
