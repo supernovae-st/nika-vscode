@@ -3473,6 +3473,20 @@ class DagRenderer {
       // The resting paint (build AND restore share it — a re-run must
       // restore the STYLED essence, not a flat dump of dataset.base).
       paintBodyRest(el, node, body.kind, body.text);
+      // A REBUILD must keep the lived story (audit push · artifact
+      // refresh call this on settled cards): a success re-wears its
+      // recorded output, a failure its teaching red — the same swap
+      // applyStatus paints (probe 2026-07-19: a post-run check landed
+      // and flattened « → output » back to the resting text).
+      if (node.status === 'success' && node.outputPreview) {
+        el.textContent = `\u2192 ${node.outputPreview}`;
+        el.title = node.outputPreview;
+        el.classList.add('nc-body-live');
+      } else if (node.status === 'failed' && node.failPreview) {
+        el.textContent = `\u2717 ${node.failPreview}`;
+        el.title = `${node.failPreview}\n\nclick — explain the code`;
+        el.classList.add('nc-body-live', 'nc-body-err');
+      }
       host.appendChild(el);
     }
 
