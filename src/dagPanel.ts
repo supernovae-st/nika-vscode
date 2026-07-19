@@ -271,6 +271,18 @@ export class DagPanel implements vscode.Disposable {
 
   // ─── Public API ──────────────────────────────────────────────────────────
 
+  /** Tab title = the loaded workflow's file basename (multi-workflow and
+   *  follow-mode tabs stop being anonymous) · « Nika DAG » when no
+   *  document URI travels with the graph (client sketch · welcome). */
+  private static titleFor(graph: DagGraph | undefined): string {
+    const uriString = graph?.workflowUri;
+    if (uriString) {
+      const base = vscode.Uri.parse(uriString).path.split('/').pop();
+      if (base) { return base; }
+    }
+    return 'Nika DAG';
+  }
+
   /** Show the DAG panel (create if needed, reveal if exists) */
   public show(graph?: DagGraph): void {
     if (this.panel) {
@@ -293,7 +305,7 @@ export class DagPanel implements vscode.Disposable {
 
     const panel = vscode.window.createWebviewPanel(
       DagPanel.viewType,
-      'Nika DAG',
+      DagPanel.titleFor(graph ?? this.currentGraph),
       { viewColumn: this.columnStore?.get() ?? vscode.ViewColumn.Beside, preserveFocus: true },
       {
         enableScripts: true,
@@ -501,6 +513,7 @@ export class DagPanel implements vscode.Disposable {
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
+    if (this.panel) { this.panel.title = DagPanel.titleFor(graph); }
     // A new graph orphans any queued timeline (the webview side also
     // deactivates its transport on dag:load) AND any queued artifact
     // delta — the fresh graph carries its own recorded artifacts.
