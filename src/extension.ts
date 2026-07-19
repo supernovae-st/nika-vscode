@@ -137,6 +137,7 @@ import { attemptLadders } from './core/attempts';
 import { buildTimeline } from './core/timelineModel';
 import { topoWaves } from './core/cliContract';
 import { joinContract, parseChildVars, parseInvokeArgKeys } from './core/childContract';
+import { scanSecrets } from './core/credentialLint';
 import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
@@ -1011,6 +1012,23 @@ export function activate(context: ExtensionContext): void {
     } catch {
       // Averages are garnish — the graph must never fail on them.
     }
+    try {
+      // The other side of the secret story (L3 S2): the engine's IFC
+      // proves where DECLARED secrets flow; this marks tasks whose
+      // YAML span carries PASTED literals (credentialLint · precision-
+      // first). The audit lens paints them; the editor squiggle keeps
+      // the rewrite.
+      const secretFindings = scanSecrets(text);
+      if (secretFindings.length > 0) {
+        const wf = parseRichWorkflow(text);
+        for (const node of graph.nodes) {
+          const task = wf.tasks.find((t) => t.id === node.id);
+          if (!task) { continue; }
+          const n = secretFindings.filter((f) => f.line >= task.line && f.line <= task.endLine).length;
+          if (n > 0) { node.secretLiterals = n; }
+        }
+      }
+    } catch { /* garnish law */ }
     try {
       // Composition preview (spec 14): a workflow-call card carries its
       // CHILD's manifest — read from the child's OWN engine projection

@@ -342,6 +342,8 @@ interface DagNode {
   /** NIKA-DAG-006 — the `when:` gate is FALSE under every reachable
    *  combination: this task can NEVER run (static engine analysis). */
   deadGate?: boolean;
+  /** Literal credentials pasted in this task's span (lint count). */
+  secretLiterals?: number;
   /** infer senses (spec 02): thinking budget (-1 = uncapped) · vision. */
   thinkingBudget?: number;
   visionCount?: number;
@@ -955,6 +957,7 @@ class DagRenderer {
     this.auditGroup?.remove();
     this.auditGroup = undefined;
     document.getElementById('audit-banner')?.remove();
+    this.nodeGroup.selectAll('.audit-secret').classed('audit-secret', false);
   }
 
   renderAudit(): void {
@@ -1010,6 +1013,16 @@ class DagRenderer {
         .text(`${LABEL[domain]} · ${ids.length}`);
     }
 
+    // Literal-secret markers (L3 S2): the lint's other side, at the
+    // GRAPH scale — which tasks carry pasted credentials. Audit-scoped
+    // class flips; the editor squiggle keeps the rewrite.
+    let secretTotal = 0;
+    for (const n of nodes) {
+      const el = this.nodeGroup.select(`[data-id="${CSS.escape(n.id)}"]`);
+      el.classed('audit-secret', (n.secretLiterals ?? 0) > 0);
+      secretTotal += n.secretLiterals ?? 0;
+    }
+
     // The banner — the pitch line, in canvas.
     const banner = document.createElement('div');
     banner.id = 'audit-banner';
@@ -1018,6 +1031,12 @@ class DagRenderer {
     strong.className = 'audit-banner-k';
     strong.textContent = 'this file can:';
     banner.append(strong, ` ${facts.banner}`);
+    if (secretTotal > 0) {
+      const warn = document.createElement('span');
+      warn.className = 'audit-banner-secret';
+      warn.textContent = ` — ⚿ ${secretTotal} literal credential${secretTotal === 1 ? '' : 's'} pasted (use \u0024{{ env.VAR }})`;
+      banner.appendChild(warn);
+    }
     document.body.appendChild(banner);
   }
 
@@ -3863,6 +3882,9 @@ class DagRenderer {
       add('inside', `${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
         + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
         + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : ''));
+    }
+    if (live.secretLiterals !== undefined && live.secretLiterals > 0) {
+      add('secret', `⚿ ${live.secretLiterals} literal credential${live.secretLiterals === 1 ? '' : 's'} pasted in this task — use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)`);
     }
     if (live.deadGate === true) {
       add('gate', 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written');
