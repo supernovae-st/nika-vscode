@@ -5322,3 +5322,63 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   #nk-trail .nk-trail-crumb { color: LinkText; }
   #nk-trail .nk-trail-crumb.active { color: CanvasText; }
 }
+
+/* The first red's teacher — one quiet line, once per session. */
+#nk-red-teach {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--nk-st-failed) 40%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-st-failed) 10%, var(--nk-bg, #0d0d0e));
+  color: var(--nk-fg, #ddd);
+  font: 500 11px/1.5 var(--nk-mono, monospace);
+  animation: nk-wall-in 200ms ease-out;
+  transition: opacity 700ms;
+}
+#nk-red-teach.fade { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  #nk-red-teach { animation: none; transition: none; }
+}
+@media (forced-colors: active) {
+  #nk-red-teach { border: 1px solid LinkText; background: Canvas; color: CanvasText; }
+}
+
+/* ─── The hero ghost — the canvas never reads empty (Warp steal) ────
+   A faint verb-hued DAG behind the welcome card: the shape grammar
+   at a whisper, one dot pulsing (the run that wants to happen).
+   Decorative and honest — clearly an illustration, never a file. */
+#es-ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.16;
+}
+#es-ghost .esg-edges path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--nk-ink) 55%, transparent);
+  stroke-width: 1.5;
+}
+#es-ghost .esg-exec { fill: var(--nk-verb-exec); }
+#es-ghost .esg-infer { fill: var(--nk-verb-infer); }
+#es-ghost .esg-invoke { fill: var(--nk-verb-invoke); }
+#es-ghost .esg-agent { fill: var(--nk-verb-agent); }
+#es-ghost .esg-run { animation: esg-pulse 2.4s ease-in-out infinite; }
+#es-ghost .esg-run-edge {
+  stroke: color-mix(in srgb, var(--nk-verb-infer) 70%, transparent);
+  stroke-dasharray: 5 7;
+  animation: esg-march 3.2s linear infinite;
+}
+@keyframes esg-pulse { 50% { opacity: 0.35; } }
+@keyframes esg-march { to { stroke-dashoffset: -48; } }
+@media (prefers-reduced-motion: reduce) {
+  #es-ghost .esg-run, #es-ghost .esg-run-edge { animation: none; }
+}
+@media (forced-colors: active) {
+  #es-ghost { display: none; }
+}

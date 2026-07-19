@@ -1798,9 +1798,11 @@ export function activate(context: ExtensionContext): void {
       if (verdict === lastCheckNote) { return; }
       lastCheckNote = verdict;
       if (findings === 0) {
-        dagPanel.note('✓', 'check clean', undefined, 'st-success');
+        // The taught moment (friction census · in-canvas, never a
+        // toast): a clean check is the READY state — say the next move.
+        dagPanel.note('✓', 'check clean — ready to run ▶ (R · or mock M, zero keys)', undefined, 'st-success');
       } else {
-        dagPanel.note('✗', `check · ${findings} finding${findings === 1 ? '' : 's'}`, undefined, 'st-failed');
+        dagPanel.note('✗', `check · ${findings} finding${findings === 1 ? '' : 's'} — each teaches its fix (Shift+Enter for the report)`, undefined, 'st-failed');
       }
     }),
   );
@@ -2424,6 +2426,9 @@ export function activate(context: ExtensionContext): void {
       await workspace.fs.writeFile(filePath, content);
       const doc = await workspace.openTextDocument(filePath);
       await window.showTextDocument(doc);
+      // The taught moment — in the canvas feed when it is open (our
+      // surface, never a toast): the scaffold's next moves, one line.
+      dagPanel.note('＋', 'workflow created — N adds a task · ▶ runs (mock, zero keys) · the commented break_me teaches failure', undefined, 'st-note');
     }),
   );
 

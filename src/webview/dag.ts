@@ -1996,6 +1996,25 @@ class DagRenderer {
   /** A LIVE failure ripples its blast cone: every downstream card takes
    *  a transient hit, staggered by graph distance — you SEE what the
    *  failure just doomed, before the engine even reports the skips. */
+  /** The first red of the SESSION teaches its affordances — once,
+   *  quietly, next to the card (friction census: the failed card
+   *  carried powers nobody announced). In-canvas, never a toast. */
+  private taughtRed = false;
+  private teachFirstRed(taskId: string): void {
+    if (this.taughtRed) { return; }
+    this.taughtRed = true;
+    const box = this.layoutBox.get(taskId);
+    if (!box) { return; }
+    const hint = document.createElement('div');
+    hint.id = 'nk-red-teach';
+    hint.textContent = 'the red teaches — click the code to explain · hover ⑂ forks from here';
+    document.body.appendChild(hint);
+    // Park it under the toolbar (fixed) — the card itself may sit
+    // anywhere in the viewport; the activity line placement is stable.
+    setTimeout(() => hint.classList.add('fade'), 5200);
+    setTimeout(() => hint.remove(), 6000);
+  }
+
   private failureShockwave(fromId: string): void {
     if (REDUCED_MOTION || !document.body.classList.contains('running')) { return; }
     const depth = new Map<string, number>();
@@ -4398,7 +4417,7 @@ class DagRenderer {
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs, cached);
       if (status === 'running') { this.maybeFollow(taskId); }
-      if (status === 'failed') { this.failureShockwave(taskId); }
+      if (status === 'failed') { this.failureShockwave(taskId); this.teachFirstRed(taskId); }
     }
     // The elapsed anchor: set at the FIRST observed live transition
     // (retries keep the original clock — the task's wall time, not the
