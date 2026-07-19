@@ -6,6 +6,27 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The station answers three questions
+
+- **Station IA — now · next · recent**: the cockpit tree regroups
+  around three questions — is it running? (engine · agents · providers
+  · workspace) · what needs a repair? (doctor findings grouped by
+  severity, broken probes first) · what just happened? (the runs
+  rollup). Empty sections hide; the activity-bar badge stays fails-only
+  and its law now lives in the pure model, unit-proven.
+- **The wrench owns repairs**: fix-carrying rows (doctor findings ·
+  unwired clients · a failed language server) repair through an inline
+  wrench action — `nika …` fixes run in a visible terminal, `export …`
+  lines go to the clipboard — and no Station row executes on its
+  primary click anymore. The full doctor report rides an inline
+  terminal action on the doctor head rows.
+- **The wait lives on the view**: the doctor sweep paints the
+  Station's own progress bar (in-view), never a notification.
+- **Cost rollups read at a glance**: the workspace ceiling and the run
+  spend dim into short descriptions (`≥ $0.42 · 4 permits` · `spent
+  $0.12 · 2 unpriced`) with markdown breakdown tables on hover — the
+  floor-honesty `≥` grammar unchanged.
+
 ### The marathon waves — the lens deck · composition lived · every error a story
 
 - **One graph · five lenses** — the canvas becomes a deck of

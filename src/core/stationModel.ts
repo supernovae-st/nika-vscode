@@ -203,13 +203,39 @@ export interface StationRow {
   label: string;
   description?: string;
   tooltip?: string;
+  /** Markdown tooltip source (breakdown tables) — the view renders it
+   *  as an UNTRUSTED MarkdownString (no HTML, no command links). */
+  tooltipMarkdown?: string;
   /** codicon id (the tokens SSOT bindings — pulse · plug · shield …). */
   icon?: string;
   /** `ok`-family severity drives the icon color theme. */
   level?: DoctorLevel;
-  /** A command the row runs on click (command id + args). */
+  /** A command the row runs on click — NAVIGATION only (open · focus ·
+   *  re-probe). A primary click never executes; repairs live on `fix`. */
   command?: { id: string; args?: unknown[] };
+  /** The row's repair, carried by the inline wrench action — never the
+   *  primary click. String fixes route through nika.station.applyFix
+   *  (`nika …` → terminal · `export …` → clipboard, never run). */
+  fix?: { id: string; args?: unknown[] };
+  /** contextValue override for rows that carry a targeted inline action
+   *  (the doctor head rows carry the full-report action). */
+  context?: string;
   children?: StationRow[];
+}
+
+export interface StationBadge {
+  value: number;
+  tooltip: string;
+}
+
+/** The house badge law: the container badge counts FAILS only — the
+ *  run-blocking findings. A warn is a row, not a bell; `undefined`
+ *  clears the badge. */
+export function deriveStationBadge(snap: StationSnapshot): StationBadge | undefined {
+  const fails = snap.doctor?.summary.fail ?? 0;
+  return fails > 0
+    ? { value: fails, tooltip: `nika doctor: ${fails} failing` }
+    : undefined;
 }
 
 export function formatBytes(bytes: number): string {
@@ -230,11 +256,16 @@ export function formatCost(usd: number, isFloor: boolean): string {
   return `${isFloor ? '≥ ' : ''}$${amount}`;
 }
 
-/** Derive the whole tree — pure, so the view stays a dumb renderer. */
+/** Derive the whole tree — pure, so the view stays a dumb renderer.
+ *
+ *  The information architecture is three questions (GitLens 16):
+ *  NOW « is it running? » · NEXT « what needs a repair? » · RECENT
+ *  « what just happened? ». Empty sections hide — a question with no
+ *  answer is not a row. */
 export function buildStationRows(snap: StationSnapshot): StationRow[] {
-  const rows: StationRow[] = [];
+  // ── NOW · engine + agents + providers + workspace state ──
+  const nowChildren: StationRow[] = [];
 
-  // ── ENGINE (the NOW card) ──
   const engineChildren: StationRow[] = [];
   if (!snap.binaryPath) {
     engineChildren.push({
@@ -276,10 +307,12 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
             : 'language server off',
       icon: snap.lspState === 'running' ? 'check' : snap.lspState === 'failed' ? 'error' : 'circle-outline',
       level: snap.lspState === 'failed' ? 'fail' : snap.lspState === 'running' ? 'ok' : 'warn',
-      command: snap.lspState === 'failed' ? { id: 'nika.restartServer' } : undefined,
+      ...(snap.lspState === 'failed'
+        ? { fix: { id: 'nika.restartServer' }, tooltip: 'fix: restart the language server' }
+        : {}),
     });
   }
-  rows.push({
+  nowChildren.push({
     kind: 'section',
     id: 'engine',
     label: 'Engine',
@@ -293,7 +326,7 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
   // « too old » on a current engine whose JSON broke is a lie.
   if (snap.binaryPath && !snap.doctor && !snap.deep
       && snap.doctorBroke === undefined && snap.deepBroke === undefined) {
-    rows.push({
+    nowChildren.push({
       kind: 'fact',
       id: 'engine.predates',
       label: 'this engine predates the station surfaces',
@@ -303,58 +336,31 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
     });
   }
 
-  // A probe that answered and broke gets its own honest row — never a
-  // blank section, never a stale one. Click retries (the cheap move);
-  // persistence means an engine/extension mismatch worth reporting.
-  const brokeRow = (id: string, surface: string, detail: string): StationRow => ({
-    kind: 'fact',
-    id,
-    label: `${surface} unreadable`,
-    description: detail,
-    tooltip: 'The engine answered but the JSON did not parse — an engine/extension '
-      + 'mismatch, not your project. Click to retry; report it if it persists.',
-    icon: 'warning',
-    level: 'warn',
-    command: { id: 'nika.station.refresh' },
-  });
-  if (snap.doctorBroke !== undefined) {
-    rows.push(brokeRow('doctor.broke', 'doctor --json', snap.doctorBroke));
-  }
-  if (snap.deepBroke !== undefined) {
-    rows.push(brokeRow('deep.broke', 'workspace snapshot', snap.deepBroke));
-  }
+  const actionable = snap.doctor
+    ? snap.doctor.findings.filter((f) => f.level !== 'ok')
+    : [];
 
-  // ── FIX (doctor findings that carry a next step) ──
-  if (snap.doctor) {
-    const actionable = snap.doctor.findings.filter((f) => f.level !== 'ok');
-    const label = actionable.length === 0
-      ? 'Doctor — all clear'
-      : `Doctor — ${actionable.length} to look at`;
-    rows.push({
-      kind: 'section',
-      id: 'doctor',
-      label,
+  // Doctor all-clear is a NOW fact — the repair section below only
+  // exists when something needs a hand. The inline terminal action
+  // (doctorHead) keeps the full report one click away.
+  if (snap.doctor && actionable.length === 0) {
+    nowChildren.push({
+      kind: 'fact',
+      id: 'doctor.clear',
+      label: 'Doctor — all clear',
+      tooltip: 'Every doctor probe came back green.',
       icon: 'pulse',
-      level: snap.doctor.summary.fail > 0 ? 'fail' : actionable.length > 0 ? 'warn' : 'ok',
-      command: { id: 'nika.station.doctorReport' },
-      children: actionable.slice(0, 12).map((f, i) => ({
-        kind: 'finding' as const,
-        id: `doctor.${f.label}.${i}`,
-        label: f.detail,
-        description: f.fix,
-        tooltip: f.fix ? `${f.detail}\n\nfix: ${f.fix}` : f.detail,
-        icon: f.level === 'fail' ? 'error' : 'warning',
-        level: f.level,
-        command: f.fix ? { id: 'nika.station.applyFix', args: [f.fix] } : undefined,
-      })),
+      level: 'ok',
+      context: 'doctorHead',
     });
   }
 
-  // ── WIRED (agent clients — the extension is the agents' oracle) ──
+  // Agent clients — the extension is the agents' oracle. An unwired
+  // client's repair is the wrench (`nika wire <id>`), never the click.
   if (snap.deep) {
     const clients = snap.deep.environment.clients;
     const wiredCount = clients.filter((c) => c.wired).length;
-    rows.push({
+    nowChildren.push({
       kind: 'section',
       id: 'wired',
       label: `Agents — ${wiredCount}/${clients.length} wired`,
@@ -368,15 +374,20 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
           : 'not wired',
         icon: c.wired ? 'pass-filled' : 'circle-outline',
         level: c.wired ? 'ok' as const : 'warn' as const,
-        command: c.wired ? undefined : { id: 'nika.station.wire', args: [c.id] },
+        ...(c.wired
+          ? {}
+          : {
+            tooltip: `fix: nika wire ${c.id}`,
+            fix: { id: 'nika.station.wire', args: [c.id] },
+          }),
       })),
     });
   }
 
-  // ── PROVIDERS (sovereign first — local models are a first-class row) ──
+  // Providers (sovereign first — local models are a first-class row).
   if (snap.deep) {
     const env = snap.deep.environment;
-    rows.push({
+    nowChildren.push({
       kind: 'section',
       id: 'providers',
       label: 'Providers',
@@ -390,7 +401,6 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
           tooltip: 'Local engines need no key — the sovereign lane.\nnika model list · nika doctor --ping',
           icon: 'vm',
           level: 'ok',
-          command: { id: 'nika.doctorPing' },
         },
         {
           kind: 'fact',
@@ -404,7 +414,8 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
     });
   }
 
-  // ── WORKSPACE (rollups — the engine audited every file) ──
+  // Workspace rollups — the engine audited every file. The runs row
+  // is the recent past and lives under RECENT below.
   if (snap.deep) {
     const r = snap.deep.rollups;
     const wsChildren: StationRow[] = [];
@@ -426,37 +437,152 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
         icon: r.workflowsWithFindings === 0 ? 'pass-filled' : 'warning',
         level: r.workflowsWithFindings === 0 ? 'ok' : 'warn',
       });
+      const ceiling = formatCost(r.costBoundedUsd, r.costIsFloor);
       wsChildren.push({
         kind: 'fact',
         id: 'ws.cost',
-        label: `ceiling ${formatCost(r.costBoundedUsd, r.costIsFloor)}`,
-        description: `${r.permitsDeclared} permits declared`,
-        tooltip: r.costIsFloor
-          ? 'At least one task is unbounded — this is a FLOOR, not a ceiling.'
-          : 'Static cost ceiling across the workspace, before any token is spent.',
+        label: 'ceiling',
+        description: `${ceiling} · ${r.permitsDeclared} permit${r.permitsDeclared === 1 ? '' : 's'}`,
+        tooltipMarkdown: [
+          '**Cost ceiling** — static, before any token is spent',
+          '',
+          '| what | value |',
+          '| --- | --- |',
+          `| ceiling | ${ceiling} |`,
+          `| permits declared | ${r.permitsDeclared} |`,
+          ...(r.costIsFloor
+            ? ['', 'At least one task is unbounded — this is a FLOOR, not a ceiling.']
+            : []),
+        ].join('\n'),
         icon: 'credit-card',
         level: r.costIsFloor ? 'warn' : 'ok',
       });
-      if (snap.deep.runCount > 0) {
-        wsChildren.push({
-          kind: 'fact',
-          id: 'ws.runs',
-          label: `${snap.deep.runCount} recent run${snap.deep.runCount === 1 ? '' : 's'} · spent ${formatCost(r.runsCostUsd, false)}`,
-          description: r.runsUnpricedCalls > 0 ? `${r.runsUnpricedCalls} unpriced calls` : undefined,
-          tooltip: r.runsUnpricedCalls > 0
-            ? 'Unpriced calls: a local model is unpriced, never free.'
-            : undefined,
-          icon: 'record',
-          level: 'ok',
-        });
-      }
     }
-    rows.push({
+    nowChildren.push({
       kind: 'section',
       id: 'workspace',
       label: 'Workspace',
       icon: 'root-folder',
       children: wsChildren,
+    });
+  }
+
+  const rows: StationRow[] = [{
+    kind: 'section',
+    id: 'now',
+    label: 'Now',
+    icon: 'dashboard',
+    children: nowChildren,
+  }];
+
+  // ── NEXT · what needs a repair (probe truth first, then findings) ──
+  const nextChildren: StationRow[] = [];
+
+  // A probe that answered and broke gets its own honest row — never a
+  // blank section, never a stale one. Click retries (the cheap move);
+  // persistence means an engine/extension mismatch worth reporting.
+  const brokeRow = (id: string, surface: string, detail: string): StationRow => ({
+    kind: 'fact',
+    id,
+    label: `${surface} unreadable`,
+    description: detail,
+    tooltip: 'The engine answered but the JSON did not parse — an engine/extension '
+      + 'mismatch, not your project. Click to retry; report it if it persists.',
+    icon: 'warning',
+    level: 'warn',
+    command: { id: 'nika.station.refresh' },
+  });
+  if (snap.doctorBroke !== undefined) {
+    nextChildren.push(brokeRow('doctor.broke', 'doctor --json', snap.doctorBroke));
+  }
+  if (snap.deepBroke !== undefined) {
+    nextChildren.push(brokeRow('deep.broke', 'workspace snapshot', snap.deepBroke));
+  }
+
+  // Doctor findings, grouped by severity — fails before warns, the
+  // 12-row cap across both. Each finding's repair rides the wrench;
+  // the primary click executes nothing (a doctor finding carries no
+  // file/range to open).
+  const findingRow = (f: DoctorFinding, i: number): StationRow => ({
+    kind: 'finding',
+    id: `doctor.${f.level}.${f.label}.${i}`,
+    label: f.detail,
+    description: f.fix,
+    tooltip: f.fix ? `${f.detail}\n\nfix: ${f.fix}` : f.detail,
+    icon: f.level === 'fail' ? 'error' : 'warning',
+    level: f.level,
+    ...(f.fix ? { fix: { id: 'nika.station.applyFix', args: [f.fix] } } : {}),
+  });
+  const fails = actionable.filter((f) => f.level === 'fail');
+  const warns = actionable.filter((f) => f.level === 'warn');
+  const failsShown = fails.slice(0, 12);
+  const warnsShown = warns.slice(0, Math.max(0, 12 - failsShown.length));
+  if (failsShown.length > 0) {
+    nextChildren.push({
+      kind: 'section',
+      id: 'next.fail',
+      label: `Failing — ${fails.length}`,
+      icon: 'error',
+      level: 'fail',
+      children: failsShown.map(findingRow),
+    });
+  }
+  if (warnsShown.length > 0) {
+    nextChildren.push({
+      kind: 'section',
+      id: 'next.warn',
+      label: `Warnings — ${warns.length}`,
+      icon: 'warning',
+      level: 'warn',
+      children: warnsShown.map(findingRow),
+    });
+  }
+  if (nextChildren.length > 0) {
+    rows.push({
+      kind: 'section',
+      id: 'next',
+      label: 'Next',
+      description: actionable.length > 0 ? `${actionable.length} to look at` : undefined,
+      icon: 'pulse',
+      level: fails.length > 0 ? 'fail' : 'warn',
+      context: 'doctorHead',
+      children: nextChildren,
+    });
+  }
+
+  // ── RECENT · what just happened (the traces' rollup) ──
+  if (snap.deep && snap.deep.runCount > 0) {
+    const r = snap.deep.rollups;
+    const n = snap.deep.runCount;
+    const spent = formatCost(r.runsCostUsd, false);
+    rows.push({
+      kind: 'section',
+      id: 'recent',
+      label: 'Recent',
+      icon: 'history',
+      children: [{
+        kind: 'fact',
+        id: 'ws.runs',
+        label: `${n} run${n === 1 ? '' : 's'}`,
+        description: `spent ${spent}${r.runsUnpricedCalls > 0 ? ` · ${r.runsUnpricedCalls} unpriced` : ''}`,
+        tooltipMarkdown: [
+          '**Recent runs** — what the traces recorded',
+          '',
+          '| what | value |',
+          '| --- | --- |',
+          `| runs | ${n} |`,
+          `| spent | ${spent} |`,
+          ...(r.runsUnpricedCalls > 0
+            ? [
+              `| unpriced calls | ${r.runsUnpricedCalls} |`,
+              '',
+              'Unpriced calls: a local model is unpriced, never free.',
+            ]
+            : []),
+        ].join('\n'),
+        icon: 'record',
+        level: 'ok',
+      }],
     });
   }
 

@@ -626,6 +626,13 @@
       {
         "command": "nika.station.doctorReport",
         "title": "Doctor Full Report (in the terminal)",
+        "icon": "$(terminal)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.fix",
+        "title": "Apply Fix",
+        "icon": "$(wrench)",
         "category": "Nika"
       }
     ],
@@ -942,6 +949,10 @@
         {
           "command": "nika.station.applyFix",
           "when": "false"
+        },
+        {
+          "command": "nika.station.fix",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -1021,6 +1032,16 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "nika.station.fix",
+          "when": "view == nikaStation && viewItem == fixable",
+          "group": "inline"
+        },
+        {
+          "command": "nika.station.doctorReport",
+          "when": "view == nikaStation && viewItem == doctorHead",
+          "group": "inline"
+        },
         {
           "command": "nika.diffTraces",
           "when": "view == nikaRuns && viewItem == nikaTrace",

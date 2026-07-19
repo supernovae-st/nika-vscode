@@ -14,6 +14,7 @@ import * as vscode from 'vscode';
 import { NikaService } from '../nikaService';
 import {
   buildStationRows,
+  deriveStationBadge,
   type StationRow,
   type StationSnapshot,
 } from '../core/stationModel';
@@ -34,7 +35,12 @@ class StationItem extends vscode.TreeItem {
     );
     this.id = row.id;
     this.description = row.description;
-    if (row.tooltip) { this.tooltip = row.tooltip; }
+    if (row.tooltipMarkdown) {
+      // Breakdown tables — untrusted markdown, no HTML, no command links.
+      const md = new vscode.MarkdownString(row.tooltipMarkdown);
+      md.isTrusted = false;
+      this.tooltip = md;
+    } else if (row.tooltip) { this.tooltip = row.tooltip; }
     if (row.icon) {
       const color = row.level ? LEVEL_COLOR[row.level] : undefined;
       this.iconPath = new vscode.ThemeIcon(
@@ -49,7 +55,9 @@ class StationItem extends vscode.TreeItem {
         arguments: row.command.args,
       };
     }
-    this.contextValue = `nikaStation.${row.kind}`;
+    // `fixable` targets the inline wrench (view/item/context); the
+    // doctor head rows carry the full-report inline action instead.
+    this.contextValue = row.fix ? 'fixable' : row.context ?? `nikaStation.${row.kind}`;
   }
 }
 
@@ -86,11 +94,16 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
       lspState: this.lspState,
     };
     if (this.service.available) {
-      const [doctor, deep, grammar] = await Promise.all([
-        this.service.doctorJson(cwd),
-        this.service.welcomeDeep(cwd),
-        this.service.speaksGrammar(),
-      ]);
+      // The wait lives ON the view (annexe A): the Station's own
+      // progress bar while the doctor sweep runs — never a toast.
+      const [doctor, deep, grammar] = await vscode.window.withProgress(
+        { location: { viewId: 'nikaStation' } },
+        () => Promise.all([
+          this.service.doctorJson(cwd),
+          this.service.welcomeDeep(cwd),
+          this.service.speaksGrammar(),
+        ]),
+      );
       if (seq !== this.snapshotSeq) { return; }
       // Probe → snapshot: ok lands the value; a probe that ANSWERED
       // and broke lands its story (honest row); unsupported stays
@@ -126,11 +139,9 @@ export function registerStation(
     service,
     context.extension.packageJSON.version as string,
     (snap) => {
-      // The badge speaks only for BROKEN — a warn is a row, not a bell.
-      const fails = snap.doctor?.summary.fail ?? 0;
-      view.badge = fails > 0
-        ? { value: fails, tooltip: `nika doctor: ${fails} failing` }
-        : undefined;
+      // The badge law lives in the model (fails only — a warn is a
+      // row, not a bell); `undefined` clears it.
+      view.badge = deriveStationBadge(snap);
     },
   );
   const view = vscode.window.createTreeView('nikaStation', {
@@ -175,6 +186,17 @@ export function registerStation(
     }),
     vscode.commands.registerCommand('nika.station.doctorReport', () => {
       inTerminal('nika doctor');
+    }),
+    vscode.commands.registerCommand('nika.station.fix', async (row: unknown) => {
+      // The inline wrench receives the tree row — typeof first (the
+      // command is palette-hidden, but the guard is the law, not the
+      // menu). It re-routes to the row's repair command, so the fix
+      // behavior stays the audited one: `nika …` runs in a VISIBLE
+      // terminal · `export …` goes to the clipboard, never executed.
+      if (typeof row !== 'object' || row === null) { return; }
+      const fix = (row as StationRow).fix;
+      if (!fix || typeof fix.id !== 'string') { return; }
+      await vscode.commands.executeCommand(fix.id, ...(fix.args ?? []));
     }),
   );
 
