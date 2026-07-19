@@ -97,6 +97,10 @@ export interface SubManifest {
   costMax?: number;
   /** Distinct engine-attributed grants across the child's tasks. */
   permits?: number;
+  /** The callable contract joined with the parent's args (spec 01
+   *  §vars × invoke args — facts from both sides, check owns the
+   *  findings). ≤6 rows travel; the card paints ≤4. */
+  contract?: Array<{ name: string; state: 'supplied' | 'default' | 'required-unset' | 'optional'; type?: string }>;
   /** The hover peek's skeleton (≤30 tasks): verb-hued dots in wave
    *  columns + the REAL edges — a miniature of the child's own
    *  projection, never an invented shape. */

@@ -136,6 +136,7 @@ import { extractRunArtifacts } from './core/artifacts';
 import { attemptLadders } from './core/attempts';
 import { buildTimeline } from './core/timelineModel';
 import { topoWaves } from './core/cliContract';
+import { joinContract, parseChildVars, parseInvokeArgKeys } from './core/childContract';
 import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
@@ -994,6 +995,7 @@ export function activate(context: ExtensionContext): void {
   // Graph + flight-recorder averages (mean success duration per task
   // across recorded runs of this graph) — every canvas load rides this.
   const loadGraphFor = async (doc: TextDocument) => {
+    const text = doc.getText();
     const graph = await service.dagForDocument(doc);
     // The ↻ re-run-changed affordance rides the binary's ADR-099 surface.
     graph.resumeCapable = service.caps.resume;
@@ -1035,9 +1037,17 @@ export function activate(context: ExtensionContext): void {
         const childWaves = topoWaves(child.nodes, child.edges);
         const waveOf = new Map<string, number>();
         childWaves.forEach((wave, w) => { for (const id of wave) { waveOf.set(id, w); } });
+        // The promoted contract (ComfyUI-widgets steal): the child's
+        // vars: × this task's args: — the card face becomes the
+        // child's callable API. Facts only; check owns findings.
+        const contract = joinContract(
+          parseChildVars(childDoc.getText()),
+          parseInvokeArgKeys(text, node.id),
+        ).slice(0, 6);
         node.subManifest = {
           tasks: child.nodes.length,
           waves: childWaves.length,
+          ...(contract.length > 0 ? { contract } : {}),
           ...(costMin !== undefined ? { costMin } : {}),
           ...(costMax !== undefined ? { costMax } : {}),
           ...(grants.size > 0 ? { permits: grants.size } : {}),
