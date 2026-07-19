@@ -5147,3 +5147,63 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
 @media (forced-colors: active) {
   .tl-cursor { stroke: Highlight; }
 }
+
+/* ─── L3 · the audit lens — capability hulls + the pitch banner ─────
+   Domain hues borrow the STATE family (semantic, not decorative):
+   egress wears the failed red (the thing a reviewer checks first),
+   programs the retrying amber, files the success green, tools the
+   running blue. Hulls are whispers — fill barely there, dashed ring. */
+body.audit .dag-node .nc { opacity: 0.92; }
+.audit-hull {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  stroke-linejoin: round;
+}
+.audit-hull.audit-net {
+  fill: color-mix(in srgb, var(--nk-st-failed) 6%, transparent);
+  stroke: color-mix(in srgb, var(--nk-st-failed) 55%, transparent);
+}
+.audit-hull.audit-exec {
+  fill: color-mix(in srgb, var(--nk-st-retrying) 6%, transparent);
+  stroke: color-mix(in srgb, var(--nk-st-retrying) 50%, transparent);
+}
+.audit-hull.audit-fs {
+  fill: color-mix(in srgb, var(--nk-st-success) 6%, transparent);
+  stroke: color-mix(in srgb, var(--nk-st-success) 45%, transparent);
+}
+.audit-hull.audit-tool {
+  fill: color-mix(in srgb, var(--nk-st-running) 5%, transparent);
+  stroke: color-mix(in srgb, var(--nk-st-running) 40%, transparent);
+}
+.audit-hull-label {
+  font: 600 10px var(--nk-mono, monospace);
+  letter-spacing: 0.04em;
+}
+.audit-hull-label.audit-net { fill: var(--nk-st-failed); }
+.audit-hull-label.audit-exec { fill: var(--nk-st-retrying); }
+.audit-hull-label.audit-fs { fill: var(--nk-st-success); }
+.audit-hull-label.audit-tool { fill: var(--nk-st-running); }
+#audit-banner {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  max-width: min(860px, calc(100vw - 48px));
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 18%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 88%, var(--nk-ink));
+  color: var(--nk-fg, #ddd);
+  font: 500 11px/1.6 var(--nk-mono, monospace);
+}
+#audit-banner .audit-banner-k {
+  color: var(--nk-st-retrying);
+  font-weight: 700;
+  margin-right: 2px;
+}
+@media (forced-colors: active) {
+  .audit-hull { fill: none; stroke: CanvasText; }
+  .audit-hull-label { fill: CanvasText; }
+  #audit-banner { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+}
