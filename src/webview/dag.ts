@@ -348,6 +348,11 @@ interface DagNode {
   /** fan-out policies (spec 03): concurrency cap · per-item idiom. */
   maxParallel?: number;
   failFast?: boolean;
+  /** Composition: the child workflow's OWN manifest (its projection). */
+  subManifest?: {
+    tasks: number; waves: number; costMin?: number; costMax?: number; permits?: number;
+    skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> };
+  };
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -3389,8 +3394,15 @@ class DagRenderer {
         // canvas→YAML jump (the extension resolves the relative path).
         const chip = document.createElement('button');
         chip.className = 'nc-chip nc-model nc-sub-wf';
-        chip.textContent = `⎘ ${subPath.split('/').pop() ?? subPath}`;
-        chip.title = `Sub-workflow: ${subPath}\nClick to open it`;
+        const m = node.subManifest;
+        const base = subPath.split('/').pop() ?? subPath;
+        chip.textContent = m !== undefined ? `⎘ ${base} · ${m.tasks}` : `⎘ ${base}`;
+        const manifestLines = m !== undefined
+          ? [`\ninside: ${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
+            + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
+            + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '')]
+          : [];
+        chip.title = `Sub-workflow: ${subPath}${manifestLines.join('')}\nClick to open it`;
         chip.addEventListener('mousedown', (e) => e.stopPropagation());
         chip.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -3706,6 +3718,58 @@ class DagRenderer {
       if (af.compose !== undefined) {
         add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
       }
+    }
+    if (live.subManifest?.skeleton !== undefined) {
+      // The hover peek (UE collapsed-graph steal): the child's REAL
+      // shape at a glance — verb-hued dots in wave columns, its real
+      // edges as thin links. A miniature of ITS projection, no labels.
+      const sk = live.subManifest.skeleton;
+      const perWave = new Map<number, string[]>();
+      for (const n of sk.nodes) {
+        const list = perWave.get(n.wave) ?? [];
+        list.push(n.id);
+        perWave.set(n.wave, list);
+      }
+      const COL = 34; const ROW = 16; const PAD = 10;
+      const pos = new Map<string, [number, number]>();
+      for (const n of sk.nodes) {
+        const col = perWave.get(n.wave) ?? [];
+        pos.set(n.id, [PAD + n.wave * COL, PAD + col.indexOf(n.id) * ROW]);
+      }
+      const w = PAD * 2 + (Math.max(...sk.nodes.map((n) => n.wave)) + 1) * COL - COL + 8;
+      const h = PAD * 2 + Math.max(...[...perWave.values()].map((l) => l.length)) * ROW - ROW + 8;
+      const svgNs = 'http://www.w3.org/2000/svg';
+      const peek = document.createElementNS(svgNs, 'svg');
+      peek.setAttribute('class', 'hc-peek');
+      peek.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      peek.setAttribute('width', String(Math.min(w, 220)));
+      for (const e of sk.edges) {
+        const a = pos.get(e.source); const b = pos.get(e.target);
+        if (!a || !b) { continue; }
+        const line = document.createElementNS(svgNs, 'line');
+        line.setAttribute('x1', String(a[0] + 3)); line.setAttribute('y1', String(a[1]));
+        line.setAttribute('x2', String(b[0] - 3)); line.setAttribute('y2', String(b[1]));
+        line.setAttribute('class', 'hc-peek-edge');
+        peek.appendChild(line);
+      }
+      for (const n of sk.nodes) {
+        const [x, y] = pos.get(n.id)!;
+        const dot = document.createElementNS(svgNs, 'circle');
+        dot.setAttribute('cx', String(x)); dot.setAttribute('cy', String(y));
+        dot.setAttribute('r', '3.2');
+        dot.setAttribute('class', `hc-peek-dot vp-${n.verb}`);
+        peek.appendChild(dot);
+      }
+      const row = document.createElement('div');
+      row.className = 'hc-row hc-peek-row';
+      row.appendChild(peek);
+      this.hoverCard.appendChild(row);
+    }
+    if (live.subManifest !== undefined) {
+      const m = live.subManifest;
+      add('inside', `${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
+        + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
+        + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : ''));
     }
     if (live.deadGate === true) {
       add('gate', 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written');

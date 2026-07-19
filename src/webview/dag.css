@@ -5253,3 +5253,20 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   border-color: color-mix(in srgb, var(--nk-st-retrying) 40%, transparent);
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
 }
+
+/* The hover peek — the child's real shape in miniature (UE steal).
+   Verb hues ride the existing vp-* register; edges are whispers. */
+.hc-peek-row { padding: 4px 0 2px; }
+.hc-peek { display: block; }
+.hc-peek-edge {
+  stroke: color-mix(in srgb, var(--nk-ink) 25%, transparent);
+  stroke-width: 1;
+}
+.hc-peek-dot.vp-infer { fill: var(--nk-verb-infer); }
+.hc-peek-dot.vp-exec { fill: var(--nk-verb-exec); }
+.hc-peek-dot.vp-invoke { fill: var(--nk-verb-invoke); }
+.hc-peek-dot.vp-agent { fill: var(--nk-verb-agent); }
+@media (forced-colors: active) {
+  .hc-peek-edge { stroke: CanvasText; }
+  .hc-peek-dot { fill: CanvasText; }
+}

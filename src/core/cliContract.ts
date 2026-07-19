@@ -90,6 +90,22 @@ export type TaskStatus =
   | 'skipped'
   | 'cancelled';
 
+export interface SubManifest {
+  tasks: number;
+  waves: number;
+  costMin?: number;
+  costMax?: number;
+  /** Distinct engine-attributed grants across the child's tasks. */
+  permits?: number;
+  /** The hover peek's skeleton (≤30 tasks): verb-hued dots in wave
+   *  columns + the REAL edges — a miniature of the child's own
+   *  projection, never an invented shape. */
+  skeleton?: {
+    nodes: Array<{ id: string; verb: string; wave: number }>;
+    edges: Array<{ source: string; target: string }>;
+  };
+}
+
 export interface DagNode {
   id: string;
   label: string;
@@ -152,6 +168,10 @@ export interface DagNode {
   thinkingBudget?: number;
   /** infer `vision:` image inputs riding the prompt. */
   visionCount?: number;
+  /** Composition (spec 14): the CHILD workflow's own manifest — read
+   *  from ITS engine projection (each file's truth stays its own; the
+   *  parent never invents a rollup the engine has not blessed). */
+  subManifest?: SubManifest;
   /** `max_parallel:` — the fan-out's concurrency cap. */
   maxParallel?: number;
   /** `fail_fast: false` — per-item error handling (skip-and-report). */

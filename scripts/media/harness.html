@@ -218,6 +218,21 @@
         {
           id: 'brief', label: 'brief', verb: 'invoke', status: 'pending',
           tool: 'workflow:./brief.nika.yaml',
+          subManifest: { tasks: 4, waves: 2, costMin: 0.001, costMax: 0.004, permits: 3,
+            skeleton: {
+              nodes: [
+                { id: 'gather', verb: 'exec', wave: 0 },
+                { id: 'outline', verb: 'infer', wave: 1 },
+                { id: 'draft', verb: 'infer', wave: 1 },
+                { id: 'save', verb: 'invoke', wave: 2 },
+              ],
+              edges: [
+                { source: 'gather', target: 'outline' },
+                { source: 'gather', target: 'draft' },
+                { source: 'outline', target: 'save' },
+                { source: 'draft', target: 'save' },
+              ],
+            } },
           argsPreview: 'topic: release',
           bindingsIn: [{ alias: 'headline', from: 'digest', path: 'headline' }],
           producers: ['digest'],
