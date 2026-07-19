@@ -495,7 +495,8 @@ export function activate(context: ExtensionContext): void {
   // The 10-second proof: the offline hello (mock/echo · zero keys) in
   // the integrated terminal — the first wow, one click.
   context.subscriptions.push(
-    commands.registerCommand('nika.runProof', () => {
+    commands.registerCommand('nika.runProof', async () => {
+      if (!(await requireEngine(service, 'running the 10-second proof'))) { return; }
       runNikaCommand(state.resolvedServerPath, 'examples', 'run 01-hello --model mock/echo');
     }),
   );
@@ -2986,7 +2987,8 @@ export function activate(context: ExtensionContext): void {
   // Command: Doctor — the engine diagnoses its own environment (terminal
   // keeps the exact fix commands + colors; diagnose-only, never mutates).
   context.subscriptions.push(
-    commands.registerCommand('nika.doctor', () => {
+    commands.registerCommand('nika.doctor', async () => {
+      if (!(await requireEngine(service, 'running the doctor'))) { return; }
       runNikaCommand(state.resolvedServerPath, 'doctor', '');
     }),
   );
@@ -2995,7 +2997,8 @@ export function activate(context: ExtensionContext): void {
   // provider ports only (loopback + configured URLs · 300ms cap ·
   // nothing sent on the socket). The default doctor stays offline.
   context.subscriptions.push(
-    commands.registerCommand('nika.doctorPing', () => {
+    commands.registerCommand('nika.doctorPing', async () => {
+      if (!(await requireEngine(service, 'pinging local providers'))) { return; }
       runNikaCommand(state.resolvedServerPath, 'doctor --ping', '');
     }),
   );
@@ -3096,7 +3099,7 @@ export function activate(context: ExtensionContext): void {
       if (!context.globalState.get<boolean>('nika.binaryNudgeShown')) {
         await context.globalState.update('nika.binaryNudgeShown', true);
         const choice = await window.showWarningMessage(
-          'Nika binary not found. Install it (cargo install nika) or let the extension download it.',
+          'Nika: binary not found. Install it (brew install supernovae-st/tap/nika) or let the extension download it.',
           'Open Install Guide',
         );
         if (choice === 'Open Install Guide') {
