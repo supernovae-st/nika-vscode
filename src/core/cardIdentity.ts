@@ -57,6 +57,58 @@ export interface CardIdentity {
  *  category: the target is a WORKFLOW, outside the tool catalog. */
 export const SUB_WORKFLOW_GLYPH = '⎘';
 
+/** The essence register — which arg IS each builtin's soul, and how
+ *  the card renders it (the deep-card law: an invoke card leads with
+ *  the ONE fact that names its work, never a flat `k: v · k: v`).
+ *  The LIST of builtins stays engine truth (catalog); this register
+ *  only teaches presentation for the names it knows — an unknown
+ *  builtin keeps the plain args line, never a guess. */
+export type EssenceRender = 'code' | 'path' | 'url' | 'event' | 'duration' | 'condition' | 'text';
+
+export const BUILTIN_ESSENCE: ReadonlyMap<string, { arg: string; render: EssenceRender }> = new Map([
+  ['jq', { arg: 'query', render: 'code' }],
+  ['convert', { arg: 'to', render: 'text' }],
+  ['fetch', { arg: 'url', render: 'url' }],
+  ['write', { arg: 'path', render: 'path' }],
+  ['append', { arg: 'path', render: 'path' }],
+  ['read', { arg: 'path', render: 'path' }],
+  ['copy', { arg: 'to', render: 'path' }],
+  ['move', { arg: 'to', render: 'path' }],
+  ['glob', { arg: 'pattern', render: 'code' }],
+  ['assert', { arg: 'condition', render: 'condition' }],
+  ['emit', { arg: 'event', render: 'event' }],
+  ['wait', { arg: 'for', render: 'duration' }],
+  ['chart', { arg: 'title', render: 'text' }],
+  ['image_generate', { arg: 'prompt', render: 'text' }],
+  ['tts_generate', { arg: 'text', render: 'text' }],
+  ['decide', { arg: 'bundle', render: 'path' }],
+  ['compose', { arg: 'workflow_yaml', render: 'code' }],
+  ['hash', { arg: 'input', render: 'text' }],
+  ['log', { arg: 'message', render: 'text' }],
+]);
+
+/** Split an args preview (`k: v · k: v`) around a builtin's essence:
+ *  the essence pair leads styled, the rest stays the muted line. */
+export function splitEssence(
+  builtin: string | undefined,
+  argsPreview: string | undefined,
+): { essence?: { key: string; value: string; render: EssenceRender }; rest?: string } {
+  if (builtin === undefined || argsPreview === undefined) {
+    return argsPreview !== undefined ? { rest: argsPreview } : {};
+  }
+  const spec = BUILTIN_ESSENCE.get(builtin);
+  if (!spec) { return { rest: argsPreview }; }
+  const pairs = argsPreview.split(' · ');
+  const i = pairs.findIndex((p) => p.startsWith(`${spec.arg}: `));
+  if (i === -1) { return { rest: argsPreview }; }
+  const value = pairs[i].slice(spec.arg.length + 2);
+  const rest = pairs.filter((_, j) => j !== i).join(' · ');
+  return {
+    essence: { key: spec.arg, value, render: spec.render },
+    ...(rest.length > 0 ? { rest } : {}),
+  };
+}
+
 /** Builtins whose OUTPUT is a file the run writes — the card lands a
  *  file row at settle (artifacts.ts already proves existence). */
 const FILE_WRITERS = new Set(['write', 'append', 'copy', 'move', 'archive']);
