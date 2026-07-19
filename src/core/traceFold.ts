@@ -657,6 +657,14 @@ export function formatRunBadge(task: FoldedTask): string | undefined {
   if (task.recoveredFrom !== undefined) { facts.push('recovered'); }
   if (task.durationMs !== undefined) { facts.push(humanizeDuration(task.durationMs)); }
   if (task.usd !== undefined) { facts.push(formatUsd(task.usd)); }
+  // The marathon vocabulary, one truncated line (the noise law: inline
+  // is a summary, the hover carries the rest):
+  if (task.retries > 0) { facts.push(`↻${task.retries}`); }
+  if (task.agent?.turns !== undefined) { facts.push(`t${task.agent.turns}`); }
+  // Didn't-run pedagogy stays SHORT here — the why lives in the hover
+  // (a CEL expression inline would eat the line).
+  if (task.status === 'skipped' && task.whyWhen !== undefined) { facts.push('gated'); }
+  if (task.status === 'cancelled' && task.blockedBy !== undefined) { facts.push(`blocked by ${task.blockedBy}`); }
   return facts.length > 0 ? ` ${icon} ${facts.join(' · ')}` : ` ${icon}`;
 }
 
