@@ -1084,9 +1084,16 @@ class DagRenderer {
         rowG.append('line').attr('class', 'tl-wave-rule')
           .attr('x1', 0).attr('x2', W).attr('y1', -1).attr('y2', -1);
       }
-      rowG.append('text').attr('class', 'tl-id').attr('x', GUTTER - 10).attr('y', ROW_H / 2 + 3)
+      const idLabel = row.id.length > 20 ? `…${row.id.slice(-19)}` : row.id;
+      const idText = rowG.append('text').attr('class', 'tl-id').attr('x', GUTTER - 10).attr('y', ROW_H / 2 + 3)
         .attr('text-anchor', 'end')
-        .text(row.id.length > 20 ? `…${row.id.slice(-19)}` : row.id);
+        .text(idLabel);
+      // The agent gutter: an agent row reads as a LOOP, not one call —
+      // « t3 » in the loop's own quiet mark (the pulse vocabulary).
+      if (row.agentTurns !== undefined) {
+        idText.append('tspan').attr('class', 'tl-agent-turns').text(` t${row.agentTurns}`);
+        idText.append('title').text(`agent loop — ${row.agentTurns} turn${row.agentTurns === 1 ? '' : 's'}`);
+      }
       // The ghost ceiling — the recorded mean across prior runs,
       // painted UNDER the actual bar: est-vs-actual at a glance (a
       // longer-than-usual task overshoots its ghost). History only —

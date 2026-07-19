@@ -133,3 +133,18 @@ describe('buildTimeline — the ghost ceiling (est-vs-actual · history only)', 
     expect(tl2.rows[0].estMs).toBeUndefined();
   });
 });
+
+describe('buildTimeline — the agent gutter', () => {
+  it('an agent task\'s row carries its turn count; others stay bare', () => {
+    const tl = buildTimeline(
+      model([
+        { ...task({ id: 'scout', startMs: 1000, endMs: 4000 }), agent: { turns: 3 } } as never,
+        task({ id: 'plain', startMs: 1000, endMs: 2000 }),
+      ]),
+      new Map(),
+      [['scout', 'plain']],
+    );
+    expect(tl.rows.find((r) => r.id === 'scout')?.agentTurns).toBe(3);
+    expect(tl.rows.find((r) => r.id === 'plain')?.agentTurns).toBeUndefined();
+  });
+});
