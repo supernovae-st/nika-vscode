@@ -119,6 +119,21 @@ major.minor from 0.97).
     CI (mutation-proven against the historical dependsOn lie), and
     the shared miniature renderers defend themselves (the NaN-viewBox
     class).
+- **Every task in the native Test Explorer** (engines ^1.85): every
+  workflow is a test item and every task a CHILD at its YAML range —
+  the run/status gutter icon lands on the task's own line. The
+  default « Run (engine) » profile executes the real engine
+  (`run --task <id>` for one task) and reads verdicts from the
+  RECORDED trace via the same fold every surface trusts (skipped and
+  cancelled are decisions, never failures; the failure peek opens on
+  the failing line speaking the one vocabulary). Golden lanes stay
+  honest: « Golden test » refuses without a pin and names the gesture
+  that records the first one.
+- **The Vercel · Linear · Raycast polish**: policy chips fold past
+  five into « +N » (facts layered, never dropped) · the ⚡ what-if
+  button wears its X hint truth-gated (only when the keystroke would
+  hit THIS card) · one 160ms entrance grammar for every lens surface,
+  stilled under reduced-motion.
 - **The file is alive** (the living-editor wave, research-driven):
   - the run pill learns the RECORDED ETA — « Run (≤ $0.0090) · ~13s »
     — the weighted critical path over your flight-recorder means
