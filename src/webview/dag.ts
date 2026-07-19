@@ -4135,6 +4135,79 @@ class DagRenderer {
    * Delayed hide so the pointer can travel from node to card (the
    * needs/unlocks chips are clickable); immediate on explicit actions.
    */
+  /** The Raycast action panel (K on a focused card): every action the
+   *  card offers, each with its shortcut printed at the right — the
+   *  panel teaches the keymap that later makes it obsolete. Renders
+   *  instantly, zero animation (keyboard-initiated · the Kowalski
+   *  law). Items REUSE the hover card's handlers — one registry of
+   *  behavior, two surfaces. */
+  openNodeActions(): boolean {
+    if (this.focusedId === null) { return false; }
+    const node = this.nodeMap.get(this.focusedId);
+    if (!node) { return false; }
+    const existing = document.getElementById('nk-actions');
+    if (existing) { existing.remove(); return true; } // K toggles
+    const panel = document.createElement('div');
+    panel.id = 'nk-actions';
+    panel.setAttribute('role', 'menu');
+    const title = document.createElement('div');
+    title.className = 'nk-act-title';
+    title.textContent = node.id;
+    panel.appendChild(title);
+    interface Act { label: string; kbd?: string; run: () => void }
+    const uri = this.currentGraph?.workflowUri;
+    const acts: Act[] = [
+      { label: '▶ Run from here', run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }) },
+      { label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+      { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
+      { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeDoubleClicked', taskId: node.id, workflowUri: uri }) },
+      { label: '⧉ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
+    ];
+    if (node.status === 'failed') {
+      acts.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+    }
+    if (node.tool?.startsWith('workflow:') === true) {
+      acts.push({ label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
+    }
+    let active = 0;
+    const rows: HTMLElement[] = acts.map((a, i) => {
+      const row = document.createElement('button');
+      row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
+      row.setAttribute('role', 'menuitem');
+      const label = document.createElement('span');
+      label.textContent = a.label;
+      row.appendChild(label);
+      if (a.kbd !== undefined) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = a.kbd;
+        row.appendChild(kbd);
+      }
+      row.addEventListener('click', () => { close(); a.run(); });
+      row.addEventListener('mouseenter', () => { setActive(i); });
+      panel.appendChild(row);
+      return row;
+    });
+    const setActive = (i: number): void => {
+      rows[active]?.classList.remove('active');
+      active = ((i % rows.length) + rows.length) % rows.length;
+      rows[active]?.classList.add('active');
+    };
+    const close = (): void => {
+      panel.remove();
+      window.removeEventListener('keydown', onKey, true);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); setActive(active + 1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); setActive(active - 1); return; }
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); const a = acts[active]; close(); a.run(); return; }
+      if (e.key === 'k' || e.key === 'K') { e.preventDefault(); e.stopPropagation(); close(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    document.body.appendChild(panel);
+    return true;
+  }
+
   /** The Linear peek (Space): the hover card PINNED to the focused
    *  card — arrows walk the DAG and the peek live-updates; Space
    *  again or Esc releases. Detail becomes a zero-click read. */
@@ -5258,7 +5331,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -6049,9 +6122,12 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }
-  // K (or ⌘K) — the command muscle: focus the omnibar input.
+  // K — context-first (the Raycast read): a FOCUSED card opens its
+  // action panel (every action · its shortcut printed); no focus
+  // keeps K as the command muscle (the omnibar).
   if (e.key === 'k' || e.key === 'K') {
     e.preventDefault();
+    if (renderer.openNodeActions()) { return; }
     (document.getElementById('omni-input') as HTMLInputElement | null)?.focus();
     return;
   }
