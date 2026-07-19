@@ -127,11 +127,11 @@
     </div>
   </div>
   <div id="explainer" hidden></div>
-  <div id="verb-cmdk" hidden role="listbox">
-    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…">
-    <div id="cmdk-list"></div>
+  <div id="verb-cmdk" hidden>
+    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
-  <div id="hover-card" role="tooltip"></div>
+  <div id="hover-card" role="dialog" aria-label="Task details and actions"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar">
@@ -159,7 +159,7 @@
     <button id="scrub-close">✕</button>
   </div>
   <div id="dag-legend">
-    <span id="legend-heat" aria-hidden><i class="lh-bar"></i><span class="lh-label"></span></span>
+    <span id="legend-heat" aria-hidden="true"><i class="lh-bar"></i><span class="lh-label"></span></span>
     <div id="legend-chips"></div>
     <div id="progress-track"><div id="progress-fill"></div></div>
   </div>

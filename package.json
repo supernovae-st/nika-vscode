@@ -90,7 +90,7 @@
         },
         {
           "id": "nikaRuns",
-          "name": "Runs (flight recorder)"
+          "name": "Runs"
         },
         {
           "id": "nikaStation",
@@ -98,6 +98,44 @@
         }
       ]
     },
+    "colors": [
+      {
+        "id": "nika.verb.infer",
+        "description": "The infer verb's canonical hue (nika.sh verb canon, design SSOT) — tints infer task icons.",
+        "defaults": {
+          "dark": "#5b8cff",
+          "light": "#5b8cff",
+          "highContrast": "#5b8cff"
+        }
+      },
+      {
+        "id": "nika.verb.exec",
+        "description": "The exec verb's canonical hue (nika.sh verb canon, design SSOT) — tints exec task icons.",
+        "defaults": {
+          "dark": "#ff7a3c",
+          "light": "#ff7a3c",
+          "highContrast": "#ff7a3c"
+        }
+      },
+      {
+        "id": "nika.verb.invoke",
+        "description": "The invoke verb's canonical hue (nika.sh verb canon, design SSOT) — tints invoke task icons.",
+        "defaults": {
+          "dark": "#22d3ee",
+          "light": "#22d3ee",
+          "highContrast": "#22d3ee"
+        }
+      },
+      {
+        "id": "nika.verb.agent",
+        "description": "The agent verb's canonical hue (nika.sh verb canon, design SSOT) — tints agent task icons.",
+        "defaults": {
+          "dark": "#b07bff",
+          "light": "#b07bff",
+          "highContrast": "#b07bff"
+        }
+      }
+    ],
     "languages": [
       {
         "id": "nika",
@@ -339,7 +377,7 @@
       },
       {
         "command": "nika.preflightWorkflow",
-        "title": "Preflight — cost · secrets · permits (before any token)",
+        "title": "Preflight (cost · secrets · permits, before any token)",
         "icon": "$(shield)",
         "category": "Nika"
       },
@@ -493,7 +531,7 @@
       },
       {
         "command": "nika.testUpdate",
-        "title": "Golden Test — Update the Golden",
+        "title": "Update the Golden (rewrites the pin from this run)",
         "icon": "$(beaker)",
         "category": "Nika"
       },
@@ -587,7 +625,7 @@
       },
       {
         "command": "nika.station.doctorReport",
-        "title": "Doctor — Full Report",
+        "title": "Doctor Full Report (in the terminal)",
         "category": "Nika"
       }
     ],
@@ -686,6 +724,7 @@
         "nika.traces.keep": {
           "type": "number",
           "default": 200,
+          "minimum": 0,
           "description": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). The newest always survive."
         },
         "nika.traces.glob": {
@@ -706,7 +745,9 @@
         "nika.replay.speed": {
           "type": "number",
           "default": 6,
-          "description": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default)."
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default). 1 = real time; playback keeps its own floor and ceiling so every run stays watchable."
         },
         "nika.dag.theme": {
           "type": "string",
@@ -1291,7 +1332,7 @@
       },
       {
         "view": "nikaRuns",
-        "contents": "No recorded runs yet — every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[▤ Try an embedded example](command:nika.browseExamples)"
+        "contents": "No recorded runs yet — this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[▤ Try an embedded example](command:nika.browseExamples)"
       },
       {
         "view": "nikaStation",
