@@ -351,6 +351,37 @@ low, leave high — so a pinch resting on a boundary never flaps):
   only — a data edge's binding is a ref, never rewritten.
 - Researched next: pin node outputs (n8n's most-loved dev feature).
 
+## 6d · The lens deck — one graph, N projections (One-DOM law)
+
+The doctrine steal (« 1 graph · N lenses ») made canvas: every lens
+is a projection over the SAME typed graph — a CSS scope or an
+alternate layout pass of the ONE panel, never a second DOM. Each
+answers one question, on one key:
+
+| Lens | Key | Question | Mechanism |
+|---|---|---|---|
+| what-if | X (· ⚡ hover) | why does `on_error` exist? | pure admission replay (gate algebra) — `sim-failed` ring · `sim-dead` dim · `sim-lit` amber; LIT is reserved for paths that admit non-success AND refuse success |
+| timeline | T | where did the time go? | alternate layout pass — wave-ordered rows, REAL clocks only, retry sub-segments, hollow cached, ghost ceiling (recorded mean) UNDER the bar, the replay cursor rides the lens |
+| audit | P | what can this file DO? | capability hulls (convex, padded, dashed) under the wires + the banner; state hues used semantically — egress red FIRST · exec amber · fs green · tool blue; ⚿ secret ring on pasted literals |
+| dataflow | D | where does the data go? | answer by subtraction — control/recovery sleep (0.07), prose rests (0.18), bindings + ports carry the story; direction heads wake at every LOD on purpose |
+| heatmap | H | what was hot? | §6b — a reading mode, never ambient |
+| gallery | — | what's in this workspace? | the welcome's recent rows lead with their file's shape (miniDag — the peek grammar at row scale) |
+
+**Stacking law** (empirically settled 2026-07-19): the timeline is
+the deck's ONLY non-map projection — everything map-anchored (plan
+rail · audit hulls · banner) SLEEPS under `body.timeline` and comes
+straight back (sleep, never clear). Map-space lenses compose freely
+(dataflow × audit is a coherent read; simulate works inside both).
+
+**Composition grammar** (spec 14, engine-honest): the ⎘ chip is a
+DOOR (opens the child) · the card face is the child's API (manifest
++ promoted contract rows — facts from both files, `nika check` owns
+verdicts) · the hover PEEK renders the child's real shape in
+miniature · the dive trail (`parent ▸ child`) grows on ⎘, truncates
+on crumb jumps, clears off-trail — the crumb IS the return
+affordance. Never an invented rollup: each file's manifest is ITS
+engine projection.
+
 ## 7 · Rules that keep it SOTA
 
 1. Tokens or nothing — a rule reading a raw color is a bug.
