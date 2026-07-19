@@ -172,6 +172,9 @@ export interface DagNode {
    *  (credentialLint scan — precision-first; the editor squiggle
    *  carries the env-var rewrite). Count of findings. */
   secretLiterals?: number;
+  /** The task's declared output shape (`schema:`/`returns:` blocks —
+   *  client render of collectShapes; check proves it at run time). */
+  typedShape?: string;
   /** infer `thinking:` scratch budget (-1 = enabled, no explicit cap). */
   thinkingBudget?: number;
   /** infer `vision:` image inputs riding the prompt. */

@@ -5471,3 +5471,10 @@ body.audit .dag-node.audit-secret .nc {
   fill: var(--nk-verb-agent);
   font-size: 8.5px;
 }
+
+/* The typed-output chip — the contract family (data hue · a fact). */
+.nc-pol-typed {
+  color: var(--nk-data);
+  border-color: color-mix(in srgb, var(--nk-data) 40%, transparent);
+  background: color-mix(in srgb, var(--nk-data) 7%, transparent);
+}

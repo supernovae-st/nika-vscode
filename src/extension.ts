@@ -138,6 +138,7 @@ import { buildTimeline } from './core/timelineModel';
 import { topoWaves } from './core/cliContract';
 import { joinContract, parseChildVars, parseInvokeArgKeys } from './core/childContract';
 import { scanSecrets } from './core/credentialLint';
+import { collectShapes, renderShape } from './core/schemaShape';
 import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
@@ -1012,6 +1013,16 @@ export function activate(context: ExtensionContext): void {
     } catch {
       // Averages are garnish — the graph must never fail on them.
     }
+    try {
+      // The typed core made card-visible (§3quater last row): a task
+      // that declares its output shape wears the fact — the same
+      // collectShapes read the editor completions already trust.
+      const shapes = collectShapes(text);
+      for (const node of graph.nodes) {
+        const shape = shapes.get(node.id);
+        if (shape) { node.typedShape = renderShape(shape); }
+      }
+    } catch { /* garnish law */ }
     try {
       // The other side of the secret story (L3 S2): the engine's IFC
       // proves where DECLARED secrets flow; this marks tasks whose
