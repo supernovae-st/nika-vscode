@@ -104,6 +104,32 @@ major.minor from 0.97).
 - **Big graphs never sit silent**: past 100 tasks the canvas says
   « laying out N tasks… » while ELK thinks (300 nodes ≈ 3.6s,
   measured); the media harness earns a deterministic ?n perf fixture.
+- **The vigil sweep** (coherence · teaching · proof):
+  - the deck's stacking law settles empirically — the timeline is the
+    only non-map projection, so map-anchored surfaces (plan rail ·
+    audit hulls · banner) sleep under it and come straight back;
+  - the ? explainer, the walkthrough's DAG step, DESIGN.md (§6d — the
+    deck as constitution · rule 6 — the real harness and its judge
+    flags) and the status menu all teach the same deck;
+  - the shareable run report carries the marathon's proofs (cache
+    identity · the agent loop), the timeline rows wear the agent
+    gutter (« t3 »), and the typed core reaches the card (« ⊨ typed »
+    with the rendered shape);
+  - the judge's own fixture is held against the renderer contract in
+    CI (mutation-proven against the historical dependsOn lie), and
+    the shared miniature renderers defend themselves (the NaN-viewBox
+    class).
+- **The file is alive** (the living-editor wave, research-driven):
+  - the run pill learns the RECORDED ETA — « Run (≤ $0.0090) · ~13s »
+    — the weighted critical path over your flight-recorder means
+    (measured beats recorded beats hops; one history-less task and
+    the claim honestly stands down);
+  - the end-of-line badge speaks the marathon vocabulary one
+    truncated line (« ✓ 1.2s · $0.003 · ↻2 · t3 » · « gated » ·
+    « blocked by X ») and gains its deep hover card (identity proof ·
+    recovery · the full gate expression · the agent loop · the
+    failure tail) — inline stays a summary, the hover carries the
+    rest.
 
 
 ### The day waves — cards know themselves · the canvas earns its craft
