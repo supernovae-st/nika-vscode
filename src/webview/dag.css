@@ -5382,3 +5382,38 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
 @media (forced-colors: active) {
   #es-ghost { display: none; }
 }
+
+/* ─── The promoted contract — the child's callable API on the card ──
+   One row per input: name · state. Supplied rides the data hue,
+   default rests muted, required-unset wears the warning (a FACT —
+   check owns the finding). */
+.nc-contract {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 4px;
+  padding-top: 3px;
+  border-top: 1px solid color-mix(in srgb, var(--nk-ink) 10%, transparent);
+}
+.nc-ct {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font: 500 9.5px var(--nk-mono, monospace);
+  line-height: 15px;
+}
+.nc-ct-name { color: var(--nk-fg, #ccc); }
+.nc-ct-state { flex: none; opacity: 0.85; }
+.nc-ct-supplied .nc-ct-state { color: var(--nk-data); }
+.nc-ct-default .nc-ct-state { color: var(--nk-st-muted); }
+.nc-ct-required-unset .nc-ct-state { color: var(--nk-st-retrying); }
+.nc-ct-optional .nc-ct-state { color: color-mix(in srgb, var(--nk-fg, #ccc) 40%, transparent); }
+.nc-ct-more {
+  justify-content: flex-end;
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 45%, transparent);
+}
+@media (forced-colors: active) {
+  .nc-contract { border-top: 1px solid CanvasText; }
+  .nc-ct-state { color: CanvasText !important; }
+}

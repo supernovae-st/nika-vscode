@@ -242,6 +242,11 @@
           id: 'brief', label: 'brief', verb: 'invoke', status: 'pending',
           tool: 'workflow:./brief.nika.yaml',
           subManifest: { tasks: 4, waves: 2, costMin: 0.001, costMax: 0.004, permits: 3,
+            contract: [
+              { name: 'topic', state: 'supplied', type: 'string' },
+              { name: 'style', state: 'default', type: 'string' },
+              { name: 'depth', state: 'required-unset' },
+            ],
             skeleton: {
               nodes: [
                 { id: 'gather', verb: 'exec', wave: 0 },

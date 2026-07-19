@@ -351,6 +351,7 @@ interface DagNode {
   /** Composition: the child workflow's OWN manifest (its projection). */
   subManifest?: {
     tasks: number; waves: number; costMin?: number; costMax?: number; permits?: number;
+    contract?: Array<{ name: string; state: 'supplied' | 'default' | 'required-unset' | 'optional'; type?: string }>;
     skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> };
   };
 }
@@ -623,6 +624,8 @@ function nodeHeightOf(node: DagNode): number {
     h += BODY_GAP + wrapLines * BODY_LINE_H;
   }
   if (hasIoRow(node)) { h += IO_GAP + IO_H; }
+  const contractRows = Math.min(node.subManifest?.contract?.length ?? 0, 4);
+  if (contractRows > 0) { h += IO_GAP + contractRows * 15 + 4; }
   if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
   if (hasPolicyRow(node)) { h += POLICY_GAP + POLICY_H; }
   return Math.max(h, NODE_HEIGHT);
@@ -3381,6 +3384,43 @@ class DagRenderer {
       // data on the canvas); a re-run restores this base (DESIGN.md §1).
       el.dataset.base = shown;
       host.appendChild(el);
+    }
+
+    // The promoted contract (composition · ComfyUI-widgets steal):
+    // the child's callable API ON the parent card — name · state
+    // (← parent / = default / ⚠ required / optional) · type. Facts
+    // from both files; `nika check` owns the verdicts.
+    const contract = node.subManifest?.contract ?? [];
+    if (contract.length > 0) {
+      const block = document.createElement('div');
+      block.className = 'nc-contract';
+      for (const row of contract.slice(0, 4)) {
+        const el = document.createElement('div');
+        el.className = `nc-ct nc-ct-${row.state}`;
+        const name = document.createElement('span');
+        name.className = 'nc-ct-name';
+        name.textContent = row.name;
+        const state = document.createElement('span');
+        state.className = 'nc-ct-state';
+        state.textContent = row.state === 'supplied' ? '← parent'
+          : row.state === 'default' ? '= default'
+          : row.state === 'required-unset' ? '⚠ required'
+          : 'optional';
+        el.append(name, state);
+        el.title = `${row.name}${row.type !== undefined ? `: ${row.type}` : ''} — `
+          + (row.state === 'supplied' ? 'supplied by this task\u2019s args'
+            : row.state === 'default' ? 'falls back to the child\u2019s declared default'
+            : row.state === 'required-unset' ? 'the child requires it and nothing supplies it (check names the finding)'
+            : 'optional input, not supplied');
+        block.appendChild(el);
+      }
+      if (contract.length > 4) {
+        const more = document.createElement('div');
+        more.className = 'nc-ct nc-ct-more';
+        more.textContent = `+${contract.length - 4} more`;
+        block.appendChild(more);
+      }
+      host.appendChild(block);
     }
 
     // The io row — the inbound wires, named ON the card (they used to
