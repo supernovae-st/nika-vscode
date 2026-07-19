@@ -22,6 +22,9 @@ import { isSchedulingKind, topoWaves } from './cliContract';
 export interface AnalysisNode {
   id: string;
   durationMs?: number;
+  /** Recorded mean across prior runs (flight recorder) — the pre-run
+   *  weight when no measured duration exists yet. */
+  avgMs?: number;
 }
 
 export interface AnalysisEdge {
@@ -233,11 +236,19 @@ export function maxAntichain(nodes: AnalysisNode[], edges: AnalysisEdge[]): { wi
 // ─── Work-span + list scheduling ────────────────────────────────────────────
 
 function weights(nodes: AnalysisNode[]): { weight: Map<string, number>; weighted: boolean } {
+  // Measured beats recorded beats hops: a settled task weighs its real
+  // duration; an unrun task weighs its flight-recorder mean (the ghost
+  // ceiling's source — history, never a guess). Hops only when the
+  // graph knows nothing at all.
+  const w = (n: AnalysisNode): number | undefined =>
+    typeof n.durationMs === 'number' && n.durationMs >= 0 ? n.durationMs
+    : typeof n.avgMs === 'number' && n.avgMs > 0 ? n.avgMs
+    : undefined;
   const weighted =
     nodes.length > 0 &&
-    nodes.every((n) => typeof n.durationMs === 'number' && n.durationMs >= 0) &&
-    nodes.some((n) => (n.durationMs ?? 0) > 0);
-  const weight = new Map(nodes.map((n) => [n.id, weighted ? Math.max(n.durationMs ?? 0, 0) : 1]));
+    nodes.every((n) => w(n) !== undefined) &&
+    nodes.some((n) => (w(n) ?? 0) > 0);
+  const weight = new Map(nodes.map((n) => [n.id, weighted ? Math.max(w(n) ?? 0, 0) : 1]));
   return { weight, weighted };
 }
 

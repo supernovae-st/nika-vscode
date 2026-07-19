@@ -194,19 +194,19 @@
       resumeCapable: true,
       nodes: [
         {
-          id: 'history', label: 'history', verb: 'exec', status: 'pending',
+          id: 'history', avgMs: 1500, avgRuns: 4,  label: 'history', verb: 'exec', status: 'pending',
           commandPreview: 'git log --oneline --no-merges -8',
           permits: ['exec: git'],
           producers: [],
         },
         {
-          id: 'stats', label: 'stats', verb: 'exec', status: 'pending',
+          id: 'stats', avgMs: 900, avgRuns: 4,  label: 'stats', verb: 'exec', status: 'pending',
           commandPreview: 'git shortlog -sn HEAD',
           permits: ['exec: git'],
           producers: [],
         },
         {
-          id: 'digest', label: 'digest', verb: 'infer', status: 'pending',
+          id: 'digest', avgMs: 6200, avgRuns: 4,  label: 'digest', verb: 'infer', status: 'pending',
           model: 'ollama/qwen3.5:4b', provider: 'ollama',
           promptPreview: 'Group these commits into a headline and highlights for the release notes.',
           retryMax: 3, timeout: '45s', outputNames: ['headline', 'highlights'],
@@ -216,14 +216,14 @@
           producers: ['history'],
         },
         {
-          id: 'chart', label: 'chart', verb: 'invoke', status: 'pending',
+          id: 'chart', avgMs: 1400, avgRuns: 3,  label: 'chart', verb: 'invoke', status: 'pending',
           tool: 'nika:chart', fanOutKind: 'each', fanOutCount: 6, maxParallel: 3, failFast: false,
           argsPreview: 'kind: bar · title: commits by author',
           bindingsIn: [{ alias: 'rows', from: 'stats', path: 'output' }],
           producers: ['stats'],
         },
         {
-          id: 'polish', label: 'polish', verb: 'infer', status: 'pending',
+          id: 'polish', avgMs: 2100, avgRuns: 4,  label: 'polish', verb: 'infer', status: 'pending',
           model: 'mistral/mistral-small', provider: 'mistral',
           promptPreview: 'Tighten the headline. Keep the maintainer voice — plain, direct.',
           costMin: 0.001, costMax: 0.006, timeout: '30s',
@@ -231,7 +231,7 @@
           producers: ['digest'],
         },
         {
-          id: 'notes', label: 'notes', verb: 'invoke', status: 'pending', secretLiterals: 1,
+          id: 'notes', avgMs: 700, avgRuns: 4,  label: 'notes', verb: 'invoke', status: 'pending', secretLiterals: 1,
           tool: 'nika:write',
           argsPreview: 'path: RELEASE_NOTES.md',
           permits: ['fs.write: RELEASE_NOTES.md', 'tool: nika:write'],
@@ -244,7 +244,7 @@
           producers: ['polish', 'chart'],
         },
         {
-          id: 'brief', label: 'brief', verb: 'invoke', status: 'pending',
+          id: 'brief', avgMs: 1200, avgRuns: 2,  label: 'brief', verb: 'invoke', status: 'pending',
           tool: 'workflow:./brief.nika.yaml',
           subManifest: { tasks: 4, waves: 2, costMin: 0.001, costMax: 0.004, permits: 3,
             contract: [
@@ -271,7 +271,7 @@
           producers: ['digest'],
         },
         {
-          id: 'review', label: 'review', verb: 'agent', status: 'pending',
+          id: 'review', avgMs: 2700, avgRuns: 4,  label: 'review', verb: 'agent', status: 'pending',
           toolsCount: 2,
           model: 'ollama/qwen3.5:9b', provider: 'ollama',
           promptPreview: 'Verify every claim against the commits — flag anything overstated.',
