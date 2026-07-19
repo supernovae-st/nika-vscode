@@ -101,7 +101,7 @@ export function runWorkflowLive(
   dagPanel.setRunState(true);
 
   // Fingerprints of what actually RUNS, captured at spawn: an edit made
-  // mid-run must not be labeled "successfully ran" (dirty-nodes law).
+  // mid-run must not be labeled "successfully ran" (dirty-nodes law). voice-ok
   let spawnFingerprints: Map<string, string> | undefined;
   try {
     spawnFingerprints = taskFingerprints(fs.readFileSync(fsPath, 'utf-8'));

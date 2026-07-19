@@ -113,8 +113,7 @@ export function checkVersionMismatch(context: ExtensionContext, log: LogFn, reso
       // Only warn if extension is BEHIND the server (not ahead, which is dev)
       if (extParts[0] < srvParts[0] || (extParts[0] === srvParts[0] && extParts[1] < srvParts[1])) {
         window.showWarningMessage(
-          `Nika extension v${extVersion} is outdated (server is v${serverMajorMinor}.x). ` +
-          `Update for the best experience.`,
+          `Nika: extension v${extVersion} is behind the engine (v${serverMajorMinor}.x) — update to match.`,
           'Update Extension',
         ).then((choice) => {
           if (choice === 'Update Extension') {
@@ -240,7 +239,7 @@ export function startClient(
   state.statusSink?.('starting');
 
   state.client.start().then(() => {
-    log('INFO', 'Language server started successfully');
+    log('INFO', 'Language server started');
     state.statusSink?.('running');
     // One voice (#103): the server's advertised capabilities silence
     // their client twins — capability-gated, never version-gated; a

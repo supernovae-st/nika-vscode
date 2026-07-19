@@ -488,7 +488,7 @@ export function activate(context: ExtensionContext): void {
       const vars = service.peekCheck(doc.uri.toString())?.report?.requirements?.vars_required ?? [];
       const line = `nika run ${rel}${vars.map((v) => ` --var ${v}=<value>`).join('')}`;
       await env.clipboard.writeText(line);
-      void window.showInformationMessage(`Copied: ${line}`);
+      void window.showInformationMessage(`Nika: run command copied — ${line}`);
     }),
   );
 
@@ -2087,7 +2087,7 @@ export function activate(context: ExtensionContext): void {
       // at the update, not at a "run is the future" framing that is no
       // longer true.
       const choice = await window.showInformationMessage(
-        'This `nika` binary predates the `run` verb (it shipped with the engine runtime at L3). Update the binary to execute workflows — until then, audit before run.',
+        'Nika: this binary predates `run` — update it to execute workflows. Until then, audit before run.',
         'Check instead',
         'Update guide',
       );
@@ -2396,7 +2396,7 @@ export function activate(context: ExtensionContext): void {
       }
       if (!state.resolvedServerPath && !getNikaPath()) {
         const pick = await window.showWarningMessage(
-          'Init Project runs the nika binary, which is not installed yet.',
+          'Nika: Init Project needs the engine binary — it is not on this machine yet.',
           'Install binary first',
         );
         if (pick === 'Install binary first') {
@@ -2915,10 +2915,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.checkBinary', async () => {
       const p = state.resolvedServerPath ?? getNikaPath();
       if (p && (await isBinaryWorking(p))) {
-        window.showInformationMessage(`Nika binary OK · ${p} · ${service.caps.version}`);
+        window.showInformationMessage(`Nika: binary OK · ${p} · ${service.caps.version}`);
       } else {
         window.showWarningMessage(
-          'Nika binary not found. Install it or let the extension download it.',
+          'Nika: binary not found — install it or let the extension download it.',
           'Install instructions',
         ).then(choice => {
           if (choice) { commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
@@ -3011,7 +3011,7 @@ export function activate(context: ExtensionContext): void {
     if (!doc) { return; }
     if (!service.caps.test) {
       if (!(await requireEngine(service, 'golden-testing a workflow'))) { return; }
-      void window.showWarningMessage('This engine has no `test` subcommand — golden testing ships with the 0.94 line.');
+      void window.showWarningMessage('Nika: this engine has no `test` subcommand — needs nika ≥ 0.94 (brew upgrade nika).');
       return;
     }
     if (doc.isDirty && !(await doc.save())) { return; }
@@ -3048,7 +3048,7 @@ export function activate(context: ExtensionContext): void {
         startClient(context, state, log, state.resolvedServerPath);
         window.showInformationMessage('Nika: language server restarted.');
       } else {
-        window.showInformationMessage('`nika lsp` is not available from this binary yet — client-side intelligence stays active.');
+        window.showInformationMessage('Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
       }
     }),
   );
@@ -3078,7 +3078,7 @@ export function activate(context: ExtensionContext): void {
       // ONLY when the toast can actually help.
       await context.globalState.update('nika.cursorPluginNudgeShown', true);
       void window.showInformationMessage(
-        'Running in Cursor — install the nika plugin (rules · skill · subagent · hooks · MCP in one Add), or wire just this workspace.',
+        'Nika: running in Cursor — install the nika plugin (rules · skill · subagent · hooks · MCP in one Add), or wire just this workspace.',
         'Open Marketplace',
         'Wire this workspace',
       ).then((choice) => {
@@ -3130,7 +3130,7 @@ export function activate(context: ExtensionContext): void {
       if (currentJourney.stage !== 'working' || currentJourney.equipped) { return; }
       await context.workspaceState.update('nika.initNudgeShown', true);
       void window.showInformationMessage(
-        'This repo has nika workflows but is not equipped (agent rules · MCP · schema wiring). Set it up?',
+        'Nika: this repo has workflows but is not equipped (agent rules · MCP · schema wiring). Set it up?',
         'Init Project',
         'Not now',
       ).then((choice) => {
@@ -3224,12 +3224,12 @@ async function configureMcpForHost(
   } else if (isWindsurf()) {
     await ensureWindsurfMcpConfig(resolvedServerPath, log);
     if (notify) {
-      window.showInformationMessage('Nika MCP config wired for Windsurf.');
+      window.showInformationMessage('Nika: MCP config wired for Windsurf.');
     }
   } else {
     await ensureVscodeMcpConfig(resolvedServerPath, log);
     if (notify) {
-      window.showInformationMessage('Nika MCP config wired (.vscode/mcp.json).');
+      window.showInformationMessage('Nika: MCP config wired (.vscode/mcp.json).');
     }
   }
   // The PATH gap, CLOSED instead of warned (first-run intelligence):
@@ -3368,7 +3368,7 @@ async function resolveBinary(context: ExtensionContext, explicit = false): Promi
     ).then((pick) => {
       if (pick === 'Copy brew command') {
         void env.clipboard.writeText('brew install supernovae-st/tap/nika');
-        void window.showInformationMessage('Copied — run it in a terminal, then click the status bar → Install/detect.');
+        void window.showInformationMessage('Nika: brew command copied — run it in a terminal, then click the status bar → Install/detect.');
       } else if (pick === 'Open releases') {
         void env.openExternal(Uri.parse(GITHUB_RELEASES_URL));
       }

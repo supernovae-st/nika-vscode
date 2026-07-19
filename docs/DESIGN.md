@@ -412,3 +412,52 @@ engine projection.
    · what-if 2 · each lens 1). A change that silently adds a gesture
    to a journey fails the suite. Run it with the harness flags
    toolchain (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
+
+## 8 · Voice — the twelve rules
+
+Every string the extension itself emits (toasts · status bar · tree ·
+walkthrough · settings prose). Engine output relayed verbatim keeps the
+engine's voice — we never rewrite it.
+
+1. One voice; the tone flexes with the stakes — calm in success,
+   direct in failure, never chirpy.
+2. Sentence case everywhere; Title Case only in command titles.
+3. Labels are Verb + Noun, no article — `Install Engine`, never
+   `Get started!`
+4. What → why → fix, no preamble — `Nika: check failed: engine not on
+   PATH → Install: brew install nika`, never `Oops! Something…`.
+5. `couldn't` = user-state · `failed` = system/engine · `unable to`
+   banned — `Nika: couldn't find a .nika.yaml here` vs
+   `Nika: doctor failed`.
+6. Name the thing that failed — `Nika: language server stopped`, never
+   `Something went wrong`.
+7. Rules stated in the positive, never blame — `'fetch' is not a verb —
+   tools run under invoke`, never `Invalid verb!`. (`invalid` is a
+   manual-review word, not gated: too many legitimate code-level uses
+   for the v1 gate.)
+8. Success = noun + past participle — `Workflow formatted`, never
+   `Successfully formatted the workflow!`
+9. One word per concept; the toast verb IS the button verb — the
+   lexical twin of one-glyph-one-meaning.
+10. Every error ends in ONE executable step when a fix exists —
+    `→ Run: nika doctor --fix`.
+11. The surface follows the severity — pill < hover < toast < modal ·
+    notify at the terminal step only · recurring toasts carry
+    `Don't show again`.
+12. Never cute, never « we », never humor in a failure.
+
+Anatomy: `Nika: <WHAT — named resource + failed/couldn't> <WHY — one
+clause> → <FIX — exact command>`. Doctor rows carry all four parts and
+the fix line IS the executable string. Toasts are two sentences max —
+the second is the recovery; detail lives in the panel/Output. Hovers
+show WHAT+WHY inline with FIX as a code block, and never re-toast what
+the hover already shows.
+
+The law is a gate, not a discipline — `scripts/voice-gate.mjs` (wired
+into `npm test`) fails the build on the banned patterns (`successfully`
+· `unable to` · `something went wrong` · `oops` · `an error occurred` ·
+`please try again later`) across `src/**/*.ts` (tests excluded), the
+walkthrough pages, and package.json's user-facing strings. Escape
+hatch for a legitimate use: a `voice-ok` comment on the same line or
+the line above (package.json goes through the allowlist at the top of
+the script).
