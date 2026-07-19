@@ -85,3 +85,33 @@ describe('renderRunReport · task_recovered (D-2026-07-08-N4)', () => {
     expect(md).toContain('recovered from NIKA-BUILTIN-READ-001');
   });
 });
+
+describe('runReport — the marathon facts (inner life · identity proof)', () => {
+  it('a cached task with the identity pair proves its reuse in the notes', () => {
+    const model = {
+      workflowStatus: 'completed',
+      tasks: new Map([['seed', {
+        id: 'seed', status: 'success', retries: 0, cached: true,
+        defHash: '15b188d151bfaf55', inputHash: 'c120cc20e2716d28',
+      }]]),
+      timeline: [], unknownLines: 0,
+    } as never;
+    const md = renderRunReport({ traceName: 't.ndjson', model, artifacts: new Map() });
+    expect(md).toContain('cache hit (def 15b188d1… · inputs c120cc20…)');
+  });
+
+  it('an agent task narrates its loop in the notes column', () => {
+    const model = {
+      workflowStatus: 'completed',
+      tasks: new Map([['scout', {
+        id: 'scout', status: 'success', retries: 0,
+        agent: { turns: 3, offered: 4, universe: 9, nudges: 2, compose: { checked: 1, valid: 1 } },
+      }]]),
+      timeline: [], unknownLines: 0,
+    } as never;
+    const md = renderRunReport({ traceName: 't.ndjson', model, artifacts: new Map() });
+    expect(md).toContain('3 turns (saw 4/9 tools)');
+    expect(md).toContain('nudged 2×');
+    expect(md).toContain('compose 1/1');
+  });
+});
