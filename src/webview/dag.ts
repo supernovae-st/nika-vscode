@@ -1469,6 +1469,26 @@ class DagRenderer {
   }
 
   private async renderCore(graph: DagGraph): Promise<void> {
+    // Big graphs sit in ELK for seconds (300 nodes ≈ 3.6s measured
+    // 2026-07-19) — the canvas must never be silently blank meanwhile.
+    if (graph.nodes.length > 100) {
+      let note = document.getElementById('nk-layout-note');
+      if (!note) {
+        note = document.createElement('div');
+        note.id = 'nk-layout-note';
+        note.setAttribute('role', 'status');
+        document.body.appendChild(note);
+      }
+      note.textContent = `laying out ${graph.nodes.length} tasks…`;
+    }
+    try {
+      await this.renderCoreInner(graph);
+    } finally {
+      document.getElementById('nk-layout-note')?.remove();
+    }
+  }
+
+  private async renderCoreInner(graph: DagGraph): Promise<void> {
     this.currentGraph = graph;
     this.nodeMap.clear();
     graph.nodes.forEach((n) => this.nodeMap.set(n.id, n));
