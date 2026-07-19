@@ -215,6 +215,32 @@ theme*, not to extensions:
   run in the native testing UI: the failure message IS the engine's
   per-path diff; a second profile re-pins the golden explicitly
 
+### One graph · five lenses
+
+![The lens deck over one typed graph: the map, a what-if failure preview lighting the recovery path, the timeline with ghost ceilings and a retry ladder, capability hulls with the audit banner, and the dataflow read](media/lens-deck.gif)
+
+The canvas is a deck of projections over the SAME typed graph — the
+language gives it what no other canvas has (typed edges · pass-sets ·
+engine-attributed permits · static cost · recorded clocks), and each
+lens renders one question:
+
+- **X · what if?** — pick a task, press **X**: the client replays
+  admission by the gate algebra. Dead paths dim to their cancelled
+  read, and the paths that exist *only because of failure* **light
+  up** — why `on_error` exists, visible before any token is spent
+- **T · timeline** — the recorded run as a Gantt: real clocks only,
+  retries as sub-segments, cache hits hollow, the **ghost ceiling**
+  (your recorded mean) behind every bar — est-vs-actual at a glance,
+  and the replay scrubber's cursor rides the lens
+- **P · audit** — *what can this file DO before a token is spent*:
+  capability hulls (egress · programs · files · tools) painted under
+  the wires, and the banner says it in one line — « this file can:
+  reaches example.com — runs git — est ≥$0.0010 »
+- **D · dataflow** — where the data comes from and goes: the control
+  scaffolding sleeps, the typed data wires and their bindings carry
+  the whole story
+- **H · heatmap** — where the time went, as a toggle, never ambient
+
 ### See the run
 
 ![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)
