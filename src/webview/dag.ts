@@ -577,6 +577,44 @@ function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: str
   return undefined;
 }
 
+/** The body's RESTING paint — the essence leads styled (deep-card
+ *  law), the remaining args rest muted; non-args kinds paint plain.
+ *  Shared by the card build AND the post-run restore: a re-run must
+ *  bring the styled essence back, never a flat text dump. */
+function paintBodyRest(
+  el: HTMLElement,
+  node: DagNode,
+  kind: 'prompt' | 'cmd' | 'args',
+  text: string,
+): void {
+  el.replaceChildren();
+  const shown = kind === 'cmd' ? `$ ${text}` : text;
+  const bare = node.tool?.startsWith('nika:') === true ? node.tool.slice('nika:'.length) : undefined;
+  const split = kind === 'args' ? splitEssence(bare, text) : {};
+  if (split.essence !== undefined) {
+    const ess = document.createElement('span');
+    ess.className = `nc-essence nc-ess-${split.essence.render}`;
+    ess.textContent = split.essence.render === 'condition'
+      ? `⊨ ${split.essence.value}`
+      : split.essence.render === 'event'
+      ? `⚡ ${split.essence.value}`
+      : split.essence.value;
+    ess.title = `${split.essence.key}: ${split.essence.value}`;
+    el.appendChild(ess);
+    if (split.rest !== undefined) {
+      const rest = document.createElement('span');
+      rest.className = 'nc-ess-rest';
+      rest.textContent = ` · ${split.rest}`;
+      el.appendChild(rest);
+    }
+  } else {
+    el.textContent = shown;
+  }
+  el.title = text;
+  el.dataset.base = shown;
+  el.dataset.baseKind = kind;
+}
+
 /** Whether the params row (gate · model chip · cost · avg) shows. */
 function hasParamsRow(node: DagNode): boolean {
   return node.model !== undefined || node.tool !== undefined
@@ -3432,39 +3470,9 @@ class DagRenderer {
         const code = NIKA_CODE_RE.exec(el.textContent ?? '')?.[0];
         if (code) { vscode.postMessage({ kind: 'dag:explainCode', code }); }
       });
-      const shown = body.kind === 'cmd' ? `$ ${body.text}` : body.text;
-      // The deep-card law (invoke bodies): the builtin's ESSENCE leads,
-      // styled by its nature (jq query as code · fetch url as a link
-      // face · write path as a path · assert condition as a guard ·
-      // emit event as a signal) — the rest of the args rests muted.
-      // Unknown builtins and absent essence args keep the plain line.
-      const bare = node.tool?.startsWith('nika:') === true ? node.tool.slice('nika:'.length) : undefined;
-      const split = body.kind === 'args' ? splitEssence(bare, body.text) : {};
-      if (split.essence !== undefined) {
-        const ess = document.createElement('span');
-        ess.className = `nc-essence nc-ess-${split.essence.render}`;
-        ess.textContent = split.essence.render === 'condition'
-          ? `⊨ ${split.essence.value}`
-          : split.essence.render === 'event'
-          ? `⚡ ${split.essence.value}`
-          : split.essence.value;
-        ess.title = `${split.essence.key}: ${split.essence.value}`;
-        el.appendChild(ess);
-        if (split.rest !== undefined) {
-          const rest = document.createElement('span');
-          rest.className = 'nc-ess-rest';
-          rest.textContent = ` · ${split.rest}`;
-          el.appendChild(rest);
-        }
-        el.title = body.text;
-        el.dataset.base = body.text;
-      } else {
-        el.textContent = shown;
-        el.title = body.text;
-        // The resting text — a success swaps in the RECORDED OUTPUT (the
-        // data on the canvas); a re-run restores this base (DESIGN.md §1).
-        el.dataset.base = shown;
-      }
+      // The resting paint (build AND restore share it — a re-run must
+      // restore the STYLED essence, not a flat dump of dataset.base).
+      paintBodyRest(el, node, body.kind, body.text);
       host.appendChild(el);
     }
 
@@ -4623,8 +4631,14 @@ class DagRenderer {
         bodyNode.title = `${extra.failPreview}\n\nclick — explain the code`;
         bodyNode.classList.add('nc-body-live', 'nc-body-err');
       } else if (bodyNode.classList.contains('nc-body-live')) {
-        bodyNode.textContent = bodyNode.dataset.base ?? '';
-        bodyNode.title = bodyNode.dataset.base ?? '';
+        // Restore the STYLED rest (the essence spans) — dataset.base
+        // alone would flatten an invoke card back to a plain dump.
+        const base = bodyTextOf(node);
+        if (base) { paintBodyRest(bodyNode, node, base.kind, base.text); }
+        else {
+          bodyNode.textContent = bodyNode.dataset.base ?? '';
+          bodyNode.title = bodyNode.dataset.base ?? '';
+        }
         bodyNode.classList.remove('nc-body-live', 'nc-body-err');
       }
     }
