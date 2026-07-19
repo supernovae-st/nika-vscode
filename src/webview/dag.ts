@@ -3857,6 +3857,7 @@ class DagRenderer {
     runBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.hideHoverCard(true);
+      this.confirmOn(live.id);
       vscode.postMessage({
         kind: 'dag:runTask',
         taskId: live.id,
@@ -4213,6 +4214,20 @@ class DagRenderer {
    *  again or Esc releases. Detail becomes a zero-click read. */
   private peekPinned = false;
 
+  /** The one confirmation spring — a deliberate act lands (peek
+   *  pinned · run launched). Transform-only on the card's .nc; the
+   *  class removes itself so the next confirmation replays. */
+  private confirmOn(taskId: string): void {
+    const host = this.nodeGroup
+      .select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`)
+      .select<HTMLElement>('.nc').node();
+    if (!host) { return; }
+    host.classList.remove('nc-confirm');
+    void host.offsetWidth; // restart the animation
+    host.classList.add('nc-confirm');
+    host.addEventListener('animationend', () => host.classList.remove('nc-confirm'), { once: true });
+  }
+
   togglePeek(): boolean {
     if (this.focusedId === null) { return false; }
     if (this.peekPinned) { this.unpinPeek(); return true; }
@@ -4220,6 +4235,7 @@ class DagRenderer {
     if (!node) { return false; }
     this.peekPinned = true;
     this.showHoverCard(node);
+    this.confirmOn(node.id);
     return true;
   }
 

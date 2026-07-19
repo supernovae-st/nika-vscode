@@ -5491,6 +5491,23 @@ body.audit .dag-node.audit-secret .nc {
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
 }
 
+/* ─── The ONE confirmation spring (Figma gentle class) ──────────────
+   Reserved for moments that CONFIRM a deliberate act — the peek
+   pinning · a run launching. Transform-only, on the card's .nc (its
+   own box), interruptible, ~240ms. Never on keyboard-repeated ops,
+   never decoration (the necessity check). */
+@keyframes nk-confirm {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+.nc-confirm {
+  animation: nk-confirm 240ms var(--nk-spring, ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nc-confirm { animation: none; }
+}
+
 /* The Raycast hint — a real shortcut riding its action (truth-gated:
    painted only when the keystroke would hit THIS card). */
 .hc-kbd {
