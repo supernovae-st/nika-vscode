@@ -3857,7 +3857,7 @@ class DagRenderer {
         add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
       }
     }
-    if (live.subManifest?.skeleton !== undefined) {
+    if (live.subManifest?.skeleton !== undefined && live.subManifest.skeleton.nodes.length > 0) {
       // The hover peek (UE collapsed-graph steal): the child's REAL
       // shape at a glance — verb-hued dots in wave columns, its real
       // edges as thin links. A miniature of ITS projection, no labels.
@@ -5997,6 +5997,11 @@ function miniDag(
   sk: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> },
   maxWidth: number,
 ): SVGSVGElement {
+  // An empty skeleton would ride Math.max(...[]) → -Infinity → a NaN
+  // viewBox. Callers guard, but a shared renderer defends itself.
+  if (sk.nodes.length === 0) {
+    return document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  }
   const perWave = new Map<number, string[]>();
   for (const n of sk.nodes) {
     const list = perWave.get(n.wave) ?? [];
