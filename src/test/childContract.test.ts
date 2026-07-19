@@ -90,3 +90,16 @@ describe('joinContract — facts, never judgments', () => {
     ]);
   });
 });
+
+describe('parseChildVars — degradation stays honest (edge forms)', () => {
+  it('a fully-inline flow-form vars block degrades to NO rows — never a crash, never a guess', () => {
+    // The line-based read does not enter a `vars: { … }` one-liner;
+    // the card simply shows no contract (garnish law). Documented.
+    const vars = parseChildVars('nika: v1\nworkflow:\n  id: x\nvars: { topic: "release", style: plain }\ntasks:\n  a:\n    exec:\n      command: ["ls"]\n');
+    expect(vars).toEqual([]);
+  });
+
+  it('joinContract over an empty declaration list is an empty join', () => {
+    expect(joinContract([], new Set(['ghost']))).toEqual([]);
+  });
+});
