@@ -215,3 +215,39 @@ describe('collectBodyFacts · infer senses (spec 02 — thinking · vision)', ()
     expect(facts.get('plain')?.visionCount).toBeUndefined();
   });
 });
+
+describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail_fast)', () => {
+  it('reads the cap and the per-item idiom at task level only', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  crawl:',
+      '    for_each: ${{ with.pages }}',
+      '    max_parallel: 4',
+      '    fail_fast: false',
+      '    invoke:',
+      '      tool: nika:fetch',
+      '      args:',
+      '        url: ${{ item }}',
+      '  quiet:',
+      '    exec: echo hi',
+    ].join('\n'));
+    expect(facts.get('crawl')?.maxParallel).toBe(4);
+    expect(facts.get('crawl')?.failFast).toBe(false);
+    expect(facts.get('quiet')?.maxParallel).toBeUndefined();
+  });
+
+  it('a with-alias named max_parallel cannot impersonate the policy', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  a:',
+      '    exec: echo hi',
+      '    with:',
+      '      max_parallel: 9',
+    ].join('\n'));
+    expect(facts.get('a')?.maxParallel).toBeUndefined();
+  });
+});

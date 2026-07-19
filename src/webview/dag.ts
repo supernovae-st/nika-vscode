@@ -345,6 +345,9 @@ interface DagNode {
   /** infer senses (spec 02): thinking budget (-1 = uncapped) · vision. */
   thinkingBudget?: number;
   visionCount?: number;
+  /** fan-out policies (spec 03): concurrency cap · per-item idiom. */
+  maxParallel?: number;
+  failFast?: boolean;
 }
 
 /** One artifact delta row (dag:artifacts — run close · replay). */
@@ -549,6 +552,8 @@ function hasPolicyRow(node: DagNode): boolean {
     || node.finallyCount !== undefined
     || node.thinkingBudget !== undefined
     || node.visionCount !== undefined
+    || node.maxParallel !== undefined
+    || node.failFast !== undefined
     || (node.outputNames?.length ?? 0) > 0
     || (node.permits?.length ?? 0) > 0
     || (node.verb === 'agent' && node.toolsCount !== undefined);
@@ -3494,6 +3499,17 @@ class DagRenderer {
         chip('nc-pol-vision', `▣ vision ×${node.visionCount}`,
           `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources — spec 02 vision:)`);
       }
+      if (node.maxParallel !== undefined) {
+        chip('nc-pol-parallel', `∥ max ${node.maxParallel}`,
+          `Fan-out concurrency cap — at most ${node.maxParallel} iteration${node.maxParallel === 1 ? '' : 's'} run at once. retry/on_error/timeout apply PER ITERATION (there is no whole-fan-out timer): this cap bounds total work.`);
+      }
+      if (node.failFast === false) {
+        chip('nc-pol-peritem', '⤼ per-item',
+          'fail_fast: false — one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).');
+      } else if (node.failFast === true) {
+        chip('nc-pol-failfast', '⚡ fail-fast',
+          'fail_fast: true — the first iteration error fails the whole task; its output settles null, never a partial array.');
+      }
       if (node.finallyCount !== undefined) {
         chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
           `on_finally — ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
@@ -4866,7 +4882,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');

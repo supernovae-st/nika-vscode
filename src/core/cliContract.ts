@@ -152,6 +152,10 @@ export interface DagNode {
   thinkingBudget?: number;
   /** infer `vision:` image inputs riding the prompt. */
   visionCount?: number;
+  /** `max_parallel:` — the fan-out's concurrency cap. */
+  maxParallel?: number;
+  /** `fail_fast: false` — per-item error handling (skip-and-report). */
+  failFast?: boolean;
   /** Mean success duration across recorded traces (flight recorder). */
   avgMs?: number;
   /** How many recorded runs back that mean (0/undefined = none). */

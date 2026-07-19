@@ -5235,3 +5235,21 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   body.dataflow .dag-edge.edge-dep,
   body.dataflow .dag-edge.edge-recovery { opacity: 0.35; }
 }
+
+/* fan-out policies — the cap in the data hue (a shape fact), the
+   per-item idiom calm, fail-fast in the warning family. */
+.nc-pol-parallel {
+  color: var(--nk-data);
+  border-color: color-mix(in srgb, var(--nk-data) 40%, transparent);
+  background: color-mix(in srgb, var(--nk-data) 8%, transparent);
+}
+.nc-pol-peritem {
+  color: var(--nk-st-muted);
+  border-color: color-mix(in srgb, var(--nk-st-muted) 45%, transparent);
+  background: color-mix(in srgb, var(--nk-st-muted) 8%, transparent);
+}
+.nc-pol-failfast {
+  color: var(--nk-st-retrying);
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 40%, transparent);
+  background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
+}
