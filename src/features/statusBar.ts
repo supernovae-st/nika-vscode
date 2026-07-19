@@ -165,6 +165,14 @@ export class NikaStatusBar implements vscode.Disposable {
     add(true, { label: '$(output) Show output channel', command: 'nika.showOutput' });
 
     add(true, sep(''));
+    // The lens deck, taught where the canvas is offered (the census
+    // found the deck invisible outside the ? explainer). Inert row —
+    // picking it opens the canvas, the keys work there.
+    add(caps.inspect, {
+      label: '$(layers) Canvas lenses: T timeline · P audit · D dataflow · X what-if · H heatmap',
+      description: 'press the key on the canvas — one graph, five lenses',
+      command: 'nika.showDag',
+    });
     // The one earned ask — a quiet footer, never a toast (#498 doctrine).
     add(true, { label: '$(star) Star nika on GitHub', description: 'supernovae-st/nika — it helps others find it', command: 'nika.starOnGitHub' });
 
