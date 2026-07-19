@@ -705,3 +705,29 @@ describe('foldTrace · the ADR-099 identity pair (cache proof)', () => {
     expect(t?.inputHash).toBe('c120cc20e271');
   });
 });
+
+describe('formatRunBadge — the marathon vocabulary, one truncated line', () => {
+  it('retries and agent turns join the facts', () => {
+    const badge = formatRunBadge({
+      id: 'x', status: 'success', retries: 2, durationMs: 1200, usd: 0.003,
+      agent: { turns: 3 },
+    } as never);
+    expect(badge).toContain('↻2');
+    expect(badge).toContain('t3');
+  });
+
+  it('a gated skip stays SHORT inline (the why lives in the hover)', () => {
+    const badge = formatRunBadge({
+      id: 'x', status: 'skipped', retries: 0, whyWhen: '${{ tasks.a.output == "ship" && vars.deep }}',
+    } as never);
+    expect(badge).toContain('gated');
+    expect(badge).not.toContain('tasks.a.output');
+  });
+
+  it('a cascade cancel names its culprit', () => {
+    const badge = formatRunBadge({
+      id: 'x', status: 'cancelled', retries: 0, blockedBy: 'fetch',
+    } as never);
+    expect(badge).toContain('blocked by fetch');
+  });
+});

@@ -77,6 +77,9 @@ export class RunDecorations implements vscode.Disposable {
       const eol = editor.document.lineAt(Math.min(task.line, editor.document.lineCount - 1)).range.end;
       decorations.push({
         range: new vscode.Range(eol, eol),
+        // The layering law (the GitLens read): inline is a SUMMARY —
+        // the hover on the ghost text carries the rest of the story.
+        hoverMessage: badgeHover(folded),
         renderOptions: {
           after: {
             contentText,
@@ -129,4 +132,37 @@ export class RunDecorations implements vscode.Disposable {
     this.type.dispose();
     for (const d of this.disposables) { d.dispose(); }
   }
+}
+
+
+/** The ghost text's deep card (the layering law): the run story in the
+ *  marathon's one vocabulary — loop · budget · nudges · stall ·
+ *  cache-identity proof · the failure tail. Inline stays a summary. */
+function badgeHover(t: import('../core/traceFold').FoldedTask): vscode.MarkdownString {
+  const md = new vscode.MarkdownString(undefined, true);
+  md.appendMarkdown(`**${t.id}** — ${t.status}\n\n`);
+  if (t.cached === true) {
+    const proof = t.defHash !== undefined && t.inputHash !== undefined
+      ? ` — same definition (\`${t.defHash.slice(0, 8)}…\`) and inputs (\`${t.inputHash.slice(0, 8)}…\`) as the recorded run`
+      : '';
+    md.appendMarkdown(`↻ cache hit — recorded output reused, not re-executed${proof}\n\n`);
+  }
+  if (t.recoveredFrom !== undefined) {
+    md.appendMarkdown(`✚ recovered${t.recoveredFrom ? ` from \`${t.recoveredFrom}\`` : ''} — on_error.recover absorbed the failure\n\n`);
+  }
+  if (t.whyWhen !== undefined) { md.appendMarkdown(`↷ gate false: \`${t.whyWhen}\`\n\n`); }
+  if (t.blockedBy !== undefined) { md.appendMarkdown(`⊘ blocked by \`${t.blockedBy}\` — an upstream outcome closed every admitting gate\n\n`); }
+  if (t.agent !== undefined) {
+    const a = t.agent;
+    if (a.turns !== undefined) {
+      const routing = a.offered !== undefined && a.universe !== undefined ? ` · saw ${a.offered}/${a.universe} tools` : '';
+      md.appendMarkdown(`loop: turn ${a.turns}${routing}\n\n`);
+    }
+    if (a.budget !== undefined) { md.appendMarkdown(`budget: ${a.budget.totalTokens}${a.budget.budget !== undefined ? ` of ${a.budget.budget}` : ''} tokens\n\n`); }
+    if (a.nudges !== undefined && a.nudges > 0) { md.appendMarkdown(`nudged ${a.nudges}× — a corrective reflection was injected\n\n`); }
+    if (a.stalled !== undefined) { md.appendMarkdown(`stalled: no-progress cycle (period ${a.stalled.period} · ×${a.stalled.repeats})\n\n`); }
+  }
+  if (t.status === 'failed' && t.preview !== undefined) { md.appendMarkdown(`✗ ${t.preview}\n\n`); }
+  md.appendMarkdown('_the Runs view keeps the full autopsy · F5 time-travels the recorded run_');
+  return md;
 }
