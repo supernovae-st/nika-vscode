@@ -4958,6 +4958,10 @@ body.timeline .dag-particles,
 body.timeline .wave-band-group,
 body.timeline .region-box,
 body.timeline .region-label { display: none; }
+/* The MAP's plan rail describes the map's waves — inside the lens it
+   is a second voice over the lens's own wave rules (3-skin matrix
+   find, 2026-07-19). */
+body.timeline #plan-rail { display: none; }
 
 .tl-id {
   font: 10px var(--nk-mono, monospace);
