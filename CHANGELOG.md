@@ -6,6 +6,89 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The marathon waves — the lens deck · composition lived · every error a story
+
+- **One graph · five lenses** — the canvas becomes a deck of
+  projections over the SAME typed graph, each answering one question:
+  - **X · what if?** (admission simulate): pick a task, press X — the
+    client replays admission by the gate algebra (pure module,
+    unit-proven). Dead paths dim to their cancelled read; the paths
+    that exist ONLY because of failure LIGHT UP — why `on_error`
+    exists, visible before any token is spent. Esc clears.
+  - **T · timeline**: the recorded run as a Gantt — real clocks only,
+    retries as sub-segments on one row, cache hits hollow, the $
+    column blank-over-zero, wave rules from the plan grammar. The
+    **ghost ceiling** (your recorded mean) paints behind every bar —
+    est-vs-actual at a glance — and the replay scrubber's **time
+    cursor rides the lens** (two time surfaces, one now). The map's
+    plan rail sleeps inside the lens.
+  - **P · audit**: « what can this file DO before a token is spent » —
+    capability hulls (egress · programs · files · tools) painted under
+    the wires in state-family hues (egress red first), and the banner
+    says it in one line, honest about UNBOUNDED floors and about
+    having nothing to declare.
+  - **D · dataflow**: answer by subtraction — control scaffolding
+    sleeps, the typed data wires and their binding labels carry the
+    whole story; direction heads stay awake at every zoom inside the
+    lens.
+  - The ? explainer teaches the deck (T · P · D next to H heatmap).
+- **Composition, lived** (spec 14): a workflow-call task is no longer
+  a dead chip —
+  - the ⎘ chip is a **door** (click opens the child · a missing child
+    offers « Create it » with the canonical envelope);
+  - the card carries the **child's manifest** (tasks · waves · est
+    cost · permits — read from the CHILD's own engine projection,
+    never an invented rollup) and the hover renders a **peek**: the
+    child's real shape in miniature (verb-hued dots per wave, its
+    real edges);
+  - the **promoted contract**: the child's `vars:` join the parent's
+    `args:` ON the card face — « topic ← parent · style = default ·
+    depth ⚠ required » (facts from both files; check owns findings);
+  - the **dive trail**: a breadcrumb (parent ▸ child ▸ …) grows on ⎘
+    jumps, truncates on crumb jumps, clears when you wander off —
+    every crumb is a door back up.
+- **The agent narrates its inner life**: the five agent_* trace kinds
+  fold into card facts — the running value column reads the pulse
+  (« t3 · 610tk · 1.7s ⋯ »), the hover narrates tool routing
+  (« turn 3 · saw 4/9 tools »), the budget curve, corrective nudges
+  with their reason, stall evidence, compose check verdicts.
+- **The live meters**: cost_incurred deltas fold into an in-flight
+  ~$ curve on the running card (« 1.0s ⋯ · ~$0.0042 » — ~$ moves, $
+  is the recorded verdict); infer_chunk counts prove the stream is
+  talking.
+- **Every degraded lane speaks** —
+  - the status pill owns one degradation ladder (no binary → lsp
+    down → healthy rung), every non-ok state names its exact next
+    move and the menu opens with that move as « Fix first »;
+  - a generation gap reads as a quiet truth line, never a nag;
+  - the Station tells « no such verb », « answered nothing » and
+    « answered garbage » apart (honest rows, click retries) instead
+    of collapsing them into one blank;
+  - six dead-end error toasts learned their action (Reveal in
+    Finder · Open check report · Finish setup · Retry / Set server
+    path / Show log · the permits toast splits its two causes);
+  - a canvas exception paints an in-canvas wall strip + one deduped
+    toast — a render wall is a story, never a silence.
+- **The red teaches**: NIKA-DAG-006 (statically-false `when:`) cards
+  wear « never runs » (muted · dashed · hatched) with the full law in
+  the hover; the session's first failed card teaches its affordances
+  once (« click the code to explain · hover ⑂ forks »); the scaffold
+  ships a commented `break_me` curriculum failure and the walkthrough
+  earns « Break it on purpose » (completes when the red actually
+  taught — on the explain command, not a button).
+- **Cards know more of the language**: `on_finally` cleanup chips
+  (« ◈ finally ×N » with the always-runs law) · infer senses
+  (« ∴ thinking 4k » · « ▣ vision ×N ») · fan-out policy (« ∥ max
+  3 » · « ⤼ per-item » vs « ⚡ fail-fast ») · `mode:` completions
+  teach each extract mode's output shape and use, spec-ordered.
+- **The canvas never reads empty**: a faint verb-hued ghost DAG lives
+  behind the welcome card (one dot pulsing — the run that wants to
+  happen); check-clean names the next move in the activity feed; a
+  created workflow narrates its next moves.
+- README: « One graph · five lenses » section + a 15-second deck tour
+  GIF captured from the real renderer with real gestures.
+
+
 ### The day waves — cards know themselves · the canvas earns its craft
 
 - **Card intelligence**: every card resolves its identity from the
