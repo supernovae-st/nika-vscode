@@ -98,7 +98,30 @@
     <div id="activity-head">Activity</div>
     <div id="activity-list"></div>
   </div>
-  <div id="empty-state" hidden><div class="es-card"></div></div>
+  <div id="empty-state" hidden>
+    <svg id="es-ghost" viewBox="0 0 640 360" aria-hidden="true">
+      <g class="esg-edges">
+        <path d="M 96 96 C 160 96 160 168 224 168" />
+        <path d="M 96 240 C 160 240 160 168 224 168" />
+        <path d="M 96 240 C 176 240 176 264 256 264" />
+        <path d="M 288 168 C 360 168 360 120 432 120" />
+        <path d="M 320 264 C 376 264 376 120 432 120" class="esg-run-edge" />
+        <path d="M 496 120 C 544 120 544 192 592 192" />
+      </g>
+      <g class="esg-dots">
+        <circle cx="96" cy="96" r="7" class="esg-exec" />
+        <circle cx="96" cy="240" r="7" class="esg-exec" />
+        <circle cx="256" cy="168" r="9" class="esg-infer" />
+        <circle cx="288" cy="264" r="7" class="esg-invoke" />
+        <circle cx="464" cy="120" r="9" class="esg-infer esg-run" />
+        <circle cx="592" cy="192" r="8" class="esg-agent" />
+      </g>
+    </svg>
+    <div class="es-card">
+      <div class="es-hero"><div class="es-word">Nika</div>
+      <div class="es-tag">The workflow canvas — audited before a token is spent.</div></div>
+    </div>
+  </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden role="listbox">
     <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…">
@@ -269,10 +292,12 @@
     // driving its own statuses must not wrestle the demo timeline
     // (assign-never-accumulate means the sim would erase its facts).
     const STILL = new URLSearchParams(location.search).has('still');
-    const sim = (fn, ms) => { if (!STILL) { setTimeout(fn, ms); } };
+    const EMPTY = new URLSearchParams(location.search).has('empty');
+    const sim = (fn, ms) => { if (!STILL && !EMPTY) { setTimeout(fn, ms); } };
 
     // t=0 is page load. dag:load waits out the load race (≥500ms).
     setTimeout(() => {
+      if (EMPTY) { return; }
       post({
         kind: 'dag:load', graph: GRAPH,
         toolCats: {

@@ -955,6 +955,24 @@ export class DagPanel implements vscode.Disposable {
     <div id="activity-list"></div>
   </div>
   <div id="empty-state" hidden>
+    <svg id="es-ghost" viewBox="0 0 640 360" aria-hidden="true">
+      <g class="esg-edges">
+        <path d="M 96 96 C 160 96 160 168 224 168" />
+        <path d="M 96 240 C 160 240 160 168 224 168" />
+        <path d="M 96 240 C 176 240 176 264 256 264" />
+        <path d="M 288 168 C 360 168 360 120 432 120" />
+        <path d="M 320 264 C 376 264 376 120 432 120" class="esg-run-edge" />
+        <path d="M 496 120 C 544 120 544 192 592 192" />
+      </g>
+      <g class="esg-dots">
+        <circle cx="96" cy="96" r="7" class="esg-exec" />
+        <circle cx="96" cy="240" r="7" class="esg-exec" />
+        <circle cx="256" cy="168" r="9" class="esg-infer" />
+        <circle cx="288" cy="264" r="7" class="esg-invoke" />
+        <circle cx="464" cy="120" r="9" class="esg-infer esg-run" />
+        <circle cx="592" cy="192" r="8" class="esg-agent" />
+      </g>
+    </svg>
     <div class="es-card">
       <div class="es-hero">
         <img class="es-mark logo-dark" src="${logoDark}" alt="" width="44" height="44">
