@@ -114,6 +114,32 @@ function report(name, budget, used, ok, note = '') {
     await p.keyboard.press('p');
   }
 
+  // J7 · « any action on this task » — 2 gestures, constant cost
+  // (Raycast math: focus + K reaches EVERY action, however many).
+  {
+    // Setup, not journey: J5's timeline fit moved the camera — the
+    // journey starts from a rested canvas (F = fit, uncounted).
+    await p.keyboard.press('Escape');
+    await p.keyboard.press('f');
+    await p.waitForTimeout(500);
+    const t = await center('brief');
+    await p.mouse.click(t.cx, t.cy); // 1
+    await p.waitForTimeout(250);
+    await p.keyboard.press('k'); // 2
+    await p.waitForTimeout(300);
+    const rows = await p.evaluate(() => document.querySelectorAll('#nk-actions .nk-act-row').length);
+    if (rows === 0) {
+      console.log('   J7 debug:', await p.evaluate(() => JSON.stringify({
+        panel: Boolean(document.getElementById('nk-actions')),
+        active: document.activeElement?.id ?? document.activeElement?.tagName,
+        focusedDim: document.querySelectorAll('.dag-node.dimmed').length,
+        body: document.body.className,
+      })));
+    }
+    report('J7 action-panel', 2, 2, rows >= 5, `${rows} actions at constant cost`);
+    await p.keyboard.press('Escape');
+  }
+
   await b.close();
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} journeys within budget`);
