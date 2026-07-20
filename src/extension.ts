@@ -29,6 +29,7 @@ import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
+import { subCreateAllowed } from './core/webviewPathGuard';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addAfterEntry,
@@ -1626,6 +1627,9 @@ export function activate(context: ExtensionContext): void {
     () => { void state.pushWelcomeData?.(); },
     // Composition chip ⎘ — resolve the child path against the PARENT
     // workflow's directory (the path is as-written, usually relative).
+    // `workflowUri` is the panel's OWN shown-graph uri (host-authoritative
+    // · never the webview's echo — see the dag:openSub dispatch guard); the
+    // activeTextEditor fallback is reached ONLY for a uri-less client sketch.
     (path, workflowUri) => {
       void (async () => {
         const parent = workflowUri ?? window.activeTextEditor?.document.uri.toString();
@@ -1653,6 +1657,19 @@ export function activate(context: ExtensionContext): void {
           const doc = await workspace.openTextDocument(target);
           await window.showTextDocument(doc);
         } catch {
+          // The write belt (the ONLY webview-reachable write): the sub
+          // ref is dispatch-gated (surfaced set · raw string), and the
+          // create is offered ONLY when the RESOLVED target sits inside
+          // the workspace with the exact workflow extension — a `..`-
+          // riding ref normalizes outside and never gets the button.
+          if (!subCreateAllowed({
+            path: target.path,
+            inWorkspace: workspace.getWorkspaceFolder(target) !== undefined,
+          })) {
+            log('WARN', 'openSub: create refused outside the workspace');
+            void window.showWarningMessage(`Nika: the sub-workflow does not exist yet — ${path}`);
+            return;
+          }
           void window
             .showWarningMessage(`Nika: the sub-workflow does not exist yet — ${path}`, 'Create it')
             .then(async (pick) => {
