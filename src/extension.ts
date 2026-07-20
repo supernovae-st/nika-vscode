@@ -157,7 +157,8 @@ import { topoWaves } from './core/cliContract';
 import { joinContract, parseChildVars, parseInvokeArgKeys } from './core/childContract';
 import { scanSecrets } from './core/credentialLint';
 import { collectShapes, renderShape } from './core/schemaShape';
-import { renderHistory, traceBelongsTo, type HistoryRun } from './core/runHistory';
+import { traceBelongsTo, type HistoryRun } from './core/runHistory';
+import { registerHistory } from './features/historyView';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
@@ -308,6 +309,41 @@ async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument 
     void window.showWarningMessage('Nika: open a .nika.yaml file first.');
   }
   return doc;
+}
+
+/**
+ * The History collection (0.97.0 shape, extracted for V-SOTA.B B2):
+ * stat-first, newest-first, fold LAZILY until 12 members — membership
+ * is the exact workflow name when the journal carries one
+ * (traceBelongsTo), so template-derived siblings sharing task ids never
+ * contaminate each other's grid. One scan feeds the History tree AND
+ * its markdown export. Returned chronological (oldest → newest): the
+ * index IS the exported grid's column number.
+ */
+async function collectHistoryRuns(
+  docName: string | undefined,
+  ids: ReadonlySet<string>,
+): Promise<HistoryRun[]> {
+  const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
+  const files = await workspace.findFiles(glob, '**/node_modules/**', 500);
+  const stamped = files
+    .map((f) => { try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; } })
+    .filter((x): x is { f: Uri; m: number } => x !== undefined)
+    .sort((a, b) => b.m - a.m);
+  const runs: HistoryRun[] = [];
+  for (const { f, m } of stamped) {
+    if (runs.length >= 12) { break; }
+    try {
+      const model = foldTrace(fs.readFileSync(f.fsPath, 'utf-8'));
+      const taskIds = [...model.tasks.keys()];
+      if (!traceBelongsTo(model.workflowName, docName, taskIds, ids)) { continue; }
+      if (taskIds.length === 0) { continue; }
+      runs.push({ name: path.basename(f.fsPath), mtimeMs: m, model, fsPath: f.fsPath });
+    } catch {
+      // unreadable trace — skip (the Runs view's Unreadable section owns that story)
+    }
+  }
+  return runs.sort((a, b) => a.mtimeMs - b.mtimeMs);
 }
 
 /**
@@ -661,6 +697,12 @@ export function activate(context: ExtensionContext): void {
       : undefined;
   };
   context.subscriptions.push(runsTreeView);
+
+  // Run History — the native cross-run tree (when-gated on
+  // `nika.historyActive` · V-SOTA.B B2). Registered up front, hidden
+  // until a `Nika: Run History` loads it; the old markdown grid is its
+  // export ($(markdown) in the view title).
+  const history = registerHistory(context);
 
   // The Station — the cockpit tree (engine · doctor · agents ·
   // providers · workspace). Lane A pure: everything it shows comes
@@ -3003,43 +3045,16 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       const docName = parseRichWorkflow(doc.getText()).name;
-      const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
-      // Stat-first, newest-first, fold LAZILY until 12 members: the old
-      // shape folded an ARBITRARY findFiles(100) window eagerly (the
-      // « last 12 » could omit the actual newest runs, and 88 folds were
-      // thrown away) — the 0.97.0 review's window+perf findings. And
-      // membership is the exact workflow name when the journal carries
-      // one (traceBelongsTo): template-derived siblings sharing task ids
-      // no longer contaminate each other's grid.
-      const files = await workspace.findFiles(glob, '**/node_modules/**', 500);
-      const stamped = files
-        .map((f) => { try { return { f, m: fs.statSync(f.fsPath).mtimeMs }; } catch { return undefined; } })
-        .filter((x): x is { f: Uri; m: number } => x !== undefined)
-        .sort((a, b) => b.m - a.m);
-      const runs: HistoryRun[] = [];
-      for (const { f, m } of stamped) {
-        if (runs.length >= 12) { break; }
-        try {
-          const model = foldTrace(fs.readFileSync(f.fsPath, 'utf-8'));
-          const taskIds = [...model.tasks.keys()];
-          if (!traceBelongsTo(model.workflowName, docName, taskIds, ids)) { continue; }
-          if (taskIds.length === 0) { continue; }
-          runs.push({ name: path.basename(f.fsPath), mtimeMs: m, model });
-        } catch {
-          // unreadable trace — skip
-        }
-      }
-      const newest = runs.sort((a, b) => a.mtimeMs - b.mtimeMs);
-      const md = renderHistory(
+      // The collection is the 0.97.0 shape verbatim (collectHistoryRuns):
+      // stat-first, newest-first, lazy fold to 12, exact-name membership.
+      // The surface changed (annexe R R13): the tree is native, the
+      // markdown grid is one $(markdown) gesture away as the export.
+      const runs = await collectHistoryRuns(docName, ids);
+      await history.show(
+        doc.uri,
         path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
-        newest,
+        runs,
       );
-      const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
-      try {
-        await commands.executeCommand('markdown.showPreview', preview.uri);
-      } catch {
-        await window.showTextDocument(preview, { preview: true });
-      }
     }),
     commands.registerCommand('nika.replayTrace', async (uri?: Uri) => {
       let target = uri;
@@ -3062,6 +3077,21 @@ export function activate(context: ExtensionContext): void {
       const active = activeNikaDocument();
       if (active) { dagWorkflowUri = active.uri; }
       await replayIntoDag(dagPanel, service, target, active);
+    }),
+    // The native click-through (V-SOTA.B B2.c): a task row in the Runs
+    // view replays ITS run onto the canvas and centers that task — the
+    // per-task navigation the report document cannot carry (annexe R
+    // R13: `command:` links are dead in the preview). Zero new protocol
+    // kinds: replayIntoDag + focusNode both predate this wrapper. The
+    // inline menu passes the tree item — typeof first (law 8).
+    commands.registerCommand('nika.runs.showTaskInDag', async (item?: { traceUri?: Uri; taskId?: string }) => {
+      const traceUri = item?.traceUri;
+      const taskId = item?.taskId;
+      if (!(traceUri instanceof Uri) || typeof taskId !== 'string' || taskId.length === 0) { return; }
+      const active = activeNikaDocument();
+      if (active) { dagWorkflowUri = active.uri; }
+      await replayIntoDag(dagPanel, service, traceUri, active);
+      dagPanel.focusNode(taskId);
     }),
     commands.registerCommand('nika.watchDemo', () => {
       runNikaCommand(state.resolvedServerPath, 'trace replay --demo', '');

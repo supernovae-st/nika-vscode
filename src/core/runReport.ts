@@ -131,15 +131,18 @@ export function renderRunReport(inputs: RunReportInputs): string {
           a.durationMs !== undefined ? `${(a.durationMs / 1000).toFixed(1)}s` : undefined,
           a.model ? `${a.provider ? `${a.provider}/` : ''}${a.model}` : undefined,
         ].filter(Boolean).join(' · ');
-        out.push(`- \`${a.path}\` — ${facts} · produced by \`${taskId}\``);
-        if (a.kind === 'image') {
-          const abs = inputs.resolvePath?.(a.path);
-          if (abs !== undefined) {
-            out.push('');
-            // Angle-bracket destination — paths with spaces stay one URL.
-            out.push(`  ![${a.label ?? 'image'} — ${taskId}](<file://${abs}>)`);
-            out.push('');
-          }
+        const abs = inputs.resolvePath?.(a.path);
+        // A resolved artifact is a `file:` LINK (the preview honors those;
+        // `command:` links it does not — annexe R R13). Angle-bracket
+        // destination, the gallery's proven idiom — paths with spaces
+        // stay one URL. Unresolved stays a code span: the gap says so.
+        out.push(abs !== undefined
+          ? `- [\`${a.path}\`](<file://${abs}>) — ${facts} · produced by \`${taskId}\``
+          : `- \`${a.path}\` — ${facts} · produced by \`${taskId}\``);
+        if (a.kind === 'image' && abs !== undefined) {
+          out.push('');
+          out.push(`  ![${a.label ?? 'image'} — ${taskId}](<file://${abs}>)`);
+          out.push('');
         }
       }
     }

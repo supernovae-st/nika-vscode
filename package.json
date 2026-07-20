@@ -99,6 +99,11 @@
           "name": "Runs"
         },
         {
+          "id": "nikaRunHistory",
+          "name": "Run History",
+          "when": "nika.historyActive"
+        },
+        {
           "id": "nikaStation",
           "name": "Station"
         }
@@ -461,6 +466,30 @@
         "command": "nika.runHistory",
         "title": "Run History (cross-run grid · flaky · trends)",
         "icon": "$(graph-line)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.history.exportDoc",
+        "title": "Export History as a Document (shareable · diffable)",
+        "icon": "$(markdown)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.history.close",
+        "title": "Close Run History",
+        "icon": "$(close)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.history.report",
+        "title": "Run Report (provable — read from the trace)",
+        "icon": "$(output)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.runs.showTaskInDag",
+        "title": "Show Task in DAG (replay this run · center the task)",
+        "icon": "$(target)",
         "category": "Nika"
       },
       {
@@ -947,6 +976,22 @@
           "when": "false"
         },
         {
+          "command": "nika.history.exportDoc",
+          "when": "nika.historyActive"
+        },
+        {
+          "command": "nika.history.close",
+          "when": "nika.historyActive"
+        },
+        {
+          "command": "nika.history.report",
+          "when": "false"
+        },
+        {
+          "command": "nika.runs.showTaskInDag",
+          "when": "false"
+        },
+        {
           "command": "nika.wireInputs",
           "when": "false"
         },
@@ -1117,6 +1162,16 @@
           "command": "nika.station.refresh",
           "when": "view == 'nikaStation'",
           "group": "navigation"
+        },
+        {
+          "command": "nika.history.exportDoc",
+          "when": "view == 'nikaRunHistory'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nika.history.close",
+          "when": "view == 'nikaRunHistory'",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -1156,8 +1211,18 @@
           "group": "nika@3"
         },
         {
+          "command": "nika.runs.showTaskInDag",
+          "when": "view == nikaRuns && viewItem == nikaTraceTask",
+          "group": "inline@1"
+        },
+        {
           "command": "nika.forkFromTask",
           "when": "view == nikaRuns && viewItem == nikaTraceTask",
+          "group": "inline@2"
+        },
+        {
+          "command": "nika.history.report",
+          "when": "view == nikaRunHistory && viewItem == nikaHistoryCell",
           "group": "inline"
         },
         {
@@ -1484,6 +1549,10 @@
         "view": "nikaStation",
         "when": "nika.journey == 'noBinary'",
         "contents": "The station lights up with the engine — install it and every row below becomes live machine truth.\n[Finish setup — install engine + wire everything](command:nika.finishSetup)"
+      },
+      {
+        "view": "nikaRunHistory",
+        "contents": "No recorded runs match this workflow yet — run it once and the grid fills itself.\n[▶ Run Workflow](command:nika.runWorkflow)\nMock needs no key: `mock/echo` rehearses offline, and every run still writes its trace."
       }
     ],
     "breakpoints": [
