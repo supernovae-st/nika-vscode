@@ -139,7 +139,40 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
           const kv = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
           if (kv) {
             const v = kv[2].trim().replace(/^["']|["']$/g, '');
-            argPairs.push(`${kv[1]}: ${v.length > 34 ? `${v.slice(0, 33)}…` : v}`);
+            if (v.length === 0) {
+              // A block member: a LIST of single-key op maps serializes
+              // its op names (`ops: dither → duotone` — the recipe is
+              // the soul); a nested MAP spends no pair (its scalars
+              // flatten in below, as they always did).
+              const chain: string[] = [];
+              let itemsAt = -1;
+              let overflow = false;
+              for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
+                const item = lines[j];
+                if (item.trim().length === 0) { continue; }
+                const itemIndent = item.match(/^( *)/)![1].length;
+                if (itemIndent <= indent) { break; }
+                const op = item.match(/^\s*-\s+([A-Za-z_][A-Za-z0-9_]*)\s*:?\s*(?:\{.*)?$/);
+                if (!op) {
+                  // A non-map member at the list's level: this is not a
+                  // single-key-map chain — keep no half-truth.
+                  if (item.trim().startsWith('-') && (itemsAt === -1 || itemIndent === itemsAt)) {
+                    chain.length = 0;
+                    break;
+                  }
+                  continue;
+                }
+                if (itemsAt === -1) { itemsAt = itemIndent; }
+                if (itemIndent !== itemsAt) { continue; }
+                if (chain.length < 3) { chain.push(op[1]); }
+                else { overflow = true; break; }
+              }
+              if (chain.length > 0) {
+                argPairs.push(`${kv[1]}: ${chain.join(' → ')}${overflow ? ' …' : ''}`);
+              }
+            } else {
+              argPairs.push(`${kv[1]}: ${v.length > 34 ? `${v.slice(0, 33)}…` : v}`);
+            }
           }
           continue;
         }

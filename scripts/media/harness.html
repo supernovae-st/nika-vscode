@@ -48,9 +48,16 @@
     // body attribute dagPanel stamps. Without this the page silently
     // shot the NIKA skin three times and called it three proofs.
     (() => {
-      const skin = new URLSearchParams(location.search).get('skin');
+      const q = new URLSearchParams(location.search);
+      const skin = q.get('skin');
       if (skin === 'editor' || skin === 'phosphor' || skin === 'nika') {
         document.body.dataset.nkTheme = skin;
+      }
+      // ?grand (and the ?media scene, whose frames ARE the show) seed
+      // the persisted card dial BEFORE dag.js restores state — the
+      // same host-state channel the real panel uses, stubbed.
+      if (q.has('grand') || q.has('media')) {
+        __state = { cardDial: 'grand', cardBase: 'grand' };
       }
     })();
   </script>
@@ -333,6 +340,160 @@
       ],
     };
 
+    // ── The ?media scene (W-D8 CI-2) — declare · develop · deliver ──
+    // ~31 nodes seeding verb×tool across media / file / introspection /
+    // data / core: every declared frame kind on one canvas (ghost-ratio
+    // + stated-gap generic · fx recipe split · 5 chart shapes · flat
+    // audio strip · check receipt row · write/edit receipts). The GIF
+    // scene and the pixel-proof fixture in one.
+    const MEDIA_CATS = {
+      log: { cat: 'core' }, emit: { cat: 'core' }, assert: { cat: 'core' },
+      prompt: { cat: 'core' }, done: { cat: 'core' }, wait: { cat: 'core' },
+      read: { cat: 'file' }, write: { cat: 'file' }, edit: { cat: 'file' },
+      glob: { cat: 'file' }, grep: { cat: 'file' },
+      jq: { cat: 'data' }, json_diff: { cat: 'data' }, validate: { cat: 'data' },
+      json_merge_patch: { cat: 'data' }, convert: { cat: 'data' }, uuid: { cat: 'data' },
+      date: { cat: 'data' }, hash: { cat: 'data' }, decide: { cat: 'data' },
+      fetch: { cat: 'network' }, notify: { cat: 'network' },
+      compose: { cat: 'introspection' }, inspect: { cat: 'introspection' },
+      chart: { cat: 'media' }, tts_generate: { cat: 'media' },
+      image_generate: { cat: 'media' }, image_fx: { cat: 'media' },
+    };
+
+    const MEDIA_GRAPH = {
+      workflowName: 'brand-studio',
+      workflowUri: 'file:///work/brand-studio.nika.yaml',
+      resumeCapable: true,
+      nodes: [
+        { id: 'brief', label: 'brief', verb: 'infer', status: 'pending', avgMs: 2100, avgRuns: 3,
+          model: 'mistral/mistral-small', provider: 'mistral',
+          promptPreview: 'One launch visual: a lighthouse beam over a violet sea — write the brief.',
+          outputNames: ['visual', 'copy'], producers: [] },
+        { id: 'hero', label: 'hero', verb: 'invoke', status: 'pending', avgMs: 9400, avgRuns: 3,
+          tool: 'nika:image_generate',
+          argsPreview: 'aspect_ratio: 16:9 · n: 3 · provider: openai',
+          bindingsIn: [{ alias: 'prompt', from: 'brief', path: 'visual' }], producers: ['brief'] },
+        { id: 'poster', label: 'poster', verb: 'invoke', status: 'pending', avgMs: 8100, avgRuns: 2,
+          tool: 'nika:image_generate',
+          argsPreview: 'aspect_ratio: ${{ vars.ratio }} · provider: gemini',
+          bindingsIn: [{ alias: 'prompt', from: 'brief', path: 'visual' }], producers: ['brief'] },
+        { id: 'stylize', label: 'stylize', verb: 'invoke', status: 'pending', avgMs: 640, avgRuns: 3,
+          tool: 'nika:image_fx',
+          argsPreview: 'input: ./out/hero-1.png · ops: dither → duotone',
+          bindingsIn: [{ alias: 'src', from: 'hero', path: 'paths' }], producers: ['hero'] },
+        { id: 'glitchy', label: 'glitchy', verb: 'invoke', status: 'pending', avgMs: 720, avgRuns: 2,
+          tool: 'nika:image_fx',
+          argsPreview: 'input: ${{ hero.paths }} · ops: glitch → scanlines → grain',
+          bindingsIn: [{ alias: 'src', from: 'hero', path: 'paths' }], producers: ['hero'] },
+        { id: 'voice', label: 'voice', verb: 'invoke', status: 'pending', avgMs: 3800, avgRuns: 3,
+          tool: 'nika:tts_generate',
+          argsPreview: 'voice: alloy · format: mp3 · provider: openai',
+          bindingsIn: [{ alias: 'text', from: 'brief', path: 'copy' }], producers: ['brief'] },
+        { id: 'jingle', label: 'jingle', verb: 'invoke', status: 'pending', avgMs: 2900, avgRuns: 1,
+          tool: 'nika:tts_generate',
+          argsPreview: 'text: ${{ brief.output }}',
+          bindingsIn: [{ alias: 'text', from: 'brief', path: 'copy' }], producers: ['brief'] },
+        { id: 'rows', label: 'rows', verb: 'invoke', status: 'pending', avgMs: 90, avgRuns: 4,
+          tool: 'nika:read', argsPreview: 'path: ./data/commits.json', producers: [] },
+        { id: 'velocity', label: 'velocity', verb: 'invoke', status: 'pending', avgMs: 380, avgRuns: 3,
+          tool: 'nika:chart', argsPreview: 'type: bar · out: ./out/velocity.svg',
+          bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
+        { id: 'trend', label: 'trend', verb: 'invoke', status: 'pending', avgMs: 360, avgRuns: 3,
+          tool: 'nika:chart', argsPreview: 'type: line · out: ./out/trend.svg',
+          bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
+        { id: 'band', label: 'band', verb: 'invoke', status: 'pending', avgMs: 410, avgRuns: 3,
+          tool: 'nika:chart', argsPreview: 'type: area_band · out: ./out/costs.svg',
+          bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
+        { id: 'spread', label: 'spread', verb: 'invoke', status: 'pending', avgMs: 350, avgRuns: 2,
+          tool: 'nika:chart', argsPreview: 'type: scatter · out: ./out/latency.svg',
+          bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
+        { id: 'heat', label: 'heat', verb: 'invoke', status: 'pending', avgMs: 440, avgRuns: 2,
+          tool: 'nika:chart', argsPreview: 'type: heatmap · out: ./out/matrix.svg',
+          bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
+        { id: 'draft', label: 'draft', verb: 'infer', status: 'pending', avgMs: 5200, avgRuns: 2,
+          model: 'ollama/qwen3.5:4b', provider: 'ollama',
+          promptPreview: 'Draft the campaign workflow YAML — assets in, site out.',
+          bindingsIn: [{ alias: 'brief', from: 'brief', path: 'copy' }], producers: ['brief'] },
+        { id: 'checkwf', label: 'checkwf', verb: 'invoke', status: 'pending', avgMs: 240, avgRuns: 2,
+          tool: 'nika:compose', argsPreview: 'workflow_yaml: ${{ draft.output }}',
+          bindingsIn: [{ alias: 'draft', from: 'draft', path: 'output' }], producers: ['draft'] },
+        { id: 'audit', label: 'audit', verb: 'invoke', status: 'pending', avgMs: 60, avgRuns: 2,
+          tool: 'nika:inspect', argsPreview: 'view: cost', producers: ['checkwf'] },
+        { id: 'save', label: 'save', verb: 'invoke', status: 'pending', avgMs: 120, avgRuns: 3,
+          tool: 'nika:write', argsPreview: 'path: ./site/index.html',
+          permits: ['fs.write: ./site'],
+          bindingsIn: [
+            { alias: 'art', from: 'stylize', path: 'output' },
+            { alias: 'chart', from: 'velocity', path: 'output' },
+          ], producers: ['stylize', 'velocity'] },
+        { id: 'patch', label: 'patch', verb: 'invoke', status: 'pending', avgMs: 80, avgRuns: 3,
+          tool: 'nika:edit', argsPreview: 'path: ./site/index.html · find: v0 · replace: v1',
+          bindingsIn: [{ alias: 'site', from: 'save', path: 'output' }], producers: ['save'] },
+        { id: 'scan', label: 'scan', verb: 'invoke', status: 'pending', avgMs: 140, avgRuns: 4,
+          tool: 'nika:grep', argsPreview: 'pattern: TODO|FIXME · path: ./src', producers: [] },
+        { id: 'list', label: 'list', verb: 'invoke', status: 'pending', avgMs: 60, avgRuns: 4,
+          tool: 'nika:glob', argsPreview: 'pattern: ./assets/**/*.png', producers: [] },
+        { id: 'pull', label: 'pull', verb: 'invoke', status: 'pending', avgMs: 820, avgRuns: 4,
+          tool: 'nika:fetch', argsPreview: 'url: https://api.github.com/repos/n/stats · mode: jq',
+          producers: [] },
+        { id: 'announce', label: 'announce', verb: 'invoke', status: 'pending', avgMs: 340, avgRuns: 2,
+          tool: 'nika:notify', argsPreview: 'target: https://hooks.example.com/T00 · severity: info',
+          bindingsIn: [{ alias: 'site', from: 'patch', path: 'output' }], producers: ['patch'] },
+        { id: 'shape', label: 'shape', verb: 'invoke', status: 'pending', avgMs: 40, avgRuns: 4,
+          tool: 'nika:jq', argsPreview: 'expression: .items | map(.name) · input: ${{ pull.output }}',
+          bindingsIn: [{ alias: 'raw', from: 'pull', path: 'output' }], producers: ['pull'] },
+        { id: 'vet', label: 'vet', verb: 'invoke', status: 'pending', avgMs: 30, avgRuns: 4,
+          tool: 'nika:validate', argsPreview: 'format: json',
+          bindingsIn: [{ alias: 'data', from: 'shape', path: 'output' }], producers: ['shape'] },
+        { id: 'morph', label: 'morph', verb: 'invoke', status: 'pending', avgMs: 35, avgRuns: 4,
+          tool: 'nika:convert', argsPreview: 'from: json · to: csv',
+          bindingsIn: [{ alias: 'data', from: 'shape', path: 'output' }], producers: ['shape'] },
+        { id: 'stamp', label: 'stamp', verb: 'invoke', status: 'pending', avgMs: 10, avgRuns: 4,
+          tool: 'nika:date', argsPreview: 'op: now · tz: Europe/Paris', producers: [] },
+        { id: 'mint', label: 'mint', verb: 'invoke', status: 'pending', avgMs: 5, avgRuns: 4,
+          tool: 'nika:uuid', argsPreview: 'version: v7', producers: [] },
+        { id: 'digest', label: 'digest', verb: 'invoke', status: 'pending', avgMs: 25, avgRuns: 3,
+          tool: 'nika:hash', argsPreview: 'algo: blake3 · content: ${{ save.path }}',
+          bindingsIn: [{ alias: 'site', from: 'save', path: 'output' }], producers: ['save'] },
+        { id: 'hold', label: 'hold', verb: 'invoke', status: 'pending', avgMs: 12000, avgRuns: 2,
+          tool: 'nika:wait', argsPreview: 'duration: 12s',
+          producers: ['announce'] },
+        { id: 'note', label: 'note', verb: 'invoke', status: 'pending', avgMs: 8, avgRuns: 4,
+          tool: 'nika:log', argsPreview: 'message: campaign assets shipped',
+          producers: ['hold'] },
+        { id: 'gate', label: 'gate', verb: 'invoke', status: 'pending', avgMs: 6, avgRuns: 3,
+          tool: 'nika:assert', argsPreview: 'condition: ${{ hero.count }} == 3',
+          bindingsIn: [{ alias: 'count', from: 'hero', path: 'count' }], producers: ['hero'] },
+      ],
+      edges: [
+        { id: 'brief->hero', source: 'brief', target: 'hero', kind: 'value', isDataEdge: true, label: 'prompt' },
+        { id: 'brief->poster', source: 'brief', target: 'poster', kind: 'value', isDataEdge: true, label: 'prompt' },
+        { id: 'brief->voice', source: 'brief', target: 'voice', kind: 'value', isDataEdge: true, label: 'text' },
+        { id: 'brief->jingle', source: 'brief', target: 'jingle', kind: 'value', isDataEdge: true, label: 'text' },
+        { id: 'brief->draft', source: 'brief', target: 'draft', kind: 'value', isDataEdge: true, label: 'brief' },
+        { id: 'hero->stylize', source: 'hero', target: 'stylize', kind: 'value', isDataEdge: true, label: 'src' },
+        { id: 'hero->glitchy', source: 'hero', target: 'glitchy', kind: 'value', isDataEdge: true, label: 'src' },
+        { id: 'hero->gate', source: 'hero', target: 'gate', kind: 'value', isDataEdge: true, label: 'count' },
+        { id: 'rows->velocity', source: 'rows', target: 'velocity', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'rows->trend', source: 'rows', target: 'trend', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'rows->band', source: 'rows', target: 'band', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'rows->spread', source: 'rows', target: 'spread', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'rows->heat', source: 'rows', target: 'heat', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'draft->checkwf', source: 'draft', target: 'checkwf', kind: 'value', isDataEdge: true, label: 'draft' },
+        { id: 'checkwf->audit', source: 'checkwf', target: 'audit', kind: 'control', predicate: 'succeeded' },
+        { id: 'stylize->save', source: 'stylize', target: 'save', kind: 'value', isDataEdge: true, label: 'art' },
+        { id: 'velocity->save', source: 'velocity', target: 'save', kind: 'value', isDataEdge: true, label: 'chart' },
+        { id: 'save->patch', source: 'save', target: 'patch', kind: 'value', isDataEdge: true, label: 'site' },
+        { id: 'save->digest', source: 'save', target: 'digest', kind: 'value', isDataEdge: true, label: 'site' },
+        { id: 'patch->announce', source: 'patch', target: 'announce', kind: 'value', isDataEdge: true, label: 'site' },
+        { id: 'announce->hold', source: 'announce', target: 'hold', kind: 'control', predicate: 'succeeded' },
+        { id: 'hold->note', source: 'hold', target: 'note', kind: 'control', predicate: 'succeeded' },
+        { id: 'pull->shape', source: 'pull', target: 'shape', kind: 'value', isDataEdge: true, label: 'raw' },
+        { id: 'shape->vet', source: 'shape', target: 'vet', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'shape->morph', source: 'shape', target: 'morph', kind: 'value', isDataEdge: true, label: 'data' },
+      ],
+    };
+
     const post = (m) => window.postMessage(m, '*');
     const batch = (updates) => post({ kind: 'dag:batchUpdateStatus', updates });
 
@@ -344,19 +505,35 @@
     // ?celebrate — replay the once-ever first-green confetti after the
     // sim's verdict (the real one is host-gated to one shot per machine).
     const CELEBRATE = new URLSearchParams(location.search).has('celebrate');
+    // ?media — the CI-2 scene: the brand-studio fixture replaces the
+    // demo (declared frames → develop sweeps → artifacts settle). With
+    // ?n it instead sprinkles media tools over the perf DAG (frames at
+    // scale — the pan gate's media leg).
+    const MEDIA_ON = new URLSearchParams(location.search).has('media');
     // ?n=300 — the perf fixture: a generated layered DAG (deterministic,
     // no randomness: index math only) replaces the demo. Implies ?still.
     const PERF_N = Number(new URLSearchParams(location.search).get('n') || 0);
+    const PERF_MEDIA_TOOLS = [
+      ['nika:image_generate', 'aspect_ratio: 16:9 · n: 2 · provider: openai'],
+      ['nika:tts_generate', 'voice: alloy · format: mp3'],
+      ['nika:chart', 'type: bar · out: ./out/c.svg'],
+      ['nika:image_fx', 'input: ./a.png · ops: dither → duotone'],
+      ['nika:compose', 'workflow_yaml: ${{ d.output }}'],
+      ['nika:jq', 'expression: .a'],
+    ];
     function perfGraph(n) {
       const verbs = ['exec', 'infer', 'invoke', 'agent'];
       const nodes = []; const edges = [];
       const COLS = Math.ceil(Math.sqrt(n / 2));
       for (let i = 0; i < n; i++) {
         const id = 't' + i;
+        const perfTool = MEDIA_ON
+          ? PERF_MEDIA_TOOLS[(i >> 2) % PERF_MEDIA_TOOLS.length]
+          : ['nika:jq', 'query: .a'];
         nodes.push({
           id, label: id, verb: verbs[i % 4], status: 'pending',
           ...(i % 4 === 1 ? { model: 'mock/echo', promptPreview: 'perf node ' + i } : {}),
-          ...(i % 4 === 2 ? { tool: 'nika:jq', argsPreview: 'query: .a' } : {}),
+          ...(i % 4 === 2 ? { tool: perfTool[0], argsPreview: perfTool[1] } : {}),
           producers: [],
         });
         const wave = Math.floor(i / COLS);
@@ -374,12 +551,20 @@
       return { workflowUri: 'file:///work/perf.nika.yaml', workflowName: 'perf-' + n, nodes, edges };
     }
 
-    const sim = (fn, ms) => { if (!STILL && !EMPTY && !(PERF_N > 0)) { setTimeout(fn, ms); } };
+    const sim = (fn, ms) => { if (!STILL && !EMPTY && !(PERF_N > 0) && !MEDIA_ON) { setTimeout(fn, ms); } };
+    const msim = (fn, ms) => { if (MEDIA_ON && !STILL && !EMPTY && !(PERF_N > 0)) { setTimeout(fn, ms); } };
 
     // t=0 is page load. dag:load waits out the load race (≥500ms).
     setTimeout(() => {
       if (EMPTY) { return; }
-      if (PERF_N > 0) { post({ kind: 'dag:load', graph: perfGraph(PERF_N) }); return; }
+      if (PERF_N > 0) {
+        post({ kind: 'dag:load', graph: perfGraph(PERF_N), ...(MEDIA_ON ? { toolCats: MEDIA_CATS } : {}) });
+        return;
+      }
+      if (MEDIA_ON) {
+        post({ kind: 'dag:load', graph: MEDIA_GRAPH, toolCats: MEDIA_CATS });
+        return;
+      }
       post({
         kind: 'dag:load', graph: GRAPH,
         toolCats: {
@@ -388,6 +573,220 @@
         },
       });
     }, 600);
+
+    // ── The media-scene run (msim) — declare → develop → deliver ──
+    // Artifacts are a SNAPSHOT per message (an absent task loses its
+    // preview), so the timeline posts the CUMULATIVE list every time.
+    const MEDIA_ARTS = [];
+    const landArts = (added) => { MEDIA_ARTS.push(...added); post({ kind: 'dag:artifacts', artifacts: [...MEDIA_ARTS] }); };
+    const svgArt = (body, w, h) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' + body + '</svg>');
+    const HERO_SVG = svgArt(
+      '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#1b2350"/><stop offset="0.62" stop-color="#5a3f86"/>'
+      + '<stop offset="0.63" stop-color="#221a3f"/><stop offset="1" stop-color="#101226"/></linearGradient></defs>'
+      + '<rect width="480" height="270" fill="url(#s)"/>'
+      + '<circle cx="356" cy="92" r="30" fill="#ffd9a0" opacity="0.92"/>'
+      + '<rect x="96" y="70" width="18" height="100" fill="#0c0f1e"/>'
+      + '<polygon points="105,52 88,74 122,74" fill="#0c0f1e"/>'
+      + '<polygon points="112,64 300,40 300,84" fill="#ffe9bf" opacity="0.34"/>'
+      + '<rect y="170" width="480" height="100" fill="#171a38" opacity="0.85"/>'
+      + '<path d="M0 196 Q 120 186 240 196 T 480 196 V270 H0 Z" fill="#20255c" opacity="0.7"/>',
+      480, 270);
+    const LOFI_SVG = svgArt(
+      '<rect width="480" height="270" fill="#131028"/>'
+      + '<circle cx="356" cy="92" r="30" fill="#e6b873"/>'
+      + '<rect x="96" y="70" width="18" height="100" fill="#05060f"/>'
+      + '<polygon points="105,52 88,74 122,74" fill="#05060f"/>'
+      + '<polygon points="112,64 300,40 300,84" fill="#8db4ff" opacity="0.5"/>'
+      + '<rect y="170" width="480" height="100" fill="#1c1440"/>'
+      + '<g fill="#000" opacity="0.28">'
+      + Array.from({ length: 34 }, (_, i) => '<rect y="' + (i * 8) + '" width="480" height="3"/>').join('')
+      + '</g>',
+      480, 270);
+    const GLITCH_SVG = svgArt(
+      '<rect width="480" height="270" fill="#0d1024"/>'
+      + '<rect x="90" y="70" width="18" height="100" fill="#04050c"/>'
+      + '<rect x="118" y="70" width="6" height="100" fill="#22d3ee" opacity="0.6"/>'
+      + '<rect x="82" y="70" width="6" height="100" fill="#ff7a3c" opacity="0.6"/>'
+      + '<circle cx="350" cy="92" r="30" fill="#ffd9a0"/>'
+      + '<rect x="330" y="88" width="80" height="8" fill="#0d1024"/>'
+      + '<rect y="150" width="480" height="6" fill="#22d3ee" opacity="0.4"/>'
+      + '<rect y="210" width="480" height="4" fill="#b07bff" opacity="0.5"/>',
+      480, 270);
+    const mkChart = (marks) => svgArt(
+      '<rect width="320" height="180" fill="#0a0f1e"/>' + marks
+      + '<line x1="20" y1="156" x2="308" y2="156" stroke="#31415f" stroke-width="2"/>',
+      320, 180);
+    const BAR_SVG = mkChart('<g fill="#4f86ff"><rect x="34" y="56" width="30" height="100"/>'
+      + '<rect x="78" y="80" width="30" height="76"/><rect x="122" y="96" width="30" height="60"/>'
+      + '<rect x="166" y="112" width="30" height="44"/><rect x="210" y="128" width="30" height="28"/>'
+      + '<rect x="254" y="140" width="30" height="16"/></g>');
+    const LINE_SVG = mkChart('<polyline points="28,120 88,84 148,102 208,52 288,66" fill="none" stroke="#4f86ff" stroke-width="3"/>');
+    const AREA_SVG = mkChart('<path d="M28 120 L88 84 L148 102 L208 52 L288 66 V156 H28 Z" fill="#4f86ff" opacity="0.3"/>'
+      + '<polyline points="28,120 88,84 148,102 208,52 288,66" fill="none" stroke="#4f86ff" stroke-width="2.5"/>');
+    const SCATTER_SVG = mkChart('<g fill="#4f86ff"><circle cx="52" cy="112" r="5"/><circle cx="96" cy="76" r="5"/>'
+      + '<circle cx="142" cy="98" r="5"/><circle cx="188" cy="58" r="5"/><circle cx="234" cy="86" r="5"/>'
+      + '<circle cx="272" cy="64" r="5"/></g>');
+    const HEATMAP_SVG = mkChart('<g>' + [0.9, 0.4, 0.65, 0.3, 0.8, 0.5, 0.25, 0.7, 0.45, 0.95, 0.35, 0.6]
+      .map((o, i) => '<rect x="' + (36 + (i % 4) * 66) + '" y="' + (28 + Math.floor(i / 4) * 42)
+        + '" width="58" height="34" fill="#4f86ff" opacity="' + o + '"/>').join('') + '</g>');
+    const WAV_URI = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+
+    msim(() => {
+      post({ kind: 'run:state', running: true });
+      batch([
+        { taskId: 'brief', status: 'running' },
+        { taskId: 'rows', status: 'running' },
+        { taskId: 'pull', status: 'running' },
+        { taskId: 'scan', status: 'running' },
+        { taskId: 'list', status: 'running' },
+        { taskId: 'stamp', status: 'running' },
+        { taskId: 'mint', status: 'running' },
+      ]);
+      post({ kind: 'run:progress', done: 0, total: 31 });
+    }, 2000);
+
+    msim(() => {
+      batch([
+        { taskId: 'brief', status: 'success', durationMs: 2140, outputPreview: 'visual: « a lighthouse beam over a violet sea »' },
+        { taskId: 'rows', status: 'success', durationMs: 88 },
+        { taskId: 'pull', status: 'success', durationMs: 811 },
+        { taskId: 'scan', status: 'success', durationMs: 132 },
+        { taskId: 'list', status: 'success', durationMs: 57 },
+        { taskId: 'stamp', status: 'success', durationMs: 9 },
+        { taskId: 'mint', status: 'success', durationMs: 4 },
+        // The declared frames DEVELOP — the one sweep, on every kind.
+        { taskId: 'hero', status: 'running' },
+        { taskId: 'poster', status: 'running' },
+        { taskId: 'voice', status: 'running' },
+        { taskId: 'jingle', status: 'running' },
+        { taskId: 'draft', status: 'running' },
+        { taskId: 'shape', status: 'running' },
+      ]);
+      post({ kind: 'run:progress', done: 7, total: 31 });
+    }, 3400);
+
+    msim(() => {
+      batch([
+        { taskId: 'hero', status: 'success', durationMs: 9377 },
+        { taskId: 'poster', status: 'success', durationMs: 8032 },
+        { taskId: 'voice', status: 'success', durationMs: 3785 },
+        { taskId: 'jingle', status: 'success', durationMs: 2871 },
+        { taskId: 'draft', status: 'success', durationMs: 5111, outputPreview: 'nika: v1 · 6 tasks' },
+        { taskId: 'shape', status: 'success', durationMs: 38 },
+        { taskId: 'stylize', status: 'running' },
+        { taskId: 'glitchy', status: 'running' },
+        { taskId: 'gate', status: 'running' },
+        { taskId: 'vet', status: 'running' },
+        { taskId: 'morph', status: 'running' },
+      ]);
+      landArts([
+        { taskId: 'hero', kind: 'image', src: HERO_SVG, path: '/work/out/hero-1.png',
+          name: 'hero-1.png', tip: 'nika:image_generate · gpt-image-2', count: 3 },
+        { taskId: 'poster', kind: 'image', src: HERO_SVG, path: '/work/out/poster-1.png',
+          name: 'poster-1.png', tip: 'nika:image_generate · gemini-3.1-flash-image' },
+        { taskId: 'voice', kind: 'audio', src: WAV_URI, path: '/work/out/voiceover.mp3',
+          name: 'voiceover.mp3', tip: 'nika:tts_generate · alloy', durationMs: 4180 },
+        { taskId: 'jingle', kind: 'audio', src: WAV_URI, path: '/work/out/jingle.mp3',
+          name: 'jingle.mp3', tip: 'nika:tts_generate', durationMs: 2630 },
+      ]);
+      post({ kind: 'run:progress', done: 13, total: 31 });
+    }, 6800);
+
+    msim(() => {
+      batch([
+        { taskId: 'stylize', status: 'success', durationMs: 655 },
+        { taskId: 'glitchy', status: 'success', durationMs: 741 },
+        { taskId: 'gate', status: 'success', durationMs: 5 },
+        { taskId: 'vet', status: 'success', durationMs: 28 },
+        { taskId: 'morph', status: 'success', durationMs: 31 },
+        { taskId: 'velocity', status: 'running' },
+        { taskId: 'trend', status: 'running' },
+        { taskId: 'band', status: 'running' },
+        { taskId: 'spread', status: 'running' },
+        { taskId: 'heat', status: 'running' },
+        { taskId: 'checkwf', status: 'running' },
+      ]);
+      landArts([
+        { taskId: 'stylize', kind: 'image', src: LOFI_SVG, path: '/work/out/hero-lofi.png',
+          name: 'hero-lofi.png', tip: 'nika:image_fx · dither → duotone' },
+        { taskId: 'glitchy', kind: 'image', src: GLITCH_SVG, path: '/work/out/hero-glitch.png',
+          name: 'hero-glitch.png', tip: 'nika:image_fx · glitch → scanlines → grain' },
+      ]);
+      post({ kind: 'run:progress', done: 18, total: 31 });
+    }, 8900);
+
+    msim(() => {
+      batch([
+        { taskId: 'velocity', status: 'success', durationMs: 377 },
+        { taskId: 'trend', status: 'success', durationMs: 355 },
+        { taskId: 'band', status: 'success', durationMs: 402 },
+        { taskId: 'spread', status: 'success', durationMs: 349 },
+        { taskId: 'heat', status: 'success', durationMs: 431 },
+        { taskId: 'checkwf', status: 'success', durationMs: 233 },
+        { taskId: 'audit', status: 'running' },
+        { taskId: 'save', status: 'running' },
+      ]);
+      landArts([
+        { taskId: 'velocity', kind: 'image', src: BAR_SVG, path: '/work/out/velocity.svg',
+          name: 'velocity.svg', tip: 'nika:chart · deterministic SVG' },
+        { taskId: 'trend', kind: 'image', src: LINE_SVG, path: '/work/out/trend.svg',
+          name: 'trend.svg', tip: 'nika:chart · deterministic SVG' },
+        { taskId: 'band', kind: 'image', src: AREA_SVG, path: '/work/out/costs.svg',
+          name: 'costs.svg', tip: 'nika:chart · deterministic SVG' },
+        { taskId: 'spread', kind: 'image', src: SCATTER_SVG, path: '/work/out/latency.svg',
+          name: 'latency.svg', tip: 'nika:chart · deterministic SVG' },
+        { taskId: 'heat', kind: 'image', src: HEATMAP_SVG, path: '/work/out/matrix.svg',
+          name: 'matrix.svg', tip: 'nika:chart · deterministic SVG' },
+      ]);
+      post({ kind: 'run:progress', done: 24, total: 31 });
+    }, 11200);
+
+    msim(() => {
+      batch([
+        { taskId: 'audit', status: 'success', durationMs: 54 },
+        { taskId: 'save', status: 'success', durationMs: 117, outputPreview: './site/index.html · 6.2 KB' },
+        { taskId: 'patch', status: 'running' },
+        { taskId: 'digest', status: 'running' },
+      ]);
+      landArts([
+        { taskId: 'save', kind: 'file', src: '/work/site/index.html', path: '/work/site/index.html',
+          name: 'index.html', tip: 'nika:write · 6.2 KB' },
+      ]);
+      post({ kind: 'run:progress', done: 26, total: 31 });
+    }, 12600);
+
+    msim(() => {
+      batch([
+        { taskId: 'patch', status: 'success', durationMs: 74 },
+        { taskId: 'digest', status: 'success', durationMs: 22 },
+        { taskId: 'announce', status: 'running' },
+      ]);
+      landArts([
+        { taskId: 'patch', kind: 'file', src: '/work/site/index.html', path: '/work/site/index.html',
+          name: 'index.html', tip: 'nika:edit · 1 replacement' },
+      ]);
+      post({ kind: 'run:progress', done: 28, total: 31 });
+    }, 13800);
+
+    msim(() => {
+      batch([
+        { taskId: 'announce', status: 'success', durationMs: 328 },
+        { taskId: 'hold', status: 'running' },
+      ]);
+      post({ kind: 'run:progress', done: 29, total: 31 });
+    }, 14800);
+
+    msim(() => {
+      batch([
+        { taskId: 'hold', status: 'success', durationMs: 12004 },
+        { taskId: 'note', status: 'success', durationMs: 7 },
+      ]);
+      post({ kind: 'run:state', running: false });
+      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 31/31 · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
+      post({ kind: 'run:progress', done: 31, total: 31 });
+    }, 16200);
 
     sim(() => {
       post({ kind: 'run:state', running: true });

@@ -912,7 +912,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dag-node.status-running .nc-developing::after,
+  .dag-node.status-running .nc-dev-sweep::after,
   .dag-node.status-running .nc-cat-network { animation: none; }
 
   /* Opacity/glow decay carries no motion — it STAYS, just quicker. */
@@ -3026,17 +3026,22 @@ body.running .dag-node.status-success .nc::after {
  * truth from the trace: a file a run actually wrote). Image = thumb,
  * click opens the real file; audio = a playable row. Fixed heights so
  * the layout box stays deterministic (anatomy law: 92 img · 30 audio). */
+/* The media slot IS the card's body (W11.2 · the ElevenLabs read):
+ * full-bleed against the card edges, constant height — the declared
+ * frame reserves the exact box the artifact takes, so declare →
+ * develop → deliver never relayouts. TS mirror: PREVIEW_IMG_H. */
 .nc-preview {
   pointer-events: auto;
   position: relative;
   flex: none;
-  height: 92px;
-  margin-top: 6px;
+  height: 124px;
+  margin: 6px -12px 0;
   padding: 0;
   overflow: hidden;
   background: color-mix(in srgb, var(--nk-page) 60%, var(--nk-card));
-  border: 1px solid var(--nk-border-soft);
-  border-radius: 8px;
+  border: none;
+  border-block: 1px solid var(--nk-border-soft);
+  border-radius: 0;
   cursor: zoom-in;
 }
 
@@ -3099,23 +3104,120 @@ body.running .dag-node.status-success .nc::after {
 .nc-file-glyph { opacity: 0.7; }
 .nc-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* The developing frame — an image-making builtin owns its slot before
- * any artifact exists: resting = a calm dashed frame (pending is calm ·
- * DESIGN.md) · running = one soft develop sweep · the recorded artifact
- * replaces it at settle (same box, zero relayout). */
+/* The declared frame (CI-2 grammar) — a media builtin owns its slot
+ * before any artifact exists: resting = a calm declaration of the
+ * NATURE (dashed ghost · flat strip · receipt row — no pre-run pixel
+ * may read as generated content) · running = ONE develop sweep
+ * (nc-dev-sweep — no fake levels, no fake proxies) · the recorded
+ * artifact replaces it at settle (same box, zero relayout). */
 .nc-developing {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 92px;
-  margin: 6px 8px 0;
-  border: 1px dashed color-mix(in srgb, var(--nk-ink) 22%, transparent);
-  border-radius: 6px;
+  pointer-events: none;
+  cursor: default;
+  background: color-mix(in srgb, var(--nk-page) 42%, var(--nk-card));
+}
+.nc-dev-glyph { display: inline-flex; font-size: 18px; opacity: 0.3; }
+
+/* The ghost — a dashed letterbox that says the nature (and the declared
+ * ratio when the YAML is literal; interpolated = the generic frame). */
+.nc-ghost {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 58%;
+  height: calc(100% - 18px);
+  border: 1px dashed color-mix(in srgb, var(--nk-ink) 26%, transparent);
+  border-radius: 6px;
+  color: var(--nk-ink-dim);
+}
+.nc-ghost-ratio { width: auto; height: auto; }
+.nc-ghost-half { width: 72%; }
+.nc-ghost-dim {
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  letter-spacing: 0.04em;
+  color: var(--nk-ink-dim);
+  opacity: 0.75;
+}
+.nc-ghost-n {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 0 5px;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  border: 1px dashed color-mix(in srgb, var(--nk-ink) 26%, transparent);
+  border-radius: 5px;
+}
+
+/* image_fx — the recipe split: A declares source + ops chain · B is
+ * where the AFTER lands (declare: ghost · settle: the artifact). The
+ * real input thumbnail is a host-side v2 (never faked here). */
+.nc-fx {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  font: inherit;
+}
+.nc-fx-a {
+  flex: 1 1 46%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-right: 1px dashed color-mix(in srgb, var(--nk-ink) 18%, transparent);
+  color: var(--nk-ink-dim);
+}
+.nc-fx-src { display: inline-flex; align-items: center; gap: 4px; min-width: 0; opacity: 0.75; }
+.nc-fx-input {
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 88px;
+}
+.nc-fx-ops {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  font-size: 8px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+}
+.nc-fx-op {
+  padding: 1px 5px;
+  font-size: 8.5px;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 4px;
+}
+.nc-fx-b {
+  flex: 1 1 54%;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
-.nc-dev-glyph { font-size: 18px; opacity: 0.3; }
-.dag-node.status-running .nc-developing::after {
+.nc-fx-b img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ONE develop sweep — every declared frame develops the same way while
+ * its task runs (image slot · audio strip · check row). */
+.dag-node.status-running .nc-dev-sweep::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -3124,6 +3226,8 @@ body.running .dag-node.status-success .nc::after {
   animation: nk-develop 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 .dag-node.status-running .nc-developing .nc-dev-glyph { opacity: 0.55; }
+/* Exports freeze the develop mid-frame never (the shed class kills it). */
+.nc-preview-exported::after { content: none; }
 @keyframes nk-develop { to { transform: translateX(100%); } }
 
 /* nika:fetch (network category) — the round-trip made visible: the
@@ -3198,6 +3302,67 @@ body.running .dag-node.status-success .nc::after {
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
 }
+
+/* The declared audio strip (tts_generate · CI-2) — flat uniform bars
+ * BY DESIGN: no audio level exists on the wire, so a shaped wave here
+ * would be a fake VU meter. The ▶ is inert (a declaration, not a
+ * control); the recorded row replaces this at settle, same box. */
+.nc-audio-ghost {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 45%, var(--nk-ink-dim));
+}
+.nc-audio-strip {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 14px;
+  opacity: 0.45;
+}
+.nc-play-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  opacity: 0.38;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 8%, transparent);
+  border-color: color-mix(in srgb, var(--nk-ink) 22%, transparent);
+}
+.nc-audio-meta {
+  flex: none;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+}
+
+/* compose — the check-receipt row (introspection voice): the draft is
+ * statically CHECKED, never executed; the verdict joins at settle.
+ * (`invoke workflow:` doors are composition — a different construct.) */
+.nc-preview-check {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 30px;
+  margin-top: 6px;
+  padding: 0 8px;
+  pointer-events: none;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: color-mix(in srgb, var(--nk-critical) 55%, var(--nk-ink-dim));
+  background: color-mix(in srgb, var(--nk-critical) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-critical) 22%, transparent);
+  border-radius: 8px;
+}
+.nc-check-glyph { flex: none; font-size: 11px; opacity: 0.8; }
+.nc-check-flow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Exported files shed the preview bytes (webview URIs die outside the
  * panel) — the card keeps its box, quietly. */
@@ -3436,7 +3601,7 @@ body.heatmap .edge-label { display: none; }
 body.heatmap .nc-tile { filter: grayscale(0.85); opacity: 0.6; }
 body.heatmap .nc-params { opacity: 0.4; }
 body.heatmap .nc-io, body.heatmap .nc-policy { opacity: 0.4; }
-body.heatmap .nc-preview, body.heatmap .nc-preview-audio { opacity: 0.35; filter: grayscale(0.8); }
+body.heatmap .nc-preview, body.heatmap .nc-preview-audio, body.heatmap .nc-preview-check { opacity: 0.35; filter: grayscale(0.8); }
 body.heatmap .nc-badge, body.heatmap .nc-audit, body.heatmap .nc-stale { opacity: 0.35; }
 
 /* One mode = one question: the critical-path chip describes a trace
@@ -3512,6 +3677,7 @@ body.lod-far .nc-policy,
 body.lod-far .nc-preview,
 body.lod-far .nc-preview-audio,
 body.lod-far .nc-preview-file,
+body.lod-far .nc-preview-check,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,
@@ -4771,6 +4937,18 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
     background: Canvas !important;
     color: CanvasText !important;
     border: 1px solid CanvasText !important;
+    forced-color-adjust: none;
+  }
+
+  /* Declared frames survive as OUTLINES — dashes stay dashes (the
+   * pre-run grammar must stay distinguishable from delivered pixels). */
+  .nc-ghost,
+  .nc-ghost-n,
+  .nc-preview-check,
+  .nc-fx-op {
+    background: Canvas !important;
+    color: CanvasText !important;
+    border-color: CanvasText !important;
     forced-color-adjust: none;
   }
 
