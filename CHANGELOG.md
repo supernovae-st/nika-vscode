@@ -17,121 +17,121 @@ major.minor from 0.97).
 - **Bytes gate with the culling**: every card image now rides `loading=lazy decoding=async`, so a hidden or culled card no longer decodes its pixels; declared frames are decorative and born `aria-hidden`; exports shed the new frames and freeze the sweep. One sweep class serves all three frame kinds, running-gated and reduced-motion opted out.
 - **The harness gains the media scene**: `?media=1` seeds a 31-node brand-studio fixture (every frame kind, the stated-gap cards included) with a scripted declare, develop, deliver timeline; `?grand` seeds the card dial; `?n` with `media` sprinkles media tools over the perf DAG. The fixture is held by the same contract belt as the README scene.
 
-### The bends soften — one wire language, rounded rails
+### The wires soften: rounded rails, one curve language
 
-- **The hard 90° elbows die**: every ELK corner now folds through one rounding pass (radius 14 · an `L` to the corner's approach, then a quadratic with its control AT the corner — the React Flow recipe). The bend clamps to half of each adjacent segment, so close consecutive corners degrade into an S-curve with zero overshoot and zero special cases. The lanes stay ELK's — aligned rails and ~90° crossings keep carrying the readability; only the hardness leaves.
-- **One language, whatever moved**: a dragged card's wires used to re-route as soft direct cubics while the rest of the canvas stayed hard polylines — two dialects on one canvas. The direct-curve branch is gone: hand-pinned cards (and the provisional relayout frame) now re-route LOCALLY in the same rounded-orthogonal voice — a stub out of each port, one rail between, the same corners. The geometry picks the shape; who moved the card never does.
+- **The hard 90° elbows die**: every ELK corner now folds through one rounding pass (radius 14 · an `L` to the corner's approach, then a quadratic with its control AT the corner: the React Flow recipe). The bend clamps to half of each adjacent segment, so close consecutive corners degrade into an S-curve with zero overshoot and zero special cases. The lanes stay ELK's: aligned rails and ~90° crossings keep carrying the readability; only the hardness leaves.
+- **One language, whatever moved**: a dragged card's wires used to re-route as soft direct cubics while the rest of the canvas stayed hard polylines: two dialects on one canvas. The direct-curve branch is gone: hand-pinned cards (and the provisional relayout frame) now re-route LOCALLY in the same rounded-orthogonal voice (a stub out of each port, one rail between, the same corners). The geometry picks the shape; who moved the card never does.
 - **Lanes breathe for the corners**: the inter-layer track pitch rises 15 → 28 (≥ 2× the corner radius) so two adjacent rounded bends never kiss. Cached layouts re-derive once (the layout key carries the option-set revision).
-- **Crossings read over/under**: every wire wears a quiet page-colored casing beneath it — where two wires cross, the upper one punches a ~2px gap in the lower, the established metro-map read. Dimmed wires recede with their casing; high-contrast drops casings entirely (Highlight wires stay continuous); heatmap sleeps them. Measured at n=300 fit-zoom pan: medians held (p50 66.6 → 33.4ms, p95 116.6 → 83.4ms across 3 runs — inside noise, no regression).
-- **Flow speed stays uniform on curved wires**: the particle trains already scale their duration by the LIVE path length (arc-length through the new corners), and the dashed marches animate in user px — both uniform by construction, now stated at the source.
+- **Crossings read over/under**: every wire wears a quiet page-colored casing beneath it: where two wires cross, the upper one punches a ~2px gap in the lower, the established metro-map read. Dimmed wires recede with their casing; high-contrast drops casings entirely (Highlight wires stay continuous); heatmap sleeps them. Measured at n=300 fit-zoom pan: medians held (p50 66.6 → 33.4ms, p95 116.6 → 83.4ms across 3 runs · inside noise, no regression).
+- **Flow speed stays uniform on curved wires**: the particle trains already scale their duration by the LIVE path length (arc-length through the new corners), and the dashed marches animate in user px: both uniform by construction, now stated at the source.
 
-### The four voices — each verb speaks its anatomy
+### The four voices: each verb speaks its anatomy
 
-- **infer speaks prose**: the prompt wears a 2px quote-rail in the verb's canon hue next to its « » marks — the ask reads as a quotation; rail and quotes leave together when the recorded output swaps in (data is not a quotation).
-- **exec speaks terminal**: `$ cmd` sits in a machine window — verb rail, ink-wash ground, strict mono (mono now holds in the editor skin too). The frame HOLDS through the settle: `→ stdout` keeps talking in the same window.
-- **invoke makes the tool the hero**: the one anatomy reorder — the essence (the tool's soul) leads the card and reads half a point larger; the mechanism line (`invoke · ⚒ nika:jq`) becomes the caption. Heights are safe by construction (`nodeHeightOf` is an order-independent sum).
-- **agent shows its loop, structured**: the loop/budget facts promote from prose into a LOOP BAND under the goal — `turn 3 · saw 5/12 tools` plus an HONEST budget meter: a declared budget fills a ratio bar in the agent text voice; totals without a ceiling stay a bare counter (a bar would invent the denominator). nudged/stalled/compose stay prose facts; live folds refresh the band through the one card re-painter.
-- **the fan-out names its collection**: `for_each:` now reads onto the card as an io-grammar row — `∥ items ← x` (a sole wrapping `${{ … }}` unwraps; the title keeps the source verbatim) — the ×N badge counts the iterations, this row says what they map over. Client YAML lane, same discipline as every policy fact (a `with:` alias can never impersonate the construct).
+- **infer speaks prose**: the prompt wears a 2px quote-rail in the verb's canon hue next to its « » marks: the ask reads as a quotation; rail and quotes leave together when the recorded output swaps in (data is not a quotation).
+- **exec speaks terminal**: `$ cmd` sits in a machine window (verb rail, ink-wash ground, strict mono · mono now holds in the editor skin too). The frame HOLDS through the settle: `→ stdout` keeps talking in the same window.
+- **invoke makes the tool the hero**: the one anatomy reorder: the essence (the tool's soul) leads the card and reads half a point larger; the mechanism line (`invoke · ⚒ nika:jq`) becomes the caption. Heights are safe by construction (`nodeHeightOf` is an order-independent sum).
+- **agent shows its loop, structured**: the loop/budget facts promote from prose into a LOOP BAND under the goal (`turn 3 · saw 5/12 tools`) plus an HONEST budget meter: a declared budget fills a ratio bar in the agent text voice; totals without a ceiling stay a bare counter (a bar would invent the denominator). nudged/stalled/compose stay prose facts; live folds refresh the band through the one card re-painter.
+- **the fan-out names its collection**: `for_each:` now reads onto the card as an io-grammar row, `∥ items ← x` (a sole wrapping `${{ … }}` unwraps; the title keeps the source verbatim): the ×N badge counts the iterations, this row says what they map over. Client YAML lane, same discipline as every policy fact (a `with:` alias can never impersonate the construct).
 - **DESIGN.md §1c + §2c**: the four voices table and the connected-grammar map (every flow construct → its one canvas surface).
 
-### The dead surfaces animate — history tree, report links
+### Run History becomes a native view
 
-- **Run History is a native tree**: the cross-run grid's `command:` links were dead in the markdown preview at all three stages of the runtime (client allowlist · webview without command uris · link validation) — a clickable-looking affordance that did nothing. `Nika: Run History` now loads a when-gated `Run History` view: tasks partitioned by attention (`Flaky — N` mixed outcomes · `Slowing — N` trend past the noise floor · `Steady — N`, folded — a lone healthy pile dissolves to flat, a lone alarm section keeps its name), every task row wearing the grid's own glyph strip and median, click focuses the task on the DAG (the view knows its workflow — never « whatever editor is active »).
-- **Every cell is a door**: a task row expands into its recorded runs, newest first — `run #k · ✓ success`, where `#k` is the exported grid's very column number (the cell↔child mapping stays explicit; a blank column has no child, a blank cell being the absence of a recorded fact). Click replays that run onto the canvas; an inline `$(output)` opens its provable report.
-- **The document became the export**: `$(markdown)` in the view title renders the exact grid document (flaky + slowdown callouts included) — still local, shareable, diffable; `$(close)` puts the view away. A window reload lowers the gate by design (persistence is a named owed).
-- **Report artifacts link to their files**: a resolved artifact row is now a `file:` link (the gallery's angle-bracket idiom — paths with spaces stay one URL); an unresolved path stays a code span, the gap stated rather than a dead link. Verdict, task table and failures are untouched.
-- **Show Task in DAG, natively**: an inline `$(target)` on any task row of the Runs view replays its run onto the canvas and centers that task — the per-task navigation the report preview could never carry, over the existing replay + focus wires (zero new protocol kinds).
+- **Run History is a native tree**: the cross-run grid's `command:` links were dead in the markdown preview at all three stages of the runtime (client allowlist · webview without command uris · link validation): a clickable-looking affordance that did nothing. `Nika: Run History` now loads a when-gated `Run History` view: tasks partitioned by attention (`Flaky — N` mixed outcomes · `Slowing — N` trend past the noise floor · `Steady — N`, folded · a lone healthy pile dissolves to flat, a lone alarm section keeps its name), every task row wearing the grid's own glyph strip and median, click focuses the task on the DAG (the view knows its workflow, never "whatever editor is active").
+- **Every cell is a door**: a task row expands into its recorded runs, newest first: `run #k · ✓ success`, where `#k` is the exported grid's very column number (the cell↔child mapping stays explicit; a blank column has no child, a blank cell being the absence of a recorded fact). Click replays that run onto the canvas; an inline `$(output)` opens its provable report.
+- **The document became the export**: `$(markdown)` in the view title renders the exact grid document (flaky + slowdown callouts included) · still local, shareable, diffable; `$(close)` puts the view away. A window reload lowers the gate by design (persistence is a known follow-up).
+- **Report artifacts link to their files**: a resolved artifact row is now a `file:` link (the gallery's angle-bracket idiom · paths with spaces stay one URL); an unresolved path stays a code span, the gap stated rather than a dead link. Verdict, task table and failures are untouched.
+- **Show Task in DAG, natively**: an inline `$(target)` on any task row of the Runs view replays its run onto the canvas and centers that task: the per-task navigation the report preview could never carry, over the existing replay + focus wires (zero new protocol kinds).
 
-### The living trees — runs grouped, workflows honest, actions inline
+### Runs grouped by attention
 
-- **Runs grouped by the one question**: the flight recorder now answers « is something on me? » before anything else — a `Now` section pins every running or paused run WHATEVER its mtime (paused leads: needs-you outranks working), then `Today` / `Yesterday` / `Earlier` on local calendar days. Empty sections hide; a lone calendar section dissolves back to the flat list; a non-empty `Now` always keeps its header. Row cards, chips, badges and click-to-replay are untouched.
-- **The unreadable journals COUNT**: a trace the scan cannot read (truncated by a killed run · another engine generation · permissions) used to vanish silently — it now lands in a trailing `Unreadable — N` section, named per file with the toast's own vocabulary, click reveals the file. The scan itself waits on the view (in-view progress bar, never a toast).
-- **The empty state reconciled**: zero readable and zero unreadable traces now render the rich Runs welcome (run a workflow · mock needs no key · embedded examples) — the old synthetic `No traces yet` item shadowed it since it shipped. Any unreadable journal keeps the tree: a welcome never papers over real files.
-- **Workflows partitioned by attention, not by folder**: unparseable files lead outside any section (`couldn't parse` · the raw error in the tooltip · `→ Fix: open the file — the check squiggles mark the line` · run/check never target them), then `Findings — N` · `Clean — N` · `Unchecked — N`. The absence of a check never dresses up as clean — when the engine is off, the Unchecked section says `engine off`. A lone section dissolves to flat; files sort by path; colliding basenames show their folder; an empty file reads `no tasks yet` instead of `0 tasks`.
-- **Actions live on the rows**: inline `▶ run` + `✓ check` on every workflow file, inline re-run + focus-in-DAG on every task — the primary click keeps navigating (open the YAML at the line), gestures ride the inline icons, palette-hidden and typeof-guarded like every tree command.
+- **Runs grouped by the one question**: the flight recorder now answers "is something on me?" before anything else: a `Now` section pins every running or paused run WHATEVER its mtime (paused leads: needs-you outranks working), then `Today` / `Yesterday` / `Earlier` on local calendar days. Empty sections hide; a lone calendar section dissolves back to the flat list; a non-empty `Now` always keeps its header. Row cards, chips, badges and click-to-replay are untouched.
+- **The unreadable journals COUNT**: a trace the scan cannot read (truncated by a killed run · another engine generation · permissions) used to vanish silently · it now lands in a trailing `Unreadable — N` section, named per file with the toast's own vocabulary, click reveals the file. The scan itself waits on the view (in-view progress bar, never a toast).
+- **The empty state reconciled**: zero readable and zero unreadable traces now render the rich Runs welcome (run a workflow · mock needs no key · embedded examples) · the old synthetic `No traces yet` item shadowed it since it shipped. Any unreadable journal keeps the tree: a welcome never papers over real files.
+- **Workflows partitioned by attention, not by folder**: unparseable files lead outside any section (`couldn't parse` · the raw error in the tooltip · `→ Fix: open the file — the check squiggles mark the line` · run/check never target them), then `Findings — N` · `Clean — N` · `Unchecked — N`. The absence of a check never dresses up as clean: when the engine is off, the Unchecked section says `engine off`. A lone section dissolves to flat; files sort by path; colliding basenames show their folder; an empty file reads `no tasks yet` instead of `0 tasks`.
+- **Actions live on the rows**: inline `▶ run` + `✓ check` on every workflow file, inline re-run + focus-in-DAG on every task: the primary click keeps navigating (open the YAML at the line), gestures ride the inline icons, palette-hidden and typeof-guarded like every tree command.
 
-### The canvas culls — offscreen sleeps, the DOM stays
+### Large graphs: viewport culling
 
-- **Viewport culling (graphs >150 nodes)**: cards and wires far outside the viewport sleep under `.nk-offscreen { display: none }` — the DOM stays (no unmount, no re-entry cost), offscreen spinner/braille animations stop spending, and a hysteresis band (wake within 200 screen px of the edge · sleep only past 500 px, ÷zoom) means a camera resting on a boundary never flaps a card. The selected, hovered, simulated, dragged, connect-source, follow-target and pinned-grand cards are never culled; an edge quartet (wire · hit twin · chevron · label) sleeps only when BOTH its endpoints sleep and its span clears the view, so a long wire crossing the screen keeps painting. Exports wake every sleeping card in the clone — the file is always the whole graph. Measured at n=300, zoomed-in wheel pan: p95 16.9→10.9ms, p50 8.3→8.3 (see `measure.mjs pan-near`); at fit zoom every card is legitimately in view and the pass changes nothing by design.
-- **`contain: strict` on the card**: the card's box is TS truth (explicit foreignObject size), so size containment joins layout/paint — cheaper invalidation, zero geometry change. `content-visibility: auto` was MEASURED and rejected (no frame-time effect at n=300 — Chromium already skips offscreen raster here; the culling pass is what stops the style/layout spend).
-- **Edge batching died by measurement**: hiding ALL edges moved fit-zoom pan p95 not at all (83.3 vs 83.6ms) — the cost is the foreignObject card raster, so the planned far-LOD bulk-path batching is closed as unjustified (the multi-M single-marker tradeoff buys nothing). The fit-zoom pan ceiling belongs to the compositor chantier (`g composité`, already owed).
+- **Viewport culling (graphs >150 nodes)**: cards and wires far outside the viewport sleep under `.nk-offscreen { display: none }` · the DOM stays (no unmount, no re-entry cost), offscreen spinner/braille animations stop spending, and a hysteresis band (wake within 200 screen px of the edge · sleep only past 500 px, ÷zoom) means a camera resting on a boundary never flaps a card. The selected, hovered, simulated, dragged, connect-source, follow-target and pinned-grand cards are never culled; an edge quartet (wire · hit twin · chevron · label) sleeps only when BOTH its endpoints sleep and its span clears the view, so a long wire crossing the screen keeps painting. Exports wake every sleeping card in the clone: the file is always the whole graph. Measured at n=300, zoomed-in wheel pan: p95 16.9→10.9ms, p50 8.3→8.3 (see `measure.mjs pan-near`); at fit zoom every card is legitimately in view and the pass changes nothing by design.
+- **`contain: strict` on the card**: the card's box is TS truth (explicit foreignObject size), so size containment joins layout/paint · cheaper invalidation, zero geometry change. `content-visibility: auto` was MEASURED and rejected (no frame-time effect at n=300: Chromium already skips offscreen raster here; the culling pass is what stops the style/layout spend).
+- **Edge batching died by measurement**: hiding ALL edges moved fit-zoom pan p95 not at all (83.3 vs 83.6ms): the cost is the foreignObject card raster, so the planned far-LOD bulk-path batching is closed as unjustified (the multi-M single-marker tradeoff buys nothing). The fit-zoom pan ceiling belongs to the planned compositor pass, a known follow-up.
 - **`#glow-running` died**: an SVG filter defined since the first canvas commit and never referenced by any paint rule.
-- **`scripts/perf/measure.mjs` grew `pan-near`**: deterministic zoom-in (spaced instant steps — rapid presses interrupt each other's d3 transition) + wheel-driven camera pan (at near zoom the fit center sits ON a card, so a drag would measure a card drag), and both pan scenarios now report the culling judge seam (`window.__nkCull`).
+- **`scripts/perf/measure.mjs` grew `pan-near`**: deterministic zoom-in (spaced instant steps: rapid presses interrupt each other's d3 transition) + wheel-driven camera pan (at near zoom the fit center sits ON a card, so a drag would measure a card drag), and both pan scenarios now report the culling judge seam (`window.__nkCull`).
 
-### The layout leaves the main thread — worker, cache, stale-while-relayout
+### Layout moves off the main thread
 
-- **ELK runs in a Worker**: the layered layout now chews OFF the main thread (a dedicated worker bundle, pool of one active + one pre-warmed spare, latest-wins protocol with >150ms cancel-and-promote) — at 300 nodes the canvas stays interactive through a multi-second layout instead of freezing (measured: zero >100ms main-thread tasks during the layout wait vs one 2.9s block before). A structural failure walks a ladder — direct Worker → blob Worker → the exact previous main-thread call, byte-identical results (proven: laid JSON byte-equal across rungs at n=40/120/300) — so no environment ever loses a graph.
-- **Layouts are remembered**: a workflow's laid geometry is cached (FNV-1a key over what ELK actually sees — structure, heights, labels, never positions or statuses — LRU 20) and persisted through `workspaceState`, so reopening a panel or switching back to a workflow repaints in milliseconds instead of re-laying (measured: 0.2ms + paint vs 2.6s cold at n=300). One workflow can never serve another's positions — the workflow identity is part of the key.
-- **Stale-while-relayout**: editing a big workflow paints frame 0 immediately (survivors hold their positions, newcomers land at their neighbors' centroid, wires curve direct) while the worker converges the real layout with position hints — the settled cards then glide to their final places through the existing 300ms transition. The hinted re-layout runs on `BRANDES_KOEPF` placement with `INTERACTIVE` crossing minimization (measured at n=300: ~166ms vs 2.6s cold — 6%); the cold path keeps the production option set untouched.
-- **The layout note knows when pixels beat prose**: `laying out N tasks…` only shows when the canvas would otherwise be blank — a cache hit or a provisional frame skips it.
-- **Perf seam**: `nk:layout` / `nk:swr-frame` / `nk:paint-final` performance marks (always on) + `scripts/perf/measure.mjs` — an http-served Playwright probe (Workers are blocked on `file://`) measuring cold/switch/pan/equivalence with hard correctness assertions.
+- **ELK runs in a Worker**: the layered layout now chews OFF the main thread (a dedicated worker bundle, pool of one active + one pre-warmed spare, latest-wins protocol with >150ms cancel-and-promote) · at 300 nodes the canvas stays interactive through a multi-second layout instead of freezing (measured: zero >100ms main-thread tasks during the layout wait vs one 2.9s block before). A structural failure walks a ladder (direct Worker → blob Worker → the exact previous main-thread call, byte-identical results · proven: laid JSON byte-equal across rungs at n=40/120/300), so no environment ever loses a graph.
+- **Layouts are remembered**: a workflow's laid geometry is cached (FNV-1a key over what ELK actually sees: structure, heights, labels, never positions or statuses · LRU 20) and persisted through `workspaceState`, so reopening a panel or switching back to a workflow repaints in milliseconds instead of re-laying (measured: 0.2ms + paint vs 2.6s cold at n=300). One workflow can never serve another's positions: the workflow identity is part of the key.
+- **Stale-while-relayout**: editing a big workflow paints frame 0 immediately (survivors hold their positions, newcomers land at their neighbors' centroid, wires curve direct) while the worker converges the real layout with position hints · the settled cards then glide to their final places through the existing 300ms transition. The hinted re-layout runs on `BRANDES_KOEPF` placement with `INTERACTIVE` crossing minimization (measured at n=300: ~166ms vs 2.6s cold, 6%); the cold path keeps the production option set untouched.
+- **The layout note knows when pixels beat prose**: `laying out N tasks…` only shows when the canvas would otherwise be blank: a cache hit or a provisional frame skips it.
+- **Perf seam**: `nk:layout` / `nk:swr-frame` / `nk:paint-final` performance marks (always on) + `scripts/perf/measure.mjs` · an http-served Playwright probe (Workers are blocked on `file://`) measuring cold/switch/pan/equivalence with hard correctness assertions.
 
-### The moments — the run's end is the peak
+### Run-close moments: one confetti, a settle wave
 
-- **One confetti, ever**: the FIRST completed run on a machine (the mock demo counts — the auto-demo's green IS the aha) rains ~48 verb-hued particles over the verdict, once, and never again. Reduced motion, forced colors or a hidden panel skip the show — the verdict banner stays the receipt — and the community ask now waits out the fall so the one celebration is never covered by a toast.
+- **One confetti, ever**: the FIRST completed run on a machine (the mock demo counts: the auto-demo's green IS the aha) rains ~48 verb-hued particles over the verdict, once, and never again. Reduced motion, forced colors or a hidden panel skip the show (the verdict banner stays the receipt), and the community ask now waits out the fall so the one celebration is never covered by a toast.
 - **The settle cascade**: every LIVE green close pulses a quiet ✓ wave through the cards along the run's own execution waves (the entrance stagger's twin · 50ms a wave). Replay and scrubbing never trigger it, reduced motion skips it, and past 150 nodes the aurora alone carries the close.
 
-### The listing speaks marketplace
+### The marketplace listing, refreshed
 
-- **README refonte**: live version/installs/rating badges (Open VSX kept) · the value line under the title · a top-five relief table and a jump-to line before the feature prose · headline Commands/Settings tables pointing at the full Feature Contributions tab · a tip line under every capture · claims re-verified against the shipped surface — the one door is the `Nika status item` (not the butterfly; the 🦋 stays the signature), all FOUR Language Model tools listed with their capability gate, and the install policy link now points at SECURITY.md instead of itself.
+- **README refonte**: live version/installs/rating badges (Open VSX kept) · the value line under the title · a top-five relief table and a jump-to line before the feature prose · headline Commands/Settings tables pointing at the full Feature Contributions tab · a tip line under every capture · claims re-verified against the shipped surface: the one door is the `Nika status item` (not the butterfly; the 🦋 stays the signature), all FOUR Language Model tools listed with their capability gate, and the install policy link now points at SECURITY.md instead of itself.
 - **Keywords**: six ecosystem terms join the listing (ollama · local llm · tracing · observability · deterministic · open-source).
 
-### Onboarding — the missing wire
+### Onboarding: the demo runs itself
 
-- **First contact runs the demo itself**: on a machine's first activation ever, once the engine is present (immediately, or the moment Finish Setup lands it), the hello-canvas demo opens AND runs on `mock/echo` — zero key, zero network, zero spend, with an on-canvas `offline demo — mock provider, no keys` banner while it streams. The DAG lights itself in under ten seconds; the walkthrough follows as optional depth instead of leading. A workspace that already carries `.nika.yaml` files is never auto-opened, and the flow fires once ever.
-- **The walkthrough verifies itself**: steps now complete on the real thing happening, not just on palette commands — running from ▶ / ▶ mock / resume checks *Run it*, the first failed verdict checks *Break it on purpose*, a real nika replay session checks *Time-travel* (any-debugger false positive gone), painted findings check *Validate*, focusing the Runs view checks *Prove it ran*, and the demo checks *Create*.
-- **No engine, no illusion**: a nika buffer with zero squiggles and no binary no longer reads as validated — the language-status check lane says `check: off — engine missing` (warning · one click to install) instead of `check: clean`; clean is only claimable when the oracle actually ran. Same honesty for a pre-`check` binary and for `diagnostics.runOn: off`.
-- **The install step went theme-aware**: an SVG painted in `--vscode-*` theme tokens replaces the install markdown (its content lives in the step description), and a new `walkthrough-media` gate (npm test) proves every walkthrough media file exists, ships in the VSIX (never `.vscodeignore`'d — the Cline trap, executable), and stays under `walkthrough/`.
-- **Marketplace description front-loaded**: the search-result cut lands after a complete pitch — “See your workflow before it runs — the live DAG canvas for Nika…”, providers named local-first.
+- **First contact runs the demo itself**: on a machine's first activation ever, once the engine is present (immediately, or the moment Finish Setup lands it), the hello-canvas demo opens AND runs on `mock/echo` (zero key, zero network, zero spend), with an on-canvas `offline demo — mock provider, no keys` banner while it streams. The DAG lights itself in under ten seconds; the walkthrough follows as optional depth instead of leading. A workspace that already carries `.nika.yaml` files is never auto-opened, and the flow fires once ever.
+- **The walkthrough verifies itself**: steps now complete on the real thing happening, not just on palette commands: running from ▶ / ▶ mock / resume checks *Run it*, the first failed verdict checks *Break it on purpose*, a real nika replay session checks *Time-travel* (any-debugger false positive gone), painted findings check *Validate*, focusing the Runs view checks *Prove it ran*, and the demo checks *Create*.
+- **No engine, no illusion**: a nika buffer with zero squiggles and no binary no longer reads as validated: the language-status check lane says `check: off — engine missing` (warning · one click to install) instead of `check: clean`; clean is only claimable when the oracle actually ran. Same honesty for a pre-`check` binary and for `diagnostics.runOn: off`.
+- **The install step went theme-aware**: an SVG painted in `--vscode-*` theme tokens replaces the install markdown (its content lives in the step description), and a new `walkthrough-media` gate (npm test) proves every walkthrough media file exists, ships in the VSIX (never `.vscodeignore`'d: a known packaging failure class, now gated), and stays under `walkthrough/`.
+- **Marketplace description front-loaded**: the search-result cut lands after a complete pitch ("See your workflow before it runs: the live DAG canvas for Nika…"), providers named local-first.
 
-### Security — the canvas opens only what it surfaced
+### Security: the canvas opens only what it surfaced
 
-- **`welcome:open` validates the uri (no arbitrary read)**: the welcome canvas can only open workflows the extension itself surfaced — a compromised webview can no longer name an arbitrary local path (`file:///etc/passwd`) for the extension to read.
-- **`dag:openSub` · `dag:openTrail` · `dag:openArtifact` gated the same way (no arbitrary open, reveal or write)**: the three sibling canvas doors now honor only paths the extension itself surfaced — sub-workflow refs from the shown graph, breadcrumb segments from the last trail push, artifact paths the panel pushed — and the sub-workflow create-on-miss writes only inside the workspace with the exact `.nika.yaml` extension.
+- **`welcome:open` validates the uri (no arbitrary read)**: the welcome canvas can only open workflows the extension itself surfaced · a compromised webview can no longer name an arbitrary local path (`file:///etc/passwd`) for the extension to read.
+- **`dag:openSub` · `dag:openTrail` · `dag:openArtifact` gated the same way (no arbitrary open, reveal or write)**: the three sibling canvas doors now honor only paths the extension itself surfaced (sub-workflow refs from the shown graph · breadcrumb segments from the last trail push · artifact paths the panel pushed), and the sub-workflow create-on-miss writes only inside the workspace with the exact `.nika.yaml` extension.
 
-### Onboarding — the door opens
+### The welcome home opens without a workflow
 
-- **The welcome home is reachable, and the sandbox is one gesture**: `Show Workflow DAG` with no workflow in focus opens the welcome home instead of a dead-end warning; the panel reveals immediately and breathes a `loading <name>…` ghost while the graph lands (no dead click on a slow first spawn); and `Nika: Try the Demo Workflow` writes a runnable four-wave `hello-canvas.nika.yaml` (mock/echo · zero key · zero network) beside the canvas — press ▶ to run it, offline.
+- **The welcome home is reachable, and the sandbox is one gesture**: `Show Workflow DAG` with no workflow in focus opens the welcome home instead of a dead-end warning; the panel reveals immediately and breathes a `loading <name>…` ghost while the graph lands (no dead click on a slow first spawn); and `Nika: Try the Demo Workflow` writes a runnable four-wave `hello-canvas.nika.yaml` (mock/echo · zero key · zero network) beside the canvas: press ▶ to run it, offline.
 
-### The scale speaks — motion tokens applied
+### Motion tokens, applied across the canvas
 
-- **Motion v3 consumed**: verb-tinted prose now reads its APCA ≥Lc60 text ramp (`--nk-verb-<v>-text` · the running sub-line via `--dv-hue-text`), the legacy `--nk-dur` aliases the named duration scale (every consumer remapped to `--nk-dur-base`), easing splits into `--nk-ease-effects` (no overshoot) vs `--nk-ease-spatial` (spring for arrivals), and the verb cmdk palette gains a `@starting-style` + `allow-discrete` soft entrance — reduced-motion collapses the overshoot and makes entrances instant.
+- **Motion v3 consumed**: verb-tinted prose now reads its APCA ≥Lc60 text ramp (`--nk-verb-<v>-text` · the running sub-line via `--dv-hue-text`), the legacy `--nk-dur` aliases the named duration scale (every consumer remapped to `--nk-dur-base`), easing splits into `--nk-ease-effects` (no overshoot) vs `--nk-ease-spatial` (spring for arrivals), and the verb cmdk palette gains a `@starting-style` + `allow-discrete` soft entrance · reduced-motion collapses the overshoot and makes entrances instant.
 
-### One glyph, one sense — the registry
+### The glyph registry: one glyph, one sense
 
 - **The glyph registry**: `src/core/glyphRegistry.ts` declares every
   sense-bearing mark once ({glyph · sense · wordedOnly}); the five
   status maps (history cells · editor badges · run report · activity
-  feed · live feed) import THE quartet — the skipped/cancelled/cached
+  feed · live feed) import THE quartet: the skipped/cancelled/cached
   dialects are unrepresentable by construction. The squatters moved
   out: timeline `▧` · dataflow `⇉` · examples `⧈` · run history `⊞` ·
   preflight `▩` · report `⎙` · copy-prompt `⇗` · MCP `⎓` · canvas
   `⊡` · duplicate `❏` · replay `⟲` · resume `Δ changed` · cached `○`
-  · event `⚑` · fail-fast `⊗` — retry keeps `↻`, what-if keeps `⚡`,
+  · event `⚑` · fail-fast `⊗`. Retry keeps `↻`, what-if keeps `⚡`,
   files keep `▤`, data keeps `⧉`.
 - **Emoji leave the mono registry**: the welcome CTAs speak in text;
   the describe bar's generate mark is the house sparkle SVG
-  (currentColor — forced-colors for free); the shield and no-entry
+  (currentColor: forced-colors for free); the shield and no-entry
   marks yield to `▩` and `✗ fail`.
 - **The activity quartet unified**: the canvas feed and the live-run
-  feed narrate skipped/cancelled with the recorded quartet ✓ ✗ ↷ ⊘ —
+  feed narrate skipped/cancelled with the recorded quartet ✓ ✗ ↷ ⊘:
   no dialect between surfaces, worded bypass (`⤼ skip` · `⤼ per-item`)
   stays a policy chip.
 - **Legend swatches tell the truth**: the three rows that shared one
   blue swatch now carry their own (policy outline · data wire ·
-  lineage fade); the card row reads `❏ duplicate`. Belt:
-  `scripts/glyph-registry.mjs` in `npm test` — registry-sync · banned
+  lineage fade); the card row reads `❏ duplicate`. Test gate:
+  `scripts/glyph-registry.mjs` in `npm test` · registry-sync · banned
   vocabulary never returns · worded-only marks hold.
 
-### Tokens v3 — the seam speaks, raw colors die
+### Tokens v3: raw colors die at the seam
 
 - **Verb canon + alias**: `--nk-verb-<v>-canon` holds each verb hex
   once; skins retune the plain `--nk-verb-<v>` alias only. The
-  phosphor wake now reads the canon var — the resting desaturation
+  phosphor wake now reads the canon var: the resting desaturation
   can structurally never shadow the woken chroma.
 - **The bright-accent seam**: every blue tint/hairline in the nika
   skin derives from `--nk-accent-bright` (the brand's `accentBright`,
-  belt-pinned) via `color-mix` — the stray `rgb(140 170 255)` family
+  gate-pinned) via `color-mix`: the stray `rgb(140 170 255)` family
   converges on the canonical bright accent; borders at 14% ride
   `--nk-hairline-accent`; the deck chrome is `--nk-chrome`; the
   aurora's gradients are declared once (`--nk-aurora-sweep` /
@@ -140,102 +140,98 @@ major.minor from 0.97).
   `--nk-frame-interval`) · `base` 160 · `slow` 240 · `deliberate`
   400, plus the two easing voices (`--nk-ease-effects` /
   `--nk-ease-spatial`). Verb TEXT ramps (APCA ≥Lc60) are defined and
-  gated for V0.d consumption.
-- **The belts got teeth**: tokens-parity now proves canon+alias, the
-  wake's var() reads, a NEGATIVE scan (any raw color outside the
+  gated; the canvas consumes them next.
+- **The test gates got teeth**: tokens-parity now proves canon+alias,
+  the wake's var() reads, a NEGATIVE scan (any raw color outside the
   token seam fails), dynamic twins against the generated SSOT, and
   the v3 roster's presence.
-- **Replay a Recorded Run** wears `$(debug-rerun)` — `$(history)` was
+- **Replay a Recorded Run** wears `$(debug-rerun)`: `$(history)` was
   the one icon reading as "view history" on a command that re-executes.
 
-### Native depth — welcome states, one status voice, notification diet
+### Welcome states, one status voice, a notification diet
 
-- **Welcome views tell every state apart** (annexe A #6): five
-  discriminated `viewsWelcome` states on the Workflows view — engine
-  absent (install button + sovereign Homebrew/source links) · repo
-  unequipped · no folder open (`Open Folder` leads) · folder without
-  workflows (`Create Workflow` is the one button) · working. Each
-  names its cause and carries one primary gesture; the old catch-all
-  died.
-- **One fused status item** (annexe A #10-11): the pill reads
-  `state · findings · cost` — doctor findings and the workspace cost
-  ceiling ride the text once probed; `$(sync~spin)` while a live run
-  or station sweep is in flight; the ERROR background now belongs to
-  doctor red alone (run-blocking findings → « Open the Station » as
-  the head move) — a missing binary warns instead of screaming; the
-  tooltip carries the full workspace truth (rollups · ceiling · busy).
-- **Notification diet** (annexe A #12): copy/wire/restart/setup
-  successes flash in the status bar instead of toasting; surviving
-  capability notes (`predates run/resume/init/lsp`, PATH repairs)
-  carry « Don't show again » (per-toast memory); the engine download
-  is cancellable mid-flight (Stop = a calm flash, partials removed)
-  and its failure toast gained « Details » → the output channel.
-  Error toasts that carry their fix stay untouched.
-- **Settings polish** (annexe A #15): every setting carries an `order`
-  (grouped ranks: engine · authoring · checks · runs · canvas · AI ·
-  nudges), consequence-first `markdownDescription` prose with
-  `#nika.x#` cross-links, and per-value `enumDescriptions` on every
-  enum — all ratcheted by a unit test.
-- **Testing API depth** (annexe A #13): golden failures render a true
+- **Welcome views tell every state apart**: five discriminated
+  `viewsWelcome` states on the Workflows view: engine absent (install
+  button + sovereign Homebrew/source links) · repo unequipped · no
+  folder open (`Open Folder` leads) · folder without workflows
+  (`Create Workflow` is the one button) · working. Each names its
+  cause and carries one primary gesture; the old catch-all died.
+- **One fused status item**: the pill reads `state · findings · cost`:
+  doctor findings and the workspace cost ceiling ride the text once
+  probed; `$(sync~spin)` while a live run or station sweep is in
+  flight; the ERROR background now belongs to doctor red alone
+  (run-blocking findings → "Open the Station" as the head move); a
+  missing binary warns instead of screaming; the tooltip carries the
+  full workspace truth (rollups · ceiling · busy).
+- **Notification diet**: copy/wire/restart/setup successes flash in
+  the status bar instead of toasting; surviving capability notes
+  (`predates run/resume/init/lsp`, PATH repairs) carry "Don't show
+  again" (per-toast memory); the engine download is cancellable
+  mid-flight (Stop = a calm flash, partials removed) and its failure
+  toast gained "Details" → the output channel. Error toasts that
+  carry their fix stay untouched.
+- **Settings polish**: every setting carries an `order` (grouped
+  ranks: engine · authoring · checks · runs · canvas · AI · nudges),
+  consequence-first `markdownDescription` prose with `#nika.x#`
+  cross-links, and per-value `enumDescriptions` on every enum · all
+  ratcheted by a unit test.
+- **Testing API depth**: golden failures render a true
   expected/actual diff (the actual reconstructed from the engine's own
-  drift report — never invented) anchored on the `outputs:` block;
+  drift report, never invented) anchored on the `outputs:` block;
   golden profiles are tag-gated to workflow items (the run-then-skip
   hack died); recorded runs from ANY terminal/CI/canvas land their
-  verdicts through publish-only test runs — the flight recorder feeds
-  the explorer. Continuous run stays owed: the 0.104 capability
-  surface exposes no watch door.
-- **New Workflow wizard** (annexe A #14): a three-step QuickInput —
-  name → starter (the four verbs' spec starters · engine templates ·
-  blank) → model (mock/echo default · locals before cloud per the
-  presentation lock, exact catalog rows only) — with Back at every
-  step; engine templates honestly read 2 steps (their file is the
-  engine's).
-- **Runs rows narrate the present** (annexe B #5-6): a LIVE row chips
-  in-flight spend (`~$…`) and a MEASURED time-left (newest completed
-  sibling run, majority-overlap gated — no prior, no chip); the Runs
-  view badge counts paused runs only (needs-you, never activity) and
-  the pause toast gained « Show node » — a deep link to the waiting
-  card.
-- **Honest tab pulse** (annexe B #11): the DAG tab title carries `▶ `
-  only while a live run drives it — immobile at rest, gone at the
-  terminal write.
+  verdicts through publish-only test runs · the flight recorder feeds
+  the explorer. Continuous run waits on the engine: the 0.104
+  capability surface exposes no watch door.
+- **New Workflow wizard**: a three-step QuickInput (name → starter
+  [the four verbs' spec starters · engine templates · blank] → model
+  [mock/echo default · locals before cloud, exact catalog rows only])
+  with Back at every step; engine templates honestly read 2 steps
+  (their file is the engine's).
+- **Runs rows narrate the present**: a LIVE row chips in-flight spend
+  (`~$…`) and a MEASURED time-left (newest completed sibling run,
+  majority-overlap gated: no prior, no chip); the Runs view badge
+  counts paused runs only (needs-you, never activity) and the pause
+  toast gained "Show node", a deep link to the waiting card.
+- **Honest tab pulse**: the DAG tab title carries `▶ ` only while a
+  live run drives it: immobile at rest, gone at the terminal write.
 
-- **International keybindings + walkthrough truth** — the `⌘K` chord
+- **International keybindings + walkthrough truth** · the `⌘K` chord
   family replaces `ctrl+alt` (the AltGr trap on EU layouts) and
   `⌘⇧R` (macOS Refactor shadow), every binding when-scoped to nika
   surfaces; the walkthrough shows the DAG before breaking it; the
   break step names the blank starter honestly; DESIGN.md documents
   the third skin and the chord family, and stops hard-counting.
 
-### The run comes alive — braille spinners, one clock, BuildKit timer
+### Live runs: braille spinners, one clock, a BuildKit timer
 
-- **Run spectacle (annexe L)**: live cards spin a braille strip in the
-  head's fixed status slot — full-weight `dots2` while running (amber
-  on retrying), `dotsCircle` for a thinking infer, the `point` pulse
-  when tokens stream (wire `chunks` proof) — all phase-locked to one
+- **Run spectacle**: live cards spin a braille strip in the head's
+  fixed status slot (full-weight `dots2` while running, amber on
+  retrying · `dotsCircle` for a thinking infer · the `point` pulse
+  when tokens stream, wire `chunks` proof), all phase-locked to one
   80ms quantum (`--nk-dur-fast`), ignited wave by wave; the elapsed
   verdict ticks BuildKit-style decimals at 150ms while visible. More
   than 5 live strips in view → the crowd freezes and the status
   pill's dot carries the beat. Reduced-motion holds frame 1 (the
   timer text keeps walking); a hidden panel parks every animation; a
-  settled card is a clean frozen log. The old SVG orbit ring died —
+  settled card is a clean frozen log. The old SVG orbit ring died:
   one indicator per card.
 
-### Card-first — the tooltip dies, the card carries everything
+### Card-first: the tooltip dies, the card carries everything
 
-- **Two card modes**: `min` (head · verdict · one essence line — the
+- **Two card modes**: `min` (head · verdict · one essence line · the
   calm default) and `grand` (the whole story). Double-click or `E`
-  toggles one card; the Shift+V panel gains a global cran
-  (min / grand / mix — the per-card mix is retained per workflow); a
+  toggles one card; the Shift+V panel gains a global card density
+  (min / grand / mix · the per-card mix is retained per workflow); a
   failed task auto-promotes its card so the red teaches on the face.
 - **The hover tooltip is gone**: everything it carried lives ON the
-  grand card now — the why-lines (paused question · gate false ·
+  grand card now: the why-lines (paused question · gate false ·
   blocked by), the run-story facts (spent · cache-hit proof with both
   hashes · repaired · the agent loop's turns/budget/nudges/stall ·
   live spend and stream · wave · blast radius · pinch), the child
   workflow's miniature, needs/unlocks jump chips, and a visible
   actions row (`▸ run · ⚡ what if · ⧉ dup`, plus `✎ explain` +
-  `⑂ fork` on a failure — same handlers, no popup between you and
+  `⑂ fork` on a failure · same handlers, no popup between you and
   them). Edge and io-chip hovers keep their pass-set stories.
 - **Space peeks in place**: the focused card expands to grand without
   touching the layout; arrows walk the peek across the DAG, Space or
@@ -245,178 +241,178 @@ major.minor from 0.97).
 
 ### The station answers three questions
 
-- **Station IA — now · next · recent**: the cockpit tree regroups
-  around three questions — is it running? (engine · agents · providers
+- **Now · next · recent**: the Station tree regroups around three
+  questions: is it running? (engine · agents · providers
   · workspace) · what needs a repair? (doctor findings grouped by
   severity, broken probes first) · what just happened? (the runs
   rollup). Empty sections hide; the activity-bar badge stays fails-only
   and its law now lives in the pure model, unit-proven.
 - **The wrench owns repairs**: fix-carrying rows (doctor findings ·
   unwired clients · a failed language server) repair through an inline
-  wrench action — `nika …` fixes run in a visible terminal, `export …`
-  lines go to the clipboard — and no Station row executes on its
+  wrench action (`nika …` fixes run in a visible terminal, `export …`
+  lines go to the clipboard), and no Station row executes on its
   primary click anymore. The full doctor report rides an inline
   terminal action on the doctor head rows.
 - **The wait lives on the view**: the doctor sweep paints the
   Station's own progress bar (in-view), never a notification.
 - **Cost rollups read at a glance**: the workspace ceiling and the run
   spend dim into short descriptions (`≥ $0.42 · 4 permits` · `spent
-  $0.12 · 2 unpriced`) with markdown breakdown tables on hover — the
+  $0.12 · 2 unpriced`) with markdown breakdown tables on hover · the
   floor-honesty `≥` grammar unchanged.
 
-### The marathon waves — the lens deck · composition lived · every error a story
+### The lens deck: composition, live meters, every error a story
 
-- **One graph · five lenses** — the canvas becomes a deck of
+- **One graph · five lenses** · the canvas becomes a deck of
   projections over the SAME typed graph, each answering one question:
-  - **X · what if?** (admission simulate): pick a task, press X — the
-    client replays admission by the gate algebra (pure module,
+  - **X · what if?** (failure simulate): pick a task, press X · the
+    client replays the run rules with that task failed (pure module,
     unit-proven). Dead paths dim to their cancelled read; the paths
-    that exist ONLY because of failure LIGHT UP — why `on_error`
+    that exist ONLY because of failure LIGHT UP: why `on_error`
     exists, visible before any token is spent. Esc clears.
-  - **T · timeline**: the recorded run as a Gantt — real clocks only,
+  - **T · timeline**: the recorded run as a Gantt · real clocks only,
     retries as sub-segments on one row, cache hits hollow, the $
     column blank-over-zero, wave rules from the plan grammar. The
-    **ghost ceiling** (your recorded mean) paints behind every bar —
-    est-vs-actual at a glance — and the replay scrubber's **time
+    **ghost ceiling** (your recorded mean) paints behind every bar
+    (est-vs-actual at a glance), and the replay scrubber's **time
     cursor rides the lens** (two time surfaces, one now). The map's
     plan rail sleeps inside the lens.
-  - **P · audit**: « what can this file DO before a token is spent » —
+  - **P · audit**: "what can this file DO before a token is spent" ·
     capability hulls (egress · programs · files · tools) painted under
     the wires in state-family hues (egress red first), and the banner
     says it in one line, honest about UNBOUNDED floors and about
     having nothing to declare.
-  - **D · dataflow**: answer by subtraction — control scaffolding
+  - **D · dataflow**: answer by subtraction · control scaffolding
     sleeps, the typed data wires and their binding labels carry the
     whole story; direction heads stay awake at every zoom inside the
     lens.
   - The ? explainer teaches the deck (T · P · D next to H heatmap).
-- **Composition, lived** (spec 14): a workflow-call task is no longer
-  a dead chip —
+- **Composition, lived**: a workflow-call task is no longer
+  a dead chip:
   - the ⎘ chip is a **door** (click opens the child · a missing child
-    offers « Create it » with the canonical envelope);
+    offers "Create it" with the canonical envelope);
   - the card carries the **child's manifest** (tasks · waves · est
-    cost · permits — read from the CHILD's own engine projection,
+    cost · permits · read from the CHILD's own engine projection,
     never an invented rollup) and the hover renders a **peek**: the
     child's real shape in miniature (verb-hued dots per wave, its
     real edges);
   - the **promoted contract**: the child's `vars:` join the parent's
-    `args:` ON the card face — « topic ← parent · style = default ·
-    depth ⚠ required » (facts from both files; check owns findings);
+    `args:` ON the card face: "topic ← parent · style = default ·
+    depth ⚠ required" (facts from both files; check owns findings);
   - the **dive trail**: a breadcrumb (parent ▸ child ▸ …) grows on ⎘
-    jumps, truncates on crumb jumps, clears when you wander off —
+    jumps, truncates on crumb jumps, clears when you wander off ·
     every crumb is a door back up.
 - **The agent narrates its inner life**: the five agent_* trace kinds
-  fold into card facts — the running value column reads the pulse
-  (« t3 · 610tk · 1.7s ⋯ »), the hover narrates tool routing
-  (« turn 3 · saw 4/9 tools »), the budget curve, corrective nudges
+  fold into card facts · the running value column reads the pulse
+  ("t3 · 610tk · 1.7s ⋯"), the hover narrates tool routing
+  ("turn 3 · saw 4/9 tools"), the budget curve, corrective nudges
   with their reason, stall evidence, compose check verdicts.
 - **The live meters**: cost_incurred deltas fold into an in-flight
-  ~$ curve on the running card (« 1.0s ⋯ · ~$0.0042 » — ~$ moves, $
+  ~$ curve on the running card ("1.0s ⋯ · ~$0.0042" · ~$ moves, $
   is the recorded verdict); infer_chunk counts prove the stream is
   talking.
-- **Every degraded lane speaks** —
+- **Every degraded lane speaks**:
   - the status pill owns one degradation ladder (no binary → lsp
     down → healthy rung), every non-ok state names its exact next
-    move and the menu opens with that move as « Fix first »;
+    move and the menu opens with that move as "Fix first";
   - a generation gap reads as a quiet truth line, never a nag;
-  - the Station tells « no such verb », « answered nothing » and
-    « answered garbage » apart (honest rows, click retries) instead
+  - the Station tells "no such verb", "answered nothing" and
+    "answered garbage" apart (honest rows, click retries) instead
     of collapsing them into one blank;
   - six dead-end error toasts learned their action (Reveal in
     Finder · Open check report · Finish setup · Retry / Set server
     path / Show log · the permits toast splits its two causes);
   - a canvas exception paints an in-canvas wall strip + one deduped
-    toast — a render wall is a story, never a silence.
+    toast: a render wall is a story, never a silence.
 - **The red teaches**: NIKA-DAG-006 (statically-false `when:`) cards
-  wear « never runs » (muted · dashed · hatched) with the full law in
+  wear "never runs" (muted · dashed · hatched) with the full law in
   the hover; the session's first failed card teaches its affordances
-  once (« click the code to explain · hover ⑂ forks »); the scaffold
+  once ("click the code to explain · hover ⑂ forks"); the scaffold
   ships a commented `break_me` curriculum failure and the walkthrough
-  earns « Break it on purpose » (completes when the red actually
-  taught — on the explain command, not a button).
+  earns "Break it on purpose" (completes when the red actually
+  taught: on the explain command, not a button).
 - **Cards know more of the language**: `on_finally` cleanup chips
-  (« ◈ finally ×N » with the always-runs law) · infer senses
-  (« ∴ thinking 4k » · « ▣ vision ×N ») · fan-out policy (« ∥ max
-  3 » · « ⤼ per-item » vs « ⚡ fail-fast ») · `mode:` completions
+  ("◈ finally ×N" with the always-runs law) · infer senses
+  ("∴ thinking 4k" · "▣ vision ×N") · fan-out policy ("∥ max
+  3" · "⤼ per-item" vs "⚡ fail-fast") · `mode:` completions
   teach each extract mode's output shape and use, spec-ordered.
 - **The canvas never reads empty**: a faint verb-hued ghost DAG lives
-  behind the welcome card (one dot pulsing — the run that wants to
+  behind the welcome card (one dot pulsing · the run that wants to
   happen); check-clean names the next move in the activity feed; a
   created workflow narrates its next moves.
-- README: « One graph · five lenses » section + a 15-second deck tour
+- README: a "One graph · five lenses" section + a 15-second deck tour
   GIF captured from the real renderer with real gestures.
 - **The lens deck, completed after the tour**: the audit lens gains
-  the **secret overlay** (pasted-literal credentials at graph scale —
-  red dashed ring on the task, « ⚿ N literal credentials » in the
+  the **secret overlay** (pasted-literal credentials at graph scale:
+  red dashed ring on the task, "⚿ N literal credentials" in the
   banner; the editor squiggle keeps the env-var rewrite) · the
   welcome's recent rows lead with their file's real shape in
-  miniature (**the gallery** — small multiples, engine truth) · the
+  miniature (**the gallery** · small multiples, engine truth) · the
   map's plan rail sleeps inside the timeline lens.
 - **The run story on every surface**: Runs-view task rows read the
   fold's inner life (agent pulse · tooltip narration · mid-run ~$)
   with the same vocabulary as the canvas hover, and the status menu
   teaches the lens keys.
 - **The cache hit proves itself**: a cached task's hover carries its
-  ADR-099 identity — « same definition (…) and inputs (…) as the
-  recorded run » — the claim with its evidence inline.
+  ADR-099 identity: "same definition (…) and inputs (…) as the
+  recorded run" · the claim with its evidence inline.
 - **Big graphs never sit silent**: past 100 tasks the canvas says
-  « laying out N tasks… » while ELK thinks (300 nodes ≈ 3.6s,
+  "laying out N tasks…" while ELK thinks (300 nodes ≈ 3.6s,
   measured); the media harness earns a deterministic ?n perf fixture.
-- **The vigil sweep** (coherence · teaching · proof):
-  - the deck's stacking law settles empirically — the timeline is the
+- **The coherence sweep** (teaching · proof):
+  - the deck's stacking law settles empirically: the timeline is the
     only non-map projection, so map-anchored surfaces (plan rail ·
     audit hulls · banner) sleep under it and come straight back;
-  - the ? explainer, the walkthrough's DAG step, DESIGN.md (§6d — the
-    deck as constitution · rule 6 — the real harness and its judge
+  - the ? explainer, the walkthrough's DAG step, DESIGN.md (§6d, the
+    deck as constitution · rule 6, the real harness and its judge
     flags) and the status menu all teach the same deck;
-  - the shareable run report carries the marathon's proofs (cache
+  - the shareable run report carries the new proofs (cache
     identity · the agent loop), the timeline rows wear the agent
-    gutter (« t3 »), and the typed core reaches the card (« ⊨ typed »
+    gutter ("t3"), and the typed core reaches the card ("⊨ typed"
     with the rendered shape);
   - the judge's own fixture is held against the renderer contract in
     CI (mutation-proven against the historical dependsOn lie), and
     the shared miniature renderers defend themselves (the NaN-viewBox
     class).
 - **Every task in the native Test Explorer** (engines ^1.85): every
-  workflow is a test item and every task a CHILD at its YAML range —
+  workflow is a test item and every task a CHILD at its YAML range ·
   the run/status gutter icon lands on the task's own line. The
-  default « Run (engine) » profile executes the real engine
+  default "Run (engine)" profile executes the real engine
   (`run --task <id>` for one task) and reads verdicts from the
   RECORDED trace via the same fold every surface trusts (skipped and
   cancelled are decisions, never failures; the failure peek opens on
   the failing line speaking the one vocabulary). Golden lanes stay
-  honest: « Golden test » refuses without a pin and names the gesture
+  honest: "Golden test" refuses without a pin and names the gesture
   that records the first one.
 - **The Vercel · Linear · Raycast polish**: policy chips fold past
-  five into « +N » (facts layered, never dropped) · the ⚡ what-if
+  five into "+N" (facts layered, never dropped) · the ⚡ what-if
   button wears its X hint truth-gated (only when the keystroke would
   hit THIS card) · one 160ms entrance grammar for every lens surface,
   stilled under reduced-motion.
-- **The file is alive** (the living-editor wave, research-driven):
-  - the run pill learns the RECORDED ETA — « Run (≤ $0.0090) · ~13s »
-    — the weighted critical path over your flight-recorder means
+- **The file is alive**:
+  - the run pill learns the RECORDED ETA ("Run (≤ $0.0090) · ~13s"):
+    the weighted critical path over your flight-recorder means
     (measured beats recorded beats hops; one history-less task and
     the claim honestly stands down);
-  - the end-of-line badge speaks the marathon vocabulary one
-    truncated line (« ✓ 1.2s · $0.003 · ↻2 · t3 » · « gated » ·
-    « blocked by X ») and gains its deep hover card (identity proof ·
+  - the end-of-line badge speaks the run vocabulary in one
+    truncated line ("✓ 1.2s · $0.003 · ↻2 · t3" · "gated" ·
+    "blocked by X") and gains its deep hover card (identity proof ·
     recovery · the full gate expression · the agent loop · the
-    failure tail) — inline stays a summary, the hover carries the
+    failure tail) · inline stays a summary, the hover carries the
     rest.
 
 
-### The day waves — cards know themselves · the canvas earns its craft
+### Cards know themselves: identity, wires, layout craft
 
 - **Card intelligence**: every card resolves its identity from the
   graph SSOT (`cardIdentity`: verb × builtin × the engine's own
-  catalog categories — never guessed). An image-making builtin owns a
+  catalog categories · never guessed). An image-making builtin owns a
   developing frame BEFORE any artifact exists (calm dashed at rest ·
   develop sweep while running · the recorded artifact replaces it in
   the same box); a run that only wrote lands its file receipt row
   (click opens); nika:fetch pulses its round-trip on the tool chip.
   The per-verb running identities carry the canonical
   design/motion.yaml names (one motion vocabulary across site ·
-  terminal · canvas — parity-belted).
+  terminal · canvas, parity-gated).
 - **The connection speaks**: hovering a wire lights BOTH endpoint
   cards; the focused card claims its incident wires; hovering a
   card's io-row chip lights the wire it names on the canvas.
@@ -426,11 +422,11 @@ major.minor from 0.97).
   every card snaps to the 8px survey grid · far zoom recedes the
   wires so topology carries (the failure hue demixes last).
 - **One predicate register** (`core/predicates`): spellings ·
-  default · the gate-algebra pass-sets in one table — the doors, the
-  shapes and the hover pedagogy all read it (the R5 respelling flips
-  one line, when the engine's lane lands). SPEC_PIN carries a
-  machine-readable HOLD: the daily heal parks instead of advancing
-  past what shipped engines speak.
+  default · the per-predicate pass-sets in one table: the doors, the
+  shapes and the hover pedagogy all read it (a future predicate
+  respelling flips one line, when the engine's lane lands). SPEC_PIN
+  carries a machine-readable HOLD: the daily heal parks instead of
+  advancing past what shipped engines speak.
 - **Voice + honesty**: one toast prefix · cancelled=⊘ / skipped=↷ on
   every surface · the download progress stops calling the engine a
   language server · ⌘⌥K validates (⌘⇧K stays Delete Line) · ⌘⌥M
@@ -441,57 +437,57 @@ major.minor from 0.97).
 
 ### The station · the oracle · the kind vocabulary
 
-- **The Station** — a third view in the container: the cockpit the
+- **The Station** · a third view in the container: the cockpit the
   engine always carried and the extension never asked for.
   `doctor --json` findings render as rows whose CLICK is the exact
   fix (`nika …` lines run in a terminal; `export KEY=…` lines go to
-  the clipboard — the human owns secrets), `welcome --deep --json`
+  the clipboard · the human owns secrets), `welcome --deep --json`
   supplies the wired agent clients (one-click `nika wire <client>`),
   the local providers with pulled models, cloud key COUNTS (never
   values), and the workspace audit rollup with the honest `≥` cost
   floor. The container badge counts doctor FAILS only. The engine row
   says which binary won the resolution ladder AND whether it speaks
-  this extension's grammar generation — a fact with a door, never a
+  this extension's grammar generation: a fact with a door, never a
   crash.
-- **The LSP oracle adopted** — graph projection now rides
+- **The LSP oracle adopted** · graph projection now rides
   `nika/semanticDocument` when the server advertises format 2: one
   request against the live buffer (no spawn per refresh) carrying the
   canonical projection VERBATIM plus per-task declaration spans; the
   CLI lane stays as fallback, the client sketch last. Capability-
-  gated — a format-1 server keeps the CLI lane.
-- **The islands convergence** — when a server with completion runs,
+  gated: a format-1 server keeps the CLI lane.
+- **The islands convergence** · when a server with completion runs,
   the gate and collection doors offer the engine's own suggestions
   first (the empty `when: `/`for_each: ` island position); the
   curated shapes remain offline fallback + the gestures no island can
-  make. Belt-checked against the real server (`islandsReal.e2e`).
-- **The edge speaks its kind** — the waist glyph becomes the kind
+  make. Gate-checked against the real server (`islandsReal.e2e`).
+- **The edge speaks its kind** · the waist glyph becomes the kind
   vocabulary: chevron (value/control) · hollow dot (terminal
-  observation) · diamond in the failure hue (failure observation —
+  observation) · diamond in the failure hue (failure observation ·
   the wire says which outcomes feed it) · open hook (recovery's
   parking loop). Every hover title states its pass-set verbatim
-  (gate algebra v2: `admits {failure · skipped}`).
-- **nika_workspace lives again** — the LM tool follows the renamed
+  (`admits {failure · skipped}`).
+- **nika_workspace lives again** · the LM tool follows the renamed
   verb (`welcome --deep --json` on 0.104+, `context` on older dev
   builds): agents get the workspace aggregate back.
-- **The generation floor is honest** — e2e suites probe whether the
+- **The generation floor is honest** · e2e suites probe whether the
   binary parses this grammar generation and skip WITH their reason on
   older engines instead of lying red (run them for real with
-  `NIKA_BIN=<refonte build>`).
-- SPEC_PIN advances to `8e21866` — the newest spec point a real
-  engine honors tonight (the predicate respellings beyond it land
+  `NIKA_BIN=<dev build>`).
+- SPEC_PIN advances to `8e21866`: the newest spec point a real
+  engine honors today (the predicate respellings beyond it land
   when the engine's lane does).
 
-### W2 « the flow » — the client speaks the typed-edge grammar
+### The client speaks the typed-edge grammar
 
-- **BREAKING (language · engine wave)**: `depends_on` is dead
+- **BREAKING (language wave, with the engine)**: `depends_on` is dead
   (`NIKA-PARSE-024` · `nika check --fix` migrates). The two boundary
-  doors replace it — `with:` bindings ARE the data edges,
+  doors replace it: `with:` bindings ARE the data edges,
   `after: { producer: succeeded|failed|skipped|terminal }` is the
   control edge. `when:` reads LOCAL namespaces only (`tasks.*` there is
   `NIKA-VAR-021` · the hoist is machine-applicable) and `NIKA-DAG-005`
   guards the closed predicate set.
 - **graph_format 2, no fallback**: the canvas consumes the typed
-  projection (`nika inspect --format json`) — edges carry
+  projection (`nika inspect --format json`): edges carry
   `kind` (`value` · `terminal-observation` · `failure-observation` ·
   `control` · `recovery`), a control edge shows its predicate riding
   the wire, observation reads get a long-dash tinge, and
@@ -500,19 +496,19 @@ major.minor from 0.97).
   format-1 document is refused (a reader never guesses a format it
   does not speak); the client keystroke sketch emits the same typed
   shape from the same two doors.
-- **The doors speak W2**: « order on state » re-picks `after:` entries
-  (predicates preserved), the gate picker writes LOCAL `when:` shapes —
-  upstream state becomes an `after:` entry, an upstream value hoists
-  through `with:` first — and the collection picker binds an upstream
-  array through `with:` before `for_each:` reads the binding. Canvas
-  connect writes `after: { from: succeeded }`; ⌥click removes CONTROL
-  entries only (a binding is authored, never gesture-deleted).
+- **The doors speak the new grammar**: "order on state" re-picks
+  `after:` entries (predicates preserved), the gate picker writes
+  LOCAL `when:` shapes (upstream state becomes an `after:` entry, an
+  upstream value hoists through `with:` first), and the collection
+  picker binds an upstream array through `with:` before `for_each:`
+  reads the binding. Canvas connect writes `after: { from: succeeded }`;
+  ⌥click removes CONTROL entries only (a binding is authored, never
+  gesture-deleted).
 - **Retired with their premise**: the ghost-edge overlay and the
-  DAG-003 quick fixes (the binding IS the edge — the class is
-  inexpressible), and the « redundant depends_on » transitive-reduction
+  DAG-003 quick fixes (the binding IS the edge · the class is
+  inexpressible), and the "redundant depends_on" transitive-reduction
   hint (pass-sets compose per edge; the engine's `one-obvious-way/010`
   owns the surviving narrow class).
-
 ## [0.104.0] · 2026-07-18
 
 Lockstep on the engine's 0.104 line (moonshot — the 17th provider —
