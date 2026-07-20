@@ -33,7 +33,7 @@ const MOTION: Record<string, string> = {
   agent: 'nika-motion-agent',
 };
 
-export type PreviewKind = 'image' | 'audio' | 'file' | 'http' | 'none';
+export type PreviewKind = 'image' | 'audio' | 'file' | 'http' | 'check' | 'none';
 
 export interface CardIdentity {
   /** The verb family — the tile, the hue, the identity mark. */
@@ -109,18 +109,123 @@ export function splitEssence(
   };
 }
 
-/** Builtins whose OUTPUT is a file the run writes — the card lands a
- *  file row at settle (artifacts.ts already proves existence). */
-const FILE_WRITERS = new Set(['write', 'append', 'copy', 'move', 'archive']);
+// ─── The declared-media read (CI-2) — what the frame can SAY before ───
+// any run. Facts parse from the card's argsPreview pairs (the client
+// YAML read); an interpolated `${{ … }}` value is a gap the frame
+// STATES (generic frame), never fills. Pure string work — provable
+// without a webview.
 
-/** Media builtins split by what they develop. */
-const AUDIO_MAKERS = new Set(['tts', 'speak', 'transcribe']);
+/** The chart shapes the engine renders (`chart.type` closed set). */
+export const CHART_SHAPES: ReadonlySet<string> = new Set([
+  'bar', 'line', 'area_band', 'scatter', 'heatmap',
+]);
+
+/** What a media card's declarative frame knows before the run. */
+export interface MediaDeclare {
+  /** image: declared aspect (w/h) — absent when interpolated/undeclared. */
+  ratio?: number;
+  /** image: the declared ratio/size text (`16:9` · `1024x768`). */
+  ratioLabel?: string;
+  /** image: declared variant count (`n:`). */
+  count?: number;
+  /** image/tts: declared provider caption. */
+  provider?: string;
+  /** chart: the declared shape (member of CHART_SHAPES). */
+  chartType?: string;
+  /** chart: basename of the declared `out:` artifact path. */
+  out?: string;
+  /** image_fx: basename of the declared `input:` source path. */
+  input?: string;
+  /** image_fx: the declared ops chain names, in order. */
+  ops?: string[];
+  /** tts: declared voice. */
+  voice?: string;
+  /** tts: declared format (mp3 · wav · auto). */
+  format?: string;
+}
+
+/** First-wins `k: v` map over an argsPreview line (`k: v · k: v`). */
+function argPairsOf(argsPreview: string): Map<string, string> {
+  const pairs = new Map<string, string>();
+  for (const p of argsPreview.split(' · ')) {
+    const i = p.indexOf(': ');
+    if (i <= 0) { continue; }
+    const k = p.slice(0, i);
+    if (!pairs.has(k)) { pairs.set(k, p.slice(i + 2)); }
+  }
+  return pairs;
+}
+
+/** A declared literal value — an interpolation is a stated gap. */
+function literalOf(pairs: Map<string, string>, key: string): string | undefined {
+  const v = pairs.get(key);
+  if (v === undefined || v.length === 0 || v.includes('${{')) { return undefined; }
+  return v;
+}
+
+const LAST_SEG = (p: string): string => p.split('/').filter((s) => s.length > 0).pop() ?? p;
+
+/** Resolve the declarative frame's facts for a media builtin. */
+export function mediaDeclareOf(
+  builtin: string | undefined,
+  argsPreview: string | undefined,
+): MediaDeclare {
+  if (builtin === undefined || argsPreview === undefined) { return {}; }
+  const pairs = argPairsOf(argsPreview);
+  const d: MediaDeclare = {};
+  if (builtin === 'image_generate') {
+    // An exact size wins over aspect_ratio (the tool's own precedence).
+    const size = literalOf(pairs, 'size')?.match(/^(\d+)x(\d+)$/);
+    const ar = literalOf(pairs, 'aspect_ratio')?.match(/^(\d+):(\d+)$/);
+    if (size) { d.ratio = Number(size[1]) / Number(size[2]); d.ratioLabel = size[0]; }
+    else if (ar) { d.ratio = Number(ar[1]) / Number(ar[2]); d.ratioLabel = ar[0]; }
+    const n = literalOf(pairs, 'n');
+    if (n !== undefined && /^\d+$/.test(n) && Number(n) > 1) { d.count = Number(n); }
+    const provider = literalOf(pairs, 'provider');
+    if (provider !== undefined) { d.provider = provider; }
+  } else if (builtin === 'tts_generate') {
+    const voice = literalOf(pairs, 'voice');
+    if (voice !== undefined) { d.voice = voice; }
+    const format = literalOf(pairs, 'format');
+    if (format !== undefined) { d.format = format; }
+    const provider = literalOf(pairs, 'provider');
+    if (provider !== undefined) { d.provider = provider; }
+  } else if (builtin === 'chart') {
+    const type = literalOf(pairs, 'type');
+    if (type !== undefined && CHART_SHAPES.has(type)) { d.chartType = type; }
+    const out = literalOf(pairs, 'out');
+    if (out !== undefined) { d.out = LAST_SEG(out); }
+  } else if (builtin === 'image_fx') {
+    const input = literalOf(pairs, 'input');
+    if (input !== undefined) { d.input = LAST_SEG(input); }
+    const ops = literalOf(pairs, 'ops');
+    if (ops !== undefined) {
+      const names = ops.split(' → ').map((s) => s.trim()).filter((s) => /^[a-z_]+$/.test(s));
+      if (names.length > 0) { d.ops = names; }
+    }
+  }
+  return d;
+}
+
+/** Builtins whose OUTPUT is a file the run writes — the card lands a
+ *  file row at settle (artifacts.ts already proves existence). Catalog
+ *  truth: `write` and `edit` are the two file writers — the earlier
+ *  set carried phantoms (append/copy/move/archive never shipped). */
+const FILE_WRITERS = new Set(['write', 'edit']);
+
+/** Media builtins split by what they develop. Catalog truth: the one
+ *  audio maker is `tts_generate` (the earlier tts/speak/transcribe
+ *  names never existed — a tts card developed an IMAGE frame). */
+const AUDIO_MAKERS = new Set(['tts_generate']);
 
 function previewFor(builtin: string | undefined, category: string | undefined): PreviewKind {
   if (!builtin) { return 'none'; }
   if (category === 'media') { return AUDIO_MAKERS.has(builtin) ? 'audio' : 'image'; }
   if (category === 'file') { return FILE_WRITERS.has(builtin) ? 'file' : 'none'; }
   if (category === 'network') { return 'http'; }
+  // compose statically CHECKS a drafted workflow (never executes it) —
+  // its card earns the check-receipt row; inspect stays a plain card.
+  if (category === 'introspection') { return builtin === 'compose' ? 'check' : 'none'; }
   return 'none';
 }
 

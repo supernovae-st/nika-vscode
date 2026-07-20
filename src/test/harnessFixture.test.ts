@@ -22,9 +22,9 @@ interface FixtureNode {
 }
 interface FixtureEdge { id: string; source: string; target: string; kind: string; predicate?: string; [k: string]: unknown }
 
-function extractGraph(): { nodes: FixtureNode[]; edges: FixtureEdge[] } {
+function extractGraph(name = 'GRAPH'): { nodes: FixtureNode[]; edges: FixtureEdge[] } {
   const html = fs.readFileSync(HARNESS, 'utf-8');
-  const start = html.indexOf('const GRAPH = {');
+  const start = html.indexOf(`const ${name} = {`);
   expect(start).toBeGreaterThan(-1);
   const literalStart = html.indexOf('{', start);
   const end = html.indexOf('\n    };', literalStart);
@@ -39,8 +39,10 @@ const VERBS = new Set(['infer', 'exec', 'invoke', 'agent']);
 const KINDS = new Set(['value', 'terminal-observation', 'failure-observation', 'control', 'recovery']);
 const PREDICATES = new Set(['succeeded', 'failed', 'skipped', 'terminal']);
 
-describe('the media harness fixture — held against the renderer contract', () => {
-  const graph = extractGraph();
+// Both fixtures (the README run scene + the ?media CI-2 scene) are held
+// against the SAME renderer contract — a drifting fixture fails here.
+describe.each(['GRAPH', 'MEDIA_GRAPH'])('the %s harness fixture — held against the renderer contract', (name) => {
+  const graph = extractGraph(name);
   const ids = new Set(graph.nodes.map((n) => n.id));
 
   it('every node speaks the CURRENT dialect (producers — never a renamed ghost)', () => {
@@ -83,5 +85,32 @@ describe('the media harness fixture — held against the renderer contract', () 
         expect(skIds.has(e.source) && skIds.has(e.target), `peek edge ${e.source}->${e.target}`).toBe(true);
       }
     }
+  });
+});
+
+describe('the ?media scene — the CI-2 frame coverage floor', () => {
+  const graph = extractGraph('MEDIA_GRAPH');
+  const tools = graph.nodes.map((n) => n.tool).filter((t): t is string => typeof t === 'string');
+
+  it('seeds every declared-frame kind (image · ratio-gap · fx · 5 chart shapes · audio · check · receipts)', () => {
+    const args = new Map(graph.nodes.map((n) => [n.id, String(n.argsPreview ?? '')]));
+    expect(tools.filter((t) => t === 'nika:image_generate').length).toBeGreaterThanOrEqual(2);
+    // The stated-gap card: one image_generate declares an INTERPOLATED ratio.
+    expect([...args.values()].some((a) => a.includes('aspect_ratio: ${{'))).toBe(true);
+    expect(tools.filter((t) => t === 'nika:tts_generate').length).toBeGreaterThanOrEqual(2);
+    expect(tools.filter((t) => t === 'nika:image_fx').length).toBeGreaterThanOrEqual(2);
+    expect(tools).toContain('nika:compose');
+    expect(tools).toContain('nika:write');
+    expect(tools).toContain('nika:edit');
+    // All five chart shapes on one canvas.
+    const chartTypes = graph.nodes
+      .filter((n) => n.tool === 'nika:chart')
+      .map((n) => /type: ([a-z_]+)/.exec(String(n.argsPreview ?? ''))?.[1]);
+    expect(new Set(chartTypes)).toEqual(new Set(['bar', 'line', 'area_band', 'scatter', 'heatmap']));
+  });
+
+  it('is the ~30-node scene the GIF shoots', () => {
+    expect(graph.nodes.length).toBeGreaterThanOrEqual(28);
+    expect(graph.nodes.length).toBeLessThanOrEqual(36);
   });
 });

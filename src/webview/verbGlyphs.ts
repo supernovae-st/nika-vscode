@@ -63,6 +63,10 @@ export function makeVerbGlyph(verb: string, size: number): SVGSVGElement | null 
 interface GlyphDef extends VerbGlyphDef {
   /** currentColor-FILLED dots (the hub center · the frame sun). */
   dots?: { cx: number; cy: number; r: number }[];
+  /** currentColor-FILLED regions (the area band · the heat cells). */
+  fills?: { d: string; opacity?: number }[];
+  /** currentColor-FILLED rects (heatmap cells · bar sketches). */
+  rects?: { x: number; y: number; w: number; h: number; opacity?: number }[];
 }
 
 function buildGlyph(def: GlyphDef | undefined, size: number): SVGSVGElement | null {
@@ -97,6 +101,23 @@ function buildGlyph(def: GlyphDef | undefined, size: number): SVGSVGElement | nu
     el.setAttribute('cy', String(d.cy));
     el.setAttribute('r', String(d.r));
     el.setAttribute('fill', 'currentColor');
+    svg.appendChild(el);
+  }
+  for (const f of def.fills ?? []) {
+    const el = document.createElementNS(SVG_NS, 'path');
+    el.setAttribute('d', f.d);
+    el.setAttribute('fill', 'currentColor');
+    if (f.opacity !== undefined) { el.setAttribute('fill-opacity', String(f.opacity)); }
+    svg.appendChild(el);
+  }
+  for (const r of def.rects ?? []) {
+    const el = document.createElementNS(SVG_NS, 'rect');
+    el.setAttribute('x', String(r.x));
+    el.setAttribute('y', String(r.y));
+    el.setAttribute('width', String(r.w));
+    el.setAttribute('height', String(r.h));
+    el.setAttribute('fill', 'currentColor');
+    if (r.opacity !== undefined) { el.setAttribute('fill-opacity', String(r.opacity)); }
     svg.appendChild(el);
   }
   return svg;
@@ -149,4 +170,65 @@ const CATEGORY_GLYPHS: Record<string, GlyphDef> = {
  */
 export function makeCategoryGlyph(cat: string, size: number): SVGSVGElement | null {
   return buildGlyph(CATEGORY_GLYPHS[cat], size);
+}
+
+// The 5 chart SHAPE sketches (CI-2) — nika:chart's declarative frame
+// says WHICH form the run will draw (`chart.type`, the engine's closed
+// set: bar | line | area_band | scatter | heatmap). Same 24-grid house
+// language; ghost strokes, never data — a sketch of the form, not a
+// fake chart. Keys mirror CHART_SHAPES in core/cardIdentity.ts.
+const CHART_SHAPE_GLYPHS: Record<string, GlyphDef> = {
+  bar: {
+    paths: [
+      { d: 'M4 20H20' },
+      { d: 'M7 20V11M12 20V5M17 20V14' },
+    ],
+  },
+  line: {
+    paths: [
+      { d: 'M4 20H20' },
+      { d: 'M4 16L10 9L14 12L20 5' },
+    ],
+  },
+  area_band: {
+    paths: [
+      { d: 'M4 20H20' },
+      { d: 'M4 15L10 8L14 11L20 5' },
+    ],
+    fills: [
+      { d: 'M4 15L10 8L14 11L20 5V20H4Z', opacity: 0.3 },
+    ],
+  },
+  scatter: {
+    paths: [{ d: 'M4 20H20' }],
+    dots: [
+      { cx: 7, cy: 14, r: 1.7 },
+      { cx: 10, cy: 8, r: 1.7 },
+      { cx: 13, cy: 12, r: 1.7 },
+      { cx: 17, cy: 6, r: 1.7 },
+      { cx: 19, cy: 11, r: 1.7 },
+    ],
+  },
+  heatmap: {
+    paths: [],
+    rects: [
+      { x: 4, y: 4, w: 4.6, h: 4.6, opacity: 0.85 },
+      { x: 9.8, y: 4, w: 4.6, h: 4.6, opacity: 0.35 },
+      { x: 15.6, y: 4, w: 4.6, h: 4.6, opacity: 0.6 },
+      { x: 4, y: 9.8, w: 4.6, h: 4.6, opacity: 0.45 },
+      { x: 9.8, y: 9.8, w: 4.6, h: 4.6, opacity: 0.9 },
+      { x: 15.6, y: 9.8, w: 4.6, h: 4.6, opacity: 0.3 },
+      { x: 4, y: 15.6, w: 4.6, h: 4.6, opacity: 0.55 },
+      { x: 9.8, y: 15.6, w: 4.6, h: 4.6, opacity: 0.25 },
+      { x: 15.6, y: 15.6, w: 4.6, h: 4.6, opacity: 0.75 },
+    ],
+  },
+};
+
+/**
+ * Build a chart SHAPE's sketch (currentColor ink), or null for an
+ * unknown/undeclared type — the caller keeps the generic frame.
+ */
+export function makeChartShapeGlyph(type: string, size: number): SVGSVGElement | null {
+  return buildGlyph(CHART_SHAPE_GLYPHS[type], size);
 }

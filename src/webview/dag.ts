@@ -23,7 +23,7 @@ import { easeCubicOut } from 'd3-ease';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
-import { resolveCardIdentity, splitEssence, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
+import { resolveCardIdentity, splitEssence, mediaDeclareOf, CATEGORY_GLYPH as IDENTITY_GLYPHS, type CardIdentity } from '../core/cardIdentity';
 import { STATUS_CHAR } from '../core/glyphRegistry';
 import type { AgentFacts } from '../core/traceFold';
 import { convexHull, deriveAuditFacts, type PermitDomain } from '../core/auditLens';
@@ -38,7 +38,7 @@ import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
-import { makeCategoryGlyph, makeVerbGlyph } from './verbGlyphs';
+import { makeCategoryGlyph, makeChartShapeGlyph, makeVerbGlyph } from './verbGlyphs';
 import { createElkClient } from './elkClient';
 import {
   LayoutLru, layoutHashOf, compactLaid, expandLaid,
@@ -738,9 +738,9 @@ const PADDING = 40;
 const TOP_INSET = 54;
 
 // Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
-// DESIGN.md §1 — pad 10 · head 22 · divider 12 · preview 92 img / 30
-// audio (+6 gap) · sub 15 · body 15/line (+4 gap) · io 15 (+5 gap) ·
-// params 24 (+6 gap) · policy 20 (+6 gap)).
+// DESIGN.md §1 — pad 10 · head 22 · divider 12 · preview 124 img
+// full-bleed / 30 audio·check row (+6 gap) · sub 15 · body 15/line
+// (+4 gap) · io 15 (+5 gap) · params 24 (+6 gap) · policy 20 (+6 gap)).
 const CARD_PAD_Y = 10;
 const HEAD_H = 22;
 const DIVIDER_H = 12;
@@ -753,8 +753,11 @@ const PARAMS_H = 24;
 const PARAMS_GAP = 6;
 const POLICY_H = 20;
 const POLICY_GAP = 6;
-/** The recorded-artifact preview zone (image thumb / audio row). */
-const PREVIEW_IMG_H = 92;
+/** The recorded-artifact preview zone (image slot / audio·check row).
+ *  The image slot is the card's BODY (W11.2 — full-bleed, constant
+ *  height: the declared frame reserves the exact box the artifact
+ *  takes, so declare → develop → deliver never relayouts). */
+const PREVIEW_IMG_H = 124;
 const PREVIEW_AUD_H = 30;
 const PREVIEW_GAP = 6;
 /** The agent LOOP BAND (W-D8) — .nc-agent-band 14px + 4px gap. */
@@ -1140,10 +1143,13 @@ function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): numb
   if (node.artifact) {
     // file rides the audio row height (one-line receipt row).
     h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
-  } else if (resolveCardIdentity(node, toolCatsMap).preview === 'image') {
-    // The developing frame reserves the SAME box the artifact will
+  } else {
+    // The declared frame reserves the SAME box the artifact will
     // take — constant height, so a status flip never needs relayout.
-    h += PREVIEW_GAP + PREVIEW_IMG_H;
+    // image slot 124 · audio strip 30 · compose check-receipt row 30.
+    const declared = resolveCardIdentity(node, toolCatsMap).preview;
+    if (declared === 'image') { h += PREVIEW_GAP + PREVIEW_IMG_H; }
+    else if (declared === 'audio' || declared === 'check') { h += PREVIEW_GAP + PREVIEW_AUD_H; }
   }
   const body = bodyTextOf(node, mode);
   if (body) {
@@ -3564,11 +3570,13 @@ class DagRenderer {
     clone.querySelector('g.dag-particles')?.replaceChildren();
     // Artifact previews reference vscode-webview:// URIs that die outside
     // the panel — the exported file keeps the card box, sheds the bytes.
-    for (const el of clone.querySelectorAll('.nc-preview, .nc-preview-audio, .nc-preview-file')) {
+    // Declared frames (developing · check row) shed their ghosts too:
+    // the exported card keeps a calm box, and .nc-preview-exported
+    // kills the develop sweep (::after content none) so the shimmer
+    // never exports mid-frame.
+    for (const el of clone.querySelectorAll('.nc-preview, .nc-preview-audio, .nc-preview-file, .nc-preview-check')) {
       el.replaceChildren();
       el.classList.add('nc-preview-exported');
-      // The developing shimmer must not export mid-frame — the class
-      // above already freezes it (rules key off .nc-preview-exported).
     }
     for (const p of clone.querySelectorAll('.dag-edge.afterglow, .dag-edge.afterglow-fail')) {
       p.classList.remove('afterglow', 'afterglow-fail');
@@ -4438,6 +4446,195 @@ class DagRenderer {
   /** Build the HTML card body (safe DOM construction — never innerHTML).
    *  `mode` defaults to the retained register; the peek passes an
    *  explicit 'grand' (transient — never recorded, never layout). */
+  // ─── The declared media frames (CI-2) — the card says its NATURE ───
+  // before any run. Facts parse from the YAML argsPreview (mediaDeclareOf
+  // — an interpolated value is a stated gap, never a guess); every
+  // frame is a decorative declaration (aria-hidden — C1 owns the a11y
+  // story) and shares ONE develop sweep while running (nc-dev-sweep).
+
+  /** The media slot ghost interior glyph (house SVG · unicode fallback). */
+  private mediaGhostGlyph(size: number): HTMLElement {
+    const holder = document.createElement('span');
+    holder.className = 'nc-dev-glyph';
+    const svg = makeCategoryGlyph('media', size);
+    if (svg) { holder.appendChild(svg); }
+    else { holder.textContent = CATEGORY_GLYPH.media ?? '▣'; }
+    return holder;
+  }
+
+  /** image_generate / chart / image_fx — the full-width declared slot. */
+  private appendImageDeclare(host: HTMLElement, node: DagNode, identity: CardIdentity): void {
+    const d = mediaDeclareOf(identity.builtin, node.argsPreview);
+    const frame = document.createElement('div');
+    frame.className = 'nc-preview nc-developing nc-dev-sweep';
+    frame.setAttribute('aria-hidden', 'true');
+    if (identity.builtin === 'image_fx') {
+      // The split declares the recipe: A = source + ops chain · B = the
+      // coming AFTER (the real input thumb is a host-side v2).
+      frame.classList.add('nc-fx');
+      frame.title = 'this task restyles an image — the result lands here';
+      const b = document.createElement('span');
+      b.className = 'nc-fx-b';
+      const ghost = document.createElement('span');
+      ghost.className = 'nc-ghost nc-ghost-half';
+      ghost.appendChild(this.mediaGhostGlyph(14));
+      b.appendChild(ghost);
+      frame.append(this.buildFxRecipe(node), b);
+      host.appendChild(frame);
+      return;
+    }
+    const ghost = document.createElement('span');
+    ghost.className = 'nc-ghost';
+    if (identity.builtin === 'chart') {
+      frame.title = 'this task renders a chart — the SVG lands here';
+      const sketch = d.chartType ? makeChartShapeGlyph(d.chartType, 24) : null;
+      if (sketch) {
+        ghost.appendChild(sketch);
+        const word = document.createElement('span');
+        word.className = 'nc-ghost-dim';
+        word.textContent = d.chartType ?? '';
+        ghost.appendChild(word);
+      } else {
+        ghost.appendChild(this.mediaGhostGlyph(18));
+      }
+      if (d.out !== undefined) {
+        const cap = document.createElement('span');
+        cap.className = 'nc-preview-label';
+        cap.textContent = d.out;
+        frame.appendChild(cap);
+      }
+    } else {
+      frame.title = 'this task produces an image — the recorded output lands here';
+      // The ghost-ratio letterbox: a declared literal ratio sizes the
+      // dashed frame INSIDE the constant slot; an interpolated or
+      // absent ratio keeps the generic frame (the gap, stated).
+      if (d.ratio !== undefined) {
+        ghost.classList.add('nc-ghost-ratio');
+        const boxH = PREVIEW_IMG_H - 18;
+        const boxW = NODE_WIDTH - 30;
+        const w = Math.min(boxW, Math.round(boxH * d.ratio));
+        ghost.style.width = `${w}px`;
+        ghost.style.height = `${Math.round(w / d.ratio)}px`;
+      }
+      ghost.appendChild(this.mediaGhostGlyph(18));
+      if (d.ratioLabel !== undefined) {
+        const dim = document.createElement('span');
+        dim.className = 'nc-ghost-dim';
+        dim.textContent = d.ratioLabel;
+        ghost.appendChild(dim);
+      }
+      if (d.count !== undefined) {
+        const n = document.createElement('span');
+        n.className = 'nc-ghost-n';
+        n.textContent = `×${d.count}`;
+        frame.appendChild(n);
+      }
+      if (d.provider !== undefined) {
+        const cap = document.createElement('span');
+        cap.className = 'nc-preview-label';
+        cap.textContent = d.provider;
+        frame.appendChild(cap);
+      }
+    }
+    frame.appendChild(ghost);
+    host.appendChild(frame);
+  }
+
+  /** image_fx recipe rail (A half) — source glyph + the ops chain.
+   *  Shared by declare AND settle: the recipe stays beside the AFTER. */
+  private buildFxRecipe(node: DagNode): HTMLElement {
+    const d = mediaDeclareOf('image_fx', node.argsPreview);
+    const rail = document.createElement('span');
+    rail.className = 'nc-fx-a';
+    const src = document.createElement('span');
+    src.className = 'nc-fx-src';
+    const glyph = makeCategoryGlyph('file', 11);
+    if (glyph) { src.appendChild(glyph); }
+    if (d.input !== undefined) {
+      const name = document.createElement('span');
+      name.className = 'nc-fx-input';
+      name.textContent = d.input;
+      src.appendChild(name);
+    }
+    rail.appendChild(src);
+    if (d.ops !== undefined) {
+      const chain = document.createElement('span');
+      chain.className = 'nc-fx-ops';
+      d.ops.slice(0, 3).forEach((op, i) => {
+        if (i > 0) { chain.appendChild(document.createTextNode('→')); }
+        const chip = document.createElement('span');
+        chip.className = 'nc-fx-op';
+        chip.textContent = op;
+        chain.appendChild(chip);
+      });
+      if (d.ops.length > 3) { chain.appendChild(document.createTextNode(`+${d.ops.length - 3}`)); }
+      rail.appendChild(chain);
+    }
+    return rail;
+  }
+
+  /** tts_generate — the flat declared strip. The bars are uniform BY
+   *  DESIGN (no audio level exists on the wire — a shaped wave here
+   *  would be a fake VU meter); the run's honesty is the one sweep. */
+  private appendAudioDeclare(host: HTMLElement, node: DagNode): void {
+    const d = mediaDeclareOf('tts_generate', node.argsPreview);
+    const row = document.createElement('div');
+    row.className = 'nc-preview-audio nc-audio-ghost nc-dev-sweep';
+    row.setAttribute('aria-hidden', 'true');
+    row.title = 'this task synthesizes speech — the recorded audio lands here';
+    const play = document.createElement('span');
+    play.className = 'nc-audio-play nc-play-ghost';
+    play.textContent = '▶';
+    const ns = 'http://www.w3.org/2000/svg';
+    const strip = document.createElementNS(ns, 'svg');
+    strip.setAttribute('class', 'nc-audio-strip');
+    strip.setAttribute('viewBox', '0 0 104 14');
+    strip.setAttribute('preserveAspectRatio', 'none');
+    strip.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 26; i++) {
+      const bar = document.createElementNS(ns, 'rect');
+      bar.setAttribute('x', String(i * 4));
+      bar.setAttribute('y', '5.5');
+      bar.setAttribute('width', '2.4');
+      bar.setAttribute('height', '3');
+      bar.setAttribute('rx', '1.2');
+      bar.setAttribute('fill', 'currentColor');
+      strip.appendChild(bar);
+    }
+    row.append(play, strip);
+    const meta = [d.voice, d.format].filter((v) => v !== undefined).join(' · ');
+    if (meta.length > 0) {
+      const m = document.createElement('span');
+      m.className = 'nc-audio-meta';
+      m.textContent = meta;
+      row.appendChild(m);
+    }
+    const dur = document.createElement('span');
+    dur.className = 'nc-audio-dur';
+    dur.textContent = '--:--';
+    row.appendChild(dur);
+    host.appendChild(row);
+  }
+
+  /** compose — the check-receipt row. compose statically CHECKS a
+   *  drafted workflow and NEVER executes it (execution through a door
+   *  is `invoke workflow:` composition — a different construct with
+   *  its own sub-peek). The verdict joins the flow at settle. */
+  private appendCheckRow(host: HTMLElement, node: DagNode): void {
+    const row = document.createElement('div');
+    row.className = 'nc-preview-check nc-dev-sweep';
+    row.setAttribute('aria-hidden', 'true');
+    row.title = 'compose statically checks the drafted workflow (never runs it) — the verdict lands here';
+    const glyph = document.createElement('span');
+    glyph.className = 'nc-check-glyph';
+    glyph.textContent = '⎙';
+    const flow = document.createElement('span');
+    flow.className = 'nc-check-flow';
+    flow.textContent = node.status === 'success' ? 'draft → check → verdict' : 'draft → check';
+    row.append(glyph, flow);
+    host.appendChild(row);
+  }
+
   private buildCardHtml(host: HTMLElement, node: DagNode, mode: CardMode = cardModeOf(node.id)): void {
     host.replaceChildren();
     host.classList.toggle('nc-mode-min', mode === 'min');
@@ -4518,36 +4715,51 @@ class DagRenderer {
 
     // The RECORDED artifact — the generation, ON the card (engine truth
     // from the trace: only a file a run actually wrote and that still
-    // exists). Image = thumb (click opens the real file) · audio = a
-    // playable row. Identity above, the output next, the facts below.
-    // An image-MAKING builtin owns its frame before any artifact
-    // exists (cardIdentity.preview): resting = a calm dashed slot
-    // (« this task produces an image ») · running = the develop
-    // shimmer · the recorded artifact replaces it at settle.
-    if (!node.artifact && resolveCardIdentity(node, toolCatsMap).preview === 'image') {
-      const frame = document.createElement('div');
-      frame.className = 'nc-preview nc-developing';
-      frame.title = 'this task produces an image — the recorded output lands here';
-      const glyph = document.createElement('span');
-      glyph.className = 'nc-dev-glyph';
-      glyph.textContent = CATEGORY_GLYPH.media ?? '▣';
-      frame.appendChild(glyph);
-      host.appendChild(frame);
+    // exists). Image = the full-bleed body slot (click opens the real
+    // file) · audio = a playable row. Identity above, the output next,
+    // the facts below. A media builtin owns its frame before any
+    // artifact exists (cardIdentity.preview).
+    // CI-2 media grammar: DECLARE the nature before the run (dashed
+    // ghosts · flat strips · inert marks — no pre-run pixel may read
+    // as generated content) · DEVELOP honestly during (one sweep, no
+    // fake levels) · the artifact DELIVERS at settle in the SAME box.
+    const identity = resolveCardIdentity(node, toolCatsMap);
+    if (!node.artifact && identity.preview === 'image') {
+      this.appendImageDeclare(host, node, identity);
+    } else if (!node.artifact && identity.preview === 'audio') {
+      this.appendAudioDeclare(host, node);
+    } else if (!node.artifact && identity.preview === 'check') {
+      this.appendCheckRow(host, node);
     }
     if (node.artifact) {
       const a = node.artifact;
       if (a.kind === 'image') {
         const zone = document.createElement('button');
-        zone.className = 'nc-preview';
+        const fx = identity.builtin === 'image_fx';
+        zone.className = fx ? 'nc-preview nc-fx' : 'nc-preview';
         zone.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · recorded output (click to open)`;
         const img = document.createElement('img');
         img.src = a.src;
         img.alt = a.name;
         img.draggable = false;
+        // The byte gate (annexe T): a hidden/culled card must not
+        // decode its pixels — lazy defers offscreen loads, async
+        // keeps the decode off the interaction path.
+        img.loading = 'lazy';
+        img.decoding = 'async';
         const label = document.createElement('span');
         label.className = 'nc-preview-label';
         label.textContent = a.count ? `${a.name} · 1/${a.count}` : a.name;
-        zone.append(img, label);
+        if (fx) {
+          // The AFTER lands in the B half — the recipe stays readable
+          // beside the delivered restyle (the split declared it).
+          const after = document.createElement('span');
+          after.className = 'nc-fx-b';
+          after.appendChild(img);
+          zone.append(this.buildFxRecipe(node), after, label);
+        } else {
+          zone.append(img, label);
+        }
         zone.addEventListener('mousedown', (e) => e.stopPropagation());
         zone.addEventListener('click', (e) => {
           e.stopPropagation();

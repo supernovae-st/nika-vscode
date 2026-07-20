@@ -25,7 +25,7 @@ every visible pixel.
 ┌────────────────────────────────┐
 │ ⬚ task_id            ● ⚠2 ×5  │  head 22 · verb TILE + id + status DOT + chips
 │ ─────────────────────────────  │  hairline divider (12 incl. margins)
-│ ▛ recorded artifact ▟ 1/3      │  preview 92 img / 30 audio (+6) · THE generation
+│ ▛ recorded artifact ▟ 1/3      │  preview 124 img full-bleed / 30 audio·check (+6)
 │ infer · mistral → ✓ 2.3s·$0.004│  sub 15 · mechanism → verdict (+ recorded $ ·
 │                                │           live tasks count OBSERVED elapsed `12s ⋯`)
 │ Rank these stories by…         │  body 15/line · prompt / $ cmd / args (≤3)
@@ -40,10 +40,41 @@ every visible pixel.
 - **The preview is engine truth only**: the artifact comes from the
   RECORDED trace (`artifacts.ts` — a file a run actually wrote, that
   still exists on disk); webview URIs mint at post time over
-  workspace-rooted `localResourceRoots`. Image = thumb (click opens the
-  real file), audio = a playable row (ONE player canvas-wide, ▶ only —
-  nothing autoplays). Exports shed the bytes (webview URIs die outside
-  the panel) and keep the box.
+  workspace-rooted `localResourceRoots`. Image = the full-bleed body
+  slot (the artifact IS the card between its head and its facts; click
+  opens the real file), audio = a playable row (ONE player canvas-wide,
+  ▶ only — nothing autoplays). Every card `<img>` rides
+  `loading=lazy decoding=async` (a culled/LOD-hidden card must not
+  decode its pixels — culling gates BYTES, not just paint). Exports
+  shed the bytes (webview URIs die outside the panel) and keep the box.
+- **The media grammar (declare · develop · deliver)**: a media builtin's
+  card speaks three honest states. BEFORE any run the frame DECLARES
+  the nature only — `image_generate` letterboxes a dashed ghost at the
+  literally-declared `aspect_ratio`/`size` (an interpolated `${{ … }}`
+  value is a STATED gap: the generic frame, never a guess) with the
+  `n:` count as an `×N` corner and the provider as caption;
+  `image_fx` splits A|B (source name + the `ops:` chain as chips · a
+  ghost where the AFTER lands — the real input thumbnail is a host-side
+  v2, never faked); `chart` sketches the declared `chart.type` (the
+  engine's closed set: bar · line · area_band · scatter · heatmap) and
+  captions `basename(out)`; `tts_generate` lays a FLAT bar strip (no
+  audio level exists on the wire — a shaped wave would be a fake VU
+  meter) with an inert ▶, `voice · format`, and `--:--`. DURING the run
+  every frame develops the same way: ONE sweep (`nc-dev-sweep`,
+  running-gated, reduced-motion opted out) — no fake proxies, no fake
+  levels. AT SETTLE the recorded artifact replaces the frame in the
+  SAME box (constant heights — a status flip never relayouts): images
+  land edge-to-edge, the fx split keeps its recipe beside the AFTER,
+  audio becomes the playable row. No pre-run pixel can be confused
+  with generated content: ghosts are dashed, bars are flat, the ▶ is
+  inert. Frames are decorative declarations (`aria-hidden`).
+- **compose is a check, never a run**: `nika:compose` statically checks
+  a DRAFTED workflow and never executes it — its card wears the
+  introspection check-receipt row (`⎙ draft → check`, joined by
+  `→ verdict` at settle). Do not confuse it with `invoke workflow:`
+  (composition through a door): THAT construct runs a child workflow
+  and already owns its own surface — the sub-manifest peek and the ⎘
+  door. Two constructs, two card grammars, by design.
 - **The elapsed is observed, never invented**: a live task counts OUR
   clock from the observed start event (`12.4s ⋯` — the ⋯ marks it
   live); the engine's measured duration takes the cell at settle. No
@@ -78,14 +109,13 @@ every visible pixel.
   its prompt was — the run shows its data, a re-run restores the rest.
 - **The card knows itself** (MV8 · `core/cardIdentity`): identity
   resolves from the graph SSOT — verb × builtin × the engine's own
-  catalog category (`catalog --tools`), never guessed. An image-making
-  builtin owns a **developing frame** before any artifact exists (calm
-  dashed slot at rest — « this task produces an image » · a develop
-  sweep in the verb's hue while running · the recorded artifact
-  replaces it in the SAME box, so a status flip never relayouts); a
-  file writer lands its **receipt row** (`▤ name` · click opens ·
-  existence proven by artifacts.ts); the network category **pulses**
-  its glyph on the running tool chip. Per-verb RUNNING identities
+  catalog category (`catalog --tools`), never guessed. A media builtin
+  owns its **declared frame** before any artifact exists (the media
+  grammar above: declare → develop → deliver, same box throughout); a
+  file writer (`write` · `edit` — catalog truth, no phantom names)
+  lands its **receipt row** (`▤ name` · click opens · existence proven
+  by artifacts.ts); the network category **pulses** its glyph on the
+  running tool chip. Per-verb RUNNING identities
   carry the canonical `design/motion.yaml` names (`nika-motion-*` —
   one motion vocabulary across site · terminal · canvas; the
   tokens-parity belt guards the names).

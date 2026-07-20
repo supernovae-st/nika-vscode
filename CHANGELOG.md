@@ -6,6 +6,17 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The media show themselves: declare, develop, deliver
+
+- **Two catalog drifts fixed**: a `tts_generate` card developed an IMAGE frame (the audio set carried names the catalog never had: tts, speak, transcribe) and `edit` earned no write receipt while four phantom writers (append, copy, move, archive) did. The sets now speak catalog truth; a 28-builtin preview table pins every card's nature so a phantom name can never silently zero a frame again.
+- **The image slot becomes the card's body**: the declared frame grows from a 92px inset box to the full card width (constant 124px, edge to edge); the recorded artifact settles into the same box, image as body, with name and count in a quiet bottom overlay. Before the run, `image_generate` letterboxes a dashed ghost at the literally declared `aspect_ratio` or `size` (an interpolated value keeps the generic frame, a stated gap), wears the `n:` count as a corner chip and the provider as caption.
+- **tts speaks its nature**: a flat declarative bar strip (uniform by construction, since no audio level exists on the wire), an inert play mark, `voice · format` from the args, and `--:--`. The same develop sweep rides the run; the playable row replaces the strip at settle, same 30px box.
+- **image_fx declares its recipe**: the frame splits A|B, source name plus the `ops:` chain as chips on the left, the ghost where the AFTER lands on the right; at settle the artifact fills the B half and the recipe stays readable. The real input thumbnail is a named host-side v2.
+- **chart declares its form**: a house sketch of the declared `chart.type` (bar, line, area_band, scatter, heatmap) with `basename(out)` as caption; the deterministic SVG settles edge to edge.
+- **compose wears the check receipt**: a 30px introspection row, `draft → check`, joined by `→ verdict` at settle. compose statically checks a drafted workflow and never executes it; `invoke workflow:` doors are a different construct with their own peek (documented in DESIGN.md).
+- **Bytes gate with the culling**: every card image now rides `loading=lazy decoding=async`, so a hidden or culled card no longer decodes its pixels; declared frames are decorative and born `aria-hidden`; exports shed the new frames and freeze the sweep. One sweep class serves all three frame kinds, running-gated and reduced-motion opted out.
+- **The harness gains the media scene**: `?media=1` seeds a 31-node brand-studio fixture (every frame kind, the stated-gap cards included) with a scripted declare, develop, deliver timeline; `?grand` seeds the card dial; `?n` with `media` sprinkles media tools over the perf DAG. The fixture is held by the same contract belt as the README scene.
+
 ### The bends soften — one wire language, rounded rails
 
 - **The hard 90° elbows die**: every ELK corner now folds through one rounding pass (radius 14 · an `L` to the corner's approach, then a quadratic with its control AT the corner — the React Flow recipe). The bend clamps to half of each adjacent segment, so close consecutive corners degrade into an S-curve with zero overshoot and zero special cases. The lanes stay ELK's — aligned rails and ~90° crossings keep carrying the readability; only the hardness leaves.

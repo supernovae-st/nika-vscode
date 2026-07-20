@@ -294,3 +294,77 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
     expect(facts.get('a')?.forEachSource).toBeUndefined();
   });
 });
+
+const MEDIA_WF = `nika: v1
+workflow:
+  id: media_probe
+model: mock/echo
+tasks:
+  stylize:
+    invoke:
+      tool: "nika:image_fx"
+      args:
+        input: ./out/hero-1.png
+        ops:
+          - dither:
+              mode: bayer
+          - duotone:
+              dark: "#0a0f1e"
+              light: "#8db4ff"
+        out: ./out/hero-lofi.png
+  chartify:
+    invoke:
+      tool: "nika:chart"
+      args:
+        data: "\${{ stats.output }}"
+        chart:
+          type: bar
+          x: author
+        out: ./out/velocity.svg
+  chartlean:
+    invoke:
+      tool: "nika:chart"
+      args:
+        data: "\${{ stats.output }}"
+        out: ./out/velocity.svg
+        chart:
+          type: heatmap
+  plainlist:
+    invoke:
+      tool: "nika:prompt"
+      args:
+        message: pick one
+        choices:
+          - "yes"
+          - "no"
+`;
+
+describe('collectBodyFacts · media args (CI-2 — the recipe is the soul)', () => {
+  const facts = collectBodyFacts(MEDIA_WF);
+
+  it('an ops LIST serializes its op names as a chain pair', () => {
+    const a = facts.get('stylize')?.args ?? '';
+    expect(a).toContain('input: ./out/hero-1.png');
+    expect(a).toContain('ops: dither → duotone');
+  });
+
+  it('an empty MAP parent spends no pair — the shape fact survives ≤3', () => {
+    const a = facts.get('chartify')?.args ?? '';
+    // The freed slot is what lets `type: bar` through at all (the old
+    // `chart: ` pair would have eaten it); `out:` past the budget is a
+    // STATED gap (the frame skips its caption, never guesses one).
+    expect(a).toBe('data: ${{ stats.output }} · type: bar · x: author');
+  });
+
+  it('author order can carry all three soul facts (data · out · type)', () => {
+    expect(facts.get('chartlean')?.args).toBe(
+      'data: ${{ stats.output }} · out: ./out/velocity.svg · type: heatmap',
+    );
+  });
+
+  it('a plain string list is not a chain — no half-truth pair', () => {
+    const a = facts.get('plainlist')?.args ?? '';
+    expect(a).toContain('message: pick one');
+    expect(a).not.toContain('choices: yes');
+  });
+});
