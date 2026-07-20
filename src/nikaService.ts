@@ -159,6 +159,7 @@ export class NikaService {
     this.graphInFlight.clear();
     this.grammarValue = undefined;
     this.doctorFailsValue = undefined;
+    this.deepValue = undefined;
     if (!binaryPath) {
       this.capsValue = noCapabilities();
       this.changeEmitter.fire();
@@ -407,6 +408,33 @@ export class NikaService {
     return this.doctorFailsValue;
   }
 
+  private deepValue: WelcomeDeep | undefined;
+
+  /** Last successful `welcome --deep` aggregate — the status pill's
+   *  workspace rollups (findings · cost ceiling) read this cache;
+   *  whoever probes the deep (Station) fills it. */
+  get deep(): WelcomeDeep | undefined {
+    return this.deepValue;
+  }
+
+  private probeCount = 0;
+
+  /** True while a station sweep (doctor · welcome-deep) is in flight —
+   *  the status pill's `$(sync~spin)`. Transitions fire onDidChange. */
+  get probing(): boolean {
+    return this.probeCount > 0;
+  }
+
+  private probeStarted(): void {
+    this.probeCount += 1;
+    if (this.probeCount === 1) { this.changeEmitter.fire(); }
+  }
+
+  private probeEnded(): void {
+    this.probeCount = Math.max(0, this.probeCount - 1);
+    if (this.probeCount === 0) { this.changeEmitter.fire(); }
+  }
+
   /** Does THIS binary parse the refonte grammar? (D-V8 product probe —
    *  the Station says it honestly instead of letting doors crash.) */
   async speaksGrammar(): Promise<boolean | undefined> {
@@ -430,10 +458,20 @@ export class NikaService {
     const args = this.caps.welcome
       ? ['welcome', '--deep', '--json']
       : ['context', '--json'];
-    const res = await this.runCli(args, 20000, undefined, cwd);
+    this.probeStarted();
+    let res: CliResult;
+    try {
+      res = await this.runCli(args, 20000, undefined, cwd);
+    } finally {
+      this.probeEnded();
+    }
     if (res.code !== 0 || !res.stdout) { return { kind: 'no-output' }; }
     try {
       const deep = parseWelcomeDeep(JSON.parse(res.stdout));
+      if (deep) {
+        this.deepValue = deep;
+        this.changeEmitter.fire();
+      }
       return deep
         ? { kind: 'ok', value: deep }
         : { kind: 'unparseable', detail: 'shape mismatch (context_version envelope)' };
@@ -447,12 +485,23 @@ export class NikaService {
    *  stdout regardless. */
   async doctorJson(cwd?: string): Promise<Probe<DoctorReport>> {
     if (!this.caps.doctor) { return { kind: 'unsupported' }; }
-    const res = await this.runCli(['doctor', '--json'], 20000, undefined, cwd);
+    this.probeStarted();
+    let res: CliResult;
+    try {
+      res = await this.runCli(['doctor', '--json'], 20000, undefined, cwd);
+    } finally {
+      this.probeEnded();
+    }
     if (!res.stdout) { return { kind: 'no-output' }; }
     try {
       const report = parseDoctorReport(JSON.parse(res.stdout));
       if (!report) { return { kind: 'unparseable', detail: 'shape mismatch (summary/findings)' }; }
-      this.doctorFailsValue = report.summary.fail;
+      if (this.doctorFailsValue !== report.summary.fail) {
+        this.doctorFailsValue = report.summary.fail;
+        // The pill reads this cache on render — a changed fail count
+        // must reach it without waiting for the next binary event.
+        this.changeEmitter.fire();
+      }
       return { kind: 'ok', value: report };
     } catch (err) {
       return { kind: 'unparseable', detail: err instanceof Error ? err.message.slice(0, 120) : String(err) };

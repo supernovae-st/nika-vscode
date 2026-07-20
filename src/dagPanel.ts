@@ -182,10 +182,20 @@ export class DagPanel implements vscode.Disposable {
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
   private runState = false;
 
+  /** The honest tab pulse (annexe B #11): `▶ ` prefixes the title ONLY
+   *  while a live run drives the panel — immobile at rest, gone at the
+   *  terminal write. (WebviewPanel has no badge API — the title is the
+   *  one native slot a background tab shows.) */
+  private applyTitle(): void {
+    if (!this.panel) { return; }
+    this.panel.title = `${this.runState ? '▶ ' : ''}${DagPanel.titleFor(this.currentGraph)}`;
+  }
+
   /** Called by the live runner at spawn/close — flips the toolbar ▶/■. */
   public setRunState(running: boolean): void {
     this.runState = running;
     this.postMessage({ kind: 'run:state', running });
+    this.applyTitle();
   }
 
   /** Live-run heartbeat: `done` settled of `total` scheduled tasks. */
@@ -347,6 +357,9 @@ export class DagPanel implements vscode.Disposable {
       light: vscode.Uri.joinPath(this.extensionUri, 'icons', 'nika-light.svg'),
       dark: vscode.Uri.joinPath(this.extensionUri, 'icons', 'nika-dark.svg'),
     };
+    // Normalize the tab title (run pulse included) for fresh AND
+    // serializer-restored panels alike.
+    this.applyTitle();
 
     // Listener BEFORE html: the webview script posts dag:ready at the end
     // of its synchronous run — wiring after html assignment can lose it.
@@ -511,7 +524,7 @@ export class DagPanel implements vscode.Disposable {
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
-    if (this.panel) { this.panel.title = DagPanel.titleFor(graph); }
+    this.applyTitle();
     // A new graph orphans any queued timeline (the webview side also
     // deactivates its transport on dag:load) AND any queued artifact
     // delta — the fresh graph carries its own recorded artifacts.

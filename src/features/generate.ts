@@ -25,6 +25,7 @@ import {
   countReportFindings,
   parseCheckReport,
 } from '../core/cliContract';
+import { flashStatus } from './notify';
 import { generateWorkflow, type GenCheckOutcome, type GenResult } from '../core/generatePipeline';
 import { refinedIntent, slugifyIntent } from '../core/generateStaging';
 import { rankBm25, type RankDoc } from '../core/intentRank';
@@ -262,9 +263,9 @@ export function registerGenerate(
               language: 'nika',
             });
             await vscode.window.showTextDocument(doc, { preview: false });
-            void vscode.window.showInformationMessage(
-              `Nika: grounded prompt copied (no editor LM API here) — paste it into your AI chat. The \`${grounding.templateSlug}\` template is open as the starting point.`,
-            );
+            // Diet: copy confirmations flash — the opened template is
+            // the visible half of the answer.
+            flashStatus(`$(clippy) grounded prompt copied — paste it into your AI chat (the ${grounding.templateSlug} template is open)`, 6000);
             return;
           }
 
@@ -378,7 +379,8 @@ async function stageGeneratedWorkflow(
       await vscode.workspace.fs.writeFile(target, Buffer.from(doc.getText(), 'utf-8'));
       const saved = await vscode.workspace.openTextDocument(target);
       await vscode.window.showTextDocument(saved, { preview: false });
-      void vscode.window.showInformationMessage(`Nika: saved ${name}.nika.yaml — it flows into check + DAG now.`);
+      // Diet: the opened file is the answer — flash only.
+      flashStatus(`$(check) ${name}.nika.yaml saved — it flows into check + DAG now`);
       return;
     }
 

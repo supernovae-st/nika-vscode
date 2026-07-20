@@ -12,6 +12,7 @@ import {
   WorkspaceEdit,
   env,
   languages,
+  QuickInputButtons,
   QuickPickItemKind,
   Selection,
   TextEditorRevealType,
@@ -40,6 +41,7 @@ import { mergeVerbBand } from './core/verbColors';
 import {
   getArtifactName,
   downloadNikaBinary,
+  DownloadCancelled,
   GITHUB_RELEASES_URL,
   isBinaryWorking,
   findBundledBinary,
@@ -93,11 +95,20 @@ import {
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
 import { commandOnPath } from './core/pathLookup';
+import {
+  modelRows,
+  scaffoldContent,
+  starterModelOf,
+  starterRows,
+  totalStepsFor,
+  type StarterPick,
+} from './core/newWorkflowWizard';
 import { buildSessionPicks } from './core/sessionLauncher';
 import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
+import { flashStatus, informSoftly, initNotify } from './features/notify';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
 import { costDelta } from './core/costDelta';
@@ -362,6 +373,7 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 export function activate(context: ExtensionContext): void {
   extContext = context;
   initCommunityAsk(context);
+  initNotify(context);
   outputChannel = window.createOutputChannel('Nika');
   context.subscriptions.push(outputChannel);
   log('INFO', `Nika extension v${context.extension.packageJSON.version} activating`);
@@ -470,8 +482,11 @@ export function activate(context: ExtensionContext): void {
         }
       }
       void refreshJourney();
-      void window.showInformationMessage(
-        `Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}.`,
+      // Diet: a completed setup is visible in every surface it lit —
+      // the recap flashes, no toast survives it.
+      flashStatus(
+        `$(check) Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
+        6000,
       );
     }),
   );
@@ -488,7 +503,7 @@ export function activate(context: ExtensionContext): void {
       const vars = service.peekCheck(doc.uri.toString())?.report?.requirements?.vars_required ?? [];
       const line = `nika run ${rel}${vars.map((v) => ` --var ${v}=<value>`).join('')}`;
       await env.clipboard.writeText(line);
-      void window.showInformationMessage(`Nika: run command copied — ${line}`);
+      flashStatus(`$(clippy) run command copied — ${line}`);
     }),
   );
 
@@ -543,7 +558,17 @@ export function activate(context: ExtensionContext): void {
   void refreshJourney();
 
   const runsTree = new RunsTreeProvider();
-  context.subscriptions.push(window.registerTreeDataProvider('nikaRuns', runsTree));
+  // createTreeView (not registerTreeDataProvider) for the needs-you
+  // badge (annexe B #5): it counts ONLY paused runs — a red dot means
+  // « a run is blocked on you », never mere activity. `undefined`
+  // clears it.
+  const runsTreeView = window.createTreeView('nikaRuns', { treeDataProvider: runsTree });
+  runsTree.onScan = (paused) => {
+    runsTreeView.badge = paused > 0
+      ? { value: paused, tooltip: `${paused} run${paused === 1 ? '' : 's'} waiting on your answer` }
+      : undefined;
+  };
+  context.subscriptions.push(runsTreeView);
 
   // The Station — the cockpit tree (engine · doctor · agents ·
   // providers · workspace). Lane A pure: everything it shows comes
@@ -1404,14 +1429,20 @@ export function activate(context: ExtensionContext): void {
     });
   };
   // The pause NOTIFICATION — the question itself is the message; one
-  // button starts the answer flow (never a modal, never auto-answered).
+  // button starts the answer flow (never a modal, never auto-answered);
+  // « Show node » deep-links to the waiting card on the canvas
+  // (annexe B #5 — the needs-you toast lands you AT the ask).
   const onRunPaused = async (
     fsPath: string,
     paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string },
   ): Promise<void> => {
     const q = paused.message ?? `task \`${paused.task}\` awaits an answer`;
-    const choice = await window.showInformationMessage(`Nika paused — ${q}`, 'Answer…');
+    const choice = await window.showInformationMessage(`Nika paused — ${q}`, 'Answer…', 'Show node');
     if (choice === 'Answer…') { await answerPausedRun(fsPath, paused); }
+    if (choice === 'Show node') {
+      dagPanel.show();
+      dagPanel.focusNode(paused.task);
+    }
   };
 
   const refreshStaleBadges = (fsPath: string): void => {
@@ -1462,7 +1493,7 @@ export function activate(context: ExtensionContext): void {
           return;
         }
         if (!service.caps.run) {
-          void window.showInformationMessage('Nika: this binary predates `run` — update it to preview workflows.');
+          void informSoftly('binary-predates-run', 'Nika: this binary predates `run` — update it to preview workflows.');
           return;
         }
         if (doc.uri.scheme !== 'file') { return; }
@@ -1755,7 +1786,8 @@ export function activate(context: ExtensionContext): void {
     const doc = await requireNikaDocument(uriLike ?? dagWorkflowUri);
     if (!doc) { return; }
     if (!service.caps.resume) {
-      void window.showInformationMessage(
+      void informSoftly(
+        'binary-predates-resume',
         'Nika: this binary predates `run --resume` (the 0.93 line) — update it to re-run only what changed.',
       );
       return;
@@ -1764,7 +1796,9 @@ export function activate(context: ExtensionContext): void {
     if (doc.uri.scheme !== 'file') { return; }
     const trace = latestTraceFor(doc.uri.fsPath);
     if (!trace) {
-      void window.showInformationMessage('Nika: no recorded run to resume from — running the whole workflow.');
+      // Diet: narration of an automatic fallback — a flash, the run
+      // itself is the visible answer.
+      flashStatus('$(play) no recorded run to resume from — running the whole workflow');
       await commands.executeCommand('nika.runWorkflow', doc.uri);
       return;
     }
@@ -2050,7 +2084,7 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       if (!service.caps.run) {
-        void window.showInformationMessage('Nika: this binary predates `run` — update it to preview the execution plan.');
+        void informSoftly('binary-predates-run', 'Nika: this binary predates `run` — update it to preview the execution plan.');
         return;
       }
       if (doc.isDirty) { await doc.save(); }
@@ -2257,7 +2291,8 @@ export function activate(context: ExtensionContext): void {
       await editor.edit((b) => {
         b.replace(new Range(0, 0, doc.lineCount, 0), rewritten);
       });
-      void window.showInformationMessage('Nika: inferred permits boundary inserted — the workflow is now default-deny.');
+      // Diet: the inserted block is visible in the editor — flash only.
+      flashStatus('$(shield) inferred permits boundary inserted — the workflow is now default-deny');
     }),
   );
 
@@ -2428,7 +2463,101 @@ export function activate(context: ExtensionContext): void {
     }),
   );
 
-  // Command: New workflow — engine templates first, starter fallback.
+  // Command: New workflow — the multi-step wizard (annexe A #14 · the
+  // quickinput-sample pattern): (1/3) name → (2/3) starter (four verbs
+  // · engine templates · blank) → (3/3) model (mock/echo default ·
+  // locals first). Back walks the steps; rows derive pure
+  // (core/newWorkflowWizard).
+  const wizardName = (prior?: string): Promise<string | undefined> =>
+    new Promise((resolve) => {
+      const box = window.createInputBox();
+      box.title = 'New workflow (1/3)';
+      box.step = 1;
+      box.totalSteps = 3;
+      box.prompt = 'Workflow name (without extension)';
+      box.placeholder = 'my-workflow';
+      box.value = prior ?? '';
+      box.ignoreFocusOut = true;
+      const valid = (v: string): boolean => /^[a-z0-9-]+$/.test(v);
+      box.onDidChangeValue((v) => {
+        box.validationMessage = v.length === 0 || valid(v) ? undefined : 'Use lowercase letters, numbers, hyphens';
+      });
+      box.onDidAccept(() => {
+        if (!valid(box.value)) {
+          box.validationMessage = 'Use lowercase letters, numbers, hyphens';
+          return;
+        }
+        resolve(box.value);
+        box.hide();
+      });
+      box.onDidHide(() => { resolve(undefined); box.dispose(); });
+      box.show();
+    });
+
+  interface WizardStarterItem extends QuickPickItem { pick?: StarterPick }
+  const wizardStarter = (templates: string[]): Promise<StarterPick | 'back' | undefined> =>
+    new Promise((resolve) => {
+      const qp = window.createQuickPick<WizardStarterItem>();
+      qp.title = 'New workflow (2/3)';
+      qp.step = 2;
+      qp.totalSteps = 3;
+      qp.placeholder = 'a verb starter, an engine template, or the blank page';
+      qp.buttons = [QuickInputButtons.Back];
+      qp.ignoreFocusOut = true;
+      qp.items = starterRows(templates).map((r) =>
+        r.separator
+          ? ({ label: r.label, kind: QuickPickItemKind.Separator } as WizardStarterItem)
+          : { label: r.label, description: r.description, detail: r.detail, pick: r.pick });
+      qp.onDidTriggerButton((b) => {
+        if (b === QuickInputButtons.Back) { resolve('back'); qp.hide(); }
+      });
+      qp.onDidAccept(() => {
+        const pick = qp.selectedItems[0]?.pick;
+        if (pick) { resolve(pick); qp.hide(); }
+      });
+      qp.onDidHide(() => { resolve(undefined); qp.dispose(); });
+      qp.show();
+    });
+
+  interface WizardModelItem extends QuickPickItem { value?: string; custom?: boolean }
+  const wizardModel = (pick: StarterPick): Promise<string | 'back' | undefined> =>
+    new Promise((resolve) => {
+      const qp = window.createQuickPick<WizardModelItem>();
+      const current = starterModelOf(pick);
+      qp.title = 'New workflow (3/3)';
+      qp.step = 3;
+      qp.totalSteps = 3;
+      qp.placeholder = current ?? 'mock/echo — deterministic · zero keys (the default)';
+      qp.buttons = [QuickInputButtons.Back];
+      qp.ignoreFocusOut = true;
+      qp.items = modelRows(service.catalogModels, current).map((r) =>
+        r.separator
+          ? ({ label: r.label, kind: QuickPickItemKind.Separator } as WizardModelItem)
+          : { label: r.label, description: r.description, detail: r.detail, value: r.value, custom: r.custom });
+      qp.onDidTriggerButton((b) => {
+        if (b === QuickInputButtons.Back) { resolve('back'); qp.hide(); }
+      });
+      qp.onDidAccept(() => {
+        const sel = qp.selectedItems[0];
+        if (!sel) { return; }
+        if (sel.custom === true) {
+          qp.hide();
+          void window.showInputBox({
+            title: 'New workflow (3/3) — custom model',
+            prompt: 'provider/model — resolved by the engine at run time',
+            placeHolder: 'ollama/llama3.2',
+            ignoreFocusOut: true,
+            validateInput: (v) =>
+              /^[a-z0-9_-]+\/[A-Za-z0-9._:-]+$/.test(v.trim()) ? null : 'expected provider/model (e.g. ollama/llama3.2)',
+          }).then((typed) => { resolve(typed?.trim() || undefined); });
+          return;
+        }
+        if (sel.value !== undefined) { resolve(sel.value); qp.hide(); }
+      });
+      qp.onDidHide(() => { resolve(undefined); qp.dispose(); });
+      qp.show();
+    });
+
   context.subscriptions.push(
     commands.registerCommand('nika.newWorkflow', async () => {
       const folder = workspace.workspaceFolders?.[0];
@@ -2436,14 +2565,37 @@ export function activate(context: ExtensionContext): void {
         window.showErrorMessage('Nika: open a folder first.');
         return;
       }
-      const name = await window.showInputBox({
-        prompt: 'Workflow name (without extension)',
-        placeHolder: 'my-workflow',
-        validateInput: (v) => /^[a-z0-9-]+$/.test(v) ? null : 'Use lowercase letters, numbers, hyphens',
-      });
-      if (!name) { return; }
-      const filePath = Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      const templates = await service.templatesList();
 
+      // The step loop — Back re-enters the prior step with its value.
+      let name: string | undefined;
+      let starterPick: StarterPick | undefined;
+      let model: string | undefined;
+      let step: 1 | 2 | 3 | 'done' | 'cancel' = 1;
+      while (step !== 'done' && step !== 'cancel') {
+        if (step === 1) {
+          name = await wizardName(name);
+          step = name === undefined ? 'cancel' : 2;
+        } else if (step === 2) {
+          const picked = await wizardStarter(templates);
+          if (picked === undefined) { step = 'cancel'; }
+          else if (picked === 'back') { step = 1; }
+          else {
+            starterPick = picked;
+            // Engine templates write their own file (models live inside)
+            // — their path honestly has no model step.
+            step = totalStepsFor(picked) === 2 ? 'done' : 3;
+          }
+        } else {
+          const picked = await wizardModel(starterPick as StarterPick);
+          if (picked === undefined) { step = 'cancel'; }
+          else if (picked === 'back') { step = 2; }
+          else { model = picked; step = 'done'; }
+        }
+      }
+      if (step === 'cancel' || name === undefined || starterPick === undefined) { return; }
+
+      const filePath = Uri.joinPath(folder.uri, `${name}.nika.yaml`);
       // Never silently clobber an existing workflow (a raw fs.writeFile
       // has no undo) — typing an existing name must be an explicit choice.
       try {
@@ -2458,27 +2610,21 @@ export function activate(context: ExtensionContext): void {
         // stat threw → the file doesn't exist → free to create.
       }
 
-      const templates = await service.templatesList();
-      if (templates.length > 0) {
-        const picked = await window.showQuickPick(
-          [...templates.map((t) => ({ label: t, description: 'embedded engine template' })),
-           { label: '$(pencil) blank starter', description: 'minimal envelope · mock/echo' }],
-          { title: 'Nika: new workflow from template' },
-        );
-        if (!picked) { return; }
-        if (!picked.label.includes('blank starter')) {
-          const res = await service.newFromTemplate(picked.label, filePath.fsPath);
-          if (res.code === 0) {
-            const doc = await workspace.openTextDocument(filePath);
-            await window.showTextDocument(doc);
-            return;
-          }
-          log('WARN', `nika new failed (${res.code}): ${res.stderr || res.stdout}`);
+      if (starterPick.kind === 'template') {
+        const res = await service.newFromTemplate(starterPick.slug, filePath.fsPath);
+        if (res.code === 0) {
+          const doc = await workspace.openTextDocument(filePath);
+          await window.showTextDocument(doc);
+          return;
         }
+        // The engine could not write it — fall to the blank page rather
+        // than a dead end (same fallback the pre-wizard flow had).
+        log('WARN', `nika new failed (${res.code}): ${res.stderr || res.stdout}`);
+        starterPick = { kind: 'blank' };
       }
 
       const content = Buffer.from(
-        `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n\n  # curriculum: uncomment this task and run again — it fails ON\n  # PURPOSE (offline, zero keys). The red teaches: the card carries\n  # the code, clicking it explains, ⑂ forks from the failure.\n  # break_me:\n  #   with:\n  #     got: \${{ tasks.start.output }}\n  #   invoke:\n  #     tool: nika:assert\n  #     args:\n  #       condition: \${{ with.got == "impossible" }}\n  #       message: "the scripted failure — read the red, then click the code"\n`,
+        scaffoldContent(name, starterPick, model ?? 'mock/echo'),
         'utf-8',
       );
       await workspace.fs.writeFile(filePath, content);
@@ -2879,9 +3025,8 @@ export function activate(context: ExtensionContext): void {
       const target = Uri.joinPath(root, BASELINE_REL_PATH);
       await workspace.fs.writeFile(target, Buffer.from(`${JSON.stringify(baseline, null, 1)}\n`, 'utf-8'));
       const total = Object.values(baseline.counts).reduce((a, b) => a + b, 0);
-      void window.showInformationMessage(
-        `Nika: baseline captured — ${total} finding(s) grandfathered across ${perFile.size} file(s). New findings stay loud.`,
-      );
+      // Diet: the written baseline file is the durable answer — flash.
+      flashStatus(`$(check) baseline captured — ${total} finding(s) grandfathered across ${perFile.size} file(s); new findings stay loud`, 6000);
     }),
   );
 
@@ -2905,7 +3050,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.copyAiPrompt', async () => {
       const doc = activeNikaDocument();
       await env.clipboard.writeText(buildAuthoringPrompt(doc ? workspace.asRelativePath(doc.uri) : undefined));
-      void window.showInformationMessage('Nika: AI authoring protocol copied — paste it into any agent.');
+      flashStatus('$(clippy) AI authoring protocol copied — paste it into any agent');
     }),
   );
 
@@ -2914,7 +3059,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.checkBinary', async () => {
       const p = state.resolvedServerPath ?? getNikaPath();
       if (p && (await isBinaryWorking(p))) {
-        window.showInformationMessage(`Nika: binary OK · ${p} · ${service.caps.version}`);
+        flashStatus(`$(check) nika binary OK · ${p} · ${service.caps.version}`, 6000);
       } else {
         window.showWarningMessage(
           'Nika: binary not found — install it or let the extension download it.',
@@ -2951,7 +3096,7 @@ export function activate(context: ExtensionContext): void {
           return;
         }
       } else {
-        window.showInformationMessage('Nika: this binary has no `init`; wiring MCP only.');
+        void informSoftly('binary-predates-init', 'Nika: this binary has no `init`; wiring MCP only.');
       }
       // The engine's own idempotent writer is canonical when present
       // (registry SSOT, covers cursor·vscode·windsurf·claude·codex) —
@@ -2969,7 +3114,7 @@ export function activate(context: ExtensionContext): void {
             const t2 = extra.endsWith('codex') ? 'codex' : 'claude';
             const r2 = await service.runCli(['wire', t2, '--dir', folder.uri.fsPath], 30000);
             if (r2.code === 0) {
-              window.showInformationMessage(`Nika: ${t2} wired — its agent now calls the same oracle.`);
+              flashStatus(`$(plug) ${t2} wired — its agent now calls the same oracle`);
             } else {
               log('WARN', `nika wire ${t2} failed (${r2.code}): ${r2.stderr || r2.stdout}`);
               window.showWarningMessage(`Nika: wire ${t2} failed — see the output channel.`);
@@ -3045,9 +3190,9 @@ export function activate(context: ExtensionContext): void {
       void state.pushWelcomeData?.();
       if (service.caps.lsp) {
         startClient(context, state, log, state.resolvedServerPath);
-        window.showInformationMessage('Nika: language server restarted.');
+        flashStatus('$(check) language server restarted');
       } else {
-        window.showInformationMessage('Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
+        void informSoftly('binary-predates-lsp', 'Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
       }
     }),
   );
@@ -3188,10 +3333,13 @@ async function equipHost(silent = false): Promise<boolean> {
       : '';
     if (isCursor()) {
       void extContext.globalState.update('nika.cursorPluginNudgeShown', true);
+      // Diet exception (reason): the Cursor plugin pointer names a move
+      // this extension cannot make itself — worth one toast, once ever.
+      void informSoftly('cursor-live-plugin', `Nika is live — MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`);
+    } else {
+      // Diet: the pill + views already show the lit state — flash only.
+      flashStatus('$(check) Nika is live — MCP wired · language server on · diagnostics running', 6000);
     }
-    void window.showInformationMessage(
-      `Nika is live — MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`,
-    );
   }
   return wired;
 }
@@ -3218,17 +3366,17 @@ async function configureMcpForHost(
     await ensureCursorMcpConfig(resolvedServerPath, log);
     await ensureCursorRules(log, providers);
     if (notify) {
-      window.showInformationMessage('Nika: MCP + .cursor/rules wired for Cursor.');
+      flashStatus('$(plug) MCP + .cursor/rules wired for Cursor');
     }
   } else if (isWindsurf()) {
     await ensureWindsurfMcpConfig(resolvedServerPath, log);
     if (notify) {
-      window.showInformationMessage('Nika: MCP config wired for Windsurf.');
+      flashStatus('$(plug) MCP config wired for Windsurf');
     }
   } else {
     await ensureVscodeMcpConfig(resolvedServerPath, log);
     if (notify) {
-      window.showInformationMessage('Nika: MCP config wired (.vscode/mcp.json).');
+      flashStatus('$(plug) MCP config wired (.vscode/mcp.json)');
     }
   }
   // The PATH gap, CLOSED instead of warned (first-run intelligence):
@@ -3243,7 +3391,7 @@ async function configureMcpForHost(
   if (resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && isCursor()) {
     await ensureCursorGlobalMcpConfig(resolvedServerPath, log);
     if (notify) {
-      window.showInformationMessage('Nika: `nika` is not on PATH — the machine-scoped ~/.cursor/mcp.json now points at the downloaded binary.');
+      void informSoftly('cursor-global-mcp-path', 'Nika: `nika` is not on PATH — the machine-scoped ~/.cursor/mcp.json now points at the downloaded binary.');
     }
   } else if (notify && resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && !isWindsurf()) {
     window.showWarningMessage(
@@ -3355,21 +3503,29 @@ async function resolveBinary(context: ExtensionContext, explicit = false): Promi
       return downloaded;
     }
   } catch (err) {
+    if (err instanceof DownloadCancelled) {
+      // A user's Stop is a decision, not a failure — flash, keep doors.
+      flashStatus('$(circle-slash) download cancelled — the status bar keeps the install door');
+      return undefined;
+    }
     const message = err instanceof Error ? err.message : String(err);
     log('WARN', `Download failed: ${message}`);
     // The click MUST answer (operator live 2026-07-12: a silent catch
     // read as « the button does nothing ») — name the failure, hand the
-    // two exits.
+    // two exits; Details opens the output channel (the deep story).
     void window.showErrorMessage(
       `Nika download failed: ${message}`,
       'Copy brew command',
       'Open releases',
+      'Details',
     ).then((pick) => {
       if (pick === 'Copy brew command') {
         void env.clipboard.writeText('brew install supernovae-st/tap/nika');
-        void window.showInformationMessage('Nika: brew command copied — run it in a terminal, then click the status bar → Install/detect.');
+        flashStatus('$(clippy) brew command copied — run it in a terminal, then Install / detect from the status bar', 6000);
       } else if (pick === 'Open releases') {
         void env.openExternal(Uri.parse(GITHUB_RELEASES_URL));
+      } else if (pick === 'Details') {
+        void commands.executeCommand('nika.showOutput');
       }
     });
   }

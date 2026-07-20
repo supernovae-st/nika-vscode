@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { journeyPlaceholder } from '../core/journey';
 import { describeCapabilities } from '../core/capabilities';
 import { statusTruth, type Truth } from '../core/statusTruth';
+import { isRunActive, onDidChangeRunActive } from './runLive';
 import type { NikaService } from '../nikaService';
 
 export class NikaStatusBar implements vscode.Disposable {
@@ -28,6 +29,9 @@ export class NikaStatusBar implements vscode.Disposable {
     this.disposables.push(
       this.item,
       service.onDidChange(() => this.render()),
+      // The spin follows the live-run lifecycle (annexe A #10) — one
+      // event, no handle threading through the run call sites.
+      onDidChangeRunActive(() => this.render()),
       vscode.window.onDidChangeActiveTextEditor(() => this.render()),
     );
     this.render();
@@ -42,6 +46,7 @@ export class NikaStatusBar implements vscode.Disposable {
    *  read the SAME truth, so the pill never contradicts its head row. */
   private truth(): Truth {
     const caps = this.service.caps;
+    const deep = this.service.deep;
     return statusTruth({
       available: this.service.available,
       version: caps.version.match(/(\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?)/)?.[1] ?? caps.version,
@@ -50,6 +55,13 @@ export class NikaStatusBar implements vscode.Disposable {
       runCapable: caps.run,
       gen1: this.service.gen1,
       doctorFails: this.service.doctorFails,
+      busy: isRunActive() || this.service.probing,
+      ...(deep ? {
+        workflowsTotal: deep.rollups.workflowsTotal,
+        workflowsWithFindings: deep.rollups.workflowsWithFindings,
+        costBoundedUsd: deep.rollups.costBoundedUsd,
+        costIsFloor: deep.rollups.costIsFloor,
+      } : {}),
     });
   }
 
@@ -73,17 +85,25 @@ export class NikaStatusBar implements vscode.Disposable {
         if (v !== undefined) { this.render(); }
       });
     }
+    const busyLine = isRunActive()
+      ? '$(sync~spin) a run is live — the canvas narrates it'
+      : this.service.probing
+        ? '$(sync~spin) station sweep in flight (doctor · welcome)'
+        : undefined;
     this.item.tooltip = new vscode.MarkdownString(
       [
         `**nika** \`${this.service.binaryPath ?? ''}\``,
         '',
+        busyLine,
         ...truth.tooltip.map((line) => `⚠ ${line}`),
-        truth.tooltip.length > 0 ? '' : undefined,
+        ...truth.facts,
+        busyLine !== undefined || truth.tooltip.length > 0 || truth.facts.length > 0 ? '' : undefined,
         `surface: ${describeCapabilities(caps)}`,
         caps.lsp ? `LSP: ${this.lspState}` : 'LSP: unavailable from this binary; client-side intelligence active',
         '',
         '_click for the command menu_',
       ].filter((line): line is string => line !== undefined).join('  \n'),
+      true, // theme icons — the busy line spins in the tooltip too
     );
   }
 

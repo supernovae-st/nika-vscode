@@ -648,12 +648,14 @@
         "nika.server.path": {
           "type": "string",
           "default": "nika",
-          "description": "Path to the nika binary. Uses PATH by default."
+          "order": 10,
+          "markdownDescription": "Path to the nika binary. `nika` means: resolve from PATH. Point this at a dev build and every surface (check · graph · runs · LSP) speaks through that binary instead."
         },
         "nika.server.autoDownload": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically download the nika binary from GitHub releases if not found in PATH."
+          "order": 11,
+          "markdownDescription": "When no binary resolves from `#nika.server.path#`, offer a verified download from GitHub releases (HTTPS · SHA-256 checked · explicit consent first). Off: the status bar and welcome views keep the install affordance, nothing is fetched."
         },
         "nika.server.extraArgs": {
           "type": "array",
@@ -661,22 +663,26 @@
             "type": "string"
           },
           "default": [],
-          "description": "Extra arguments passed to the nika lsp command."
+          "order": 12,
+          "markdownDescription": "Extra arguments appended to the `nika lsp` launch. Wrong flags stop the server from starting — the status pill will say so."
         },
         "nika.inlayHints.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show inlay hints (timeout annotations, model costs, binding labels)."
+          "order": 21,
+          "markdownDescription": "Inline ghost annotations at line ends (timeout, model cost, binding labels). Off: the facts stay in hovers and the canvas only."
         },
         "nika.codeLens.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show code lens actions (Run, Validate, task count, last run status)."
+          "order": 22,
+          "markdownDescription": "Actionable lenses above tasks (Run · Validate · task count · last run status). Off: the same verbs stay reachable from the palette and the status menu."
         },
         "nika.nudge.firstCleanCheck": {
           "type": "boolean",
           "default": true,
-          "description": "Once per workspace, when a workflow first checks clean, suggest the next step (run it — mock/echo needs no key)."
+          "order": 70,
+          "markdownDescription": "Once per workspace, when a workflow first checks clean, suggest the next step (run it — mock/echo needs no key). Off: no suggestion; the verdict still lands in the Problems panel."
         },
         "nika.trace.server": {
           "type": "string",
@@ -685,13 +691,20 @@
             "messages",
             "verbose"
           ],
+          "enumDescriptions": [
+            "No protocol logging (the default)",
+            "One line per LSP request/response — enough to see what fired",
+            "Full message payloads — heavy, for deep protocol debugging"
+          ],
           "default": "off",
-          "description": "Trace communication between VS Code and the Nika language server."
+          "order": 71,
+          "markdownDescription": "Trace communication between VS Code and the Nika language server into the output channel. Anything above `off` grows the log fast — turn on to diagnose, back off after."
         },
         "nika.intel.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Client-side template intelligence inside ${{ ... }} islands (completions, hover, go-to-definition for tasks/with/env/secrets/vars refs)."
+          "order": 20,
+          "markdownDescription": "Client-side template intelligence inside `${{ … }}` islands — completions, hover, go-to-definition for tasks/with/env/secrets/vars refs. Off: those islands go quiet (engine diagnostics keep working)."
         },
         "nika.diagnostics.runOn": {
           "type": "string",
@@ -700,13 +713,20 @@
             "save",
             "off"
           ],
+          "enumDescriptions": [
+            "After each edit, debounced — findings track your typing (a check spawn per pause)",
+            "Only when the file is saved — quieter machine, staler squiggles between saves",
+            "Never — no squiggles, no quick fixes; `nika check` in a terminal stays the oracle"
+          ],
           "default": "type",
-          "description": "When to run `nika check --json` for editor diagnostics (client path, used until the LSP ships). 'type' is debounced."
+          "order": 30,
+          "markdownDescription": "When to run `nika check --json` for editor diagnostics. Squiggles appear later (or never) as you move down the ladder; quick fixes ride the diagnostics, so `off` parks them too."
         },
         "nika.diagnostics.workspace": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Lint CLOSED `*.nika.yaml` files across the workspace (`nika check --json`) so every workflow shows in the Problems panel. Capped at 300 files per sweep (logged when hit); open files stay with the live controller."
+          "order": 31,
+          "markdownDescription": "Lint CLOSED `*.nika.yaml` files across the workspace (`nika check --json`) so every workflow shows in the Problems panel. Capped at 300 files per sweep (logged when hit); open files stay with the live controller. Off: only open files report."
         },
         "nika.diagnostics.severity": {
           "type": "object",
@@ -721,40 +741,47 @@
             ]
           },
           "default": {},
+          "order": 32,
           "markdownDescription": "Remap finding severity per code — exact (`NIKA-DAG-003`), glob family (`NIKA-SEC-*`), or client lints (`nika.literal-secret` · `nika.redundant-dep` · `nika.unused-schema`). Exact keys win over globs; `off` hides the squiggle (quick fixes stay available)."
         },
         "nika.secretsLint.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Warn on literal credentials pasted in workflow YAML (pure local scan) with a ${{ env.VAR }} quick fix."
+          "order": 33,
+          "markdownDescription": "Warn on literal credentials pasted in workflow YAML (pure local scan) with a `${{ env.VAR }}` quick fix. Off: pasted keys sit unflagged until review."
         },
         "nika.traces.keep": {
           "type": "number",
           "default": 200,
           "minimum": 0,
-          "description": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). The newest always survive."
+          "order": 42,
+          "markdownDescription": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). Above the cap, oldest journals are deleted after each run — paused journals and the active resume target always survive."
         },
         "nika.traces.glob": {
           "type": "string",
           "default": "**/.nika/traces/*.ndjson",
-          "description": "Where the Runs view looks for flight-recorder traces."
+          "order": 43,
+          "markdownDescription": "Where the Runs view (and the xray ghosts, see `#nika.editor.xray#`) look for flight-recorder traces. Narrow it to skip vendored trees; a glob that misses `.nika/traces` empties the Runs view."
         },
         "nika.traces.live": {
           "type": "boolean",
           "default": true,
-          "description": "Live-overlay a growing trace onto the open DAG panel while an engine writes a run (statuses update in real time)."
+          "order": 41,
+          "markdownDescription": "Live-overlay a growing trace onto the open DAG panel while an engine writes a run — a run launched in ANY terminal animates the graph. Off: the canvas repaints only when you replay (see `#nika.replay.speed#`)."
         },
         "nika.run.liveDag": {
           "type": "boolean",
           "default": true,
-          "description": "Run workflows by streaming `nika run --json` into the DAG panel live (statuses paint in real time). Off = run in a terminal for raw output."
+          "order": 40,
+          "markdownDescription": "Run workflows by streaming `nika run --json` into the DAG panel live (statuses paint in real time). Off: runs open a terminal for raw engine output instead."
         },
         "nika.replay.speed": {
           "type": "number",
           "default": 6,
           "minimum": 1,
           "maximum": 100,
-          "description": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default). 1 = real time; playback keeps its own floor and ceiling so every run stays watchable."
+          "order": 44,
+          "markdownDescription": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default). 1 = real time; playback keeps its own floor and ceiling so every run stays watchable."
         },
         "nika.dag.theme": {
           "type": "string",
@@ -771,52 +798,62 @@
             "Auto — the brand skin on dark themes, the adaptive skin on light themes"
           ],
           "default": "nika",
+          "order": 50,
           "description": "Visual skin of the DAG panel. High-contrast themes and forced colors always win over every skin."
         },
         "nika.dag.followActiveEditor": {
           "type": "boolean",
           "default": true,
-          "description": "The open DAG panel re-targets when you switch to another .nika.yaml (debounced)."
+          "order": 51,
+          "markdownDescription": "The open DAG panel re-targets when you switch to another `.nika.yaml` (debounced). Off: the panel stays on the workflow it was opened for until you ask again."
         },
         "nika.editor.xray": {
           "type": "boolean",
           "default": true,
-          "description": "Ghost values: inlay hints show what each ${{ tasks.x… }} ref resolved to in the last matching recorded run."
+          "order": 23,
+          "markdownDescription": "Ghost values: inlay hints show what each `${{ tasks.x… }}` ref resolved to in the last matching recorded run. Needs a trace on disk (see `#nika.traces.glob#`) — no run, no ghosts."
         },
         "nika.editor.runHighlight": {
           "type": "boolean",
           "default": true,
-          "description": "Light the YAML spans of RUNNING tasks while a run or replay is at them — the source is the timeline."
+          "order": 45,
+          "markdownDescription": "Light the YAML spans of RUNNING tasks while a run or replay is at them — the source is the timeline. Off: the editor sits still during runs."
         },
         "nika.dag.cursorSync": {
           "type": "boolean",
           "default": true,
-          "description": "Soft halo in the DAG on the task your editor caret is in (same workflow · panel visible)."
+          "order": 52,
+          "markdownDescription": "Soft halo in the DAG on the task your editor caret is in (same workflow · panel visible). Off: caret moves leave the canvas untouched."
         },
         "nika.decorations.verbDots": {
           "type": "boolean",
           "default": true,
-          "description": "Verb-tinted gutter dots on each task line — the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet)."
+          "order": 24,
+          "markdownDescription": "Verb-tinted gutter dots on each task line — the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet). Off: the gutter is the theme’s alone."
         },
         "nika.editor.runDecorations": {
           "type": "boolean",
           "default": true,
-          "description": "End-of-line run badges per task after a run (✓ duration · cost — failed in red): the run lives in the editor."
+          "order": 25,
+          "markdownDescription": "End-of-line run badges per task after a run (✓ duration · cost — failed in red): the run lives in the editor. Off: verdicts stay in the Runs view and the canvas."
         },
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle."
+          "order": 60,
+          "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind — no oracle access."
         },
         "nika.autoSetup": {
           "type": "boolean",
           "default": true,
-          "description": "On first activation with the binary present, wire MCP for this host automatically (nika wire is idempotent). Turn off for manual setup via 'Nika: Setup MCP'."
+          "order": 13,
+          "markdownDescription": "On first activation with the binary present, wire MCP for this host automatically (`nika wire` is idempotent). Off: nothing is written until you run `Nika: Setup MCP + Agent Rules` yourself."
         },
         "nika.explorerBadge": {
           "type": "boolean",
           "default": true,
-          "description": "Show the 🦋 badge on *.nika.yaml files in the Explorer (icon themes own the file icon slot; the badge adds nika identity without replacing your theme)."
+          "order": 26,
+          "markdownDescription": "Show the 🦋 badge on `*.nika.yaml` files in the Explorer. Icon themes own the file icon slot; the badge adds nika identity without replacing your theme. Off: files carry the theme icon alone."
         }
       }
     },
@@ -1340,7 +1377,7 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'noBinary'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet — every surface below waits on it.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation) — both sovereign, no account."
       },
       {
         "view": "nikaWorkflows",
@@ -1349,7 +1386,17 @@
       },
       {
         "view": "nikaWorkflows",
-        "when": "nika.journey != 'noBinary' && nika.journey != 'unequipped'",
+        "when": "nika.journey == 'empty' && workspaceFolderCount == 0",
+        "contents": "No folder is open — workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The embedded examples read without one: [browse examples](command:nika.browseExamples)."
+      },
+      {
+        "view": "nikaWorkflows",
+        "when": "nika.journey == 'empty' && workspaceFolderCount != 0",
+        "contents": "No workflows here yet — this folder carries no `.nika.yaml` file.\n[Create Workflow](command:nika.newWorkflow)\nThe wizard walks name · starter · model — runnable offline with mock/echo, zero keys."
+      },
+      {
+        "view": "nikaWorkflows",
+        "when": "nika.journey == 'working'",
         "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[🚀 Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
