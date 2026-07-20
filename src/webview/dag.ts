@@ -46,6 +46,13 @@ const MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)');
 let REDUCED_MOTION = MOTION_QUERY.matches;
 MOTION_QUERY.addEventListener('change', (e) => { REDUCED_MOTION = e.matches; });
 
+// An unseen canvas spends nothing (annexe L taste 5): CSS animations keep
+// running when the document hides — this attribute is their park brake
+// (dag.css pauses every continuous run animation under it).
+const syncHiddenBrake = () => { document.body.toggleAttribute('data-nk-hidden', document.hidden); };
+document.addEventListener('visibilitychange', syncHiddenBrake);
+syncHiddenBrake();
+
 // d3-zoom's programmatic methods are typed against a Selection; calling
 // them on a Transition is the documented pattern but needs a variance-
 // erasing cast — the ONE sanctioned `any` in this bundle.
@@ -1122,7 +1129,37 @@ function nodeClassOf(node: DagNode): string {
     + (node.cached ? ' is-cached' : '')
     + (node.recoveredFrom !== undefined ? ' is-recovered' : '')
     + (node.auditCount ? ` has-audit audit-${node.auditWorst ?? 'error'}` : '')
-    + (node.deadGate ? ' dead-gate' : '');
+    + (node.deadGate ? ' dead-gate' : '')
+    // A parked question is WAITING, not working — the strip's frame
+    // holds while the human thinks (motion = state).
+    + (node.pausedQuestion ? ' is-asking' : '');
+}
+
+// ─── Run spectacle · spinner strips (annexe L · cli-spinners canon) ─────────
+// Frame families VERBATIM from cli-spinners spinners.json (the primary
+// source): `dots` carries the dots2 frames 8f@80ms — the judge preferred
+// the full-weight braille on the dark skins at the pixel (the sparse
+// canon set all but vanished at 1x; annexe L #2 sanctions the swap) ·
+// `dotsCircle` 8f@80ms — the ∴ thinking sense, two orbital particles ·
+// `point` 5f@125ms — tokens live, the pulse walks the stream. Frames are
+// MOTION, never sense glyphs (the annexe G registry law is untouched).
+// Each family is a vertical filmstrip (one frame per line) that dag.css
+// windows to a single line and advances with steps() — sketch A.
+const SPIN_STRIPS = {
+  dots: '⣾\n⣽\n⣻\n⢿\n⡿\n⣟\n⣯\n⣷',
+  think: '⢎ \n⠎⠁\n⠊⠑\n⠈⠱\n ⡱\n⢀⡰\n⢄⡠\n⢆⡀',
+  stream: '∙∙∙\n●∙∙\n∙●∙\n∙∙●\n∙∙∙',
+} as const;
+type SpinFamily = keyof typeof SPIN_STRIPS;
+
+/** The wire decides the family: observed stream chunks outrank the
+ *  declared thinking sense; retrying keeps plain dots (the amber tint is
+ *  already that state's voice — its ↻×n counter rides the sub line). */
+function spinFamilyOf(node: DagNode): SpinFamily {
+  if (node.status === 'retrying') { return 'dots'; }
+  if ((node.chunks ?? 0) > 0) { return 'stream'; }
+  if (node.verb === 'infer' && node.thinkingBudget !== undefined) { return 'think'; }
+  return 'dots';
 }
 
 function verbIcon(verb: string): string {
@@ -1851,6 +1888,9 @@ class DagRenderer {
         this.currentTy = event.transform.y;
         this.updateMinimapViewport();
         this.updateZoomChrome();
+        // The camera reframes which live strips are IN VIEW — the
+        // density cap follows (rAF-coalesced · annexe L taste 3).
+        this.scheduleSpinDensity();
         this.rootGroup.attr('transform', event.transform.toString());
         this.saveState({
           zoom: event.transform.k,
@@ -3627,14 +3667,8 @@ class DagRenderer {
       .style('animation-delay', (d) => `${(this.waveOf.get(d.id) ?? 0) * 70}ms`)
       .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
-    // Running spinner — a thin ring orbiting the status DOT (the dot is
-    // flex-pinned to the head's right edge, so its center is fixed).
-    enter
-      .append('circle')
-      .attr('class', 'node-spinner')
-      .attr('cx', NODE_WIDTH - 15.5)
-      .attr('cy', CARD_PAD_Y + HEAD_H / 2)
-      .attr('r', 7);
+    // (The old SVG spinner ring that orbited the dot died here — the
+    // braille strip in the head's status slot is THE live indicator now.)
 
     // Ports — the visible connect affordance (drag out-port → card).
     // The IN jack speaks the port grammar: it wears the data hue when
@@ -3763,6 +3797,10 @@ class DagRenderer {
     // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => nodeClassOf(d));
     merged.select('.nc-sub-v').text((d) => this.subValue(d));
+    merged.each((d, i, els) => {
+      const nc = (els[i] as SVGGElement).querySelector<HTMLElement>('.nc');
+      if (nc) { this.paintSpin(nc, d); }
+    });
     // The TRUE box follows the display register (Shift+V toggles change
     // nodeHeightOf) — an existing card's frame must resize on update,
     // not only on enter (the display-props probe caught bgH frozen).
@@ -4073,13 +4111,26 @@ class DagRenderer {
     const badge = document.createElement('span');
     badge.className = 'nc-badge';
     badge.textContent = this.badgeText(node);
-    // The status DOT (Well grammar · DESIGN.md §1) — resting gray ·
-    // running verb-pulse · success green · failed red. Class-driven by
-    // the group's status-* class; readable where text is not.
+    // The status SLOT (Well grammar · DESIGN.md §1) — a fixed window at
+    // the head's right edge: the DOT at rest (resting gray · success
+    // green · failed red — readable where text is not), the braille
+    // STRIP while alive (annexe L — ONE indicator per card; the slot
+    // width never changes, so a run never reflows the head).
+    const st = document.createElement('span');
+    st.className = 'nc-st';
     const dot = document.createElement('span');
     dot.className = 'nc-dot';
-    header.append(glyph, id, auditChip, staleChip, badge, dot);
+    const spin = document.createElement('span');
+    spin.className = 'nc-spin';
+    spin.setAttribute('aria-hidden', 'true');
+    // The wake — ignition cascades along the topological waves (annexe L
+    // choreography 5 · 50ms/wave, capped: deep DAGs stay prompt).
+    spin.style.setProperty('--nk-wake', `${Math.min(this.waveOf.get(node.id) ?? 0, 8) * 50}ms`);
+    spin.appendChild(document.createElement('i'));
+    st.append(dot, spin);
+    header.append(glyph, id, auditChip, staleChip, badge, st);
     host.appendChild(header);
+    this.paintSpin(host, node);
 
     // Full-bleed hairline between the identity zone and the fact zone.
     const divider = document.createElement('div');
@@ -5231,6 +5282,10 @@ class DagRenderer {
     this.reapplySim();
     this.reapplyAuditMarks();
     el.select('.nc-sub-v').text(this.subValue(node));
+    // The spectacle rides the same paint: family (dots · think · stream)
+    // re-derived from the wire facts just assigned, phase re-locked.
+    const ncHost = el.select<HTMLElement>('.nc').node();
+    if (ncHost) { this.paintSpin(ncHost, node); }
 
     // The recorded output lands ON the card once the task settles ✓ —
     // the run shows its data where the prompt was; any other state
@@ -5452,11 +5507,13 @@ class DagRenderer {
     return parts.length > 0 ? `${parts.join(' · ')} · ` : '';
   }
 
-  /** `12.4s` · `74s` · `2m05` — the live elapsed, compact. */
+  /** `12.4s` · `74.2s` · `2m05` — the live elapsed, compact. The decimal
+   *  IS the motion (BuildKit time-as-spinner · annexe L #3): under the
+   *  150ms tick it walks; the value is our observed wall clock either
+   *  way — real at every paint, never interpolated. */
   private elapsedText(startTs: number): string {
     const s = (performance.now() - startTs) / 1000;
-    if (s < 10) { return `${s.toFixed(1)}s`; }
-    if (s < 100) { return `${Math.round(s)}s`; }
+    if (s < 100) { return `${s.toFixed(1)}s`; }
     return `${Math.floor(s / 60)}m${String(Math.round(s % 60)).padStart(2, '0')}`;
   }
 
@@ -5513,6 +5570,78 @@ class DagRenderer {
     return '';
   }
 
+  /** The strip painter — family text + the ONE-clock phase lock (annexe
+   *  L taste 2). Idempotent: repaints only on family change; then pins
+   *  the strip's CSS animation to the document timeline origin
+   *  (startTime = 0) so every spinner shares one 80ms beat — staggered
+   *  ignitions can never desync the ensemble. */
+  private paintSpin(host: HTMLElement, node: DagNode): void {
+    const spin = host.querySelector<HTMLElement>('.nc-spin');
+    const strip = spin?.querySelector<HTMLElement>('i');
+    if (!spin || !strip) { return; }
+    if (node.status !== 'running' && node.status !== 'retrying') { return; }
+    const fam = spinFamilyOf(node);
+    if (spin.dataset.fam !== fam) {
+      spin.dataset.fam = fam;
+      spin.classList.toggle('spin-think', fam === 'think');
+      spin.classList.toggle('spin-stream', fam === 'stream');
+      strip.textContent = SPIN_STRIPS[fam];
+    }
+    if (REDUCED_MOTION) { return; }
+    for (const a of strip.getAnimations()) {
+      if (a instanceof CSSAnimation && a.animationName.startsWith('nk-strip')) {
+        a.startTime = 0;
+      }
+    }
+  }
+
+  /** The viewport in root coordinates — cheap culling math for the
+   *  BuildKit tick and the spinner density cap. */
+  private viewportRootRect(): { x0: number; y0: number; x1: number; y1: number } {
+    const el = this.svg.node();
+    const w = el?.clientWidth ?? window.innerWidth;
+    const h = el?.clientHeight ?? window.innerHeight;
+    const k = this.currentZoom || 1;
+    return {
+      x0: (0 - this.currentTx) / k,
+      y0: (0 - this.currentTy) / k,
+      x1: (w - this.currentTx) / k,
+      y1: (h - this.currentTy) / k,
+    };
+  }
+
+  private boxInView(id: string, vp: { x0: number; y0: number; x1: number; y1: number }): boolean {
+    const b = this.layoutBox.get(id);
+    if (!b) { return false; }
+    return b.x + b.w >= vp.x0 && b.x <= vp.x1 && b.y + b.h >= vp.y0 && b.y <= vp.y1;
+  }
+
+  /** Density cap (annexe L taste 3): more than 5 live strips IN VIEW →
+   *  the crowd freezes mid-frame (body.nk-spin-calm — CSS exempts the
+   *  focused/hovered card) and the motion lives on the aggregate (the
+   *  status pill's pulsing agg-dot). Recounted on status change and on
+   *  camera moves (rAF-coalesced). */
+  private updateSpinDensity(): void {
+    if (!this.currentGraph) { return; }
+    const vp = this.viewportRootRect();
+    let liveInView = 0;
+    for (const id of this.liveStart.keys()) {
+      if (this.boxInView(id, vp)) { liveInView++; }
+    }
+    document.body.classList.toggle('nk-spin-calm', liveInView > 5);
+  }
+
+  private spinDensityQueued = false;
+
+  private scheduleSpinDensity(): void {
+    if (this.spinDensityQueued) { return; }
+    this.spinDensityQueued = true;
+    requestAnimationFrame(() => {
+      this.spinDensityQueued = false;
+      this.updateSpinDensity();
+    });
+  }
+
   private updateStatusDisplay(): void {
     if (!this.currentGraph) return;
 
@@ -5525,25 +5654,36 @@ class DagRenderer {
     const total = this.currentGraph.nodes.length;
     const terminal = counts.success + counts.failed + counts.skipped + counts.cancelled;
 
-    // The elapsed ticker lives exactly while something runs: one 1Hz
-    // repaint of the live verdicts (text, not motion — the engine's
-    // measured duration takes the cell at settle).
+    // The elapsed ticker lives exactly while something runs — the
+    // BuildKit clock (annexe L #3): visible live cards repaint at 150ms
+    // so the decimal second walks (text, not motion — the perfect
+    // reduced-motion citizen); offscreen ones keep the old 1s beat
+    // (every 7th tick). Same wire truth, cheaper cadence; the engine's
+    // measured duration takes the cell at settle.
     const live = counts.running + counts.retrying > 0;
     if (live && this.elapsedTimer === undefined) {
+      let tick = 0;
       this.elapsedTimer = window.setInterval(() => {
+        tick++;
+        const vp = tick % 7 === 0 ? null : this.viewportRootRect();
         for (const id of this.liveStart.keys()) {
           const node = this.nodeMap.get(id);
           if (!node) { continue; }
+          if (vp !== null && !this.boxInView(id, vp)) { continue; }
           this.nodeGroup
             .select(`[data-id="${CSS.escape(id)}"]`)
             .select('.nc-sub-v')
             .text(this.subValue(node));
         }
-      }, 1000);
+      }, 150);
     } else if (!live && this.elapsedTimer !== undefined) {
       window.clearInterval(this.elapsedTimer);
       this.elapsedTimer = undefined;
     }
+
+    // Density cap — recounted at every status paint (camera moves
+    // re-count via scheduleSpinDensity in the zoom handler).
+    this.updateSpinDensity();
 
     // Run verdict → the aurora speaks once, at the LIVE close. A replay
     // reaching its terminal frame (or a scrub crossing it) is not a live

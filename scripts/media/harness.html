@@ -386,12 +386,22 @@
 
     sim(() => { batch([{ taskId: 'polish', status: 'running' }]); }, 7200);
 
+    // Tokens live — the stream proof (chunks) flips the strip to the
+    // point pulse; liveUsd draws the ~$ curve on the sub line.
+    sim(() => { batch([{ taskId: 'polish', status: 'running', chunks: 4, liveUsd: 0.0009 }]); }, 7800);
+    sim(() => { batch([{ taskId: 'polish', status: 'running', chunks: 11, liveUsd: 0.0018 }]); }, 8500);
+
     sim(() => {
       batch([{ taskId: 'polish', status: 'success', durationMs: 2130, usd: 0.0031 }]);
       post({ kind: 'run:progress', done: 5, total: 7 });
     }, 9400);
 
     sim(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 9900);
+
+    // One backoff beat — the amber strip + the ↻ sub prefix, then the
+    // clean settle (retries keep the task's original wall clock).
+    sim(() => { batch([{ taskId: 'notes', status: 'retrying' }]); }, 10150);
+    sim(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 10450);
 
     sim(() => {
       batch([{ taskId: 'notes', status: 'success', durationMs: 96, outputPreview: 'RELEASE_NOTES.md · 1.4 KB' }]);

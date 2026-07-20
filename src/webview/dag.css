@@ -52,6 +52,11 @@ body {
    * state change shares this pair — the canvas feels like one instrument. */
   --nk-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nk-dur: 140ms;
+  /* tokens v3 · annexe F — the run quantum: every spinner strip advances
+   * on multiples of --nk-dur-fast (ONE clock · annexe L taste 2). The
+   * full named duration scale lands with V0.c; these two lead. */
+  --nk-dur-fast: 80ms;
+  --nk-dur-base: 160ms;
   /* The SPRING — a gentle ~4% overshoot for arrivals (entrances · pops ·
    * the settle). A canonical linear() spring curve (Open Props family);
    * browsers without linear() fall back to --nk-ease via @supports. */
@@ -521,18 +526,6 @@ body:not(.lod-far) .dag-edge {
 .dag-node .node-stack-6 { opacity: 0.5; }
 .dag-node .node-stack-12 { opacity: 0.24; }
 
-/* Spinner — a thin ring orbiting the status dot, running only. */
-.dag-node .node-spinner {
-  fill: transparent;
-  stroke: transparent;
-  stroke-width: 1.75;
-  stroke-dasharray: 9 35;
-  stroke-linecap: round;
-  opacity: 0;
-  transition: opacity var(--nk-dur) var(--nk-ease);
-  pointer-events: none;
-}
-
 /* ─── Status grammar (DESIGN.md §5) · pending is CALM ───────────────────── */
 /* A card at rest looks normal (the Well read): running lights up, failed
  * screams, success is a quiet green fact — never a canvas of ghosts. */
@@ -581,18 +574,6 @@ body:not(.lod-far) .dag-edge {
 
 @keyframes nk-orbit {
   to { --nk-angle: 360deg; }
-}
-
-.dag-node.status-running .node-spinner {
-  opacity: 1;
-  stroke: var(--dv-hue, var(--nk-st-running));
-  animation: spinner-rotate 1.1s linear infinite;
-}
-
-@keyframes spinner-rotate {
-  to {
-    stroke-dashoffset: -44;
-  }
 }
 
 .dag-node.status-failed .nc {
@@ -1770,7 +1751,6 @@ body.vscode-light .logo-dark { display: none; }
 
   #first-hint,
   .dag-node.status-running .node-bg,
-  .dag-node.status-running .node-spinner,
   .dag-node.status-failed .node-status-bar,
   .dag-node.status-success .node-bg,
   .dag-node.cursor-hint .node-bg,
@@ -1791,12 +1771,6 @@ body.vscode-light .logo-dark { display: none; }
   border-color: color-mix(in srgb, var(--nk-st-retrying) 40%, var(--nk-card-border));
 }
 
-.dag-node.status-retrying .node-spinner {
-  opacity: 1;
-  stroke: var(--nk-st-retrying);
-  animation: spinner-rotate 1.1s linear infinite;
-}
-
 .dag-node.status-cancelled {
   opacity: 0.5;
 }
@@ -1815,14 +1789,18 @@ body.vscode-light .logo-dark { display: none; }
   .dag-node.status-running .nc::before,
   body.running .dag-node.status-success .nc::after,
   body.running #progress-fill::after,
-  .dag-node.status-retrying .node-spinner,
-  .dag-node.status-running .node-spinner,
   .nc-enter,
   .nc-sub-v,
   .dag-node .nc-dot,
   body.running .dag-edge.edge-dep {
     animation: none !important;
   }
+
+  /* Spinner strips freeze at frame 1 — a static braille glyph carries
+   * the alive-state hue while the BuildKit timer text keeps ticking
+   * (the chiffres are motion-lite · annexe L taste 5). */
+  .nc-spin > i { animation: none !important; }
+  .nc-spin { transition: none !important; }
 
   .dag-node.status-running .nc::before,
   .dag-node.status-retrying .nc::before {
@@ -2303,7 +2281,19 @@ body.lod-far .dag-node:hover .nc {
   text-shadow: 0 0 6px color-mix(in srgb, var(--dv-hue, transparent) 45%, transparent);
 }
 
-/* The status DOT — pinned to the head's right edge (Well grammar). */
+/* The status SLOT — a fixed 18px window pinned to the head's right edge
+ * (Well grammar): the dot at rest, the braille strip while alive. The
+ * width never changes with state — a run never reflows the head. */
+.nc-st {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 22px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .nc-dot {
   flex: 0 0 auto;
   width: 7px;
@@ -2313,6 +2303,100 @@ body.lod-far .dag-node:hover .nc {
   opacity: 0.6;
   transition: background var(--nk-dur) var(--nk-ease), opacity var(--nk-dur) var(--nk-ease);
 }
+
+/* ── The run spectacle · braille strips (annexe L · cli-spinners canon) ──
+ * ONE indicator per card: while a task is alive the strip REPLACES the
+ * dot (the old SVG orbit ring died with it — the braille won; the dot
+ * keeps its space, so the swap shifts nothing). A vertical filmstrip
+ * windowed to one line, advanced by steps() on the shared 80ms quantum
+ * (--nk-dur-fast) — compositor-only, zero per-frame JS; every strip is
+ * phase-locked to the document timeline (startTime = 0 at ignition). */
+.nc-spin {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
+  font-family: var(--nk-mono);
+  font-size: 10px;
+  color: var(--dv-hue, var(--nk-st-running));
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--nk-dur-base) var(--nk-ease), visibility 0s var(--nk-dur-base);
+}
+
+.nc-spin > i {
+  display: block;
+  font-style: normal;
+  white-space: pre;
+  line-height: 22px;
+}
+
+.dag-node.status-running .nc-spin,
+.dag-node.status-retrying .nc-spin {
+  opacity: 1;
+  visibility: visible;
+  /* The wake — ignition cascades along the topological waves (50ms/wave
+   * · annexe L choreography 5); the delay rides ONLY the show direction,
+   * so a settle leaves no lingering strip (taste 6). */
+  transition-delay: var(--nk-wake, 0ms);
+}
+
+.dag-node.status-retrying .nc-spin { color: var(--nk-st-retrying); }
+
+/* While the strip speaks, the dot yields — visibility keeps its box. */
+.dag-node.status-running .nc-st .nc-dot,
+.dag-node.status-retrying .nc-st .nc-dot { visibility: hidden; }
+
+/* Strips advance ONLY while alive: an idle .nc-spin is a shut window on
+ * a parked filmstrip — no animation runs, the settled frame is clean.
+ * dots2 (running canon, judge-picked) and dotsCircle (thinking) are both
+ * 8 frames on the 80ms quantum — one keyframe serves them; the stream
+ * pulse overrides with its own 5-frame cadence. */
+.dag-node.status-running .nc-spin > i,
+.dag-node.status-retrying .nc-spin > i {
+  animation: nk-strip-8 calc(var(--nk-dur-fast) * 8) steps(8) infinite;
+}
+
+.dag-node.status-running .nc-spin.spin-stream > i,
+.dag-node.status-retrying .nc-spin.spin-stream > i {
+  /* point breathes at its own 125ms interval (cli-spinners canon). */
+  animation: nk-strip-5 625ms steps(5) infinite;
+}
+
+@keyframes nk-strip-8 { to { transform: translateY(-8lh); } }
+@keyframes nk-strip-5 { to { transform: translateY(-5lh); } }
+
+/* A parked question is WAITING, not working — the frame holds while the
+ * human thinks (motion = state · annexe L taste 1). */
+.dag-node.is-asking .nc-spin > i { animation-play-state: paused; }
+
+/* Density cap (annexe L taste 3): >5 live strips in view → the crowd
+ * freezes mid-frame and the beat lives on the aggregate (the status
+ * pill's pulsing agg-dot); the focused/hovered card keeps its motion. */
+body.nk-spin-calm .dag-node:not(.selected):not(:hover) .nc-spin > i {
+  animation-play-state: paused;
+}
+
+/* An unseen canvas spends nothing: CSS animations do NOT self-suspend
+ * when the document hides — this attribute (visibilitychange) is the
+ * park brake for every continuous run animation. !important because the
+ * state rules' `animation` shorthands (0,3,1) out-specify a body-attr
+ * scope and would silently reset play-state (the forced-colors
+ * precedent: a global kill-switch may not lose the cascade). */
+body[data-nk-hidden] .nc-spin > i,
+body[data-nk-hidden] .nc::before,
+body[data-nk-hidden] .nc-dot,
+body[data-nk-hidden] #dag-status .agg-dot,
+body[data-nk-hidden] .dag-edge.edge-dep {
+  animation-play-state: paused !important;
+}
+
+/* The far read is the map — glyph strips are sub-pixel there; the dot
+ * (already zoom-scaled) takes the live voice back. */
+body.lod-far .nc-spin { display: none; }
+body.lod-far .dag-node.status-running .nc-st .nc-dot,
+body.lod-far .dag-node.status-retrying .nc-st .nc-dot { visibility: visible; }
 
 .dag-node.status-running .nc-dot {
   background: var(--dv-hue, var(--nk-st-running));

@@ -6,6 +6,20 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The run comes alive — braille spinners, one clock, BuildKit timer
+
+- **Run spectacle (annexe L)**: live cards spin a braille strip in the
+  head's fixed status slot — full-weight `dots2` while running (amber
+  on retrying), `dotsCircle` for a thinking infer, the `point` pulse
+  when tokens stream (wire `chunks` proof) — all phase-locked to one
+  80ms quantum (`--nk-dur-fast`), ignited wave by wave; the elapsed
+  verdict ticks BuildKit-style decimals at 150ms while visible. More
+  than 5 live strips in view → the crowd freezes and the status
+  pill's dot carries the beat. Reduced-motion holds frame 1 (the
+  timer text keeps walking); a hidden panel parks every animation; a
+  settled card is a clean frozen log. The old SVG orbit ring died —
+  one indicator per card.
+
 ### Card-first — the tooltip dies, the card carries everything
 
 - **Two card modes**: `min` (head · verdict · one essence line — the
