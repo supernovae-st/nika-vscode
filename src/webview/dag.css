@@ -3730,9 +3730,20 @@ body.run-starting .dag-node.status-pending .nc-dot {
 
 /* ─── Perf containment (research: explicit-size cards, no escape) ───────── */
 
+/* strict = size layout paint — safe here by construction: the card's box
+ * is TS truth (nodeHeightOf → explicit foreignObject w/h, .nc height
+ * 100%), never measured from content. */
 .nc {
-  contain: layout paint;
+  contain: strict;
   overflow: hidden;
+}
+
+/* Viewport culling (annexe H §3, graphs >150 nodes): offscreen cards and
+ * wires SLEEP — display only, the DOM stays (toggle-don't-unmount). The
+ * rule carries zero color by construction; selected/hovered/sim/drag/
+ * follow/pinned-grand cards are never marked (dag.ts cullProtected). */
+.nk-offscreen {
+  display: none;
 }
 
 @media (max-width: 760px) {

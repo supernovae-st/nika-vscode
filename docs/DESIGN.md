@@ -410,6 +410,12 @@ low, leave high — so a pinch resting on a boundary never flaps):
   `shard…`. Ports, edge labels, badges and region labels yield; the
   geometry never moves — wires stay pinned.
 
+`body.lod-{far,mid,near}` IS the structural LOD channel (no `data-lod`
+attribute doubles it): the hysteresis above is applyLod's — far enter
+<0.30 / leave ≥0.34 · mid enter <0.42 / leave ≥0.46 — and the viewport
+culling pass (>150 nodes · `.nk-offscreen` · ENTER 200px / EXIT 500px
+screen) composes with it, never replaces it.
+
 ## 6b · Projections & drag intelligence (research-ranked, 2026)
 
 - **Heatmap (H)** — a READING MODE, not an overlay: cards tint by

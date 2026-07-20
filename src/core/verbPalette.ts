@@ -2,7 +2,7 @@
 //
 // The palette adds a TASK: pick a verb (the closed set of 4 ·
 // D-2026-05-22-N18) or pick a builtin tool directly (an `invoke` task
-// pre-wired to it — the 27-tool vocabulary, binary-fed when present).
+// pre-wired to it — the 28-tool vocabulary, binary-fed when present).
 // The filter is the bit worth pinning: prefix matches rank above
 // substring, name above description, so typing "in" lands on `infer`
 // first and "j" surfaces `jq` before `json_diff`. Pure — the webview
@@ -79,7 +79,7 @@ export function filterTools(query: string, tools: readonly ToolItem[]): ToolItem
 }
 
 /**
- * Offline one-line blurbs for the 27 builtins — the palette's fallback
+ * Offline one-line blurbs for the 28 builtins — the palette's fallback
  * teaching voice. The BINARY's `tools --json` description WINS whenever
  * it ships (these are honest approximations, updated with the stdlib).
  */
@@ -96,6 +96,7 @@ export const FALLBACK_TOOL_BLURBS: Record<string, string> = {
   glob: 'list files by pattern',
   grep: 'search file contents by regex',
   jq: 'transform JSON with a jq program',
+  decide: 'decision bundle × evidence → receipt',
   json_diff: 'structural diff of two JSON values',
   validate: 'check JSON against a schema',
   json_merge_patch: 'RFC 7396 merge-patch',

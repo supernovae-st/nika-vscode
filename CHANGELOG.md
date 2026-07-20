@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The canvas culls — offscreen sleeps, the DOM stays
+
+- **Viewport culling (graphs >150 nodes)**: cards and wires far outside the viewport sleep under `.nk-offscreen { display: none }` — the DOM stays (no unmount, no re-entry cost), offscreen spinner/braille animations stop spending, and a hysteresis band (wake within 200 screen px of the edge · sleep only past 500 px, ÷zoom) means a camera resting on a boundary never flaps a card. The selected, hovered, simulated, dragged, connect-source, follow-target and pinned-grand cards are never culled; an edge quartet (wire · hit twin · chevron · label) sleeps only when BOTH its endpoints sleep and its span clears the view, so a long wire crossing the screen keeps painting. Exports wake every sleeping card in the clone — the file is always the whole graph. Measured at n=300, zoomed-in wheel pan: p95 16.9→10.9ms, p50 8.3→8.3 (see `measure.mjs pan-near`); at fit zoom every card is legitimately in view and the pass changes nothing by design.
+- **`contain: strict` on the card**: the card's box is TS truth (explicit foreignObject size), so size containment joins layout/paint — cheaper invalidation, zero geometry change. `content-visibility: auto` was MEASURED and rejected (no frame-time effect at n=300 — Chromium already skips offscreen raster here; the culling pass is what stops the style/layout spend).
+- **Edge batching died by measurement**: hiding ALL edges moved fit-zoom pan p95 not at all (83.3 vs 83.6ms) — the cost is the foreignObject card raster, so the planned far-LOD bulk-path batching is closed as unjustified (the multi-M single-marker tradeoff buys nothing). The fit-zoom pan ceiling belongs to the compositor chantier (`g composité`, already owed).
+- **`#glow-running` died**: an SVG filter defined since the first canvas commit and never referenced by any paint rule.
+- **`scripts/perf/measure.mjs` grew `pan-near`**: deterministic zoom-in (spaced instant steps — rapid presses interrupt each other's d3 transition) + wheel-driven camera pan (at near zoom the fit center sits ON a card, so a drag would measure a card drag), and both pan scenarios now report the culling judge seam (`window.__nkCull`).
+
 ### The layout leaves the main thread — worker, cache, stale-while-relayout
 
 - **ELK runs in a Worker**: the layered layout now chews OFF the main thread (a dedicated worker bundle, pool of one active + one pre-warmed spare, latest-wins protocol with >150ms cancel-and-promote) — at 300 nodes the canvas stays interactive through a multi-second layout instead of freezing (measured: zero >100ms main-thread tasks during the layout wait vs one 2.9s block before). A structural failure walks a ladder — direct Worker → blob Worker → the exact previous main-thread call, byte-identical results (proven: laid JSON byte-equal across rungs at n=40/120/300) — so no environment ever loses a graph.
