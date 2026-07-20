@@ -137,6 +137,21 @@ body {
   --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
 }
 
+/* A custom property substitutes its var()s where it is DECLARED — a
+ * :root-only alias would freeze the editor fallbacks BEFORE a skin
+ * retunes its source (probed: the nika accent never reached the
+ * network tint). Declared again on the skinned body, each cat tint
+ * re-resolves against the skin's own voices (phosphor's green accent
+ * included). Same six values as :root — the belt holds both. */
+body[data-nk-theme] {
+  --nk-cat-core: var(--nk-st-muted);
+  --nk-cat-file: var(--nk-st-success);
+  --nk-cat-data: var(--nk-data);
+  --nk-cat-network: var(--nk-accent);
+  --nk-cat-introspection: var(--nk-critical);
+  --nk-cat-media: color-mix(in srgb, var(--nk-verb-infer-canon) 45%, var(--nk-verb-agent-canon) 55%);
+}
+
 /* Per-node verb hue — every verb-tinted surface reads ONE custom property.
  * Twin channel --dv-hue-text (tokens v3 · V0.d): prose that reads the verb
  * hue as INK (the running sub-line) rides the APCA ramp, not the full-chroma
