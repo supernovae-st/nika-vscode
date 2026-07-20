@@ -190,6 +190,36 @@ its sections is height-safe by construction.
 The min anatomy stays fixed for every verb (head · verdict · one
 essence line) — the voices inflect the grand story, never the tile.
 
+## 1d · The 28 identities — every builtin speaks its nature (W-D8 CI-3)
+
+The engine's catalog carries 28 builtins in 6 categories, and the
+CATEGORY is the engine's word, never ours (`catalog --tools`). Each
+category owns ONE tint token (`--nk-cat-*` · aliases/mixes of voices
+the seam already speaks, zero new hex) consumed at exactly THREE
+sites: the mechanism line's category icon, the declared-frame borders
+(28%), and the network pulse. Never a card border, head, tile or fill
+— status and verb own those. Each builtin leads with its SOUL: the
+one arg that names its work (the essence grammar of §1), pinned
+against the real catalog in a fixture — an invented soul arg fails in
+CI, not on the canvas.
+
+| category (tint) | builtin → essence · frame |
+|---|---|
+| core (muted) | `log` message · `emit` ⚑ event_type · `assert` ⊨ condition · `prompt` message · `wait` duration + the running countdown `12s / 30s` (declared literal only) · `done` plain |
+| file (path green) | `read`/`write`/`edit` path (writers land the file receipt) · `glob`/`grep` pattern in mono |
+| data (data blue) | `jq` expression · `convert` composes `from → to` · `validate` states `⊨ schema` · `uuid` version · `date` op · `hash` content · `decide` bundle · `json_diff`/`json_merge_patch` keep the plain line BY LAW (unknown keeps the plain line, never a guess) |
+| network (accent) | `fetch` method-tag + url, the icon pulses while running · `notify` target |
+| introspection (audit amber) | `inspect` view · `compose` workflow_yaml + the check-receipt row (statically checks a draft — never executes; `invoke workflow:` doors are composition, a different construct) |
+| media (between infer and agent) | `image_generate` prompt + the declared ghost frame · `tts_generate` text + the flat strip (no fake VU) · `image_fx` the recipe split · `chart` the shape sketch (from the declared `chart.type`) |
+
+The jacks speak the same language (W11.4): an IN collar wears the hue
+of the flow that arrives (media wires the generation tint · named
+data wires the data blue), the OUT collar what the card produces;
+text stays the muted machined collar. `after:` labels tint by the
+outcome class they admit — success-family green, failure-family in
+the failure text voice at 70% (§2's predicate column, readable from
+afar).
+
 ## 2 · Wires — the kind vocabulary (graph_format 2 · one channel per question)
 
 Channel allocation (the Bertin discipline): **dash = ontology** (solid
