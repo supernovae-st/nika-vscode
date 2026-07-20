@@ -2799,7 +2799,9 @@ body:not(.lod-far) .nc-mode-grand .nc-head {
   left: 0;
   right: 0;
   height: 18px;
-  gap: 6px;
+  /* 5px: the band is exactly at capacity with a 17-char model + the
+   * failed badge — the 22px head's 7px gap here cost the last glyph. */
+  gap: 5px;
 }
 
 body:not(.lod-far) .nc-mode-grand .nc-head .nc-tile {
@@ -2816,7 +2818,10 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
  * position): the model picker keeps its chip door; a declared media
  * provider is a quiet fact. Both shrink before the id does. */
 .nc-engine {
-  flex: 0 1 auto;
+  /* The id owns the head: the engine shrinks 4× faster than its
+   * siblings when the band over-fills, and takes its full width when
+   * real slack exists (a flat % cap clipped it beside empty air). */
+  flex: 0 4 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2830,9 +2835,6 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
   height: 16px;
   padding: 0 6px;
   color: var(--nk-ink);
-  /* The identity yields to the identity: the id owns the left, the
-   * engine clips first (45% beats the flat 150px on narrow heads). */
-  max-width: 45%;
 }
 
 /* THE DETACHED PILL (W11.3) — the knobs under the card: params-clés ·
