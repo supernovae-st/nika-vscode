@@ -6,6 +6,28 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Card-first — the tooltip dies, the card carries everything
+
+- **Two card modes**: `min` (head · verdict · one essence line — the
+  calm default) and `grand` (the whole story). Double-click or `E`
+  toggles one card; the Shift+V panel gains a global cran
+  (min / grand / mix — the per-card mix is retained per workflow); a
+  failed task auto-promotes its card so the red teaches on the face.
+- **The hover tooltip is gone**: everything it carried lives ON the
+  grand card now — the why-lines (paused question · gate false ·
+  blocked by), the run-story facts (spent · cache-hit proof with both
+  hashes · repaired · the agent loop's turns/budget/nudges/stall ·
+  live spend and stream · wave · blast radius · pinch), the child
+  workflow's miniature, needs/unlocks jump chips, and a visible
+  actions row (`▸ run · ⚡ what if · ⧉ dup`, plus `✎ explain` +
+  `⑂ fork` on a failure — same handlers, no popup between you and
+  them). Edge and io-chip hovers keep their pass-set stories.
+- **Space peeks in place**: the focused card expands to grand without
+  touching the layout; arrows walk the peek across the DAG, Space or
+  Esc releases. The interaction budgets moved with the furniture:
+  why-failed is now a ZERO-gesture read, the full story costs one
+  double-click (`scripts/media/journeys.cjs` asserts both).
+
 ### The station answers three questions
 
 - **Station IA — now · next · recent**: the cockpit tree regroups

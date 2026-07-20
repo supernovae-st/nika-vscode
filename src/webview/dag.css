@@ -90,10 +90,10 @@ body {
 }
 
 /* Per-node verb hue — every verb-tinted surface reads ONE custom property. */
-.dag-node.verb-infer, .hc-verb.verb-infer { --dv-hue: var(--nk-verb-infer); }
-.dag-node.verb-exec, .hc-verb.verb-exec { --dv-hue: var(--nk-verb-exec); }
-.dag-node.verb-invoke, .hc-verb.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
-.dag-node.verb-agent, .hc-verb.verb-agent { --dv-hue: var(--nk-verb-agent); }
+.dag-node.verb-infer { --dv-hue: var(--nk-verb-infer); }
+.dag-node.verb-exec { --dv-hue: var(--nk-verb-exec); }
+.dag-node.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
+.dag-node.verb-agent { --dv-hue: var(--nk-verb-agent); }
 
 /* ─── Toolbar · glass rail ──────────────────────────────────────────────── */
 
@@ -233,7 +233,8 @@ body {
 #omni-go:focus-visible,
 #omni-input:focus-visible,
 .es-button:focus-visible,
-.hc-chip:focus-visible,
+.nc-xc-chip:focus-visible,
+.nc-x-act:focus-visible,
 #scrub-play:focus-visible,
 #scrub-close:focus-visible {
   outline: 1px solid var(--nk-accent);
@@ -886,146 +887,6 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   stroke: var(--nk-critical);
   stroke-width: 2.5;
   stroke-dasharray: none;
-}
-
-/* ─── Hover card · the node explains itself (glass · interactive) ───────── */
-
-#hover-card {
-  position: fixed;
-  z-index: 50;
-  min-width: 230px;
-  max-width: 340px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--vscode-editorHoverWidget-background, var(--nk-surface)) 88%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: blur(14px) saturate(1.2);
-  color: var(--vscode-editorHoverWidget-foreground, var(--nk-ink));
-  border: 1px solid var(--vscode-editorHoverWidget-border, var(--nk-border));
-  border-radius: var(--nk-radius);
-  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
-  font-size: 12px;
-  line-height: 1.55;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(5px) scale(0.985);
-  transition: opacity 0.13s ease-out, transform 0.13s cubic-bezier(0.2, 0.9, 0.3, 1.2);
-}
-
-#hover-card.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto; /* needs/unlocks chips are clickable */
-}
-
-/* While OPEN the card GLIDES between anchors (left/top join the
- * transition) — moving card-to-card slides the inspector instead of
- * re-popping it (the shared-tooltip grammar). Entrance keeps its own
- * rise (left/top snap while hidden — the transition only runs visible). */
-#hover-card.visible.gliding {
-  transition:
-    left 0.19s var(--nk-ease),
-    top 0.19s var(--nk-ease),
-    opacity 0.13s ease-out;
-}
-
-.hc-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.hc-chip {
-  font-family: var(--nk-mono);
-  font-size: 11px;
-  padding: 1px 7px;
-  color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
-  border: 1px solid var(--nk-border);
-  border-radius: 9px;
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
-}
-
-.hc-chip:hover {
-  background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
-  border-color: color-mix(in srgb, var(--nk-accent) 50%, transparent);
-  color: var(--nk-accent);
-}
-
-.hc-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
-}
-
-.hc-id {
-  font-weight: 600;
-  font-family: var(--nk-mono);
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hc-verb {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 18%, transparent);
-  color: var(--dv-hue, var(--nk-accent));
-}
-
-.hc-status {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--nk-ink-dim);
-}
-
-.hc-run {
-  flex: 0 0 auto;
-  padding: 1px 8px;
-  font-size: 10px;
-  font-family: var(--nk-mono);
-  color: var(--nk-cta-ink);
-  background: var(--nk-cta);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease);
-}
-
-.hc-run:hover {
-  background: var(--nk-cta-hover);
-}
-
-.hc-run:focus-visible {
-  outline: 1px solid var(--nk-accent);
-  outline-offset: 1px;
-}
-
-.hc-status.st-running { color: var(--nk-st-running); }
-.hc-status.st-success { color: var(--nk-st-success); }
-.hc-status.st-failed { color: var(--nk-st-failed); }
-
-.hc-row {
-  display: flex;
-  gap: 10px;
-}
-
-.hc-k {
-  flex: 0 0 76px;
-  color: var(--nk-ink-dim);
-}
-
-.hc-v {
-  font-family: var(--nk-mono);
-  word-break: break-word;
 }
 
 /* ─── Legend + progress · the run at a glance ───────────────────────────── */
@@ -1868,7 +1729,6 @@ body.vscode-light .logo-dark { display: none; }
   #minimap { display: none; }
   #dag-title { display: none; }
   .ex-card { width: calc(100vw - 28px); }
-  #hover-card { max-width: calc(100vw - 24px); }
 }
 
 @media (max-width: 380px) {
@@ -1904,7 +1764,6 @@ body.vscode-light .logo-dark { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .dag-node,
   .dag-node .node-bg,
-  #hover-card,
   #progress-fill {
     transition: none !important;
   }
@@ -1941,9 +1800,6 @@ body.vscode-light .logo-dark { display: none; }
 .dag-node.status-cancelled {
   opacity: 0.5;
 }
-
-.hc-status.st-retrying { color: var(--nk-st-retrying); }
-.hc-status.st-cancelled { color: var(--nk-ink-dim); }
 
 .legend-chip.st-retrying .legend-dot { background: var(--nk-st-retrying); }
 .legend-chip.st-cancelled .legend-dot {
@@ -2006,9 +1862,6 @@ body.vscode-light .logo-dark { display: none; }
     animation: none !important;
   }
 
-  #hover-card.visible.gliding {
-    transition: opacity 0.01s linear;
-  }
 }
 
 .mm-node.st-retrying { fill: var(--nk-st-retrying); opacity: 0.95; }
@@ -2190,19 +2043,6 @@ body[data-nk-theme='nika'] .nc-tile {
 body[data-nk-theme='nika'] .dag-edge.flowing {
   stroke: rgb(141 180 255 / 0.75);
   stroke-linecap: round;
-}
-
-/* Hover card + activity + minimap ride the re-scoped tokens; pin the
- * hover-widget vars the editor would otherwise inject. */
-body[data-nk-theme='nika'] #hover-card {
-  background: color-mix(in srgb, #0a0d12 92%, transparent);
-  background-image: var(--nk-grain);
-  color: var(--nk-ink);
-  border-color: rgb(140 170 255 / 0.16);
-}
-
-body[data-nk-theme='nika'] .hc-head {
-  border-bottom-color: rgb(140 170 255 / 0.14);
 }
 
 body[data-nk-theme='nika'] .legend-chip {
@@ -2652,14 +2492,157 @@ body.running .dag-node.status-success .nc::after {
   cursor: pointer;
 }
 .nc-body.nc-body-err:hover { text-decoration: underline dotted; }
-.hc-run.hc-explain { color: var(--nk-st-failed); }
-.hc-run.hc-fork { color: var(--nk-st-retrying, var(--nk-ink-dim)); }
+.nc-x-act.nc-x-explain { color: var(--nk-st-failed); }
+.nc-x-act.nc-x-fork { color: var(--nk-st-retrying, var(--nk-ink-dim)); }
 
 /* The recorded output ON the card (success + preview) — the data the
  * task produced, where its prompt was; rises in like the verdict. */
 .nc-body.nc-body-live {
   color: color-mix(in srgb, var(--nk-st-success) 60%, var(--nk-ink));
   animation: nc-pop 0.24s var(--nk-ease);
+}
+
+/* ─── Card-first sections (W-D5) — the hover's content, ON the card ── */
+/* min: head · verdict · one essence line (the body clamps to one). */
+.nc-mode-min .nc-body { -webkit-line-clamp: 1; }
+
+/* The didn't-run reasons, visible in grand (paused · gate · blocked). */
+.nc-x-error {
+  flex: none;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 15px;
+  color: var(--nk-ink-dim);
+}
+
+.nc-xe {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+/* The migrated fact block — the run story (spent · resume · loop…). */
+.nc-x-facts {
+  flex: none;
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 15px;
+  color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
+}
+
+.nc-xf {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.nc-xf-k { color: var(--nk-ink-dim); }
+
+/* needs / unlocks — one-line neighbor chip rows (≤3 + «+N»). */
+.nc-x-chips {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  min-height: 18px;
+  line-height: 18px;
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: 10px;
+  color: var(--nk-ink-dim);
+}
+
+.nc-xc-k { flex: 0 0 auto; }
+
+.nc-xc-chip {
+  pointer-events: auto;
+  font-family: var(--nk-mono);
+  font-size: 9.5px;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid var(--nk-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.nc-xc-chip:hover {
+  background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent) 50%, transparent);
+  color: var(--nk-accent);
+}
+
+/* The actions row — the hover's gestures, visible at the card foot. */
+.nc-x-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 4px;
+  margin-top: 6px;
+}
+
+.nc-x-act {
+  pointer-events: auto;
+  height: 18px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-family: var(--nk-mono);
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background var(--nk-dur) var(--nk-ease);
+}
+
+.nc-x-act:hover { background: var(--nk-cta-hover); }
+
+/* A card grown past its laid-out box floats OVER its neighbors
+ * (the pinned peek · a mid-run failure promote) — elevation says so. */
+.dag-node.nk-peek .nc,
+.dag-node.nk-overgrown .nc { box-shadow: var(--nk-shadow-2), var(--nk-bevel); }
+
+/* The K chip — the actions-panel hint, kbd-styled, clickable. */
+.nc-x-act.nc-x-panel {
+  padding: 0 6px;
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
+  border-bottom-width: 2px;
+}
+
+.nc-x-act.nc-x-panel:hover {
+  background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
+  color: var(--nk-accent);
+}
+
+@media (forced-colors: active) {
+  .nc-xe,
+  .nc-xf,
+  .nc-xf-k,
+  .nc-x-chips { color: CanvasText !important; }
+  .nc-xc-chip,
+  .nc-x-act {
+    color: ButtonText !important;
+    background: ButtonFace !important;
+    border: 1px solid ButtonText !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nc-xc-chip,
+  .nc-x-act { transition: none !important; }
 }
 
 .nc-params {
@@ -3165,7 +3148,11 @@ body.heatmap .dag-node:hover .nc {
 
 body.lod-mid .nc-params { visibility: hidden; }
 body.lod-mid .nc-io,
-body.lod-mid .nc-policy { visibility: hidden; }
+body.lod-mid .nc-policy,
+body.lod-mid .nc-x-facts,
+body.lod-mid .nc-x-peek,
+body.lod-mid .nc-x-chips,
+body.lod-mid .nc-x-actions { visibility: hidden; }
 /* Continuous zoom ink (annexe I2 · the n8n gamma read) — ONE number
  * (--nk-edge-vis · 100 at k≥1 · gamma-eased toward 52 at far) mixes
  * every wire toward the page as the camera pulls back: topology
@@ -3195,6 +3182,11 @@ body.lod-far .nc-preview-file,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,
+body.lod-far .nc-x-error,
+body.lod-far .nc-x-facts,
+body.lod-far .nc-x-peek,
+body.lod-far .nc-x-chips,
+body.lod-far .nc-x-actions,
 body.lod-far .nc-badge { display: none; }
 /* Far out the card IS a map tile: tile + id + status dot, dead-center,
  * large — never a big empty box with a whisper in one corner. The
@@ -5269,21 +5261,20 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
 }
 
-/* The hover peek — the child's real shape in miniature (UE steal).
+/* The card peek — the child's real shape in miniature (UE steal).
    Verb hues ride the existing vp-* register; edges are whispers. */
-.hc-peek-row { padding: 4px 0 2px; }
-.hc-peek { display: block; }
-.hc-peek-edge {
+.nc-x-peek { display: block; margin-top: 5px; }
+.nc-xpk-edge {
   stroke: color-mix(in srgb, var(--nk-ink) 25%, transparent);
   stroke-width: 1;
 }
-.hc-peek-dot.vp-infer { fill: var(--nk-verb-infer); }
-.hc-peek-dot.vp-exec { fill: var(--nk-verb-exec); }
-.hc-peek-dot.vp-invoke { fill: var(--nk-verb-invoke); }
-.hc-peek-dot.vp-agent { fill: var(--nk-verb-agent); }
+.nc-xpk-dot.vp-infer { fill: var(--nk-verb-infer); }
+.nc-xpk-dot.vp-exec { fill: var(--nk-verb-exec); }
+.nc-xpk-dot.vp-invoke { fill: var(--nk-verb-invoke); }
+.nc-xpk-dot.vp-agent { fill: var(--nk-verb-agent); }
 @media (forced-colors: active) {
-  .hc-peek-edge { stroke: CanvasText; }
-  .hc-peek-dot { fill: CanvasText; }
+  .nc-xpk-edge { stroke: CanvasText; }
+  .nc-xpk-dot { fill: CanvasText; }
 }
 
 /* ─── The dive trail — composition breadcrumb ───────────────────────
@@ -5506,18 +5497,6 @@ body.audit .dag-node.audit-secret .nc {
 }
 @media (prefers-reduced-motion: reduce) {
   .nc-confirm { animation: none; }
-}
-
-/* The Raycast hint — a real shortcut riding its action (truth-gated:
-   painted only when the keystroke would hit THIS card). */
-.hc-kbd {
-  margin-left: 5px;
-  padding: 0 4px;
-  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
-  border-bottom-width: 2px;
-  border-radius: 3px;
-  font: 600 8.5px var(--nk-mono, monospace);
-  opacity: 0.75;
 }
 
 /* ─── Lens transitions (the Linear read: 160ms ease-out, translate

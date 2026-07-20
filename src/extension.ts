@@ -1441,7 +1441,6 @@ export function activate(context: ExtensionContext): void {
   const dagPanel = new DagPanel(
     context.extensionUri,
     jumpToTask,
-    undefined,
     (request) => { void applyDagEdit(request); },
     () => { void commands.executeCommand('nika.showDag'); },
     {
@@ -1481,7 +1480,7 @@ export function activate(context: ExtensionContext): void {
       })();
     },
     () => cancelActiveRun(),
-    // Hover-card ▶ — the CodeLens lever, reachable from the canvas: ONE
+    // Card actions ▸ — the CodeLens lever, reachable from the canvas: ONE
     // task + its upstream cone through the same rerunTask flow.
     (taskId, workflowUri) => {
       void commands.executeCommand(
@@ -1493,7 +1492,7 @@ export function activate(context: ExtensionContext): void {
     // The red teaches (wave G): the failed card's code → the explain
     // doc (the SAME pedagogy the editor's quick fix opens).
     (code) => { void commands.executeCommand('nika.explainCode', code); },
-    // Failed hover ⑂ — fork from THIS task: the newest trace for the
+    // Failed card ⑂ — fork from THIS task: the newest trace for the
     // open graph rehydrates upstream (the Runs-view lever, reachable
     // where the failure is actually seen).
     (taskId, _workflowUri) => {

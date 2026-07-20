@@ -79,7 +79,7 @@ degrade reasoning; separate the phases).
 
 ## Implemented · the DAG engineering space · `core/dagAnalysis.ts`
 
-Surfaced in the DAG panel: hover card (« on failure: blocks N » · pinch
+Surfaced in the DAG panel: the card's fact block (« blast: blocks N » · pinch
 marker) + the explainer's *engineering read* (width · speedup ceiling ·
 k-worker wall-clock).
 

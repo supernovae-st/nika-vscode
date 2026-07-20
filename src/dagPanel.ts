@@ -76,7 +76,6 @@ export type ExtToWebviewMessage =
 export type WebviewToExtMessage =
   | { kind: 'dag:ready' }
   | { kind: 'dag:nodeClicked'; taskId: string; workflowUri?: string }
-  | { kind: 'dag:nodeDoubleClicked'; taskId: string; workflowUri?: string }
   | { kind: 'dag:requestRefresh' }
   | { kind: 'dag:showActive' }
   // A card's ⚠N badge was clicked — open the full pre-flight report.
@@ -101,7 +100,7 @@ export type WebviewToExtMessage =
   | { kind: 'dag:omni'; text: string; workflowUri?: string }
   // Run controls — the canvas drives the run without leaving the panel.
   | { kind: 'dag:runRequest'; preview?: boolean; resume?: boolean; workflowUri?: string }
-  // Run ONE task + its upstream cone (hover-card ▶ · engine `run --task`).
+  // Run ONE task + its upstream cone (card actions ▸ · engine `run --task`).
   | { kind: 'dag:runTask'; taskId: string; workflowUri?: string }
   | { kind: 'dag:explainCode'; code: string }
   // The webview's error seam — a canvas exception, said out loud.
@@ -151,7 +150,6 @@ export class DagPanel implements vscode.Disposable {
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onNodeClicked?: (taskId: string, workflowUri?: string) => void,
-    private readonly onNodeDoubleClicked?: (taskId: string, workflowUri?: string) => void,
     private readonly onEditRequest?: (request: DagEditRequest) => void,
     private readonly onShowActive?: () => void,
     /** Remembered panel column (per-workspace · best-extension manners). */
@@ -162,7 +160,7 @@ export class DagPanel implements vscode.Disposable {
     /** Canvas run controls (▶/▶mock/■ in the panel toolbar). */
     private readonly onRunRequest?: (preview: boolean, workflowUri?: string, resume?: boolean) => void,
     private readonly onCancelRun?: () => void,
-    /** Hover-card ▶ — run ONE task + its upstream cone (`run --task`). */
+    /** Card actions ▸ — run ONE task + its upstream cone (`run --task`). */
     private readonly onRunTask?: (taskId: string, workflowUri?: string) => void,
     /** The red teaches (wave G): a failed card's code chip → explain. */
     private readonly onExplainCode?: (code: string) => void,
@@ -733,10 +731,6 @@ export class DagPanel implements vscode.Disposable {
           });
         break;
 
-      case 'dag:nodeDoubleClicked':
-        this.onNodeDoubleClicked?.(msg.taskId, msg.workflowUri);
-        break;
-
       case 'dag:requestRefresh':
         // Extension can re-parse workflow and send updated graph
         if (this.currentGraph) {
@@ -1037,7 +1031,6 @@ export class DagPanel implements vscode.Disposable {
     <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
-  <div id="hover-card" role="dialog" aria-label="Task details and actions"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
