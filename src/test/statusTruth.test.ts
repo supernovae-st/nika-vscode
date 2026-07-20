@@ -8,7 +8,7 @@
 // spins the head · findings + cost ride the text as chips.
 
 import { describe, it, expect } from 'vitest';
-import { statusTruth, type TruthInput } from '../core/statusTruth';
+import { checkLaneTruth, statusTruth, type CheckLaneInput, type TruthInput } from '../core/statusTruth';
 
 function input(partial: Partial<TruthInput>): TruthInput {
   return {
@@ -115,5 +115,75 @@ describe('statusTruth — the fused chips (V1.2)', () => {
     expect(t.tooltip.join(' ')).not.toContain('5 workflows');
     const clean = statusTruth(input({ workflowsTotal: 3, workflowsWithFindings: 0 }));
     expect(clean.facts.join(' ')).toContain('all check clean');
+  });
+});
+
+// ─── checkLaneTruth — the trust illusion, dead (V-SOTA.A #3) ────────────────
+//
+// The most dangerous state cell (annexe Q): a nika buffer with NO engine
+// shows zero squiggles and the check lane said « clean » — indistinguishable
+// from an audited buffer. The law: a clean verdict is claimable ONLY when
+// the oracle actually ran; every off-state names why and opens the right
+// door. Findings that ARE painted (the binary-less secrets lint) stay a
+// findings count — visible squiggles never lied.
+
+function lane(partial: Partial<CheckLaneInput>): CheckLaneInput {
+  return {
+    hasActiveDoc: true,
+    available: true,
+    checkCapable: true,
+    runOn: 'type',
+    findings: 0,
+    errors: 0,
+    ...partial,
+  };
+}
+
+describe('checkLaneTruth — clean is only claimable when the oracle ran', () => {
+  it('NO binary + zero squiggles NEVER reads clean (the illusion, dead)', () => {
+    const t = checkLaneTruth(lane({ available: false }));
+    expect(t.text).not.toContain('clean');
+    expect(t.text).toContain('engine missing');
+    expect(t.severity).toBe('warn');
+    expect(t.command).toBe('setup'); // rule 10: the one executable next step
+    expect(t.detail).toContain('no squiggles is not a verdict');
+  });
+
+  it('an engine that predates `check` is the same honest OFF, not clean', () => {
+    const t = checkLaneTruth(lane({ checkCapable: false }));
+    expect(t.text).not.toContain('clean');
+    expect(t.text).toContain('predates');
+    expect(t.severity).toBe('warn');
+    expect(t.command).toBe('setup');
+  });
+
+  it("runOn 'off' is the user's own switch — honest label, info, the settings door", () => {
+    const t = checkLaneTruth(lane({ runOn: 'off' }));
+    expect(t.text).not.toContain('clean');
+    expect(t.severity).toBe('info');
+    expect(t.command).toBe('settings');
+  });
+
+  it('clean requires available AND capable AND on', () => {
+    const t = checkLaneTruth(lane({}));
+    expect(t.text).toContain('clean');
+    expect(t.severity).toBe('info');
+    expect(t.command).toBe('report');
+  });
+
+  it('painted findings stay a findings count even with no binary (squiggles never lied)', () => {
+    const t = checkLaneTruth(lane({ available: false, findings: 2, errors: 1 }));
+    expect(t.text).toContain('2 findings');
+    expect(t.severity).toBe('error');
+    expect(t.detail).toContain('1 error');
+    expect(t.command).toBe('report');
+  });
+
+  it('warnings-only findings warn; no active doc stays silent info', () => {
+    expect(checkLaneTruth(lane({ findings: 1 })).severity).toBe('warn');
+    expect(checkLaneTruth(lane({ findings: 1 })).detail).toBe('warnings only');
+    const idle = checkLaneTruth(lane({ hasActiveDoc: false }));
+    expect(idle.text).toBe('$(check) check');
+    expect(idle.severity).toBe('info');
   });
 });

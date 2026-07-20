@@ -109,6 +109,88 @@ function factLines(t: TruthInput): string[] {
   return lines;
 }
 
+// ─── The check lane's truth (language status · the {} flyout) ───────────────
+//
+// The trust illusion (annexe Q · the most dangerous state cell): a nika
+// buffer with NO engine shows zero squiggles — indistinguishable from a
+// buffer the oracle audited clean. « check: clean » on that buffer is a
+// lie. The rule: a clean verdict is claimable ONLY when the oracle
+// actually ran; otherwise the lane says OFF and names why. Findings that
+// ARE painted (the local secrets lint runs with zero binary) stay a
+// findings count — visible squiggles never lied.
+//
+// Pure derive — provable without VS Code.
+
+export interface CheckLaneInput {
+  /** A nika document is active (the lane is silent otherwise). */
+  hasActiveDoc: boolean;
+  /** Engine binary resolved AND answering. */
+  available: boolean;
+  /** This binary has `nika check`. */
+  checkCapable: boolean;
+  /** The `nika.diagnostics.runOn` setting value. */
+  runOn: string;
+  /** Painted nika findings on the active file (client or LSP). */
+  findings: number;
+  /** How many of those are errors. */
+  errors: number;
+}
+
+export interface CheckLaneTruth {
+  text: string;
+  detail?: string;
+  severity: 'info' | 'warn' | 'error';
+  /** Which door the item opens: the report, the engine setup, or the
+   *  setting that switched the lane off. */
+  command: 'report' | 'setup' | 'settings';
+}
+
+export function checkLaneTruth(t: CheckLaneInput): CheckLaneTruth {
+  if (!t.hasActiveDoc) {
+    return { text: '$(check) check', severity: 'info', command: 'report' };
+  }
+  if (t.findings > 0) {
+    const worst = t.errors > 0 ? 'error' : 'warn';
+    return {
+      text: `$(warning) check: ${t.findings} finding${t.findings === 1 ? '' : 's'}`,
+      detail: t.errors > 0 ? `${t.errors} error${t.errors === 1 ? '' : 's'} block the run` : 'warnings only',
+      severity: worst,
+      command: 'report',
+    };
+  }
+  // Zero squiggles — only an oracle that RAN may call that clean.
+  if (!t.available) {
+    return {
+      text: '$(circle-slash) check: off — engine missing',
+      detail: 'no squiggles is not a verdict; nothing has audited this file',
+      severity: 'warn',
+      command: 'setup',
+    };
+  }
+  if (!t.checkCapable) {
+    return {
+      text: '$(circle-slash) check: off — this engine predates `check`',
+      detail: 'update the binary to audit this file',
+      severity: 'warn',
+      command: 'setup',
+    };
+  }
+  if (t.runOn === 'off') {
+    return {
+      text: '$(circle-slash) check: off',
+      detail: 'disabled by nika.diagnostics.runOn — nothing audits this file',
+      severity: 'info', // the user's own switch — honest label, no nag
+      command: 'settings',
+    };
+  }
+  return {
+    text: '$(pass-filled) check: clean',
+    detail: 'static pre-flight — audit before run',
+    severity: 'info',
+    command: 'report',
+  };
+}
+
 export function statusTruth(t: TruthInput): Truth {
   // Rung 0 — no engine at all. A setup state, not a breakage: the warn
   // background points at the welcome view's one gesture (the error

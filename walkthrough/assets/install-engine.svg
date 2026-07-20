@@ -1,0 +1,56 @@
+<svg width="800" height="300" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="One binary: the extension drives nika — check, run, language server, time-travel debug">
+  <!-- Theme-aware by construction: every color is a var(--vscode-*) token,
+       resolved by the walkthrough renderer in light, dark and high-contrast
+       themes alike. No raw hex anywhere (DESIGN.md §7 applied to media). -->
+  <style>
+    .ui   { font-family: var(--vscode-font-family, system-ui, sans-serif); fill: var(--vscode-foreground, #ccc); }
+    .dim  { font-family: var(--vscode-font-family, system-ui, sans-serif); fill: var(--vscode-descriptionForeground, #999); }
+    .code { font-family: var(--vscode-editor-font-family, 'SF Mono', Menlo, Consolas, monospace); fill: var(--vscode-foreground, #ccc); }
+    .codedim { font-family: var(--vscode-editor-font-family, 'SF Mono', Menlo, Consolas, monospace); fill: var(--vscode-descriptionForeground, #999); }
+    .accent { fill: var(--vscode-textLink-foreground, #4daafc); }
+    .box  { fill: none; stroke: var(--vscode-foreground, #ccc); stroke-opacity: 0.28; }
+    .chip { fill: var(--vscode-textLink-foreground, #4daafc); fill-opacity: 0.10; stroke: var(--vscode-textLink-foreground, #4daafc); stroke-opacity: 0.55; }
+    .wire { stroke: var(--vscode-descriptionForeground, #999); stroke-opacity: 0.7; fill: none; }
+    .head { fill: var(--vscode-descriptionForeground, #999); fill-opacity: 0.7; }
+  </style>
+
+  <!-- The editor side -->
+  <rect class="box" x="24" y="92" width="180" height="96" rx="8"/>
+  <rect class="box" x="24" y="92" width="180" height="26" rx="8"/>
+  <circle cx="40" cy="105" r="4" fill="var(--vscode-descriptionForeground, #999)" fill-opacity="0.5"/>
+  <circle cx="54" cy="105" r="4" fill="var(--vscode-descriptionForeground, #999)" fill-opacity="0.35"/>
+  <text class="ui" x="40" y="146" font-size="14">your editor</text>
+  <text class="dim" x="40" y="168" font-size="12">this extension</text>
+
+  <!-- drives → -->
+  <line class="wire" x1="204" y1="140" x2="286" y2="140" stroke-width="1.5"/>
+  <path class="head" d="M286 134 L298 140 L286 146 Z"/>
+  <text class="dim" x="222" y="128" font-size="12">drives</text>
+
+  <!-- The engine chip -->
+  <rect class="chip" x="302" y="112" width="132" height="56" rx="10"/>
+  <text class="code" x="368" y="139" font-size="18" text-anchor="middle">nika</text>
+  <text class="dim" x="368" y="158" font-size="12" text-anchor="middle">one binary</text>
+
+  <!-- unlocks → four capability rows -->
+  <line class="wire" x1="438" y1="140" x2="486" y2="140" stroke-width="1.5"/>
+  <path class="head" d="M486 134 L498 140 L486 146 Z"/>
+
+  <line class="wire" x1="498" y1="52" x2="498" y2="228" stroke-width="1" stroke-opacity="0.35"/>
+
+  <g font-size="14">
+    <text class="code" x="516" y="58">check</text>
+    <text class="dim" x="586" y="58" font-size="13">audit before a token is spent</text>
+    <text class="code" x="516" y="114">run</text>
+    <text class="dim" x="586" y="114" font-size="13">live DAG · traces stay local</text>
+    <text class="code" x="516" y="170">lsp</text>
+    <text class="dim" x="586" y="170" font-size="13">completions · rename · hovers</text>
+    <text class="code" x="516" y="226">dap</text>
+    <text class="dim" x="586" y="226" font-size="13">time-travel a recorded run</text>
+  </g>
+
+  <!-- The two install routes -->
+  <line class="wire" x1="24" y1="256" x2="776" y2="256" stroke-width="1" stroke-opacity="0.25"/>
+  <text class="ui" x="24" y="284" font-size="13"><tspan class="accent">Finish Setup</tspan> — verified download, MCP wired, LSP on</text>
+  <text class="codedim" x="420" y="284" font-size="13">or: brew install supernovae-st/tap/nika</text>
+</svg>

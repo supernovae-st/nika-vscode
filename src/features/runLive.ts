@@ -66,6 +66,18 @@ export function cancelActiveRun(): void {
   setRunActive(undefined);
 }
 
+// Walkthrough completionEvent producers — one-way session latches. Every
+// run path funnels through runWorkflowLive (▶ · ▶ mock · palette · resume
+// · fork · task-scoped), so setting the keys HERE is what lets the
+// walkthrough's run/break steps check themselves off no matter which
+// surface started the run (the canvas hole the onCommand events missed).
+let everRanLatched = false;
+let sawFailureLatched = false;
+
+function latchContext(key: 'nika.everRan' | 'nika.sawFailure'): void {
+  void vscode.commands.executeCommand('setContext', key, true);
+}
+
 /**
  * Spawn `nika run --json <file>` and paint its event stream onto the
  * DAG live. The graph must already be loaded (the caller shows it for
@@ -113,6 +125,10 @@ export function runWorkflowLive(
     'st-running',
   );
   dagPanel.setRunState(true);
+  if (!everRanLatched) {
+    everRanLatched = true;
+    latchContext('nika.everRan');
+  }
 
   // Fingerprints of what actually RUNS, captured at spawn: an edit made
   // mid-run must not be labeled "successfully ran" (dirty-nodes law). voice-ok
@@ -255,6 +271,12 @@ export function runWorkflowLive(
     // swallowed the last intermediate) — the badges' resting truth.
     if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
     const verdict = model.workflowStatus;
+    if (verdict === 'failed' && !sawFailureLatched) {
+      // The break-it-on-purpose step checks itself on the FIRST failed
+      // verdict — the red taught, whoever started the run.
+      sawFailureLatched = true;
+      latchContext('nika.sawFailure');
+    }
     // ADR-099: paused is a QUESTION, not a failure — amber, the message
     // itself, and the answer flow one click away (exit 4 · human-gate).
     const icon = verdict === 'completed' ? '✓'

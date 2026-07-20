@@ -28,6 +28,7 @@ import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
+import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { subCreateAllowed } from './core/webviewPathGuard';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
@@ -209,6 +210,28 @@ const state: ClientState = {
 let outputChannel: import('vscode').OutputChannel | undefined;
 let extContext: ExtensionContext;
 let svc: NikaService;
+
+// ─── First contact (V-SOTA.A · the missing wire) ────────────────────────────
+// Session latches around the pure decision table (core/firstContact.ts):
+// armed = this machine never activated the extension before · flown = the
+// one-shot aha already fired · offered = the walkthrough opened (once).
+let firstContactArmed = false;
+let autoDemoFlown = false;
+let walkthroughOffered = false;
+
+/** Open the getting-started walkthrough once per machine. The burn is the
+ *  walkthroughShown key — written when the walkthrough actually OPENS, so
+ *  a first-contact session that dies before it opened re-greets next time. */
+function offerWalkthroughOnce(): void {
+  if (walkthroughOffered) { return; }
+  walkthroughOffered = true;
+  void extContext.globalState.update('nika.walkthroughShown', true);
+  void commands.executeCommand(
+    'workbench.action.openWalkthrough',
+    `${extContext.extension.id}#nika.gettingStarted`,
+    false,
+  );
+}
 
 // The journey SSOT (core/journey): refreshed on the events that can
 // move it (binary change · workflow create/delete · folder change ·
@@ -404,17 +427,24 @@ export function activate(context: ExtensionContext): void {
   log('INFO', `Nika extension v${context.extension.packageJSON.version} activating`);
   log('INFO', `Platform: ${process.platform}/${process.arch}`);
 
-  // First activation EVER → surface the walkthrough once (the 2026-07-08
-  // funnel audit: the five-step story existed but relied on VS Code's
-  // own post-install card, which most users dismiss unseen). Global
-  // state — one machine, one greeting; never again after that.
-  if (!context.globalState.get<boolean>('nika.walkthroughShown')) {
-    void context.globalState.update('nika.walkthroughShown', true);
-    void commands.executeCommand(
-      'workbench.action.openWalkthrough',
-      `${context.extension.id}#nika.gettingStarted`,
-      false,
-    );
+  // First activation EVER → the aha flow (V-SOTA.A · the missing wire).
+  // The old greeting opened the walkthrough first; inverted: on the real
+  // first contact the DEMO opens and runs itself once the engine is here
+  // (see maybeAutoRunDemo below), and the walkthrough follows as optional
+  // depth. Two keys: nika.firstActivation.v1 marks the machine's first
+  // contact — burned NOW, so the auto-run never replays, even when this
+  // session dies mid-flow; nika.walkthroughShown burns when the
+  // walkthrough actually opens (offerWalkthroughOnce). An updating user
+  // carries walkthroughShown from before this key existed and is never
+  // re-greeted, never auto-demoed.
+  firstContactArmed = !context.globalState.get<boolean>('nika.firstActivation.v1')
+    && !context.globalState.get<boolean>('nika.walkthroughShown');
+  if (firstContactArmed) {
+    void context.globalState.update('nika.firstActivation.v1', true);
+  } else if (!context.globalState.get<boolean>('nika.walkthroughShown')) {
+    // The resume path: a first-contact session died before the walkthrough
+    // ever opened — greet now, exactly the old flow.
+    offerWalkthroughOnce();
   }
 
   // The ONE seam to the binary + the capability-aware status bar.
@@ -1698,6 +1728,65 @@ export function activate(context: ExtensionContext): void {
   );
   state.activeDagPanel = dagPanel;
 
+  // ─── The missing wire (V-SOTA.A): first contact runs the demo itself ──────
+  // On a machine's FIRST activation ever, once the engine is here (at the
+  // first probe, or the moment Finish Setup lands it mid-session), the demo
+  // opens AND runs on mock/echo — zero key · zero network · zero spend, so
+  // consent is trivially satisfied and the on-canvas banner names the state.
+  // The DAG lights itself in under ten seconds; the walkthrough follows as
+  // optional depth (the create/run/dag steps already checked by the run).
+  // Guard: a workspace already carrying *.nika.yaml is an existing user's
+  // territory — never auto-open there (core/firstContact.ts pins the table
+  // and the gesture budget). Reduced-motion does NOT gate this: a real run
+  // is content, not decoration.
+  const maybeAutoRunDemo = async (): Promise<void> => {
+    if (!firstContactArmed || autoDemoFlown) { return; }
+    if (!service.available) {
+      // Engine not here yet — the current flow greets (door + walkthrough)
+      // and the wire STAYS armed for a binary landing this session.
+      offerWalkthroughOnce();
+      return;
+    }
+    autoDemoFlown = true; // claim the one shot BEFORE any await (double-fire guard)
+    const existing = await workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 1);
+    const move = firstContactMove({
+      armed: true,
+      flown: false,
+      binaryAvailable: true,
+      workspaceHasWorkflows: existing.length > 0,
+    });
+    if (move !== 'auto-demo') {
+      offerWalkthroughOnce();
+      return;
+    }
+    const target = await commands.executeCommand<Uri | undefined>('nika.tryDemo');
+    if (!target) {
+      offerWalkthroughOnce();
+      return;
+    }
+    runWorkflowLive(service, dagPanel, target.fsPath, log, undefined, {
+      extraArgs: ['--model', 'mock/echo'],
+      onClose: () => {
+        refreshStaleBadges(target.fsPath);
+        // The depth, offered AFTER the aha — beside the green DAG.
+        offerWalkthroughOnce();
+      },
+      onPaused: (paused) => { void onRunPaused(target.fsPath, paused); },
+    });
+    // Posted AFTER the spawn: run:state claims the verdict spot on start,
+    // so this lands on top of it — the honest « what is happening » state,
+    // visible on the canvas while the demo streams (never a toast).
+    dagPanel.runVerdict('▶', 'offline demo — mock provider, no keys', 'st-running');
+  };
+  context.subscriptions.push(service.onDidChange(() => {
+    maybeAutoRunDemo().catch((e) => {
+      // A failed wire never dead-ends the first contact: say so in the
+      // log and fall back to the greeting (the demo stays one gesture).
+      log('WARN', `first-contact auto-demo failed: ${String(e)}`);
+      offerWalkthroughOnce();
+    });
+  }));
+
   // Native right-click on a canvas card: the node group carries
   // data-vscode-context (webviewSection 'nikaTask'), VS Code renders a
   // REAL context menu (package.json webview/context) and hands each
@@ -2727,11 +2816,15 @@ export function activate(context: ExtensionContext): void {
 
   // Command: Try the demo — the one-gesture sandbox. A runnable hello-canvas
   // (four waves · mock/echo · zero key · zero network) lands on disk and
-  // opens beside the canvas. It NEVER auto-runs: pressing ▶ (mock) is the
-  // user's gesture — consent is the whole point of a sandbox. The write path
+  // opens beside the canvas. The COMMAND never runs anything: pressing ▶
+  // (mock) is the user's gesture — the one exception lives in the
+  // first-contact wire (maybeAutoRunDemo), which starts the mock run
+  // ITSELF after calling this, consent trivially satisfied (zero cost ·
+  // zero key · zero network · the banner names the state). The write path
   // is host-chosen (workspace root · or tmp when no folder is open), NEVER
   // supplied by the webview: this command takes no argument, so riding the
-  // welcome whitelist buys a compromised webview no arbitrary write.
+  // welcome whitelist buys a compromised webview no arbitrary write. It
+  // returns the landed uri so the wire knows what to run.
   context.subscriptions.push(
     commands.registerCommand('nika.tryDemo', async () => {
       // The write path is host-chosen (workspace root · or a tmp scratch
@@ -2746,6 +2839,7 @@ export function activate(context: ExtensionContext): void {
       // Canvas beside — an explicit uri keeps the guard AND rides the
       // skeleton (reveal now · loading · fill). The ▶ waits for the user.
       await commands.executeCommand('nika.showDag', target);
+      return target;
     }),
   );
 
