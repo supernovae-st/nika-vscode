@@ -3,7 +3,7 @@
 // Handles discovering, downloading, and validating the Nika binary from GitHub releases.
 // Pure functions with no module-level state — all dependencies passed as parameters.
 
-import { window, ProgressLocation, ExtensionContext } from 'vscode';
+import { window, ProgressLocation, ExtensionContext, type CancellationToken } from 'vscode';
 import { execFile } from 'child_process';
 import * as https from 'https';
 import * as fs from 'fs';
@@ -105,8 +105,15 @@ function readBody(res: IncomingMessage): Promise<string> {
   });
 }
 
-/** Downloads a URL to a file path, streaming directly to disk. */
-function downloadToFile(url: string, destPath: string): Promise<void> {
+/** The typed cancel — the caller tells a user's Stop from a failure. */
+export class DownloadCancelled extends Error {
+  constructor() { super('download cancelled'); }
+}
+
+/** Downloads a URL to a file path, streaming directly to disk.
+ *  `token` (optional) aborts the in-flight transfer — the stream is
+ *  destroyed and the partial file removed (never a half binary). */
+function downloadToFile(url: string, destPath: string, token?: CancellationToken): Promise<void> {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
     const cleanup = (err: Error): void => {
@@ -114,8 +121,15 @@ function downloadToFile(url: string, destPath: string): Promise<void> {
       fs.unlink(destPath, () => undefined);
       reject(err);
     };
+    if (token) {
+      const sub = token.onCancellationRequested(() => {
+        sub.dispose();
+        cleanup(new DownloadCancelled());
+      });
+    }
 
     const request = (targetUrl: string, redirectsLeft: number): void => {
+      if (token?.isCancellationRequested) { return; } // cleanup already fired
       https.get(targetUrl, { headers: { 'User-Agent': 'vscode-nika-extension' } }, (res) => {
         if (
           (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)
@@ -163,13 +177,16 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
   return window.withProgress(
     {
       location: ProgressLocation.Notification,
+      // Long + cancellable (annexe A) — step details narrate below; the
+      // deep story lands in the Nika output channel on failure.
       title: 'Nika: downloading the engine…',
-      cancellable: false,
+      cancellable: true,
     },
-    async (progress) => {
+    async (progress, token) => {
       try {
         progress.report({ message: 'Resolving the latest release...' });
         const version = await resolveLatestVersion();
+        if (token.isCancellationRequested) { throw new DownloadCancelled(); }
         const archiveExt = isWindows ? '.zip' : '.tar.gz';
         const archiveName = `${artifactName}-${version}${archiveExt}`;
         const assetUrl = `${GITHUB_DOWNLOAD_BASE}/v${version}/${archiveName}`;
@@ -180,7 +197,8 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         fs.mkdirSync(storagePath, { recursive: true });
 
         const archiveDest = path.join(storagePath, archiveName);
-        await downloadToFile(assetUrl, archiveDest);
+        await downloadToFile(assetUrl, archiveDest, token);
+        if (token.isCancellationRequested) { throw new DownloadCancelled(); }
 
         // The release publishes ONE aggregate SHA256SUMS (the per-asset
         // .sha256 era is over — the old lookup silently SKIPPED

@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import { workflowDrifted } from '../core/workflowDrift';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { formatEta, measuredEtaMs } from '../core/runEta';
 import { verifyChain, type ChainVerdict } from '../core/chainVerify';
 import { parseTraceOutputs } from '../core/xray';
 import { extractRunArtifacts, humanBytes, pickCardArtifact, type RunArtifact } from '../core/artifacts';
@@ -207,9 +208,13 @@ export async function latestTraceForGraph(
 }
 
 class TraceItem extends vscode.TreeItem {
-  constructor(readonly trace: TraceFile) {
+  constructor(readonly trace: TraceFile, liveChips: string[] = []) {
     super(path.basename(trace.uri.fsPath), vscode.TreeItemCollapsibleState.Collapsed);
-    this.description = summarizeRun(trace.model);
+    // A LIVE row narrates its present (annexe B #6): in-flight spend +
+    // measured time-left ride the description as compact chips. Branch
+    // stays OWED — the journal wire records no VCS facts (nothing to
+    // show without inventing).
+    this.description = [summarizeRun(trace.model), ...liveChips].join(' · ');
     this.contextValue = 'nikaTrace';
     // A broken chain outranks the run verdict: an unverified journal's
     // "completed" is itself unverified (Proof Arc P2).
@@ -406,6 +411,11 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
   /** fsPath → parsed trace, keyed by mtime — a tree refresh must not
    *  re-read and re-fold every journal on disk (3 passes × N traces). */
   private readonly parsed = new Map<string, TraceFile>();
+  /** Fired after each top-level scan with the needs-you count (paused
+   *  runs — a human answer is the only unblock). The view badge reads
+   *  it; `0` clears (annexe B #5: the dot exists only when a run
+   *  actually waits on the human). */
+  onScan?: (pausedCount: number) => void;
 
   refresh(): void {
     this.emitter.fire();
@@ -475,12 +485,25 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
       if (!seen.has(key)) { this.parsed.delete(key); }
     }
     traces.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    this.onScan?.(traces.filter((t) => t.model.workflowStatus === 'paused').length);
     if (traces.length === 0) {
       const empty = new vscode.TreeItem('No traces yet — runs write .nika/traces/*.ndjson');
       empty.iconPath = new vscode.ThemeIcon('info');
       return [empty];
     }
-    return traces.map((t) => new TraceItem(t));
+    const models = traces.map((t) => t.model);
+    const now = Date.now();
+    return traces.map((t) => {
+      const chips: string[] = [];
+      if (t.model.workflowStatus === 'running') {
+        if (t.model.liveUsd !== undefined) {
+          chips.push(`~$${t.model.liveUsd.toFixed(t.model.liveUsd < 0.1 ? 4 : 2)}`);
+        }
+        const eta = measuredEtaMs(t.model, models, now);
+        if (eta !== undefined) { chips.push(`${formatEta(eta)} left`); }
+      }
+      return new TraceItem(t, chips);
+    });
   }
 }
 

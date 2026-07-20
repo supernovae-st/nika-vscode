@@ -46,10 +46,23 @@ export function isRunActive(): boolean {
   return activeRun !== undefined;
 }
 
+// Run lifecycle as an event — the status pill's spin (and any other
+// listener) follows spawn/close without threading a handle through
+// every runWorkflowLive call site.
+const runActiveEmitter = new vscode.EventEmitter<boolean>();
+export const onDidChangeRunActive: vscode.Event<boolean> = runActiveEmitter.event;
+
+function setRunActive(handle: { kill: () => void } | undefined): void {
+  const was = activeRun !== undefined;
+  activeRun = handle;
+  const is = activeRun !== undefined;
+  if (was !== is) { runActiveEmitter.fire(is); }
+}
+
 /** Stop any live run in flight (a new run, or panel dispose). */
 export function cancelActiveRun(): void {
   activeRun?.kill();
-  activeRun = undefined;
+  setRunActive(undefined);
 }
 
 /**
@@ -136,7 +149,7 @@ export function runWorkflowLive(
       env: { ...process.env, NO_COLOR: '1' },
     },
   );
-  activeRun = { kill: () => child.kill() };
+  setRunActive({ kill: () => child.kill() });
 
   let buffer = '';
   let lastPainted = '';
@@ -226,12 +239,12 @@ export function runWorkflowLive(
   });
 
   child.on('error', (err) => {
-    activeRun = undefined;
+    setRunActive(undefined);
     dagPanel.setRunState(false);
     void vscode.window.showWarningMessage(`Nika: run failed to start — ${err.message}`);
   });
   child.on('close', (code) => {
-    activeRun = undefined;
+    setRunActive(undefined);
     paint(); // final flush FIRST — the buffer now holds every complete
              // line; the last card must reach its terminal status before
              // the pill flips to idle (else Run re-enables mid-glow).

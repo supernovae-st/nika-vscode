@@ -6,6 +6,58 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Native depth — welcome states, one status voice, notification diet
+
+- **Welcome views tell every state apart** (annexe A #6): five
+  discriminated `viewsWelcome` states on the Workflows view — engine
+  absent (install button + sovereign Homebrew/source links) · repo
+  unequipped · no folder open (`Open Folder` leads) · folder without
+  workflows (`Create Workflow` is the one button) · working. Each
+  names its cause and carries one primary gesture; the old catch-all
+  died.
+- **One fused status item** (annexe A #10-11): the pill reads
+  `state · findings · cost` — doctor findings and the workspace cost
+  ceiling ride the text once probed; `$(sync~spin)` while a live run
+  or station sweep is in flight; the ERROR background now belongs to
+  doctor red alone (run-blocking findings → « Open the Station » as
+  the head move) — a missing binary warns instead of screaming; the
+  tooltip carries the full workspace truth (rollups · ceiling · busy).
+- **Notification diet** (annexe A #12): copy/wire/restart/setup
+  successes flash in the status bar instead of toasting; surviving
+  capability notes (`predates run/resume/init/lsp`, PATH repairs)
+  carry « Don't show again » (per-toast memory); the engine download
+  is cancellable mid-flight (Stop = a calm flash, partials removed)
+  and its failure toast gained « Details » → the output channel.
+  Error toasts that carry their fix stay untouched.
+- **Settings polish** (annexe A #15): every setting carries an `order`
+  (grouped ranks: engine · authoring · checks · runs · canvas · AI ·
+  nudges), consequence-first `markdownDescription` prose with
+  `#nika.x#` cross-links, and per-value `enumDescriptions` on every
+  enum — all ratcheted by a unit test.
+- **Testing API depth** (annexe A #13): golden failures render a true
+  expected/actual diff (the actual reconstructed from the engine's own
+  drift report — never invented) anchored on the `outputs:` block;
+  golden profiles are tag-gated to workflow items (the run-then-skip
+  hack died); recorded runs from ANY terminal/CI/canvas land their
+  verdicts through publish-only test runs — the flight recorder feeds
+  the explorer. Continuous run stays owed: the 0.104 capability
+  surface exposes no watch door.
+- **New Workflow wizard** (annexe A #14): a three-step QuickInput —
+  name → starter (the four verbs' spec starters · engine templates ·
+  blank) → model (mock/echo default · locals before cloud per the
+  presentation lock, exact catalog rows only) — with Back at every
+  step; engine templates honestly read 2 steps (their file is the
+  engine's).
+- **Runs rows narrate the present** (annexe B #5-6): a LIVE row chips
+  in-flight spend (`~$…`) and a MEASURED time-left (newest completed
+  sibling run, majority-overlap gated — no prior, no chip); the Runs
+  view badge counts paused runs only (needs-you, never activity) and
+  the pause toast gained « Show node » — a deep link to the waiting
+  card.
+- **Honest tab pulse** (annexe B #11): the DAG tab title carries `▶ `
+  only while a live run drives it — immobile at rest, gone at the
+  terminal write.
+
 - **International keybindings + walkthrough truth** — the `⌘K` chord
   family replaces `ctrl+alt` (the AltGr trap on EU layouts) and
   `⌘⇧R` (macOS Refactor shadow), every binding when-scoped to nika

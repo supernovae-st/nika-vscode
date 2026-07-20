@@ -1,8 +1,11 @@
-// statusTruth.test.ts — the degradation ladder, provable (W-ERR S1).
+// statusTruth.test.ts — the degradation ladder, provable (W-ERR S1 ·
+// V1.2 fused item).
 //
 // The law under test: worst state wins · every non-ok state names its
 // exact next move · an unprobed canary stays silent (never a false
-// alarm) · doctor fails ride the tooltip without stealing the pill.
+// alarm) · the ERROR background belongs to doctor red ALONE (annexe A
+// #11 — no binary is a setup warn, not a breakage) · the busy flag
+// spins the head · findings + cost ride the text as chips.
 
 import { describe, it, expect } from 'vitest';
 import { statusTruth, type TruthInput } from '../core/statusTruth';
@@ -21,14 +24,30 @@ function input(partial: Partial<TruthInput>): TruthInput {
 }
 
 describe('statusTruth — the ladder (worst wins)', () => {
-  it('no binary is the floor: error + the install move, whatever else is true', () => {
+  it('no binary is a setup WARN (never the error background) + the install move', () => {
     const t = statusTruth(input({ available: false, lspState: 'failed', gen1: false }));
-    expect(t.severity).toBe('error');
-    expect(t.text).toContain('no binary');
+    expect(t.severity).toBe('warn');
+    expect(t.text).toContain('no engine');
     expect(t.headline?.command).toBe('nika.finishSetup');
   });
 
-  it('a crashed server outranks everything above the floor and says the CLI lane survives', () => {
+  it('doctor red is THE error state: run-blocking findings own the background + the Station move', () => {
+    const t = statusTruth(input({ doctorFails: 3 }));
+    expect(t.severity).toBe('error');
+    expect(t.text).toContain('3 findings');
+    expect(t.headline?.command).toBe('nika.showStation');
+    expect(t.tooltip.join(' ')).toContain('fix');
+    // Singular grammar holds.
+    expect(statusTruth(input({ doctorFails: 1 })).text).toContain('1 finding');
+  });
+
+  it('doctor red outranks a crashed server (worst wins)', () => {
+    const t = statusTruth(input({ doctorFails: 2, lspState: 'failed' }));
+    expect(t.severity).toBe('error');
+    expect(t.headline?.command).toBe('nika.showStation');
+  });
+
+  it('a crashed server (doctor clean) warns and says the CLI lane survives', () => {
     const t = statusTruth(input({ lspState: 'failed', gen1: false }));
     expect(t.severity).toBe('warn');
     expect(t.text).toContain('lsp down');
@@ -60,14 +79,41 @@ describe('statusTruth — the ladder (worst wins)', () => {
     expect(statusTruth(input({ lspCapable: false, lspState: 'off', runCapable: false })).text)
       .toContain('static');
   });
+});
 
-  it('doctor fails ride the tooltip on every rung above the floor — never the pill', () => {
-    const ok = statusTruth(input({ doctorFails: 3 }));
-    expect(ok.severity).toBe('ok');
-    expect(ok.text).not.toContain('3');
-    expect(ok.tooltip.join(' ')).toContain('3 fails');
-    const down = statusTruth(input({ lspState: 'failed', doctorFails: 1 }));
-    expect(down.tooltip.join(' ')).toContain('1 fail');
-    expect(statusTruth(input({ doctorFails: 0 })).tooltip.join(' ')).not.toContain('doctor');
+describe('statusTruth — the fused chips (V1.2)', () => {
+  it('busy spins the head on every rung; idle carries the zap', () => {
+    expect(statusTruth(input({ busy: true })).text).toContain('$(sync~spin)');
+    expect(statusTruth(input({ busy: true, available: false })).text).toContain('$(sync~spin)');
+    expect(statusTruth(input({ busy: true, doctorFails: 2 })).text).toContain('$(sync~spin)');
+    expect(statusTruth(input({})).text).toContain('$(zap)');
+    expect(statusTruth(input({})).text).not.toContain('sync~spin');
+  });
+
+  it('the cost ceiling rides the text — floor-honest, trailing zeros trimmed', () => {
+    expect(statusTruth(input({ costBoundedUsd: 0.42 })).text).toContain('$0.42');
+    expect(statusTruth(input({ costBoundedUsd: 0.042 })).text).toContain('$0.042');
+    expect(statusTruth(input({ costBoundedUsd: 1.5, costIsFloor: true })).text).toContain('≥ $1.5');
+    // Zero/absent cost = no chip (a `$0` would be noise, not truth).
+    expect(statusTruth(input({ costBoundedUsd: 0 })).text).not.toContain('$0');
+    expect(statusTruth(input({})).text).not.toContain('$0');
+  });
+
+  it('findings + cost compose in order: state · findings · cost', () => {
+    const t = statusTruth(input({ doctorFails: 3, costBoundedUsd: 0.42 }));
+    const findingsAt = t.text.indexOf('3 findings');
+    const costAt = t.text.indexOf('$0.42');
+    expect(findingsAt).toBeGreaterThan(-1);
+    expect(costAt).toBeGreaterThan(findingsAt);
+  });
+
+  it('workspace rollups are FACTS (plain lines), never warning lines', () => {
+    const t = statusTruth(input({ workflowsTotal: 5, workflowsWithFindings: 2, costBoundedUsd: 0.42 }));
+    expect(t.facts.join(' ')).toContain('5 workflows');
+    expect(t.facts.join(' ')).toContain('2 with check findings');
+    expect(t.facts.join(' ')).toContain('cost ceiling $0.42');
+    expect(t.tooltip.join(' ')).not.toContain('5 workflows');
+    const clean = statusTruth(input({ workflowsTotal: 3, workflowsWithFindings: 0 }));
+    expect(clean.facts.join(' ')).toContain('all check clean');
   });
 });
