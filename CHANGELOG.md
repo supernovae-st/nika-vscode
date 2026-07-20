@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The layout leaves the main thread — worker, cache, stale-while-relayout
+
+- **ELK runs in a Worker**: the layered layout now chews OFF the main thread (a dedicated worker bundle, pool of one active + one pre-warmed spare, latest-wins protocol with >150ms cancel-and-promote) — at 300 nodes the canvas stays interactive through a multi-second layout instead of freezing (measured: zero >100ms main-thread tasks during the layout wait vs one 2.9s block before). A structural failure walks a ladder — direct Worker → blob Worker → the exact previous main-thread call, byte-identical results (proven: laid JSON byte-equal across rungs at n=40/120/300) — so no environment ever loses a graph.
+- **Layouts are remembered**: a workflow's laid geometry is cached (FNV-1a key over what ELK actually sees — structure, heights, labels, never positions or statuses — LRU 20) and persisted through `workspaceState`, so reopening a panel or switching back to a workflow repaints in milliseconds instead of re-laying (measured: 0.2ms + paint vs 2.6s cold at n=300). One workflow can never serve another's positions — the workflow identity is part of the key.
+- **Stale-while-relayout**: editing a big workflow paints frame 0 immediately (survivors hold their positions, newcomers land at their neighbors' centroid, wires curve direct) while the worker converges the real layout with position hints — the settled cards then glide to their final places through the existing 300ms transition. The hinted re-layout runs on `BRANDES_KOEPF` placement with `INTERACTIVE` crossing minimization (measured at n=300: ~166ms vs 2.6s cold — 6%); the cold path keeps the production option set untouched.
+- **The layout note knows when pixels beat prose**: `laying out N tasks…` only shows when the canvas would otherwise be blank — a cache hit or a provisional frame skips it.
+- **Perf seam**: `nk:layout` / `nk:swr-frame` / `nk:paint-final` performance marks (always on) + `scripts/perf/measure.mjs` — an http-served Playwright probe (Workers are blocked on `file://`) measuring cold/switch/pan/equivalence with hard correctness assertions.
+
 ### The moments — the run's end is the peak
 
 - **One confetti, ever**: the FIRST completed run on a machine (the mock demo counts — the auto-demo's green IS the aha) rains ~48 verb-hued particles over the verdict, once, and never again. Reduced motion, forced colors or a hidden panel skip the show — the verdict banner stays the receipt — and the community ask now waits out the fall so the one celebration is never covered by a toast.

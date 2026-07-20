@@ -57,6 +57,31 @@ const webviewConfig = {
   logLevel: 'info',
 };
 
+// ─── ELK layout worker (Browser Worker) ──────────────────────────────────
+// A CLASSIC iife script — `new Worker(uri)` boots it without {type:
+// 'module'}; same elkjs alias as the webview bundle, so the worker and
+// the sync fallback run byte-identical layout code.
+const elkWorkerConfig = {
+  entryPoints: ['src/webview/elkWorker.ts'],
+  outfile: 'out/webview/elkWorker.js',
+  bundle: true,
+  minify: !isDev,
+  sourcemap: isDev ? 'inline' : false,
+  platform: 'browser',
+  target: 'es2020',
+  format: 'iife',
+  external: [],
+  mainFields: ['browser', 'module', 'main'],
+  conditions: ['browser', 'import', 'default'],
+  alias: {
+    'elkjs': 'elkjs/lib/elk.bundled.js',
+  },
+  logOverride: {
+    'commonjs-variable-in-esm': 'silent',
+  },
+  logLevel: 'info',
+};
+
 // ─── CSS for webview ─────────────────────────────────────────────────────
 const cssConfig = {
   entryPoints: ['src/webview/dag.css'],
@@ -67,7 +92,7 @@ const cssConfig = {
 };
 
 async function build() {
-  const configs = [extensionConfig, webviewConfig, cssConfig];
+  const configs = [extensionConfig, webviewConfig, elkWorkerConfig, cssConfig];
   if (isWatch) {
     const contexts = await Promise.all(configs.map((c) => esbuild.context(c)));
     await Promise.all(contexts.map((ctx) => ctx.watch()));
