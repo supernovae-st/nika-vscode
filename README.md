@@ -124,7 +124,7 @@ theme*, not to extensions:
   | `model:` | *choose your model* | the catalog ref (local-first) |
   | `vars:` | *declare an input* · *make it callable · N untyped* | a typed/untyped input · untyped→typed promotion |
   | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N vars ride --var* | each run-blocking gap, one gesture |
-  | `- id:` | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
+  | `greet:` (the task key) | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
   | `after:` | *order on state* | pre-checked multi-pick of `{producer: predicate}` control entries · descendants never offered (cycle-safe) |
   | `when:` | *choose a gate* | a CEL v0.1 shape over LOCAL reads (vars · with) · upstream state becomes `after:` · an upstream value hoists through `with:` first |
   | `for_each:` | *choose the collection* | typed array vars · upstream outputs (bound through `with:` — the binding IS the edge) |
