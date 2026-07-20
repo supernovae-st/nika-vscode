@@ -455,6 +455,7 @@ type ExtToWebviewMessage =
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
+  | { kind: 'dag:loading'; name: string }
   | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
@@ -6207,6 +6208,8 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
   const msg = event.data;
   switch (msg.kind) {
     case 'dag:load':
+      // The skeleton is spent — the graph replaces the breathing ghost.
+      clearLoadingSkeleton();
       // A new graph invalidates any loaded timeline; transport:load (if
       // this is a replay) follows in-order and re-arms it. The resync
       // covers the race where the timeline lands while ELK is laying out.
@@ -6258,8 +6261,12 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       pushActivityLine(msg.icon, msg.text, msg.cls ?? 'st-note', msg.taskId);
       break;
     case 'dag:clear':
+      clearLoadingSkeleton();
       transport.deactivate();
       renderer.clear();
+      break;
+    case 'dag:loading':
+      showLoadingSkeleton(msg.name);
       break;
     case 'dag:fitToView':
       renderer.fitToView();
@@ -6842,6 +6849,27 @@ document.getElementById('es-new')?.addEventListener('click', () => {
 document.getElementById('es-walkthrough')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:openWalkthrough' });
 });
+
+// ─── The skeleton (#6) — reveal-then-fill ───────────────────────────────────
+// A graph is loading: dress the welcome ghost (breathe it · name the file
+// coming) so a slow first spawn never shows a dead click. Only when the
+// empty-state is up — a live graph switch keeps its own canvas. dag:load /
+// dag:clear spend it.
+function showLoadingSkeleton(name: string): void {
+  const es = document.getElementById('empty-state');
+  if (!es || es.hasAttribute('hidden')) { return; }
+  document.body.classList.add('dag-loading');
+  const label = document.getElementById('es-loading');
+  if (label) {
+    label.textContent = `loading ${name}…`;
+    label.removeAttribute('hidden');
+  }
+}
+
+function clearLoadingSkeleton(): void {
+  document.body.classList.remove('dag-loading');
+  document.getElementById('es-loading')?.setAttribute('hidden', '');
+}
 
 // ─── The welcome · describe → generate · actions → whitelisted commands ─────
 

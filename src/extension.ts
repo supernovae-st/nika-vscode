@@ -21,11 +21,13 @@ import {
 } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { WorkflowTreeProvider } from './workflowTree';
 import { registerNikaBadge } from './features/fileBadge';
 import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
+import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addAfterEntry,
@@ -155,14 +157,35 @@ import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
 /** The ONLY commands the welcome surface may execute (webview input —
- *  a compromised webview must not become an executeCommand oracle). */
+ *  a compromised webview must not become an executeCommand oracle). Every
+ *  entry runs with NO webview-supplied argument (`executeCommand(command)`),
+ *  so a listed command must be safe when called bare · `nika.tryDemo`
+ *  writes only to a host-chosen path, never one the webview names. */
 const WELCOME_COMMANDS = new Set([
-  'nika.newWorkflow', 'nika.browseExamples', 'nika.replayTrace',
+  'nika.tryDemo', 'nika.newWorkflow', 'nika.browseExamples', 'nika.replayTrace',
   'nika.showMenu', 'nika.checkWorkflow', 'nika.showReport',
   'nika.inspectWorkflow', 'nika.inferPermits', 'nika.explainWorkflow',
   'nika.openSpec', 'nika.copyAiPrompt', 'nika.setupMcp',
   'nika.restartServer', 'nika.preflightWorkflow', 'nika.runHistory',
 ]);
+
+/** A free `<stem>[-N].<ext>` under `dir` — the demo sandbox never clobbers
+ *  a file the user already has (skip-if-exists → suffix, no prompt). */
+async function freeWorkflowUri(dir: Uri, base: string): Promise<Uri> {
+  const dot = base.indexOf('.');
+  const stem = dot > 0 ? base.slice(0, dot) : base;
+  const ext = dot > 0 ? base.slice(dot) : '';
+  let candidate = Uri.joinPath(dir, base);
+  for (let n = 1; n < 100; n++) {
+    try {
+      await workspace.fs.stat(candidate);
+      candidate = Uri.joinPath(dir, `${stem}-${n}${ext}`);
+    } catch {
+      break; // stat threw → the name is free
+    }
+  }
+  return candidate;
+}
 
 /** Coarse relative-time label for the welcome's recent list. */
 function relTime(mtime: number): string {
@@ -2647,11 +2670,47 @@ export function activate(context: ExtensionContext): void {
   // Command: Show DAG webview (engine projection → client fallback).
   context.subscriptions.push(
     commands.registerCommand('nika.showDag', async (uri?: Uri) => {
-      const doc = await requireNikaDocument(uri);
-      if (!doc) { return; }
+      // The door (#1): an explicit uri (explorer · menu) keeps the guard;
+      // a bare invocation (sidebar · walkthrough · palette) PROBES without
+      // toasting — no workflow in focus opens the welcome home, never a
+      // warning that dead-ends its own « ◇ Open the canvas ».
+      const doc = uri ? await requireNikaDocument(uri) : activeNikaDocument();
+      if (!doc) {
+        dagPanel.show();
+        void state.pushWelcomeData?.();
+        return;
+      }
       dagWorkflowUri = doc.uri;
-      const graph = await loadGraphFor(doc);
-      dagPanel.show(graph);
+      // The skeleton (#6): reveal NOW, fill when the graph lands — a slow
+      // first spawn breathes the welcome ghost under « loading <name>… »,
+      // never a dead click on a frozen panel.
+      dagPanel.show();
+      dagPanel.loading(path.basename(doc.uri.fsPath));
+      dagPanel.loadGraph(await loadGraphFor(doc));
+    }),
+  );
+
+  // Command: Try the demo — the one-gesture sandbox. A runnable hello-canvas
+  // (four waves · mock/echo · zero key · zero network) lands on disk and
+  // opens beside the canvas. It NEVER auto-runs: pressing ▶ (mock) is the
+  // user's gesture — consent is the whole point of a sandbox. The write path
+  // is host-chosen (workspace root · or tmp when no folder is open), NEVER
+  // supplied by the webview: this command takes no argument, so riding the
+  // welcome whitelist buys a compromised webview no arbitrary write.
+  context.subscriptions.push(
+    commands.registerCommand('nika.tryDemo', async () => {
+      // The write path is host-chosen (workspace root · or a tmp scratch
+      // dir when no folder is open) — NEVER webview-supplied.
+      const { dir, scratch } = demoTargetDir(workspace.workspaceFolders?.[0]?.uri.fsPath, os.tmpdir());
+      const dirUri = Uri.file(dir);
+      if (scratch) { await workspace.fs.createDirectory(dirUri); }
+      const target = await freeWorkflowUri(dirUri, DEMO_WORKFLOW_FILE);
+      await workspace.fs.writeFile(target, Buffer.from(DEMO_WORKFLOW, 'utf-8'));
+      const doc = await workspace.openTextDocument(target);
+      await window.showTextDocument(doc, { preview: false });
+      // Canvas beside — an explicit uri keeps the guard AND rides the
+      // skeleton (reveal now · loading · fill). The ▶ waits for the user.
+      await commands.executeCommand('nika.showDag', target);
     }),
   );
 

@@ -5581,6 +5581,38 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   #es-ghost { display: none; }
 }
 
+/* ─── The skeleton (#6) — reveal-then-fill ─────────────────────────────
+   A graph is loading: the welcome ghost breathes and a quiet pill names
+   the file coming (in-canvas, never a toast). dag:load spends it. Tokens
+   only — the pill re-scopes with each skin; reduced-motion swaps the
+   breathe for a static raised opacity (never nothing). */
+#es-loading {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--nk-ink) 68%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
+  border-radius: 999px;
+  pointer-events: none;
+}
+body.dag-loading #es-ghost {
+  opacity: 0.3;
+  animation: es-loading-breathe 1.5s ease-in-out infinite;
+}
+@keyframes es-loading-breathe { 50% { opacity: 0.14; } }
+@media (prefers-reduced-motion: reduce) {
+  body.dag-loading #es-ghost { animation: none; opacity: 0.24; }
+}
+@media (forced-colors: active) {
+  #es-loading { color: CanvasText; background: Canvas; border: 1px solid CanvasText; }
+}
+
 /* ─── The promoted contract — the child's callable API on the card ──
    One row per input: name · state. Supplied rides the data hue,
    default rests muted, required-unset wears the warning (a FACT —
