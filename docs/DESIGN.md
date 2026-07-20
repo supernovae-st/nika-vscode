@@ -199,8 +199,16 @@ NEUTRAL cards (`#1c1d21` · white hairlines 0.09) — the cards keep
 their level while the pool falls away, so the raise WIDENS. **Blue
 lives only in accents**: data wires, verb tiles, selection, the
 pointer lamp, the aurora — and it is ONE blue: the Run CTA derives
-from the accent (`color-mix`), never a second unrelated blue. Martian
-Mono everywhere. Quiet by default — glow is spent on
+from the accent (`color-mix`), never a second unrelated blue. Since
+tokens v3 the one blue is STRUCTURAL: every bright tint and hairline
+in the skin derives from `--nk-accent-bright` (the brand's
+`accentBright`, belt-pinned to the generated SSOT) — tints via
+`color-mix` at the site's alpha, 14% border hairlines via
+`--nk-hairline-accent`; the deck chrome under ports and the omnibar is
+`--nk-chrome`; the aurora speaks through `--nk-aurora-sweep` /
+`--nk-aurora-danger` (its vivid stops ARE `--nk-st-failed`). A raw
+`rgb()`/hex outside the token seam fails the parity belt's negative
+scan. Martian Mono everywhere. Quiet by default — glow is spent on
 running/selected/failed only.
 
 **The background is a four-layer instrument, each layer with a job:**
@@ -285,7 +293,15 @@ strips every material (flat system colors).
 ## 6 · Motion
 
 One signature ease `cubic-bezier(0.22, 1, 0.36, 1)` @140ms for every
-hover/focus/state. ARRIVALS ride the SPRING — a canonical `linear()`
+hover/focus/state. Tokens v3 names the full duration scale — every
+timing a multiple of the run quantum: `--nk-dur-fast` 80ms (the ONE
+clock; spinner strips advance on it via `--nk-frame-interval`) ·
+`--nk-dur-base` 160ms (micro-state) · `--nk-dur-slow` 240ms (panels ·
+reveals) · `--nk-dur-deliberate` 400ms (ceremonies). Two easing
+voices: `--nk-ease-effects` (opacity · color · glow = the signature
+ease) and `--nk-ease-spatial` (position · scale · arrivals = the
+spring); the legacy `--nk-dur`/`--nk-ease` pair remaps onto the scale
+in V0.d. ARRIVALS ride the SPRING — a canonical `linear()`
 curve with ~4% overshoot (`--nk-spring` · falls back to the ease via
 `@supports`): card entrances, verdict pops, the output line. The
 CAMERA speaks ease-out (every d3 zoom transition: fit 460ms · center

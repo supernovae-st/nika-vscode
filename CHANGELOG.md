@@ -6,6 +6,31 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Tokens v3 — the seam speaks, raw colors die
+
+- **Verb canon + alias**: `--nk-verb-<v>-canon` holds each verb hex
+  once; skins retune the plain `--nk-verb-<v>` alias only. The
+  phosphor wake now reads the canon var — the resting desaturation
+  can structurally never shadow the woken chroma.
+- **The bright-accent seam**: every blue tint/hairline in the nika
+  skin derives from `--nk-accent-bright` (the brand's `accentBright`,
+  belt-pinned) via `color-mix` — the stray `rgb(140 170 255)` family
+  converges on the canonical bright accent; borders at 14% ride
+  `--nk-hairline-accent`; the deck chrome is `--nk-chrome`; the
+  aurora's gradients are declared once (`--nk-aurora-sweep` /
+  `--nk-aurora-danger`, vivid stops = the failed voice).
+- **The named motion scale**: `--nk-dur-fast` 80 (the run quantum ·
+  `--nk-frame-interval`) · `base` 160 · `slow` 240 · `deliberate`
+  400, plus the two easing voices (`--nk-ease-effects` /
+  `--nk-ease-spatial`). Verb TEXT ramps (APCA ≥Lc60) are defined and
+  gated for V0.d consumption.
+- **The belts got teeth**: tokens-parity now proves canon+alias, the
+  wake's var() reads, a NEGATIVE scan (any raw color outside the
+  token seam fails), dynamic twins against the generated SSOT, and
+  the v3 roster's presence.
+- **Replay a Recorded Run** wears `$(debug-rerun)` — `$(history)` was
+  the one icon reading as "view history" on a command that re-executes.
+
 ### Native depth — welcome states, one status voice, notification diet
 
 - **Welcome views tell every state apart** (annexe A #6): five
