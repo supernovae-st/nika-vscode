@@ -118,6 +118,23 @@ every visible pixel.
   card to grand (the red teaches on the face). Facts hide, they are
   never dropped.
 
+## 1c · The four voices — each verb speaks its anatomy (W-D8)
+
+One DOM, one anatomy contract (§1) — but the verb inflects HOW the
+card speaks. The group already wears `verb-<v>`; the voices scope on
+it. `nodeHeightOf` is an order-independent sum, so a verb reordering
+its sections is height-safe by construction.
+
+| verb | voice | anatomy |
+|---|---|---|
+| infer | **prose** — the ask is a quotation | the prompt leads under the mechanism line, wrapped in dim « » marks + a 2px quote-rail (`--nk-verb-infer-canon` 30%). The rail and quotes leave together when the recorded output swaps in — data is not a quotation. The senses ∴ thinking / ▣ vision chip in the infer text voice. |
+| exec | **terminal** — the machine window | `$ cmd` in a framed strip: 2px rail (`--nk-verb-exec-canon` 30%) + ink-wash ground (5%) + strict mono. The frame HOLDS through the settle — `→ stdout` keeps talking in the same window (a place, not a speech-act; the swap only ADDS `.nc-body-live`). |
+| invoke | **hero** — the tool IS the card | the ONE reorder: the essence (the tool's soul, §1's essence grammar) appends BEFORE the sub — `invoke · ⚒ nika:jq` becomes the second line, the caption under the work. The essence reads half a point larger (10.5px). |
+| agent | **loop** — the inner life, structured | the LOOP BAND under the goal: `turn 3 · saw 5/12 tools` + the budget meter. HONEST meter: a declared budget fills a ratio bar (`--nk-verb-agent-text`); totals without a ceiling stay a bare counter — a bar would invent the denominator. nudged / stalled / compose stay prose facts below; the band survives mid-LOD (it is anatomy, not a fact), far-LOD drops it with the story. |
+
+The min anatomy stays fixed for every verb (head · verdict · one
+essence line) — the voices inflect the grand story, never the tile.
+
 ## 2 · Wires — the kind vocabulary (graph_format 2 · one channel per question)
 
 Channel allocation (the Bertin discipline): **dash = ontology** (solid
@@ -186,6 +203,28 @@ Sanctioned outside the registry: 🦋 is the brand signature, never a UI
 sense; `$(...)` codicons are VS Code's own vocabulary, a separate
 register. Color emoji never enter the mono registry (law 1's floor —
 the belt bans the ranges).
+
+## 2c · The connected grammar — every flow construct has its surface
+
+The language's flow words each own ONE canvas surface — no construct
+reads as another, none hides:
+
+| construct | surface |
+|---|---|
+| `with:` | the io row — `alias ← from`, clickable, lights the wire (§1) |
+| `after:` | the wire itself + its predicate label (§2's kind vocabulary) |
+| `when:` | the ⌁ gate chip leading the params row; statically-false gates wear the dead-gate weave + « never runs » |
+| `for_each:` | the SOURCE row `∥ items ← x` (io grammar, non-clickable — the collection is an expression, not always a producer) + the ×N head badge counting iterations + the deck frame |
+| `max_parallel:` / `fail_fast:` | policy chips `∥ max N` · `⤼ per-item` / `⊗ fail-fast` (worded marks) |
+| `retry:` / `timeout:` / `on_error:` | policy chips `↻×N` · `⏱ 30s` · the on_error route (§1) |
+| `output:` | `⤳ N outs` policy chip; named bindings feed the io rows downstream |
+| `on_finally:` | `◈ N` policy chip — cleanup always runs on a started task |
+| `permits:` | `▦ N` chip + the audit lens hulls (engine-projected) |
+| `workflow:` call | the ⎘ door chip + the child peek + the promoted contract (§1) |
+
+A sole wrapping `${{ … }}` unwraps in the for_each row label (io
+grammar reads refs bare); compound expressions stay as written — the
+title always keeps the source verbatim.
 
 ## 3 · Chrome floats (the ElevenLabs read)
 

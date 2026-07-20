@@ -417,6 +417,8 @@ interface DagNode {
   /** fan-out policies (spec 03): concurrency cap · per-item idiom. */
   maxParallel?: number;
   failFast?: boolean;
+  /** `for_each:` — the fan-out's collection, as written (client YAML). */
+  forEachSource?: string;
   /** Composition: the child workflow's OWN manifest (its projection). */
   subManifest?: {
     tasks: number; waves: number; costMin?: number; costMax?: number; permits?: number;
@@ -754,6 +756,8 @@ const POLICY_GAP = 6;
 const PREVIEW_IMG_H = 92;
 const PREVIEW_AUD_H = 30;
 const PREVIEW_GAP = 6;
+/** The agent LOOP BAND (W-D8) — .nc-agent-band 14px + 4px gap. */
+const AGENT_BAND_H = 18;
 /** The grand-mode sections (ex-hover content, ON the card now):
  *  fact/error lines 15px (clamped 2) · chips rows 18px · action
  *  buttons 18px rows. Mirror the .nc-x-* CSS (anatomy law). */
@@ -902,6 +906,29 @@ function hasIoRow(node: DagNode): boolean {
   return (node.bindingsIn?.length ?? 0) > 0;
 }
 
+/** The fan-out SOURCE row (W-D8) — `∥ items ← x` names the collection
+ *  the task maps over; rides the io display-prop (io-class fact). */
+function hasForEachRow(node: DagNode): boolean {
+  if (!displayProps.io) { return false; }
+  return node.forEachSource !== undefined;
+}
+
+/** `${{ tasks.list.output }}` → `tasks.list.output` — a SOLE wrapping
+ *  interpolation unwraps for the row (io grammar reads refs bare); a
+ *  compound expression stays as written. The title keeps the source. */
+function forEachSourceLabel(src: string): string {
+  const m = src.match(/^\$\{\{\s*(.+?)\s*\}\}$/);
+  return m ? m[1] : src;
+}
+
+/** The agent LOOP BAND shows when the loop speaks (W-D8) — turns or a
+ *  budget snapshot. ONE gate: the build renders it, nodeHeightOf
+ *  budgets it, cardFactsOf yields those two facts to it. */
+function hasAgentBand(node: DagNode): boolean {
+  return node.verb === 'agent' && node.agent !== undefined
+    && (node.agent.turns !== undefined || node.agent.budget !== undefined);
+}
+
 /** Whether the policy row shows — retry · timeout · on_error · outputs ·
  *  permits (declared facts only; an empty row never renders). */
 function hasPolicyRow(node: DagNode): boolean {
@@ -966,16 +993,19 @@ function cardFactsOf(node: DagNode): CardFact[] {
     facts.push({ k: 'output', v: node.outputPreview });
   }
   // The agent loop's inner life: tool routing · budget curve · nudges ·
-  // the stall evidence (fold annotations — engine truth).
+  // the stall evidence (fold annotations — engine truth). On an agent
+  // card the loop/budget pair PROMOTES to the structured band (W-D8 ·
+  // hasAgentBand) — only the prose facts remain here.
   const af = node.agent;
   if (af) {
-    if (af.turns !== undefined) {
+    const banded = hasAgentBand(node);
+    if (!banded && af.turns !== undefined) {
       const routing = af.offered !== undefined && af.universe !== undefined
         ? ` · saw ${af.offered}/${af.universe} tools`
         : '';
       facts.push({ k: 'loop', v: `turn ${af.turns}${routing}` });
     }
-    if (af.budget !== undefined) {
+    if (!banded && af.budget !== undefined) {
       facts.push({ k: 'budget', v: af.budget.budget !== undefined
         ? `${af.budget.totalTokens} of ${af.budget.budget} tokens`
         : `${af.budget.totalTokens} tokens so far` });
@@ -1135,7 +1165,12 @@ function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): numb
       h += Math.min(X_FACT_MAX_LINES, Math.max(1, Math.ceil(line.length / X_WRAP_CHARS))) * X_LINE_H;
     }
   }
+  // The agent loop band (W-D8) — one structured row when the loop
+  // speaks; its two facts left the prose block (cardFactsOf yields).
+  if (hasAgentBand(node)) { h += AGENT_BAND_H; }
   if (hasIoRow(node)) { h += IO_GAP + IO_H; }
+  // The fan-out source row — io metrics (one line, same gap).
+  if (hasForEachRow(node)) { h += IO_GAP + IO_H; }
   const contractRows = displayProps.contract ? Math.min(node.subManifest?.contract?.length ?? 0, 4) : 0;
   if (contractRows > 0) { h += IO_GAP + contractRows * 15 + 4; }
   if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
@@ -4159,9 +4194,54 @@ class DagRenderer {
     host.appendChild(el);
   }
 
+  /** The agent's LOOP BAND (W-D8 \u00b7 DESIGN.md \u00a71c) \u2014 the loop facts,
+   *  STRUCTURED on the card face: `turn 3 \u00b7 saw 5/12 tools` + the
+   *  budget meter. The meter is honest by construction: a declared
+   *  budget draws a filled ratio bar; totals without a ceiling stay a
+   *  bare counter \u2014 a bar would invent the denominator (engine-truth
+   *  law). nudged/stalled/compose stay prose facts below. Live agent
+   *  folds re-enter through refreshCardInPlace (the ONE re-painter). */
+  private appendAgentBand(host: HTMLElement, node: DagNode): void {
+    if (!hasAgentBand(node)) { return; }
+    const af = node.agent!;
+    const band = document.createElement('div');
+    band.className = 'nc-agent-band';
+    if (af.turns !== undefined) {
+      const loop = document.createElement('span');
+      loop.className = 'nc-ab-loop';
+      const routing = af.offered !== undefined && af.universe !== undefined
+        ? ` \u00b7 saw ${af.offered}/${af.universe} tools`
+        : '';
+      loop.textContent = `turn ${af.turns}${routing}`;
+      loop.title = `The loop's progress \u2014 turn ${af.turns}`
+        + (routing === '' ? '' : ` \u00b7 the model saw ${af.offered} of ${af.universe} registered tool definitions last turn`);
+      band.appendChild(loop);
+    }
+    if (af.budget !== undefined) {
+      if (af.budget.budget !== undefined) {
+        const meter = document.createElement('span');
+        meter.className = 'nc-ab-meter';
+        const fill = document.createElement('i');
+        fill.className = 'nc-ab-fill';
+        const pct = Math.min(100, (af.budget.totalTokens / af.budget.budget) * 100);
+        fill.style.width = `${pct.toFixed(1)}%`;
+        meter.appendChild(fill);
+        meter.title = `${af.budget.totalTokens} of ${af.budget.budget} tokens \u2014 the declared budget`;
+        band.appendChild(meter);
+      } else {
+        const count = document.createElement('span');
+        count.className = 'nc-ab-tk';
+        count.textContent = `${af.budget.totalTokens} tk`;
+        count.title = `${af.budget.totalTokens} tokens so far \u2014 no declared budget, so no bar`;
+        band.appendChild(count);
+      }
+    }
+    host.appendChild(band);
+  }
+
   /** The didn't-run reasons, VISIBLE in grand (paused question · gate
    *  false · blocked by) — they used to hide in the sub cell's tooltip;
-   *  the failed line itself stays the body swap (click \u2192 explain). */
+   *  the failed line itself stays the body swap (click → explain). */
   private appendCardWhy(host: HTMLElement, node: DagNode): void {
     const lines = cardWhyLinesOf(node);
     if (lines.length === 0) { return; }
@@ -4512,8 +4592,21 @@ class DagRenderer {
       }
     }
 
-    this.appendCardSub(host, node);
-    this.appendCardBody(host, node, 'grand');
+    // The four voices (W-D8 · DESIGN.md §1c): invoke is the ONE reorder
+    // — the tool's essence leads, the mechanism line (`invoke · ⚒ …`)
+    // becomes the second line. The min anatomy stays fixed (head ·
+    // verdict · essence); nodeHeightOf is an order-independent sum, so
+    // the swap is height-safe by construction.
+    if (node.verb === 'invoke') {
+      this.appendCardBody(host, node, 'grand');
+      this.appendCardSub(host, node);
+    } else {
+      this.appendCardSub(host, node);
+      this.appendCardBody(host, node, 'grand');
+    }
+    // The agent's LOOP BAND — the loop's inner life, structured, right
+    // under the goal (its facts left the prose block).
+    this.appendAgentBand(host, node);
     this.appendCardWhy(host, node);
 
     // The promoted contract (composition · ComfyUI-widgets steal):
@@ -4592,6 +4685,29 @@ class DagRenderer {
         io.appendChild(more);
       }
       host.appendChild(io);
+    }
+
+    // The fan-out's SOURCE (W-D8 · the one flow construct the card
+    // never showed): `∥ items ← <collection>` in the io grammar — the
+    // ×N badge counts the iterations, this names what they map over.
+    if (hasForEachRow(node)) {
+      const fe = document.createElement('div');
+      fe.className = 'nc-io nc-foreach';
+      const wire = document.createElement('span');
+      wire.className = 'nc-fe';
+      const alias = document.createElement('span');
+      alias.className = 'nc-io-alias';
+      alias.textContent = '∥ items';
+      const arr = document.createElement('span');
+      arr.className = 'nc-io-arr';
+      arr.textContent = '←';
+      const from = document.createElement('span');
+      from.className = 'nc-io-from';
+      from.textContent = forEachSourceLabel(node.forEachSource!);
+      wire.append(alias, arr, from);
+      wire.title = `for_each: ${node.forEachSource} — the collection this task fans out over (one iteration per item)`;
+      fe.appendChild(wire);
+      host.appendChild(fe);
     }
 
     if (hasParamsRow(node)) {

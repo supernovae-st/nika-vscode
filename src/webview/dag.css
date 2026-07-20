@@ -2678,11 +2678,32 @@ body.running .dag-node.status-success .nc::after {
   color: color-mix(in srgb, var(--dv-hue, var(--nk-ink-dim)) 55%, transparent);
 }
 
+/* The quote-RAIL (W-D8 · the four voices): an infer ask reads as a
+ * blockquote — the rail marks the quotation and leaves WITH the « »
+ * marks when the recorded output swaps in (data is not a quotation).
+ * exec's terminal frame HOLDS by contrast: a place, not a speech-act. */
+.dag-node.verb-infer .nc-body-prompt:not(.nc-body-live) {
+  border-left: 2px solid color-mix(in srgb, var(--nk-verb-infer-canon) 30%, transparent);
+  padding-left: 6px;
+}
+
 .nc-body-cmd {
   color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-ink));
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;
+}
+
+/* The TERMINAL rail (W-D8): `$ cmd` in a machine window — mono strict,
+ * ink-wash ground, the verb's rail. The frame HOLDS through the settle
+ * (`→ stdout` keeps talking in the same window): the swap only ADDS
+ * .nc-body-live — the cmd kind class never leaves the element. */
+.dag-node.verb-exec .nc-body-cmd {
+  border-left: 2px solid color-mix(in srgb, var(--nk-verb-exec-canon) 30%, transparent);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  font-family: var(--nk-mono);
+  padding: 0 4px 0 6px;
+  border-radius: 0 3px 3px 0;
 }
 
 .nc-body-args {
@@ -2691,6 +2712,11 @@ body.running .dag-node.status-success .nc::after {
   text-overflow: ellipsis;
   display: block;
 }
+
+/* The tool is the HERO (W-D8): on an invoke card the essence leads
+ * the anatomy (the build appends body before sub) and reads half a
+ * point larger — the mechanism line is the caption, not the title. */
+.dag-node.verb-invoke .nc-essence { font-size: 10.5px; }
 
 /* The red teaches — the failure story where the prompt was: the
  * card's own body becomes the error line, clickable (explain). */
@@ -2712,6 +2738,57 @@ body.running .dag-node.status-success .nc::after {
 /* ─── Card-first sections (W-D5) — the hover's content, ON the card ── */
 /* min: head · verdict · one essence line (the body clamps to one). */
 .nc-mode-min .nc-body { -webkit-line-clamp: 1; }
+
+/* ─── The agent LOOP BAND (W-D8 · the four voices) — the loop's inner
+   life as a structured row under the goal: turn counter · tool routing
+   · the budget meter. HONEST meter: a declared budget fills a ratio
+   bar; totals without a ceiling stay a bare counter (a bar needs a
+   real denominator). Static by design — nothing animates, nothing to
+   gate for reduced-motion. 14px row + 4px gap = AGENT_BAND_H 18. */
+.nc-agent-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  height: 14px;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+}
+.nc-ab-loop {
+  color: var(--nk-verb-agent-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nc-ab-meter {
+  flex: none;
+  width: 44px;
+  height: 4px;
+  margin-left: auto;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--nk-verb-agent) 18%, transparent);
+  overflow: hidden;
+}
+.nc-ab-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--nk-verb-agent-text);
+}
+.nc-ab-tk {
+  flex: none;
+  margin-left: auto;
+  color: var(--nk-ink-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (forced-colors: active) {
+  .nc-ab-meter { background: Canvas; border: 1px solid CanvasText; }
+  .nc-ab-fill { background: Highlight; }
+}
 
 /* The didn't-run reasons, visible in grand (paused · gate · blocked). */
 .nc-x-error {
@@ -3172,6 +3249,22 @@ body.running .dag-node.status-success .nc::after {
   border-radius: 6px;
 }
 
+/* The fan-out SOURCE row (W-D8 · the connected grammar): `∥ items ← x`
+ * — io grammar for the for_each construct. Shares .nc-io (LOD and
+ * dataflow rules ride for free); the inner span is a FACT, not a
+ * jump — no pointer affordance (the source is an expression, not
+ * always a producer card). */
+.nc-fe {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 2px;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+}
+
 /* The policy row — the task's declared execution policy as footer chips
  * (retry · timeout · on_error · outputs · permits). Facts only; hue is
  * semantic: recover wears the absorbed-failure amber, fail_workflow the
@@ -3389,6 +3482,7 @@ body.lod-far .nc-preview-file,
 body.lod-far .nc-body,
 body.lod-far .nc-sub,
 body.lod-far .nc-div,
+body.lod-far .nc-agent-band,
 body.lod-far .nc-x-error,
 body.lod-far .nc-x-facts,
 body.lod-far .nc-x-peek,

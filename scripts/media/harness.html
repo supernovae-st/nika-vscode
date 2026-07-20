@@ -255,6 +255,7 @@
         {
           id: 'chart', avgMs: 1400, avgRuns: 3,  label: 'chart', verb: 'invoke', status: 'pending',
           tool: 'nika:chart', fanOutKind: 'each', fanOutCount: 6, maxParallel: 3, failFast: false,
+          forEachSource: '${{ stats.output }}',
           argsPreview: 'kind: bar · title: commits by author',
           bindingsIn: [{ alias: 'rows', from: 'stats', path: 'output' }],
           producers: ['stats'],
@@ -462,8 +463,14 @@
 
     sim(() => { batch([{ taskId: 'review', status: 'running' }]); }, 11200);
 
+    // The agent loop speaks (fold annotations): turn count + tool
+    // routing + the budget snapshot — the LOOP BAND draws the honest
+    // meter (declared budget → ratio bar; the W-D8 anatomy).
+    sim(() => { batch([{ taskId: 'review', status: 'running', agent: { turns: 1, offered: 4, universe: 12, budget: { totalTokens: 2100, budget: 20000 } } }]); }, 11900);
+    sim(() => { batch([{ taskId: 'review', status: 'running', agent: { turns: 3, offered: 5, universe: 12, budget: { totalTokens: 8400, budget: 20000 } } }]); }, 12900);
+
     sim(() => {
-      batch([{ taskId: 'review', status: 'success', durationMs: 2760 }]);
+      batch([{ taskId: 'review', status: 'success', durationMs: 2760, agent: { turns: 4, offered: 5, universe: 12, budget: { totalTokens: 11200, budget: 20000 } } }]);
       post({ kind: 'run:progress', done: 7, total: 7 });
     }, 14000);
 
