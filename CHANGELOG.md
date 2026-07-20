@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Security — the canvas opens only what it surfaced
+
+- **`welcome:open` validates the uri (no arbitrary read)**: the welcome canvas can only open workflows the extension itself surfaced — a compromised webview can no longer name an arbitrary local path (`file:///etc/passwd`) for the extension to read.
+
 ### Onboarding — the door opens
 
 - **The welcome home is reachable, and the sandbox is one gesture**: `Show Workflow DAG` with no workflow in focus opens the welcome home instead of a dead-end warning; the panel reveals immediately and breathes a `loading <name>…` ghost while the graph lands (no dead click on a slow first spawn); and `Nika: Try the Demo Workflow` writes a runnable four-wave `hello-canvas.nika.yaml` (mock/echo · zero key · zero network) beside the canvas — press ▶ to run it, offline.
