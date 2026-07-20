@@ -37,7 +37,13 @@ export function fnv1a32(str: string, seed: number = SEED_A): number {
 export interface LayoutKeyNode { id: string; h: number }
 export interface LayoutKeyEdge { id: string; source: string; target: string; labelLen: number }
 
-/** The canonical pre-hash string — exported so tests can pin its shape. */
+/** The canonical pre-hash string — exported so tests can pin its shape.
+ *  JSON-encoded end to end: ids are author-controlled free text (an
+ *  `after:` predicate rides into edge ids verbatim), so a delimiter
+ *  scheme built on `:`/`,` was NOT injective — refuter-proven collision:
+ *  nodes [a:1, b:2] vs the single node [`a:1,b`:2] serialized byte-equal
+ *  under v1. JSON string encoding closes the class: quotes delimit,
+ *  content cannot escape them, the mapping is injective by construction. */
 export function layoutKeyStringOf(
   scope: string,
   nodes: LayoutKeyNode[],
@@ -46,14 +52,12 @@ export function layoutKeyStringOf(
 ): string {
   const n = [...nodes]
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-    .map((x) => `${x.id}:${x.h}`)
-    .join(',');
-  const eKey = (x: LayoutKeyEdge): string => `${x.id}:${x.source}:${x.target}`;
+    .map((x) => [x.id, x.h] as const);
+  const eKey = (x: LayoutKeyEdge): string => JSON.stringify([x.id, x.source, x.target]);
   const e = [...edges]
     .sort((a, b) => (eKey(a) < eKey(b) ? -1 : eKey(a) > eKey(b) ? 1 : 0))
-    .map((x) => `${eKey(x)}:${x.labelLen}`)
-    .join(',');
-  return `v1|${scope}|o:${optsRev}|n:${n}|e:${e}`;
+    .map((x) => [x.id, x.source, x.target, x.labelLen] as const);
+  return JSON.stringify(['v2', scope, optsRev, n, e]);
 }
 
 /** 16-hex layout hash — FNV-1a ×2 seeds over the canonical string. */

@@ -222,6 +222,12 @@ if (scenario === 'all' || scenario === 'pan') {
 }
 
 // ─── equivalence (refuter claim 1: worker ≡ sync) ──────────────────────────
+// COLD path at three sizes + the HINTED/SWR path (the refuter's gap:
+// BRANDES_KOEPF + INTERACTIVE + float x/y hints is the one shape where
+// new payload crosses the structured-clone boundary — cold-only proof
+// left it uncovered). Both pages cold-load n=300 (byte-equal, so their
+// layoutBox hints are identical), then the SAME mutation forces SWR —
+// the converged laid must byte-match across rungs too.
 if (scenario === 'all' || scenario === 'equivalence') {
   for (const n of [40, 120, 300]) {
     const laidOf = async (q) => {
@@ -243,6 +249,22 @@ if (scenario === 'all' || scenario === 'equivalence') {
     if (s.rung !== 'sync') { failures.push(`equivalence n=${n}: noworker page ran rung '${s.rung}'`); }
     if (!equal) { failures.push(`equivalence n=${n}: worker laid JSON ≠ sync laid JSON`); }
   }
+  const swrLaidOf = async (q) => {
+    const page = await settledPage(q);
+    const out = await loadAndSettle(page, { n: 300, addTail: 'eq' });
+    const laid = await page.evaluate(() => JSON.stringify(window.__nkLayout.laid));
+    await page.close();
+    return { swr: out.swr, rung: out.rung, json: laid };
+  };
+  const w = await swrLaidOf('n=300');
+  const s = await swrLaidOf('n=300&noworker');
+  const equal = w.json === s.json;
+  report['equivalence-swr'] = {
+    workerSwr: w.swr, syncSwr: s.swr, workerRung: w.rung, syncRung: s.rung,
+    bytes: w.json.length, byteEqual: equal,
+  };
+  if (w.swr !== true || s.swr !== true) { failures.push('equivalence-swr: a page did not take the SWR/hinted path'); }
+  if (!equal) { failures.push('equivalence-swr: HINTED laid JSON diverges across rungs (worker ≠ sync on the BK+INTERACTIVE path)'); }
 }
 
 await browser.close();

@@ -61,9 +61,36 @@ describe('layoutHashOf — the key discipline', () => {
     const a = layoutHashOf('file:///w/a.nika.yaml', NODES, EDGES);
     const b = layoutHashOf('file:///w/b.nika.yaml', NODES, EDGES);
     expect(b).not.toBe(a);
-    // The canonical strings differ ONLY by scope — pin the shape.
-    expect(layoutKeyStringOf('X', NODES, EDGES)).toContain(`|o:${OPTS_REV}|`);
-    expect(layoutKeyStringOf('X', NODES, EDGES).startsWith('v1|X|')).toBe(true);
+    // The canonical string is JSON (injective) — pin the envelope.
+    const s = layoutKeyStringOf('X', NODES, EDGES);
+    const parsed = JSON.parse(s) as unknown[];
+    expect(parsed[0]).toBe('v2');
+    expect(parsed[1]).toBe('X');
+    expect(parsed[2]).toBe(OPTS_REV);
+  });
+
+  it('delimiter injection CANNOT collide (the refuter counterexample, pinned)', () => {
+    // Under the v1 `:`/`,` scheme these two DIFFERENT structures
+    // serialized byte-equal: [a:1, b:2] vs the single node [`a:1,b`:2].
+    // Ids are author-controlled free text (an `after:` predicate rides
+    // into edge ids verbatim) — the JSON encoding must keep the
+    // mapping injective.
+    const twoNodes: LayoutKeyNode[] = [{ id: 'a', h: 1 }, { id: 'b', h: 2 }];
+    const oneNode: LayoutKeyNode[] = [{ id: 'a:1,b', h: 2 }];
+    expect(layoutKeyStringOf('s', twoNodes, [])).not.toBe(layoutKeyStringOf('s', oneNode, []));
+    expect(layoutHashOf('s', twoNodes, [])).not.toBe(layoutHashOf('s', oneNode, []));
+    // The edge-side twin: free-text predicate inside an edge id.
+    const e1: LayoutKeyEdge[] = [
+      { id: 'a->b:control:x,c', source: 'a', target: 'b', labelLen: 1 },
+    ];
+    const e2: LayoutKeyEdge[] = [
+      { id: 'a->b:control:x', source: 'a', target: 'b', labelLen: 1 },
+      { id: 'c', source: 'a', target: 'b', labelLen: 1 },
+    ];
+    expect(layoutHashOf('s', NODES, e1)).not.toBe(layoutHashOf('s', NODES, e2));
+    // Scope injection: a scope crafted to swallow the version/rev
+    // fields cannot re-shape the envelope (JSON escapes it).
+    expect(layoutHashOf('s","1', NODES, EDGES)).not.toBe(layoutHashOf('s', NODES, EDGES));
   });
 });
 

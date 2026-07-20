@@ -2234,6 +2234,12 @@ class DagRenderer {
 
     // ── Layout: cache hit → worker (stale-while-relayout) → paint ──────
     const scope = layoutKeyOf(graph);
+    // A graph WITHOUT a workflowUri has no durable identity — replayed
+    // traces and sketches synthesize uri-less graphs whose NAME can
+    // collide across genuinely different workflows (refuter-proven:
+    // two traces both named `deploy`). No identity → no cache, no
+    // position reuse; such graphs always lay out cold.
+    const cacheable = graph.workflowUri !== undefined;
     const elkGraph = buildElkGraph(graph);
     const parts = layoutKeyPartsOf(elkGraph);
     const hash = layoutHashOf(scope, parts.nodes, parts.edges);
@@ -2242,7 +2248,7 @@ class DagRenderer {
     let cacheHit = false;
     let swrPainted = false;
     let elkMs = 0;
-    const cached = layoutLru.get(hash);
+    const cached = cacheable ? layoutLru.get(hash) : undefined;
     if (cached !== undefined) {
       // The remembered SNAPPED result — no ELK, no worker, no wait.
       layoutResult = expandLaid(cached, NODE_WIDTH);
@@ -2255,7 +2261,7 @@ class DagRenderer {
       // worker then converges positions and the existing 300ms update
       // transition IS the FLIP.
       const prev: Map<string, { x: number; y: number }> | undefined =
-        this.lastLayoutScope === scope && this.layoutBox.size > 0
+        cacheable && this.lastLayoutScope === scope && this.layoutBox.size > 0
           ? new Map([...this.layoutBox].map(([id, b]) => [id, { x: b.x, y: b.y }]))
           : undefined;
       const known = prev !== undefined
@@ -2288,11 +2294,13 @@ class DagRenderer {
       }
       layoutResult = snapLaid(laidRes.laid);
       elkMs = laidRes.elkMs;
-      layoutLru.set(hash, compactLaid(layoutResult));
-      scheduleCachePersist();
+      if (cacheable) {
+        layoutLru.set(hash, compactLaid(layoutResult));
+        scheduleCachePersist();
+      }
     }
     performance.measure('nk:layout', 'nk:layout-start');
-    this.lastLayoutScope = scope;
+    this.lastLayoutScope = cacheable ? scope : null;
     if (!rungLogged) {
       rungLogged = true;
       console.info(`[nika-dag] layout rung: ${elkClient.rung()}`);
