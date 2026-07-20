@@ -2758,7 +2758,6 @@ body.running .dag-node.status-success .nc::after {
   cursor: pointer;
 }
 .nc-body.nc-body-err:hover { text-decoration: underline dotted; }
-.nc-x-act.nc-x-explain { color: var(--nk-st-failed); }
 .nc-x-act.nc-x-fork { color: var(--nk-st-retrying, var(--nk-ink-dim)); }
 
 /* The recorded output ON the card (success + preview) — the data the
@@ -2771,6 +2770,144 @@ body.running .dag-node.status-success .nc::after {
 /* ─── Card-first sections (W-D5) — the hover's content, ON the card ── */
 /* min: head · verdict · one essence line (the body clamps to one). */
 .nc-mode-min .nc-body { -webkit-line-clamp: 1; }
+
+/* ═══ W-D11 · the grand ENSEMBLE (the ElevenLabs grammar) ═════════════════ */
+/* In grand the head FLOATS above the card frame and the knobs DETACH
+ * into a pill below — three zones, ONE ELK footprint. TS mirror
+ * (anatomy law): GRAND_HEAD_H 24 (18 band + 6 air) + card + PILL_GAP 8
+ * + PILL_H 36 → the card frame is calc(100% - 68px), pushed down 24.
+ * The far map-read swallows the ensemble (the :not gate below): the
+ * head returns in-frame, the pill dies, the tile box spans the
+ * footprint — far cards stay the centered tile they always were. */
+body:not(.lod-far) .nc-mode-grand {
+  margin-top: 24px;
+  height: calc(100% - 68px);
+  /* The ensemble breaks the card box ON PURPOSE (head above · pill
+   * below): a grand card trades paint containment for the float —
+   * min cards (the 300-node common case) keep the strict armor. */
+  contain: layout style size;
+  overflow: visible;
+}
+
+/* The floating header — a band WITHOUT the card's fond: identity out
+ * of the frame (verb tile + id at left · engine + status at right).
+ * Absolute against the card top: -24 puts the 18px band at the
+ * footprint's first pixel with 6px of air above the frame. */
+body:not(.lod-far) .nc-mode-grand .nc-head {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 18px;
+  /* 5px: the band is exactly at capacity with a 17-char model + the
+   * failed badge — the 22px head's 7px gap here cost the last glyph. */
+  gap: 5px;
+}
+
+body:not(.lod-far) .nc-mode-grand .nc-head .nc-tile {
+  width: 18px;
+  height: 18px;
+  font-size: 9.5px;
+  border-radius: 5px;
+}
+
+body:not(.lod-far) .nc-mode-grand .nc-head .nc-st { height: 18px; }
+body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
+
+/* The ENGINE identity at the header's right (the « Eleven Music »
+ * position): the model picker keeps its chip door; a declared media
+ * provider is a quiet fact. Both shrink before the id does. */
+.nc-engine {
+  /* The id owns the head: the engine shrinks 4× faster than its
+   * siblings when the band over-fills, and takes its full width when
+   * real slack exists (a flat % cap clipped it beside empty air). */
+  flex: 0 4 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+}
+
+.nc-head .nc-chip.nc-engine {
+  height: 16px;
+  padding: 0 6px;
+  color: var(--nk-ink);
+}
+
+/* THE DETACHED PILL (W11.3) — the knobs under the card: params-clés ·
+ * cost · ⌀ · the action cluster. Surface fond + THE floating shadow
+ * (elevation grammar: floating elements are the only shadow wearers). */
+.nc-pill {
+  position: absolute;
+  top: calc(100% + 8px); /* PILL_GAP */
+  left: 50%;
+  translate: -50% 0;
+  max-width: 100%;
+  height: 36px; /* PILL_H */
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 12px;
+  background: var(--nk-card);
+  border: 1px solid var(--nk-card-border);
+  border-radius: 18px; /* the full pill */
+  box-shadow: var(--nk-card-shadow-hover);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* A knobless pill still carries the action cluster alone — the border
+ * divider would then be a leading orphan; the :first-child kills it. */
+.nc-pill .nc-x-actions:first-child {
+  border-left: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.nc-pill-fact {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9.5px;
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-pill-fact.nc-pill-method { color: var(--nk-accent); }
+.nc-pill-fact.nc-avg { flex: 0 0 auto; }
+
+/* The pill's entrance at the min→grand toggle — one soft settle;
+ * reduced-motion keeps the cut (the gate, same commit as the anim). */
+@media (prefers-reduced-motion: no-preference) {
+  .nc-pill {
+    transition:
+      opacity 200ms var(--nk-ease-effects),
+      translate 240ms var(--nk-ease-spatial);
+    @starting-style {
+      opacity: 0;
+      translate: -50% -5px;
+    }
+  }
+}
+
+/* LOD: the pill is secondary knobbery — mid hides it with the other
+ * dial rows (visibility keeps the footprint); far kills it (the map
+ * read) while the :not gates above return the head in-frame. */
+body.lod-mid .nc-pill { visibility: hidden; }
+body.lod-far .nc-pill { display: none; }
+
+@media (forced-colors: active) {
+  .nc-pill {
+    border: 1px solid CanvasText !important;
+    box-shadow: none !important;
+  }
+  .nc-engine { color: CanvasText !important; }
+}
 
 /* ─── The agent LOOP BAND (W-D8 · the four voices) — the loop's inner
    life as a structured row under the goal: turn counter · tool routing
@@ -2899,26 +3036,30 @@ body.running .dag-node.status-success .nc::after {
   color: var(--nk-accent);
 }
 
-/* The actions row — the hover's gestures, visible at the card foot. */
+/* The action CLUSTER — lives in the detached pill now (W11.3): the │
+ * divider then the permanent-ink trio (⤓ artifact · ⑂ fork · ⋯ panel). */
 .nc-x-actions {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
-  gap: 4px 4px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-left: auto; /* pinned to the pill's right edge */
+  padding-left: 8px;
+  border-left: 1px solid var(--nk-border-soft);
 }
 
 .nc-x-act {
   pointer-events: auto;
-  height: 18px;
-  padding: 0 8px;
-  font-size: 10px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 1;
   font-family: var(--nk-mono);
   color: var(--nk-cta-ink);
   background: var(--nk-cta);
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
