@@ -12,7 +12,7 @@ paints that audit live:
 - **Completions · hover · go-to-definition** inside `${{ ... }}` islands
   (`tasks.` · `with.` · `env.` · `secrets.` · `vars.`)
 - **Static audit in the margin** · per-task cost `$min–max`, when-gates ⌁,
-  fan-out ×N · the workflow cost ceiling on the header lens
+  fan-out ×N · the workflow cost ceiling on a code lens
 
 The full language server (`nika lsp`) takes over automatically the day
 your binary ships it · same extension, deeper rename/symbols support.
