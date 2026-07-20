@@ -268,10 +268,14 @@ lens renders one question:
   execution policy as chips (`↻×3` retry budget · `⏱ 30s` timeout ·
   on_error route `✚ recover`/`⤼ skip`/`⛔ fail` · `⤳ 2 outs` named
   output bindings · `▦ N` permits, engine-projected), and a settled
-  verdict shows its recorded spend (`✓ 1.2s · $0.0042`). The hover card
-  keeps only what the card can't say (recorded output, blast radius,
-  pinch, needs/unlocks jumps, ▸ run-from-here), anchored to the node,
-  and **right-click is a real VS Code menu** (run task · open YAML ·
+  verdict shows its recorded spend (`✓ 1.2s · $0.0042`). Cards wear two
+  modes — `min` (head · verdict · one essence line) and `grand` (the
+  full story: run-story facts, blast radius, pinch, needs/unlocks
+  jumps, and a visible actions row `▸ run · ⚡ what if · ⧉ dup`, plus
+  `✎ explain + ⑂ fork` on a failed card). Double-click or `E` toggles
+  one card, `Shift+V` sets the global cran (min / grand / mix), and
+  `Space` peeks the focused card without touching the layout —
+  **right-click stays a real VS Code menu** (run task · open YAML ·
   duplicate · delete · copy id). Facts only: nothing declared, nothing
   rendered
 - **Content-first canvas** · the node IS the content: infer cards show
@@ -301,13 +305,14 @@ lens renders one question:
   **A repaired success never paints clean** (nika ≥ 0.98): a task saved
   by `on_error: recover` says `✚ recovered` in retry-amber: on the
   card, in the activity feed, in the legend chips and the run report,
-  with the absorbed NIKA code on the hover card
+  with the absorbed NIKA code in the card's fact block
 - **The live cost ticker** · the status pill counts the run's recorded
   spend as tasks settle (`2 done · 4 running · ≥ $0.0022`): engine
   truth only, the `≥` because unpriced tasks make it a floor, and a
   mock/local-only run shows nothing rather than a fake `$0.00`. The
-  hover card closes the loop per task: `cost $min → $max` (the estimate)
-  next to `spent $… recorded` (the terminal event's fact)
+  card closes the loop per task: `cost $min → $max` (the estimate, on
+  the params row) next to `spent $… recorded` (the terminal event's
+  fact, in the grand fact block)
 - **Time-travel replay** · click a recorded run and **scrub its whole
   timeline**: play/pause (Space), drag the handle, the DAG state at any
   instant computed locally. Replay re-renders, never re-executes
@@ -377,7 +382,7 @@ lens renders one question:
   with a witness set), speedup ceiling (work-span), k-worker wall-clock
   estimates (Graham-bounded list scheduling · measured milliseconds after
   a run), pinch points, and per-task failure blast radius · in the DAG
-  explainer (`?`) and hover card. Algorithms + citations:
+  explainer (`?`) and the card's fact block. Algorithms + citations:
   `docs/ALGORITHMS.md`
 - **Live run** · `nika run` streams its event stream straight onto the
   DAG · statuses light per the §3.1 run-state machine (running · retrying

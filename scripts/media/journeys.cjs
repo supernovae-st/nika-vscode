@@ -32,21 +32,24 @@ function report(name, budget, used, ok, note = '') {
     return { cx: r.x + r.width / 2, cy: r.y + r.height / 2 };
   }, id);
 
-  // J1 · « why did this task fail? » — 1 gesture (hover reads the story)
+  // J1 · « why did this task fail? » — 0 gestures (card-first: the
+  // failed card wears its ✗ line on the FACE, min or grand — and a
+  // failure auto-promotes its card to grand, actions included).
   {
     await p.evaluate(() => {
       window.postMessage({ kind: 'dag:batchUpdateStatus', updates: [
         { taskId: 'digest', status: 'failed', failPreview: 'NIKA-INFER-003 · provider refused' },
       ] }, '*');
     });
-    await p.waitForTimeout(300);
-    const t = await center('digest');
-    await p.mouse.move(t.cx, t.cy); // gesture 1
-    await p.waitForTimeout(700);
-    const story = await p.evaluate(() => document.querySelector('#hover-card')?.textContent ?? '');
-    report('J1 why-failed', 1, 1, story.includes('NIKA-INFER-003') || (await p.evaluate(() =>
+    await p.waitForTimeout(500);
+    const face = await p.evaluate(() =>
       [...document.querySelectorAll('.dag-node')].find((e) => e.getAttribute('data-id') === 'digest')
-        ?.querySelector('.nc-body')?.textContent ?? '')).includes('NIKA-INFER-003'));
+        ?.querySelector('.nc-body')?.textContent ?? '');
+    const promoted = await p.evaluate(() =>
+      [...document.querySelectorAll('.dag-node')].find((e) => e.getAttribute('data-id') === 'digest')
+        ?.getAttribute('data-card-mode'));
+    report('J1 why-failed', 0, 0, face.includes('NIKA-INFER-003') && promoted === 'grand',
+      `the face reads the code · card ${promoted}`);
     await p.keyboard.press('Escape');
     await p.evaluate(() => {
       window.postMessage({ kind: 'dag:batchUpdateStatus', updates: [{ taskId: 'digest', status: 'pending' }] }, '*');
@@ -65,18 +68,21 @@ function report(name, budget, used, ok, note = '') {
     await p.waitForTimeout(200);
   }
 
-  // J3 · « peek the run story, then the next task's » — 2 gestures for TWO stories
+  // J3 · « peek the run story, then the next task's » — 3 gestures for
+  // TWO stories (card-first: Space expands the focused card to grand
+  // IN PLACE — arrows walk the peek, the layout never moves).
   {
     const t = await center('digest');
     await p.mouse.click(t.cx, t.cy); // gesture 1 (focus)
     await p.waitForTimeout(250);
-    await p.keyboard.press(' '); // gesture 2 (pin)
+    await p.keyboard.press(' '); // gesture 2 (pin the peek)
     await p.waitForTimeout(350);
-    const first = await p.evaluate(() => document.querySelector('#hover-card .hc-id')?.textContent);
+    const first = await p.evaluate(() => document.querySelector('.dag-node.nk-peek')?.getAttribute('data-id') ?? null);
+    const firstGrand = await p.evaluate(() => Boolean(document.querySelector('.dag-node.nk-peek .nc-x-actions')));
     await p.keyboard.press('ArrowRight'); // gesture 3 → SECOND story free
     await p.waitForTimeout(350);
-    const second = await p.evaluate(() => document.querySelector('#hover-card .hc-id')?.textContent);
-    report('J3 peek-walk', 3, 3, first === 'digest' && second !== null && second !== 'digest',
+    const second = await p.evaluate(() => document.querySelector('.dag-node.nk-peek')?.getAttribute('data-id') ?? null);
+    report('J3 peek-walk', 3, 3, first === 'digest' && firstGrand && second !== null && second !== 'digest',
       `${first} → ${second}`);
     await p.keyboard.press('Escape'); await p.keyboard.press('Escape');
     await p.waitForTimeout(200);
@@ -138,6 +144,32 @@ function report(name, budget, used, ok, note = '') {
     }
     report('J7 action-panel', 2, 2, rows >= 5, `${rows} actions at constant cost`);
     await p.keyboard.press('Escape');
+  }
+
+  // J8 · « the FULL story on one card » — 1 gesture when min (dblclick
+  // → grand · relayout is the expected clean miss); 0 when already
+  // grand. The fold back is hygiene, uncounted.
+  {
+    await p.keyboard.press('Escape');
+    await p.keyboard.press('f');
+    await p.waitForTimeout(500);
+    let t = await center('brief');
+    await p.mouse.dblclick(t.cx, t.cy); // gesture 1
+    await p.waitForTimeout(900);
+    const mode = await p.evaluate(() =>
+      [...document.querySelectorAll('.dag-node')].find((e) => e.getAttribute('data-id') === 'brief')
+        ?.getAttribute('data-card-mode'));
+    const actions = await p.evaluate(() =>
+      Boolean([...document.querySelectorAll('.dag-node')].find((e) => e.getAttribute('data-id') === 'brief')
+        ?.querySelector('.nc-x-actions')));
+    t = await center('brief');
+    await p.mouse.dblclick(t.cx, t.cy);
+    await p.waitForTimeout(900);
+    const folded = await p.evaluate(() =>
+      [...document.querySelectorAll('.dag-node')].find((e) => e.getAttribute('data-id') === 'brief')
+        ?.getAttribute('data-card-mode'));
+    report('J8 detail-in-place', 1, 1, mode === 'grand' && actions && folded === 'min',
+      `min → ${mode} → ${folded}`);
   }
 
   await b.close();

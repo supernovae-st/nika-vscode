@@ -101,11 +101,20 @@ every visible pixel.
   (`✚ recover` amber · `⤼ skip` dim · `⛔ fail` red) · `⤳ N outs`
   named output bindings · `▦ N` permits (engine-projected, #367).
   Facts only — an undeclared policy renders NOTHING.
-- **The hover card is the run story, never a card mirror**: actions
-  (▸ run · ⧉ dup) + output/spent/cached/recovered + wave/blast/pinch +
-  needs/unlocks jumps. Mechanism facts live on the card. It anchors to
-  the NODE box (right flank, flips left) — a steady inspector with a
-  predictable pointer path, not a cursor-chaser.
+- **Card modes (card-first)** — every task fact lives ON the card;
+  no tooltip popup rides the pointer. `min` = head · verdict · one
+  essence line. `grand` = the full story: the dial rows PLUS the
+  why-lines (paused · gate false · blocked by), the run-story facts
+  (spent · resume proof · repaired · agent loop · inside · secret ·
+  gate · live spend/stream · wave · blast · pinch), the child peek,
+  needs/unlocks jump chips, and the actions row (▸ run · ⚡ what if ·
+  ⧉ dup · a failed card adds ✎ explain + ⑂ fork · K opens the panel).
+  Double-click or E toggles one card (the mix is retained per
+  workflow); Shift+V row 0 sets the global cran (min / grand / mix);
+  Space peeks the focused card to grand IN PLACE (transient — the
+  layout never churns) and arrows walk it; a failure PROMOTES its
+  card to grand (the red teaches on the face). Facts hide, they are
+  never dropped.
 
 ## 2 · Wires — the kind vocabulary (graph_format 2 · one channel per question)
 
@@ -270,8 +279,7 @@ curve with ~4% overshoot (`--nk-spring` · falls back to the ease via
 `@supports`): card entrances, verdict pops, the output line. The
 CAMERA speaks ease-out (every d3 zoom transition: fit 460ms · center
 420ms · wave 360ms · minimap 240ms — the canvas-tool standard, never
-symmetric in/out). The hover inspector GLIDES between anchors while
-open (left/top transition 190ms) instead of re-popping. Compositor
+symmetric in/out). Compositor
 props only. `prefers-reduced-motion` disables every loop.
 
 The orchestrated moments (each spent exactly once, where it means):
@@ -336,11 +344,11 @@ low, leave high — so a pinch resting on a boundary never flaps):
 - **Alignment magnetism** — dragging snaps to other cards' edges and
   centers within 6px; accent guides draw the agreement; Alt bypasses
   (the Figma/helper-lines convention).
-- **Run from here (▶ on the hover card)** — ONE task + its upstream
+- **Run from here (▸ on the card's actions row)** — ONE task + its upstream
   cone through the extension's `rerunTask` flow (engine `run --task`);
   upstream cache-hits stay cache-hits. The n8n partial-execution move,
   reachable without leaving the canvas.
-- **Duplicate (⌘D · `⧉ dup` on the hover card)** — the copy lands
+- **Duplicate (⌘D · `⧉ dup` on the card's actions row)** — the copy lands
   under the original with a fresh `_copy` id; inbound wiring kept,
   downstream refs stay on the original.
 - **Insert on edge (+)** — hovering a DEPENDENCY wire mounts one
@@ -360,7 +368,7 @@ answers one question, on one key:
 
 | Lens | Key | Question | Mechanism |
 |---|---|---|---|
-| what-if | X (· ⚡ hover) | why does `on_error` exist? | pure admission replay (gate algebra) — `sim-failed` ring · `sim-dead` dim · `sim-lit` amber; LIT is reserved for paths that admit non-success AND refuse success |
+| what-if | X (· ⚡ on the card) | why does `on_error` exist? | pure admission replay (gate algebra) — `sim-failed` ring · `sim-dead` dim · `sim-lit` amber; LIT is reserved for paths that admit non-success AND refuse success |
 | timeline | T | where did the time go? | alternate layout pass — wave-ordered rows, REAL clocks only, retry sub-segments, hollow cached, ghost ceiling (recorded mean) UNDER the bar, the replay cursor rides the lens |
 | audit | P | what can this file DO? | capability hulls (convex, padded, dashed) under the wires + the banner; state hues used semantically — egress red FIRST · exec amber · fs green · tool blue; ⚿ secret ring on pasted literals |
 | dataflow | D | where does the data go? | answer by subtraction — control/recovery sleep (0.07), prose rests (0.18), bindings + ports carry the story; direction heads wake at every LOD on purpose |
@@ -376,8 +384,8 @@ straight back (sleep, never clear). Map-space lenses compose freely
 **Composition grammar** (spec 14, engine-honest): the ⎘ chip is a
 DOOR (opens the child) · the card face is the child's API (manifest
 + promoted contract rows — facts from both files, `nika check` owns
-verdicts) · the hover PEEK renders the child's real shape in
-miniature · the dive trail (`parent ▸ child`) grows on ⎘, truncates
+verdicts) · the card PEEK renders the child's real shape in
+miniature (grand mode) · the dive trail (`parent ▸ child`) grows on ⎘, truncates
 on crumb jumps, clears off-trail — the crumb IS the return
 affordance. Never an invented rollup: each file's manifest is ITS
 engine projection.
@@ -408,10 +416,13 @@ engine projection.
    deliberate broken frame.
 7. Interaction cost is BUDGETED — `scripts/media/journeys.cjs` runs
    the common journeys as real gestures and asserts each one's
-   budget (why-failed 1 · what-feeds 1 · peek-walk 3-for-two-stories
-   · what-if 2 · each lens 1). A change that silently adds a gesture
-   to a journey fails the suite. Run it with the harness flags
-   toolchain (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
+   budget (why-failed 0 — the failed card wears its ✗ line on the
+   face, min or grand · what-feeds 1 · peek-walk 3-for-two-stories ·
+   what-if 2 · each lens 1 · detail-in-place 1 — one double-click
+   expands a min card to grand, zero when already grand). A change
+   that silently adds a gesture to a journey fails the suite. Run it
+   with the harness flags toolchain
+   (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
 
 ## 8 · Voice — the twelve rules
 

@@ -56,7 +56,7 @@ export function collectDataFlow(text: string): DataFlowInfo {
 }
 
 /**
- * Surface the declared bindings per node (`bindingsIn` — the hover-card
+ * Surface the declared bindings per node (`bindingsIn` — the card
  * io row). Edges are NOT touched: the engine projection already types
  * every edge (kind · predicate · binding), and the client fallback
  * builds its own typed edges in clientDag. Pure — never mutates input.

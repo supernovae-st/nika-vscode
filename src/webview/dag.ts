@@ -291,7 +291,7 @@ interface DagNode {
   recoveredFrom?: string;
   /** Recorded per-task spend (engine terminal events) — the ticker's fuel. */
   usd?: number;
-  /** One badge-safe line of the recorded output (hover-card fact). */
+  /** One badge-safe line of the recorded output (a card fact). */
   outputPreview?: string;
   provider?: string;
   model?: string;
@@ -474,6 +474,13 @@ interface WebviewState {
    *  Presentation ONLY — the YAML stays the single truth; positions live
    *  in webview state, never in the file. Bounded to the last 6 flows. */
   manualLayouts?: Record<string, Record<string, { x: number; y: number }>>;
+  /** Card density — the global dial cran (min / grand / mix). */
+  cardDial?: CardDial;
+  /** The base a mix falls back to (the last non-mix dial value). */
+  cardBase?: CardMode;
+  /** Per-card mode overrides per workflow (uri → id → mode) — the
+   *  retained mix, bounded to the last 6 flows like manualLayouts. */
+  cardModes?: Record<string, Record<string, CardMode>>;
 }
 
 declare function acquireVsCodeApi(): VsCodeApi;
@@ -516,29 +523,50 @@ function toggleDisplayPanel(): void {
     rows.forEach((row, i) => {
       row.classList.toggle('active', i === active);
       const mark = row.querySelector('.nk-disp-state');
-      if (mark) { mark.textContent = displayProps[keys[i]] ? 'on' : 'off'; }
-      row.classList.toggle('nk-disp-off', !displayProps[keys[i]]);
+      if (!mark) { return; }
+      if (i === 0) {
+        // Row 0 = the card-mode dial cran (min / grand / mix) — the
+        // global density; double-click/E per card records the mix.
+        mark.textContent = cardDial;
+        row.classList.remove('nk-disp-off');
+        return;
+      }
+      mark.textContent = displayProps[keys[i - 1]] ? 'on' : 'off';
+      row.classList.toggle('nk-disp-off', !displayProps[keys[i - 1]]);
     });
   };
   const applyToggle = (i: number): void => {
-    displayProps[keys[i]] = !displayProps[keys[i]];
-    persistDisplayProps();
+    if (i === 0) {
+      // Cycle the cran; the per-card mix is RETAINED across crans.
+      cardDial = cardDial === 'min' ? 'grand' : cardDial === 'grand' ? 'mix' : 'min';
+      persistCardModes();
+    } else {
+      displayProps[keys[i - 1]] = !displayProps[keys[i - 1]];
+      persistDisplayProps();
+    }
     paint();
     renderer.rerenderCurrent();
   };
-  const rows: HTMLElement[] = keys.map((k, i) => {
+  const mkRow = (label: string, role: string): HTMLElement => {
     const row = document.createElement('button');
-    row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
-    row.setAttribute('role', 'menuitemcheckbox');
-    const label = document.createElement('span');
-    label.textContent = DISPLAY_LABELS[k];
+    row.className = 'nk-act-row';
+    row.setAttribute('role', role);
+    const l = document.createElement('span');
+    l.textContent = label;
     const state = document.createElement('span');
     state.className = 'nk-disp-state';
-    row.append(label, state);
-    row.addEventListener('click', () => { active = i; applyToggle(i); });
-    row.addEventListener('mouseenter', () => { active = i; paint(); });
+    row.append(l, state);
     panel.appendChild(row);
     return row;
+  };
+  const rows: HTMLElement[] = [
+    mkRow('Card mode — every card\u2019s density (dblclick / E per card)', 'menuitem'),
+    ...keys.map((k) => mkRow(DISPLAY_LABELS[k], 'menuitemcheckbox')),
+  ];
+  rows[0].classList.add('active');
+  rows.forEach((row, i) => {
+    row.addEventListener('click', () => { active = i; applyToggle(i); });
+    row.addEventListener('mouseenter', () => { active = i; paint(); });
   });
   const foot = document.createElement('div');
   foot.className = 'nk-disp-foot';
@@ -557,6 +585,9 @@ function toggleDisplayPanel(): void {
       e.preventDefault(); e.stopPropagation();
       displayProps = { ...DISPLAY_DEFAULTS };
       persistDisplayProps();
+      cardDial = 'min';
+      cardBase = 'min';
+      persistCardModes();
       paint();
       renderer.rerenderCurrent();
       return;
@@ -668,6 +699,19 @@ const POLICY_GAP = 6;
 const PREVIEW_IMG_H = 92;
 const PREVIEW_AUD_H = 30;
 const PREVIEW_GAP = 6;
+/** The grand-mode sections (ex-hover content, ON the card now):
+ *  fact/error lines 15px (clamped 2) · chips rows 18px · action
+ *  buttons 18px rows. Mirror the .nc-x-* CSS (anatomy law). */
+const X_GAP = 5;
+const X_LINE_H = 15;
+const X_CHIPS_H = 18;
+const X_ACT_GAP = 6;
+const X_ACT_ROW_H = 18;
+const X_ACT_ROW_GAP = 4;
+/** Fact text wraps at ≈31 chars/line (the body's proven budget in the
+ *  ~220px content column) and CSS-clamps at 2 — heights stay TRUE. */
+const X_WRAP_CHARS = 31;
+const X_FACT_MAX_LINES = 2;
 
 /** Inbound wires shown ON the card (the rest counts into `+N`). */
 const IO_MAX_WIRES = 2;
@@ -675,8 +719,8 @@ const IO_MAX_WIRES = 2;
 /** Body preview text for a node (verb decides which fact leads). */
 // ─── Display properties (Shift+V · the Linear read) ────────────────
 // Which optional card rows the MAP renders — a per-user density dial,
-// never a data filter (facts hide, they are not dropped: the hover
-// carries everything always). The row predicates AND nodeHeightOf
+// never a data filter (facts hide, they are not dropped: the GRAND
+// card carries everything). The row predicates AND nodeHeightOf
 // consult the same register, so a toggle re-renders with TRUE boxes.
 interface DisplayProps {
   body: boolean;
@@ -688,8 +732,62 @@ interface DisplayProps {
 const DISPLAY_DEFAULTS: DisplayProps = { body: true, io: true, params: true, policy: true, contract: true };
 let displayProps: DisplayProps = { ...DISPLAY_DEFAULTS };
 
-function bodyTextOf(node: DagNode): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
-  if (!displayProps.body) { return undefined; }
+// ─── Card modes (card-first · W-D5) — min / grand, per card ────────
+// The tooltip hover-card is dead: every task fact lives ON the card.
+// `min` = head · verdict · one essence line (calm, scannable).
+// `grand` = the full story — the dial-gated rows PLUS the sections the
+// hover used to carry (error · facts/cache · sub-peek · actions).
+// The dial (Shift+V) sets a global cran; double-click / E toggles one
+// card, switching the dial to `mix` (the per-card map is RETAINED when
+// the dial cycles away and back). Same register as displayProps: the
+// build AND nodeHeightOf consult it, so a toggle re-renders TRUE boxes.
+type CardMode = 'min' | 'grand';
+type CardDial = CardMode | 'mix';
+let cardDial: CardDial = 'min';
+let cardBase: CardMode = 'min';
+/** Per-card overrides for the CURRENT workflow (id → mode). */
+let cardOverrides: Record<string, CardMode> = {};
+let cardModesKey: string | null = null;
+
+/** The RETAINED mode of a card (never peek-transient — layout truth). */
+function cardModeOf(id: string): CardMode {
+  if (cardDial !== 'mix') { return cardDial; }
+  return cardOverrides[id] ?? cardBase;
+}
+
+function persistCardModes(): void {
+  const state = vscode.getState() ?? {};
+  const all = { ...(state.cardModes ?? {}) };
+  if (cardModesKey !== null) {
+    all[cardModesKey] = { ...cardOverrides };
+    const keys = Object.keys(all);
+    if (keys.length > 6) {
+      for (const k of keys.slice(0, keys.length - 6)) { delete all[k]; }
+    }
+  }
+  vscode.setState({ ...state, cardDial, cardBase, cardModes: all });
+}
+
+function restoreCardModes(graphKey: string): void {
+  const state = vscode.getState();
+  cardDial = state?.cardDial ?? 'min';
+  cardBase = state?.cardBase ?? 'min';
+  cardModesKey = graphKey;
+  cardOverrides = { ...(state?.cardModes?.[graphKey] ?? {}) };
+}
+
+/** Record a per-card mode — entering the mix from a global cran seeds
+ *  the base so every OTHER card keeps its current look. */
+function setCardOverride(id: string, mode: CardMode): void {
+  if (cardDial !== 'mix') { cardBase = cardDial; cardDial = 'mix'; }
+  cardOverrides[id] = mode;
+  persistCardModes();
+}
+
+function bodyTextOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): { kind: 'prompt' | 'cmd' | 'args'; text: string } | undefined {
+  // min ALWAYS shows its one essence line — the dial governs GRAND
+  // density; the min anatomy is fixed (head · verdict · essence).
+  if (mode === 'grand' && !displayProps.body) { return undefined; }
   if (node.promptPreview) { return { kind: 'prompt', text: node.promptPreview }; }
   if (node.commandPreview) { return { kind: 'cmd', text: node.commandPreview }; }
   if (node.argsPreview) { return { kind: 'args', text: node.argsPreview }; }
@@ -767,9 +865,192 @@ function hasPolicyRow(node: DagNode): boolean {
     || (node.verb === 'agent' && node.toolsCount !== undefined);
 }
 
+// ─── The structural context the card sections read ─────────────────
+// wave · blast · pinch · needs/unlocks are graph-level reads computed
+// by the renderer BEFORE layout (renderCoreInner) — this module-level
+// seam lets cardFactsOf and nodeHeightOf see the SAME truth.
+interface CardStructCtx {
+  waveOf: Map<string, number>;
+  blastRadius: Map<string, number>;
+  pinchPoints: string[];
+  nodeCount: number;
+  upstreamOf: Map<string, string[]>;
+  downstreamOf: Map<string, string[]>;
+}
+let cardCtx: CardStructCtx | null = null;
+
+/** One migrated fact line (`k` dim label · `v` the story). */
+interface CardFact { k: string; v: string; live?: 'spending' | 'stream' }
+
+/** The grand card's fact block — the run story the hover used to carry
+ *  (spent · resume/cache identity · repaired · agent loop · inside ·
+ *  secret · gate · live spend/stream · wave · blast · pinch). ONE
+ *  source: the build renders it, nodeHeightOf budgets it. */
+function cardFactsOf(node: DagNode): CardFact[] {
+  const facts: CardFact[] = [];
+  if (node.usd !== undefined && (node.status !== 'success' || node.durationMs == null)) {
+    // Recorded spend the card verdict does NOT already show (a
+    // failed/cancelled task still spent before it stopped).
+    facts.push({ k: 'spent', v: `$${node.usd.toFixed(node.usd < 0.1 ? 4 : 2)} recorded` });
+  }
+  if (node.cached) {
+    const proof = node.defHash !== undefined && node.inputHash !== undefined
+      ? ` — same definition (${node.defHash.slice(0, 8)}…) and inputs (${node.inputHash.slice(0, 8)}…) as the recorded run`
+      : '';
+    facts.push({ k: 'resume', v: `↻ cache hit — recorded output reused, not re-executed${proof}` });
+  }
+  if (node.recoveredFrom) {
+    facts.push({ k: 'repaired', v: `✚ recovered from ${node.recoveredFrom} — on_error.recover absorbed the failure` });
+  }
+  if (node.outputPreview
+    && !(node.status === 'success' && bodyTextOf(node, 'grand') !== undefined)) {
+    // Full hover parity: the row yields ONLY where the body line
+    // already wears `→ output` (success + a body). A failed task's
+    // partial output — or a body-less card's — reads here (refuter
+    // 2026-07-20: the success-only body swap had orphaned that state).
+    facts.push({ k: 'output', v: node.outputPreview });
+  }
+  // The agent loop's inner life: tool routing · budget curve · nudges ·
+  // the stall evidence (fold annotations — engine truth).
+  const af = node.agent;
+  if (af) {
+    if (af.turns !== undefined) {
+      const routing = af.offered !== undefined && af.universe !== undefined
+        ? ` · saw ${af.offered}/${af.universe} tools`
+        : '';
+      facts.push({ k: 'loop', v: `turn ${af.turns}${routing}` });
+    }
+    if (af.budget !== undefined) {
+      facts.push({ k: 'budget', v: af.budget.budget !== undefined
+        ? `${af.budget.totalTokens} of ${af.budget.budget} tokens`
+        : `${af.budget.totalTokens} tokens so far` });
+    }
+    if (af.nudges !== undefined && af.nudges > 0) {
+      facts.push({ k: 'nudged', v: `${af.nudges}× — ${af.lastNudgeReason === 'error_streak'
+        ? 'an error streak drew a corrective reflection'
+        : 'repeated actions drew a corrective reflection'}` });
+    }
+    if (af.stalled !== undefined) {
+      facts.push({ k: 'stalled', v: `no-progress cycle (period ${af.stalled.period} · ×${af.stalled.repeats}) — the loop stopped itself` });
+    }
+    if (af.compose !== undefined) {
+      facts.push({ k: 'compose', v: `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check` });
+    }
+  }
+  if (node.subManifest !== undefined) {
+    const m = node.subManifest;
+    facts.push({ k: 'inside', v: `${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
+      + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
+      + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '') });
+  }
+  if (node.secretLiterals !== undefined && node.secretLiterals > 0) {
+    facts.push({ k: 'secret', v: `⚿ ${node.secretLiterals} literal credential${node.secretLiterals === 1 ? '' : 's'} pasted in this task — use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)` });
+  }
+  if (node.deadGate === true) {
+    facts.push({ k: 'gate', v: 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written' });
+  }
+  if (node.liveUsd !== undefined && node.status === 'running') {
+    facts.push({ k: 'spending', v: `~${usd(node.liveUsd)} so far — still moving`, live: 'spending' });
+  }
+  if (node.chunks !== undefined && node.chunks > 0 && node.status === 'running') {
+    facts.push({ k: 'stream', v: `${node.chunks} deltas received — the model is talking`, live: 'stream' });
+  }
+  const ctx = cardCtx;
+  if (ctx) {
+    const wave = ctx.waveOf.get(node.id);
+    if (wave !== undefined && ctx.waveOf.size > 0) {
+      facts.push({ k: 'wave', v: `${wave + 1} of ${1 + Math.max(...ctx.waveOf.values())}` });
+    }
+    const blocks = ctx.blastRadius.get(node.id) ?? 0;
+    if (blocks > 0) {
+      facts.push({ k: 'blast', v: `blocks ${blocks} downstream task${blocks === 1 ? '' : 's'}` });
+    }
+    if (ctx.pinchPoints.includes(node.id) && ctx.nodeCount > 1) {
+      facts.push({ k: 'pinch', v: 'nothing else can run while this runs' });
+    }
+  }
+  return facts;
+}
+
+/** Line budget of one fact (label + value at the wrap budget, clamped). */
+function factLinesOf(f: CardFact): number {
+  return Math.min(X_FACT_MAX_LINES, Math.max(1, Math.ceil((f.k.length + 2 + f.v.length) / X_WRAP_CHARS)));
+}
+
+/** The didn't-run / paused reasons — visible lines in grand (they used
+ *  to hide in the sub cell's tooltip). The failed line itself stays the
+ *  body swap (✗ … · click → explain). */
+function cardWhyLinesOf(node: DagNode): string[] {
+  const lines: string[] = [];
+  if (node.pausedQuestion) { lines.push(`⏸ asks: ${node.pausedQuestion}`); }
+  if (node.whyWhen) { lines.push(`gate false: ${node.whyWhen}`); }
+  if (node.blockedBy) { lines.push(`blocked by ${node.blockedBy}`); }
+  return lines;
+}
+
+/** Sub-workflow skeleton mini-map geometry (shared: build + height). */
+function peekGeomOf(node: DagNode): { w: number; h: number; renderW: number; renderH: number } | null {
+  const sk = node.subManifest?.skeleton;
+  if (sk === undefined || sk.nodes.length === 0) { return null; }
+  const COL = 34; const ROW = 16; const PAD = 10;
+  const perWave = new Map<number, number>();
+  for (const n of sk.nodes) { perWave.set(n.wave, (perWave.get(n.wave) ?? 0) + 1); }
+  const w = PAD * 2 + (Math.max(...sk.nodes.map((n) => n.wave)) + 1) * COL - COL + 8;
+  const h = PAD * 2 + Math.max(...perWave.values()) * ROW - ROW + 8;
+  const renderW = Math.min(w, 220);
+  return { w, h, renderW, renderH: Math.round(h * (renderW / w)) };
+}
+
+/** The action labels a card wears (ONE source: the build renders
+ *  them, the row budget flows them). */
+function actionLabelsOf(node: DagNode): string[] {
+  const labels = ['\u25B8 run', '\u26a1 what if', '⧉ dup'];
+  if (node.status === 'failed') {
+    const code = NIKA_CODE_RE.exec(node.failPreview ?? '')?.[0];
+    if (code !== undefined) { labels.push(`\u270e ${code}`); }
+    labels.push('\u2442 fork');
+  }
+  labels.push('K'); // the panel kbd-chip
+  return labels;
+}
+
+/** Action row count — a deterministic flex-wrap flow over the REAL
+ *  labels (10px mono ≈ 6.2px/char + 16px padding · 4px gap · ~220px
+ *  column). Mirrors .nc-x-actions CSS: the budget wraps exactly where
+ *  the pixels do. */
+function actionRowsOf(node: DagNode): number {
+  const W = 220; const CHAR = 6.2; const PADX = 16; const GAP = 4;
+  let rows = 1; let x = 0;
+  for (const label of actionLabelsOf(node)) {
+    const w = Math.ceil(label.length * CHAR + (label === 'K' ? 14 : PADX));
+    if (x > 0 && x + GAP + w > W) { rows += 1; x = w; }
+    else { x += (x > 0 ? GAP : 0) + w; }
+  }
+  return rows;
+}
+
+/** Neighbor-chip row count — the same deterministic flow over the
+ *  REAL ids (label + every chip, 72px cap each). EVERY neighbor stays
+ *  clickable (hover parity — a +N tooltip would lose the 4th jump). */
+function chipRowsOf(label: string, ids: string[]): number {
+  const W = 220; const CHAR = 6.2; const GAP = 4;
+  let rows = 1; let x = Math.ceil(label.length * CHAR);
+  for (const id of ids) {
+    const w = Math.min(Math.ceil(id.length * CHAR + 12), 72) + 2;
+    if (x + GAP + w > W) { rows += 1; x = w; }
+    else { x += GAP + w; }
+  }
+  return rows;
+}
+
 /** Card height from content — the layout must know the TRUE box. */
-function nodeHeightOf(node: DagNode): number {
+function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): number {
   let h = CARD_PAD_Y * 2 + HEAD_H + DIVIDER_H + SUB_H;
+  if (mode === 'min') {
+    // min = head · verdict · one essence line. Nothing else.
+    if (bodyTextOf(node, 'min')) { h += BODY_GAP + BODY_LINE_H; }
+    return Math.max(h, NODE_HEIGHT);
+  }
   if (node.artifact) {
     // file rides the audio row height (one-line receipt row).
     h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
@@ -778,7 +1059,7 @@ function nodeHeightOf(node: DagNode): number {
     // take — constant height, so a status flip never needs relayout.
     h += PREVIEW_GAP + PREVIEW_IMG_H;
   }
-  const body = bodyTextOf(node);
+  const body = bodyTextOf(node, mode);
   if (body) {
     const lines = body.kind === 'prompt'
       ? Math.min(body.text.split('\n').length, 3)
@@ -791,11 +1072,36 @@ function nodeHeightOf(node: DagNode): number {
       : lines;
     h += BODY_GAP + wrapLines * BODY_LINE_H;
   }
+  // The why lines (paused · gate false · blocked by) — grand-visible.
+  const whyLines = cardWhyLinesOf(node);
+  if (whyLines.length > 0) {
+    h += X_GAP;
+    for (const line of whyLines) {
+      h += Math.min(X_FACT_MAX_LINES, Math.max(1, Math.ceil(line.length / X_WRAP_CHARS))) * X_LINE_H;
+    }
+  }
   if (hasIoRow(node)) { h += IO_GAP + IO_H; }
   const contractRows = displayProps.contract ? Math.min(node.subManifest?.contract?.length ?? 0, 4) : 0;
   if (contractRows > 0) { h += IO_GAP + contractRows * 15 + 4; }
   if (hasParamsRow(node)) { h += PARAMS_GAP + PARAMS_H; }
   if (hasPolicyRow(node)) { h += POLICY_GAP + POLICY_H; }
+  // The migrated hover sections — facts · sub-peek · neighbors · actions.
+  const facts = cardFactsOf(node);
+  if (facts.length > 0) {
+    h += X_GAP;
+    for (const f of facts) { h += factLinesOf(f) * X_LINE_H; }
+  }
+  const peek = peekGeomOf(node);
+  if (peek) { h += X_GAP + peek.renderH; }
+  const ctx = cardCtx;
+  if (ctx) {
+    const up = ctx.upstreamOf.get(node.id) ?? [];
+    const down = ctx.downstreamOf.get(node.id) ?? [];
+    if (up.length > 0) { h += X_GAP + chipRowsOf('needs', up) * X_CHIPS_H; }
+    if (down.length > 0) { h += X_GAP + chipRowsOf('unlocks', down) * X_CHIPS_H; }
+  }
+  const actRows = actionRowsOf(node);
+  h += X_ACT_GAP + actRows * X_ACT_ROW_H + (actRows - 1) * X_ACT_ROW_GAP;
   return Math.max(h, NODE_HEIGHT);
 }
 
@@ -1031,7 +1337,6 @@ class DagRenderer {
   private currentGraph: DagGraph | undefined;
   private nodeMap: Map<string, DagNode> = new Map();
   private container: HTMLElement;
-  private hoverCard: HTMLElement | null;
   /** Use smooth curves instead of orthogonal segments for edges */
   public smoothEdges = false;
   /** Heatmap overlay — tint cards by run duration (else static cost). */
@@ -1076,7 +1381,7 @@ class DagRenderer {
   }
 
   /** Keyboard lane (X): what-if on the focused card — the same
-   *  toggle the hover button carries. */
+   *  toggle the card's ⚡ action carries. */
   simulateFocused(): void {
     if (this.focusedId !== null) { this.toggleSimulate(this.focusedId); }
   }
@@ -1406,7 +1711,7 @@ class DagRenderer {
   /** Alt-drag edge creation state. */
   private connectFrom: string | null = null;
   private tempEdge: Selection<SVGPathElement, unknown, null, undefined> | null = null;
-  /** Structural DAG read, cached per load (hover-card blast/pinch rows). */
+  /** Structural DAG read, cached per load (card blast/pinch facts). */
   private structuralInsights: DagInsights | undefined;
   /** Hand-dragged card positions for the CURRENT workflow (root coords). */
   private manualPos = new Map<string, { x: number; y: number }>();
@@ -1449,7 +1754,6 @@ class DagRenderer {
 
   constructor(containerId: string) {
     this.container = document.getElementById(containerId)!;
-    this.hoverCard = document.getElementById('hover-card');
 
     this.svg = select(this.container)
       .append<SVGSVGElement>('svg')
@@ -1735,6 +2039,22 @@ class DagRenderer {
     // fresh at open for the duration-sensitive numbers.
     this.structuralInsights = analyzeDag(graph.nodes, graph.edges);
 
+    // Card modes + structural context — BEFORE layout: nodeHeightOf
+    // reads the mode register AND the graph facts (wave · blast ·
+    // pinch · neighbors) to budget the grand sections' TRUE boxes.
+    restoreCardModes(layoutKeyOf(graph));
+    for (const id of Object.keys(cardOverrides)) {
+      if (!this.nodeMap.has(id)) { delete cardOverrides[id]; }
+    }
+    cardCtx = {
+      waveOf: this.waveOf,
+      blastRadius: this.structuralInsights.blastRadius,
+      pinchPoints: this.structuralInsights.pinchPoints,
+      nodeCount: this.structuralInsights.nodeCount,
+      upstreamOf: this.upstreamOf,
+      downstreamOf: this.downstreamOf,
+    };
+
     this.saveState({ graph });
 
     const layoutResult = await computeLayout(graph);
@@ -1789,6 +2109,11 @@ class DagRenderer {
     if (this.focusedId && !this.nodeMap.has(this.focusedId)) {
       this.focusedId = null;
     }
+    // A pinned peek cannot survive a render pass (the class sweep wiped
+    // its mark; frames took retained heights) — release the state.
+    // rerenderCurrent re-pins after its pass.
+    this.peekPinned = false;
+    this.peekedId = null;
     if (this.lineage && !this.nodeMap.has(this.lineage.focus)) {
       this.lineage = null;
       this.lineageFromEditor = false;
@@ -2252,7 +2577,7 @@ class DagRenderer {
     if (!box) { return; }
     const hint = document.createElement('div');
     hint.id = 'nk-red-teach';
-    hint.textContent = 'the red teaches — click the code to explain · hover ⑂ forks from here';
+    hint.textContent = 'the red teaches — click the code to explain · ⑂ fork rides the card';
     document.body.appendChild(hint);
     // Park it under the toolbar (fixed) — the card itself may sit
     // anywhere in the viewport; the activity line placement is stable.
@@ -2334,7 +2659,6 @@ class DagRenderer {
     if (!drag.moved) {
       if (Math.hypot(rx - drag.startX, ry - drag.startY) < 4) { return; }
       drag.moved = true;
-      this.hideHoverCard(true);
       this.nodeGroup.select(`[data-id="${CSS.escape(drag.id)}"]`).classed('dragging', true);
     }
     let nx = drag.origX + (rx - drag.startX);
@@ -3030,8 +3354,7 @@ class DagRenderer {
     const target = nextFocus(this.currentGraph.nodes, this.currentGraph.edges, this.focusedId ?? undefined, dir);
     if (target) { this.focusAndCenter(target, true); }
     if (this.peekPinned && this.focusedId !== null) {
-      const node = this.nodeMap.get(this.focusedId);
-      if (node) { this.showHoverCard(node); }
+      this.applyPeek(this.focusedId);
     }
   }
 
@@ -3383,9 +3706,11 @@ class DagRenderer {
       if (this.suppressClick) { this.suppressClick = false; return; } // a drop, not a select
       if (event.altKey) { return; } // alt belongs to edge creation
       this.applyFocus(this.focusedId === d.id ? null : d.id);
-      // The hover stays open through a focus click — rebuild it so
-      // truth-gated affordances (the X hint) follow the focus state.
-      this.showHoverCard(d);
+      // A pinned peek follows the focus click; clearing focus releases.
+      if (this.peekPinned) {
+        if (this.focusedId === null) { this.unpinPeek(); }
+        else { this.applyPeek(this.focusedId); }
+      }
       vscode.postMessage({
         kind: 'dag:nodeClicked',
         taskId: d.id,
@@ -3393,25 +3718,22 @@ class DagRenderer {
       });
     });
 
-    // Double-click handler
-    enter.on('dblclick', (_event: MouseEvent, d: DagNode) => {
-      vscode.postMessage({
-        kind: 'dag:nodeDoubleClicked',
-        taskId: d.id,
-        workflowUri: this.currentGraph?.workflowUri,
-      });
+    // Double-click = toggle THIS card min↔grand (card-first · W-D5).
+    // The YAML jump lives on single click + ⏎ (and the K panel row).
+    enter.on('dblclick', (event: MouseEvent, d: DagNode) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleCardMode(d.id);
     });
 
-    // Rich hover card (replaces the native <title> tooltip) + the
-    // hover-to-trace lineage — one pointer, two reads. The card anchors
-    // to the NODE box (never chases the cursor), so no mousemove hook.
+    // The hover-to-trace lineage — one pointer, one read. Card-first:
+    // the card carries its own facts (min → grand on double-click/E);
+    // no tooltip popup rides the pointer anymore.
     enter
       .on('mouseenter', (_event: MouseEvent, d: DagNode) => {
-        this.showHoverCard(d);
         this.hoverLineage(d.id);
       })
       .on('mouseleave', () => {
-        this.hideHoverCard();
         this.hoverLineage(null);
       });
 
@@ -3447,6 +3769,12 @@ class DagRenderer {
     merged.select('rect.node-bg').attr('height', (d) => nodeHeightOf(d));
     merged.selectAll<SVGRectElement, DagNode>('rect.node-stack').attr('height', (d) => nodeHeightOf(d));
     merged.select('foreignObject').attr('height', (d) => nodeHeightOf(d));
+    // The out port rides the same truth (it floated mid-card when a
+    // display/mode toggle changed heights on existing cards).
+    merged.select('.nc-port-out').attr('cy', (d) => nodeHeightOf(d));
+    // The mode, readable on the group (CSS scope · probes · a11y).
+    merged.attr('data-card-mode', (d) => this.renderModeOf(d.id));
+    merged.attr('aria-expanded', (d) => String(this.renderModeOf(d.id) === 'grand'));
     // Native right-click: VS Code reads data-vscode-context off the DOM
     // path and shows the contributed webview/context menu — refreshed on
     // every render so the workflowUri never goes stale on a switch.
@@ -3458,9 +3786,253 @@ class DagRenderer {
     }));
   }
 
-  /** Build the HTML card body (safe DOM construction — never innerHTML). */
-  private buildCardHtml(host: HTMLElement, node: DagNode): void {
+  // ─── Card sections (card-first · the hover's content lives HERE) ──
+
+  /** The fact row (Well key→value): mechanism left, live verdict right. */
+  private appendCardSub(host: HTMLElement, node: DagNode): void {
+    const sub = document.createElement('div');
+    sub.className = 'nc-sub';
+    const subK = document.createElement('span');
+    subK.className = 'nc-sub-k';
+    subK.textContent = this.subMechanism(node);
+    const subV = document.createElement('span');
+    subV.className = 'nc-sub-v';
+    subV.textContent = this.subValue(node);
+    const why = node.pausedQuestion ? `\u23f8 asks: ${node.pausedQuestion}`
+      : node.whyWhen ? `gate false: ${node.whyWhen}`
+      : node.blockedBy ? `blocked by ${node.blockedBy}` : '';
+    if (why) { subV.title = why; }
+    sub.append(subK, subV);
+    host.appendChild(sub);
+  }
+
+  /** The body line (prompt · command · essence) + its lived swaps. */
+  private appendCardBody(host: HTMLElement, node: DagNode, mode: CardMode): void {
+    const body = bodyTextOf(node, mode);
+    if (!body) { return; }
+    const el = document.createElement('div');
+    el.className = `nc-body nc-body-${body.kind}`;
+    // The red teaches: a failed swap makes this the error line —
+    // clicking it (only then) opens the code's explain doc.
+    el.addEventListener('mousedown', (e) => {
+      if (el.classList.contains('nc-body-err')) { e.stopPropagation(); }
+    });
+    el.addEventListener('click', (e) => {
+      if (!el.classList.contains('nc-body-err')) { return; }
+      e.stopPropagation();
+      const code = NIKA_CODE_RE.exec(el.textContent ?? '')?.[0];
+      if (code) { vscode.postMessage({ kind: 'dag:explainCode', code }); }
+    });
+    // The resting paint (build AND restore share it — a re-run must
+    // restore the STYLED essence, not a flat dump of dataset.base).
+    paintBodyRest(el, node, body.kind, body.text);
+    // A REBUILD must keep the lived story (audit push · artifact
+    // refresh call this on settled cards): a success re-wears its
+    // recorded output, a failure its teaching red — the same swap
+    // applyStatus paints (probe 2026-07-19: a post-run check landed
+    // and flattened « \u2192 output » back to the resting text).
+    if (node.status === 'success' && node.outputPreview) {
+      el.textContent = `\u2192 ${node.outputPreview}`;
+      el.title = node.outputPreview;
+      el.classList.add('nc-body-live');
+    } else if (node.status === 'failed' && node.failPreview) {
+      el.textContent = `\u2717 ${node.failPreview}`;
+      el.title = `${node.failPreview}\n\nclick — explain the code`;
+      el.classList.add('nc-body-live', 'nc-body-err');
+    }
+    host.appendChild(el);
+  }
+
+  /** The didn't-run reasons, VISIBLE in grand (paused question · gate
+   *  false · blocked by) — they used to hide in the sub cell's tooltip;
+   *  the failed line itself stays the body swap (click \u2192 explain). */
+  private appendCardWhy(host: HTMLElement, node: DagNode): void {
+    const lines = cardWhyLinesOf(node);
+    if (lines.length === 0) { return; }
+    const block = document.createElement('div');
+    block.className = 'nc-x-error';
+    for (const line of lines) {
+      const el = document.createElement('div');
+      el.className = 'nc-xe';
+      el.textContent = line;
+      el.title = line;
+      block.appendChild(el);
+    }
+    host.appendChild(block);
+  }
+
+  /** The migrated fact block — the run story the hover used to carry
+   *  (ONE source: cardFactsOf renders here, nodeHeightOf budgets it). */
+  private appendCardFacts(host: HTMLElement, node: DagNode): void {
+    const facts = cardFactsOf(node);
+    if (facts.length === 0) { return; }
+    const block = document.createElement('div');
+    block.className = 'nc-x-facts';
+    for (const f of facts) {
+      const el = document.createElement('div');
+      el.className = `nc-xf${f.live ? ` nc-xf-${f.live}` : ''}`;
+      const k = document.createElement('span');
+      k.className = 'nc-xf-k';
+      k.textContent = f.k;
+      el.appendChild(k);
+      el.appendChild(document.createTextNode(` ${f.v}`));
+      el.title = `${f.k}: ${f.v}`;
+      block.appendChild(el);
+    }
+    host.appendChild(block);
+  }
+
+  /** The sub-workflow peek (UE collapsed-graph steal): the child's REAL
+   *  shape at a glance — verb-hued dots in wave columns, its real edges
+   *  as thin links. A miniature of ITS projection, no labels. */
+  private appendCardPeek(host: HTMLElement, node: DagNode): void {
+    const sk = node.subManifest?.skeleton;
+    const geom = peekGeomOf(node);
+    if (sk === undefined || geom === null) { return; }
+    const COL = 34; const ROW = 16; const PAD = 10;
+    const perWave = new Map<number, string[]>();
+    for (const n of sk.nodes) {
+      const list = perWave.get(n.wave) ?? [];
+      list.push(n.id);
+      perWave.set(n.wave, list);
+    }
+    const pos = new Map<string, [number, number]>();
+    for (const n of sk.nodes) {
+      const col = perWave.get(n.wave) ?? [];
+      pos.set(n.id, [PAD + n.wave * COL, PAD + col.indexOf(n.id) * ROW]);
+    }
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const peek = document.createElementNS(svgNs, 'svg');
+    peek.setAttribute('class', 'nc-x-peek');
+    peek.setAttribute('viewBox', `0 0 ${geom.w} ${geom.h}`);
+    peek.setAttribute('width', String(geom.renderW));
+    peek.setAttribute('height', String(geom.renderH));
+    for (const e of sk.edges) {
+      const a = pos.get(e.source); const b = pos.get(e.target);
+      if (!a || !b) { continue; }
+      const line = document.createElementNS(svgNs, 'line');
+      line.setAttribute('x1', String(a[0] + 3)); line.setAttribute('y1', String(a[1]));
+      line.setAttribute('x2', String(b[0] - 3)); line.setAttribute('y2', String(b[1]));
+      line.setAttribute('class', 'nc-xpk-edge');
+      peek.appendChild(line);
+    }
+    for (const n of sk.nodes) {
+      const [x, y] = pos.get(n.id)!;
+      const dot = document.createElementNS(svgNs, 'circle');
+      dot.setAttribute('cx', String(x)); dot.setAttribute('cy', String(y));
+      dot.setAttribute('r', '3.2');
+      dot.setAttribute('class', `nc-xpk-dot vp-${n.verb}`);
+      peek.appendChild(dot);
+    }
+    host.appendChild(peek);
+  }
+
+  /** needs / unlocks — EVERY neighbor as a clickable chip (focus it).
+   *  The rows wrap; chipRowsOf flows the SAME ids for the height. */
+  private appendCardChips(host: HTMLElement, node: DagNode): void {
+    const ctx = cardCtx;
+    if (!ctx) { return; }
+    const row = (label: string, ids: string[]): void => {
+      if (ids.length === 0) { return; }
+      const el = document.createElement('div');
+      el.className = 'nc-x-chips';
+      const k = document.createElement('span');
+      k.className = 'nc-xc-k';
+      k.textContent = label;
+      el.appendChild(k);
+      for (const nid of ids) {
+        const chip = document.createElement('button');
+        chip.className = 'nc-xc-chip';
+        chip.textContent = nid;
+        chip.title = `${nid} — click to focus it`;
+        chip.addEventListener('mousedown', (e) => e.stopPropagation());
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.focusAndCenter(nid);
+        });
+        el.appendChild(chip);
+      }
+      host.appendChild(el);
+    };
+    row('needs', ctx.upstreamOf.get(node.id) ?? []);
+    row('unlocks', ctx.downstreamOf.get(node.id) ?? []);
+  }
+
+  /** The actions row — every gesture the hover used to carry, VISIBLE
+   *  at the card's foot: ▸ run (upstream cone) · ⚡ what if · ⧉ dup ·
+   *  a failed card adds ✎ explain + ⑂ fork · K opens the full panel.
+   *  Same handlers the hover had — one registry of behavior. */
+  private appendCardActions(host: HTMLElement, node: DagNode): void {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'nc-x-actions';
+    const btn = (cls: string, text: string, title: string, run: () => void): HTMLButtonElement => {
+      const b = document.createElement('button');
+      b.className = `nc-x-act${cls ? ` ${cls}` : ''}`;
+      b.textContent = text;
+      b.title = title;
+      b.addEventListener('mousedown', (e) => e.stopPropagation());
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        run();
+      });
+      rowEl.appendChild(b);
+      return b;
+    };
+    btn('', '\u25B8 run',
+      'Run THIS task and its upstream cone only (nika run --task) — upstream cache-hits stay cache-hits',
+      () => {
+        this.confirmOn(node.id);
+        vscode.postMessage({
+          kind: 'dag:runTask',
+          taskId: node.id,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+    btn('nc-x-sim', '\u26a1 what if',
+      'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears. (X on the focused card)',
+      () => { this.toggleSimulate(node.id); });
+    btn('', '⧉ dup',
+      'Duplicate this task (⌘D) — fresh id, inbound wiring kept',
+      () => {
+        vscode.postMessage({
+          kind: 'dag:duplicateTask',
+          taskId: node.id,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+    if (node.status === 'failed') {
+      const code = NIKA_CODE_RE.exec(node.failPreview ?? '')?.[0];
+      if (code) {
+        btn('nc-x-explain', `\u270e ${code}`,
+          `Explain ${code} — cause, category, the fix form`,
+          () => { vscode.postMessage({ kind: 'dag:explainCode', code }); });
+      }
+      btn('nc-x-fork', '\u2442 fork',
+        'Fork from this task — upstream rehydrates from the newest recorded run, this task and its cone re-run',
+        () => {
+          vscode.postMessage({
+            kind: 'dag:forkFromTask',
+            taskId: node.id,
+            workflowUri: this.currentGraph?.workflowUri,
+          });
+        });
+    }
+    btn('nc-x-panel', 'K',
+      'Every action with its shortcut (K on the focused card)',
+      () => {
+        if (this.focusedId !== node.id) { this.applyFocus(node.id); }
+        this.openNodeActions();
+      });
+    host.appendChild(rowEl);
+  }
+
+  /** Build the HTML card body (safe DOM construction — never innerHTML).
+   *  `mode` defaults to the retained register; the peek passes an
+   *  explicit 'grand' (transient — never recorded, never layout). */
+  private buildCardHtml(host: HTMLElement, node: DagNode, mode: CardMode = cardModeOf(node.id)): void {
     host.replaceChildren();
+    host.classList.toggle('nc-mode-min', mode === 'min');
+    host.classList.toggle('nc-mode-grand', mode === 'grand');
 
     const header = document.createElement('div');
     header.className = 'nc-head';
@@ -3513,6 +4085,14 @@ class DagRenderer {
     const divider = document.createElement('div');
     divider.className = 'nc-div';
     host.appendChild(divider);
+
+    // min — head · verdict · one essence line. The full story is one
+    // double-click (or E) away; nothing hides behind a hover anymore.
+    if (mode === 'min') {
+      this.appendCardSub(host, node);
+      this.appendCardBody(host, node, 'min');
+      return;
+    }
 
     // The RECORDED artifact — the generation, ON the card (engine truth
     // from the trace: only a file a run actually wrote and that still
@@ -3603,56 +4183,9 @@ class DagRenderer {
       }
     }
 
-    // The fact row (Well key→value): mechanism left, live verdict right.
-    const sub = document.createElement('div');
-    sub.className = 'nc-sub';
-    const subK = document.createElement('span');
-    subK.className = 'nc-sub-k';
-    subK.textContent = this.subMechanism(node);
-    const subV = document.createElement('span');
-    subV.className = 'nc-sub-v';
-    subV.textContent = this.subValue(node);
-    const why = node.pausedQuestion ? `⏸ asks: ${node.pausedQuestion}`
-      : node.whyWhen ? `gate false: ${node.whyWhen}`
-      : node.blockedBy ? `blocked by ${node.blockedBy}` : '';
-    if (why) { subV.title = why; }
-    sub.append(subK, subV);
-    host.appendChild(sub);
-
-    const body = bodyTextOf(node);
-    if (body) {
-      const el = document.createElement('div');
-      el.className = `nc-body nc-body-${body.kind}`;
-      // The red teaches: a failed swap makes this the error line —
-      // clicking it (only then) opens the code's explain doc.
-      el.addEventListener('mousedown', (e) => {
-        if (el.classList.contains('nc-body-err')) { e.stopPropagation(); }
-      });
-      el.addEventListener('click', (e) => {
-        if (!el.classList.contains('nc-body-err')) { return; }
-        e.stopPropagation();
-        const code = NIKA_CODE_RE.exec(el.textContent ?? '')?.[0];
-        if (code) { vscode.postMessage({ kind: 'dag:explainCode', code }); }
-      });
-      // The resting paint (build AND restore share it — a re-run must
-      // restore the STYLED essence, not a flat dump of dataset.base).
-      paintBodyRest(el, node, body.kind, body.text);
-      // A REBUILD must keep the lived story (audit push · artifact
-      // refresh call this on settled cards): a success re-wears its
-      // recorded output, a failure its teaching red — the same swap
-      // applyStatus paints (probe 2026-07-19: a post-run check landed
-      // and flattened « → output » back to the resting text).
-      if (node.status === 'success' && node.outputPreview) {
-        el.textContent = `\u2192 ${node.outputPreview}`;
-        el.title = node.outputPreview;
-        el.classList.add('nc-body-live');
-      } else if (node.status === 'failed' && node.failPreview) {
-        el.textContent = `\u2717 ${node.failPreview}`;
-        el.title = `${node.failPreview}\n\nclick — explain the code`;
-        el.classList.add('nc-body-live', 'nc-body-err');
-      }
-      host.appendChild(el);
-    }
+    this.appendCardSub(host, node);
+    this.appendCardBody(host, node, 'grand');
+    this.appendCardWhy(host, node);
 
     // The promoted contract (composition · ComfyUI-widgets steal):
     // the child's callable API ON the parent card — name · state
@@ -3932,348 +4465,23 @@ class DagRenderer {
       flushChips();
       host.appendChild(policy);
     }
+
+    // The migrated hover sections — the full story, ON the card.
+    this.appendCardFacts(host, node);
+    this.appendCardPeek(host, node);
+    this.appendCardChips(host, node);
+    this.appendCardActions(host, node);
   }
 
-  // ─── Hover card (safe DOM construction · explication riche) ──────────────
-
-  private hcRow(label: string, value: string): HTMLElement {
-    const row = document.createElement('div');
-    row.className = 'hc-row';
-    const k = document.createElement('span');
-    k.className = 'hc-k';
-    k.textContent = label;
-    const v = document.createElement('span');
-    v.className = 'hc-v';
-    v.textContent = value;
-    row.append(k, v);
-    return row;
-  }
-
-  private showHoverCard(node: DagNode): void {
-    if (!this.hoverCard) { return; }
-    if (this.dragging?.moved) { return; } // no tooltips mid-drag
-    // A pending delayed-hide (from leaving the PREVIOUS node) must not
-    // kill the card we are about to show for this one.
-    if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
-    // Already open → GLIDE to the next anchor (left/top transition);
-    // a fresh open snaps into place and rises (no cross-canvas flight).
-    this.hoverCard.classList.toggle(
-      'gliding',
-      this.hoverCard.classList.contains('visible'),
-    );
-    const live = this.nodeMap.get(node.id) ?? node;
-    // Non-modal dialog (it carries action buttons — a tooltip may not):
-    // the label names the task the card describes.
-    this.hoverCard.setAttribute('aria-label', `Task ${live.id} — details and actions`);
-    this.hoverCard.replaceChildren();
-
-    const head = document.createElement('div');
-    head.className = 'hc-head';
-    const verb = document.createElement('span');
-    verb.className = `hc-verb verb-${live.verb}`;
-    verb.textContent = live.verb;
-    const id = document.createElement('span');
-    id.className = 'hc-id';
-    id.textContent = live.id;
-    const status = document.createElement('span');
-    status.className = `hc-status st-${live.status}`;
-    status.textContent = live.status;
-    // ▶ run from here — ONE task + its upstream cone (engine `run
-    // --task` through the extension's rerunTask flow · research #2).
-    const runBtn = document.createElement('button');
-    runBtn.className = 'hc-run';
-    runBtn.textContent = '\u25B8 run';
-    runBtn.title = 'Run THIS task and its upstream cone only (nika run --task) — upstream cache-hits stay cache-hits';
-    runBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-    runBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.hideHoverCard(true);
-      this.confirmOn(live.id);
-      vscode.postMessage({
-        kind: 'dag:runTask',
-        taskId: live.id,
-        workflowUri: this.currentGraph?.workflowUri,
-      });
-    });
-    // ⚡ what if — the admission simulation (L4): the ALGEBRA previews
-    // this task failing (dead paths dim · recovery paths light) —
-    // zero execution, Esc clears.
-    const simBtn = document.createElement('button');
-    simBtn.className = 'hc-run hc-sim';
-    simBtn.textContent = '\u26a1 what if';
-    // The Raycast read: the shortcut rides the action — but only when
-    // it is TRUE (X fires on the focused card; an unfocused card's
-    // hint would advertise a keystroke aimed at another task).
-    if (this.focusedId === live.id) {
-      const kbd = document.createElement('kbd');
-      kbd.className = 'hc-kbd';
-      kbd.textContent = 'X';
-      simBtn.appendChild(kbd);
-    }
-    simBtn.title = 'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears.';
-    simBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-    simBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.hideHoverCard(true);
-      this.toggleSimulate(live.id);
-    });
-    head.append(simBtn);
-
-    // ⧉ duplicate — the n8n most-loved move, one click from the card.
-    const dupBtn = document.createElement('button');
-    dupBtn.className = 'hc-run';
-    dupBtn.textContent = '⧉ dup';
-    dupBtn.title = 'Duplicate this task (⌘D) — fresh id, inbound wiring kept';
-    dupBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-    dupBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.hideHoverCard(true);
-      vscode.postMessage({
-        kind: 'dag:duplicateTask',
-        taskId: live.id,
-        workflowUri: this.currentGraph?.workflowUri,
-      });
-    });
-    // The red teaches (wave G): a FAILED task's hover leads with its
-    // next steps — explain the code · fork from here (upstream
-    // rehydrates from the newest trace). The loop rouge→compris→
-    // réparé→relancé, one hover away.
-    if (live.status === 'failed') {
-      const code = NIKA_CODE_RE.exec(live.failPreview ?? '')?.[0];
-      if (code) {
-        const exBtn = document.createElement('button');
-        exBtn.className = 'hc-run hc-explain';
-        exBtn.textContent = `\u270e ${code}`;
-        exBtn.title = `Explain ${code} — cause, category, the fix form`;
-        exBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-        exBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.hideHoverCard(true);
-          vscode.postMessage({ kind: 'dag:explainCode', code });
-        });
-        head.append(exBtn);
-      }
-      const forkBtn = document.createElement('button');
-      forkBtn.className = 'hc-run hc-fork';
-      forkBtn.textContent = '\u2442 fork';
-      forkBtn.title = 'Fork from this task — upstream rehydrates from the newest recorded run, this task and its cone re-run';
-      forkBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-      forkBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.hideHoverCard(true);
-        vscode.postMessage({
-          kind: 'dag:forkFromTask',
-          taskId: live.id,
-          workflowUri: this.currentGraph?.workflowUri,
-        });
-      });
-      head.append(forkBtn);
-    }
-    head.append(verb, id, status, dupBtn, runBtn);
-    this.hoverCard.appendChild(head);
-
-    // The hover is the RUN STORY + the jumps — never a mirror of the
-    // card. Mechanism facts (model · tool · gate · fan-out · cost · the
-    // inbound wires) live ON the card now; repeating them here was the
-    // old duplication this slimming removed.
-    const add = (label: string, value: string | undefined): void => {
-      if (value) { this.hoverCard!.appendChild(this.hcRow(label, value)); }
-    };
-    if (live.usd !== undefined && (live.status !== 'success' || live.durationMs == null)) {
-      // Recorded spend that the card verdict does NOT already show
-      // (a failed/cancelled task still spent before it stopped).
-      add('spent', `$${live.usd.toFixed(live.usd < 0.1 ? 4 : 2)} recorded`);
-    }
-    if (live.cached) {
-      const proof = live.defHash !== undefined && live.inputHash !== undefined
-        ? ` — same definition (${live.defHash.slice(0, 8)}…) and inputs (${live.inputHash.slice(0, 8)}…) as the recorded run`
-        : '';
-      add('resume', `↻ cache hit — recorded output reused, not re-executed${proof}`);
-    }
-    if (live.recoveredFrom) {
-      add('repaired', `✚ recovered from ${live.recoveredFrom} — on_error.recover absorbed the failure`);
-    }
-    add('output', live.outputPreview);
-    // The agent loop's inner life (the RUN STORY this hover exists
-    // for): tool routing · budget curve · nudges · the stall evidence.
-    const af = live.agent;
-    if (af) {
-      if (af.turns !== undefined) {
-        const routing = af.offered !== undefined && af.universe !== undefined
-          ? ` · saw ${af.offered}/${af.universe} tools`
-          : '';
-        add('loop', `turn ${af.turns}${routing}`);
-      }
-      if (af.budget !== undefined) {
-        add('budget', af.budget.budget !== undefined
-          ? `${af.budget.totalTokens} of ${af.budget.budget} tokens`
-          : `${af.budget.totalTokens} tokens so far`);
-      }
-      if (af.nudges !== undefined && af.nudges > 0) {
-        add('nudged', `${af.nudges}× — ${af.lastNudgeReason === 'error_streak'
-          ? 'an error streak drew a corrective reflection'
-          : 'repeated actions drew a corrective reflection'}`);
-      }
-      if (af.stalled !== undefined) {
-        add('stalled', `no-progress cycle (period ${af.stalled.period} · ×${af.stalled.repeats}) — the loop stopped itself`);
-      }
-      if (af.compose !== undefined) {
-        add('compose', `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check`);
-      }
-    }
-    if (live.subManifest?.skeleton !== undefined && live.subManifest.skeleton.nodes.length > 0) {
-      // The hover peek (UE collapsed-graph steal): the child's REAL
-      // shape at a glance — verb-hued dots in wave columns, its real
-      // edges as thin links. A miniature of ITS projection, no labels.
-      const sk = live.subManifest.skeleton;
-      const perWave = new Map<number, string[]>();
-      for (const n of sk.nodes) {
-        const list = perWave.get(n.wave) ?? [];
-        list.push(n.id);
-        perWave.set(n.wave, list);
-      }
-      const COL = 34; const ROW = 16; const PAD = 10;
-      const pos = new Map<string, [number, number]>();
-      for (const n of sk.nodes) {
-        const col = perWave.get(n.wave) ?? [];
-        pos.set(n.id, [PAD + n.wave * COL, PAD + col.indexOf(n.id) * ROW]);
-      }
-      const w = PAD * 2 + (Math.max(...sk.nodes.map((n) => n.wave)) + 1) * COL - COL + 8;
-      const h = PAD * 2 + Math.max(...[...perWave.values()].map((l) => l.length)) * ROW - ROW + 8;
-      const svgNs = 'http://www.w3.org/2000/svg';
-      const peek = document.createElementNS(svgNs, 'svg');
-      peek.setAttribute('class', 'hc-peek');
-      peek.setAttribute('viewBox', `0 0 ${w} ${h}`);
-      peek.setAttribute('width', String(Math.min(w, 220)));
-      for (const e of sk.edges) {
-        const a = pos.get(e.source); const b = pos.get(e.target);
-        if (!a || !b) { continue; }
-        const line = document.createElementNS(svgNs, 'line');
-        line.setAttribute('x1', String(a[0] + 3)); line.setAttribute('y1', String(a[1]));
-        line.setAttribute('x2', String(b[0] - 3)); line.setAttribute('y2', String(b[1]));
-        line.setAttribute('class', 'hc-peek-edge');
-        peek.appendChild(line);
-      }
-      for (const n of sk.nodes) {
-        const [x, y] = pos.get(n.id)!;
-        const dot = document.createElementNS(svgNs, 'circle');
-        dot.setAttribute('cx', String(x)); dot.setAttribute('cy', String(y));
-        dot.setAttribute('r', '3.2');
-        dot.setAttribute('class', `hc-peek-dot vp-${n.verb}`);
-        peek.appendChild(dot);
-      }
-      const row = document.createElement('div');
-      row.className = 'hc-row hc-peek-row';
-      row.appendChild(peek);
-      this.hoverCard.appendChild(row);
-    }
-    if (live.subManifest !== undefined) {
-      const m = live.subManifest;
-      add('inside', `${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
-        + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
-        + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : ''));
-    }
-    if (live.secretLiterals !== undefined && live.secretLiterals > 0) {
-      add('secret', `⚿ ${live.secretLiterals} literal credential${live.secretLiterals === 1 ? '' : 's'} pasted in this task — use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)`);
-    }
-    if (live.deadGate === true) {
-      add('gate', 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written');
-    }
-    if (live.liveUsd !== undefined && live.status === 'running') {
-      add('spending', `~${usd(live.liveUsd)} so far — still moving`);
-    }
-    if (live.chunks !== undefined && live.chunks > 0 && live.status === 'running') {
-      add('stream', `${live.chunks} deltas received — the model is talking`);
-    }
-    const wave = this.waveOf.get(live.id);
-    if (wave !== undefined && this.waveOf.size > 0) {
-      add('wave', `${wave + 1} of ${1 + Math.max(...this.waveOf.values())}`);
-    }
-    // The engineering read: what THIS task means for the whole graph.
-    const ins = this.structuralInsights;
-    if (ins) {
-      const blocks = ins.blastRadius.get(live.id) ?? 0;
-      if (blocks > 0) {
-        add('blast', `blocks ${blocks} downstream task${blocks === 1 ? '' : 's'}`);
-      }
-      if (ins.pinchPoints.includes(live.id) && ins.nodeCount > 1) {
-        // One word — 'pinch point' wrapped the 76px k-column in two.
-        add('pinch', 'nothing else can run while this runs');
-      }
-    }
-    const neighborRow = (label: string, ids: string[]): void => {
-      if (ids.length === 0) { return; }
-      const row = document.createElement('div');
-      row.className = 'hc-row';
-      const k = document.createElement('span');
-      k.className = 'hc-k';
-      k.textContent = label;
-      const v = document.createElement('span');
-      v.className = 'hc-v hc-chips';
-      for (const nid of ids) {
-        const chip = document.createElement('button');
-        chip.className = 'hc-chip';
-        chip.textContent = nid;
-        chip.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.hideHoverCard(true);
-          this.focusAndCenter(nid);
-        });
-        v.appendChild(chip);
-      }
-      row.append(k, v);
-      this.hoverCard!.appendChild(row);
-    };
-    neighborRow('needs', this.upstreamOf.get(live.id) ?? []);
-    neighborRow('unlocks', this.downstreamOf.get(live.id) ?? []);
-
-    this.hoverCard.classList.add('visible');
-    this.anchorHoverCard(live.id);
-  }
-
-  private hideTimer: ReturnType<typeof setTimeout> | undefined;
-
-  /**
-   * Anchor the hover card to the NODE's screen box (right flank, flips
-   * left, viewport-clamped) instead of chasing the cursor — a steady
-   * inspector with a predictable pointer path to its ▸/⧉ buttons (the
-   * 2026-07-09 harness trap class: a cursor-following card intercepts
-   * the very pointer travel it invites).
-   */
-  private anchorHoverCard(nodeId: string): void {
-    if (!this.hoverCard) { return; }
-    const box = this.layoutBox.get(nodeId);
-    const svgRect = this.svg.node()?.getBoundingClientRect();
-    if (!box || !svgRect) { return; }
-    const k = this.currentZoom;
-    const left = svgRect.left + box.x * k + this.currentTx;
-    const top = svgRect.top + box.y * k + this.currentTy;
-    const w = box.w * k;
-    const rect = this.hoverCard.getBoundingClientRect();
-    const GAP = 12;
-    let x = left + w + GAP;
-    if (x + rect.width > window.innerWidth - 8) { x = left - rect.width - GAP; }
-    x = Math.max(8, x);
-    let y = top;
-    if (y + rect.height > window.innerHeight - 8) {
-      y = window.innerHeight - rect.height - 8;
-    }
-    y = Math.max(8, y);
-    this.hoverCard.style.left = `${x}px`;
-    this.hoverCard.style.top = `${y}px`;
-  }
-
-  /**
-   * Delayed hide so the pointer can travel from node to card (the
-   * needs/unlocks chips are clickable); immediate on explicit actions.
-   */
   /** Re-render the CURRENT graph (display-property toggles change row
    *  predicates AND heights — the boxes must recompute from truth). */
   rerenderCurrent(): void {
     if (!this.currentGraph) { return; }
     // Heights changed → full layout pass; then the cards REBUILD (an
     // existing card never re-enters buildCardHtml on update — the
-    // artifacts path's law), and the orthogonal marks re-paint.
+    // artifacts path's law), and the orthogonal marks re-paint. A
+    // pinned peek re-points after the pass (the render released it).
+    const peeked = this.peekPinned ? this.peekedId : null;
     void this.render(this.currentGraph).then(() => {
       for (const node of this.nodeMap.values()) {
         const host = this.nodeGroup
@@ -4283,6 +4491,10 @@ class DagRenderer {
       }
       this.reapplySim();
       this.reapplyAuditMarks();
+      if (peeked !== null && this.nodeMap.has(peeked)) {
+        this.peekPinned = true;
+        this.applyPeek(peeked);
+      }
     });
   }
 
@@ -4290,7 +4502,7 @@ class DagRenderer {
    *  card offers, each with its shortcut printed at the right — the
    *  panel teaches the keymap that later makes it obsolete. Renders
    *  instantly, zero animation (keyboard-initiated · the Kowalski
-   *  law). Items REUSE the hover card's handlers — one registry of
+   *  law). Items REUSE the card actions' handlers — one registry of
    *  behavior, two surfaces. */
   openNodeActions(): boolean {
     if (this.focusedId === null) { return false; }
@@ -4311,7 +4523,8 @@ class DagRenderer {
       { label: '▶ Run from here', run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }) },
       { label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
       { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
-      { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeDoubleClicked', taskId: node.id, workflowUri: uri }) },
+      { label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
+      { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
       { label: '⧉ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.status === 'failed') {
@@ -4359,10 +4572,12 @@ class DagRenderer {
     return true;
   }
 
-  /** The Linear peek (Space): the hover card PINNED to the focused
-   *  card — arrows walk the DAG and the peek live-updates; Space
-   *  again or Esc releases. Detail becomes a zero-click read. */
+  /** The Linear peek (Space): the focused card TEMPORARILY expands to
+   *  grand IN PLACE — arrows walk the DAG and the expansion follows;
+   *  Space again or Esc releases. Detail stays a zero-click read, and
+   *  the layout never churns (transient growth, never recorded). */
   private peekPinned = false;
+  private peekedId: string | null = null;
 
   /** The one confirmation spring — a deliberate act lands (peek
    *  pinned · run launched). Transform-only on the card's .nc; the
@@ -4384,7 +4599,7 @@ class DagRenderer {
     const node = this.nodeMap.get(this.focusedId);
     if (!node) { return false; }
     this.peekPinned = true;
-    this.showHoverCard(node);
+    this.applyPeek(node.id);
     this.confirmOn(node.id);
     return true;
   }
@@ -4392,30 +4607,111 @@ class DagRenderer {
   unpinPeek(): boolean {
     if (!this.peekPinned) { return false; }
     this.peekPinned = false;
-    this.hideHoverCard(true);
+    if (this.peekedId !== null) {
+      this.releasePeek(this.peekedId);
+      this.peekedId = null;
+    }
     return true;
   }
 
-  private hideHoverCard(now = false): void {
-    if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = undefined; }
-    // A pinned peek survives pointer-leaves — only explicit closes
-    // (Space · Esc · an action that force-hides) release it.
-    if (this.peekPinned && !now) { return; }
-    if (now) {
-      this.peekPinned = false;
-      this.hoverCard?.classList.remove('visible', 'gliding');
-      return;
+  /** Point the pinned peek at a card — grand content + frame, in
+   *  place, raised over its neighbors (the old hover's float, without
+   *  the popup): no relayout, so the arrow-walk stays cheap. */
+  private applyPeek(taskId: string): void {
+    if (this.peekedId !== null && this.peekedId !== taskId) {
+      this.releasePeek(this.peekedId);
     }
-    this.hideTimer = setTimeout(() => {
-      if (!this.hoverCard?.matches(':hover')) {
-        this.hoverCard?.classList.remove('visible', 'gliding');
-      }
-    }, 140);
+    this.peekedId = taskId;
+    const g = this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`);
+    if (g.empty()) { return; }
+    g.classed('nk-peek', true);
+    g.raise();
+    this.refreshCardInPlace(taskId);
   }
 
-  /** Card hover keeps it alive; leaving the card closes it. */
-  wireHoverCardPersistence(): void {
-    this.hoverCard?.addEventListener('mouseleave', () => this.hideHoverCard(true));
+  /** Release a peeked card back to its retained mode + true frame. */
+  private releasePeek(taskId: string): void {
+    const g = this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`);
+    if (g.empty()) { return; }
+    g.classed('nk-peek', false);
+    this.refreshCardInPlace(taskId);
+  }
+
+  /** The mode a card RENDERS at — the retained register, or grand
+   *  while the pinned peek points at it (transient · never layout). */
+  private renderModeOf(taskId: string): CardMode {
+    if (this.peekPinned && this.peekedId === taskId) { return 'grand'; }
+    return cardModeOf(taskId);
+  }
+
+  /** Rebuild ONE card at its render mode and size its OWN frame to the
+   *  matching truth — no relayout (neighbors stay put). The peek and
+   *  the live-fact refresh ride this; retained-mode changes go through
+   *  rerenderCurrent (heights re-enter the layout). */
+  private refreshCardInPlace(taskId: string): void {
+    const node = this.nodeMap.get(taskId);
+    if (!node) { return; }
+    const g = this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`);
+    const host = g.select<HTMLElement>('.nc').node();
+    if (!host) { return; }
+    const mode = this.renderModeOf(taskId);
+    this.buildCardHtml(host, node, mode);
+    const h = nodeHeightOf(node, mode);
+    this.syncFrameHeights(taskId, h);
+    // Growing past the laid-out box (peek · a mid-run promote): paint
+    // LAST + elevate, so the grown story reads OVER later siblings —
+    // the next full render lays true boxes and sweeps the mark.
+    const laid = this.layoutBox.get(taskId);
+    const overgrown = laid !== undefined && h > laid.h + 1;
+    g.classed('nk-overgrown', overgrown);
+    if (overgrown) { g.raise(); }
+    g.attr('data-card-mode', mode);
+    g.attr('aria-expanded', String(mode === 'grand'));
+  }
+
+  /** One card's frame follows its content height — bg · fan-out deck ·
+   *  foreignObject · the out port (the same quartet the render pass
+   *  sizes from nodeHeightOf). */
+  private syncFrameHeights(taskId: string, h: number): void {
+    const g = this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`);
+    g.select('rect.node-bg').attr('height', h);
+    g.selectAll('rect.node-stack').attr('height', h);
+    g.select('foreignObject').attr('height', h);
+    g.select('.nc-port-out').attr('cy', h);
+  }
+
+  /** Live facts land ON grand cards now (spending · stream · the agent
+   *  loop) — coalesce their rebuilds per frame (status deltas can tick
+   *  faster than paint; one rAF batches them). */
+  private cardRefreshQueue = new Set<string>();
+  private cardRefreshRaf: number | undefined;
+  private scheduleCardRefresh(taskId: string): void {
+    if (this.renderModeOf(taskId) !== 'grand') { return; }
+    this.cardRefreshQueue.add(taskId);
+    if (this.cardRefreshRaf !== undefined) { return; }
+    this.cardRefreshRaf = requestAnimationFrame(() => {
+      this.cardRefreshRaf = undefined;
+      const ids = [...this.cardRefreshQueue];
+      this.cardRefreshQueue.clear();
+      for (const id of ids) { this.refreshCardInPlace(id); }
+    });
+  }
+
+  /** Toggle ONE card min↔grand (double-click · E · the K panel row) —
+   *  records the mix (dial → mix, base seeded) and re-renders: a mode
+   *  is a HEIGHT, the layout must know (the display-props law). */
+  toggleCardMode(taskId: string): void {
+    if (!this.nodeMap.has(taskId)) { return; }
+    const next: CardMode = this.renderModeOf(taskId) === 'grand' ? 'min' : 'grand';
+    // A peeked card folding: the peek releases — the RETAINED mode
+    // owns the card from here.
+    if (this.peekPinned && this.peekedId === taskId) {
+      this.peekPinned = false;
+      this.peekedId = null;
+      this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`).classed('nk-peek', false);
+    }
+    setCardOverride(taskId, next);
+    this.rerenderCurrent();
   }
 
   private renderEdges(elkEdges: ElkExtendedEdge[], dagEdges: DagEdge[]): void {
@@ -4904,7 +5200,14 @@ class DagRenderer {
     if (node.status !== status) {
       appendActivity(taskId, status, durationMs, cached);
       if (status === 'running') { this.maybeFollow(taskId); }
-      if (status === 'failed') { this.failureShockwave(taskId); this.teachFirstRed(taskId); }
+      if (status === 'failed') {
+        this.failureShockwave(taskId);
+        this.teachFirstRed(taskId);
+        // Card-first: a failure PROMOTES a min card to grand — the red
+        // teaches on the card face (recorded as the retained mix; the
+        // frame grows IN PLACE, no mid-run layout churn).
+        if (cardModeOf(taskId) === 'min') { setCardOverride(taskId, 'grand'); }
+      }
     }
     // The elapsed anchor: set at the FIRST observed live transition
     // (retries keep the original clock — the task's wall time, not the
@@ -4963,6 +5266,9 @@ class DagRenderer {
     // The minimap mirrors the run live (class-only touch, no re-render).
     document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(taskId)}"]`)
       ?.setAttribute('class', `mm-node st-${status}`);
+    // A grand card carries the run story now — its sections refresh
+    // with the facts this event landed (rAF-coalesced · in place).
+    this.scheduleCardRefresh(taskId);
     return true;
   }
 
@@ -5107,7 +5413,8 @@ class DagRenderer {
     stopCardAudio();
     this.wasAllTerminal = false;
     this.layoutBox.clear();
-    this.hideHoverCard(true);
+    this.peekPinned = false;
+    this.peekedId = null;
     this.waveExtents.clear();
     document.getElementById('plan-rail')?.setAttribute('hidden', '');
     document.body.classList.remove('has-rail');
@@ -5463,7 +5770,7 @@ function buildExplainer(): void {
     ['ex-glyph-critical', 'Critical path', 'the longest chain (real durations when known) — it alone decides the wall-clock'],
     ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
-    ['ex-glyph-hover', 'Hover a node', 'the run story + jumps — output · blast radius · needs/unlocks · \u25B8 run from here · \u29C9 duplicate'],
+    ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand — the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · \u29C9 duplicate · Space peeks the focused card · Shift+V sets every card'],
     ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) — the deck IS the parallel copies; the badge counts them'],
     ['ex-glyph-data', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy — ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
     ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
@@ -5587,7 +5894,6 @@ function toggleExplainer(): void {
 // ─── Initialize ─────────────────────────────────────────────────────────────
 
 const renderer = new DagRenderer('dag-container');
-renderer.wireHoverCardPersistence();
 // The top-of-file listener updates REDUCED_MOTION first (registration
 // order); this one lets the renderer retire/spawn particle trains live.
 MOTION_QUERY.addEventListener('change', () => renderer.motionPrefChanged());
@@ -6287,6 +6593,14 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'p' || e.key === 'P') auditBtn?.dispatchEvent(new Event('click'));
   if (e.key === 'd' || e.key === 'D') { if (!e.metaKey && !e.ctrlKey) { dataflowBtn?.dispatchEvent(new Event('click')); } }
   if (e.key === 'x' || e.key === 'X') { renderer.simulateFocused(); }
+  // E — expand/fold the focused card (card-first: the detail toggle).
+  if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (renderer.focused !== null) {
+      e.preventDefault();
+      renderer.toggleCardMode(renderer.focused);
+      return;
+    }
+  }
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }

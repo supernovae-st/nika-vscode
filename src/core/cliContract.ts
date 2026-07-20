@@ -131,7 +131,7 @@ export interface DagNode {
   /** Recorded per-task spend (terminal events' `cost_usd`) — engine
    *  truth, never estimated here. Feeds the canvas live cost ticker. */
   usd?: number;
-  /** One badge-safe line of the recorded output (hover-card fact). */
+  /** One badge-safe line of the recorded output (a card fact). */
   outputPreview?: string;
   provider?: string;
   model?: string;
