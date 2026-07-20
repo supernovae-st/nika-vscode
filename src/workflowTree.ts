@@ -4,6 +4,7 @@ import {
   TreeItemCollapsibleState,
   EventEmitter,
   Event,
+  window,
   workspace,
   Uri,
   ThemeIcon,
@@ -12,22 +13,74 @@ import {
   Command,
 } from 'vscode';
 import * as fs from 'fs';
-import { parseWorkflowTasks } from './workflowParser';
+import { parseWorkflowTasks, type ParsedTask } from './workflowParser';
+import {
+  classifyWorkflow,
+  groupWorkflows,
+  type WorkflowFileFacts,
+  type WorkflowRow,
+} from './core/workflowsModel';
 import { NIKA_VERB_CODICON, type NikaVerbName } from './design-tokens.generated';
 
 /** Cached-check reader — wired to NikaService.peekCheck (zero spawns). */
 export type BadgeReader = (uriString: string) => CheckBadge;
 
-type WorkflowItem = WorkflowFileItem | WorkflowTaskItem;
+type WorkflowItem =
+  | WorkflowSectionItem
+  | UnparseableWorkflowItem
+  | WorkflowFileItem
+  | WorkflowTaskItem;
 
 /** Check verdict for the file badge (derived from the cached report). */
 export type CheckBadge = { kind: 'clean' } | { kind: 'findings'; count: number } | undefined;
 
+/** A section header — an answer, not a row (Findings · Clean ·
+ *  Unchecked): not clickable, no icon. The stable id keeps expansion
+ *  state across refreshes. */
+class WorkflowSectionItem extends TreeItem {
+  constructor(
+    id: string,
+    label: string,
+    description: string | undefined,
+    readonly items: WorkflowFileItem[],
+  ) {
+    super(label, TreeItemCollapsibleState.Expanded);
+    this.id = id;
+    this.description = description;
+    this.contextValue = 'nikaWorkflowsSection';
+  }
+}
+
+/** A file the scan could not read — the catch stops lying: it used to
+ *  render these as empty-but-fine workflows. The row says its user
+ *  state (« couldn't parse », never a verdict word), carries the raw
+ *  message in the tooltip, and its only gesture is opening the file —
+ *  run/check never target it (contextValue keeps them away). */
+class UnparseableWorkflowItem extends TreeItem {
+  constructor(public readonly uri: Uri, message: string) {
+    super(uri.path.split('/').pop() ?? uri.fsPath, TreeItemCollapsibleState.None);
+    this.description = "couldn't parse";
+    this.iconPath = new ThemeIcon('error', new ThemeColor('list.errorForeground'));
+    this.contextValue = 'workflowUnparseable';
+    const md = new MarkdownString(undefined, true);
+    md.appendMarkdown(`**${uri.path.split('/').pop()}**\n\n`);
+    md.appendMarkdown(`${message}\n\n`);
+    md.appendMarkdown('→ Fix: open the file — the check squiggles mark the line');
+    this.tooltip = md;
+    this.command = {
+      command: 'vscode.open',
+      title: 'Open Workflow',
+      arguments: [uri],
+    };
+  }
+}
+
 class WorkflowFileItem extends TreeItem {
   constructor(
     public readonly uri: Uri,
-    public readonly tasks: { id: string; line: number; verb: string }[],
+    public readonly tasks: ParsedTask[],
     badge: CheckBadge,
+    dirHint?: string,
   ) {
     super(
       uri.path.split('/').pop() ?? uri.fsPath,
@@ -42,10 +95,15 @@ class WorkflowFileItem extends TreeItem {
         ? new ThemeIcon('warning', new ThemeColor('list.warningForeground'))
         : new ThemeIcon('file');
     this.contextValue = 'workflowFile';
-    const taskPart = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
-    this.description = badge?.kind === 'findings'
+    // The empty-state formula (annexe D): a state, never a zero count.
+    const taskPart = tasks.length === 0
+      ? 'no tasks yet'
+      : `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+    // Colliding basenames: the folder is the story (the section already
+    // carries the verdict; the count keeps living in the tooltip).
+    this.description = dirHint ?? (badge?.kind === 'findings'
       ? `${taskPart} · ${badge.count} finding${badge.count !== 1 ? 's' : ''}`
-      : taskPart;
+      : taskPart);
 
     const verbs = new Map<string, number>();
     for (const t of tasks) { verbs.set(t.verb, (verbs.get(t.verb) ?? 0) + 1); }
@@ -106,7 +164,10 @@ export class WorkflowTreeProvider implements TreeDataProvider<WorkflowItem> {
   readonly onDidChangeTreeData: Event<WorkflowItem | undefined | void> =
     this._onDidChangeTreeData.event;
 
-  constructor(private readonly badgeOf?: BadgeReader) {}
+  constructor(
+    private readonly badgeOf?: BadgeReader,
+    private readonly engineAvailable?: () => boolean,
+  ) {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -118,20 +179,16 @@ export class WorkflowTreeProvider implements TreeDataProvider<WorkflowItem> {
 
   async getChildren(element?: WorkflowItem): Promise<WorkflowItem[]> {
     if (!element) {
-      // Root: list all .nika.yaml files
-      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 100);
-      files.sort((a, b) => a.fsPath.localeCompare(b.fsPath));
+      // The wait lives ON the view (annexe A): the view's own progress
+      // bar while the scan reads files — never a toast.
+      return window.withProgress(
+        { location: { viewId: 'nikaWorkflows' } },
+        () => this.scanRoot(),
+      );
+    }
 
-      return files.map((uri) => {
-        const badge = this.badgeOf?.(uri.toString());
-        try {
-          const content = fs.readFileSync(uri.fsPath, 'utf-8');
-          const tasks = parseWorkflowTasks(content);
-          return new WorkflowFileItem(uri, tasks, badge);
-        } catch {
-          return new WorkflowFileItem(uri, [], badge);
-        }
-      });
+    if (element instanceof WorkflowSectionItem) {
+      return element.items;
     }
 
     if (element instanceof WorkflowFileItem) {
@@ -141,5 +198,66 @@ export class WorkflowTreeProvider implements TreeDataProvider<WorkflowItem> {
     }
 
     return [];
+  }
+
+  private async scanRoot(): Promise<WorkflowItem[]> {
+    let files: Uri[];
+    try {
+      files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 100);
+    } catch (e) {
+      // A broken SCAN must never wear a welcome or an empty tree — one
+      // honest row instead; the watcher's next event re-scans.
+      const broke = new TreeItem('the workflow scan broke');
+      broke.description = e instanceof Error ? e.message : String(e);
+      broke.iconPath = new ThemeIcon('warning', new ThemeColor('list.warningForeground'));
+      return [broke as WorkflowItem];
+    }
+    // One physical file = one row, by construction: overlapping/nested
+    // workspace roots can hand findFiles the SAME fsPath twice.
+    const uriOf = new Map<string, Uri>();
+    for (const uri of files) {
+      if (!uriOf.has(uri.fsPath)) { uriOf.set(uri.fsPath, uri); }
+    }
+    const rows: WorkflowFileFacts<ParsedTask>[] = [...uriOf.values()].map((uri) => {
+      let outcome: Parameters<typeof classifyWorkflow<ParsedTask>>[0];
+      try {
+        outcome = {
+          kind: 'read',
+          tasks: parseWorkflowTasks(fs.readFileSync(uri.fsPath, 'utf-8')),
+        };
+      } catch (e) {
+        outcome = {
+          kind: 'unreadable',
+          message: e instanceof Error ? e.message : String(e),
+        };
+      }
+      return {
+        fsPath: uri.fsPath,
+        parse: classifyWorkflow(outcome),
+        badge: this.badgeOf?.(uri.toString()),
+      };
+    });
+
+    // Partition by ATTENTION, not by folder — the Explorer already
+    // groups by folder (Jakob). Broken rows lead outside any section;
+    // a lone section dissolves back to the flat list.
+    const grouping = groupWorkflows(rows, this.engineAvailable?.() ?? false);
+    const fileItem = (r: WorkflowRow<ParsedTask>): WorkflowFileItem => new WorkflowFileItem(
+      uriOf.get(r.fsPath)!,
+      r.parse.kind === 'ok' ? r.parse.tasks : [],
+      r.badge,
+      r.dirHint,
+    );
+    return [
+      ...grouping.unparseable.map((r) => new UnparseableWorkflowItem(
+        uriOf.get(r.fsPath)!,
+        r.parse.kind === 'unparseable' ? r.parse.message : '',
+      )),
+      ...(grouping.sections.length > 0
+        ? grouping.sections.map((s) => new WorkflowSectionItem(
+          s.id, s.label, s.description, s.files.map(fileItem),
+        ))
+        : grouping.flat.map(fileItem)),
+    ];
   }
 }

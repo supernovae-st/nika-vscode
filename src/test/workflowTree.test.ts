@@ -116,3 +116,41 @@ provider: anthropic`;
     expect(tasks[0].verb).toBe('infer');
   });
 });
+
+// The tree's parse discrimination (annexe R): the real parser feeds
+// classifyWorkflow — a readable file with tasks is ok, a readable file
+// without tasks is empty, and a failed read is unparseable (the old
+// catch rendered it as an empty-but-fine workflow — the lie is dead).
+import { classifyWorkflow } from '../core/workflowsModel';
+
+describe('classifyWorkflow over real parses', () => {
+  it('a real workflow classifies ok with its tasks', () => {
+    const parse = classifyWorkflow({
+      kind: 'read',
+      tasks: parseWorkflowTasks('tasks:\n  hello:\n    infer: "hi"'),
+    });
+    expect(parse.kind).toBe('ok');
+    if (parse.kind === 'ok') {
+      expect(parse.tasks).toHaveLength(1);
+      expect(parse.tasks[0]).toMatchObject({ id: 'hello', verb: 'infer' });
+    }
+  });
+
+  it('non-workflow YAML classifies empty, never unparseable', () => {
+    expect(classifyWorkflow({ kind: 'read', tasks: parseWorkflowTasks('key: value') }))
+      .toEqual({ kind: 'empty' });
+    expect(classifyWorkflow({ kind: 'read', tasks: parseWorkflowTasks('') }))
+      .toEqual({ kind: 'empty' });
+  });
+
+  it('a failed read classifies unparseable and keeps the message', () => {
+    const parse = classifyWorkflow<never>({
+      kind: 'unreadable',
+      message: "EACCES: permission denied, open '/w/x.nika.yaml'",
+    });
+    expect(parse).toEqual({
+      kind: 'unparseable',
+      message: "EACCES: permission denied, open '/w/x.nika.yaml'",
+    });
+  });
+});

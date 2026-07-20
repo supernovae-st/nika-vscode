@@ -602,10 +602,44 @@ export function activate(context: ExtensionContext): void {
     if (!report) { return undefined; }
     const count = countReportFindings(report);
     return count === 0 ? { kind: 'clean' } : { kind: 'findings', count };
-  });
+  }, () => service.available);
   context.subscriptions.push(
     window.registerTreeDataProvider('nikaWorkflows', workflowTree),
     service.onDidUpdateDocument(() => workflowTree.refresh()),
+  );
+  // The living-tree gestures (inline verbs on Workflows rows). Each
+  // wrapper receives the tree ITEM and re-routes to the audited
+  // command — typeof first (the commands are palette-hidden, but the
+  // guard is the law, not the menu).
+  const workflowItemUri = (item: unknown): Uri | undefined => {
+    if (typeof item !== 'object' || item === null) { return undefined; }
+    const uri = (item as { resourceUri?: unknown }).resourceUri;
+    return uri instanceof Uri ? uri : undefined;
+  };
+  const workflowTaskRef = (item: unknown): { uri: Uri; taskId: string } | undefined => {
+    if (typeof item !== 'object' || item === null) { return undefined; }
+    const bag = item as { uri?: unknown; taskId?: unknown };
+    return bag.uri instanceof Uri && typeof bag.taskId === 'string'
+      ? { uri: bag.uri, taskId: bag.taskId }
+      : undefined;
+  };
+  context.subscriptions.push(
+    commands.registerCommand('nika.workflows.run', (item: unknown) => {
+      const uri = workflowItemUri(item);
+      if (uri) { void commands.executeCommand('nika.runWorkflow', uri); }
+    }),
+    commands.registerCommand('nika.workflows.check', (item: unknown) => {
+      const uri = workflowItemUri(item);
+      if (uri) { void commands.executeCommand('nika.checkWorkflow', uri); }
+    }),
+    commands.registerCommand('nika.workflows.rerunTask', (item: unknown) => {
+      const ref = workflowTaskRef(item);
+      if (ref) { void commands.executeCommand('nika.rerunTask', ref.uri, ref.taskId); }
+    }),
+    commands.registerCommand('nika.workflows.focusTask', (item: unknown) => {
+      const ref = workflowTaskRef(item);
+      if (ref) { void commands.executeCommand('nika.focusTaskInDag', ref.uri, ref.taskId); }
+    }),
   );
   const watcher = workspace.createFileSystemWatcher('**/*.nika.yaml');
   watcher.onDidCreate(() => { workflowTree.refresh(); void refreshJourney(); });
