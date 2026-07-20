@@ -48,3 +48,68 @@ export function nextFocus(
   neighbors.sort((a, b) => rank.get(a)! - rank.get(b)!);
   return neighbors[0];
 }
+
+/**
+ * The keyboard connect-mode's valid-target table (WCAG 2.5.7 — the
+ * pointer-free equivalent of the port drag). A `from → to` wire means
+ * « to runs after from », so a target is INVALID when the wire would
+ * loop or when it already exists:
+ *
+ *   · `from` itself (a task never depends on itself),
+ *   · every transitive UPSTREAM of `from` (from already depends on
+ *     them — the new wire would close a cycle; the walk spans ALL edge
+ *     kinds, recovery wires included: a superset can only shrink the
+ *     offer, never offer an illegal wire),
+ *   · every already-direct dependent (the extension edit is an
+ *     idempotent no-op there — an option that does nothing is noise).
+ *
+ * Returns ids in node order (the engine's topological order) — the
+ * same deterministic order the rest of the keyboard nav speaks.
+ */
+export function connectTargets(
+  nodes: readonly NavNode[],
+  edges: readonly NavEdge[],
+  from: string,
+): string[] {
+  if (!nodes.some((n) => n.id === from)) { return []; }
+  const upstream = new Map<string, string[]>();
+  for (const e of edges) {
+    (upstream.get(e.target) ?? upstream.set(e.target, []).get(e.target)!).push(e.source);
+  }
+  const ancestors = new Set<string>();
+  const stack = [...(upstream.get(from) ?? [])];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (ancestors.has(id)) { continue; }
+    ancestors.add(id);
+    for (const up of upstream.get(id) ?? []) { stack.push(up); }
+  }
+  const wired = new Set(edges.filter((e) => e.source === from).map((e) => e.target));
+  return nodes
+    .map((n) => n.id)
+    .filter((id) => id !== from && !ancestors.has(id) && !wired.has(id));
+}
+
+/** One nudge = one grid cell (8 CSS px — the house spacing base). */
+export const NUDGE_STEP = 8;
+
+export type NudgeDir = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * Arrow-nudge for a pinned card: step the pressed axis by `step` and
+ * snap THAT axis to the step grid (the first nudge lands the card on
+ * the grid; every following one moves exactly one cell). The other
+ * axis never moves — a RIGHT press must not tug y.
+ */
+export function nudgedPosition(
+  x: number,
+  y: number,
+  dir: NudgeDir,
+  step = NUDGE_STEP,
+): { x: number; y: number } {
+  const snap = (v: number): number => Math.round(v / step) * step;
+  if (dir === 'left') { return { x: snap(x - step), y }; }
+  if (dir === 'right') { return { x: snap(x + step), y }; }
+  if (dir === 'up') { return { x, y: snap(y - step) }; }
+  return { x, y: snap(y + step) };
+}
