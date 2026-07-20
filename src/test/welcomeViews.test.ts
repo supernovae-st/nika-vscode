@@ -4,9 +4,8 @@
 // The law: every journey state has a welcome with a discriminated
 // cause; the no-workspace and folder-without-workflows states are told
 // apart by `workspaceFolderCount`; the Create-Workflow state carries
-// exactly ONE button (a command link alone on its line); the states
-// added by V1.2 carry no color emoji (the glyph registry V0.e owns
-// swaps; V2.c owns the legacy drops).
+// exactly ONE button (a command link alone on its line); no welcome
+// carries color emoji (the glyph registry V0.e — DESIGN.md §2b law 1).
 
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
@@ -66,16 +65,12 @@ describe('viewsWelcome — the state matrix', () => {
     expect(entry?.contents).toContain('https://github.com/supernovae-st/nika#installation');
   });
 
-  it('the V1.2 states carry no color emoji (bare text until the glyph registry)', () => {
-    const v12whens = [
-      "nika.journey == 'empty' && workspaceFolderCount == 0",
-      "nika.journey == 'empty' && workspaceFolderCount != 0",
-    ];
-    for (const when of v12whens) {
-      const entry = forView('nikaWorkflows').find((w) => w.when === when);
-      // The color-emoji ranges (the legacy states' 🚀💬✨ live outside
-      // this test — V2.c owns their drop).
-      expect(entry?.contents).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
+  it('no welcome state carries color emoji (the glyph registry is mono)', () => {
+    // Every viewsWelcome, every view — the legacy CTA emoji died with the
+    // glyph registry (DESIGN.md §2b law 1: zero color emoji in the mono
+    // registry); this pins the whole surface, not just the V1.2 states.
+    for (const entry of welcomes) {
+      expect(entry.contents).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
     }
   });
 

@@ -9,6 +9,7 @@
 
 import type { RunModel } from './traceFold';
 import { humanizeDuration } from './traceFold';
+import { STATUS_CHAR } from './glyphRegistry';
 
 export interface HistoryRun {
   /** Trace basename (the run's identity in the journal dir). */
@@ -19,7 +20,7 @@ export interface HistoryRun {
 
 interface TaskHistory {
   id: string;
-  /** One cell per run, oldest → newest: ✓ ✗ ↷ ⊘ ⚡(cached) · (absent). */
+  /** One cell per run, oldest → newest: ✓ ✗ ↷ ⊘ ○(cached) · (absent). */
   cells: string[];
   runs: number;
   failures: number;
@@ -31,15 +32,9 @@ interface TaskHistory {
   trendPct?: number;
 }
 
-const CELL: Record<string, string> = {
-  success: '✓',
-  failed: '✗',
-  skipped: '↷',
-  cancelled: '⊘',
-  running: '…',
-  retrying: '↻',
-  pending: '·',
-};
+// The one status vocabulary (glyphRegistry) — a cell dialect is
+// unrepresentable by construction.
+const CELL: Record<string, string> = STATUS_CHAR;
 
 const TREND_NOISE_PCT = 15;
 
@@ -69,7 +64,7 @@ export function buildHistory(runs: HistoryRun[]): TaskHistory[] {
     for (const run of ordered) {
       const t = run.model.tasks.get(id);
       if (!t) { cells.push(' '); continue; }
-      cells.push(t.cached === true ? '⚡' : CELL[t.status] ?? '·');
+      cells.push(t.cached === true ? STATUS_CHAR.cached : CELL[t.status] ?? STATUS_CHAR.pending);
       if (t.status === 'failed') { failures += 1; }
       if (t.status === 'success') {
         successes += 1;
@@ -105,7 +100,7 @@ export function renderHistory(workflowName: string, runs: HistoryRun[]): string 
   const out: string[] = [];
   out.push(`# Run history — ${workflowName}`);
   out.push('');
-  out.push(`> ${ordered.length} recorded run${ordered.length === 1 ? '' : 's'}, oldest → newest. Every cell is a recorded terminal status (✓ ✗ ↷ skipped · ⊘ cancelled · ⚡ cache-hit · blank = not in that run). Flaky = mixed outcomes inside this window — a fact, not a guess.`);
+  out.push(`> ${ordered.length} recorded run${ordered.length === 1 ? '' : 's'}, oldest → newest. Every cell is a recorded terminal status (✓ ✗ ↷ skipped · ⊘ cancelled · ○ cache-hit · blank = not in that run). Flaky = mixed outcomes inside this window — a fact, not a guess.`);
   out.push('');
 
   if (ordered.length === 0) {

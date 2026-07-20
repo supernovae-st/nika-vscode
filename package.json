@@ -1258,7 +1258,7 @@
           {
             "id": "install",
             "title": "Install the nika engine",
-            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[⚡ Finish Setup — one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika` — then the same button detects it.",
+            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Finish Setup — one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika` — then the same button detects it.",
             "media": {
               "markdown": "walkthrough/01-install.md"
             },
@@ -1377,12 +1377,12 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'noBinary'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet — every surface below waits on it.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation) — both sovereign, no account."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet — every surface below waits on it.\n[Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation) — both sovereign, no account."
       },
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'unequipped'",
-        "contents": "This repo is not equipped for Nika yet.\n[🚀 Init this project — scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring — one gesture, skip-if-exists.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
+        "contents": "This repo is not equipped for Nika yet.\n[Init this project — scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring — one gesture, skip-if-exists.\n[New session — wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
       },
       {
         "view": "nikaWorkflows",
@@ -1397,16 +1397,16 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'working'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[💬 New session — wizard · describe · templates](command:nika.newSession)\n[🚀 Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[✨ Describe → generate](command:nika.generateWorkflow)\n[▤ Browse embedded examples](command:nika.browseExamples)\n[◇ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session — wizard · describe · templates](command:nika.newSession)\n[Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Browse embedded examples](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
-        "contents": "No recorded runs yet — this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[▤ Try an embedded example](command:nika.browseExamples)"
+        "contents": "No recorded runs yet — this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[⧈ Try an embedded example](command:nika.browseExamples)"
       },
       {
         "view": "nikaStation",
         "when": "nika.journey == 'noBinary'",
-        "contents": "The station lights up with the engine — install it and every row below becomes live machine truth.\n[⚡ Finish setup — install engine + wire everything](command:nika.finishSetup)"
+        "contents": "The station lights up with the engine — install it and every row below becomes live machine truth.\n[Finish setup — install engine + wire everything](command:nika.finishSetup)"
       }
     ],
     "breakpoints": [
@@ -1474,7 +1474,8 @@
     "lint": "eslint src",
     "parity": "node scripts/parity.mjs",
     "voice": "node scripts/voice-gate.mjs",
-    "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && npm run lint",
+    "glyphs": "node scripts/glyph-registry.mjs",
+    "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
     "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js",

@@ -39,11 +39,11 @@ export function runPlanSummary(
   const editedPhrase = direct === total
     ? `${direct} task${direct === 1 ? '' : 's'} edited since the last run`
     : `${direct} edited · ${total - direct} downstream`;
-  // Two honest worlds: with `--resume` (ADR-099 · 0.93+) ↻ re-runs only
+  // Two honest worlds: with `--resume` (ADR-099 · 0.93+) Δ re-runs only
   // the stale set (unchanged tasks cache-hit their recorded output);
   // without it, a run re-executes the whole graph.
   const runPhrase = opts?.partialRun === true
-    ? `↻ re-runs ${total === 1 ? 'it' : 'them'} — unchanged tasks cache-hit their recorded output (engine --resume).`
+    ? `Δ re-runs ${total === 1 ? 'it' : 'them'} — unchanged tasks cache-hit their recorded output (engine --resume).`
     : `a run re-executes ${total === 1 ? 'it' : 'them'} (whole-graph on this binary; partial needs the 0.93+ engine).`;
   return {
     total,

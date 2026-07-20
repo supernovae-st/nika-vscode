@@ -9,6 +9,7 @@
 import type { RunModel } from './traceFold';
 import { humanizeDuration } from './traceFold';
 import type { RunArtifact } from './artifacts';
+import { STATUS_CHAR } from './glyphRegistry';
 import { humanBytes } from './artifacts';
 import { renderLadder, type Attempt } from './attempts';
 import type { ChainVerdict } from './chainVerify';
@@ -31,15 +32,9 @@ export interface RunReportInputs {
 const usd = (n: number): string =>
   `$${n.toFixed(n < 0.1 ? 4 : 2).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')}`;
 
-const STATUS_ICON: Record<string, string> = {
-  success: '✓',
-  failed: '✗',
-  skipped: '↷',
-  cancelled: '⊘',
-  running: '…',
-  retrying: '↻',
-  pending: '·',
-};
+// The one status vocabulary (glyphRegistry) — the report can never
+// drift into a dialect of its own.
+const STATUS_ICON: Record<string, string> = STATUS_CHAR;
 
 export function renderRunReport(inputs: RunReportInputs): string {
   const { model, artifacts } = inputs;

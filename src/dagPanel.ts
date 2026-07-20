@@ -547,7 +547,7 @@ export class DagPanel implements vscode.Disposable {
         node.status = status;
         node.durationMs = durationMs;
         // Assign, never accumulate — a fresh run's paint must clear the
-        // ↻ a previous resume left on the mirrored graph (ADR-099).
+        // ○ cache marks a previous resume left on the mirrored graph (ADR-099).
         node.cached = cached === true;
         node.recoveredFrom = recoveredFrom;
         node.outputPreview = outputPreview;
@@ -856,8 +856,18 @@ export class DagPanel implements vscode.Disposable {
 
   // ─── HTML Generation ─────────────────────────────────────────────────────
 
+  /** The house sparkle (the infer star from the icon ontology —
+   *  verbGlyphs' path, currentColor stroke). The generate mark is this
+   *  SVG, never a color emoji: the mono registry stays mono, and the
+   *  ink follows the surface (forced-colors included) for free. */
+  private static readonly SPARKLE_SVG =
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true">'
+    + '<path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" '
+    + 'stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
+    const SPARKLE_SVG = DagPanel.SPARKLE_SVG;
 
     // Resolve webview-safe URIs for our bundled assets
     const scriptUri = webview.asWebviewUri(
@@ -942,9 +952,9 @@ export class DagPanel implements vscode.Disposable {
     </div>
     <div class="tb-group">
       <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline — the run's truth as a Gantt (recorded clocks · retries · cost)">▤<kbd>T</kbd></button>
+      <button id="btn-timeline" title="Timeline — the run's truth as a Gantt (recorded clocks · retries · cost)">▧<kbd>T</kbd></button>
       <button id="btn-audit" title="Audit — what this file can DO before a token is spent (permits hulls · egress · cost ceiling)">▦<kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow — where the data comes from and goes (bindings only; control scaffolding sleeps)">⧉<kbd>D</kbd></button>
+      <button id="btn-dataflow" title="Dataflow — where the data comes from and goes (bindings only; control scaffolding sleeps)">⇉<kbd>D</kbd></button>
       <button id="btn-curve" title="Smooth edges">∿</button>
       <button id="btn-heat" title="Heatmap — tint cards by duration (or static cost before a run)">▥<kbd>H</kbd></button>
       <button id="btn-follow" title="Follow the run — the camera tracks the frontier (your pan pauses it)">⌖<kbd>G</kbd></button>
@@ -960,7 +970,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">
-      <span class="cd-mark" aria-hidden="true">✨</span>
+      <span class="cd-mark" aria-hidden="true">${SPARKLE_SVG}</span>
       <input id="cd-input" type="text"
              placeholder="Describe this workflow — the tasks land checked by the engine…"
              aria-label="Describe the workflow to generate">
@@ -1004,7 +1014,7 @@ export class DagPanel implements vscode.Disposable {
         <input id="es-describe-input" type="text"
                placeholder="Describe your workflow — “fetch HN, rank, post the brief to Slack”…"
                aria-label="Describe the workflow to generate">
-        <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">✨</button>
+        <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">${SPARKLE_SVG}</button>
       </form>
       <div id="es-binary" hidden role="status">
         <span class="es-binary-mark" aria-hidden="true">⚠</span>
@@ -1015,8 +1025,8 @@ export class DagPanel implements vscode.Disposable {
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
         <button id="es-new" class="es-button">＋ New workflow</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">▤ Examples</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">↻ Replay a trace</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Examples</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
       </div>
       <div id="es-recent" hidden>
@@ -1026,15 +1036,15 @@ export class DagPanel implements vscode.Disposable {
       <div class="es-sec">What Nika does here</div>
       <div class="es-caps">
         <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check — static pre-flight</button>
-        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>🛡</span>Preflight — cost · secrets · keys</button>
-        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>▤</span>Run history — flaky · trends</button>
-        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>≣</span>Pre-flight report</button>
+        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>▩</span>Preflight — cost · secrets · keys</button>
+        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>⊞</span>Run history — flaky · trends</button>
+        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>⎙</span>Pre-flight report</button>
         <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
         <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>
         <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span>¶</span>Explain the workflow</button>
         <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span>§</span>Embedded spec</button>
-        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⧉</span>Copy AI authoring prompt</button>
-        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>◇</span>Setup MCP + agent rules</button>
+        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⇗</span>Copy AI authoring prompt</button>
+        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>⎓</span>Setup MCP + agent rules</button>
       </div>
       <button id="es-walkthrough" class="es-link">Get started with Nika →</button>
     </div>
@@ -1051,7 +1061,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
-      <button id="btn-run-resume" class="rc-resume" title="Re-run what changed — unchanged tasks cache-hit their recorded output (engine --resume)" hidden>↻ changed</button>
+      <button id="btn-run-resume" class="rc-resume" title="Re-run what changed — unchanged tasks cache-hit their recorded output (engine --resume)" hidden>Δ changed</button>
       <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo — deterministic · zero keys · zero network">▶ mock</button>
       <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
     </div>

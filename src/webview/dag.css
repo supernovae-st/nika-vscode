@@ -1585,6 +1585,10 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .ex-glyph-data { background: var(--nk-data); height: 3px; }
+/* One swatch per row (DESIGN.md §2b) — policy is the card footer's
+ * outlined pill; lineage is the data wire fading as focus falls off. */
+.ex-glyph-policy { border: 1.5px solid var(--nk-ink-dim); background: transparent; height: 8px; }
+.ex-glyph-lineage { background: linear-gradient(90deg, var(--nk-data), transparent); height: 3px; }
 
 /* ─── Activity feed · the run, narrated ─────────────────────────────────── */
 
@@ -3996,6 +4000,18 @@ body.lod-far .region-label { display: none; }
   opacity: 0.85;
 }
 
+/* The house sparkle (inline SVG · currentColor) — block display kills
+ * the inline-baseline gap; the go button centers it on its grid. */
+.cd-mark svg,
+#es-describe-go svg {
+  display: block;
+}
+
+#es-describe-go {
+  display: grid;
+  place-items: center;
+}
+
 #cd-input {
   flex: 1 1 auto;
   min-width: 0;
@@ -4560,7 +4576,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   opacity: 0.55;
 }
 
-/* Run pill · ↻ re-run-changed (ADR-099 resume · shown when the binary ships it) */
+/* Run pill · Δ re-run-changed (ADR-099 resume · shown when the binary ships it) */
 .rc-resume {
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
@@ -4640,10 +4656,10 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   }
 }
 
-/* Cache-hit cards (ADR-099 resume) — a rehydrated success must read ↻,
+/* Cache-hit cards (ADR-099 resume) — a rehydrated success must read ○,
  * never fresh-green: no celebration flash (nothing executed), dashed
  * stroke (reconstructed, not run), softened bar + glyph. The subtitle
- * carries the words (`verb · ↻ cached`); this is the at-a-glance layer. */
+ * carries the words (`verb · ○ cached`); this is the at-a-glance layer. */
 .dag-node.is-cached.status-success .nc {
   border-style: dashed;
 }

@@ -266,12 +266,12 @@ lens renders one question:
   names the inbound wires (`alias ← producer`; click one, jump to the
   producer, `+N` when more), a **policy row** carries the declared
   execution policy as chips (`↻×3` retry budget · `⏱ 30s` timeout ·
-  on_error route `✚ recover`/`⤼ skip`/`⛔ fail` · `⤳ 2 outs` named
+  on_error route `✚ recover`/`⤼ skip`/`✗ fail` · `⤳ 2 outs` named
   output bindings · `▦ N` permits, engine-projected), and a settled
   verdict shows its recorded spend (`✓ 1.2s · $0.0042`). Cards wear two
   modes — `min` (head · verdict · one essence line) and `grand` (the
   full story: run-story facts, blast radius, pinch, needs/unlocks
-  jumps, and a visible actions row `▸ run · ⚡ what if · ⧉ dup`, plus
+  jumps, and a visible actions row `▸ run · ⚡ what if · ❏ dup`, plus
   `✎ explain + ⑂ fork` on a failed card). Double-click or `E` toggles
   one card, `Shift+V` sets the global cran (min / grand / mix), and
   `Space` peeks the focused card without touching the layout —
@@ -299,9 +299,9 @@ lens renders one question:
   run without leaving the panel; **▶ mock** streams
   `run --model mock/echo` (deterministic · zero keys · zero network).
   The DAG lights live; the pill flips ▶/■ from the real spawn/close.
-  On a 0.93+ engine an **↻ changed** button joins the pill. Engine
+  On a 0.93+ engine a **Δ changed** button joins the pill. Engine
   `--resume`: unchanged tasks cache-hit their recorded output (dashed
-  `↻ cached` cards, never a fake fresh-green), edited tasks re-run.
+  `○ cached` cards, never a fake fresh-green), edited tasks re-run.
   **A repaired success never paints clean** (nika ≥ 0.98): a task saved
   by `on_error: recover` says `✚ recovered` in retry-amber: on the
   card, in the activity feed, in the legend chips and the run report,

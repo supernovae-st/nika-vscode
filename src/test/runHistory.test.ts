@@ -51,7 +51,7 @@ describe('buildHistory', () => {
       run('r1', 1, [['a', { status: 'success', durationMs: 100 }]]),
       run('r2', 2, [['a', { status: 'success', durationMs: 2, cached: true }]]),
     ]);
-    expect(cached[0].cells[1]).toBe('⚡');
+    expect(cached[0].cells[1]).toBe('○');
     expect(cached[0].medianMs).toBe(100); // the cache-hit's 2ms never pollutes
   });
 });

@@ -21,6 +21,7 @@ import * as vscode from 'vscode';
 import { maybeAskCommunity } from './communityAsk';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
+import { STATUS_CHAR } from '../core/glyphRegistry';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
 import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
@@ -206,8 +207,8 @@ export function runWorkflowLive(
         lastPainted += `|${key}|`;
         if (t.cached === true) {
           // ADR-099 rehydration — the story must never read as if the
-          // task re-executed; ↻ + "cached", not a plain green success.
-          dagPanel.note('↻', `${t.id} cached · recorded output reused`, t.id, 'st-success');
+          // task re-executed; ○ + "cached", not a plain green success.
+          dagPanel.note(STATUS_CHAR.cached, `${t.id} cached · recorded output reused`, t.id, 'st-success');
         } else {
           dagPanel.note(FEED_ICON[t.status] ?? '·', `${t.id} ${t.status}`, t.id, `st-${t.status}`);
         }
@@ -310,10 +311,12 @@ export function runWorkflowLive(
 
 const TERMINAL: ReadonlySet<FoldedStatus> = new Set(['success', 'failed', 'skipped', 'cancelled']);
 
+// The terminal quartet from the one vocabulary (glyphRegistry) — the
+// feed's skipped/cancelled dialect died by construction.
 const FEED_ICON: Record<string, string> = {
-  success: '✓',
-  failed: '✗',
-  skipped: '⤼',
-  cancelled: '⊘',
+  success: STATUS_CHAR.success,
+  failed: STATUS_CHAR.failed,
+  skipped: STATUS_CHAR.skipped,
+  cancelled: STATUS_CHAR.cancelled,
 };
 

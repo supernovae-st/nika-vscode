@@ -22,6 +22,8 @@
 // and `cancelled` (a decision, not a defect — dim, NEVER red) are
 // first-class, not folded into running/failed.
 
+import { STATUS_CHAR } from './glyphRegistry';
+
 export type FoldedStatus =
   | 'pending'
   | 'running'
@@ -628,15 +630,16 @@ export function formatUsd(usd: number): string {
   return `$${trimmed}`;
 }
 
-// Status → badge glyph. §3.1 vocabulary honored: cancelled is a decision
-// (⊘ dim, never red) · retrying is the attempt failing, not the task.
+// Status → badge glyph — the one vocabulary (glyphRegistry). The
+// SELECTION stays local (pending earns no badge); the characters are
+// imported, so a badge dialect is unrepresentable by construction.
 const BADGE_ICON: Partial<Record<FoldedStatus, string>> = {
-  success: '✓',
-  failed: '✗',
-  skipped: '↷',
-  cancelled: '⊘',
-  retrying: '↻',
-  running: '…',
+  success: STATUS_CHAR.success,
+  failed: STATUS_CHAR.failed,
+  skipped: STATUS_CHAR.skipped,
+  cancelled: STATUS_CHAR.cancelled,
+  retrying: STATUS_CHAR.retrying,
+  running: STATUS_CHAR.running,
 };
 
 /**
@@ -671,20 +674,20 @@ export function formatRunBadge(task: FoldedTask): string | undefined {
 /** Human card line: `✓ 5 tasks · 2.3s · $0.04` (whatever is provable). */
 export function summarizeRun(model: RunModel): string {
   const icon =
-    model.workflowStatus === 'completed' ? '✓'
-    : model.workflowStatus === 'failed' ? '✗'
-    : model.workflowStatus === 'cancelled' ? '⊘'
-    : model.workflowStatus === 'paused' ? '⏸'
-    : '…';
+    model.workflowStatus === 'completed' ? STATUS_CHAR.success
+    : model.workflowStatus === 'failed' ? STATUS_CHAR.failed
+    : model.workflowStatus === 'cancelled' ? STATUS_CHAR.cancelled
+    : model.workflowStatus === 'paused' ? STATUS_CHAR.paused
+    : STATUS_CHAR.running;
   const parts = [`${icon} ${model.tasks.size} task${model.tasks.size === 1 ? '' : 's'}`];
   // A resumed run's card says how much of it was rehydrated (ADR-099) —
-  // `✓ 3 tasks · ↻ 2 cached · …` reads at a glance in the Runs view.
+  // `✓ 3 tasks · ○ 2 cached · …` reads at a glance in the Runs view.
   let cachedCount = 0;
   for (const t of model.tasks.values()) {
     if (t.cached === true) { cachedCount += 1; }
   }
   if (cachedCount > 0) {
-    parts.push(`↻ ${cachedCount} cached`);
+    parts.push(`${STATUS_CHAR.cached} ${cachedCount} cached`);
   }
   // A repaired run says so at a glance (D-2026-07-08-N4): `✚ 1 recovered`.
   let recoveredCount = 0;
