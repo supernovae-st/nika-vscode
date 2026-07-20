@@ -9,6 +9,7 @@ major.minor from 0.97).
 ### Security — the canvas opens only what it surfaced
 
 - **`welcome:open` validates the uri (no arbitrary read)**: the welcome canvas can only open workflows the extension itself surfaced — a compromised webview can no longer name an arbitrary local path (`file:///etc/passwd`) for the extension to read.
+- **`dag:openSub` · `dag:openTrail` · `dag:openArtifact` gated the same way (no arbitrary open, reveal or write)**: the three sibling canvas doors now honor only paths the extension itself surfaced — sub-workflow refs from the shown graph, breadcrumb segments from the last trail push, artifact paths the panel pushed — and the sub-workflow create-on-miss writes only inside the workspace with the exact `.nika.yaml` extension.
 
 ### Onboarding — the door opens
 

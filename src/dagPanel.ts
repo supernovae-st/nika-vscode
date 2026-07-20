@@ -16,6 +16,7 @@ import * as crypto from 'crypto';
 import type { DagGraph, TaskStatus, ToolMeta } from './core/cliContract';
 import type { TraceTimeline } from './core/traceTimeline';
 import type { TimelineEntry } from './core/traceFold';
+import { SurfacedPaths } from './core/webviewPathGuard';
 
 export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract';
 
@@ -151,6 +152,35 @@ export class DagPanel implements vscode.Disposable {
    *  Guards the re-show handler from clobbering it with a stale dag:load. */
   private replayActive = false;
 
+  // ── Webview path capabilities (webviewPathGuard · the #206 pattern) ──
+  // Record on the extension's own pushes · check the RAW echo at dispatch
+  // · fails-closed. The webview has no channel into these sets — a
+  // restored panel (webview getState) starts with nothing surfaced, so a
+  // poisoned persisted graph opens nothing until a real host push lands.
+  /** Sub-workflow refs (⎘ chips · card actions) the shown graph carries. */
+  private readonly surfacedSubs = new SurfacedPaths('.nika.yaml');
+  /** Breadcrumb segment uris from the last dag:trail push. */
+  private readonly surfacedTrail = new SurfacedPaths('.nika.yaml');
+  /** Host paths of recorded artifacts pushed onto the cards. */
+  private readonly surfacedArtifacts = new SurfacedPaths();
+
+  /** A graph reached (or is about to reach) the webview — record the sub
+   *  refs it surfaces (the exact strings the ⎘ senders echo:
+   *  `tool.slice('workflow:'.length).trim()`). The resolve base is NOT
+   *  recorded from the webview — openSub uses the panel's own
+   *  `currentGraph.workflowUri` (host-authoritative). Artifacts reset
+   *  here — the fresh graph re-records its own at post time (mapArtifacts)
+   *  and run-close deltas re-add (artifactsUpdate). */
+  private recordGraphSurfaces(graph: DagGraph): void {
+    this.surfacedSubs.replace(
+      graph.nodes
+        .filter((n) => n.tool?.startsWith('workflow:') === true)
+        .map((n) => (n.tool ?? '').slice('workflow:'.length).trim())
+        .filter((p) => p.length > 0),
+    );
+    this.surfacedArtifacts.clear();
+  }
+
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onNodeClicked?: (taskId: string, workflowUri?: string) => void,
@@ -253,6 +283,9 @@ export class DagPanel implements vscode.Disposable {
   /** Composition breadcrumb — the dive trail (parent ▸ child ▸ …).
    *  Fewer than 2 segments clears it (nothing to climb). */
   public postTrail(segments: Array<{ label: string; uri: string }>, active: number): void {
+    // Record the climb capability: dag:openTrail may echo ONLY a segment
+    // uri THIS push surfaced (an empty push closes the surface).
+    this.surfacedTrail.replace(segments.map((s) => s.uri));
     this.postMessage({ kind: 'dag:trail', segments, active });
   }
 
@@ -330,6 +363,7 @@ export class DagPanel implements vscode.Disposable {
     // its script runs and expects currentGraph to be answerable.
     if (graph) {
       this.currentGraph = graph;
+      this.recordGraphSurfaces(graph);
     }
 
     this.adopt(panel);
@@ -495,6 +529,12 @@ export class DagPanel implements vscode.Disposable {
   private mapArtifacts(graph: DagGraph): DagGraph {
     const webview = this.panel?.webview;
     if (!webview) { return graph; }
+    // Record the open capability: dag:openArtifact may echo ONLY a host
+    // `path` this post surfaced (re-posts of the same graph re-add the
+    // same members — idempotent).
+    this.surfacedArtifacts.record(
+      graph.nodes.flatMap((n) => (n.artifact ? [n.artifact.path] : [])),
+    );
     return {
       ...graph,
       nodes: graph.nodes.map((n) => n.artifact
@@ -516,6 +556,8 @@ export class DagPanel implements vscode.Disposable {
     this.pendingArtifacts = artifacts.length > 0 ? artifacts : undefined;
     const webview = this.panel?.webview;
     if (!webview) { return; }
+    // Run-close deltas join the open capability (same seam as mapArtifacts).
+    this.surfacedArtifacts.record(artifacts.map((a) => a.path));
     this.postMessage({
       kind: 'dag:artifacts',
       artifacts: artifacts.map((a) => ({
@@ -528,6 +570,7 @@ export class DagPanel implements vscode.Disposable {
   /** Load a new graph (replaces current) */
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
+    this.recordGraphSurfaces(graph);
     this.applyTitle();
     // The graph arrived — the skeleton is spent (dag:load clears the ghost
     // webview-side; keep the host-side replay guard in step).
@@ -681,6 +724,10 @@ export class DagPanel implements vscode.Disposable {
   public clear(): void {
     this.currentGraph = undefined;
     this.pendingLoading = undefined;
+    // A cleared canvas surfaces nothing — every path capability closes.
+    this.surfacedSubs.clear();
+    this.surfacedTrail.clear();
+    this.surfacedArtifacts.clear();
     this.postMessage({ kind: 'dag:clear' });
   }
 
@@ -749,10 +796,32 @@ export class DagPanel implements vscode.Disposable {
         break;
 
       case 'dag:openSub':
-        this.onOpenSub?.(msg.path, msg.workflowUri);
+        // The path is webview-echoed and untrusted: honor ONLY a sub ref
+        // the shown graph surfaced (capability, not a filter — the
+        // welcomeGuard #206 pattern; the RAW string checked BEFORE any Uri
+        // work). openSub reaches a WRITE through create-on-miss, so an
+        // unsurfaced echo is a compromised canvas probing — refuse
+        // quietly: a discreet log line, never a toast.
+        if (!this.surfacedSubs.allows(msg.path)) {
+          console.warn('[nika] dag:openSub refused a path the canvas was not shown');
+          break;
+        }
+        // The resolve BASE is the panel's OWN shown-graph uri — never the
+        // webview's msg.workflowUri. Trusting the echoed base let a
+        // compromised canvas OMIT it and steer resolution to the ambient
+        // active editor (a dir the graph never surfaced); the authoritative
+        // base makes the resolution independent of anything the webview says.
+        this.onOpenSub?.(msg.path, this.currentGraph?.workflowUri);
         break;
 
       case 'dag:openTrail':
+        // The uri is webview-echoed: climb ONLY to a segment the last
+        // dag:trail push surfaced (an arbitrary uri here is an arbitrary
+        // file read via openTextDocument).
+        if (!this.surfacedTrail.allows(msg.uri)) {
+          console.warn('[nika] dag:openTrail refused a uri the canvas was not shown');
+          break;
+        }
         this.onOpenTrail?.(msg.uri);
         break;
 
@@ -793,7 +862,14 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:openArtifact':
         // The recorded file, opened for real (image tab · audio player);
-        // an unopenable path falls back to the OS reveal.
+        // an unopenable path falls back to the OS reveal. The path is
+        // webview-echoed and untrusted: open ONLY an artifact this panel
+        // pushed — `revealFileInOS` on an arbitrary path is an info leak
+        // + attack surface (raw checked BEFORE Uri.file · fails-closed).
+        if (!this.surfacedArtifacts.allows(msg.path)) {
+          console.warn('[nika] dag:openArtifact refused a path the canvas was not shown');
+          break;
+        }
         void (async () => {
           try {
             await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(msg.path));
