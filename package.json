@@ -1,7 +1,7 @@
 {
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
-  "description": "See your workflow before it runs — the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
+  "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
   "version": "0.104.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
@@ -112,7 +112,7 @@
     "colors": [
       {
         "id": "nika.verb.infer",
-        "description": "The infer verb's canonical hue (nika.sh verb canon, design SSOT) — tints infer task icons.",
+        "description": "The infer verb's canonical hue (nika.sh verb canon, design SSOT): tints infer task icons.",
         "defaults": {
           "dark": "#5b8cff",
           "light": "#5b8cff",
@@ -121,7 +121,7 @@
       },
       {
         "id": "nika.verb.exec",
-        "description": "The exec verb's canonical hue (nika.sh verb canon, design SSOT) — tints exec task icons.",
+        "description": "The exec verb's canonical hue (nika.sh verb canon, design SSOT): tints exec task icons.",
         "defaults": {
           "dark": "#ff7a3c",
           "light": "#ff7a3c",
@@ -130,7 +130,7 @@
       },
       {
         "id": "nika.verb.invoke",
-        "description": "The invoke verb's canonical hue (nika.sh verb canon, design SSOT) — tints invoke task icons.",
+        "description": "The invoke verb's canonical hue (nika.sh verb canon, design SSOT): tints invoke task icons.",
         "defaults": {
           "dark": "#22d3ee",
           "light": "#22d3ee",
@@ -139,7 +139,7 @@
       },
       {
         "id": "nika.verb.agent",
-        "description": "The agent verb's canonical hue (nika.sh verb canon, design SSOT) — tints agent task icons.",
+        "description": "The agent verb's canonical hue (nika.sh verb canon, design SSOT): tints agent task icons.",
         "defaults": {
           "dark": "#b07bff",
           "light": "#b07bff",
@@ -422,19 +422,19 @@
       },
       {
         "command": "nika.debugReplay",
-        "title": "Debug This Run (Replay · Time Travel)",
+        "title": "Debug This Run (replay · time travel)",
         "icon": "$(debug-alt)",
         "category": "Nika"
       },
       {
         "command": "nika.verifyTrace",
-        "title": "Verify Journal (Tamper-Evidence Chain)",
+        "title": "Verify Journal (tamper-evidence chain)",
         "icon": "$(shield)",
         "category": "Nika"
       },
       {
         "command": "nika.reproduceRun",
-        "title": "Reproduce Run (Determinism Check)",
+        "title": "Reproduce Run (determinism check)",
         "icon": "$(law)",
         "category": "Nika"
       },
@@ -458,7 +458,7 @@
       },
       {
         "command": "nika.runReport",
-        "title": "Run Report (provable — read from the trace)",
+        "title": "Run Report (provable · read from the trace)",
         "icon": "$(notebook)",
         "category": "Nika"
       },
@@ -482,7 +482,7 @@
       },
       {
         "command": "nika.history.report",
-        "title": "Run Report (provable — read from the trace)",
+        "title": "Run Report (provable · read from the trace)",
         "icon": "$(output)",
         "category": "Nika"
       },
@@ -494,7 +494,7 @@
       },
       {
         "command": "nika.captureLintBaseline",
-        "title": "Capture Lint Baseline (grandfather current findings)",
+        "title": "Capture Lint Baseline (accept current findings as the baseline)",
         "category": "Nika"
       },
       {
@@ -577,7 +577,7 @@
       },
       {
         "command": "nika.canvas.runTask",
-        "title": "Run Task (with its upstream cone)",
+        "title": "Run Task (and its upstream)",
         "category": "Nika Canvas",
         "icon": "$(play)"
       },
@@ -728,7 +728,7 @@
           },
           "default": [],
           "order": 12,
-          "markdownDescription": "Extra arguments appended to the `nika lsp` launch. Wrong flags stop the server from starting — the status pill will say so."
+          "markdownDescription": "Extra arguments appended to the `nika lsp` launch. Wrong flags stop the server from starting: the status pill will say so."
         },
         "nika.inlayHints.enabled": {
           "type": "boolean",
@@ -746,7 +746,7 @@
           "type": "boolean",
           "default": true,
           "order": 70,
-          "markdownDescription": "Once per workspace, when a workflow first checks clean, suggest the next step (run it — mock/echo needs no key). Off: no suggestion; the verdict still lands in the Problems panel."
+          "markdownDescription": "Once per workspace, when a workflow first checks clean, suggest the next step (run it · mock/echo needs no key). Off: no suggestion; the verdict still lands in the Problems panel."
         },
         "nika.trace.server": {
           "type": "string",
@@ -757,18 +757,18 @@
           ],
           "enumDescriptions": [
             "No protocol logging (the default)",
-            "One line per LSP request/response — enough to see what fired",
-            "Full message payloads — heavy, for deep protocol debugging"
+            "One line per LSP request/response: enough to see what fired",
+            "Full message payloads: heavy, for deep protocol debugging"
           ],
           "default": "off",
           "order": 71,
-          "markdownDescription": "Trace communication between VS Code and the Nika language server into the output channel. Anything above `off` grows the log fast — turn on to diagnose, back off after."
+          "markdownDescription": "Trace communication between VS Code and the Nika language server into the output channel. Anything above `off` grows the log fast: turn on to diagnose, back off after."
         },
         "nika.intel.enabled": {
           "type": "boolean",
           "default": true,
           "order": 20,
-          "markdownDescription": "Client-side template intelligence inside `${{ … }}` islands — completions, hover, go-to-definition for tasks/with/env/secrets/vars refs. Off: those islands go quiet (engine diagnostics keep working)."
+          "markdownDescription": "Client-side template intelligence inside `${{ … }}` islands: completions, hover, go-to-definition for tasks/with/env/secrets/vars refs. Off: those islands go quiet (engine diagnostics keep working)."
         },
         "nika.diagnostics.runOn": {
           "type": "string",
@@ -778,9 +778,9 @@
             "off"
           ],
           "enumDescriptions": [
-            "After each edit, debounced — findings track your typing (a check spawn per pause)",
-            "Only when the file is saved — quieter machine, staler squiggles between saves",
-            "Never — no squiggles, no quick fixes; `nika check` in a terminal stays the oracle"
+            "After each edit, debounced: findings track your typing (a check spawn per pause)",
+            "Only when the file is saved: quieter machine, staler squiggles between saves",
+            "Never: no squiggles, no quick fixes; `nika check` in a terminal stays the oracle"
           ],
           "default": "type",
           "order": 30,
@@ -806,7 +806,7 @@
           },
           "default": {},
           "order": 32,
-          "markdownDescription": "Remap finding severity per code — exact (`NIKA-DAG-003`), glob family (`NIKA-SEC-*`), or client lints (`nika.literal-secret` · `nika.redundant-dep` · `nika.unused-schema`). Exact keys win over globs; `off` hides the squiggle (quick fixes stay available)."
+          "markdownDescription": "Remap finding severity per code: exact (`NIKA-DAG-003`), glob family (`NIKA-SEC-*`), or client lints (`nika.literal-secret` · `nika.redundant-dep` · `nika.unused-schema`). Exact keys win over globs; `off` hides the squiggle (quick fixes stay available)."
         },
         "nika.secretsLint.enabled": {
           "type": "boolean",
@@ -819,7 +819,7 @@
           "default": 200,
           "minimum": 0,
           "order": 42,
-          "markdownDescription": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). Above the cap, oldest journals are deleted after each run — paused journals and the active resume target always survive."
+          "markdownDescription": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). Above the cap, oldest journals are deleted after each run; paused journals and the active resume target always survive."
         },
         "nika.traces.glob": {
           "type": "string",
@@ -831,7 +831,7 @@
           "type": "boolean",
           "default": true,
           "order": 41,
-          "markdownDescription": "Live-overlay a growing trace onto the open DAG panel while an engine writes a run — a run launched in ANY terminal animates the graph. Off: the canvas repaints only when you replay (see `#nika.replay.speed#`)."
+          "markdownDescription": "Live-overlay a growing trace onto the open DAG panel while an engine writes a run: a run launched in ANY terminal animates the graph. Off: the canvas repaints only when you replay (see `#nika.replay.speed#`)."
         },
         "nika.run.liveDag": {
           "type": "boolean",
@@ -856,10 +856,10 @@
             "auto"
           ],
           "enumDescriptions": [
-            "The Nika design language — warm engineered-black canvas, one blue accent, verb-hue tiles, Martian Mono (the brand skin, pinned dark)",
-            "Adaptive — derives every surface AND the accent from your editor theme (--vscode-* variables, focusBorder as accent)",
-            "Phosphor — true-black OLED register, phosphor-green ink, hairlines; verb chroma sleeps at rest and wakes only on LIVE tasks (explicit choice — auto never picks it)",
-            "Auto — the brand skin on dark themes, the adaptive skin on light themes"
+            "The Nika design language: warm engineered-black canvas, one blue accent, verb-hue tiles, Martian Mono (the brand skin, pinned dark)",
+            "Adaptive: derives every surface AND the accent from your editor theme (--vscode-* variables, focusBorder as accent)",
+            "Phosphor: true-black OLED register, phosphor-green ink, hairlines; verb chroma sleeps at rest and wakes only on LIVE tasks (explicit choice · auto never picks it)",
+            "Auto: the brand skin on dark themes, the adaptive skin on light themes"
           ],
           "default": "nika",
           "order": 50,
@@ -875,13 +875,13 @@
           "type": "boolean",
           "default": true,
           "order": 23,
-          "markdownDescription": "Ghost values: inlay hints show what each `${{ tasks.x… }}` ref resolved to in the last matching recorded run. Needs a trace on disk (see `#nika.traces.glob#`) — no run, no ghosts."
+          "markdownDescription": "Ghost values: inlay hints show what each `${{ tasks.x… }}` ref resolved to in the last matching recorded run. Needs a trace on disk (see `#nika.traces.glob#`): no run, no ghosts."
         },
         "nika.editor.runHighlight": {
           "type": "boolean",
           "default": true,
           "order": 45,
-          "markdownDescription": "Light the YAML spans of RUNNING tasks while a run or replay is at them — the source is the timeline. Off: the editor sits still during runs."
+          "markdownDescription": "Light the YAML spans of RUNNING tasks while a run or replay is at them: the source is the timeline. Off: the editor sits still during runs."
         },
         "nika.dag.cursorSync": {
           "type": "boolean",
@@ -893,19 +893,19 @@
           "type": "boolean",
           "default": true,
           "order": 24,
-          "markdownDescription": "Verb-tinted gutter dots on each task line — the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet). Off: the gutter is the theme’s alone."
+          "markdownDescription": "Verb-tinted gutter dots on each task line: the nika.sh verb canon (infer blue · exec orange · invoke cyan · agent violet). Off: the gutter is the theme's alone."
         },
         "nika.editor.runDecorations": {
           "type": "boolean",
           "default": true,
           "order": 25,
-          "markdownDescription": "End-of-line run badges per task after a run (✓ duration · cost — failed in red): the run lives in the editor. Off: verdicts stay in the Runs view and the canvas."
+          "markdownDescription": "End-of-line run badges per task after a run (✓ duration · cost; failed in red): the run lives in the editor. Off: verdicts stay in the Runs view and the canvas."
         },
         "nika.ai.toolsEnabled": {
           "type": "boolean",
           "default": true,
           "order": 60,
-          "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind — no oracle access."
+          "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind, no oracle access."
         },
         "nika.autoSetup": {
           "type": "boolean",
@@ -1290,7 +1290,7 @@
         "displayName": "Nika Check",
         "toolReferenceName": "nikaCheck",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. You MUST call this after EVERY create or edit of a .nika.yaml file, and fix every finding before declaring the task done — never report success while findings remain. Not for generic YAML or GitHub Actions files.",
+        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. You MUST call this after EVERY create or edit of a .nika.yaml file, and fix every finding before declaring the task done: never report success while findings remain. Not for generic YAML or GitHub Actions files.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -1341,7 +1341,7 @@
         "displayName": "Nika Workspace",
         "toolReferenceName": "nikaWorkspace",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS — never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the workspace aggregate (`welcome --deep` on 0.104+, `context` on older dev builds); without one this tool is not registered.",
+        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS, never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the workspace aggregate (`welcome --deep` on 0.104+, `context` on older dev builds); without one this tool is not registered.",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -1394,10 +1394,10 @@
           {
             "id": "install",
             "title": "Install the nika engine",
-            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Finish Setup — one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika` — then the same button detects it.",
+            "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Finish Setup · one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika`, then the same button detects it.",
             "media": {
               "svg": "walkthrough/assets/install-engine.svg",
-              "altText": "One binary: the extension drives nika — check, run with local traces, language server, time-travel debug. Install via Finish Setup (verified download) or brew."
+              "altText": "One binary: the extension drives nika: check, run with local traces, language server, time-travel debug. Install via Finish Setup (verified download) or brew."
             },
             "completionEvents": [
               "onCommand:nika.checkBinary",
@@ -1420,7 +1420,7 @@
           {
             "id": "validate",
             "title": "Validate as you type",
-            "description": "Diagnostics · completions · hover docs are live via the LSP — or run one explicit check.\n[Validate Workflow](command:nika.checkWorkflow)",
+            "description": "Diagnostics · completions · hover docs are live via the LSP, or run one explicit check.\n[Validate Workflow](command:nika.checkWorkflow)",
             "media": {
               "markdown": "walkthrough/03-validate.md"
             },
@@ -1432,7 +1432,7 @@
           {
             "id": "run",
             "title": "Run it (no API key needed)",
-            "description": "The starter uses `model: mock/echo` — deterministic · zero keys.\n[Run Workflow](command:nika.runWorkflow)",
+            "description": "The starter uses `model: mock/echo` · deterministic · zero keys.\n[Run Workflow](command:nika.runWorkflow)",
             "media": {
               "markdown": "walkthrough/04-run.md"
             },
@@ -1455,7 +1455,7 @@
           {
             "id": "break",
             "title": "Break it on purpose",
-            "description": "The blank starter carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; the card's ⑂ forks from the failure; the Runs view keeps the autopsy. Created yours from an engine template? Make one more workflow and pick the blank starter.\n[Run Workflow](command:nika.runWorkflow)",
+            "description": "The blank starter carries a commented `break_me:` task: uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was: click it and the explain doc opens; the card's ⑂ forks from the failure; the Runs view keeps the autopsy. Created yours from an engine template? Make one more workflow and pick the blank starter.\n[Run Workflow](command:nika.runWorkflow)",
             "media": {
               "markdown": "walkthrough/10-break.md"
             },
@@ -1467,7 +1467,7 @@
           {
             "id": "timetravel",
             "title": "Time-travel a recorded run (F5)",
-            "description": "Set a breakpoint on any task line and press **F5** — the engine replays your latest recorded run under the debugger: step forward AND backward through settles, outputs in the Variables pane. Replay never re-executes.\n[Debug the latest run](command:workbench.action.debug.start)",
+            "description": "Set a breakpoint on any task line and press **F5**: the engine replays your latest recorded run under the debugger: step forward AND backward through settles, outputs in the Variables pane. Replay never re-executes.\n[Debug the latest run](command:workbench.action.debug.start)",
             "media": {
               "markdown": "walkthrough/08-timetravel.md"
             },
@@ -1478,7 +1478,7 @@
           {
             "id": "proof",
             "title": "Prove it ran (chain · reproduce · export)",
-            "description": "Every run hash-chains its journal — the Runs view shows a shield when a journal fails verification, and the run report states its own integrity. Right-click a run → **Reproduce Run** classifies WHY two runs diverge (NONDETERMINISTIC names the flaky task). **Export to OpenTelemetry** ships the trace — with its chain head — to Jaeger/Grafana/Langfuse.\n[Open the Runs view](command:nikaRuns.focus)",
+            "description": "Every run hash-chains its journal: the Runs view shows a shield when a journal fails verification, and the run report states its own integrity. Right-click a run → **Reproduce Run** classifies WHY two runs diverge (NONDETERMINISTIC names the flaky task). **Export to OpenTelemetry** ships the trace, chain head included, to Jaeger/Grafana/Langfuse.\n[Open the Runs view](command:nikaRuns.focus)",
             "media": {
               "markdown": "walkthrough/07-proof.md"
             },
@@ -1504,7 +1504,7 @@
           {
             "id": "community",
             "title": "Keep it findable",
-            "description": "Nika is independent open source — a star is how the next person finds it.\n[Star on GitHub](https://github.com/supernovae-st/nika)",
+            "description": "Nika is independent open source: a star is how the next person finds it.\n[Star on GitHub](https://github.com/supernovae-st/nika)",
             "media": {
               "markdown": "walkthrough/09-community.md"
             },
@@ -1519,40 +1519,40 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'noBinary'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet — every surface below waits on it.\n[Finish setup — install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP — one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation) — both sovereign, no account."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet: every surface below waits on it.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP: one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation): both sovereign, no account."
       },
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'unequipped'",
-        "contents": "This repo is not equipped for Nika yet.\n[Init this project — scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring — one gesture, skip-if-exists.\n[New session — wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
+        "contents": "This repo is not equipped for Nika yet.\n[Init this project · scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring: one gesture, skip-if-exists.\n[New session · wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
       },
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'empty' && workspaceFolderCount == 0",
-        "contents": "No folder is open — workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The embedded examples read without one: [browse examples](command:nika.browseExamples)."
+        "contents": "No folder is open: workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The embedded examples read without one: [browse examples](command:nika.browseExamples)."
       },
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'empty' && workspaceFolderCount != 0",
-        "contents": "No workflows here yet — this folder carries no `.nika.yaml` file.\n[▶ Try the demo — offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo — press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
+        "contents": "No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo — offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
       },
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'working'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session — wizard · describe · templates](command:nika.newSession)\n[Init project — scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Browse embedded examples](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Browse embedded examples](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
-        "contents": "No recorded runs yet — this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[⧈ Try an embedded example](command:nika.browseExamples)"
+        "contents": "No recorded runs yet: this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[⧈ Try an embedded example](command:nika.browseExamples)"
       },
       {
         "view": "nikaStation",
         "when": "nika.journey == 'noBinary'",
-        "contents": "The station lights up with the engine — install it and every row below becomes live machine truth.\n[Finish setup — install engine + wire everything](command:nika.finishSetup)"
+        "contents": "The station lights up with the engine: install it and every row below becomes live machine truth.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)"
       },
       {
         "view": "nikaRunHistory",
-        "contents": "No recorded runs match this workflow yet — run it once and the grid fills itself.\n[▶ Run Workflow](command:nika.runWorkflow)\nMock needs no key: `mock/echo` rehearses offline, and every run still writes its trace."
+        "contents": "No recorded runs match this workflow yet: run it once and the grid fills itself.\n[▶ Run Workflow](command:nika.runWorkflow)\nMock needs no key: `mock/echo` rehearses offline, and every run still writes its trace."
       }
     ],
     "breakpoints": [
@@ -1581,7 +1581,7 @@
               },
               "replay": {
                 "type": "string",
-                "description": "A recorded run journal (.nika/traces/*.ndjson) — replay never re-executes."
+                "description": "A recorded run journal (.nika/traces/*.ndjson) · replay never re-executes."
               }
             }
           }

@@ -1,6 +1,6 @@
 # Time-travel a recorded run
 
-Every `nika run` writes a trace. The debugger replays it — **no model
+Every `nika run` writes a trace. The debugger replays it with **no model
 calls, no cost, the exact recorded bytes**:
 
 1. open a workflow that has run at least once

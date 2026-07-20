@@ -6,7 +6,7 @@ editor. In a terminal, the same explicit flow is `nika init` followed by
 `nika wire <client>`.
 
 - **`.cursor/rules/nika.mdc`** · Cursor writes valid Nika instantly
-- **`AGENTS.md`** · any agent (Claude, Codex…) gets the canon
+- **`AGENTS.md`** · any agent (Claude, Codex…) gets the full language contract
 - **MCP** · your agent can check workflows and explain failures through the
   real engine oracle
 
