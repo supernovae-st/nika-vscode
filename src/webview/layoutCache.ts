@@ -18,7 +18,7 @@
 import type { ElkNode, ElkExtendedEdge } from 'elkjs';
 
 /** Bump when computeLayout's option set changes — stale entries miss. */
-export const OPTS_REV = 1;
+export const OPTS_REV = 2; // v2: edgeEdgeBetweenLayers 15 → 28 (rounded-corner lanes)
 
 /** Two distinct FNV offset bases — a 2×32-bit key, 16 hex chars. */
 const SEED_A = 0x811c9dc5; // canonical FNV-1a 32-bit offset basis

@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The bends soften — one wire language, rounded rails
+
+- **The hard 90° elbows die**: every ELK corner now folds through one rounding pass (radius 14 · an `L` to the corner's approach, then a quadratic with its control AT the corner — the React Flow recipe). The bend clamps to half of each adjacent segment, so close consecutive corners degrade into an S-curve with zero overshoot and zero special cases. The lanes stay ELK's — aligned rails and ~90° crossings keep carrying the readability; only the hardness leaves.
+- **One language, whatever moved**: a dragged card's wires used to re-route as soft direct cubics while the rest of the canvas stayed hard polylines — two dialects on one canvas. The direct-curve branch is gone: hand-pinned cards (and the provisional relayout frame) now re-route LOCALLY in the same rounded-orthogonal voice — a stub out of each port, one rail between, the same corners. The geometry picks the shape; who moved the card never does.
+- **Lanes breathe for the corners**: the inter-layer track pitch rises 15 → 28 (≥ 2× the corner radius) so two adjacent rounded bends never kiss. Cached layouts re-derive once (the layout key carries the option-set revision).
+- **Crossings read over/under**: every wire wears a quiet page-colored casing beneath it — where two wires cross, the upper one punches a ~2px gap in the lower, the established metro-map read. Dimmed wires recede with their casing; high-contrast drops casings entirely (Highlight wires stay continuous); heatmap sleeps them. Measured at n=300 fit-zoom pan: medians held (p50 66.6 → 33.4ms, p95 116.6 → 83.4ms across 3 runs — inside noise, no regression).
+- **Flow speed stays uniform on curved wires**: the particle trains already scale their duration by the LIVE path length (arc-length through the new corners), and the dashed marches animate in user px — both uniform by construction, now stated at the source.
+
 ### The four voices — each verb speaks its anatomy
 
 - **infer speaks prose**: the prompt wears a 2px quote-rail in the verb's canon hue next to its « » marks — the ask reads as a quotation; rail and quotes leave together when the recorded output swaps in (data is not a quotation).

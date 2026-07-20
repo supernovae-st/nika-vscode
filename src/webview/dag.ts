@@ -47,6 +47,7 @@ import {
 import { lineageOf, type LineageView } from '../core/lineage';
 import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
 import { CULL_MIN_NODES, boxSleeps, cullMargins, edgeSleeps } from './cullMath';
+import { roundedPolyline } from './wireGeometry';
 
 // Every animation in this view is gated on the user's motion preference —
 // read LIVE: runtime gates see an OS-level toggle without a panel reload
@@ -1403,7 +1404,10 @@ function buildElkGraph(
     // midpoint drop could never give.
     'elk.spacing.edgeLabel': '8',
     'elk.layered.spacing.edgeNodeBetweenLayers': '20',
-    'elk.layered.spacing.edgeEdgeBetweenLayers': '15',
+    // The inter-layer track pitch holds ≥ 2× the corner radius so two
+    // adjacent rounded bends never kiss (each corner eats up to 14px
+    // of its rail on both sides).
+    'elk.layered.spacing.edgeEdgeBetweenLayers': '28',
     'elk.padding': `[top=${PADDING},left=${PADDING},bottom=${PADDING},right=${PADDING}]`,
     'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
   };
@@ -1923,7 +1927,8 @@ class DagRenderer {
    *  camera travels toward it (it starts far offscreen by definition). */
   private followTargetId: string | null = null;
   /** Frame 0 of stale-while-relayout is up — no ELK sections exist yet,
-   *  so every wire routes as a direct curve until the worker converges. */
+   *  so every wire rides the local orthogonal re-route until the worker
+   *  converges. */
   private swrProvisional = false;
   /** Live zoom transform (kept to preserve scale while centering). */
   private currentZoom = 1;
@@ -1950,6 +1955,7 @@ class DagRenderer {
   private edgeLabelEl = new Map<string, SVGTextElement>();
   private edgeHitEl = new Map<string, SVGPathElement>();
   private edgeDirEl = new Map<string, SVGPathElement>();
+  private edgeCasingEl = new Map<string, SVGPathElement>();
   /** Hidden measuring path (in defs) — chevron placement reads the FINAL
    *  geometry without touching the live wires mid-transition. */
   private measurePath: SVGPathElement | null = null;
@@ -2292,9 +2298,9 @@ class DagRenderer {
       // Stale-while-relayout: when the SAME workflow's previous pass
       // placed ≥50% of these nodes, paint frame 0 NOW — survivors at
       // their position, newcomers at the centroid of their placed
-      // neighbors, wires as direct curves (the manualPos path). The
-      // worker then converges positions and the existing 300ms update
-      // transition IS the FLIP.
+      // neighbors, wires on the local orthogonal re-route (the manualPos
+      // path). The worker then converges positions and the existing
+      // 300ms update transition IS the FLIP.
       const prev: Map<string, { x: number; y: number }> | undefined =
         cacheable && this.lastLayoutScope === scope && this.layoutBox.size > 0
           ? new Map([...this.layoutBox].map(([id, b]) => [id, { x: b.x, y: b.y }]))
@@ -2404,8 +2410,9 @@ class DagRenderer {
    *  existing 300ms transform transition IS the FLIP). */
   private paintLaid(layoutResult: ElkNode, graph: DagGraph): void {
     // Hand-dragged positions override the ELK result — presentation only
-    // (the YAML stays the truth); edges touching a moved card re-route as
-    // direct curves since their ELK sections no longer apply.
+    // (the YAML stays the truth); edges touching a moved card re-route
+    // locally, in the same rounded-orthogonal language, since their ELK
+    // sections no longer apply.
     for (const child of layoutResult.children ?? []) {
       const m = this.manualPos.get(child.id);
       if (m) { child.x = m.x; child.y = m.y; }
@@ -2454,8 +2461,8 @@ class DagRenderer {
 
   /** Frame 0 of stale-while-relayout: survivors at their previous
    *  position, newcomers at the centroid of their placed neighbors
-   *  (else of everything placed), wires as direct curves — the exact
-   *  manualPos rendering path, no new mechanism. */
+   *  (else of everything placed), wires on the local re-route — the
+   *  exact manualPos rendering path, no new mechanism. */
   private paintProvisional(graph: DagGraph, prev: ReadonlyMap<string, { x: number; y: number }>): void {
     const placed = new Map<string, { x: number; y: number }>();
     for (const n of graph.nodes) {
@@ -3038,7 +3045,7 @@ class DagRenderer {
     if (!box) { return; }
     box.x = x;
     box.y = y;
-    this.manualPos.set(id, { x, y }); // direct-curve routing reads this mid-drag
+    this.manualPos.set(id, { x, y }); // the local re-route reads this mid-drag
     this.nodeGroup.select(`[data-id="${CSS.escape(id)}"]`)
       .attr('transform', `translate(${x},${y})`);
     // Direct element writes through the id→element caches — the drag hot
@@ -3050,6 +3057,7 @@ class DagRenderer {
         const d = this.edgePathFor(datum);
         path.setAttribute('d', d);
         this.edgeHitEl.get(eid)?.setAttribute('d', d);
+        this.edgeCasingEl.get(eid)?.setAttribute('d', d);
       }
       const label = this.edgeLabelEl.get(eid);
       if (label) {
@@ -3849,7 +3857,12 @@ class DagRenderer {
     const g = document.createElementNS(ns, 'g');
     g.setAttribute('class', `edge-particles ep-${kind}`);
     // Constant TRAVEL SPEED (~200 px/s), not constant duration — a long
-    // wire must not read as faster data than a short one.
+    // wire must not read as faster data than a short one. This is the
+    // uniform-flow law for curved paths: dur scales with the LIVE
+    // getTotalLength() (arc-length through the rounded corners), where
+    // a pathLength="100" would instead rescale the bead/obs dash pitch
+    // per wire. The dashed marches stay uniform by construction (their
+    // offsets animate in user px).
     const dur = Math.min(2.6, Math.max(1, total / 200));
     const count = Math.max(2, Math.min(6, Math.floor(total / 40)));
     for (let i = 0; i < count; i++) {
@@ -5365,14 +5378,49 @@ class DagRenderer {
       .merge(hits)
       .attr('d', (d) => this.edgePathFor(d));
 
+    // The under-stroke casing: each wire owns a page-colored twin kept
+    // IMMEDIATELY beneath it in the DOM (pair order — the upper wire's
+    // casing punches a quiet gap in the one below, so crossings read
+    // over/under instead of a blur; hop marks are dated). It mirrors
+    // the wire's `d` everywhere the wire's is written, including the
+    // relayout tween (same duration + delay = same interpolation).
+    const casings = this.edgeGroup
+      .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-casing')
+      .data(elkEdges, (d) => d.id);
+    casings.exit().remove();
+    const casingsEnter = casings
+      .enter()
+      .append('path')
+      .attr('class', 'edge-casing')
+      .attr('d', (d) => this.edgePathFor(d))
+      .attr('opacity', 0);
+    casingsEnter
+      .merge(casings)
+      .transition().duration(300)
+      .delay(edgeDelay)
+      .attr('opacity', 1)
+      .attr('d', (d) => this.edgePathFor(d));
+
     // Refresh the id→element caches (the drag hot path reads these).
     this.edgePathEl.clear();
     this.edgeLabelEl.clear();
     this.edgeHitEl.clear();
     this.edgeDirEl.clear();
+    this.edgeCasingEl.clear();
     const pathEls = this.edgePathEl;
     this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.dag-edge')
       .each(function (d) { pathEls.set(d.id, this); });
+    const casingEls = this.edgeCasingEl;
+    this.edgeGroup.selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-casing')
+      .each(function (d) {
+        casingEls.set(d.id, this);
+        // Pairing pass: sit right before the wire (no-op once placed —
+        // d3 keyed joins reuse elements, so the order persists).
+        const main = pathEls.get(d.id);
+        if (main && this.nextSibling !== main) {
+          main.parentNode?.insertBefore(this, main);
+        }
+      });
     const labelEls = this.edgeLabelEl;
     this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label')
       .each(function (d) { labelEls.set(d.id, this); });
@@ -5518,19 +5566,24 @@ class DagRenderer {
     return `translate(${mid.x}, ${mid.y}) rotate(${ang.toFixed(1)})`;
   }
 
-  /** Path for one edge — a direct curve when an endpoint is hand-pinned
+  /** Path for one edge — a LOCAL re-route when an endpoint is hand-pinned
    *  (its ELK sections describe a layout the card has left). */
   private edgePathFor(edge: ElkExtendedEdge): string {
     const ends = this.edgeEnds.get(edge.id);
     // The provisional frame has no ELK sections — every wire rides the
-    // direct-curve path (the same rendering a hand-dragged card gets).
+    // local orthogonal path (the same rendering a hand-dragged card gets).
     if (ends && (this.swrProvisional || this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
       return this.edgePathDirect(ends.source, ends.target);
     }
     return this.smoothEdges ? this.edgePathSmooth(edge) : this.edgePath(edge);
   }
 
-  /** Vertical cubic between two cards' ports (drag re-route). */
+  /** Local orthogonal re-route (hand-pinned cards + the provisional
+   *  stale-while-relayout frame): a vertical stub out of each port, one
+   *  rail between, folded through the SAME rounding pass as the ELK
+   *  sections — one wire language whatever moved (the n8n law: the
+   *  geometry picks the shape, the provenance never does). The router
+   *  degrades from global lanes to local; the language holds. */
   private edgePathDirect(source: string, target: string): string {
     const s = this.layoutBox.get(source);
     const t = this.layoutBox.get(target);
@@ -5539,11 +5592,29 @@ class DagRenderer {
     const sy = s.y + s.h;
     const tx = t.x + t.w / 2;
     const ty = t.y;
-    const reach = Math.max(Math.abs(ty - sy) / 2, 32);
-    return `M ${sx} ${sy} C ${sx} ${sy + reach}, ${tx} ${ty - reach}, ${tx} ${ty}`;
+    const stub = 24; // port breathing room before the first corner
+    if (ty - sy >= stub * 2) {
+      // The plumb Z: out the source port, across the mid rail, into
+      // the target port (the DOWN-layered smoothstep).
+      const midY = (sy + ty) / 2;
+      return roundedPolyline([
+        { x: sx, y: sy }, { x: sx, y: midY },
+        { x: tx, y: midY }, { x: tx, y: ty },
+      ]);
+    }
+    // Target above or level: out the stub, around on a side rail, in
+    // through the target's stub — the loop-back shape, same corners.
+    const midX = Math.abs(tx - sx) < 1
+      ? sx + s.w / 2 + stub * 2
+      : (sx + tx) / 2;
+    return roundedPolyline([
+      { x: sx, y: sy }, { x: sx, y: sy + stub },
+      { x: midX, y: sy + stub }, { x: midX, y: ty - stub },
+      { x: tx, y: ty - stub }, { x: tx, y: ty },
+    ]);
   }
 
-  /** Label anchor — bezier midpoint for pinned edges, ELK midpoint else. */
+  /** Label anchor — port midpoint for pinned edges, ELK midpoint else. */
   private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
     // ELK placed this label as a layout participant — its coords are
     // the collision-free truth (top-left; center it · mermaid consume
@@ -5580,22 +5651,22 @@ class DagRenderer {
     return [(mid.x + next.x) / 2, (mid.y + next.y) / 2];
   }
 
-  /** Convert ELK edge sections into an SVG path string.
-   *  Uses straight segments for orthogonal routing. */
+  /** Convert ELK edge sections into an SVG path string — the orthogonal
+   *  polyline folded through the one rounding pass (per section: start +
+   *  bends + end, deduped, corners as L + Q). The lanes stay ELK's; only
+   *  the hard 90° elbows die at the render. */
   private edgePath(edge: ElkExtendedEdge): string {
     if (!edge.sections?.length) return '';
 
     const parts: string[] = [];
     for (const section of edge.sections) {
-      parts.push(`M ${section.startPoint.x} ${section.startPoint.y}`);
-      if (section.bendPoints?.length) {
-        for (const bp of section.bendPoints) {
-          parts.push(`L ${bp.x} ${bp.y}`);
-        }
-      }
-      parts.push(`L ${section.endPoint.x} ${section.endPoint.y}`);
+      parts.push(roundedPolyline([
+        section.startPoint,
+        ...(section.bendPoints ?? []),
+        section.endPoint,
+      ]));
     }
-    return parts.join(' ');
+    return parts.filter((p) => p !== '').join(' ');
   }
 
   /** Alternative: smooth curves using d3-shape curveMonotoneY.
@@ -6120,7 +6191,7 @@ class DagRenderer {
     });
     this.cullEdgeEls.clear();
     const edgeEls = this.cullEdgeEls;
-    for (const sel of ['path.dag-edge', 'path.edge-hit', 'path.edge-dir', 'text.edge-label']) {
+    for (const sel of ['path.dag-edge', 'path.edge-casing', 'path.edge-hit', 'path.edge-dir', 'text.edge-label']) {
       this.edgeGroup.selectAll<SVGPathElement | SVGTextElement, ElkExtendedEdge>(sel)
         .each(function (d) {
           const arr = edgeEls.get(d.id);
