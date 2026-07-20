@@ -277,6 +277,39 @@ function auroraSignal(kind: 'sweep' | 'danger'): void {
   }, REDUCED_MOTION ? 600 : 1500);
 }
 
+// ─── First-green confetti · the one celebration, ever ───────────────────────
+// The host fires run:celebrate exactly once per machine (the first
+// completed verdict — the mock demo counts). ~48 compositor-only
+// particles wearing the verb hues + the accent; reduced-motion and a
+// hidden panel skip the show outright — the verdict banner is the
+// receipt either way. Colors live in dag.css (the seam): this side
+// only deals geometry through inline custom props.
+function celebrateFirstGreen(): void {
+  if (REDUCED_MOTION || document.hidden || document.getElementById('confetti')) { return; }
+  const overlay = document.createElement('div');
+  overlay.id = 'confetti';
+  overlay.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 48; i++) {
+    const p = document.createElement('i');
+    p.className = `cf-v${i % 5}`;
+    p.style.left = `${(Math.random() * 100).toFixed(1)}%`;
+    p.style.setProperty('--dx', `${((Math.random() * 2 - 1) * 38).toFixed(1)}vw`);
+    p.style.setProperty('--dy', `${(62 + Math.random() * 46).toFixed(1)}vh`);
+    p.style.setProperty('--dr', `${((Math.random() * 2 - 1) * 520).toFixed(0)}deg`);
+    p.style.setProperty('--dur', `${(1400 + Math.random() * 400).toFixed(0)}ms`);
+    p.style.animationDelay = `${(Math.random() * 160).toFixed(0)}ms`;
+    overlay.appendChild(p);
+  }
+  overlay.addEventListener('animationend', (e) => {
+    (e.target as HTMLElement).remove();
+    if (overlay.childElementCount === 0) { overlay.remove(); }
+  });
+  document.body.appendChild(overlay);
+  // Belt: if animationend never lands (panel hidden mid-fall), the
+  // overlay still leaves — nothing celebratory may persist.
+  window.setTimeout(() => overlay.remove(), 2600);
+}
+
 // ─── Types (mirrored from dagPanel.ts — no shared import in webview) ────────
 
 type TaskStatus = 'pending' | 'running' | 'retrying' | 'success' | 'failed' | 'skipped' | 'cancelled';
@@ -453,6 +486,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   | { kind: 'run:progress'; done: number; total: number }
   | { kind: 'run:verdict'; icon: string; text: string; cls: string }
+  | { kind: 'run:celebrate' }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
   | { kind: 'dag:loading'; name: string }
@@ -5623,6 +5657,35 @@ class DagRenderer {
    *  focused/hovered card) and the motion lives on the aggregate (the
    *  status pill's pulsing agg-dot). Recounted on status change and on
    *  camera moves (rAF-coalesced). */
+  /** The success settle — the entrance stagger's twin (50ms a wave vs
+   *  the entrance's 70ms): every card pulses ✓ once along the run's own
+   *  waves, then sits. Live green closes only — the flip site already
+   *  excludes replay/scrub; reduced-motion and a hidden panel skip
+   *  outright; past the density cap the aurora alone carries the close
+   *  (annexe L: beyond ~150 the wave stops reading as one gesture). */
+  private settleCascade(): void {
+    if (REDUCED_MOTION || document.hidden) { return; }
+    if (this.currentGraph === undefined || this.currentGraph.nodes.length > 150) { return; }
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node').each((d, i, els) => {
+      const nc = els[i].querySelector<HTMLElement>('.nc');
+      if (nc === null) { return; }
+      // The entrance is over — dropping nc-enter here keeps the two
+      // one-shots from re-triggering each other (removing nk-settle
+      // later must never replay the rise).
+      nc.classList.remove('nc-enter');
+      nc.style.animationDelay = `${(this.waveOf.get(d.id) ?? 0) * 50}ms`;
+      nc.classList.add('nk-settle');
+      const done = (e: AnimationEvent): void => {
+        // Child animations bubble (the sub-line verdict pop can end
+        // mid-cascade) — only OUR animation retires the class.
+        if (e.animationName !== 'nk-settle-pulse') { return; }
+        nc.classList.remove('nk-settle');
+        nc.removeEventListener('animationend', done);
+      };
+      nc.addEventListener('animationend', done);
+    });
+  }
+
   private updateSpinDensity(): void {
     if (!this.currentGraph) { return; }
     const vp = this.viewportRootRect();
@@ -5695,6 +5758,9 @@ class DagRenderer {
       auroraSignal(counts.failed > 0 ? 'danger' : 'sweep');
       // The trace, persisted briefly: heat on exactly the wires that fired.
       this.runAfterglow();
+      // Every green close settles ✓ along the waves — the quiet twin.
+      // (The confetti is a different animal: host-gated, once ever.)
+      if (counts.failed === 0) { this.settleCascade(); }
     }
     this.wasAllTerminal = allTerminal;
 
@@ -6292,6 +6358,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'run:verdict':
       showRunVerdict(msg.icon, msg.text, msg.cls);
+      break;
+    case 'run:celebrate':
+      celebrateFirstGreen();
       break;
     case 'dag:stale':
       renderer.applyStale(msg.stale, msg.direct);

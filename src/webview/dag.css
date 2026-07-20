@@ -1828,6 +1828,7 @@ body.vscode-light .logo-dark { display: none; }
   body.running .dag-node.status-success .nc::after,
   body.running #progress-fill::after,
   .nc-enter,
+  .nc.nk-settle,
   .nc-sub-v,
   .nc-body.nc-body-live,
   .dag-node .nc-dot,
@@ -2161,6 +2162,55 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   background: var(--nk-aurora-danger);
 }
 
+/* ─── First-green confetti · the one celebration, ever ──────────────────
+ * Host-gated (run:celebrate fires once per machine — the first completed
+ * verdict): ~48 particles wearing the verb hues + the accent, raining
+ * over the verdict. Fixed overlay above the aurora (70 > 60), pointer-
+ * transparent, self-removing at animationend. Geometry arrives as
+ * inline custom props from dag.ts; every color lives HERE (the seam). */
+#confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#confetti i {
+  position: absolute;
+  top: -3vh;
+  width: 6px;
+  height: 11px;
+  border-radius: 1.5px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: nk-confetti-fall var(--dur, 1600ms) cubic-bezier(0.18, 0.42, 0.56, 1) both;
+}
+
+#confetti .cf-v0 { background: var(--nk-verb-infer); }
+#confetti .cf-v1 { background: var(--nk-verb-exec); }
+#confetti .cf-v2 { background: var(--nk-verb-invoke); }
+#confetti .cf-v3 { background: var(--nk-verb-agent); }
+#confetti .cf-v4 { background: var(--nk-accent); }
+
+@keyframes nk-confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  6% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx, 0vw), var(--dy, 80vh), 0) rotate(var(--dr, 400deg)); }
+}
+
+/* The TS side skips building the overlay under reduced motion; these
+ * make the contract structural (and decorative rain has no forced-
+ * colors story — high contrast never sees it). */
+@media (prefers-reduced-motion: reduce) {
+  #confetti { display: none; }
+}
+
+@media (forced-colors: active) {
+  #confetti { display: none !important; }
+}
+
 /* ─── Search / filter · `/` opens, Esc clears ───────────────────────────── */
 
 #dag-search {
@@ -2276,6 +2326,23 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
     opacity: 0;
     transform: translateY(5px) scale(0.975);
   }
+}
+
+/* The success settle — the entrance's twin (50ms/wave vs nc-in's 70):
+ * on a LIVE green close every card pulses ✓ once along the run's own
+ * waves. Scale peaks on the base beat (22% of 720ms ≈ --nk-dur-base)
+ * with a light brightness breath, then the spring sits it back down.
+ * The TS side drops nc-enter before adding this class, so neither
+ * one-shot can ever re-trigger the other. */
+.nc.nk-settle {
+  animation: nk-settle-pulse 720ms var(--nk-ease-spatial) backwards;
+}
+
+@keyframes nk-settle-pulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  22% { transform: scale(1.035); filter: brightness(1.07); }
+  58% { transform: scale(0.995); filter: brightness(1.015); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
 .dag-node:hover .nc {

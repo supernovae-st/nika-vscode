@@ -62,6 +62,9 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:trail'; segments: Array<{ label: string; uri: string }>; active: number }
   // Static cost forecast for the run pill (label · tooltip · unbounded).
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
+  // The one confetti, ever — the host owns the first-green flag; the
+  // webview only performs (reduced-motion / hidden panel skip the show).
+  | { kind: 'run:celebrate' }
   // Time-travel: hand the whole timeline to the webview scrubber (it
   // computes DAG state at any instant locally — 60fps, zero round-trips).
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
@@ -240,6 +243,12 @@ export class DagPanel implements vscode.Disposable {
   /** Run-close verdict banner — the summary, visible without the feed. */
   public runVerdict(icon: string, text: string, cls: string): void {
     this.postMessage({ kind: 'run:verdict', icon, text, cls });
+  }
+
+  /** First green ever — the one celebration overlay (firstGreen owns
+   *  the flag; the webview skips on reduced-motion / hidden panel). */
+  public celebrate(): void {
+    this.postMessage({ kind: 'run:celebrate' });
   }
 
   /** Load a recorded run into the webview scrubber (time-travel). */

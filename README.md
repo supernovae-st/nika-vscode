@@ -9,9 +9,13 @@
 
 # Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
 
-[![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-install-2b62ea)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+[![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang&ssr=false#review-details)
 [![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika-lang?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika-lang)
 [![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika-lang?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika-lang)
+
+> **See the DAG before you run it. Local traces, your models.**
 
 **Your AI workflow as a live graph.** A `.nika.yaml` file becomes a
 content-first canvas: prompts on the cards, wires carrying named data,
@@ -24,6 +28,9 @@ verifiable receipt:
 *Real webview, real message protocol: this capture drives the extension's
 own bundle through the same `dag:*`/`run:*` messages a live `nika run`
 streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
+
+*Tip: `Nika: Show Workflow DAG` opens this canvas on any `.nika.yaml` —
+`Nika: Try the Demo Workflow` writes one to open it on.*
 
 > One extension, every VS Code-compatible editor. `nika-vscode` is the
 > repo name because that's the extension *platform* (like `vscode-eslint`)
@@ -44,18 +51,44 @@ AGPL engine.
 *The diagnostics above are the real `nika check --json` output: codes,
 messages and positions come from the engine, not the extension.*
 
+*Tip: squiggles are keystroke-live by default —
+`nika.diagnostics.runOn: save` calms them to save-time.*
+
+## Why this one
+
+| The top five | |
+|---|---|
+| **The canvas is alive** | not a picture of your workflow — the workflow: prompts on the cards, typed wires, five lenses, and the run streaming onto it wave by wave |
+| **Audited before it runs** | cost ceiling · permits boundary · secret flows · dead gates: static facts painted in the margin before a single token is spent |
+| **The first run happens by itself** | first install opens the hello-canvas demo and streams it on `mock/echo` — offline, zero keys, the aha in under ten seconds |
+| **Traces stay yours** | every run writes a hash-chained local journal: replay it, diff it, verify it offline — nothing ever leaves your machine |
+| **Your models, local first** | Ollama · llama.cpp · vLLM · LM Studio first-class, then Mistral · Hugging Face · OpenAI · xAI · Anthropic and more — swap one `model:` line |
+
+**Jump to** · [30 seconds to the wow](#30-seconds-to-the-wow) ·
+[Install](#install) · [Features](#features) · [Commands](#commands) ·
+[Settings](#settings) · [The language](#the-language) · [Links](#links)
+
 ## 30 seconds to the wow
 
-The **🦋 status-bar item** is the one door: its menu opens on *your*
-next step · no engine yet → **Finish Setup** (verified download · MCP ·
-LSP, one gesture) · fresh repo → **Init this project** · then the
-10-second proof and your files' Run · Check · Graph.
+On a machine's first install, the wow comes to you: the four-wave
+`hello-canvas` demo opens on the canvas and **runs itself** on
+`mock/echo` — offline, zero keys, zero spend (a workspace that already
+carries workflows is never touched; the walkthrough greets instead).
+The first green verdict you ever watch lands with the one confetti
+this extension will ever throw.
+
+Driving yourself is three gestures:
 
 1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
 2. **`Nika: Show Workflow DAG`**. The file becomes a content-first
    canvas: prompts on infer cards, `$ commands` on exec cards.
 3. Press **▶ mock** on the run pill. The DAG lights up wave by wave with
    `mock/echo`: **deterministic, zero API keys, zero network.**
+
+The **Nika status item** is the one door: its menu opens on *your*
+next step · no engine yet → **Finish Setup** (verified download · MCP ·
+LSP, one gesture) · fresh repo → **Init this project** · then the
+10-second proof and your files' Run · Check · Graph.
 
 That's the whole loop: the same file then runs on any of the engine's
 providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
@@ -71,7 +104,7 @@ step — each step checks itself off as you actually do it.
 - **The engine** (optional but where the magic lives) ·
   `brew install supernovae-st/tap/nika`, or let the extension offer a
   verified download on first open (HTTPS + SHA-256 · explicit consent ·
-  [policy](https://github.com/supernovae-st/nika-vscode/blob/main/README.md)).
+  [policy](SECURITY.md)).
   Without the binary you still get syntax, snippets and the client-side
   DAG (schema-driven completions come alive once the binary is found:
   they read the engine's own `nika schema`).
@@ -221,6 +254,9 @@ theme*, not to extensions:
 
 ![The lens deck over one typed graph: the map, a what-if failure preview lighting the recovery path, the timeline with ghost ceilings and a retry ladder, capability hulls with the audit banner, and the dataflow read](media/lens-deck.gif)
 
+*Tip: one key each — `X` what-if · `T` timeline · `P` audit ·
+`D` dataflow · `H` heatmap. Esc returns to the map.*
+
 The canvas is a deck of projections over the SAME typed graph — the
 language gives it what no other canvas has (typed edges · pass-sets ·
 engine-attributed permits · static cost · recorded clocks), and each
@@ -246,6 +282,9 @@ lens renders one question:
 ### See the run
 
 ![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)
+
+*Tip: `▶ mock` on the run pill streams the same file with zero keys and
+zero network — every green close settles a ✓ wave through the cards.*
 
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
@@ -417,9 +456,11 @@ lens renders one question:
   `nika explain NIKA-XXXX`
 
 ### Agent-native
-- **LM tools** · `nika_check` / `nika_explain` / `nika_graph` registered as
-  Language Model Tools · in-editor AI agents validate the workflows they
-  write through the REAL oracle instead of guessing
+- **LM tools** · `nika_check` / `nika_explain` / `nika_graph` /
+  `nika_workspace` registered as Language Model Tools · in-editor AI
+  agents validate the workflows they write through the REAL oracle
+  instead of guessing (`nika_workspace` appears only when the probed
+  engine carries its door — the tool list itself stays honest)
 - **MCP + rules setup** · one command wires editor MCP config and Cursor
   rules: engine-canonical through `nika wire` when the binary ships it,
   with a one-tap follow-up for codex/claude; `nika init` scaffolds the
@@ -457,7 +498,50 @@ lens renders one question:
 - **Binary auto-download** · optional (`nika.server.autoDownload`) · SHA256
   verified · zero telemetry anywhere
 
-## The language (4 verbs · locked forever)
+## Commands
+
+The fifteen you'll reach for first — the full set lives in the
+**Feature Contributions** tab.
+
+| Command | What it does |
+|---|---|
+| `Nika: Try the Demo Workflow` | writes the four-wave hello-canvas beside the canvas — offline, zero keys |
+| `Nika: New Workflow File` | the wizard: name · starter · model (mock first, locals next) |
+| `Nika: Show Workflow DAG` | the live canvas (the welcome home when no workflow is open) |
+| `Nika: Run Current Workflow` | `nika run --json` streamed onto the DAG, verdict on close |
+| `Nika: Resume Last Run` | re-run what changed — unchanged tasks cache-hit their recorded output |
+| `Nika: Validate Current Workflow` | the engine's full `nika check` verdict on demand |
+| `Nika: Preflight` | cost · secrets · permits · the wave plan, before any token |
+| `Nika: Explain Workflow` | the deterministic story, wave by wave — zero LLM, offline |
+| `Nika: Golden Test` | `nika test` against the pinned golden (mock provider · offline) |
+| `Nika: Replay a Recorded Run` | scrub the whole timeline — replay re-renders, never re-executes |
+| `Nika: Diff Two Runs on the DAG` | the first divergence leads; the culprit task centers |
+| `Nika: Run Report` | one provable markdown per run — the trace's own events, gaps stated |
+| `Nika: Run History` | the cross-run grid: flaky steps are a recorded fact, not a guess |
+| `Nika: Doctor` | the engine diagnoses its environment — exact fixes, never mutates |
+| `Nika: Open the Getting-Started Tour` | the walkthrough — steps check themselves off as you do them |
+
+## Settings
+
+Ten that carry the surface — all of them, with defaults and
+cross-links, in the **Feature Contributions** tab.
+
+| Setting | Default | What it carries |
+|---|---|---|
+| `nika.server.path` | `nika` | which binary — point it at a dev build and every surface follows |
+| `nika.server.autoDownload` | on | offer a verified engine download (HTTPS + SHA-256 · explicit consent) |
+| `nika.dag.theme` | `nika` | canvas skin: `nika` · `editor` (follows your theme) · `phosphor` (OLED) · `auto` |
+| `nika.diagnostics.runOn` | `type` | when `nika check` paints squiggles (`save` calms it, `off` silences) |
+| `nika.diagnostics.severity` | `{}` | remap any finding per code or family (`NIKA-SEC-*` · `off` hides one) |
+| `nika.run.liveDag` | on | runs stream onto the DAG instead of a terminal scroll |
+| `nika.traces.keep` | `200` | flight-recorder housekeeping: keep the newest N journals per workflow |
+| `nika.replay.speed` | `6` | time-travel compression (6 = six times faster than recorded) |
+| `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
+| `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
+
+## The language
+
+**4 verbs · locked forever.**
 
 ```yaml
 nika: v1

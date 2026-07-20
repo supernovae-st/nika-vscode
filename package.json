@@ -47,7 +47,13 @@
     "replay",
     "audit",
     "automation",
-    "linter"
+    "linter",
+    "ollama",
+    "local llm",
+    "tracing",
+    "observability",
+    "deterministic",
+    "open-source"
   ],
   "activationEvents": [
     "onStartupFinished",

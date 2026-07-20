@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The moments — the run's end is the peak
+
+- **One confetti, ever**: the FIRST completed run on a machine (the mock demo counts — the auto-demo's green IS the aha) rains ~48 verb-hued particles over the verdict, once, and never again. Reduced motion, forced colors or a hidden panel skip the show — the verdict banner stays the receipt — and the community ask now waits out the fall so the one celebration is never covered by a toast.
+- **The settle cascade**: every LIVE green close pulses a quiet ✓ wave through the cards along the run's own execution waves (the entrance stagger's twin · 50ms a wave). Replay and scrubbing never trigger it, reduced motion skips it, and past 150 nodes the aurora alone carries the close.
+
+### The listing speaks marketplace
+
+- **README refonte**: live version/installs/rating badges (Open VSX kept) · the value line under the title · a top-five relief table and a jump-to line before the feature prose · headline Commands/Settings tables pointing at the full Feature Contributions tab · a tip line under every capture · claims re-verified against the shipped surface — the one door is the `Nika status item` (not the butterfly; the 🦋 stays the signature), all FOUR Language Model tools listed with their capability gate, and the install policy link now points at SECURITY.md instead of itself.
+- **Keywords**: six ecosystem terms join the listing (ollama · local llm · tracing · observability · deterministic · open-source).
+
 ### Onboarding — the missing wire
 
 - **First contact runs the demo itself**: on a machine's first activation ever, once the engine is present (immediately, or the moment Finish Setup lands it), the hello-canvas demo opens AND runs on `mock/echo` — zero key, zero network, zero spend, with an on-canvas `offline demo — mock provider, no keys` banner while it streams. The DAG lights itself in under ten seconds; the walkthrough follows as optional depth instead of leading. A workspace that already carries `.nika.yaml` files is never auto-opened, and the flow fires once ever.
