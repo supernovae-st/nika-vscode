@@ -16,6 +16,10 @@ export interface HistoryRun {
   name: string;
   mtimeMs: number;
   model: RunModel;
+  /** Absolute journal path — the tree's replay handle (V-SOTA.B B2).
+   *  Additive: the document renderer never reads it, so the exported
+   *  grid is byte-identical with or without it. */
+  fsPath?: string;
 }
 
 interface TaskHistory {
@@ -140,6 +144,126 @@ export function renderHistory(workflowName: string, runs: HistoryRun[]): string 
 
   out.push('_Columns map to journal files, oldest → newest. Diff any two runs with `Nika: Diff Two Runs on the DAG`; fork from a step with `Nika: Fork From Task`._');
   return out.join('\n');
+}
+
+// ─── The tree derivation (V-SOTA.B B2) ───────────────────────────────────────
+//
+// The markdown grid's command: links are dead in the preview at all three
+// runtime stages (annexe R R13) — so the History SURFACE is a native tree
+// and the document above becomes its export. Same facts, partitioned by
+// attention (the Station's IA law): sections are answers, a blank cell is
+// the absence of a recorded fact, and `run #k` is the exported grid's
+// column number — the cell↔child mapping stays explicit.
+
+export interface HistoryRow {
+  kind: 'section' | 'task' | 'cell';
+  /** Stable — expansion state survives refreshes. */
+  id: string;
+  label: string;
+  description?: string;
+  /** Sections only — Steady starts folded (healthy is context, not news). */
+  collapsed?: boolean;
+  /** Task rows — the DAG focus target (the view adds its workflow Uri). */
+  taskId?: string;
+  /** Cell rows — the replay handle; absent when the run carried no path. */
+  traceFsPath?: string;
+  children?: HistoryRow[];
+}
+
+function startOfLocalDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** Local-calendar distance in words — today · yesterday · `Nd ago`
+ *  (the Runs sections' own vocabulary). Future mtimes read `today`:
+ *  clock skew is a fact, not a crash. Math.round absorbs the ±1h a
+ *  DST boundary puts between two local day floors. */
+function relativeDay(ms: number, nowMs: number): string {
+  const days = Math.round((startOfLocalDay(nowMs) - startOfLocalDay(ms)) / 86_400_000);
+  if (days <= 0) { return 'today'; }
+  if (days === 1) { return 'yesterday'; }
+  return `${days}d ago`;
+}
+
+/**
+ * Fold N runs into the History tree rows — pure, clock injected.
+ *
+ * Partition is TOTAL and disjoint: Flaky (the grid's ⚠ · mixed outcomes)
+ * outranks Slowing (trend above the noise floor), Steady is the rest and
+ * starts folded. Empty sections hide; a lone STEADY section dissolves to
+ * flat task rows (a single healthy answer needs no headline) — a lone
+ * Flaky or Slowing section KEEPS its header, the alarm needs its name
+ * (the Now-pin precedent in runsModel).
+ *
+ * Cell children are NEWEST first; `run #k` is the chronological index =
+ * the exported grid's column number. A column where the task never ran
+ * has no child: a blank cell is the absence of a recorded fact, never
+ * an invented row.
+ */
+export function buildHistoryRows(runs: HistoryRun[], nowMs: number): HistoryRow[] {
+  const ordered = [...runs].sort((a, b) => a.mtimeMs - b.mtimeMs);
+  const history = buildHistory(ordered);
+
+  const taskRow = (t: TaskHistory): HistoryRow => {
+    const children: HistoryRow[] = [];
+    ordered.forEach((run, i) => {
+      const cell = run.model.tasks.get(t.id);
+      if (!cell) { return; } // blank column — no recorded fact, no row
+      const k = i + 1; // the doc grid's column number (oldest → newest)
+      const glyph = cell.cached === true ? STATUS_CHAR.cached : CELL[cell.status] ?? STATUS_CHAR.pending;
+      const word = cell.cached === true ? 'cache-hit' : cell.status;
+      children.push({
+        kind: 'cell',
+        id: `history.cell.${t.id}.${k}`,
+        label: `run #${k} · ${glyph} ${word}`,
+        description: [
+          cell.durationMs !== undefined ? humanizeDuration(cell.durationMs) : undefined,
+          relativeDay(run.mtimeMs, nowMs),
+        ].filter(Boolean).join(' · '),
+        ...(run.fsPath !== undefined ? { traceFsPath: run.fsPath } : {}),
+      });
+    });
+    children.reverse(); // NEWEST first — the freshest evidence leads
+    const trend = t.trendPct !== undefined
+      ? `${t.trendPct > 0 ? '▲ +' : '▼ '}${Math.round(t.trendPct)}% vs median`
+      : undefined;
+    return {
+      kind: 'task',
+      id: `history.task.${t.id}`,
+      label: t.id,
+      description: [
+        t.cells.join(' '),
+        t.medianMs !== undefined ? `median ${humanizeDuration(t.medianMs)}` : undefined,
+        trend,
+      ].filter(Boolean).join(' · '),
+      taskId: t.id,
+      children,
+    };
+  };
+
+  // Total partition — flaky outranks slowing; steady is the rest.
+  const slowing = (t: TaskHistory): boolean => t.trendPct !== undefined && t.trendPct > 0;
+  const classes: Array<{ key: 'flaky' | 'slowing' | 'steady'; title: string; tasks: TaskHistory[]; collapsed: boolean }> = [
+    { key: 'flaky', title: 'Flaky', tasks: history.filter((t) => t.flaky), collapsed: false },
+    { key: 'slowing', title: 'Slowing', tasks: history.filter((t) => !t.flaky && slowing(t)), collapsed: false },
+    { key: 'steady', title: 'Steady', tasks: history.filter((t) => !t.flaky && !slowing(t)), collapsed: true },
+  ];
+  const sections = classes
+    .filter((s) => s.tasks.length > 0)
+    .map((s): HistoryRow => ({
+      kind: 'section',
+      id: `history.section.${s.key}`,
+      label: `${s.title} — ${s.tasks.length}`,
+      collapsed: s.collapsed,
+      children: s.tasks.map(taskRow),
+    }));
+
+  if (sections.length === 1 && sections[0].id === 'history.section.steady') {
+    return sections[0].children ?? []; // the lone healthy pile dissolves to flat
+  }
+  return sections;
 }
 
 /**

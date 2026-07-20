@@ -60,6 +60,31 @@ describe('renderRunReport', () => {
     const without = renderRunReport({ traceName: 'x', model, artifacts });
     expect(without).not.toContain('![');
   });
+
+  // ─── V-SOTA.B B2.c — resolved artifacts are file: LINKS ────────────────────
+  it('a resolved artifact row is a file: link (angle-bracket — spaces stay one URL)', () => {
+    const model = foldTrace(fs.readFileSync(FIXTURE, 'utf-8'));
+    const artifacts = new Map([[
+      'render',
+      [{ taskId: 'render', path: 'out dir/report.pdf', kind: 'file' as const, bytes: 2048 }],
+    ]]);
+    const md = renderRunReport({
+      traceName: 'x', model, artifacts,
+      resolvePath: (p) => `/abs/${p}`,
+    });
+    expect(md).toContain('- [`out dir/report.pdf`](<file:///abs/out dir/report.pdf>) — file · 2 KB · produced by `render`');
+  });
+
+  it('an unresolved artifact stays a code span — the gap says, never a dead link', () => {
+    const model = foldTrace(fs.readFileSync(FIXTURE, 'utf-8'));
+    const artifacts = new Map([[
+      'render',
+      [{ taskId: 'render', path: 'gone/away.bin', kind: 'file' as const }],
+    ]]);
+    const md = renderRunReport({ traceName: 'x', model, artifacts, resolvePath: () => undefined });
+    expect(md).toContain('- `gone/away.bin` — file · produced by `render`');
+    expect(md).not.toContain('](<file://');
+  });
 });
 
 describe('renderRunReport · task_recovered (D-2026-07-08-N4)', () => {

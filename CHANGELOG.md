@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The dead surfaces animate — history tree, report links
+
+- **Run History is a native tree**: the cross-run grid's `command:` links were dead in the markdown preview at all three stages of the runtime (client allowlist · webview without command uris · link validation) — a clickable-looking affordance that did nothing. `Nika: Run History` now loads a when-gated `Run History` view: tasks partitioned by attention (`Flaky — N` mixed outcomes · `Slowing — N` trend past the noise floor · `Steady — N`, folded — a lone healthy pile dissolves to flat, a lone alarm section keeps its name), every task row wearing the grid's own glyph strip and median, click focuses the task on the DAG (the view knows its workflow — never « whatever editor is active »).
+- **Every cell is a door**: a task row expands into its recorded runs, newest first — `run #k · ✓ success`, where `#k` is the exported grid's very column number (the cell↔child mapping stays explicit; a blank column has no child, a blank cell being the absence of a recorded fact). Click replays that run onto the canvas; an inline `$(output)` opens its provable report.
+- **The document became the export**: `$(markdown)` in the view title renders the exact grid document (flaky + slowdown callouts included) — still local, shareable, diffable; `$(close)` puts the view away. A window reload lowers the gate by design (persistence is a named owed).
+- **Report artifacts link to their files**: a resolved artifact row is now a `file:` link (the gallery's angle-bracket idiom — paths with spaces stay one URL); an unresolved path stays a code span, the gap stated rather than a dead link. Verdict, task table and failures are untouched.
+- **Show Task in DAG, natively**: an inline `$(target)` on any task row of the Runs view replays its run onto the canvas and centers that task — the per-task navigation the report preview could never carry, over the existing replay + focus wires (zero new protocol kinds).
+
 ### The living trees — runs grouped, workflows honest, actions inline
 
 - **Runs grouped by the one question**: the flight recorder now answers « is something on me? » before anything else — a `Now` section pins every running or paused run WHATEVER its mtime (paused leads: needs-you outranks working), then `Today` / `Yesterday` / `Earlier` on local calendar days. Empty sections hide; a lone calendar section dissolves back to the flat list; a non-empty `Now` always keeps its header. Row cards, chips, badges and click-to-replay are untouched.

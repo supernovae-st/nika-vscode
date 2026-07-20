@@ -77,6 +77,109 @@ describe('renderHistory', () => {
   });
 });
 
+// ─── buildHistoryRows — the native tree (V-SOTA.B B2) ────────────────────────
+import { buildHistoryRows } from '../core/runHistory';
+
+describe('buildHistoryRows', () => {
+  const NOW = new Date(2026, 6, 20, 12, 0, 0).getTime(); // local noon — day math is calendar math
+
+  it('partitions every task into exactly ONE section — flaky wins, then slowing, steady the rest', () => {
+    const runs = [
+      // flaky: mixed outcomes · slowing: ≥3 durations + newest ≥ +15% · steady: the rest
+      run('r1', NOW - 3000, [['flk', { status: 'success' }], ['slw', { status: 'success', durationMs: 100 }], ['std', { status: 'success' }]]),
+      run('r2', NOW - 2000, [['flk', { status: 'failed' }], ['slw', { status: 'success', durationMs: 100 }], ['std', { status: 'success' }]]),
+      run('r3', NOW - 1000, [['flk', { status: 'success' }], ['slw', { status: 'success', durationMs: 100 }], ['std', { status: 'success' }]]),
+      run('r4', NOW, [['flk', { status: 'success' }], ['slw', { status: 'success', durationMs: 300 }], ['std', { status: 'success' }]]),
+    ];
+    const rows = buildHistoryRows(runs, NOW);
+    expect(rows.map((r) => r.id)).toEqual([
+      'history.section.flaky', 'history.section.slowing', 'history.section.steady',
+    ]);
+    expect(rows.map((r) => r.label)).toEqual(['Flaky — 1', 'Slowing — 1', 'Steady — 1']);
+    const membership = rows.map((r) => (r.children ?? []).map((t) => t.taskId));
+    expect(membership).toEqual([['flk'], ['slw'], ['std']]);
+    // Steady folds by default; the alarm sections start open.
+    expect(rows.map((r) => r.collapsed)).toEqual([false, false, true]);
+    // Total: 3 tasks in, 3 task rows out, no duplicates.
+    expect(membership.flat().sort()).toEqual(['flk', 'slw', 'std']);
+  });
+
+  it('a flaky task that is ALSO slowing lands in Flaky only (disjoint partition)', () => {
+    const runs = [
+      run('r1', 1, [['a', { status: 'success', durationMs: 100 }]]),
+      run('r2', 2, [['a', { status: 'failed' }]]),
+      run('r3', 3, [['a', { status: 'success', durationMs: 100 }]]),
+      run('r4', 4, [['a', { status: 'success', durationMs: 100 }]]),
+      run('r5', 5, [['a', { status: 'success', durationMs: 300 }]]),
+    ];
+    const rows = buildHistoryRows(runs, 5);
+    // Lone Flaky section KEEPS its header — the alarm needs its name.
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('history.section.flaky');
+    expect(rows[0].children?.map((t) => t.taskId)).toEqual(['a']);
+    // The trend still speaks on the row (the doc's own words).
+    expect(rows[0].children?.[0].description).toContain('% vs median');
+  });
+
+  it('a lone Steady section dissolves to flat task rows', () => {
+    const rows = buildHistoryRows([
+      run('r1', 1, [['a', { status: 'success' }], ['b', { status: 'success' }]]),
+    ], 1);
+    expect(rows.map((r) => r.kind)).toEqual(['task', 'task']);
+    expect(rows.map((r) => r.taskId)).toEqual(['a', 'b']);
+  });
+
+  it('cells are NEWEST first and #k is the exported grid column — sparse runs keep their number', () => {
+    const runs = [
+      run('r1', 100, [['a', { status: 'success', durationMs: 1000 }]]),
+      run('r2', 200, [['b', { status: 'success' }]]), // a absent — column 2 is blank
+      run('r3', 300, [['a', { status: 'failed' }]]),
+    ];
+    const rows = buildHistoryRows(runs, 300);
+    const a = rows.flatMap((r) => r.kind === 'section' ? r.children ?? [] : [r]).find((t) => t.taskId === 'a')!;
+    // Newest first · k = the chronological column number (1-based, oldest → newest);
+    // the blank column 2 has no child — a blank cell is no recorded fact.
+    expect(a.children?.map((c) => c.label)).toEqual(['run #3 · ✗ failed', 'run #1 · ✓ success']);
+    expect(a.children?.map((c) => c.id)).toEqual(['history.cell.a.3', 'history.cell.a.1']);
+  });
+
+  it('fsPath rides through to cells; renderHistory ignores it (zero doc break)', () => {
+    const bare = [run('r1', 1, [['a', { status: 'success' }], ['b', { status: 'failed' }]])];
+    const withPath = bare.map((r) => ({ ...r, fsPath: '/tmp/traces/r1.ndjson' }));
+    const rows = buildHistoryRows(withPath, 1);
+    const cells = rows.flatMap((r) => r.kind === 'section' ? r.children ?? [] : [r])
+      .flatMap((t) => t.children ?? []);
+    expect(cells.length).toBeGreaterThan(0);
+    for (const c of cells) { expect(c.traceFsPath).toBe('/tmp/traces/r1.ndjson'); }
+    // No fsPath → no handle (never an invented path)…
+    const bareCells = buildHistoryRows(bare, 1)
+      .flatMap((r) => r.kind === 'section' ? r.children ?? [] : [r])
+      .flatMap((t) => t.children ?? []);
+    for (const c of bareCells) { expect(c.traceFsPath).toBeUndefined(); }
+    // …and the exported document is byte-identical either way.
+    expect(renderHistory('wf', withPath)).toBe(renderHistory('wf', bare));
+  });
+
+  it('rows speak the doc vocabulary — glyph strip · median · cache-hit', () => {
+    const NOON = new Date(2026, 6, 20, 12, 0, 0).getTime();
+    const rows = buildHistoryRows([
+      run('r1', NOON - 86_400_000, [['a', { status: 'success', durationMs: 100 }]]),
+      run('r2', NOON, [['a', { status: 'success', durationMs: 2, cached: true }]]),
+    ], NOON);
+    const a = rows.flatMap((r) => r.kind === 'section' ? r.children ?? [] : [r]).find((t) => t.taskId === 'a')!;
+    expect(a.label).toBe('a');
+    expect(a.description).toContain('✓ ○');            // the grid strip, verbatim
+    expect(a.description).toContain('median');          // the doc's own column word
+    expect(a.children?.[0].label).toBe('run #2 · ○ cache-hit'); // the legend's word, never a dialect
+    expect(a.children?.[0].description).toContain('today');
+    expect(a.children?.[1].description).toContain('yesterday');
+  });
+
+  it('zero runs → zero rows (the view welcome owns the empty story)', () => {
+    expect(buildHistoryRows([], 1)).toEqual([]);
+  });
+});
+
 // ─── traceBelongsTo — the contamination gate (0.97.2) ────────────────────────
 import { traceBelongsTo } from '../core/runHistory';
 
