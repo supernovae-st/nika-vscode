@@ -3037,7 +3037,7 @@ body.running .dag-node.status-success .nc::after {
   border-color: color-mix(in srgb, var(--nk-data) 35%, transparent);
 }
 
-/* Ports — the visible connect affordance (drag out → card = depends_on). */
+/* Ports — the visible connect affordance (drag out → card = an after: edge). */
 .nc-port {
   /* Patch-bay JACKS (§4b): dark bore + machined collar — the wire
    * plugs INTO the module. Hover = the collar lights. */

@@ -88,7 +88,7 @@ async function inlineFontDataUri(): Promise<string | null> {
 // One searchable palette: the 4 verbs, then the builtin tools grouped
 // by category (the binary's `tools --json` vocabulary when it ships).
 // ↑↓ to move, Enter to pick, Esc to cancel. Opens on a port-drop onto
-// empty canvas (pre-wired depends_on), on N, and from ＋ Task; picking
+// empty canvas (pre-wired after: edge), on N, and from ＋ Task; picking
 // a tool posts an `invoke` task pinned to that tool.
 
 /** What the palette hands back: a verb, optionally with a pinned tool. */
@@ -1518,7 +1518,7 @@ class DagRenderer {
       }
       // Dropped on EMPTY canvas — the Flows gesture: open the task
       // palette AT the cursor (verb or tool); insertTaskSkeleton then
-      // declares depends_on: [from] extension-side.
+      // declares after: { from: succeeded } extension-side.
       if (!targetEl) {
         verbCmdk.open(event.clientX, event.clientY, (pick) => {
           vscode.postMessage({
@@ -3348,7 +3348,7 @@ class DagRenderer {
         this.startConnect(d.id);
       });
     portsOut.append('title')
-      .text('drag to connect — the drop target gains depends_on on this task (⌥drag from the card works too)');
+      .text('drag to connect — the drop target gains an after: edge on this task (⌥drag from the card works too)');
 
     // Mousedown on a card: ⌥ starts a dependency edge (the n8n gesture);
     // plain primary button arms a CARD DRAG (threshold-gated so clicks
