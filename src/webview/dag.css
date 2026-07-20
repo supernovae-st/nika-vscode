@@ -51,24 +51,27 @@ body {
   /* ONE micro-interaction language (site --ease-ui): every hover/focus/
    * state change shares this pair — the canvas feels like one instrument. */
   --nk-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --nk-dur: 140ms;
   /* tokens v3 · the NAMED duration scale — every timing is a multiple of
    * the run quantum (--nk-dur-fast · ONE clock): spinner strips advance
    * on it, micro-state rides base, panels ride slow, ceremonies ride
-   * deliberate. --nk-dur stays as the legacy consumer value; remaps land
-   * with V0.d. */
+   * deliberate. The legacy --nk-dur now ALIASES base (V0.d remapped every
+   * consumer to a named step; the name survives for any stray reader). */
   --nk-dur-fast: 80ms;
   --nk-dur-base: 160ms;
   --nk-dur-slow: 240ms;
   --nk-dur-deliberate: 400ms;
+  --nk-dur: var(--nk-dur-base);
   --nk-frame-interval: var(--nk-dur-fast);
   /* The SPRING — a gentle ~4% overshoot for arrivals (entrances · pops ·
    * the settle). A canonical linear() spring curve (Open Props family);
    * browsers without linear() fall back to --nk-ease via @supports. */
   --nk-spring: var(--nk-ease);
   /* The two easing VOICES (tokens v3): effects (opacity · color · glow)
-   * ride the signature ease; spatial moves (position · scale · arrivals)
-   * ride the spring. Consumers migrate to the named pair in V0.d. */
+   * ride the signature ease; spatial moves (translate · scale · arrivals)
+   * ride the spring — overshoot is allowed on transforms, NEVER on colour.
+   * V0.d migrated every consumer to this pair; raw --nk-ease/--nk-spring are
+   * now the underlying curves that feed these two named voices, nothing more.
+   * reduced-motion collapses spatial back to the flat ease (no bounce). */
   --nk-ease-effects: var(--nk-ease);
   --nk-ease-spatial: var(--nk-spring);
   /* The two-zone card surface (DESIGN.md §1) — skins retune VALUES only. */
@@ -121,11 +124,15 @@ body {
   --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
 }
 
-/* Per-node verb hue — every verb-tinted surface reads ONE custom property. */
-.dag-node.verb-infer { --dv-hue: var(--nk-verb-infer); }
-.dag-node.verb-exec { --dv-hue: var(--nk-verb-exec); }
-.dag-node.verb-invoke { --dv-hue: var(--nk-verb-invoke); }
-.dag-node.verb-agent { --dv-hue: var(--nk-verb-agent); }
+/* Per-node verb hue — every verb-tinted surface reads ONE custom property.
+ * Twin channel --dv-hue-text (tokens v3 · V0.d): prose that reads the verb
+ * hue as INK (the running sub-line) rides the APCA ramp, not the full-chroma
+ * glow the tiles/spinners carry — the ramp is readable on #0d0d0e and the
+ * phosphor black alike, so this channel is NEVER re-canonised by the wake. */
+.dag-node.verb-infer { --dv-hue: var(--nk-verb-infer); --dv-hue-text: var(--nk-verb-infer-text); }
+.dag-node.verb-exec { --dv-hue: var(--nk-verb-exec); --dv-hue-text: var(--nk-verb-exec-text); }
+.dag-node.verb-invoke { --dv-hue: var(--nk-verb-invoke); --dv-hue-text: var(--nk-verb-invoke-text); }
+.dag-node.verb-agent { --dv-hue: var(--nk-verb-agent); --dv-hue-text: var(--nk-verb-agent-text); }
 
 /* ─── Toolbar · glass rail ──────────────────────────────────────────────── */
 
@@ -247,7 +254,7 @@ body {
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease), color var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #dag-toolbar button:hover {
@@ -382,7 +389,7 @@ body {
   stroke-dasharray: 0.1 7;
   stroke-linecap: round;
   opacity: 0.7;
-  transition: opacity var(--nk-dur) var(--nk-ease), stroke var(--nk-dur) var(--nk-ease);
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects), stroke var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 /* While a run is LIVE the beads crawl — the whole plan breathes exactly
@@ -972,7 +979,7 @@ body.running #progress-fill::after {
   inset: 0;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
   transform: translateX(-100%);
-  animation: nk-sweep 1.6s var(--nk-ease) infinite;
+  animation: nk-sweep 1.6s var(--nk-ease-effects) infinite;
 }
 
 @keyframes nk-sweep {
@@ -1822,6 +1829,7 @@ body.vscode-light .logo-dark { display: none; }
   body.running #progress-fill::after,
   .nc-enter,
   .nc-sub-v,
+  .nc-body.nc-body-live,
   .dag-node .nc-dot,
   body.running .dag-edge.edge-dep {
     animation: none !important;
@@ -2253,14 +2261,14 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   border-radius: var(--nk-radius-card);
   box-shadow: var(--nk-card-shadow);
   transition:
-    border-color var(--nk-dur) var(--nk-ease),
-    box-shadow var(--nk-dur) var(--nk-ease),
-    transform var(--nk-dur) var(--nk-ease);
+    border-color var(--nk-dur-base) var(--nk-ease-effects),
+    box-shadow var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-base) var(--nk-ease-spatial);
 }
 
 /* Entrance choreography — rises in, staggered by wave (delay from TS). */
 .nc-enter {
-  animation: nc-in 0.32s var(--nk-ease) backwards;
+  animation: nc-in 0.32s var(--nk-ease-spatial) backwards;
 }
 
 @keyframes nc-in {
@@ -2349,7 +2357,7 @@ body.lod-far .dag-node:hover .nc {
   border-radius: 50%;
   background: var(--nk-st-muted);
   opacity: 0.6;
-  transition: background var(--nk-dur) var(--nk-ease), opacity var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 /* ── The run spectacle · braille strips (annexe L · cli-spinners canon) ──
@@ -2370,7 +2378,7 @@ body.lod-far .dag-node:hover .nc {
   color: var(--dv-hue, var(--nk-st-running));
   opacity: 0;
   visibility: hidden;
-  transition: opacity var(--nk-dur-base) var(--nk-ease), visibility 0s var(--nk-dur-base);
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects), visibility 0s var(--nk-dur-base);
 }
 
 .nc-spin > i {
@@ -2473,7 +2481,7 @@ body.running .dag-node.status-success .nc::after {
   border-radius: inherit;
   border: 1.5px solid var(--nk-st-success);
   opacity: 0;
-  animation: nk-settle 0.7s var(--nk-ease);
+  animation: nk-settle 0.7s var(--nk-ease-effects);
   pointer-events: none;
 }
 
@@ -2554,17 +2562,17 @@ body.running .dag-node.status-success .nc::after {
   margin-left: auto;
 }
 
-.dag-node.status-running .nc-sub-v { color: var(--dv-hue, var(--nk-st-running)); }
+.dag-node.status-running .nc-sub-v { color: var(--dv-hue-text, var(--nk-st-running)); }
 .dag-node.status-retrying .nc-sub-v { color: var(--nk-st-retrying); }
 .dag-node.status-success .nc-sub-v {
   color: var(--nk-st-success);
   font-weight: 600;
-  animation: nc-pop 0.24s var(--nk-ease);
+  animation: nc-pop 0.24s var(--nk-ease-spatial);
 }
 .dag-node.status-failed .nc-sub-v {
   color: var(--nk-st-failed);
   font-weight: 600;
-  animation: nc-pop 0.24s var(--nk-ease);
+  animation: nc-pop 0.24s var(--nk-ease-spatial);
 }
 .dag-node.is-cached.status-success .nc-sub-v {
   color: var(--nk-ink-dim);
@@ -2631,7 +2639,7 @@ body.running .dag-node.status-success .nc::after {
  * task produced, where its prompt was; rises in like the verdict. */
 .nc-body.nc-body-live {
   color: color-mix(in srgb, var(--nk-st-success) 60%, var(--nk-ink));
-  animation: nc-pop 0.24s var(--nk-ease);
+  animation: nc-pop 0.24s var(--nk-ease-spatial);
 }
 
 /* ─── Card-first sections (W-D5) — the hover's content, ON the card ── */
@@ -2735,7 +2743,7 @@ body.running .dag-node.status-success .nc::after {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .nc-x-act:hover { background: var(--nk-cta-hover); }
@@ -2860,7 +2868,7 @@ body.running .dag-node.status-success .nc::after {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 220ms var(--nk-ease);
+  transition: transform 220ms var(--nk-ease-spatial);
 }
 
 .nc-preview:hover img {
@@ -2972,7 +2980,7 @@ body.running .dag-node.status-success .nc::after {
   border: 1px solid color-mix(in srgb, var(--nk-accent) 40%, transparent);
   border-radius: 50%;
   cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .nc-audio-play:hover {
@@ -3160,7 +3168,7 @@ body.running .dag-node.status-success .nc::after {
   stroke: color-mix(in srgb, var(--nk-ink) 45%, var(--nk-page));
   stroke-width: 2;
   opacity: 0.9;
-  transition: opacity var(--nk-dur) var(--nk-ease), fill var(--nk-dur) var(--nk-ease), r var(--nk-dur) var(--nk-ease);
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects), fill var(--nk-dur-base) var(--nk-ease-effects), r var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .dag-node:hover .nc-port,
@@ -3191,7 +3199,7 @@ body.running .dag-node.status-success .nc::after {
  * cone tells its story before the engine reports the skips. */
 
 .dag-node.shock .nc {
-  animation: nk-shock 0.6s var(--nk-ease) var(--shock-delay, 0ms) both;
+  animation: nk-shock 0.6s var(--nk-ease-effects) var(--shock-delay, 0ms) both;
 }
 
 @keyframes nk-shock {
@@ -3221,10 +3229,10 @@ body.heatmap .nc {
   );
   /* The tint MORPHS as durations land / the toggle flips — never snaps. */
   transition:
-    background 0.4s var(--nk-ease),
-    border-color var(--nk-dur) var(--nk-ease),
-    box-shadow var(--nk-dur) var(--nk-ease),
-    transform var(--nk-dur) var(--nk-ease);
+    background 0.4s var(--nk-ease-effects),
+    border-color var(--nk-dur-base) var(--nk-ease-effects),
+    box-shadow var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-base) var(--nk-ease-spatial);
 }
 
 /* READING MODE — while H is down, everything that isn't the heat
@@ -3353,13 +3361,14 @@ body.lod-far .nc-head .nc-dot {
   height: calc(7px * min(var(--zoom-comp, 1), 2.4));
 }
 body.lod-far .nc-port { opacity: 0 !important; }
-/* The map-read morph rides the signature ease at the tier crossing. */
+/* The map-read morph rides the effects ease at the tier crossing — a
+ * geometric size change, never a spring (overshoot would reflow-bounce). */
 .nc-id, .nc-tile, .nc-dot {
   transition:
-    font-size 160ms var(--nk-ease),
-    width 160ms var(--nk-ease),
-    height 160ms var(--nk-ease),
-    border-radius 160ms var(--nk-ease);
+    font-size 160ms var(--nk-ease-effects),
+    width 160ms var(--nk-ease-effects),
+    height 160ms var(--nk-ease-effects),
+    border-radius 160ms var(--nk-ease-effects);
 }
 @media (prefers-reduced-motion: reduce) {
   .nc-id, .nc-tile, .nc-dot { transition: none; }
@@ -3443,17 +3452,20 @@ body.lod-far .edge-hit { pointer-events: none; }
   border: 1px solid transparent;
   border-radius: 7px;
   cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease), transform var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-base) var(--nk-ease-spatial);
 }
 
 .vp-btn:active {
   transform: scale(0.94);
 }
 
-.vp-infer { color: var(--nk-verb-infer); }
-.vp-exec { color: var(--nk-verb-exec); }
-.vp-invoke { color: var(--nk-verb-invoke); }
-.vp-agent { color: var(--nk-verb-agent); }
+/* Verb palette glyphs read the APCA text ramp (tokens v3 · V0.d) — the
+ * label a user reads and clicks, not decoration; hover derives its wash
+ * from currentColor, so the readable voice carries the whole button. */
+.vp-infer { color: var(--nk-verb-infer-text); }
+.vp-exec { color: var(--nk-verb-exec-text); }
+.vp-invoke { color: var(--nk-verb-invoke-text); }
+.vp-agent { color: var(--nk-verb-agent-text); }
 
 .vp-btn:hover {
   background: color-mix(in srgb, currentColor 12%, transparent);
@@ -3585,7 +3597,7 @@ body.running #run-controls .rc-resume {
     inset 0 1px 0 rgb(255 255 255 / 0.18),
     0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000),
     0 3px 6px rgb(0 0 0 / 0.3);
-  transition: background var(--nk-dur) var(--nk-ease), box-shadow 90ms var(--nk-ease), transform 90ms var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow 90ms var(--nk-ease-effects), transform 90ms var(--nk-ease-spatial);
 }
 
 .rc-run:hover:not(:disabled) {
@@ -3623,7 +3635,7 @@ body.running #run-controls .rc-resume {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.08),
     0 2px 0 rgb(0 0 0 / 0.3);
-  transition: background var(--nk-dur) var(--nk-ease), box-shadow 90ms var(--nk-ease), transform 90ms var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow 90ms var(--nk-ease-effects), transform 90ms var(--nk-ease-spatial);
 }
 
 .rc-stop:hover {
@@ -3865,10 +3877,35 @@ body.lod-far .region-label { display: none; }
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+  /* Modern entrance (V0.d): the palette fades + drops in from display:none
+   * via @starting-style + allow-discrete — it arrives, it never snaps. The
+   * wash rides effects, the 4px drop rides spatial; on close the discrete
+   * display flip waits for the fade (allow-discrete). */
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-base) var(--nk-ease-spatial),
+    display var(--nk-dur-base) allow-discrete;
+}
+
+@starting-style {
+  #verb-cmdk:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 #verb-cmdk[hidden] {
   display: none;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Reduced motion: the palette is simply there or gone — no fade, no drop
+ * (an entrance is motion; the opt-out is instant, never a phantom fade). */
+@media (prefers-reduced-motion: reduce) {
+  #verb-cmdk { transition: none; }
 }
 
 /* The list scrolls (4 verbs + the 27-tool vocabulary); headers pin the
@@ -4038,7 +4075,7 @@ body.lod-far .region-label { display: none; }
   border: none;
   border-radius: 999px;
   cursor: pointer;
-  transition: background var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #cd-go:hover {
@@ -4218,7 +4255,7 @@ body.lod-far .nc-audit { display: none !important; }
   background: color-mix(in srgb, var(--nk-page) 60%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: 10px;
-  transition: border-color var(--nk-dur) var(--nk-ease), box-shadow var(--nk-dur) var(--nk-ease);
+  transition: border-color var(--nk-dur-base) var(--nk-ease-effects), box-shadow var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #es-describe:focus-within {
@@ -4254,7 +4291,7 @@ body.lod-far .nc-audit { display: none !important; }
   color: var(--nk-cta-ink);
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
-  transition: transform 90ms var(--nk-ease), box-shadow 90ms var(--nk-ease);
+  transition: transform 90ms var(--nk-ease-spatial), box-shadow 90ms var(--nk-ease-effects);
 }
 
 #es-describe-go:active {
@@ -4302,7 +4339,7 @@ body.lod-far .nc-audit { display: none !important; }
   border-radius: 7px;
   cursor: pointer;
   text-align: left;
-  transition: background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .es-row:hover {
@@ -4348,7 +4385,7 @@ body.lod-far .nc-audit { display: none !important; }
   border-radius: 7px;
   cursor: pointer;
   text-align: left;
-  transition: color var(--nk-dur) var(--nk-ease), background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .es-cap span {
@@ -4781,7 +4818,7 @@ body[data-nk-theme='editor'].vscode-dark {
   border-radius: 7px;
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--nk-dur) var(--nk-ease), background var(--nk-dur) var(--nk-ease), border-color var(--nk-dur) var(--nk-ease);
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .pr-n {
@@ -4881,18 +4918,27 @@ body.vscode-high-contrast .dag-edge.edge-data {
   }
 }
 
+/* Reduced motion collapses the spatial voice back to the flat ease: spatial
+ * moves still resolve (a lift is still a lift), but the ~4% overshoot is
+ * gone — no bounce for anyone who asked for calm. One rule covers every
+ * --nk-ease-spatial consumer at once; the per-feature `animation: none`
+ * blocks above still stop the continuous + arrival animations outright. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --nk-ease-spatial: var(--nk-ease); }
+}
+
 /* Arrivals ride the spring: the card entrance + the verdict pop. */
 .nc-enter {
-  animation-timing-function: var(--nk-spring);
+  animation-timing-function: var(--nk-ease-spatial);
 }
 
 .dag-node.status-success .nc-sub-v,
 .dag-node.status-failed .nc-sub-v {
-  animation-timing-function: var(--nk-spring);
+  animation-timing-function: var(--nk-ease-spatial);
 }
 
 .nc-body.nc-body-live {
-  animation-timing-function: var(--nk-spring);
+  animation-timing-function: var(--nk-ease-spatial);
 }
 
 /* ═══ VERB SOULS · each verb's execution model made visible ═══════════════
@@ -5277,12 +5323,12 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
 /* infer senses — thinking (the reasoning scratch) · vision (image
    inputs). Verb-infer family hue, quiet like every policy fact. */
 .nc-pol-think {
-  color: var(--nk-verb-infer);
+  color: var(--nk-verb-infer-text);
   border-color: color-mix(in srgb, var(--nk-verb-infer) 40%, transparent);
   background: color-mix(in srgb, var(--nk-verb-infer) 8%, transparent);
 }
 .nc-pol-vision {
-  color: var(--nk-verb-infer);
+  color: var(--nk-verb-infer-text);
   border-color: color-mix(in srgb, var(--nk-verb-infer) 40%, transparent);
   background: color-mix(in srgb, var(--nk-verb-infer) 8%, transparent);
 }
@@ -5464,7 +5510,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   text-decoration: underline;
 }
 #nk-trail .nk-trail-crumb.active {
-  color: var(--nk-verb-invoke);
+  color: var(--nk-verb-invoke-text);
   font-weight: 700;
   cursor: default;
 }
@@ -5687,7 +5733,7 @@ body.dataflow .nc-io {
   color: var(--nk-st-success);
 }
 .nc-ess-condition { color: var(--nk-st-retrying); }
-.nc-ess-event { color: var(--nk-verb-invoke); }
+.nc-ess-event { color: var(--nk-verb-invoke-text); }
 .nc-ess-duration { color: var(--nk-st-muted); font-variant-numeric: tabular-nums; }
 .nc-ess-text { color: var(--nk-fg, #ddd); }
 .nc-ess-rest {

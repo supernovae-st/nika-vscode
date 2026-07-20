@@ -330,22 +330,35 @@ strips every material (flat system colors).
 
 ## 6 · Motion
 
-One signature ease `cubic-bezier(0.22, 1, 0.36, 1)` @140ms for every
-hover/focus/state. Tokens v3 names the full duration scale — every
-timing a multiple of the run quantum: `--nk-dur-fast` 80ms (the ONE
-clock; spinner strips advance on it via `--nk-frame-interval`) ·
-`--nk-dur-base` 160ms (micro-state) · `--nk-dur-slow` 240ms (panels ·
-reveals) · `--nk-dur-deliberate` 400ms (ceremonies). Two easing
-voices: `--nk-ease-effects` (opacity · color · glow = the signature
-ease) and `--nk-ease-spatial` (position · scale · arrivals = the
-spring); the legacy `--nk-dur`/`--nk-ease` pair remaps onto the scale
-in V0.d. ARRIVALS ride the SPRING — a canonical `linear()`
-curve with ~4% overshoot (`--nk-spring` · falls back to the ease via
-`@supports`): card entrances, verdict pops, the output line. The
-CAMERA speaks ease-out (every d3 zoom transition: fit 460ms · center
-420ms · wave 360ms · minimap 240ms — the canvas-tool standard, never
-symmetric in/out). Compositor
-props only. `prefers-reduced-motion` disables every loop.
+One signature ease `cubic-bezier(0.22, 1, 0.36, 1)`. Tokens v3 names the
+full duration scale — every timing a multiple of the run quantum:
+`--nk-dur-fast` 80ms (the ONE clock; spinner strips advance on it via
+`--nk-frame-interval`) · `--nk-dur-base` 160ms (the standard hover /
+focus / state change) · `--nk-dur-slow` 240ms (panels · reveals) ·
+`--nk-dur-deliberate` 400ms (ceremonies). V0.d migrated every consumer
+onto that scale — the legacy `--nk-dur` (140ms) now ALIASES `--nk-dur-base`,
+so the name survives for stray readers while the scale does the speaking.
+Two easing VOICES carry every transition and animation, split by what
+moves: `--nk-ease-effects` (opacity · colour · glow · geometry = the flat
+signature ease, NEVER overshoots) and `--nk-ease-spatial` (translate ·
+scale · arrivals = the spring). ARRIVALS ride the SPRING — a canonical
+`linear()` curve with ~4% overshoot (`--nk-spring` · falls back to the
+ease via `@supports`): card entrances, verdict pops, the output line.
+Overshoot on colour is forbidden (out-of-gamut flash) — the split is the
+guardrail. Show/hide panels (e.g. the verb cmdk palette) get a modern
+entrance — `@starting-style` + `transition-behavior: allow-discrete` fade
++ 4px drop from `display:none`, never a snap. `prefers-reduced-motion`
+disables every loop AND collapses `--nk-ease-spatial` back to the flat
+ease (spatial moves stay, the bounce goes) · modern entrances become
+instant. Verb-tinted PROSE (the verb palette glyphs · policy chips ·
+active breadcrumb · essence line · the running sub-line via `--dv-hue-text`)
+reads an APCA ≥Lc60 text ramp (`--nk-verb-<v>-text`), NOT the full-chroma
+node hue — chroma stays for glows · keycaps · spinners, but a verb's colour
+as INK must clear Lc60 on both the elevated card (#1c1d21) and the phosphor
+OLED black to be legible; the ramp is that readable voice, never re-canonised
+by the wake. The CAMERA speaks ease-out (every d3 zoom transition: fit 460ms ·
+center 420ms · wave 360ms · minimap 240ms — the canvas-tool standard, never
+symmetric in/out). Compositor props only.
 
 The orchestrated moments (each spent exactly once, where it means):
 - **Entrance** — cards rise in staggered by wave (70ms/wave · 0.32s),
