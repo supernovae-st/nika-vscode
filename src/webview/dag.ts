@@ -762,15 +762,21 @@ const PREVIEW_AUD_H = 30;
 const PREVIEW_GAP = 6;
 /** The agent LOOP BAND (W-D8) — .nc-agent-band 14px + 4px gap. */
 const AGENT_BAND_H = 18;
+/** The grand ENSEMBLE zones (W-D11 · the ElevenLabs grammar): the head
+ *  FLOATS above the card frame and the knobs DETACH into a pill below —
+ *  ONE ELK footprint carries all three (header + card + gap + pill).
+ *  CSS mirror: .nc-mode-grand margin-top / calc(100% - 68px) / .nc-pill. */
+const GRAND_HEAD_H = 24; // floating header band 18px + 6px clearance
+const PILL_GAP = 8;      // air between the card frame and the pill
+const PILL_H = 36;       // the detached knob pill
+/** The off-card extra a grand footprint carries (24 + 8 + 36 = 68). */
+const GRAND_EXTRA = GRAND_HEAD_H + PILL_GAP + PILL_H;
 /** The grand-mode sections (ex-hover content, ON the card now):
  *  fact/error lines 15px (clamped 2) · chips rows 18px · action
  *  buttons 18px rows. Mirror the .nc-x-* CSS (anatomy law). */
 const X_GAP = 5;
 const X_LINE_H = 15;
 const X_CHIPS_H = 18;
-const X_ACT_GAP = 6;
-const X_ACT_ROW_H = 18;
-const X_ACT_ROW_GAP = 4;
 /** Fact text wraps at ≈31 chars/line (the body's proven budget in the
  *  ~220px content column) and CSS-clamps at 2 — heights stay TRUE. */
 const X_WRAP_CHARS = 31;
@@ -895,13 +901,13 @@ function paintBodyRest(
   el.dataset.baseKind = kind;
 }
 
-/** Whether the params row (gate · model chip · cost · avg) shows. */
+/** Whether the (grand) params row shows — the when: GATE only, since
+ *  W11.1/W11.3 detached the knobs (model/tool → the floating header ·
+ *  cost/avg/actions → the pill). The gate stays ON the card: it rules
+ *  whether the work happens at all — that is card substance. */
 function hasParamsRow(node: DagNode): boolean {
   if (!displayProps.params) { return false; }
-  return node.model !== undefined || node.tool !== undefined
-    || node.when !== undefined
-    || (node.costMin != null && node.costMax != null)
-    || node.avgMs !== undefined;
+  return node.when !== undefined;
 }
 
 /** Whether the io row shows — inbound wires, named ON the card. */
@@ -1090,34 +1096,6 @@ function peekGeomOf(node: DagNode): { w: number; h: number; renderW: number; ren
   return { w, h, renderW, renderH: Math.round(h * (renderW / w)) };
 }
 
-/** The action labels a card wears (ONE source: the build renders
- *  them, the row budget flows them). */
-function actionLabelsOf(node: DagNode): string[] {
-  const labels = ['\u25B8 run', '\u26a1 what if', '❏ dup'];
-  if (node.status === 'failed') {
-    const code = NIKA_CODE_RE.exec(node.failPreview ?? '')?.[0];
-    if (code !== undefined) { labels.push(`\u270e ${code}`); }
-    labels.push('\u2442 fork');
-  }
-  labels.push('K'); // the panel kbd-chip
-  return labels;
-}
-
-/** Action row count — a deterministic flex-wrap flow over the REAL
- *  labels (10px mono ≈ 6.2px/char + 16px padding · 4px gap · ~220px
- *  column). Mirrors .nc-x-actions CSS: the budget wraps exactly where
- *  the pixels do. */
-function actionRowsOf(node: DagNode): number {
-  const W = 220; const CHAR = 6.2; const PADX = 16; const GAP = 4;
-  let rows = 1; let x = 0;
-  for (const label of actionLabelsOf(node)) {
-    const w = Math.ceil(label.length * CHAR + (label === 'K' ? 14 : PADX));
-    if (x > 0 && x + GAP + w > W) { rows += 1; x = w; }
-    else { x += (x > 0 ? GAP : 0) + w; }
-  }
-  return rows;
-}
-
 /** Neighbor-chip row count — the same deterministic flow over the
  *  REAL ids (label + every chip, 72px cap each). EVERY neighbor stays
  *  clickable (hover parity — a +N tooltip would lose the 4th jump). */
@@ -1134,12 +1112,19 @@ function chipRowsOf(label: string, ids: string[]): number {
 
 /** Card height from content — the layout must know the TRUE box. */
 function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): number {
-  let h = CARD_PAD_Y * 2 + HEAD_H + DIVIDER_H + SUB_H;
+  let h = CARD_PAD_Y * 2 + SUB_H;
   if (mode === 'min') {
-    // min = head · verdict · one essence line. Nothing else.
+    // min = head · verdict · one essence line. Nothing else — the head
+    // and its divider stay IN the frame (the dense line, unchanged).
+    h += HEAD_H + DIVIDER_H;
     if (bodyTextOf(node, 'min')) { h += BODY_GAP + BODY_LINE_H; }
     return Math.max(h, NODE_HEIGHT);
   }
+  // grand: the head floats ABOVE the frame (W11.1 — no in-frame head,
+  // no divider: the card's top edge IS the identity boundary now) and
+  // the knobs detach into the pill BELOW (W11.3 — the actions row left
+  // the frame too). The sum below stays order-independent; the two
+  // off-card zones join at the return.
   if (node.artifact) {
     // file rides the audio row height (one-line receipt row).
     h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
@@ -1197,9 +1182,19 @@ function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): numb
     if (up.length > 0) { h += X_GAP + chipRowsOf('needs', up) * X_CHIPS_H; }
     if (down.length > 0) { h += X_GAP + chipRowsOf('unlocks', down) * X_CHIPS_H; }
   }
-  const actRows = actionRowsOf(node);
-  h += X_ACT_GAP + actRows * X_ACT_ROW_H + (actRows - 1) * X_ACT_ROW_GAP;
-  return Math.max(h, NODE_HEIGHT);
+  // The ensemble: floating header + card + detached pill — ONE footprint
+  // for ELK, the drag and the culling (the card part keeps its floor).
+  return GRAND_HEAD_H + Math.max(h, NODE_HEIGHT) + PILL_GAP + PILL_H;
+}
+
+/** The fan-out DECK tracks the CARD FRAME, not the ensemble: in grand
+ *  the ghost sheets start under the floating header and stop above the
+ *  pill (sheets behind a detached pill would lie about what stacks). */
+function deckYOf(node: DagNode, off: number, mode: CardMode = cardModeOf(node.id)): number {
+  return off + (mode === 'grand' ? GRAND_HEAD_H : 0);
+}
+function deckHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): number {
+  return nodeHeightOf(node, mode) - (mode === 'grand' ? GRAND_EXTRA : 0);
 }
 
 /** Verb -> icon (simple Unicode — no font dependency) */
@@ -3613,8 +3608,8 @@ class DagRenderer {
       'nk-ink', 'nk-ink-dim', 'nk-mono', 'nk-st-running', 'nk-st-success',
       'nk-st-failed', 'nk-st-retrying', 'nk-st-muted', 'nk-critical',
       'nk-verb-infer', 'nk-verb-exec', 'nk-verb-invoke', 'nk-verb-agent',
-      'nk-card', 'nk-card-border', 'nk-card-shadow', 'nk-border-strong',
-      'nk-border-soft', 'nk-radius-card',
+      'nk-card', 'nk-card-border', 'nk-card-shadow', 'nk-card-shadow-hover',
+      'nk-border-strong', 'nk-border-soft', 'nk-radius-card',
     ]
       .map((t) => ({ t, v: live.getPropertyValue(`--${t}`).trim() }))
       .filter(({ v }) => v.length > 0)
@@ -3960,15 +3955,17 @@ class DagRenderer {
       .attr('opacity', 0);
 
     // Fan-out DECK — a map ×N task reads as a stack of sheets (two ghost
-    // layers behind the card · the parallel copies made visible).
+    // layers behind the card · the parallel copies made visible). The
+    // sheets track the CARD frame (deckYOf/deckHeightOf): in grand they
+    // start under the floating header and stop above the pill.
     for (const off of [12, 6]) {
       enter.filter((d) => Boolean(d.fanOutKind))
         .append('rect')
         .attr('class', `node-stack node-stack-${off}`)
         .attr('x', off)
-        .attr('y', off)
+        .attr('y', (d) => deckYOf(d, off))
         .attr('width', NODE_WIDTH)
-        .attr('height', (d) => nodeHeightOf(d))
+        .attr('height', (d) => deckHeightOf(d))
         .attr('rx', NODE_RADIUS)
         .attr('ry', NODE_RADIUS);
     }
@@ -4139,7 +4136,9 @@ class DagRenderer {
     // nodeHeightOf) — an existing card's frame must resize on update,
     // not only on enter (the display-props probe caught bgH frozen).
     merged.select('rect.node-bg').attr('height', (d) => nodeHeightOf(d));
-    merged.selectAll<SVGRectElement, DagNode>('rect.node-stack').attr('height', (d) => nodeHeightOf(d));
+    merged.selectAll<SVGRectElement, DagNode>('rect.node-stack').attr('height', (d) => deckHeightOf(d));
+    merged.select<SVGRectElement>('rect.node-stack-6').attr('y', (d) => deckYOf(d, 6));
+    merged.select<SVGRectElement>('rect.node-stack-12').attr('y', (d) => deckYOf(d, 12));
     merged.select('foreignObject').attr('height', (d) => nodeHeightOf(d));
     // The out port rides the same truth (it floated mid-card when a
     // display/mode toggle changed heights on existing cards).
@@ -4379,8 +4378,14 @@ class DagRenderer {
    *  at the card's foot: ▸ run (upstream cone) · ⚡ what if · ❏ dup ·
    *  a failed card adds ✎ explain + ⑂ fork · K opens the full panel.
    *  Same handlers the hover had — one registry of behavior. */
-  private appendCardActions(host: HTMLElement, node: DagNode): void {
-    const rowEl = document.createElement('div');
+  /** The pill's ACTION CLUSTER (W11.3 · the ElevenLabs read: `⤓ ⑂ ⋯`)
+   *  — keeps the .nc-x-actions identity (probes and journeys read it).
+   *  The verbs live in the K panel / keyboard; the pill carries the
+   *  three that earn permanent ink: the recorded artifact (when one
+   *  exists), the failure fork (when one happened), and the ⋯ door to
+   *  every action with its shortcut. */
+  private appendCardActions(into: HTMLElement, node: DagNode): void {
+    const rowEl = document.createElement('span');
     rowEl.className = 'nc-x-actions';
     const btn = (cls: string, text: string, title: string, run: () => void): HTMLButtonElement => {
       const b = document.createElement('button');
@@ -4395,36 +4400,16 @@ class DagRenderer {
       rowEl.appendChild(b);
       return b;
     };
-    btn('', '\u25B8 run',
-      'Run THIS task and its upstream cone only (nika run --task) — upstream cache-hits stay cache-hits',
-      () => {
-        this.confirmOn(node.id);
-        vscode.postMessage({
-          kind: 'dag:runTask',
-          taskId: node.id,
-          workflowUri: this.currentGraph?.workflowUri,
+    if (node.artifact) {
+      const a = node.artifact;
+      btn('nc-x-open', '\u2913',
+        `Open ${a.name} — the recorded output (engine truth from the trace)`,
+        () => {
+          vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
         });
-      });
-    btn('nc-x-sim', '\u26a1 what if',
-      'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears. (X on the focused card)',
-      () => { this.toggleSimulate(node.id); });
-    btn('', '❏ dup',
-      'Duplicate this task (⌘D) — fresh id, inbound wiring kept',
-      () => {
-        vscode.postMessage({
-          kind: 'dag:duplicateTask',
-          taskId: node.id,
-          workflowUri: this.currentGraph?.workflowUri,
-        });
-      });
+    }
     if (node.status === 'failed') {
-      const code = NIKA_CODE_RE.exec(node.failPreview ?? '')?.[0];
-      if (code) {
-        btn('nc-x-explain', `\u270e ${code}`,
-          `Explain ${code} — cause, category, the fix form`,
-          () => { vscode.postMessage({ kind: 'dag:explainCode', code }); });
-      }
-      btn('nc-x-fork', '\u2442 fork',
+      btn('nc-x-fork', '\u2442',
         'Fork from this task — upstream rehydrates from the newest recorded run, this task and its cone re-run',
         () => {
           vscode.postMessage({
@@ -4434,13 +4419,120 @@ class DagRenderer {
           });
         });
     }
-    btn('nc-x-panel', 'K',
+    btn('nc-x-panel', '\u22ef',
       'Every action with its shortcut (K on the focused card)',
       () => {
         if (this.focusedId !== node.id) { this.applyFocus(node.id); }
         this.openNodeActions();
       });
-    host.appendChild(rowEl);
+    into.appendChild(rowEl);
+  }
+
+  /** The ENGINE identity chip for the floating header's right edge
+   *  (W11.1): the model picker (still the editing door) · the ⎘
+   *  sub-workflow door · or the declared media provider. Tool cards
+   *  carry their ref on the mechanism line already — no chip. */
+  private buildEngineChip(node: DagNode): HTMLElement | null {
+    const subPath = node.tool?.startsWith('workflow:') === true
+      ? node.tool.slice('workflow:'.length).trim()
+      : undefined;
+    if (subPath !== undefined) {
+      // Composition (spec 14): the chip IS the door — click opens
+      // the child workflow file. One gesture, same seam as every
+      // canvas→YAML jump (the extension resolves the relative path).
+      const chip = document.createElement('button');
+      chip.className = 'nc-chip nc-model nc-sub-wf nc-engine';
+      const m = node.subManifest;
+      const base = subPath.split('/').pop() ?? subPath;
+      chip.textContent = m !== undefined ? `⎘ ${base} · ${m.tasks}` : `⎘ ${base}`;
+      const manifestLines = m !== undefined
+        ? [`\ninside: ${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
+          + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
+          + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '')]
+        : [];
+      chip.title = `Sub-workflow: ${subPath}${manifestLines.join('')}\nClick to open it`;
+      chip.addEventListener('mousedown', (e) => e.stopPropagation());
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({
+          kind: 'dag:openSub',
+          path: subPath,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+      return chip;
+    }
+    if (node.model !== undefined) {
+      // The model chip EDITS (the Flows params-bar gesture): click →
+      // provider/model QuickPick extension-side → YAML edit → reload.
+      const chip = document.createElement('button');
+      chip.className = 'nc-chip nc-model nc-engine';
+      chip.textContent = node.model;
+      chip.title = 'Change this task\'s model (edits the YAML · ⌘Z undoes)';
+      chip.addEventListener('mousedown', (e) => e.stopPropagation());
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({
+          kind: 'dag:editModel',
+          taskId: node.id,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+      });
+      return chip;
+    }
+    // A media tool's declared provider IS its engine (« GPT Image 2 »
+    // read) — a quiet fact, not a door. Other tools: the mechanism
+    // line (`invoke · ⚒ ref`) already carries the identity.
+    const identity = resolveCardIdentity(node, toolCatsMap);
+    const declared = mediaDeclareOf(identity.builtin, node.argsPreview);
+    if (declared.provider !== undefined) {
+      const tag = document.createElement('span');
+      tag.className = 'nc-engine';
+      tag.textContent = declared.provider;
+      tag.title = `provider: ${declared.provider} — the declared engine for this generation`;
+      return tag;
+    }
+    return null;
+  }
+
+  /** W11.3 · THE DETACHED PILL — a floating knob bar UNDER the card
+   *  (grand only; min swallows it back into the dense line). Carries
+   *  what ElevenLabs carries: the key params of the builtin (CI-2's
+   *  declared facts — one parser, reused), the static cost interval,
+   *  the ⌀ recorded mean, and the action cluster. The pill rides the
+   *  SAME footprint (nodeHeightOf adds PILL_GAP + PILL_H) and the
+   *  same drag (node-bg spans the ensemble). */
+  private appendPill(host: HTMLElement, node: DagNode): void {
+    const pill = document.createElement('div');
+    pill.className = 'nc-pill';
+    const fact = (text: string, title: string, cls = ''): void => {
+      const el = document.createElement('span');
+      el.className = `nc-pill-fact${cls ? ` ${cls}` : ''}`;
+      el.textContent = text;
+      el.title = title;
+      pill.appendChild(el);
+    };
+    // The key knobs — declared literals only (an interpolation is a
+    // stated gap, never a guess · CI-2 law).
+    const identity = resolveCardIdentity(node, toolCatsMap);
+    const d = mediaDeclareOf(identity.builtin, node.argsPreview);
+    if (d.ratioLabel !== undefined) { fact(d.ratioLabel, `declared frame: ${d.ratioLabel} (size wins over aspect_ratio)`); }
+    if (d.count !== undefined) { fact(`\u00d7${d.count}`, `${d.count} variants declared (n:)`); }
+    if (d.voice !== undefined) { fact(d.voice, `declared voice: ${d.voice}`); }
+    if (d.format !== undefined) { fact(d.format, `declared format: ${d.format}`); }
+    if (d.chartType !== undefined) { fact(d.chartType, `declared chart type: ${d.chartType}`); }
+    if (d.method !== undefined) { fact(d.method, `declared HTTP method: ${d.method}`, 'nc-pill-method'); }
+    if (node.costMin != null && node.costMax != null) {
+      fact(`${usd(node.costMin)}–${usd(node.costMax)}`,
+        'Static cost interval (min path → worst case) — audited before a single token is spent');
+    }
+    if (node.avgMs !== undefined && node.avgRuns) {
+      fact(`⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`,
+        `Mean success duration over ${node.avgRuns} recorded run${node.avgRuns === 1 ? '' : 's'} (flight recorder)`,
+        'nc-avg');
+    }
+    this.appendCardActions(pill, node);
+    host.appendChild(pill);
   }
 
   /** Build the HTML card body (safe DOM construction — never innerHTML).
@@ -4696,18 +4788,30 @@ class DagRenderer {
     spin.style.setProperty('--nk-wake', `${Math.min(this.waveOf.get(node.id) ?? 0, 8) * 50}ms`);
     spin.appendChild(document.createElement('i'));
     st.append(dot, spin);
-    header.append(glyph, id, auditChip, staleChip, badge, st);
+    // W11.1 — in grand the head FLOATS above the card frame (CSS lifts
+    // it out of the border box) and the ENGINE identity joins its right
+    // edge: the model picker / the sub-workflow door / the declared
+    // media provider (the « Eleven Music » position). The chip left
+    // nc-params — one home per fact.
+    if (mode === 'grand') {
+      const engine = this.buildEngineChip(node);
+      if (engine) { header.append(glyph, id, auditChip, staleChip, engine, badge, st); }
+      else { header.append(glyph, id, auditChip, staleChip, badge, st); }
+    } else {
+      header.append(glyph, id, auditChip, staleChip, badge, st);
+    }
     host.appendChild(header);
     this.paintSpin(host, node);
-
-    // Full-bleed hairline between the identity zone and the fact zone.
-    const divider = document.createElement('div');
-    divider.className = 'nc-div';
-    host.appendChild(divider);
 
     // min — head · verdict · one essence line. The full story is one
     // double-click (or E) away; nothing hides behind a hover anymore.
     if (mode === 'min') {
+      // Full-bleed hairline between the identity zone and the fact zone
+      // (grand has no in-frame head, so no divider either — the card's
+      // top edge is the boundary).
+      const divider = document.createElement('div');
+      divider.className = 'nc-div';
+      host.appendChild(divider);
       this.appendCardSub(host, node);
       this.appendCardBody(host, node, 'min');
       return;
@@ -4938,96 +5042,16 @@ class DagRenderer {
     if (hasParamsRow(node)) {
       const params = document.createElement('div');
       params.className = 'nc-params';
-      // The when: GATE leads the row — conditional execution is a
-      // language pillar, not a footnote (DESIGN.md §1).
-      if (node.when) {
-        const gate = document.createElement('span');
-        gate.className = 'nc-gate';
-        const expr = node.when.length > 18 ? `${node.when.slice(0, 17)}\u2026` : node.when;
-        gate.textContent = `\u2301 ${expr}`;
-        gate.title = `Runs only when: ${node.when}`;
-        params.appendChild(gate);
-      }
-      const target = node.model ?? node.tool;
-      const subPath = node.tool?.startsWith('workflow:')
-        ? node.tool.slice('workflow:'.length).trim()
-        : undefined;
-      if (target && subPath) {
-        // Composition (spec 14): the chip IS the door — click opens
-        // the child workflow file. One gesture, same seam as every
-        // canvas→YAML jump (the extension resolves the relative path).
-        const chip = document.createElement('button');
-        chip.className = 'nc-chip nc-model nc-sub-wf';
-        const m = node.subManifest;
-        const base = subPath.split('/').pop() ?? subPath;
-        chip.textContent = m !== undefined ? `⎘ ${base} · ${m.tasks}` : `⎘ ${base}`;
-        const manifestLines = m !== undefined
-          ? [`\ninside: ${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
-            + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
-            + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '')]
-          : [];
-        chip.title = `Sub-workflow: ${subPath}${manifestLines.join('')}\nClick to open it`;
-        chip.addEventListener('mousedown', (e) => e.stopPropagation());
-        chip.addEventListener('click', (e) => {
-          e.stopPropagation();
-          vscode.postMessage({
-            kind: 'dag:openSub',
-            path: subPath,
-            workflowUri: this.currentGraph?.workflowUri,
-          });
-        });
-        params.appendChild(chip);
-      } else if (target) {
-        // The model chip EDITS (the Flows params-bar gesture): click →
-        // provider/model QuickPick extension-side → YAML edit → reload.
-        const chip = document.createElement('button');
-        chip.className = 'nc-chip nc-model';
-        if (node.model) {
-          chip.textContent = target;
-        } else {
-          // Tool chip wears the category's house icon (svg beats the
-          // unicode approximation); the text stays the full tool ref.
-          const cat = toolCatOf(target.replace(/^nika:/, ''));
-          const icon = cat ? makeCategoryGlyph(cat, 11) : null;
-          if (icon) {
-            icon.classList.add('nc-chip-icon', `nc-cat-${cat}`);
-            chip.append(icon, document.createTextNode(target));
-          } else {
-            chip.textContent = toolWithGlyph(target);
-          }
-        }
-        chip.title = node.model
-          ? 'Change this task\'s model (edits the YAML · ⌘Z undoes)'
-          : node.tool ?? '';
-        if (node.model) {
-          chip.addEventListener('mousedown', (e) => e.stopPropagation());
-          chip.addEventListener('click', (e) => {
-            e.stopPropagation();
-            vscode.postMessage({
-              kind: 'dag:editModel',
-              taskId: node.id,
-              workflowUri: this.currentGraph?.workflowUri,
-            });
-          });
-        } else {
-          chip.disabled = true;
-        }
-        params.appendChild(chip);
-      }
-      if (node.costMin != null && node.costMax != null) {
-        const cost = document.createElement('span');
-        cost.className = 'nc-fact';
-        cost.textContent = `${usd(node.costMin)}–${usd(node.costMax)}`;
-        cost.title = 'Static cost interval (min path → worst case) — audited before a single token is spent';
-        params.appendChild(cost);
-      }
-      if (node.avgMs !== undefined && node.avgRuns) {
-        const avg = document.createElement('span');
-        avg.className = 'nc-fact nc-avg';
-        avg.textContent = `⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`;
-        avg.title = `Mean success duration over ${node.avgRuns} recorded run${node.avgRuns === 1 ? '' : 's'} (flight recorder)`;
-        params.appendChild(avg);
-      }
+      // The when: GATE leads (and now owns) the row — conditional
+      // execution is a language pillar, not a footnote (DESIGN.md §1).
+      // The knobs left: model/tool → the floating header (W11.1) ·
+      // cost · ⌀ · actions → the detached pill (W11.3).
+      const gate = document.createElement('span');
+      gate.className = 'nc-gate';
+      const expr = node.when!.length > 18 ? `${node.when!.slice(0, 17)}\u2026` : node.when!;
+      gate.textContent = `\u2301 ${expr}`;
+      gate.title = `Runs only when: ${node.when!}`;
+      params.appendChild(gate);
       host.appendChild(params);
     }
 
@@ -5140,7 +5164,10 @@ class DagRenderer {
     this.appendCardFacts(host, node);
     this.appendCardPeek(host, node);
     this.appendCardChips(host, node);
-    this.appendCardActions(host, node);
+    // W11.3 — the knobs detach: the pill floats UNDER the card frame
+    // (params-clés · cost · ⌀ · actions), positioned by CSS into the
+    // footprint zone nodeHeightOf reserved.
+    this.appendPill(host, node);
   }
 
   /** Re-render the CURRENT graph (display-property toggles change row
@@ -5341,11 +5368,16 @@ class DagRenderer {
 
   /** One card's frame follows its content height — bg · fan-out deck ·
    *  foreignObject · the out port (the same quartet the render pass
-   *  sizes from nodeHeightOf). */
+   *  sizes from nodeHeightOf). The deck tracks the CARD frame: a peek
+   *  to grand shifts the sheets under the floating header and shaves
+   *  the pill zone (GRAND_EXTRA), same law as the render pass. */
   private syncFrameHeights(taskId: string, h: number): void {
     const g = this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(taskId)}"]`);
+    const grand = this.renderModeOf(taskId) === 'grand';
     g.select('rect.node-bg').attr('height', h);
-    g.selectAll('rect.node-stack').attr('height', h);
+    g.selectAll('rect.node-stack').attr('height', grand ? h - GRAND_EXTRA : h);
+    g.select('rect.node-stack-6').attr('y', 6 + (grand ? GRAND_HEAD_H : 0));
+    g.select('rect.node-stack-12').attr('y', 12 + (grand ? GRAND_HEAD_H : 0));
     g.select('foreignObject').attr('height', h);
     g.select('.nc-port-out').attr('cy', h);
   }

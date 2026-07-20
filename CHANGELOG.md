@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The header floats, the knobs detach: the pill
+
+- **The header rises above the card** (expanded cards): the verb tile and task id float over the frame, with the engine identity at their right: the model chip (still the click-to-change door), the `⎘` sub-workflow door, or a media tool's declared provider. The card body keeps its full height for the work: prompt, media slot, wires, facts. Compact cards keep the dense in-frame head unchanged.
+- **The knobs settle into a detached pill under the card**: the declared key params (`16:9 ×3` for images · `voice · format` for tts · the chart type · the HTTP method for fetch), the static cost interval, the recorded `⌀` mean, then the action cluster behind a divider: `⤓` opens the recorded artifact, `⑂` forks from a failure, `⋯` opens the actions panel (every action with its shortcut, `K`). Run, what-if, duplicate and explain live there and on their keys: the pill carries permanent ink only.
+- **One footprint, one grab**: layout, drag, culling and export treat header + card + pill as a single object; dragging the floating title moves the whole ensemble. Fan-out ghost sheets track the card frame, never the pill. Zoomed to the map read, the header returns in-frame and the pill folds away; the mid tier hides the pill with the other secondary rows.
+- The pill's entrance respects reduced motion, keeps a real border under forced colors, and exports with the theme it wore on screen.
+
 ### The media show themselves: declare, develop, deliver
 
 - **Two catalog drifts fixed**: a `tts_generate` card developed an IMAGE frame (the audio set carried names the catalog never had: tts, speak, transcribe) and `edit` earned no write receipt while four phantom writers (append, copy, move, archive) did. The sets now speak catalog truth; a 28-builtin preview table pins every card's nature so a phantom name can never silently zero a frame again.

@@ -37,6 +37,31 @@ every visible pixel.
   the TS `Card anatomy metrics` block in dag.ts MIRRORS these numbers — law 2)
 ```
 
+**The grand ENSEMBLE (W-D11 · the ElevenLabs read).** An expanded card
+re-composes into three zones under ONE layout footprint:
+
+```
+  ⬚ task_id      [engine] ● │  floating header 18 (+6 air = 24) · OUT of the frame:
+┌────────────────────────────┐  verb tile + id LEFT · engine identity RIGHT
+│  the card = the WORK       │  (model chip door · ⎘ sub-workflow door · declared
+│  (full height for content) │  media provider) · the head/divider left the frame
+└────────────────────────────┘
+   ( 16:9 ×3 $0.01–0.04 │ ⋯ )   the detached PILL 36 (+8 air) · the KNOBS:
+                                declared key params · cost · ⌀ · the action cluster
+```
+
+- `nodeHeightOf(grand) = 24 + card + 8 + 36` · ELK, drag, culling and
+  export all see the ensemble as one box; the transparent `node-bg`
+  spans it, so dragging the floating title moves the whole object.
+- The pill carries permanent ink only: `⤓` (recorded artifact) · `⑂`
+  (fork from failure) · `⋯` (the K panel · every action + shortcut).
+  Run/what-if/duplicate live there and on their keys.
+- min keeps the dense in-frame anatomy above, unchanged. far swallows
+  the ensemble (head returns in-frame for the map tile · pill dies);
+  mid hides the pill with the other secondary rows.
+- A grand card trades `contain: strict` for `layout style size` (the
+  float must paint outside the box) · min cards keep the full armor.
+
 - **The preview is engine truth only**: the artifact comes from the
   RECORDED trace (`artifacts.ts` — a file a run actually wrote, that
   still exists on disk); webview URIs mint at post time over

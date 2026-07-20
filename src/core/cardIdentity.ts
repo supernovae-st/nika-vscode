@@ -142,6 +142,8 @@ export interface MediaDeclare {
   voice?: string;
   /** tts: declared format (mp3 · wav · auto). */
   format?: string;
+  /** fetch: declared HTTP method (GET · POST · …) — uppercased. */
+  method?: string;
 }
 
 /** First-wins `k: v` map over an argsPreview line (`k: v · k: v`). */
@@ -203,6 +205,11 @@ export function mediaDeclareOf(
       const names = ops.split(' → ').map((s) => s.trim()).filter((s) => /^[a-z_]+$/.test(s));
       if (names.length > 0) { d.ops = names; }
     }
+  } else if (builtin === 'fetch') {
+    // The declared HTTP method — the pill's key knob for a network card
+    // (W11.3). An interpolated method is a stated gap, never a guess.
+    const method = literalOf(pairs, 'method');
+    if (method !== undefined && /^[a-z]+$/i.test(method)) { d.method = method.toUpperCase(); }
   }
   return d;
 }
