@@ -884,7 +884,8 @@ function paintBodyRest(
   if (split.essence !== undefined) {
     // fetch — the declared METHOD tags the url (`GET https://…`):
     // the mono tag leads, the essence follows (§S.4 · literal only,
-    // an interpolated method stays a stated gap).
+    // an interpolated method stays a stated gap). The tagged pair
+    // leaves the rest line — one voice, never an echo.
     if (bare === 'fetch' && split.essence.render === 'url') {
       const method = mediaDeclareOf(bare, text).method;
       if (method !== undefined) {
@@ -892,6 +893,10 @@ function paintBodyRest(
         tag.className = 'nc-ess-method';
         tag.textContent = method;
         el.appendChild(tag);
+        if (split.rest !== undefined) {
+          const rest = split.rest.split(' · ').filter((p) => !p.startsWith('method: ')).join(' · ');
+          split.rest = rest.length > 0 ? rest : undefined;
+        }
       }
     }
     const ess = document.createElement('span');
