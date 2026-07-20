@@ -19,6 +19,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { maybeAskCommunity } from './communityAsk';
+import { maybeCelebrateFirstGreen } from './firstGreen';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { STATUS_CHAR } from '../core/glyphRegistry';
@@ -302,9 +303,21 @@ export function runWorkflowLive(
       // The verdict banner — the same summary, visible WITHOUT opening the
       // feed (summarizeRun leads with its own icon; the banner owns it).
       dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`, cls);
+      // The peak (peak-end): the FIRST green verdict ever gets the one
+      // confetti — the mock demo counts, the sandbox IS the aha. On a
+      // fresh machine the auto-demo's close lands here, so the fall
+      // happens DURING the zero-gesture first run: the peak sits at
+      // the end, by construction.
+      const celebrated = maybeCelebrateFirstGreen(verdict, dagPanel);
       // The one earned ask, ever — fires on the FIRST completed run only
       // (communityAsk owns the flag; a dismissal counts as answered).
-      maybeAskCommunity(verdict);
+      // When the confetti flies, the toast waits out the fall (~1.5s)
+      // so the one celebration is never covered by a notification.
+      if (celebrated) {
+        setTimeout(() => maybeAskCommunity(verdict), 1500);
+      } else {
+        maybeAskCommunity(verdict);
+      }
     }
     // Only meaningful runs land (≥1 task event) — a spawn that died
     // before any task event has nothing worth resuming from.

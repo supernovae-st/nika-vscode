@@ -335,6 +335,9 @@
     // (assign-never-accumulate means the sim would erase its facts).
     const STILL = new URLSearchParams(location.search).has('still');
     const EMPTY = new URLSearchParams(location.search).has('empty');
+    // ?celebrate — replay the once-ever first-green confetti after the
+    // sim's verdict (the real one is host-gated to one shot per machine).
+    const CELEBRATE = new URLSearchParams(location.search).has('celebrate');
     // ?n=300 — the perf fixture: a generated layered DAG (deterministic,
     // no randomness: index math only) replaces the demo. Implies ?still.
     const PERF_N = Number(new URLSearchParams(location.search).get('n') || 0);
@@ -463,6 +466,8 @@
       post({ kind: 'run:state', running: false });
       post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
     }, 14500);
+
+    sim(() => { if (CELEBRATE) { post({ kind: 'run:celebrate' }); } }, 14900);
   </script>
 </body>
 </html>

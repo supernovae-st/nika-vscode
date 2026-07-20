@@ -113,6 +113,7 @@ import { parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
+import { initFirstGreen } from './features/firstGreen';
 import { flashStatus, informSoftly, initNotify } from './features/notify';
 import { latestTraceFor } from './core/tracePersist';
 import { explainWorkflow } from './core/explainWorkflow';
@@ -421,6 +422,7 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 export function activate(context: ExtensionContext): void {
   extContext = context;
   initCommunityAsk(context);
+  initFirstGreen(context);
   initNotify(context);
   outputChannel = window.createOutputChannel('Nika');
   context.subscriptions.push(outputChannel);
