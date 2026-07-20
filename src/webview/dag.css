@@ -376,6 +376,39 @@ body {
   cursor: pointer;
 }
 
+/* The under-stroke casing — a page-colored halo twinned beneath every
+ * wire (pair order in the DOM): where two wires cross, the upper one's
+ * casing punches a ~2px gap in the one below, so the crossing reads
+ * over/under at a glance (the yFiles/draw.io read — hop marks are
+ * dated). Decoration only: no pointer, and it never outranks state. */
+.edge-casing {
+  fill: none;
+  stroke: var(--nk-page);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* A dimmed wire may not cut the lit story — its casing recedes with it
+ * (the casing is the wire's immediate previous sibling by construction). */
+.edge-casing:has(+ .dag-edge.dimmed) {
+  opacity: 0.1;
+}
+
+/* Heatmap ghosts every wire to near-transparent ink — a full-strength
+ * halo under a ghost would read as cuts, so the casing sleeps there. */
+body.heatmap .edge-casing {
+  display: none;
+}
+
+@media (forced-colors: active) {
+  /* Highlight wires must stay continuous — no punched gaps. */
+  .edge-casing {
+    display: none;
+  }
+}
+
 .dag-edge.edge-data {
   stroke: var(--nk-data);
   stroke-width: 1.6;
