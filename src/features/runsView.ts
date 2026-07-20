@@ -18,6 +18,7 @@ import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
+import { groupRuns, unreadableSection, UNREADABLE_DESCRIPTION } from '../core/runsModel';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 
@@ -405,6 +406,30 @@ class ArtifactItem extends vscode.TreeItem {
   }
 }
 
+/** A section header — an answer, not a row: not clickable, no icon.
+ *  The stable id keeps expansion state across refreshes. */
+class RunsSectionItem extends vscode.TreeItem {
+  constructor(id: string, label: string, readonly items: vscode.TreeItem[]) {
+    super(label, vscode.TreeItemCollapsibleState.Expanded);
+    this.id = id;
+    this.contextValue = 'nikaRunsSection';
+  }
+}
+
+/** A journal the scan could not read — it still EXISTS: named, counted,
+ *  revealable. Same vocabulary as the unreadable-trace toast (one
+ *  voice); click reveals the file, never opens a phantom. */
+class UnreadableTraceItem extends vscode.TreeItem {
+  constructor(uri: vscode.Uri) {
+    super(path.basename(uri.fsPath), vscode.TreeItemCollapsibleState.None);
+    this.description = UNREADABLE_DESCRIPTION;
+    this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+    this.contextValue = 'nikaUnreadableTrace';
+    this.tooltip = `${uri.fsPath}\n\nThis journal would not read — ${UNREADABLE_DESCRIPTION}. Click reveals the file.`;
+    this.command = { command: 'revealFileInOS', title: 'Reveal in Finder', arguments: [uri] };
+  }
+}
+
 export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.emitter.event;
@@ -426,6 +451,9 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
   }
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
+    if (element instanceof RunsSectionItem) {
+      return element.items;
+    }
     if (element instanceof TraceItem) {
       return [...element.trace.model.tasks.values()].map(
         (t) => new TraceTaskItem(
@@ -445,14 +473,44 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }
     if (element) { return []; }
 
+    // The wait lives ON the view (annexe A): the Runs view's own
+    // progress bar while the scan folds journals — never a toast.
+    return vscode.window.withProgress(
+      { location: { viewId: 'nikaRuns' } },
+      () => this.scanRoot(),
+    );
+  }
+
+  private async scanRoot(): Promise<vscode.TreeItem[]> {
     const glob = vscode.workspace.getConfiguration('nika').get<string>(
       'traces.glob',
       '**/.nika/traces/*.ndjson',
     );
-    const files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 100);
+    let files: vscode.Uri[];
+    try {
+      files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 100);
+    } catch (e) {
+      // A broken SCAN must never wear the welcome (the refuter's angle:
+      // a rejected findFiles would render [] over real journals). One
+      // honest row instead — click retries.
+      this.onScan?.(0);
+      const broke = new vscode.TreeItem('the recorder scan broke');
+      broke.description = e instanceof Error ? e.message : String(e);
+      broke.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+      broke.command = { command: 'nika.refreshRuns', title: 'Refresh Runs' };
+      return [broke];
+    }
     const traces: TraceFile[] = [];
+    const unreadable: vscode.Uri[] = [];
     const seen = new Set<string>();
+    // One physical file = one row, by construction: overlapping/nested
+    // workspace roots can hand findFiles the SAME fsPath twice (the
+    // refuter's counterexample — the second pass rode the cache into a
+    // duplicated row; an unreadable twin would double its row too).
+    const scanned = new Set<string>();
     for (const uri of files) {
+      if (scanned.has(uri.fsPath)) { continue; }
+      scanned.add(uri.fsPath);
       try {
         const stat = fs.statSync(uri.fsPath);
         seen.add(uri.fsPath);
@@ -477,7 +535,10 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         this.parsed.set(uri.fsPath, entry);
         traces.push(entry);
       } catch {
-        // unreadable trace — skip, never fail the tree
+        // An unreadable journal COUNTS — it lands in the trailing
+        // Unreadable section instead of silently vanishing from the
+        // recorder (the catch used to swallow it whole).
+        unreadable.push(uri);
       }
     }
     // Deleted traces must not pin their parse forever.
@@ -486,14 +547,15 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }
     traces.sort((a, b) => b.mtimeMs - a.mtimeMs);
     this.onScan?.(traces.filter((t) => t.model.workflowStatus === 'paused').length);
-    if (traces.length === 0) {
-      const empty = new vscode.TreeItem('No traces yet — runs write .nika/traces/*.ndjson');
-      empty.iconPath = new vscode.ThemeIcon('info');
-      return [empty];
-    }
+    // The reconciled empty state: nothing readable AND nothing
+    // unreadable → [] — the viewsWelcome takes the stage (the old
+    // synthetic item shadowed it forever). Any unreadable journal
+    // keeps the tree: a welcome must never paper over real files.
+    if (traces.length === 0 && unreadable.length === 0) { return []; }
     const models = traces.map((t) => t.model);
     const now = Date.now();
-    return traces.map((t) => {
+    const itemOf = new Map<string, TraceItem>();
+    for (const t of traces) {
       const chips: string[] = [];
       if (t.model.workflowStatus === 'running') {
         if (t.model.liveUsd !== undefined) {
@@ -502,8 +564,34 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         const eta = measuredEtaMs(t.model, models, now);
         if (eta !== undefined) { chips.push(`${formatEta(eta)} left`); }
       }
-      return new TraceItem(t, chips);
-    });
+      itemOf.set(t.uri.fsPath, new TraceItem(t, chips));
+    }
+    // Sections are answers (Now · Today · Yesterday · Earlier); a lone
+    // calendar section dissolves and the list stays flat, newest first.
+    const sections = groupRuns(
+      traces.map((t) => ({
+        fsPath: t.uri.fsPath,
+        mtimeMs: t.mtimeMs,
+        status: t.model.workflowStatus,
+      })),
+      now,
+    );
+    const out: vscode.TreeItem[] = sections.length === 0
+      ? traces.map((t) => itemOf.get(t.uri.fsPath)!)
+      : sections.map((s) => new RunsSectionItem(
+        s.id,
+        s.label,
+        s.facts.map((f) => itemOf.get(f.fsPath)!),
+      ));
+    const tail = unreadableSection(unreadable.length);
+    if (tail) {
+      out.push(new RunsSectionItem(
+        tail.id,
+        tail.label,
+        unreadable.map((u) => new UnreadableTraceItem(u)),
+      ));
+    }
+    return out;
   }
 }
 

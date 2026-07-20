@@ -645,6 +645,30 @@
         "title": "Apply Fix",
         "icon": "$(wrench)",
         "category": "Nika"
+      },
+      {
+        "command": "nika.workflows.run",
+        "title": "Run Workflow",
+        "icon": "$(play)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.workflows.check",
+        "title": "Check Workflow",
+        "icon": "$(check)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.workflows.rerunTask",
+        "title": "Re-run Task (and its upstream)",
+        "icon": "$(debug-rerun)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.workflows.focusTask",
+        "title": "Focus Task in DAG",
+        "icon": "$(target)",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -1001,6 +1025,22 @@
         {
           "command": "nika.station.fix",
           "when": "false"
+        },
+        {
+          "command": "nika.workflows.run",
+          "when": "false"
+        },
+        {
+          "command": "nika.workflows.check",
+          "when": "false"
+        },
+        {
+          "command": "nika.workflows.rerunTask",
+          "when": "false"
+        },
+        {
+          "command": "nika.workflows.focusTask",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -1124,6 +1164,26 @@
           "command": "nika.runReport",
           "when": "view == nikaRuns && viewItem == nikaTrace",
           "group": "context"
+        },
+        {
+          "command": "nika.workflows.run",
+          "when": "view == nikaWorkflows && viewItem == workflowFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "nika.workflows.check",
+          "when": "view == nikaWorkflows && viewItem == workflowFile",
+          "group": "inline@2"
+        },
+        {
+          "command": "nika.workflows.rerunTask",
+          "when": "view == nikaWorkflows && viewItem == workflowTask",
+          "group": "inline@1"
+        },
+        {
+          "command": "nika.workflows.focusTask",
+          "when": "view == nikaWorkflows && viewItem == workflowTask",
+          "group": "inline@2"
         }
       ]
     },
