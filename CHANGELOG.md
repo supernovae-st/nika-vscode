@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Onboarding — the door opens
+
+- **The welcome home is reachable, and the sandbox is one gesture**: `Show Workflow DAG` with no workflow in focus opens the welcome home instead of a dead-end warning; the panel reveals immediately and breathes a `loading <name>…` ghost while the graph lands (no dead click on a slow first spawn); and `Nika: Try the Demo Workflow` writes a runnable four-wave `hello-canvas.nika.yaml` (mock/echo · zero key · zero network) beside the canvas — press ▶ to run it, offline.
+
 ### The scale speaks — motion tokens applied
 
 - **Motion v3 consumed**: verb-tinted prose now reads its APCA ≥Lc60 text ramp (`--nk-verb-<v>-text` · the running sub-line via `--dv-hue-text`), the legacy `--nk-dur` aliases the named duration scale (every consumer remapped to `--nk-dur-base`), easing splits into `--nk-ease-effects` (no overshoot) vs `--nk-ease-spatial` (spring for arrivals), and the verb cmdk palette gains a `@starting-style` + `allow-discrete` soft entrance — reduced-motion collapses the overshoot and makes entrances instant.

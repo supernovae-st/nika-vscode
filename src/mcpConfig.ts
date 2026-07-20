@@ -137,7 +137,7 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
     '- Interpolation: ${{ vars.x }} · ${{ env.KEY }} · ${{ with.alias }} — `tasks.*` ONLY inside with:/after:/on_error.recover (NIKA-VAR-021 elsewhere)',
     '- The binding IS the edge: with: { alias: ${{ tasks.id.output }} } then the body reads ${{ with.alias }}',
     '- Order without data: after: { task_id: succeeded } (predicates: succeeded | failed | skipped | terminal) — depends_on is dead (NIKA-PARSE-024 · check --fix migrates)',
-    '- Model: combined form `model: provider/name` (e.g. anthropic/claude-sonnet-4-6 · mock/echo for tests)',
+    '- Model: combined form `model: provider/name` (e.g. ollama/llama3.2 · mock/echo for tests)',
     '- timeout is a Go-duration string, quoted: timeout: "5m"',
     '- Secrets via ${{ env.KEY }} — NEVER literal keys in YAML',
     '- output: named jq bindings · outputs: = the workflow return value',

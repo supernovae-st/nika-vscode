@@ -117,6 +117,7 @@
         <circle cx="592" cy="192" r="8" class="esg-agent" />
       </g>
     </svg>
+    <div id="es-loading" hidden role="status" aria-live="polite"></div>
     <div class="es-card">
       <div class="es-hero"><div class="es-word">Nika</div>
       <div class="es-tag">The workflow canvas — audited before a token is spent.</div></div>
@@ -133,7 +134,8 @@
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
-        <button id="es-new" class="es-button">＋ New workflow</button>
+        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo — press ▶ to watch it light up">▶ Try the demo — offline, zero keys</button>
+        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>

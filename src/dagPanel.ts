@@ -66,6 +66,10 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   // Dismiss the scrubber (a fresh graph load or a live run supersedes it).
   | { kind: 'dag:replayEnd' }
+  // The skeleton (#6): a graph is loading — the welcome ghost breathes
+  // under « loading <name>… » until dag:load clears it. Reveal-then-fill,
+  // so a slow first spawn never shows a dead click.
+  | { kind: 'dag:loading'; name: string }
   // The welcome (empty canvas): recent workflows for the resume list.
   | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
@@ -525,6 +529,9 @@ export class DagPanel implements vscode.Disposable {
   public loadGraph(graph: DagGraph): void {
     this.currentGraph = graph;
     this.applyTitle();
+    // The graph arrived — the skeleton is spent (dag:load clears the ghost
+    // webview-side; keep the host-side replay guard in step).
+    this.pendingLoading = undefined;
     // A new graph orphans any queued timeline (the webview side also
     // deactivates its transport on dag:load) AND any queued artifact
     // delta — the fresh graph carries its own recorded artifacts.
@@ -620,6 +627,18 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'welcome:data', recent, binaryMissing });
   }
 
+  /** The name being loaded — queued like pendingFocus: a freshly created
+   *  panel loses a pre-ready dag:loading, so dag:ready replays it while the
+   *  graph is still on its way (cleared the moment loadGraph lands). */
+  private pendingLoading: string | undefined;
+
+  /** The skeleton (#6): reveal-then-fill — name the graph on its way so a
+   *  slow first spawn breathes the welcome ghost, never a dead click. */
+  public loading(name: string): void {
+    this.pendingLoading = name;
+    this.postMessage({ kind: 'dag:loading', name });
+  }
+
   /** Fit the view to show all nodes */
   public fitToView(): void {
     this.postMessage({ kind: 'dag:fitToView' });
@@ -661,6 +680,7 @@ export class DagPanel implements vscode.Disposable {
   /** Clear the DAG display */
   public clear(): void {
     this.currentGraph = undefined;
+    this.pendingLoading = undefined;
     this.postMessage({ kind: 'dag:clear' });
   }
 
@@ -700,6 +720,11 @@ export class DagPanel implements vscode.Disposable {
         } else {
           // Empty canvas → the welcome wants its resume list.
           this.onWelcomeReady?.();
+          // The skeleton (#6) — a pre-ready dag:loading was lost; replay it
+          // so the ghost breathes while the graph is still on its way.
+          if (this.pendingLoading) {
+            this.postMessage({ kind: 'dag:loading', name: this.pendingLoading });
+          }
         }
         if (this.pendingFocus) {
           this.postMessage({ kind: 'dag:focus', taskId: this.pendingFocus });
@@ -1003,6 +1028,7 @@ export class DagPanel implements vscode.Disposable {
         <circle cx="592" cy="192" r="8" class="esg-agent" />
       </g>
     </svg>
+    <div id="es-loading" hidden role="status" aria-live="polite"></div>
     <div class="es-card">
       <div class="es-hero">
         <img class="es-mark logo-dark" src="${logoDark}" alt="" width="44" height="44">
@@ -1024,7 +1050,8 @@ export class DagPanel implements vscode.Disposable {
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
-        <button id="es-new" class="es-button">＋ New workflow</button>
+        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo — press ▶ to watch it light up">▶ Try the demo — offline, zero keys</button>
+        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>

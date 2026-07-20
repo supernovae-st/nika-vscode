@@ -3,9 +3,10 @@
 //
 // The law: every journey state has a welcome with a discriminated
 // cause; the no-workspace and folder-without-workflows states are told
-// apart by `workspaceFolderCount`; the Create-Workflow state carries
-// exactly ONE button (a command link alone on its line); no welcome
-// carries color emoji (the glyph registry V0.e — DESIGN.md §2b law 1).
+// apart by `workspaceFolderCount`; the folder-without-workflows state
+// carries exactly ONE primary button (the demo · a command link alone on
+// its line · value before ceremony); no welcome carries color emoji (the
+// glyph registry V0.e — DESIGN.md §2b law 1).
 
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
@@ -47,14 +48,18 @@ describe('viewsWelcome — the state matrix', () => {
     expect(buttons[0]).toContain('workbench.action.files.openFolder');
   });
 
-  it('folder without workflows: names the cause, Create Workflow is THE one button', () => {
+  it('folder without workflows: names the cause, Try the demo is THE one button', () => {
     const entry = forView('nikaWorkflows')
       .find((w) => w.when === "nika.journey == 'empty' && workspaceFolderCount != 0");
     expect(entry).toBeDefined();
     expect(entry?.contents).toContain('No workflows here yet');
     const buttons = buttonLines(entry?.contents ?? '');
+    // Still ONE primary button — value before ceremony (Superhuman/Duolingo):
+    // the demo is the aha; Create Workflow stays reachable as a secondary
+    // inline link (not alone on its line → not a button).
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]).toContain('[Create Workflow](command:nika.newWorkflow)');
+    expect(buttons[0]).toContain('[▶ Try the demo — offline, zero keys](command:nika.tryDemo)');
+    expect(entry?.contents).toContain('(command:nika.newWorkflow)');
   });
 
   it('engine absent: install button + sovereign install docs (brew · source)', () => {
