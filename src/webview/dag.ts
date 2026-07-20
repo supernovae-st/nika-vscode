@@ -23,7 +23,7 @@ import { easeCubicOut } from 'd3-ease';
 import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
-import { resolveCardIdentity, splitEssence, mediaDeclareOf, CATEGORY_GLYPH as IDENTITY_GLYPHS, type CardIdentity } from '../core/cardIdentity';
+import { resolveCardIdentity, splitEssence, mediaDeclareOf, waitDeclareOf, CATEGORY_GLYPH as IDENTITY_GLYPHS, type CardIdentity } from '../core/cardIdentity';
 import { STATUS_CHAR } from '../core/glyphRegistry';
 import type { AgentFacts } from '../core/traceFold';
 import { convexHull, deriveAuditFacts, type PermitDomain } from '../core/auditLens';
@@ -239,10 +239,14 @@ class VerbCmdk {
       } else {
         row.className = 'cmdk-row cmdk-tool verb-invoke';
         // The category's house icon — the binary's description as the
-        // teaching line (curated fallback offline).
+        // teaching line (curated fallback offline). The icon wears its
+        // family tint (§S.3 site 1 — same class the mechanism line
+        // carries; the text beside it never tints).
         const catSvg = makeCategoryGlyph(entry.cat, 13);
-        if (catSvg) { glyph.appendChild(catSvg); }
-        else { glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆'; }
+        if (catSvg) {
+          catSvg.classList.add(`nc-cat-${entry.cat}`);
+          glyph.appendChild(catSvg);
+        } else { glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆'; }
         name.textContent = entry.bare;
         blurb.textContent = toolDescOf(entry.bare) ?? `invoke · nika:${entry.bare}`;
         row.title = `invoke · nika:${entry.bare}${toolDescOf(entry.bare) ? ` — ${toolDescOf(entry.bare)}` : ''}`;
@@ -878,6 +882,23 @@ function paintBodyRest(
   const bare = node.tool?.startsWith('nika:') === true ? node.tool.slice('nika:'.length) : undefined;
   const split = kind === 'args' ? splitEssence(bare, text) : {};
   if (split.essence !== undefined) {
+    // fetch — the declared METHOD tags the url (`GET https://…`):
+    // the mono tag leads, the essence follows (§S.4 · literal only,
+    // an interpolated method stays a stated gap). The tagged pair
+    // leaves the rest line — one voice, never an echo.
+    if (bare === 'fetch' && split.essence.render === 'url') {
+      const method = mediaDeclareOf(bare, text).method;
+      if (method !== undefined) {
+        const tag = document.createElement('span');
+        tag.className = 'nc-ess-method';
+        tag.textContent = method;
+        el.appendChild(tag);
+        if (split.rest !== undefined) {
+          const rest = split.rest.split(' · ').filter((p) => !p.startsWith('method: ')).join(' · ');
+          split.rest = rest.length > 0 ? rest : undefined;
+        }
+      }
+    }
     const ess = document.createElement('span');
     ess.className = `nc-essence nc-ess-${split.essence.render}`;
     ess.textContent = split.essence.render === 'condition'
@@ -4002,22 +4023,39 @@ class DagRenderer {
     // braille strip in the head's status slot is THE live indicator now.)
 
     // Ports — the visible connect affordance (drag out-port → card).
-    // The IN jack speaks the port grammar: it wears the data hue when
-    // named wires actually plug in (Blender's socket read — the shape
-    // teaches the semantics already in the schema), and its title says
-    // exactly what arrives.
+    // The jacks speak the port grammar (W11.4 · typed hued): the IN
+    // collar wears the hue of the FLOW that arrives (a media producer
+    // wires the generation tint · named data wires the data hue —
+    // Blender's socket read, the shape teaches the schema), the OUT
+    // collar the nature of what THIS card produces; everything else
+    // keeps the muted machined collar. Titles name the type.
+    const mediaOf = (id: string): boolean => {
+      const p = this.nodeMap.get(id);
+      if (!p) { return false; }
+      const pre = resolveCardIdentity(p, toolCatsMap).preview;
+      return pre === 'image' || pre === 'audio';
+    };
+    const inFlow = (d: DagNode): '' | ' nc-port-media' | ' nc-port-data' => {
+      if ((d.bindingsIn?.length ?? 0) === 0) { return ''; }
+      return d.bindingsIn!.some((b) => mediaOf(b.from)) ? ' nc-port-media' : ' nc-port-data';
+    };
+    const outFlow = (d: DagNode): '' | ' nc-port-media' | ' nc-port-data' => {
+      const identity = resolveCardIdentity(d, toolCatsMap);
+      if (identity.preview === 'image' || identity.preview === 'audio') { return ' nc-port-media'; }
+      return identity.category === 'data' ? ' nc-port-data' : '';
+    };
     const portsIn = enter
       .append('circle')
-      .attr('class', (d) =>
-        `nc-port nc-port-in${(d.bindingsIn?.length ?? 0) > 0 ? ' nc-port-data' : ''}`)
+      .attr('class', (d) => `nc-port nc-port-in${inFlow(d)}`)
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', 0)
       .attr('r', 3.5);
     portsIn.append('title').text((d) => {
       const wires = d.bindingsIn?.length ?? 0;
       const deps = d.producers.length;
+      const flow = inFlow(d) === ' nc-port-media' ? 'media ' : '';
       if (wires > 0) {
-        return `${wires} named wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer — the card's io row)`;
+        return `${wires} named ${flow}wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer — the card's io row)`;
       }
       if (deps > 0) {
         return `${deps} dependenc${deps === 1 ? 'y' : 'ies'} arrive${deps === 1 ? 's' : ''} here (ordering only)`;
@@ -4026,7 +4064,7 @@ class DagRenderer {
     });
     const portsOut = enter
       .append('circle')
-      .attr('class', 'nc-port nc-port-out')
+      .attr('class', (d) => `nc-port nc-port-out${outFlow(d)}`)
       .attr('cx', NODE_WIDTH / 2)
       .attr('cy', (d) => nodeHeightOf(d))
       .attr('r', 3.5)
@@ -4035,8 +4073,11 @@ class DagRenderer {
         event.stopPropagation();
         this.startConnect(d.id);
       });
-    portsOut.append('title')
-      .text('drag to connect — the drop target gains an after: edge on this task (⌥drag from the card works too)');
+    portsOut.append('title').text((d) => {
+      const flow = outFlow(d) === ' nc-port-media' ? 'this task produces media — '
+        : outFlow(d) === ' nc-port-data' ? 'this task produces data — ' : '';
+      return `${flow}drag to connect — the drop target gains an after: edge on this task (⌥drag from the card works too)`;
+    });
 
     // Mousedown on a card: ⌥ starts a dependency edge (the n8n gesture);
     // plain primary button arms a CARD DRAG (threshold-gated so clicks
@@ -4165,7 +4206,20 @@ class DagRenderer {
     sub.className = 'nc-sub';
     const subK = document.createElement('span');
     subK.className = 'nc-sub-k';
-    subK.textContent = this.subMechanism(node);
+    // A nika builtin's mechanism line carries the category's HOUSE icon
+    // (svg · tinted per §S.3 site 1 — the class also feeds the network
+    // pulse, which the W11.3 chip removal had orphaned); every other
+    // mechanism stays the plain text voice.
+    const bare = node.tool?.startsWith('nika:') === true
+      ? node.tool.slice('nika:'.length) : undefined;
+    const cat = bare !== undefined ? toolCatOf(bare) : undefined;
+    const catSvg = cat !== undefined ? makeCategoryGlyph(cat, 11) : null;
+    if (node.tool !== undefined && cat !== undefined && catSvg !== null) {
+      catSvg.classList.add('nc-chip-icon', `nc-cat-${cat}`);
+      subK.append(`${node.verb} · `, catSvg, node.tool);
+    } else {
+      subK.textContent = this.subMechanism(node);
+    }
     const subV = document.createElement('span');
     subV.className = 'nc-sub-v';
     subV.textContent = this.subValue(node);
@@ -5216,17 +5270,23 @@ class DagRenderer {
     panel.appendChild(title);
     interface Act { label: string; kbd?: string; run: () => void }
     const uri = this.currentGraph?.workflowUri;
-    const acts: Act[] = [
+    // Grouped clean (the context-menu read · W11.5): the RUN family
+    // first — run from here, its what-if twin, the failure fork — a
+    // separator, then the story/editing verbs. One registry, sections.
+    const runActs: Act[] = [
       { label: '▶ Run from here', run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }) },
       { label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+    ];
+    if (node.status === 'failed') {
+      runActs.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+    }
+    const acts: Act[] = [
+      ...runActs,
       { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
       { label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
       { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
       { label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
-    if (node.status === 'failed') {
-      acts.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
-    }
     if (node.tool?.startsWith('workflow:') === true) {
       acts.push({ label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
     }
@@ -5246,6 +5306,12 @@ class DagRenderer {
       row.addEventListener('click', () => { close(); a.run(); });
       row.addEventListener('mouseenter', () => { setActive(i); });
       panel.appendChild(row);
+      if (i === runActs.length - 1) {
+        const sep = document.createElement('div');
+        sep.className = 'nk-act-sep';
+        sep.setAttribute('role', 'separator');
+        panel.appendChild(sep);
+      }
       return row;
     });
     const setActive = (i: number): void => {
@@ -5266,6 +5332,133 @@ class DagRenderer {
     };
     window.addEventListener('keydown', onKey, true);
     document.body.appendChild(panel);
+    return true;
+  }
+
+  /** The split Run menu (W11.5 · the `│ ⌄` beside ▶ Run): the run
+   *  vocabulary in ONE grouped menu — run · run mock · what-if ⚡ ·
+   *  fork ⑂ — every row with its chord printed, the unavailable ones
+   *  greyed with their reason (the context-menu read). Same commands
+   *  the toolbar/keyboard already run; renders instantly (keyboard-
+   *  adjacent · the Kowalski law). */
+  openRunMenu(anchor: HTMLElement, requestRunFn: (preview: boolean) => void): boolean {
+    const existing = document.getElementById('nk-run-menu');
+    if (existing) { existing.remove(); return true; } // ⌄ toggles
+    const running = document.body.classList.contains('running');
+    const focusedId = this.focusedId;
+    const focused = focusedId !== null ? this.nodeMap.get(focusedId) : undefined;
+    const menu = document.createElement('div');
+    menu.id = 'nk-run-menu';
+    menu.setAttribute('role', 'menu');
+    interface Item { label: string; kbd?: string; off?: string; sep?: boolean; run?: () => void }
+    const items: Item[] = [
+      {
+        label: '▶ Run', kbd: 'R',
+        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        run: () => requestRunFn(false),
+      },
+      {
+        label: '▷ Run mock — zero keys, zero network', kbd: 'M',
+        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        run: () => requestRunFn(true),
+      },
+      { label: '', sep: true },
+      {
+        label: '⚡ What if it fails', kbd: 'X',
+        ...(focused === undefined ? { off: 'focus a card first (Tab)' } : {}),
+        run: () => { if (focusedId !== null) { this.toggleSimulate(focusedId); } },
+      },
+      {
+        label: '⑂ Fork from the failure',
+        ...(focused === undefined ? { off: 'focus a card first (Tab)' }
+          : focused.status !== 'failed' ? { off: 'the focused card has not failed' } : {}),
+        run: () => {
+          if (focused !== undefined) {
+            vscode.postMessage({
+              kind: 'dag:forkFromTask', taskId: focused.id,
+              workflowUri: this.currentGraph?.workflowUri,
+            });
+          }
+        },
+      },
+    ];
+    const rows: Array<{ el: HTMLElement; item: Item }> = [];
+    for (const item of items) {
+      if (item.sep === true) {
+        const sep = document.createElement('div');
+        sep.className = 'nk-act-sep';
+        sep.setAttribute('role', 'separator');
+        menu.appendChild(sep);
+        continue;
+      }
+      const row = document.createElement('button');
+      row.className = `nk-act-row${item.off !== undefined ? ' nk-act-off' : ''}`;
+      row.setAttribute('role', 'menuitem');
+      if (item.off !== undefined) {
+        row.setAttribute('aria-disabled', 'true');
+        row.title = item.off;
+      }
+      const label = document.createElement('span');
+      label.textContent = item.label;
+      row.appendChild(label);
+      if (item.kbd !== undefined) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = item.kbd;
+        row.appendChild(kbd);
+      }
+      row.addEventListener('click', () => {
+        if (item.off !== undefined) { return; }
+        close();
+        item.run?.();
+      });
+      row.addEventListener('mouseenter', () => {
+        const i = rows.findIndex((r) => r.el === row);
+        if (i !== -1 && item.off === undefined) { setActive(i); }
+      });
+      menu.appendChild(row);
+      rows.push({ el: row, item });
+    }
+    let active = rows.findIndex((r) => r.item.off === undefined);
+    if (active === -1) { active = 0; }
+    rows[active]?.el.classList.add('active');
+    const setActive = (i: number): void => {
+      rows[active]?.el.classList.remove('active');
+      active = ((i % rows.length) + rows.length) % rows.length;
+      rows[active]?.el.classList.add('active');
+    };
+    const step = (dir: 1 | -1): void => {
+      // Arrows skip the greyed rows (they stay readable, never land).
+      for (let n = 1; n <= rows.length; n++) {
+        const i = ((active + dir * n) % rows.length + rows.length) % rows.length;
+        if (rows[i].item.off === undefined) { setActive(i); return; }
+      }
+    };
+    const close = (): void => {
+      menu.remove();
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('mousedown', onAway, true);
+    };
+    const onAway = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node) && e.target !== anchor) { close(); }
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); step(1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); step(-1); return; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const item = rows[active]?.item;
+        if (item !== undefined && item.off === undefined) { close(); item.run?.(); }
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('mousedown', onAway, true);
+    document.body.appendChild(menu);
+    // Anchored ABOVE the run cluster (the omnibar docks at the bottom).
+    const r = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, r.left)}px`;
+    menu.style.bottom = `${Math.max(8, window.innerHeight - r.top + 6)}px`;
     return true;
   }
 
@@ -5522,8 +5715,16 @@ class DagRenderer {
     labels
       .enter()
       .append('text')
-      .attr('class', (d) =>
-        `edge-label${dagEdgeMap.get(d.id)?.kind === 'control' ? ' edge-label-ctl' : ''}`)
+      .attr('class', (d) => {
+        const meta = dagEdgeMap.get(d.id);
+        if (meta?.kind !== 'control') { return 'edge-label'; }
+        // The predicate TINT (§S.4): the outcome class rides its label
+        // hue — the raw spelling becomes the class (closed-set shaped,
+        // so the R5 succeeded→success flip lands with zero hunt here).
+        const pred = meta.predicate ?? '';
+        const predCls = /^[a-z]{1,16}$/.test(pred) ? ` edge-label-pred-${pred}` : '';
+        return `edge-label edge-label-ctl${predCls}`;
+      })
       .merge(labels)
       .attr('x', (d) => this.edgeLabelPoint(d)[0])
       .attr('y', (d) => this.edgeLabelPoint(d)[1] - 5)
@@ -6242,6 +6443,18 @@ class DagRenderer {
       const started = this.liveStart.get(node.id);
       const prefix = node.status === 'retrying' ? '↻ ' : '';
       if (started !== undefined) {
+        // nika:wait with a DECLARED duration counts against it —
+        // `12s / 30s`, the BuildKit time-as-spinner read (the tick IS
+        // the motion · reduced-motion clean). Undeclared/interpolated
+        // waits keep the plain observed clock — never an invented
+        // denominator.
+        if (node.tool === 'nika:wait') {
+          const declared = waitDeclareOf(node.argsPreview);
+          if (declared !== undefined) {
+            const s = Math.floor((performance.now() - started) / 1000);
+            return `${prefix}${s}s / ${declared.label}`;
+          }
+        }
         // The ~$ curve while it moves (contract §3.3) — approx-marked:
         // ~$ is in-flight, plain $ stays the recorded verdict.
         const spend = node.liveUsd !== undefined ? ` · ~${usd(node.liveUsd)}` : '';
@@ -7401,6 +7614,10 @@ function requestRun(preview: boolean, resume = false): void {
 document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
 document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
 document.getElementById('btn-run-resume')?.addEventListener('click', () => requestRun(false, true));
+// The split ⌄ (W11.5) — the run vocabulary in one grouped menu.
+document.getElementById('btn-run-more')?.addEventListener('click', (e) => {
+  renderer.openRunMenu(e.currentTarget as HTMLElement, (preview) => requestRun(preview));
+});
 document.getElementById('btn-stop')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:cancelRun' });
 });

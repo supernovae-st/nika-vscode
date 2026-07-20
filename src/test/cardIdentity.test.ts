@@ -8,24 +8,28 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
-import { splitEssence, resolveCardIdentity, mediaDeclareOf, CATEGORY_GLYPH, CHART_SHAPES, type PreviewKind } from '../core/cardIdentity';
+import { splitEssence, resolveCardIdentity, mediaDeclareOf, waitDeclareOf, BUILTIN_ESSENCE, CATEGORY_GLYPH, CHART_SHAPES, type PreviewKind } from '../core/cardIdentity';
+import { FALLBACK_TOOL_BLURBS } from '../core/verbPalette';
 
-// The 28 builtins with the ENGINE's own categories (`catalog --tools`
-// truth — the D1/D2 drifts lived exactly here: a test seeded with
-// invented names like `tts`/`append` proves nothing about the catalog).
-const CATALOG: Record<string, { cat: string }> = {
-  log: { cat: 'core' }, emit: { cat: 'core' }, assert: { cat: 'core' },
-  prompt: { cat: 'core' }, done: { cat: 'core' }, wait: { cat: 'core' },
-  read: { cat: 'file' }, write: { cat: 'file' }, edit: { cat: 'file' },
-  glob: { cat: 'file' }, grep: { cat: 'file' },
-  jq: { cat: 'data' }, json_diff: { cat: 'data' }, validate: { cat: 'data' },
-  json_merge_patch: { cat: 'data' }, convert: { cat: 'data' }, uuid: { cat: 'data' },
-  date: { cat: 'data' }, hash: { cat: 'data' }, decide: { cat: 'data' },
-  fetch: { cat: 'network' }, notify: { cat: 'network' },
-  compose: { cat: 'introspection' }, inspect: { cat: 'introspection' },
-  chart: { cat: 'media' }, tts_generate: { cat: 'media' },
-  image_generate: { cat: 'media' }, image_fx: { cat: 'media' },
-};
+// The REAL catalog, pinned: `nika catalog --tools --json` (engine
+// 0.105.0) verbatim in the fixture. The D1/D2/D3 drifts all lived in
+// hand-seeded tables (invented names like `tts`/`append`, invented
+// soul args like `jq.query`) — a test seeded with inventions proves
+// nothing about the catalog, so the fixture IS the table now.
+interface CatalogTool { name: string; category: string; args: string[] }
+const FIXTURE: { tools: CatalogTool[] } = JSON.parse(fs.readFileSync(
+  fileURLToPath(new URL('./fixtures/catalog-tools.json', import.meta.url)), 'utf-8'));
+
+/** name (`nika:jq`) → bare (`jq`). */
+const bareOf = (name: string): string => name.replace(/^nika:/, '');
+
+/** The resolver-shaped map (bare → { cat }), fixture-derived. */
+const CATALOG: Record<string, { cat: string }> = Object.fromEntries(
+  FIXTURE.tools.map((t) => [bareOf(t.name), { cat: t.category }]));
+
+/** bare → its REAL args (the soul-arg truth the essences pin against). */
+const CATALOG_ARGS: Record<string, readonly string[]> = Object.fromEntries(
+  FIXTURE.tools.map((t) => [bareOf(t.name), t.args]));
 
 const CATS = CATALOG;
 
@@ -114,8 +118,8 @@ describe('resolveCardIdentity · composition (spec 14 — invoke workflow:)', ()
 
 describe('splitEssence — the deep-card law (the essence leads, the rest rests)', () => {
   it('finds the soul arg and splits the preview around it', () => {
-    const s = splitEssence('jq', 'input: rows · query: .[] | select(.n > 3)');
-    expect(s.essence).toEqual({ key: 'query', value: '.[] | select(.n > 3)', render: 'code' });
+    const s = splitEssence('jq', 'input: rows · expression: .[] | select(.n > 3)');
+    expect(s.essence).toEqual({ key: 'expression', value: '.[] | select(.n > 3)', render: 'code' });
     expect(s.rest).toBe('input: rows');
   });
 
@@ -132,9 +136,101 @@ describe('splitEssence — the deep-card law (the essence leads, the rest rests)
   });
 
   it('the essence alone leaves no rest', () => {
-    const s = splitEssence('emit', 'event: task_done');
+    const s = splitEssence('emit', 'event_type: task_done');
     expect(s.essence?.render).toBe('event');
     expect(s.rest).toBeUndefined();
+  });
+
+  it('convert composes its soul from BOTH ends (from → to · code voice)', () => {
+    const s = splitEssence('convert', 'from: json · to: csv · has_header: true');
+    expect(s.essence).toEqual({ key: 'to', value: 'json → csv', render: 'code' });
+    expect(s.rest).toBe('has_header: true');
+  });
+
+  it('convert with one end silent falls back to the plain `to` lookup', () => {
+    const s = splitEssence('convert', 'to: csv');
+    expect(s.essence).toEqual({ key: 'to', value: 'csv', render: 'code' });
+    expect(s.rest).toBeUndefined();
+  });
+
+  it('validate states its constant soul (⊨ schema) and keeps every arg readable', () => {
+    const s = splitEssence('validate', 'format: json · schema: ./person.schema.json');
+    expect(s.essence).toEqual({ key: 'schema', value: 'schema', render: 'condition' });
+    expect(s.rest).toBe('format: json · schema: ./person.schema.json');
+  });
+});
+
+describe('the essence register vs the REAL catalog — D3 can never reproduce', () => {
+  it('every essence builtin exists in the catalog (no phantom entries)', () => {
+    for (const builtin of BUILTIN_ESSENCE.keys()) {
+      expect(CATALOG_ARGS[builtin], `essence for unknown builtin: ${builtin}`).toBeDefined();
+    }
+  });
+
+  it('every soul arg (and every composer-consumed arg) is a REAL arg of its builtin', () => {
+    for (const [builtin, spec] of BUILTIN_ESSENCE) {
+      const args = CATALOG_ARGS[builtin] ?? [];
+      expect(args, `${builtin}.${spec.arg} is not a catalog arg`).toContain(spec.arg);
+      for (const used of spec.uses ?? []) {
+        expect(args, `${builtin} composer uses phantom arg: ${used}`).toContain(used);
+      }
+    }
+  });
+
+  it('the five D3 souls read the catalog words', () => {
+    expect(BUILTIN_ESSENCE.get('jq')?.arg).toBe('expression');
+    expect(BUILTIN_ESSENCE.get('emit')?.arg).toBe('event_type');
+    expect(BUILTIN_ESSENCE.get('wait')?.arg).toBe('duration');
+    expect(BUILTIN_ESSENCE.get('hash')?.arg).toBe('content');
+    // chart carries NO essence — its identity is the declared frame
+    // (the old `title` soul never existed: data·semantics·chart·out).
+    expect(BUILTIN_ESSENCE.get('chart')).toBeUndefined();
+  });
+
+  it('the D2-phantom essences died with the writers (append/copy/move)', () => {
+    for (const phantom of ['append', 'copy', 'move', 'archive']) {
+      expect(BUILTIN_ESSENCE.get(phantom), `phantom essence: ${phantom}`).toBeUndefined();
+    }
+  });
+
+  it('the eight new souls speak (edit·grep·uuid·date·prompt·notify·inspect·validate)', () => {
+    expect(BUILTIN_ESSENCE.get('edit')).toMatchObject({ arg: 'path', render: 'path' });
+    expect(BUILTIN_ESSENCE.get('grep')).toMatchObject({ arg: 'pattern', render: 'code' });
+    expect(BUILTIN_ESSENCE.get('uuid')).toMatchObject({ arg: 'version', render: 'text' });
+    expect(BUILTIN_ESSENCE.get('date')).toMatchObject({ arg: 'op', render: 'code' });
+    expect(BUILTIN_ESSENCE.get('prompt')).toMatchObject({ arg: 'message', render: 'text' });
+    expect(BUILTIN_ESSENCE.get('notify')).toMatchObject({ arg: 'target', render: 'text' });
+    expect(BUILTIN_ESSENCE.get('inspect')).toMatchObject({ arg: 'view', render: 'code' });
+    expect(BUILTIN_ESSENCE.get('validate')).toMatchObject({ arg: 'schema', render: 'condition' });
+  });
+
+  it('the palette blurbs cover the catalog exactly (and compose tells the truth)', () => {
+    expect(Object.keys(FALLBACK_TOOL_BLURBS).sort())
+      .toEqual(Object.keys(CATALOG).sort());
+    // The engine's own word: compose statically CHECKS — never executes.
+    expect(FALLBACK_TOOL_BLURBS.compose).not.toMatch(/run a sub-workflow/);
+    expect(FALLBACK_TOOL_BLURBS.compose).toMatch(/check/);
+  });
+});
+
+describe('waitDeclareOf — the declared countdown denominator', () => {
+  it('parses the literal duration forms (ms · s · m · h)', () => {
+    expect(waitDeclareOf('duration: 30s')).toEqual({ seconds: 30, label: '30s' });
+    expect(waitDeclareOf('duration: 2m')).toEqual({ seconds: 120, label: '2m' });
+    expect(waitDeclareOf('duration: 500ms')).toEqual({ seconds: 0.5, label: '500ms' });
+    expect(waitDeclareOf('duration: 1h · timeout: 2h')).toEqual({ seconds: 3600, label: '1h' });
+  });
+
+  it('an interpolated or absent duration is a stated gap — no denominator', () => {
+    expect(waitDeclareOf('duration: ${{ vars.pause }}')).toBeUndefined();
+    expect(waitDeclareOf('until: 2026-08-01T00:00:00Z')).toBeUndefined();
+    expect(waitDeclareOf(undefined)).toBeUndefined();
+  });
+
+  it('refuses the words the engine would refuse (no unit · zero · prose)', () => {
+    expect(waitDeclareOf('duration: 30')).toBeUndefined();
+    expect(waitDeclareOf('duration: 0s')).toBeUndefined();
+    expect(waitDeclareOf('duration: a while')).toBeUndefined();
   });
 });
 

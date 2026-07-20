@@ -93,6 +93,19 @@ body {
   --nk-st-retrying: var(--vscode-charts-yellow, #cca700);
   --nk-st-muted: var(--vscode-editorLineNumber-foreground, #858585);
   --nk-critical: var(--vscode-charts-yellow, #cca700);
+  /* The 6 builtin-category tints (§S.3) — aliases and mixes ONLY, zero
+   * new hex: each category borrows a voice the seam already speaks
+   * (file rides the path-green · network the accent · introspection
+   * the audit amber · media sits between inference and agency — the
+   * generation hue). THREE sites consume them (the tool chip's cat
+   * icon · the declared-frame borders · the network pulse) — never a
+   * card border, head, tile or fill (status and verb own those). */
+  --nk-cat-core: var(--nk-st-muted);
+  --nk-cat-file: var(--nk-st-success);
+  --nk-cat-data: var(--nk-data);
+  --nk-cat-network: var(--nk-accent);
+  --nk-cat-introspection: var(--nk-critical);
+  --nk-cat-media: color-mix(in srgb, var(--nk-verb-infer-canon) 45%, var(--nk-verb-agent-canon) 55%);
   /* The 4 verb hues — SEMANTIC canon (nika.sh tokens.css), same in both
    * skins: a verb's color is language identity, not theme decoration.
    * tokens v3 · canon + alias: the -canon name holds the hex ONCE and is
@@ -122,6 +135,21 @@ body {
   --nk-shadow-2: 0 6px 24px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.22);
   /* Ultra-subtle grain — texture without noise-as-decoration. */
   --nk-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+}
+
+/* A custom property substitutes its var()s where it is DECLARED — a
+ * :root-only alias would freeze the editor fallbacks BEFORE a skin
+ * retunes its source (probed: the nika accent never reached the
+ * network tint). Declared again on the skinned body, each cat tint
+ * re-resolves against the skin's own voices (phosphor's green accent
+ * included). Same six values as :root — the belt holds both. */
+body[data-nk-theme] {
+  --nk-cat-core: var(--nk-st-muted);
+  --nk-cat-file: var(--nk-st-success);
+  --nk-cat-data: var(--nk-data);
+  --nk-cat-network: var(--nk-accent);
+  --nk-cat-introspection: var(--nk-critical);
+  --nk-cat-media: color-mix(in srgb, var(--nk-verb-infer-canon) 45%, var(--nk-verb-agent-canon) 55%);
 }
 
 /* Per-node verb hue — every verb-tinted surface reads ONE custom property.
@@ -1622,6 +1650,21 @@ body.vscode-light .logo-dark { display: none; }
 .edge-label.edge-label-ctl {
   fill: var(--nk-ink-dim);
   opacity: 0.75;
+}
+
+/* The predicate TINT (§S.4 · the #118 read from afar): the outcome
+ * class the gate admits colors its label — success-family green,
+ * failure-family in the failure text voice at 70%; skipped/terminal
+ * stay scaffolding-muted. Both dialects carried (the R5 flip point:
+ * succeeded→success · failed→failure land with the engine lane —
+ * zero CSS hunt on the day). */
+.edge-label.edge-label-pred-succeeded,
+.edge-label.edge-label-pred-success {
+  fill: var(--nk-st-success);
+}
+.edge-label.edge-label-pred-failed,
+.edge-label.edge-label-pred-failure {
+  fill: color-mix(in srgb, var(--nk-st-failed-text) 70%, transparent);
 }
 
 .ex-glyph-data { background: var(--nk-data); height: 3px; }
@@ -3262,7 +3305,10 @@ body.lod-far .nc-pill { display: none; }
 .nc-dev-glyph { display: inline-flex; font-size: 18px; opacity: 0.3; }
 
 /* The ghost — a dashed letterbox that says the nature (and the declared
- * ratio when the YAML is literal; interpolated = the generic frame). */
+ * ratio when the YAML is literal; interpolated = the generic frame).
+ * Site 2 of the category tints (§S.3): a nature frame's border speaks
+ * its category at 28% — quiet enough to declare, never to compete
+ * with the status border the card owns. */
 .nc-ghost {
   position: relative;
   display: flex;
@@ -3272,7 +3318,7 @@ body.lod-far .nc-pill { display: none; }
   gap: 3px;
   width: 58%;
   height: calc(100% - 18px);
-  border: 1px dashed color-mix(in srgb, var(--nk-ink) 26%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
   border-radius: 6px;
   color: var(--nk-ink-dim);
 }
@@ -3293,7 +3339,7 @@ body.lod-far .nc-pill { display: none; }
   font-size: 9px;
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
-  border: 1px dashed color-mix(in srgb, var(--nk-ink) 26%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
   border-radius: 5px;
 }
 
@@ -3315,7 +3361,7 @@ body.lod-far .nc-pill { display: none; }
   justify-content: center;
   gap: 5px;
   padding: 6px 8px;
-  border-right: 1px dashed color-mix(in srgb, var(--nk-ink) 18%, transparent);
+  border-right: 1px dashed color-mix(in srgb, var(--nk-cat-media) 18%, transparent);
   color: var(--nk-ink-dim);
 }
 .nc-fx-src { display: inline-flex; align-items: center; gap: 4px; min-width: 0; opacity: 0.75; }
@@ -3371,8 +3417,10 @@ body.lod-far .nc-pill { display: none; }
 .nc-preview-exported::after { content: none; }
 @keyframes nk-develop { to { transform: translateX(100%); } }
 
-/* nika:fetch (network category) — the round-trip made visible: the
- * tool chip's category glyph pulses while the task runs. */
+/* Site 3 of the category tints (§S.3) — nika:fetch (network): the
+ * round-trip made visible. The mechanism line's category icon pulses
+ * while the task runs, in the network tint it wears (currentColor —
+ * the W11.3 chip removal orphaned this rule; the icon carries it now). */
 .dag-node.status-running .nc-cat-network { animation: nk-fetch-pulse 800ms cubic-bezier(0.2, 0, 0, 1) infinite; }
 @keyframes nk-fetch-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
@@ -3453,6 +3501,9 @@ body.lod-far .nc-pill { display: none; }
   overflow: hidden;
   pointer-events: none;
   color: color-mix(in srgb, var(--dv-hue, var(--nk-accent)) 45%, var(--nk-ink-dim));
+  /* Declared (not yet real) — the frame border speaks media (§S.3
+   * site 2); the settled row returns to the neutral border. */
+  border-color: color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
 }
 .nc-audio-strip {
   flex: 1 1 auto;
@@ -3499,7 +3550,7 @@ body.lod-far .nc-pill { display: none; }
   font-family: var(--nk-mono);
   color: color-mix(in srgb, var(--nk-critical) 55%, var(--nk-ink-dim));
   background: color-mix(in srgb, var(--nk-critical) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--nk-critical) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nk-cat-introspection) 28%, transparent);
   border-radius: 8px;
 }
 .nc-check-glyph { flex: none; font-size: 11px; opacity: 0.8; }
@@ -3520,6 +3571,18 @@ body.lod-far .nc-pill { display: none; }
   vertical-align: -2px;
   margin-right: 4px;
 }
+
+/* Site 1 of the category tints (§S.3): the cat ICON speaks its family
+ * hue — on the mechanism line's house icon and the palette's tool
+ * rows alike (the class rides the svg · currentColor carries it, so
+ * the network pulse below re-tints for free). The TEXT beside the
+ * icon never tints — one voice per surface. */
+.nc-cat-core { color: var(--nk-cat-core); }
+.nc-cat-file { color: var(--nk-cat-file); }
+.nc-cat-data { color: var(--nk-cat-data); }
+.nc-cat-network { color: var(--nk-cat-network); }
+.nc-cat-introspection { color: var(--nk-cat-introspection); }
+.nc-cat-media { color: var(--nk-cat-media); }
 
 /* The io row — inbound wires, named ON the card (`alias ← from`). The
  * alias speaks the data voice (same hue as edge labels); the whole wire
@@ -3676,10 +3739,16 @@ body.lod-far .nc-pill { display: none; }
   r: 5.5;
 }
 
-/* The data jack — named wires actually plug in here (port grammar §3):
- * the collar takes the data hue, same voice as the io row + edge labels. */
+/* The typed jacks (W11.4 · the ElevenLabs port read): the collar wears
+ * the hue of the FLOW — data wires the data blue (same voice as the io
+ * row + edge labels), a media flow the generation tint; everything
+ * else keeps the muted machined collar. The `with:` type is visible
+ * AT the plug — exactly where you branch. */
 .nc-port-data {
   stroke: color-mix(in srgb, var(--nk-data) 72%, var(--nk-page));
+}
+.nc-port-media {
+  stroke: color-mix(in srgb, var(--nk-cat-media) 72%, var(--nk-page));
 }
 
 .nc-port-out {
@@ -4114,6 +4183,20 @@ body.running #run-controls .rc-resume {
     inset 0 1px 0 rgb(255 255 255 / 0.12),
     0 0.5px 0 color-mix(in srgb, var(--nk-cta) 40%, #000),
     0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+/* The split ⌄ (W11.5 · `▶ Run │ ⌄`): one key, two plates — the ⌄
+   shares the Run material, a hairline seam between them. */
+#run-controls .rc-run:has(+ .rc-more) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.rc-more {
+  margin-left: -4px;
+  padding: 0 6px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid color-mix(in srgb, #000 34%, var(--nk-cta));
 }
 
 .rc-mock {
@@ -6297,6 +6380,20 @@ body.dataflow .nc-io {
   font-weight: 400;
 }
 
+/* fetch — the declared METHOD tags the url (`GET https://…`): mono,
+ * quiet, before the essence — the wire question answered at a glance. */
+.nc-ess-method {
+  margin-right: 4px;
+  padding: 0 3px;
+  font-family: var(--nk-mono, monospace);
+  font-size: 0.9em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--nk-ink-dim);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: 3px;
+}
+
 /* ─── The action panel (K on a focused card) — Raycast grammar ──────
    Every action, its shortcut printed at the right. NO entrance
    animation: keyboard-initiated surfaces render instantly (the
@@ -6350,6 +6447,63 @@ body.dataflow .nc-io {
 @media (forced-colors: active) {
   #nk-actions { border: 1px solid CanvasText; background: Canvas; }
   #nk-actions .nk-act-row.active { background: Highlight; color: HighlightText; }
+  #nk-run-menu { border: 1px solid CanvasText; background: Canvas; }
+  #nk-run-menu .nk-act-row.active { background: Highlight; color: HighlightText; }
+}
+
+/* The split-Run menu (W11.5) — the action-panel family, docked above
+   the run cluster: the run vocabulary grouped, chords printed, the
+   unavailable rows greyed with their reason (never hidden — the menu
+   teaches what exists). Instant render (keyboard-adjacent). */
+#nk-run-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
+  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
+}
+#nk-run-menu .nk-act-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--nk-fg, #ddd);
+  font: 500 12px var(--nk-mono, monospace);
+  text-align: left;
+  cursor: pointer;
+}
+#nk-run-menu .nk-act-row.active {
+  background: color-mix(in srgb, var(--nk-data) 14%, transparent);
+}
+#nk-run-menu .nk-act-row kbd {
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font: 600 9.5px var(--nk-mono, monospace);
+  opacity: 0.75;
+}
+
+/* Greyed = readable, never landable (arrow nav skips; the title says
+   why) — the ElevenLabs disabled-row read. */
+.nk-act-row.nk-act-off {
+  opacity: 0.42;
+  cursor: default;
+}
+
+/* The section separator — grouped clean, one hairline. */
+.nk-act-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: color-mix(in srgb, var(--nk-ink) 14%, transparent);
 }
 
 /* The display panel (Shift+V) — the action-panel family. Off rows

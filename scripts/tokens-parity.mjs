@@ -171,9 +171,29 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
   }
 }
 
+// 9 · the 6 CATEGORY TINTS (§S.3 · CI-3) — the engine's 6 builtin
+// categories each own ONE token, defined as aliases/mixes of voices
+// the seam already speaks: a hex literal in a definition would mint a
+// 7th color source, so the belt refuses any. (The negative scan in
+// step 6 covers the known-forbidden hexes; this is the stronger
+// per-token law: NO hex at all inside a --nk-cat-* definition.)
+{
+  const CATS = ['core', 'file', 'data', 'network', 'introspection', 'media'];
+  for (const c of CATS) {
+    const def = css.match(new RegExp(`--nk-cat-${c}:\\s*([^;]+);`));
+    if (!def) { findings.push(`dag.css: --nk-cat-${c} missing (§S.3 category tint)`); continue; }
+    if (/#[0-9a-fA-F]{3,8}\b/.test(def[1])) {
+      findings.push(`dag.css --nk-cat-${c} carries a hex literal — category tints alias or mix existing tokens only`);
+    }
+    if (!/var\(--nk-/.test(def[1])) {
+      findings.push(`dag.css --nk-cat-${c} must consume the seam (var(--nk-*) or a color-mix of it)`);
+    }
+  }
+}
+
 if (findings.length) {
   console.error(`tokens-parity: ${findings.length} finding(s)`);
   for (const f of findings) { console.error(`  ✗ ${f}`); }
   process.exit(1);
 }
-console.log(`tokens-parity: OK — verb canon+alias + wake vars + glyphs + motion identities + negative scan + dynamic twins + v3 roster pinned across dag.css, dag.ts, verbPalette.ts, cardIdentity.ts`);
+console.log(`tokens-parity: OK — verb canon+alias + wake vars + glyphs + motion identities + negative scan + dynamic twins + v3 roster + 6 category tints pinned across dag.css, dag.ts, verbPalette.ts, cardIdentity.ts`);

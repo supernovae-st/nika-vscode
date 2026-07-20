@@ -109,8 +109,35 @@ describe('the ?media scene — the CI-2 frame coverage floor', () => {
     expect(new Set(chartTypes)).toEqual(new Set(['bar', 'line', 'area_band', 'scatter', 'heatmap']));
   });
 
-  it('is the ~30-node scene the GIF shoots', () => {
-    expect(graph.nodes.length).toBeGreaterThanOrEqual(28);
-    expect(graph.nodes.length).toBeLessThanOrEqual(36);
+  it('is the ~38-node scene the GIF shoots', () => {
+    expect(graph.nodes.length).toBeGreaterThanOrEqual(34);
+    expect(graph.nodes.length).toBeLessThanOrEqual(42);
+  });
+
+  it('covers ALL 28 catalog builtins — the full identity grid (CI-3)', () => {
+    // The pinned catalog fixture is the roster; the scene must seed
+    // every builtin at least once (a builtin missing from the grid
+    // has no pixel proof — the shot suite would silently narrow).
+    const fixture = JSON.parse(fs.readFileSync(
+      fileURLToPath(new URL('./fixtures/catalog-tools.json', import.meta.url)), 'utf-8'),
+    ) as { tools: Array<{ name: string }> };
+    const seeded = new Set(tools);
+    for (const t of fixture.tools) {
+      expect(seeded.has(t.name), `catalog builtin missing from the ?media grid: ${t.name}`).toBe(true);
+    }
+  });
+
+  it('tints both predicate families — a succeeded read and a SHUT failed read', () => {
+    const preds = graph.edges
+      .filter((e) => e.kind === 'control')
+      .map((e) => (e as { predicate?: string }).predicate);
+    expect(preds).toContain('succeeded');
+    expect(preds).toContain('failed');
+    // The failed read must point at a task the sim never lands green —
+    // an admitted-on-failure path completing as success would be an
+    // impossible story on the proof canvas.
+    const failedEdge = graph.edges.find(
+      (e) => e.kind === 'control' && (e as { predicate?: string }).predicate === 'failed');
+    expect(failedEdge?.target).toBe('salvage');
   });
 });

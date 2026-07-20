@@ -180,6 +180,7 @@
   <div id="omnibar">
     <div id="run-controls" role="toolbar">
       <button id="btn-run" class="rc-run">▶ Run</button>
+      <button id="btn-run-more" class="rc-run rc-more" aria-haspopup="menu">⌄</button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
@@ -434,7 +435,7 @@
         { id: 'list', label: 'list', verb: 'invoke', status: 'pending', avgMs: 60, avgRuns: 4,
           tool: 'nika:glob', argsPreview: 'pattern: ./assets/**/*.png', producers: [] },
         { id: 'pull', label: 'pull', verb: 'invoke', status: 'pending', avgMs: 820, avgRuns: 4,
-          tool: 'nika:fetch', argsPreview: 'url: https://api.github.com/repos/n/stats · mode: jq',
+          tool: 'nika:fetch', argsPreview: 'url: https://api.github.com/repos/n/stats · method: GET · mode: jq',
           producers: [] },
         { id: 'announce', label: 'announce', verb: 'invoke', status: 'pending', avgMs: 340, avgRuns: 2,
           tool: 'nika:notify', argsPreview: 'target: https://hooks.example.com/T00 · severity: info',
@@ -464,6 +465,28 @@
         { id: 'gate', label: 'gate', verb: 'invoke', status: 'pending', avgMs: 6, avgRuns: 3,
           tool: 'nika:assert', argsPreview: 'condition: ${{ hero.count }} == 3',
           bindingsIn: [{ alias: 'count', from: 'hero', path: 'count' }], producers: ['hero'] },
+        // ── The last six of the 28 (CI-3 · the full grid) ──
+        { id: 'diffcfg', label: 'diffcfg', verb: 'invoke', status: 'pending', avgMs: 28, avgRuns: 3,
+          tool: 'nika:json_diff', argsPreview: 'before: ./config/old.json · after: ./config/new.json',
+          producers: [] },
+        { id: 'mergecfg', label: 'mergecfg', verb: 'invoke', status: 'pending', avgMs: 33, avgRuns: 3,
+          tool: 'nika:json_merge_patch', argsPreview: 'target: ${{ diffcfg.output }} · patch: ./config/patch.json',
+          bindingsIn: [{ alias: 'target', from: 'diffcfg', path: 'output' }], producers: ['diffcfg'] },
+        { id: 'plan', label: 'plan', verb: 'invoke', status: 'pending', avgMs: 36, avgRuns: 2,
+          tool: 'nika:decide', argsPreview: 'bundle: ./decisions/launch.yaml · evidence: ${{ vet.output }}',
+          bindingsIn: [{ alias: 'evidence', from: 'vet', path: 'output' }], producers: ['vet'] },
+        { id: 'ask', label: 'ask', verb: 'invoke', status: 'pending', avgMs: 1200, avgRuns: 2,
+          tool: 'nika:prompt', argsPreview: 'mode: confirm · message: Ship the campaign site?',
+          producers: ['plan'] },
+        { id: 'ping', label: 'ping', verb: 'invoke', status: 'pending', avgMs: 14, avgRuns: 2,
+          tool: 'nika:emit', argsPreview: 'event_type: assets.shipped · payload: ${{ announce.output }}',
+          bindingsIn: [{ alias: 'payload', from: 'announce', path: 'output' }], producers: ['announce'] },
+        { id: 'wrap', label: 'wrap', verb: 'invoke', status: 'pending', avgMs: 4, avgRuns: 2,
+          tool: 'nika:done', argsPreview: 'result: campaign shipped',
+          producers: ['ping'] },
+        { id: 'salvage', label: 'salvage', verb: 'invoke', status: 'pending', avgMs: 9, avgRuns: 1,
+          tool: 'nika:log', argsPreview: 'level: warn · message: hero count came up short',
+          producers: ['gate'] },
       ],
       edges: [
         { id: 'brief->hero', source: 'brief', target: 'hero', kind: 'value', isDataEdge: true, label: 'prompt' },
@@ -491,6 +514,15 @@
         { id: 'pull->shape', source: 'pull', target: 'shape', kind: 'value', isDataEdge: true, label: 'raw' },
         { id: 'shape->vet', source: 'shape', target: 'vet', kind: 'value', isDataEdge: true, label: 'data' },
         { id: 'shape->morph', source: 'shape', target: 'morph', kind: 'value', isDataEdge: true, label: 'data' },
+        { id: 'diffcfg->mergecfg', source: 'diffcfg', target: 'mergecfg', kind: 'value', isDataEdge: true, label: 'target' },
+        { id: 'vet->plan', source: 'vet', target: 'plan', kind: 'value', isDataEdge: true, label: 'evidence' },
+        { id: 'plan->ask', source: 'plan', target: 'ask', kind: 'control', predicate: 'succeeded' },
+        { id: 'announce->ping', source: 'announce', target: 'ping', kind: 'value', isDataEdge: true, label: 'payload' },
+        { id: 'ping->wrap', source: 'ping', target: 'wrap', kind: 'control', predicate: 'succeeded' },
+        // The failure read, tinted (§S.4) — and honest: gate succeeds
+        // in the sim, so the failed-predicate path stays SHUT (salvage
+        // lands skipped, never success — the admits algebra on canvas).
+        { id: 'gate->salvage', source: 'gate', target: 'salvage', kind: 'control', predicate: 'failed' },
       ],
     };
 
@@ -643,8 +675,9 @@
         { taskId: 'list', status: 'running' },
         { taskId: 'stamp', status: 'running' },
         { taskId: 'mint', status: 'running' },
+        { taskId: 'diffcfg', status: 'running' },
       ]);
-      post({ kind: 'run:progress', done: 0, total: 31 });
+      post({ kind: 'run:progress', done: 0, total: 38 });
     }, 2000);
 
     msim(() => {
@@ -656,6 +689,8 @@
         { taskId: 'list', status: 'success', durationMs: 57 },
         { taskId: 'stamp', status: 'success', durationMs: 9 },
         { taskId: 'mint', status: 'success', durationMs: 4 },
+        { taskId: 'diffcfg', status: 'success', durationMs: 26 },
+        { taskId: 'mergecfg', status: 'running' },
         // The declared frames DEVELOP — the one sweep, on every kind.
         { taskId: 'hero', status: 'running' },
         { taskId: 'poster', status: 'running' },
@@ -664,7 +699,7 @@
         { taskId: 'draft', status: 'running' },
         { taskId: 'shape', status: 'running' },
       ]);
-      post({ kind: 'run:progress', done: 7, total: 31 });
+      post({ kind: 'run:progress', done: 8, total: 38 });
     }, 3400);
 
     msim(() => {
@@ -675,6 +710,7 @@
         { taskId: 'jingle', status: 'success', durationMs: 2871 },
         { taskId: 'draft', status: 'success', durationMs: 5111, outputPreview: 'nika: v1 · 6 tasks' },
         { taskId: 'shape', status: 'success', durationMs: 38 },
+        { taskId: 'mergecfg', status: 'success', durationMs: 31 },
         { taskId: 'stylize', status: 'running' },
         { taskId: 'glitchy', status: 'running' },
         { taskId: 'gate', status: 'running' },
@@ -691,7 +727,7 @@
         { taskId: 'jingle', kind: 'audio', src: WAV_URI, path: '/work/out/jingle.mp3',
           name: 'jingle.mp3', tip: 'nika:tts_generate', durationMs: 2630 },
       ]);
-      post({ kind: 'run:progress', done: 13, total: 31 });
+      post({ kind: 'run:progress', done: 15, total: 38 });
     }, 6800);
 
     msim(() => {
@@ -701,6 +737,7 @@
         { taskId: 'gate', status: 'success', durationMs: 5 },
         { taskId: 'vet', status: 'success', durationMs: 28 },
         { taskId: 'morph', status: 'success', durationMs: 31 },
+        { taskId: 'plan', status: 'running' },
         { taskId: 'velocity', status: 'running' },
         { taskId: 'trend', status: 'running' },
         { taskId: 'band', status: 'running' },
@@ -714,7 +751,7 @@
         { taskId: 'glitchy', kind: 'image', src: GLITCH_SVG, path: '/work/out/hero-glitch.png',
           name: 'hero-glitch.png', tip: 'nika:image_fx · glitch → scanlines → grain' },
       ]);
-      post({ kind: 'run:progress', done: 18, total: 31 });
+      post({ kind: 'run:progress', done: 20, total: 38 });
     }, 8900);
 
     msim(() => {
@@ -725,8 +762,10 @@
         { taskId: 'spread', status: 'success', durationMs: 349 },
         { taskId: 'heat', status: 'success', durationMs: 431 },
         { taskId: 'checkwf', status: 'success', durationMs: 233 },
+        { taskId: 'plan', status: 'success', durationMs: 34, outputPreview: 'go · 2 criteria met' },
         { taskId: 'audit', status: 'running' },
         { taskId: 'save', status: 'running' },
+        { taskId: 'ask', status: 'running' },
       ]);
       landArts([
         { taskId: 'velocity', kind: 'image', src: BAR_SVG, path: '/work/out/velocity.svg',
@@ -740,13 +779,14 @@
         { taskId: 'heat', kind: 'image', src: HEATMAP_SVG, path: '/work/out/matrix.svg',
           name: 'matrix.svg', tip: 'nika:chart · deterministic SVG' },
       ]);
-      post({ kind: 'run:progress', done: 24, total: 31 });
+      post({ kind: 'run:progress', done: 27, total: 38 });
     }, 11200);
 
     msim(() => {
       batch([
         { taskId: 'audit', status: 'success', durationMs: 54 },
         { taskId: 'save', status: 'success', durationMs: 117, outputPreview: './site/index.html · 6.2 KB' },
+        { taskId: 'ask', status: 'success', durationMs: 1104, outputPreview: 'yes' },
         { taskId: 'patch', status: 'running' },
         { taskId: 'digest', status: 'running' },
       ]);
@@ -754,7 +794,7 @@
         { taskId: 'save', kind: 'file', src: '/work/site/index.html', path: '/work/site/index.html',
           name: 'index.html', tip: 'nika:write · 6.2 KB' },
       ]);
-      post({ kind: 'run:progress', done: 26, total: 31 });
+      post({ kind: 'run:progress', done: 30, total: 38 });
     }, 12600);
 
     msim(() => {
@@ -767,25 +807,31 @@
         { taskId: 'patch', kind: 'file', src: '/work/site/index.html', path: '/work/site/index.html',
           name: 'index.html', tip: 'nika:edit · 1 replacement' },
       ]);
-      post({ kind: 'run:progress', done: 28, total: 31 });
+      post({ kind: 'run:progress', done: 32, total: 38 });
     }, 13800);
 
     msim(() => {
       batch([
         { taskId: 'announce', status: 'success', durationMs: 328 },
         { taskId: 'hold', status: 'running' },
+        { taskId: 'ping', status: 'running' },
       ]);
-      post({ kind: 'run:progress', done: 29, total: 31 });
+      post({ kind: 'run:progress', done: 33, total: 38 });
     }, 14800);
 
     msim(() => {
       batch([
         { taskId: 'hold', status: 'success', durationMs: 12004 },
         { taskId: 'note', status: 'success', durationMs: 7 },
+        { taskId: 'ping', status: 'success', durationMs: 12 },
+        { taskId: 'wrap', status: 'success', durationMs: 3 },
+        // The failed-read stayed shut: gate succeeded, salvage never
+        // admitted — skipped is the honest terminal, never success.
+        { taskId: 'salvage', status: 'skipped' },
       ]);
       post({ kind: 'run:state', running: false });
-      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 31/31 · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
-      post({ kind: 'run:progress', done: 31, total: 31 });
+      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 37/38 · 1 skipped · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
+      post({ kind: 'run:progress', done: 38, total: 38 });
     }, 16200);
 
     sim(() => {

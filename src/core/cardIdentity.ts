@@ -62,33 +62,73 @@ export const SUB_WORKFLOW_GLYPH = '⎘';
  *  the ONE fact that names its work, never a flat `k: v · k: v`).
  *  The LIST of builtins stays engine truth (catalog); this register
  *  only teaches presentation for the names it knows — an unknown
- *  builtin keeps the plain args line, never a guess. */
+ *  builtin keeps the plain args line, never a guess. Every `arg` (and
+ *  every `uses` member) is pinned against the REAL catalog fixture in
+ *  cardIdentity.test.ts — the D3 drift class (five soul args that
+ *  never existed) cannot reproduce. */
 export type EssenceRender = 'code' | 'path' | 'url' | 'event' | 'duration' | 'condition' | 'text';
 
-export const BUILTIN_ESSENCE: ReadonlyMap<string, { arg: string; render: EssenceRender }> = new Map([
-  ['jq', { arg: 'query', render: 'code' }],
-  ['convert', { arg: 'to', render: 'text' }],
-  ['fetch', { arg: 'url', render: 'url' }],
-  ['write', { arg: 'path', render: 'path' }],
-  ['append', { arg: 'path', render: 'path' }],
-  ['read', { arg: 'path', render: 'path' }],
-  ['copy', { arg: 'to', render: 'path' }],
-  ['move', { arg: 'to', render: 'path' }],
-  ['glob', { arg: 'pattern', render: 'code' }],
+export interface EssenceSpec {
+  arg: string;
+  render: EssenceRender;
+  /** Multi-arg souls: compose the essence VALUE from the arg pairs
+   *  (`convert` reads from+to → `json → csv`; `validate` states its
+   *  constant). Returning undefined falls back to the `arg` lookup. */
+  compose?: (pairs: ReadonlyMap<string, string>) => string | undefined;
+  /** The pairs the composer consumed — they leave the rest line. */
+  uses?: readonly string[];
+}
+
+export const BUILTIN_ESSENCE: ReadonlyMap<string, EssenceSpec> = new Map<string, EssenceSpec>([
+  // core
+  ['log', { arg: 'message', render: 'text' }],
+  ['emit', { arg: 'event_type', render: 'event' }],
   ['assert', { arg: 'condition', render: 'condition' }],
-  ['emit', { arg: 'event', render: 'event' }],
-  ['wait', { arg: 'for', render: 'duration' }],
-  ['chart', { arg: 'title', render: 'text' }],
+  ['prompt', { arg: 'message', render: 'text' }],
+  ['wait', { arg: 'duration', render: 'duration' }],
+  // file
+  ['read', { arg: 'path', render: 'path' }],
+  ['write', { arg: 'path', render: 'path' }],
+  ['edit', { arg: 'path', render: 'path' }],
+  ['glob', { arg: 'pattern', render: 'code' }],
+  ['grep', { arg: 'pattern', render: 'code' }],
+  // data
+  ['jq', { arg: 'expression', render: 'code' }],
+  ['validate', {
+    arg: 'schema', render: 'condition',
+    // The constant soul: validate ALWAYS checks against a schema —
+    // the ⊨ voice states the act, the args keep the particulars.
+    compose: () => 'schema', uses: [],
+  }],
+  ['convert', {
+    arg: 'to', render: 'code',
+    compose: (pairs) => {
+      const from = pairs.get('from');
+      const to = pairs.get('to');
+      return from !== undefined && to !== undefined ? `${from} → ${to}` : undefined;
+    },
+    uses: ['from', 'to'],
+  }],
+  ['uuid', { arg: 'version', render: 'text' }],
+  ['date', { arg: 'op', render: 'code' }],
+  ['hash', { arg: 'content', render: 'text' }],
+  ['decide', { arg: 'bundle', render: 'path' }],
+  // network
+  ['fetch', { arg: 'url', render: 'url' }],
+  ['notify', { arg: 'target', render: 'text' }],
+  // introspection
+  ['inspect', { arg: 'view', render: 'code' }],
+  ['compose', { arg: 'workflow_yaml', render: 'code' }],
+  // media
   ['image_generate', { arg: 'prompt', render: 'text' }],
   ['tts_generate', { arg: 'text', render: 'text' }],
-  ['decide', { arg: 'bundle', render: 'path' }],
-  ['compose', { arg: 'workflow_yaml', render: 'code' }],
-  ['hash', { arg: 'input', render: 'text' }],
-  ['log', { arg: 'message', render: 'text' }],
 ]);
 
 /** Split an args preview (`k: v · k: v`) around a builtin's essence:
- *  the essence pair leads styled, the rest stays the muted line. */
+ *  the essence pair leads styled, the rest stays the muted line. A
+ *  composer (multi-arg soul) speaks first; its consumed pairs leave
+ *  the rest — a composer that stays silent falls back to the plain
+ *  `arg` lookup, never a guess. */
 export function splitEssence(
   builtin: string | undefined,
   argsPreview: string | undefined,
@@ -99,6 +139,19 @@ export function splitEssence(
   const spec = BUILTIN_ESSENCE.get(builtin);
   if (!spec) { return { rest: argsPreview }; }
   const pairs = argsPreview.split(' · ');
+  if (spec.compose !== undefined) {
+    const composed = spec.compose(argPairsOf(argsPreview));
+    if (composed !== undefined) {
+      const used = new Set(spec.uses ?? []);
+      const rest = pairs
+        .filter((p) => { const i = p.indexOf(': '); return i <= 0 || !used.has(p.slice(0, i)); })
+        .join(' · ');
+      return {
+        essence: { key: spec.arg, value: composed, render: spec.render },
+        ...(rest.length > 0 ? { rest } : {}),
+      };
+    }
+  }
   const i = pairs.findIndex((p) => p.startsWith(`${spec.arg}: `));
   if (i === -1) { return { rest: argsPreview }; }
   const value = pairs[i].slice(spec.arg.length + 2);
@@ -212,6 +265,25 @@ export function mediaDeclareOf(
     if (method !== undefined && /^[a-z]+$/i.test(method)) { d.method = method.toUpperCase(); }
   }
   return d;
+}
+
+/** nika:wait — the declared countdown denominator (`duration: 30s`).
+ *  Literal only (an interpolation is a stated gap): the running card
+ *  ticks `12s / 30s` — our observed clock over the DECLARED wait, the
+ *  BuildKit time-as-spinner read. Returns the duration in seconds +
+ *  the label as written; undefined when the YAML does not say. */
+export function waitDeclareOf(
+  argsPreview: string | undefined,
+): { seconds: number; label: string } | undefined {
+  if (argsPreview === undefined) { return undefined; }
+  const v = literalOf(argPairsOf(argsPreview), 'duration');
+  const m = v?.match(/^(\d+(?:\.\d+)?)(ms|s|m|h)$/);
+  if (!m) { return undefined; }
+  const n = Number(m[1]);
+  const mult = m[2] === 'ms' ? 0.001 : m[2] === 's' ? 1 : m[2] === 'm' ? 60 : 3600;
+  const seconds = n * mult;
+  if (!(seconds > 0)) { return undefined; }
+  return { seconds, label: v as string };
 }
 
 /** Builtins whose OUTPUT is a file the run writes — the card lands a

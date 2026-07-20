@@ -6,6 +6,18 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The 28 identities: every builtin speaks its nature
+
+- **Five invented soul args die in a fixture**: the essence register spoke five words the catalog never had (`jq.query`, `emit.event`, `wait.for`, `hash.input`, `chart.title`; chart's real args are data, semantics, chart, out). The register now reads the engine's words, the real `catalog --tools` output is pinned as a test fixture, and every soul arg must exist in its builtin's catalog args: the drift class cannot reproduce. The phantom essences (append, copy, move) died with their phantom writers.
+- **Eight builtins gain their soul line**: `edit` and `grep` (path and pattern), `uuid` version, `date` op, `prompt` message, `notify` target, `inspect` view; `validate` states its constant `⊨ schema`. `convert` composes both ends into `json → csv` through the register's new composer hook. `json_diff` and `json_merge_patch` keep the plain line by law: unknown keeps the plain line, never a guess. The compose blurb stops lying: it statically checks a drafted workflow and never runs it.
+- **Six category tints, three sites**: each engine category owns one token (aliases and mixes of voices the seam already speaks, zero new hex; media sits between the infer and agent canons). The mechanism line regains the category house icon, tinted (a prior refactor had orphaned the fetch pulse; it pulses again, in the network tint); the declared-frame borders speak their category at 28%; the palette tool rows tint their icons. The token belt gains a presence step for all six plus a no-hex law per definition.
+- **The jacks type their flow**: an IN port collar wears the hue of what arrives (media or data), the OUT collar what the card produces; text keeps the muted machined collar. Port titles name the type.
+- **after: labels tint by outcome**: a success-family predicate reads green, a failure-family one in the failure text voice at 70%, readable from afar; both dialect spellings are pre-wired for the engine's rename.
+- **A waiting card counts against its promise**: `nika:wait` with a declared literal duration ticks `12s / 30s` while running (the existing 150ms text tick; an interpolated duration keeps the plain observed clock, never an invented denominator).
+- **fetch tags its method**: the declared `GET`/`POST` leads the url essence as a quiet mono tag.
+- **The Run button splits**: `▶ Run │ ⌄` opens one grouped menu (run, run mock, what-if, fork) with the chords printed and the unavailable rows greyed with their reason, never hidden. The card's `K` panel groups the same way: the run family above one separator. Same commands as before, zero new wiring.
+- **The harness grid reaches all 28**: the `?media` scene grows to 38 nodes covering every catalog builtin, both predicate tints (the failed read points at a task the sim honestly lands as skipped), and the wait countdown; the fixture contract test now holds the grid against the pinned catalog.
+
 ### The header floats, the knobs detach: the pill
 
 - **The header rises above the card** (expanded cards): the verb tile and task id float over the frame, with the engine identity at their right: the model chip (still the click-to-change door), the `⎘` sub-workflow door, or a media tool's declared provider. The card body keeps its full height for the work: prompt, media slot, wires, facts. Compact cards keep the dense in-frame head unchanged.

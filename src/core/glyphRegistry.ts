@@ -100,6 +100,7 @@ export const SURFACE_GLYPH = {
   live: { glyph: '⋯', sense: 'live — the clock still counting (in-flight elapsed)' },
   export: { glyph: '⤓', sense: 'export (svg · png)' },
   commands: { glyph: '⌘', sense: 'the command surface — all commands · chord keycaps' },
+  more: { glyph: '⌄', sense: 'the split opener — the ⌄ beside a button opens its grouped variants (the run menu)' },
   call: { glyph: '⎘', sense: 'workflow call — the door to the child' },
   fork: { glyph: '⑂', sense: 'fork from a task — branch the recording' },
   peek: { glyph: '◉', sense: 'peek the run story' },

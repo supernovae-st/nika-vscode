@@ -107,7 +107,7 @@ export const FALLBACK_TOOL_BLURBS: Record<string, string> = {
   fetch: 'HTTP request (permits-gated)',
   notify: 'webhook ping (permits-gated)',
   inspect: 'describe a value’s shape',
-  compose: 'run a sub-workflow',
+  compose: 'statically check a drafted workflow — never runs it',
   image_generate: 'text → image (provider-priced)',
   tts_generate: 'text → speech audio',
   image_fx: 'edit / filter an image locally',
