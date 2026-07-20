@@ -28,6 +28,7 @@ import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
+import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import {
   addAfterEntry,
@@ -1033,6 +1034,11 @@ export function activate(context: ExtensionContext): void {
   // Composition trail (the dive path): grows on ⎘ jumps, truncates on
   // crumb jumps, resets when the user wanders to a file outside it.
   let compTrail: Array<{ label: string; uri: string }> = [];
+  // The welcome-canvas open allowlist (capability): the exact set of
+  // workflow URIs the extension surfaced in the last `welcome:data` push.
+  // `welcome:open` may open ONLY a member — a compromised webview cannot
+  // name a path the extension never showed it (arbitrary local read).
+  let welcomeSurfaced: ReadonlySet<string> = new Set<string>();
   const labelOf = (uri: Uri): string => uri.path.split('/').pop() ?? uri.path;
   const postTrail = (currentUri: string): void => {
     const i = compTrail.findIndex((seg) => seg.uri === currentUri);
@@ -1593,6 +1599,15 @@ export function activate(context: ExtensionContext): void {
     (msg) => {
       void (async () => {
         if (msg.kind === 'welcome:open') {
+          // The uri is webview-supplied and untrusted: open ONLY a
+          // workflow the extension surfaced (capability, not a filter).
+          // An unsurfaced uri is a compromised canvas probing for an
+          // arbitrary file read — refuse quietly (an anomaly, not a
+          // user error): a discreet log line, no toast.
+          if (!welcomeOpenAllowed(msg.uri, welcomeSurfaced)) {
+            log('WARN', 'welcome:open refused a uri the canvas was not shown');
+            return;
+          }
           const doc = await workspace.openTextDocument(Uri.parse(msg.uri));
           await window.showTextDocument(doc, { preview: false });
           await commands.executeCommand('nika.showDag');
@@ -1797,6 +1812,9 @@ export function activate(context: ExtensionContext): void {
         } catch { /* plain row */ }
         return row;
       }));
+      // Record the capability for the open gate: the webview may open
+      // exactly these workflows (nothing else) until the next push.
+      welcomeSurfaced = new Set(recent.map((r) => r.uri));
       dagPanel.welcomeData(recent, !service.available);
     } catch {
       // The welcome degrades to actions-only — never an error surface.
