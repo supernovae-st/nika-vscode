@@ -1,7 +1,7 @@
 {
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
-  "description": "Intent as Code — Nika, the workflow language for AI (.nika.yaml). A content-first DAG canvas that runs, replays and AUDITS your workflow before a token is spent (cost ceiling · secret-flow · permits), check-as-you-type diagnostics, schema-derived completions, agent tools. For VS Code, Cursor, Windsurf, VSCodium.",
+  "description": "See your workflow before it runs — the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
   "version": "0.104.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
@@ -1265,7 +1265,8 @@
             "title": "Install the nika engine",
             "description": "The extension drives the `nika` binary (LSP · check · run · DAG).\n[Finish Setup — one gesture](command:nika.finishSetup)\nVerified download · MCP wired · LSP on. Prefer brew? `brew install supernovae-st/tap/nika` — then the same button detects it.",
             "media": {
-              "markdown": "walkthrough/01-install.md"
+              "svg": "walkthrough/assets/install-engine.svg",
+              "altText": "One binary: the extension drives nika — check, run with local traces, language server, time-travel debug. Install via Finish Setup (verified download) or brew."
             },
             "completionEvents": [
               "onCommand:nika.checkBinary",
@@ -1281,18 +1282,20 @@
             },
             "completionEvents": [
               "onCommand:nika.newWorkflow",
-              "onCommand:nika.initProject"
+              "onCommand:nika.initProject",
+              "onCommand:nika.tryDemo"
             ]
           },
           {
             "id": "validate",
             "title": "Validate as you type",
-            "description": "Diagnostics · completions · hover docs are live via the LSP. Run an explicit check ·\n[Validate Workflow](command:nika.checkWorkflow)",
+            "description": "Diagnostics · completions · hover docs are live via the LSP — or run one explicit check.\n[Validate Workflow](command:nika.checkWorkflow)",
             "media": {
               "markdown": "walkthrough/03-validate.md"
             },
             "completionEvents": [
-              "onCommand:nika.checkWorkflow"
+              "onCommand:nika.checkWorkflow",
+              "onContext:nika.sawDiagnostics"
             ]
           },
           {
@@ -1303,7 +1306,8 @@
               "markdown": "walkthrough/04-run.md"
             },
             "completionEvents": [
-              "onCommand:nika.runWorkflow"
+              "onCommand:nika.runWorkflow",
+              "onContext:nika.everRan"
             ]
           },
           {
@@ -1320,12 +1324,13 @@
           {
             "id": "break",
             "title": "Break it on purpose",
-            "description": "The blank starter carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; hover ⑂ forks from the failure; the Runs view keeps the autopsy. Created yours from an engine template? Make one more workflow and pick the blank starter.\n[Run Workflow](command:nika.runWorkflow)",
+            "description": "The blank starter carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; the card's ⑂ forks from the failure; the Runs view keeps the autopsy. Created yours from an engine template? Make one more workflow and pick the blank starter.\n[Run Workflow](command:nika.runWorkflow)",
             "media": {
               "markdown": "walkthrough/10-break.md"
             },
             "completionEvents": [
-              "onCommand:nika.explainCode"
+              "onCommand:nika.explainCode",
+              "onContext:nika.sawFailure"
             ]
           },
           {
@@ -1336,7 +1341,7 @@
               "markdown": "walkthrough/08-timetravel.md"
             },
             "completionEvents": [
-              "onCommand:workbench.action.debug.start"
+              "onContext:nika.replayStarted"
             ]
           },
           {
@@ -1347,6 +1352,7 @@
               "markdown": "walkthrough/07-proof.md"
             },
             "completionEvents": [
+              "onView:nikaRuns",
               "onCommand:nika.reproduceRun",
               "onCommand:nika.exportOtel",
               "onCommand:nika.verifyTrace"
@@ -1480,7 +1486,8 @@
     "parity": "node scripts/parity.mjs",
     "voice": "node scripts/voice-gate.mjs",
     "glyphs": "node scripts/glyph-registry.mjs",
-    "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && npm run lint",
+    "walkthrough": "node scripts/walkthrough-media.mjs",
+    "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
     "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js",

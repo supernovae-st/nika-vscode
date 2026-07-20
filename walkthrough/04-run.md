@@ -12,8 +12,10 @@ install → run in 60 seconds, zero keys.
 When you're ready for real inference, swap one line:
 
 ```yaml
-model: anthropic/claude-sonnet-4-6   # key via ${{ env.ANTHROPIC_API_KEY }}
+model: ollama/llama3.2   # no key at all
 ```
 
-Bring your own keys · every key stays yours. Local-first:
-`ollama/`, `lmstudio/`, `llamacpp/`, `localai/`, `vllm/` need no cloud at all.
+Local-first: `ollama/`, `lmstudio/`, `llamacpp/`, `localai/`, `vllm/` need
+no cloud at all. Cloud when you choose it — `mistral/` · `huggingface/` ·
+`openai/` · `xai/` · `anthropic/` and more, keys via `${{ env.… }}` ·
+every key stays yours.

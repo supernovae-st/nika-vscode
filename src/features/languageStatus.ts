@@ -12,6 +12,7 @@
 import * as vscode from 'vscode';
 import type { DiagnosticsController } from './diagnostics';
 import { NIKA_DIAG_SOURCE } from './diagnostics';
+import { checkLaneTruth } from '../core/statusTruth';
 import type { NikaService } from '../nikaService';
 
 const SELECTOR: vscode.DocumentSelector = [
@@ -98,35 +99,39 @@ export class NikaLanguageStatus implements vscode.Disposable {
 
   private renderCheck(): void {
     const uri = activeNikaUri();
-    if (!uri) {
-      this.checkItem.text = '$(check) check';
-      this.checkItem.detail = undefined;
-      this.checkItem.busy = false;
-      this.checkItem.severity = vscode.LanguageStatusSeverity.Information;
-      return;
-    }
-    this.checkItem.busy = this.running.has(uri.toString());
+    this.checkItem.busy = uri !== undefined && this.running.has(uri.toString());
 
     // Count OUR findings on the active file — the client collection AND
     // the LSP-published ones both ride languages.getDiagnostics. The
     // server publishes source "nika" too (nika-lsp diagnostics.rs SOURCE
     // const — 'nika-lsp' is only the CLIENT's collection label, never a
     // wire value), so one source check + the code prefix covers all.
-    const diags = vscode.languages.getDiagnostics(uri).filter((d) => {
+    const diags = uri === undefined ? [] : vscode.languages.getDiagnostics(uri).filter((d) => {
       const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
       return d.source === NIKA_DIAG_SOURCE || code.startsWith('NIKA-');
     });
-    if (diags.length === 0) {
-      this.checkItem.text = '$(pass-filled) check: clean';
-      this.checkItem.detail = 'static pre-flight — audit before run';
-      this.checkItem.severity = vscode.LanguageStatusSeverity.Information;
-      return;
-    }
-    const errors = diags.filter((d) => d.severity === vscode.DiagnosticSeverity.Error).length;
-    const worst = errors > 0 ? vscode.LanguageStatusSeverity.Error : vscode.LanguageStatusSeverity.Warning;
-    this.checkItem.text = `$(warning) check: ${diags.length} finding${diags.length === 1 ? '' : 's'}`;
-    this.checkItem.detail = errors > 0 ? `${errors} error${errors === 1 ? '' : 's'} block the run` : 'warnings only';
-    this.checkItem.severity = worst;
+    // The pure lane truth (statusTruth.ts) — the trust illusion dies
+    // here: zero squiggles WITHOUT an oracle never reads « clean ».
+    const truth = checkLaneTruth({
+      hasActiveDoc: uri !== undefined,
+      available: this.service.available,
+      checkCapable: this.service.caps.check,
+      runOn: vscode.workspace.getConfiguration('nika').get<string>('diagnostics.runOn', 'type'),
+      findings: diags.length,
+      errors: diags.filter((d) => d.severity === vscode.DiagnosticSeverity.Error).length,
+    });
+    this.checkItem.text = truth.text;
+    this.checkItem.detail = truth.detail;
+    this.checkItem.severity = truth.severity === 'error'
+      ? vscode.LanguageStatusSeverity.Error
+      : truth.severity === 'warn'
+        ? vscode.LanguageStatusSeverity.Warning
+        : vscode.LanguageStatusSeverity.Information;
+    this.checkItem.command = truth.command === 'setup'
+      ? { command: 'nika.finishSetup', title: 'Install' }
+      : truth.command === 'settings'
+        ? { command: 'workbench.action.openSettings', title: 'Settings', arguments: ['nika.diagnostics.runOn'] }
+        : { command: 'nika.showReport', title: 'Report' };
   }
 
   private renderServer(): void {

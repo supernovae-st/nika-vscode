@@ -75,6 +75,28 @@ function isNikaDoc(doc: vscode.TextDocument): boolean {
   return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
 }
 
+// Walkthrough completionEvent producer — a one-way session latch. The
+// validate step completes the first time a nika finding is actually
+// PAINTED, whichever mode owns the squiggles (this controller or the
+// LSP — the window-global event carries both, so the seam is one).
+let sawDiagnosticsLatched = false;
+
+function latchSawDiagnostics(uris: readonly vscode.Uri[]): void {
+  if (sawDiagnosticsLatched) { return; }
+  for (const uri of uris) {
+    if (!/\.nika\.ya?ml$/.test(uri.fsPath)) { continue; }
+    const hit = vscode.languages.getDiagnostics(uri).some((d) => {
+      const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
+      return d.source === NIKA_DIAG_SOURCE || code.startsWith('NIKA-');
+    });
+    if (hit) {
+      sawDiagnosticsLatched = true;
+      void vscode.commands.executeCommand('setContext', 'nika.sawDiagnostics', true);
+      return;
+    }
+  }
+}
+
 export class DiagnosticsController implements vscode.Disposable {
   private readonly collection = vscode.languages.createDiagnosticCollection(NIKA_DIAG_SOURCE);
   private readonly findings = new Map<string, StoredFinding[]>();
@@ -113,6 +135,7 @@ export class DiagnosticsController implements vscode.Disposable {
         this.secrets.delete(key);
       }),
       this.service.onDidChange(() => this.refreshAll()),
+      vscode.languages.onDidChangeDiagnostics((e) => latchSawDiagnostics(e.uris)),
     );
     this.refreshAll();
   }

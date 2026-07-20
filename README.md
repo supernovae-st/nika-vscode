@@ -59,6 +59,8 @@ LSP, one gesture) · fresh repo → **Init this project** · then the
 
 That's the whole loop: the same file then runs on any of the engine's
 providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
+Prefer a guided pass? **`Nika: Open Walkthrough`** replays it step by
+step — each step checks itself off as you actually do it.
 
 ## Install
 

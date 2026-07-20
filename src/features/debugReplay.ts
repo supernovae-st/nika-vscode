@@ -122,6 +122,13 @@ function safeRead(p: string): string | undefined {
   try { return fs.readFileSync(p, 'utf-8'); } catch { return undefined; }
 }
 
+// Walkthrough completionEvent producer — a one-way session latch. The
+// time-travel step completes on a NIKA debug session actually starting
+// (any entry path: F5 · launch.json · the Runs-view action), replacing
+// the old `onCommand:workbench.action.debug.start` event that checked
+// the step on ANY debug session of any extension.
+let replayStartedLatched = false;
+
 export function registerDebugReplay(
   context: vscode.ExtensionContext,
   binary: () => string | undefined,
@@ -130,6 +137,12 @@ export function registerDebugReplay(
   context.subscriptions.push(
     vscode.debug.registerDebugAdapterDescriptorFactory('nika', new NikaDebugAdapterFactory(binary, hasDap)),
     vscode.debug.registerDebugConfigurationProvider('nika', new NikaDebugConfigProvider()),
+    vscode.debug.onDidStartDebugSession((session) => {
+      if (session.type === 'nika' && !replayStartedLatched) {
+        replayStartedLatched = true;
+        void vscode.commands.executeCommand('setContext', 'nika.replayStarted', true);
+      }
+    }),
 
     // Runs view: debug THIS run — match the journal's workflow name back
     // to a source file (auto on a single hit, QuickPick on ambiguity).

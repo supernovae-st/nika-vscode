@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Onboarding — the missing wire
+
+- **First contact runs the demo itself**: on a machine's first activation ever, once the engine is present (immediately, or the moment Finish Setup lands it), the hello-canvas demo opens AND runs on `mock/echo` — zero key, zero network, zero spend, with an on-canvas `offline demo — mock provider, no keys` banner while it streams. The DAG lights itself in under ten seconds; the walkthrough follows as optional depth instead of leading. A workspace that already carries `.nika.yaml` files is never auto-opened, and the flow fires once ever.
+- **The walkthrough verifies itself**: steps now complete on the real thing happening, not just on palette commands — running from ▶ / ▶ mock / resume checks *Run it*, the first failed verdict checks *Break it on purpose*, a real nika replay session checks *Time-travel* (any-debugger false positive gone), painted findings check *Validate*, focusing the Runs view checks *Prove it ran*, and the demo checks *Create*.
+- **No engine, no illusion**: a nika buffer with zero squiggles and no binary no longer reads as validated — the language-status check lane says `check: off — engine missing` (warning · one click to install) instead of `check: clean`; clean is only claimable when the oracle actually ran. Same honesty for a pre-`check` binary and for `diagnostics.runOn: off`.
+- **The install step went theme-aware**: an SVG painted in `--vscode-*` theme tokens replaces the install markdown (its content lives in the step description), and a new `walkthrough-media` gate (npm test) proves every walkthrough media file exists, ships in the VSIX (never `.vscodeignore`'d — the Cline trap, executable), and stays under `walkthrough/`.
+- **Marketplace description front-loaded**: the search-result cut lands after a complete pitch — “See your workflow before it runs — the live DAG canvas for Nika…”, providers named local-first.
+
 ### Security — the canvas opens only what it surfaced
 
 - **`welcome:open` validates the uri (no arbitrary read)**: the welcome canvas can only open workflows the extension itself surfaced — a compromised webview can no longer name an arbitrary local path (`file:///etc/passwd`) for the extension to read.

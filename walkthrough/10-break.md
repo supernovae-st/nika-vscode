@@ -26,9 +26,10 @@ Created your file from an engine template instead? Run
 - The card turns red and carries its story where the prompt was —
   `✗ NIKA-BUILTIN-ASSERT-001 · the scripted failure…`. **Click it**:
   the explain doc opens (cause · category · fix-form).
-- Hover the failed card — **⑂ fork** re-runs from the failure with
-  everything upstream rehydrated from the recording. **⚡ what if**
-  previews the blast radius without spending anything.
+- A failed card promotes itself to the full story, actions included —
+  **⑂ fork** re-runs from the failure with everything upstream
+  rehydrated from the recording. **⚡ what if** previews the blast
+  radius without spending anything.
 - The Runs view keeps the autopsy: the trace line names the exact
   `nika trace peek` command, and **F5** time-travels the recorded
   run under the debugger.
