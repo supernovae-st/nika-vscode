@@ -4170,6 +4170,20 @@ body.running #run-controls .rc-resume {
     0 1px 2px rgb(0 0 0 / 0.3);
 }
 
+/* The split ⌄ (W11.5 · `▶ Run │ ⌄`): one key, two plates — the ⌄
+   shares the Run material, a hairline seam between them. */
+#run-controls .rc-run:has(+ .rc-more) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.rc-more {
+  margin-left: -4px;
+  padding: 0 6px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid color-mix(in srgb, #000 34%, var(--nk-cta));
+}
+
 .rc-mock {
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
@@ -6418,6 +6432,63 @@ body.dataflow .nc-io {
 @media (forced-colors: active) {
   #nk-actions { border: 1px solid CanvasText; background: Canvas; }
   #nk-actions .nk-act-row.active { background: Highlight; color: HighlightText; }
+  #nk-run-menu { border: 1px solid CanvasText; background: Canvas; }
+  #nk-run-menu .nk-act-row.active { background: Highlight; color: HighlightText; }
+}
+
+/* The split-Run menu (W11.5) — the action-panel family, docked above
+   the run cluster: the run vocabulary grouped, chords printed, the
+   unavailable rows greyed with their reason (never hidden — the menu
+   teaches what exists). Instant render (keyboard-adjacent). */
+#nk-run-menu {
+  position: fixed;
+  z-index: 70;
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
+  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
+}
+#nk-run-menu .nk-act-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--nk-fg, #ddd);
+  font: 500 12px var(--nk-mono, monospace);
+  text-align: left;
+  cursor: pointer;
+}
+#nk-run-menu .nk-act-row.active {
+  background: color-mix(in srgb, var(--nk-data) 14%, transparent);
+}
+#nk-run-menu .nk-act-row kbd {
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font: 600 9.5px var(--nk-mono, monospace);
+  opacity: 0.75;
+}
+
+/* Greyed = readable, never landable (arrow nav skips; the title says
+   why) — the ElevenLabs disabled-row read. */
+.nk-act-row.nk-act-off {
+  opacity: 0.42;
+  cursor: default;
+}
+
+/* The section separator — grouped clean, one hairline. */
+.nk-act-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: color-mix(in srgb, var(--nk-ink) 14%, transparent);
 }
 
 /* The display panel (Shift+V) — the action-panel family. Off rows

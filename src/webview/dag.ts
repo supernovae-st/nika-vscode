@@ -5265,17 +5265,23 @@ class DagRenderer {
     panel.appendChild(title);
     interface Act { label: string; kbd?: string; run: () => void }
     const uri = this.currentGraph?.workflowUri;
-    const acts: Act[] = [
+    // Grouped clean (the context-menu read · W11.5): the RUN family
+    // first — run from here, its what-if twin, the failure fork — a
+    // separator, then the story/editing verbs. One registry, sections.
+    const runActs: Act[] = [
       { label: '▶ Run from here', run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }) },
       { label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+    ];
+    if (node.status === 'failed') {
+      runActs.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+    }
+    const acts: Act[] = [
+      ...runActs,
       { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
       { label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
       { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
       { label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
-    if (node.status === 'failed') {
-      acts.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
-    }
     if (node.tool?.startsWith('workflow:') === true) {
       acts.push({ label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
     }
@@ -5295,6 +5301,12 @@ class DagRenderer {
       row.addEventListener('click', () => { close(); a.run(); });
       row.addEventListener('mouseenter', () => { setActive(i); });
       panel.appendChild(row);
+      if (i === runActs.length - 1) {
+        const sep = document.createElement('div');
+        sep.className = 'nk-act-sep';
+        sep.setAttribute('role', 'separator');
+        panel.appendChild(sep);
+      }
       return row;
     });
     const setActive = (i: number): void => {
@@ -5315,6 +5327,133 @@ class DagRenderer {
     };
     window.addEventListener('keydown', onKey, true);
     document.body.appendChild(panel);
+    return true;
+  }
+
+  /** The split Run menu (W11.5 · the `│ ⌄` beside ▶ Run): the run
+   *  vocabulary in ONE grouped menu — run · run mock · what-if ⚡ ·
+   *  fork ⑂ — every row with its chord printed, the unavailable ones
+   *  greyed with their reason (the context-menu read). Same commands
+   *  the toolbar/keyboard already run; renders instantly (keyboard-
+   *  adjacent · the Kowalski law). */
+  openRunMenu(anchor: HTMLElement, requestRunFn: (preview: boolean) => void): boolean {
+    const existing = document.getElementById('nk-run-menu');
+    if (existing) { existing.remove(); return true; } // ⌄ toggles
+    const running = document.body.classList.contains('running');
+    const focusedId = this.focusedId;
+    const focused = focusedId !== null ? this.nodeMap.get(focusedId) : undefined;
+    const menu = document.createElement('div');
+    menu.id = 'nk-run-menu';
+    menu.setAttribute('role', 'menu');
+    interface Item { label: string; kbd?: string; off?: string; sep?: boolean; run?: () => void }
+    const items: Item[] = [
+      {
+        label: '▶ Run', kbd: 'R',
+        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        run: () => requestRunFn(false),
+      },
+      {
+        label: '▷ Run mock — zero keys, zero network', kbd: 'M',
+        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        run: () => requestRunFn(true),
+      },
+      { label: '', sep: true },
+      {
+        label: '⚡ What if it fails', kbd: 'X',
+        ...(focused === undefined ? { off: 'focus a card first (Tab)' } : {}),
+        run: () => { if (focusedId !== null) { this.toggleSimulate(focusedId); } },
+      },
+      {
+        label: '⑂ Fork from the failure',
+        ...(focused === undefined ? { off: 'focus a card first (Tab)' }
+          : focused.status !== 'failed' ? { off: 'the focused card has not failed' } : {}),
+        run: () => {
+          if (focused !== undefined) {
+            vscode.postMessage({
+              kind: 'dag:forkFromTask', taskId: focused.id,
+              workflowUri: this.currentGraph?.workflowUri,
+            });
+          }
+        },
+      },
+    ];
+    const rows: Array<{ el: HTMLElement; item: Item }> = [];
+    for (const item of items) {
+      if (item.sep === true) {
+        const sep = document.createElement('div');
+        sep.className = 'nk-act-sep';
+        sep.setAttribute('role', 'separator');
+        menu.appendChild(sep);
+        continue;
+      }
+      const row = document.createElement('button');
+      row.className = `nk-act-row${item.off !== undefined ? ' nk-act-off' : ''}`;
+      row.setAttribute('role', 'menuitem');
+      if (item.off !== undefined) {
+        row.setAttribute('aria-disabled', 'true');
+        row.title = item.off;
+      }
+      const label = document.createElement('span');
+      label.textContent = item.label;
+      row.appendChild(label);
+      if (item.kbd !== undefined) {
+        const kbd = document.createElement('kbd');
+        kbd.textContent = item.kbd;
+        row.appendChild(kbd);
+      }
+      row.addEventListener('click', () => {
+        if (item.off !== undefined) { return; }
+        close();
+        item.run?.();
+      });
+      row.addEventListener('mouseenter', () => {
+        const i = rows.findIndex((r) => r.el === row);
+        if (i !== -1 && item.off === undefined) { setActive(i); }
+      });
+      menu.appendChild(row);
+      rows.push({ el: row, item });
+    }
+    let active = rows.findIndex((r) => r.item.off === undefined);
+    if (active === -1) { active = 0; }
+    rows[active]?.el.classList.add('active');
+    const setActive = (i: number): void => {
+      rows[active]?.el.classList.remove('active');
+      active = ((i % rows.length) + rows.length) % rows.length;
+      rows[active]?.el.classList.add('active');
+    };
+    const step = (dir: 1 | -1): void => {
+      // Arrows skip the greyed rows (they stay readable, never land).
+      for (let n = 1; n <= rows.length; n++) {
+        const i = ((active + dir * n) % rows.length + rows.length) % rows.length;
+        if (rows[i].item.off === undefined) { setActive(i); return; }
+      }
+    };
+    const close = (): void => {
+      menu.remove();
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('mousedown', onAway, true);
+    };
+    const onAway = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node) && e.target !== anchor) { close(); }
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); step(1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); step(-1); return; }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        const item = rows[active]?.item;
+        if (item !== undefined && item.off === undefined) { close(); item.run?.(); }
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('mousedown', onAway, true);
+    document.body.appendChild(menu);
+    // Anchored ABOVE the run cluster (the omnibar docks at the bottom).
+    const r = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, r.left)}px`;
+    menu.style.bottom = `${Math.max(8, window.innerHeight - r.top + 6)}px`;
     return true;
   }
 
@@ -7470,6 +7609,10 @@ function requestRun(preview: boolean, resume = false): void {
 document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
 document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
 document.getElementById('btn-run-resume')?.addEventListener('click', () => requestRun(false, true));
+// The split ⌄ (W11.5) — the run vocabulary in one grouped menu.
+document.getElementById('btn-run-more')?.addEventListener('click', (e) => {
+  renderer.openRunMenu(e.currentTarget as HTMLElement, (preview) => requestRun(preview));
+});
 document.getElementById('btn-stop')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:cancelRun' });
 });
