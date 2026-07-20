@@ -46,6 +46,7 @@ import {
 } from './layoutCache';
 import { lineageOf, type LineageView } from '../core/lineage';
 import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
+import { CULL_MIN_NODES, boxSleeps, cullMargins, edgeSleeps } from './cullMath';
 
 // Every animation in this view is gated on the user's motion preference —
 // read LIVE: runtime gates see an OS-level toggle without a panel reload
@@ -1467,6 +1468,7 @@ const elkClient = createElkClient({
 const layoutLru = new LayoutLru(20);
 let rungLogged = false;
 let nkLayoutSeq = 0;
+let nkCullSeq = 0;
 
 // Debounced host flush — layout results are re-derivable, so losing a
 // flush costs a re-layout, never truth. 2s coalesces a burst of edits.
@@ -1871,6 +1873,20 @@ class DagRenderer {
    *  relayout frame only reuses positions from the SAME workflow (a
    *  cross-workflow reuse would leak one file's shape into another). */
   private lastLayoutScope: string | null = null;
+  /** Cards asleep offscreen (`.nk-offscreen` — DOM kept, display off).
+   *  Only populated on big graphs (annexe H §3: nodes > 150). */
+  private culledIds = new Set<string>();
+  /** Edges asleep (both endpoints asleep + union bbox clear of view). */
+  private culledEdgeIds = new Set<string>();
+  /** rAF coalescing for the cull pass (camera events outrun frames). */
+  private cullQueued = false;
+  /** Per-render DOM lookups (id → elements) — rebuilt by the FORCED
+   *  post-render pass, so camera passes never query the tree. */
+  private cullNodeEls = new Map<string, SVGGElement>();
+  private cullEdgeEls = new Map<string, Element[]>();
+  /** The follow glide's destination — protected from culling while the
+   *  camera travels toward it (it starts far offscreen by definition). */
+  private followTargetId: string | null = null;
   /** Frame 0 of stale-while-relayout is up — no ELK sections exist yet,
    *  so every wire routes as a direct curve until the worker converges. */
   private swrProvisional = false;
@@ -1938,10 +1954,9 @@ class DagRenderer {
       .attr('width', '100%')
       .attr('height', '100%');
 
-    // SVG defs: arrowhead markers + glow filter
+    // SVG defs: arrowhead markers
     const defs = this.svg.append('defs');
     this.createArrowMarkers(defs);
-    this.createGlowFilter(defs);
     // The hover chord gradient (annexe I2 · the Dify read): ONE def,
     // endpoints + stops mutated at lit time — the hovered wire paints
     // source-verb hue → target-verb hue along its chord (on a layered
@@ -2031,6 +2046,8 @@ class DagRenderer {
         // The camera reframes which live strips are IN VIEW — the
         // density cap follows (rAF-coalesced · annexe L taste 3).
         this.scheduleSpinDensity();
+        // …and which cards even paint (annexe H §3 · same coalescing).
+        this.scheduleCull();
         this.rootGroup.attr('transform', event.transform.toString());
         this.saveState({
           zoom: event.transform.k,
@@ -2116,25 +2133,8 @@ class DagRenderer {
     }
   }
 
-  private createGlowFilter(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {
-    const filter = defs
-      .append('filter')
-      .attr('id', 'glow-running')
-      .attr('x', '-20%')
-      .attr('y', '-20%')
-      .attr('width', '140%')
-      .attr('height', '140%');
-
-    filter
-      .append('feGaussianBlur')
-      .attr('in', 'SourceGraphic')
-      .attr('stdDeviation', '3')
-      .attr('result', 'blur');
-
-    const merge = filter.append('feMerge');
-    merge.append('feMergeNode').attr('in', 'blur');
-    merge.append('feMergeNode').attr('in', 'SourceGraphic');
-  }
+  // (#glow-running died here — a filter DEFINED since the first canvas
+  // commit and never once referenced by a paint rule: the free kill.)
 
   // ─── Render Pipeline ────────────────────────────────────────────────────
 
@@ -2411,6 +2411,10 @@ class DagRenderer {
     this.renderRegions();
     this.renderEdges(layoutResult.edges ?? [], graph.edges);
     this.renderNodes(layoutResult.children ?? [], graph.nodes);
+    // The render rewrote class attributes wholesale (nodeClassOf) and
+    // changed tree membership — re-apply the sleep marks and refresh the
+    // culling DOM maps in the same frame (annexe H §3 post-render pass).
+    this.cullPass(true);
   }
 
   /** Frame 0 of stale-while-relayout: survivors at their previous
@@ -2784,6 +2788,9 @@ class DagRenderer {
       r.classList.toggle('mm-dim', id !== undefined && dimNode(id));
     }
     this.syncParticles();
+    // Focus moved → the protected set moved (a jump to an offscreen card
+    // must wake it before the camera arrives).
+    this.scheduleCull();
   }
 
   /** Live text filter (`/`): non-matching fades; returns the match count. */
@@ -2841,6 +2848,9 @@ class DagRenderer {
    *  never recenter what the eye already holds. */
   private maybeFollow(taskId: string): void {
     if (!this.followRun || REDUCED_MOTION) { return; }
+    // The camera's destination may sit asleep far offscreen — mark it
+    // protected NOW so the glide never travels toward a hidden card.
+    this.followTargetId = taskId;
     const now = performance.now();
     if (now - this.lastFollowTs < 400) { return; }
     const box = this.layoutBox.get(taskId);
@@ -3519,6 +3529,11 @@ class DagRenderer {
     }
     for (const p of clone.querySelectorAll('.dag-edge.afterglow, .dag-edge.afterglow-fail')) {
       p.classList.remove('afterglow', 'afterglow-fail');
+    }
+    // Culling is a live-viewport read — the export frame is the WHOLE
+    // graph, so every sleeping card wakes in the clone (annexe H §3).
+    for (const el of clone.querySelectorAll('.nk-offscreen')) {
+      el.classList.remove('nk-offscreen');
     }
 
     // Styles travel INSIDE the file; skin rules re-anchor on :root so the
@@ -5883,6 +5898,132 @@ class DagRenderer {
     return b.x + b.w >= vp.x0 && b.x <= vp.x1 && b.y + b.h >= vp.y0 && b.y <= vp.y1;
   }
 
+  // ─── Viewport culling · offscreen sleeps, the DOM stays (annexe H §3) ─────
+
+  /** rAF-coalesced cull pass — camera handlers set the flag, one pass
+   *  runs per frame (the scheduleSpinDensity construction). Public: the
+   *  window resize listener re-passes through it too. */
+  scheduleCull(): void {
+    if (this.cullQueued) { return; }
+    this.cullQueued = true;
+    requestAnimationFrame(() => {
+      this.cullQueued = false;
+      this.cullPass();
+    });
+  }
+
+  /** Never culled, whatever the geometry says: the selected/focused card
+   *  (the deliberate canary — keyboard actions target it) · an armed
+   *  simulation's seed · the hovered card · a pinned peek · a card in
+   *  the hand (mid-drag · connect source) · the follow glide's
+   *  destination (it starts far offscreen by definition) · cards the
+   *  user pinned GRAND (the #198 mix — an explicit "keep this open"). */
+  private cullProtected(id: string): boolean {
+    return id === this.focusedId
+      || id === this.simSeed
+      || id === (this.hoverLin?.focus ?? null)
+      || (this.peekedId !== null && id === this.peekedId)
+      || id === (this.dragging?.id ?? null)
+      || id === this.connectFrom
+      || (this.followRun && id === this.followTargetId)
+      || cardOverrides[id] === 'grand';
+  }
+
+  /** One culling pass: root-space viewport vs layoutBox, screen-px
+   *  hysteresis (ENTER 200 / EXIT 500 ÷ zoom — a camera resting on a
+   *  boundary never flaps a card). Gate: nodes > CULL_MIN_NODES; below
+   *  it, zero behavior change. Toggle only — `.nk-offscreen` keeps the
+   *  DOM (no unmount, no re-entry cost) and carries zero color, so the
+   *  V0.c negative scan passes by construction. Edge quartets sleep only
+   *  when BOTH endpoints sleep AND their union bbox clears the exit
+   *  margin (a long wire crossing the screen keeps painting).
+   *
+   *  `force` = the post-render call: renders rewrite `class` wholesale
+   *  (nodeClassOf) and change tree membership, so it rebuilds the DOM
+   *  lookup maps and re-applies EVERY mark, not just the delta. */
+  private cullPass(force = false): void {
+    const total = this.currentGraph?.nodes.length ?? 0;
+    const active = total > CULL_MIN_NODES;
+    if (!force && !active && this.culledIds.size === 0) { return; }
+    const svgEl = this.svg.node();
+    if (!svgEl || svgEl.clientWidth === 0 || svgEl.clientHeight === 0) { return; }
+    if (force) { this.rebuildCullDom(); }
+    const vp = this.viewportRootRect();
+    const m = cullMargins(this.currentZoom);
+    const changed: string[] = [];
+    for (const [id, b] of this.layoutBox) {
+      const was = this.culledIds.has(id);
+      const sleeps = active && !this.cullProtected(id) && boxSleeps(b, vp, was, m);
+      if (sleeps !== was) {
+        changed.push(id);
+        if (sleeps) { this.culledIds.add(id); } else { this.culledIds.delete(id); }
+      }
+    }
+    if (force) {
+      // A workflow switch leaves ids whose elements exited with the join.
+      for (const id of this.culledIds) {
+        if (!this.layoutBox.has(id)) { this.culledIds.delete(id); }
+      }
+    }
+    if (changed.length === 0 && !force) {
+      // The common camera frame: nothing crossed a band — pure math, no
+      // DOM writes at all.
+      this.publishCullSeam(active);
+      return;
+    }
+    const applyIds = force ? this.layoutBox.keys() : changed;
+    for (const id of applyIds) {
+      this.cullNodeEls.get(id)?.classList.toggle('nk-offscreen', this.culledIds.has(id));
+    }
+    this.culledEdgeIds.clear();
+    if (active) {
+      for (const [edgeId, ends] of this.edgeEnds) {
+        const both = this.culledIds.has(ends.source) && this.culledIds.has(ends.target);
+        if (both && edgeSleeps(
+          this.layoutBox.get(ends.source), this.layoutBox.get(ends.target), true, vp, m.exit,
+        )) {
+          this.culledEdgeIds.add(edgeId);
+        }
+      }
+    }
+    for (const [edgeId, els] of this.cullEdgeEls) {
+      const off = this.culledEdgeIds.has(edgeId);
+      for (const el of els) { el.classList.toggle('nk-offscreen', off); }
+    }
+    this.publishCullSeam(active);
+  }
+
+  /** id → element lookups for the hot path — one tree walk per RENDER
+   *  (d3 keyed joins reuse elements for surviving ids, so the maps stay
+   *  true between renders; enter/exit membership refreshes here). */
+  private rebuildCullDom(): void {
+    this.cullNodeEls.clear();
+    const nodeEls = this.cullNodeEls;
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('g.dag-node').each(function (d) {
+      nodeEls.set(d.id, this);
+    });
+    this.cullEdgeEls.clear();
+    const edgeEls = this.cullEdgeEls;
+    for (const sel of ['path.dag-edge', 'path.edge-hit', 'path.edge-dir', 'text.edge-label']) {
+      this.edgeGroup.selectAll<SVGPathElement | SVGTextElement, ElkExtendedEdge>(sel)
+        .each(function (d) {
+          const arr = edgeEls.get(d.id);
+          if (arr !== undefined) { arr.push(this); } else { edgeEls.set(d.id, [this]); }
+        });
+    }
+  }
+
+  /** Judge seam (the __nkLayout construction): probes and the perf
+   *  harness read the pass state — users never do. */
+  private publishCullSeam(active: boolean): void {
+    (window as unknown as { __nkCull?: unknown }).__nkCull = {
+      seq: ++nkCullSeq,
+      active,
+      culled: this.culledIds.size,
+      culledEdges: this.culledEdgeIds.size,
+    };
+  }
+
   /** Density cap (annexe L taste 3): more than 5 live strips IN VIEW →
    *  the crowd freezes mid-frame (body.nk-spin-calm — CSS exempts the
    *  focused/hovered card) and the motion lives on the aggregate (the
@@ -7301,9 +7442,12 @@ function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: str
   });
 }
 
-// Panel resize re-scales the responsive minimap card (debounced).
+// Panel resize re-scales the responsive minimap card (debounced) and
+// re-frames the culling viewport (rAF-coalesced — a wider panel must
+// wake the cards it now shows).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 window.addEventListener('resize', () => {
+  renderer.scheduleCull();
   if (resizeTimer) { clearTimeout(resizeTimer); }
   resizeTimer = setTimeout(() => renderer.refreshMinimap(), 150);
 });

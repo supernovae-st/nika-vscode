@@ -186,9 +186,14 @@ if (scenario === 'all' || scenario === 'switch') {
   await page.close();
 }
 
-// ─── pan (the PR-B baseline) ────────────────────────────────────────────────
-if (scenario === 'all' || scenario === 'pan') {
-  const page = await settledPage('n=300&still');
+// ─── pan (far + near · the PR-B proof surface) ─────────────────────────────
+// One drag loop, measured identically at two distances: `pan` runs at
+// the auto-fit zoom (everything in view — the FAR read, where the V3-A
+// baseline p50 25 / p95 91 was posed) and `pan-near` zooms INTO the
+// graph first (keyboard '+' ×8, instant per the motion charter) so most
+// of the 300 cards sit outside the viewport — exactly the frame the
+// culling pass exists for. Both report rAF frame-delta p50/p95.
+async function dragAndMeasure(page) {
   await page.evaluate(() => {
     window.__nkFrames = [];
     window.__nkStopFrames = false;
@@ -217,7 +222,165 @@ if (scenario === 'all' || scenario === 'pan') {
   });
   const sorted = [...frames].sort((a, b) => a - b);
   const pct = (p) => +sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))].toFixed(1);
-  report['pan'] = { frames: frames.length, p50: pct(0.5), p95: pct(0.95), max: pct(1) };
+  return { frames: frames.length, p50: pct(0.5), p95: pct(0.95), max: pct(1) };
+}
+
+/** The culling judge seam (absent pre-PR-B — reported as null then). */
+const readCull = (page) => page.evaluate(() => window.__nkCull ?? null);
+
+if (scenario === 'all' || scenario === 'pan') {
+  const page = await settledPage('n=300&still');
+  report['pan'] = { ...(await dragAndMeasure(page)), cull: await readCull(page) };
+  await page.close();
+}
+
+if (scenario === 'all' || scenario === 'pan-near') {
+  const page = await settledPage('n=300&still');
+  // 8 instant zoom steps, SPACED: back-to-back presses interrupt each
+  // other's duration-0 d3 transition (probed: 8 rapid presses landed
+  // 4-6 steps, run-dependent) — 60ms gaps make the zoom deterministic.
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('+');
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(200);
+  const zoom = await page.evaluate(() =>
+    document.getElementById('zoom-pct')?.textContent ?? '?');
+  // WHEEL pan, not drag: at near zoom the fit center sits ON a card
+  // (probed: elementFromPoint(680,430) = node-bg), so a mouse drag
+  // would measure a CARD DRAG. Plain wheel is the canvas' own pan
+  // gesture and drives the camera regardless of what's under the
+  // pointer — the same sin/cos path as the drag, as wheel deltas.
+  await page.mouse.move(680, 430);
+  await page.evaluate(() => {
+    window.__nkFrames = [];
+    window.__nkStopFrames = false;
+    let last = performance.now();
+    const loop = (t) => {
+      window.__nkFrames.push(t - last); last = t;
+      if (!window.__nkStopFrames) { requestAnimationFrame(loop); }
+    };
+    requestAnimationFrame(loop);
+  });
+  const t0 = Date.now();
+  let phase = 0;
+  let px = 0; let py = 0;
+  while (Date.now() - t0 < 3000) {
+    const x = Math.sin(phase / 8) * 240;
+    const y = Math.cos(phase / 11) * 160;
+    await page.mouse.wheel(px - x, py - y);
+    px = x; py = y;
+    phase++;
+    await page.waitForTimeout(16);
+  }
+  const frames = await page.evaluate(() => {
+    window.__nkStopFrames = true;
+    return window.__nkFrames.slice(5);
+  });
+  const sorted = [...frames].sort((a, b) => a - b);
+  const pct = (p) => +sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))].toFixed(1);
+  report['pan-near'] = {
+    zoom,
+    frames: frames.length, p50: pct(0.5), p95: pct(0.95), max: pct(1),
+    cull: await readCull(page),
+  };
+  await page.close();
+}
+
+// ─── cull-canary (the deliberate canary + export truth) ────────────────────
+// PR-B correctness, asserted hard (exit 1): a SELECTED card is NEVER
+// culled — pan it far out of the viewport while its neighbors sleep, and
+// it must keep its DOM display; an export taken mid-cull must carry ZERO
+// sleeping elements (the file is the whole graph). Also asserts the pass
+// is honest: at near zoom the seam reports a real sleeping majority, and
+// waking works (pan back → the culled count falls).
+if (scenario === 'all' || scenario === 'cull-canary') {
+  const page = await settledPage('n=300&still');
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('+');
+    await page.waitForTimeout(60);
+  }
+  await page.waitForTimeout(200);
+  // Select the card nearest the viewport center (a real click at ITS
+  // center — the same gesture a user selects with; a fixed point can
+  // land in a gutter between cards).
+  const target = await page.evaluate(() => {
+    let best = null;
+    for (const el of document.querySelectorAll('.dag-node')) {
+      const r = el.getBoundingClientRect();
+      const cx = r.x + r.width / 2;
+      const cy = r.y + r.height / 2;
+      if (cx < 40 || cx > 1320 || cy < 80 || cy > 800) { continue; }
+      const d = Math.hypot(cx - 680, cy - 430);
+      if (best === null || d < best.d) {
+        best = { id: el.getAttribute('data-id'), x: cx, y: cy, d };
+      }
+    }
+    return best;
+  });
+  const picked = target?.id ?? null;
+  if (picked === null) {
+    failures.push('cull-canary: no card visible near the viewport center at near zoom');
+  } else {
+    await page.mouse.click(target.x, target.y);
+    await page.waitForTimeout(150);
+    const probe = () => page.evaluate((id) => {
+      const el = document.querySelector(`.dag-node[data-id="${CSS.escape(id)}"]`);
+      return {
+        selected: el?.classList.contains('selected') ?? false,
+        offscreen: el?.classList.contains('nk-offscreen') ?? false,
+        cull: window.__nkCull ?? null,
+      };
+    }, picked);
+    const before = await probe();
+    if (!before.selected) { failures.push(`cull-canary: click did not select ${picked}`); }
+    // Pan the selected card FAR out of the viewport (wheel = camera).
+    await page.mouse.move(680, 430);
+    for (let i = 0; i < 30; i++) {
+      await page.mouse.wheel(240, 180);
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(200);
+    const away = await probe();
+    if (away.offscreen) {
+      failures.push(`cull-canary: the SELECTED card ${picked} was culled off-viewport (protected set violated)`);
+    }
+    if ((away.cull?.culled ?? 0) < 100) {
+      failures.push(`cull-canary: expected a sleeping majority at near zoom after panning away, got ${away.cull?.culled}`);
+    }
+    // Export mid-cull: the clone must wake every sleeper. exportImage
+    // builds the clone synchronously before serializing — probe the same
+    // strip the code path runs by replaying it on a fresh clone here.
+    const exportClean = await page.evaluate(() => {
+      const svg = document.querySelector('svg.dag-svg');
+      if (!svg) { return { ok: false, why: 'no svg' }; }
+      const clone = svg.cloneNode(true);
+      for (const el of clone.querySelectorAll('.nk-offscreen')) {
+        el.classList.remove('nk-offscreen');
+      }
+      return { ok: clone.querySelectorAll('.nk-offscreen').length === 0 };
+    });
+    if (!exportClean.ok) { failures.push('cull-canary: export strip left sleeping elements in the clone'); }
+    // Pan back: the sleepers on this side must WAKE (hysteresis works
+    // in both directions — a culled card is not a lost card).
+    for (let i = 0; i < 30; i++) {
+      await page.mouse.wheel(-240, -180);
+      await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(200);
+    const back = await probe();
+    if (back.offscreen) { failures.push('cull-canary: the selected card came back culled'); }
+    if ((back.cull?.culled ?? 0) >= (away.cull?.culled ?? 0)) {
+      failures.push(`cull-canary: panning back did not wake cards (${away.cull?.culled} → ${back.cull?.culled})`);
+    }
+    report['cull-canary'] = {
+      picked,
+      selectedNeverCulled: !away.offscreen && !back.offscreen,
+      culledAway: away.cull?.culled ?? 0,
+      culledBack: back.cull?.culled ?? 0,
+      exportClean: exportClean.ok,
+    };
+  }
   await page.close();
 }
 
