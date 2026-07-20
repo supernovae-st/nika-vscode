@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+- **International keybindings + walkthrough truth** — the `⌘K` chord
+  family replaces `ctrl+alt` (the AltGr trap on EU layouts) and
+  `⌘⇧R` (macOS Refactor shadow), every binding when-scoped to nika
+  surfaces; the walkthrough shows the DAG before breaking it; the
+  break step names the blank starter honestly; DESIGN.md documents
+  the third skin and the chord family, and stops hard-counting.
+
 ### The run comes alive — braille spinners, one clock, BuildKit timer
 
 - **Run spectacle (annexe L)**: live cards spin a braille strip in the

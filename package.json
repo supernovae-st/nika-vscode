@@ -1082,32 +1082,33 @@
     "keybindings": [
       {
         "command": "nika.runWorkflow",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r",
-        "when": "resourceLangId == 'nika'"
+        "key": "ctrl+k ctrl+e",
+        "mac": "cmd+k cmd+e",
+        "when": "editorLangId == 'nika'"
       },
       {
         "command": "nika.checkWorkflow",
-        "key": "ctrl+alt+k",
-        "mac": "cmd+alt+k",
-        "when": "resourceLangId == 'nika'"
+        "key": "ctrl+k ctrl+k",
+        "mac": "cmd+k cmd+k",
+        "when": "editorLangId == 'nika'"
       },
       {
         "command": "nika.showDag",
-        "key": "ctrl+alt+d",
-        "mac": "cmd+alt+d",
-        "when": "resourceLangId == 'nika'"
+        "key": "ctrl+k ctrl+g",
+        "mac": "cmd+k cmd+g",
+        "when": "editorLangId == 'nika'"
       },
       {
         "command": "nika.addTask",
-        "key": "ctrl+alt+t",
-        "mac": "cmd+alt+t",
-        "when": "resourceLangId == 'nika'"
+        "key": "ctrl+k ctrl+n",
+        "mac": "cmd+k cmd+n",
+        "when": "editorLangId == 'nika'"
       },
       {
         "command": "nika.showMenu",
-        "key": "ctrl+alt+m",
-        "mac": "cmd+alt+m"
+        "key": "ctrl+k ctrl+m",
+        "mac": "cmd+k cmd+m",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
       }
     ],
     "languageModelTools": [
@@ -1264,17 +1265,6 @@
             ]
           },
           {
-            "id": "break",
-            "title": "Break it on purpose",
-            "description": "Your scaffold carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; hover ⑂ forks from the failure; the Runs view keeps the autopsy.\n[Run Workflow](command:nika.runWorkflow)",
-            "media": {
-              "markdown": "walkthrough/10-break.md"
-            },
-            "completionEvents": [
-              "onCommand:nika.explainCode"
-            ]
-          },
-          {
             "id": "dag",
             "title": "See the DAG",
             "description": "Visualize task dependencies · click a node to jump to its YAML.\n[Show DAG](command:nika.showDag)",
@@ -1283,6 +1273,17 @@
             },
             "completionEvents": [
               "onCommand:nika.showDag"
+            ]
+          },
+          {
+            "id": "break",
+            "title": "Break it on purpose",
+            "description": "The blank starter carries a commented `break_me:` task — uncomment it and run again. It fails BY DESIGN (offline · zero keys): the failed card carries its NIKA code where the prompt was — click it and the explain doc opens; hover ⑂ forks from the failure; the Runs view keeps the autopsy. Created yours from an engine template? Make one more workflow and pick the blank starter.\n[Run Workflow](command:nika.runWorkflow)",
+            "media": {
+              "markdown": "walkthrough/10-break.md"
+            },
+            "completionEvents": [
+              "onCommand:nika.explainCode"
             ]
           },
           {

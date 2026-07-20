@@ -1,7 +1,7 @@
 # Break it on purpose
 
-The fastest way to trust a tool is to watch it fail **well**. Your
-scaffold ships a commented curriculum failure:
+The fastest way to trust a tool is to watch it fail **well**. The
+blank starter ships a commented curriculum failure:
 
 ```yaml
   # break_me:
@@ -16,6 +16,10 @@ scaffold ships a commented curriculum failure:
 
 Uncomment it (strip the `# ` prefixes) and run again — offline, zero
 keys, deterministic.
+
+Created your file from an engine template instead? Run
+[Nika: New Workflow](command:nika.newWorkflow) once more and pick
+**blank starter** — it carries the curriculum.
 
 **What to watch:**
 
