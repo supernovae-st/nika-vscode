@@ -395,7 +395,7 @@
       {
         "command": "nika.replayTrace",
         "title": "Replay a Recorded Run (trace)",
-        "icon": "$(history)",
+        "icon": "$(debug-rerun)",
         "category": "Nika"
       },
       {

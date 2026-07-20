@@ -52,15 +52,25 @@ body {
    * state change shares this pair — the canvas feels like one instrument. */
   --nk-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --nk-dur: 140ms;
-  /* tokens v3 · annexe F — the run quantum: every spinner strip advances
-   * on multiples of --nk-dur-fast (ONE clock · annexe L taste 2). The
-   * full named duration scale lands with V0.c; these two lead. */
+  /* tokens v3 · the NAMED duration scale — every timing is a multiple of
+   * the run quantum (--nk-dur-fast · ONE clock): spinner strips advance
+   * on it, micro-state rides base, panels ride slow, ceremonies ride
+   * deliberate. --nk-dur stays as the legacy consumer value; remaps land
+   * with V0.d. */
   --nk-dur-fast: 80ms;
   --nk-dur-base: 160ms;
+  --nk-dur-slow: 240ms;
+  --nk-dur-deliberate: 400ms;
+  --nk-frame-interval: var(--nk-dur-fast);
   /* The SPRING — a gentle ~4% overshoot for arrivals (entrances · pops ·
    * the settle). A canonical linear() spring curve (Open Props family);
    * browsers without linear() fall back to --nk-ease via @supports. */
   --nk-spring: var(--nk-ease);
+  /* The two easing VOICES (tokens v3): effects (opacity · color · glow)
+   * ride the signature ease; spatial moves (position · scale · arrivals)
+   * ride the spring. Consumers migrate to the named pair in V0.d. */
+  --nk-ease-effects: var(--nk-ease);
+  --nk-ease-spatial: var(--nk-spring);
   /* The two-zone card surface (DESIGN.md §1) — skins retune VALUES only. */
   --nk-card: var(--vscode-editorWidget-background, #202020);
   --nk-card-border: var(--nk-border);
@@ -81,11 +91,28 @@ body {
   --nk-st-muted: var(--vscode-editorLineNumber-foreground, #858585);
   --nk-critical: var(--vscode-charts-yellow, #cca700);
   /* The 4 verb hues — SEMANTIC canon (nika.sh tokens.css), same in both
-   * skins: a verb's color is language identity, not theme decoration. */
-  --nk-verb-infer: #5b8cff;
-  --nk-verb-exec: #ff7a3c;
-  --nk-verb-invoke: #22d3ee;
-  --nk-verb-agent: #b07bff;
+   * skins: a verb's color is language identity, not theme decoration.
+   * tokens v3 · canon + alias: the -canon name holds the hex ONCE and is
+   * never skinned (the phosphor wake reads it, so the resting desaturation
+   * can never shadow the woken chroma); skins retune the PLAIN name only. */
+  --nk-verb-infer-canon: #5b8cff;
+  --nk-verb-exec-canon: #ff7a3c;
+  --nk-verb-invoke-canon: #22d3ee;
+  --nk-verb-agent-canon: #b07bff;
+  --nk-verb-infer: var(--nk-verb-infer-canon);
+  --nk-verb-exec: var(--nk-verb-exec-canon);
+  --nk-verb-invoke: var(--nk-verb-invoke-canon);
+  --nk-verb-agent: var(--nk-verb-agent-canon);
+  /* Verb TEXT ramps (tokens v3 · APCA ≥Lc60 on #0d0d0e AND #1c1d21) — the
+   * readable voice of each verb for prose-weight ink. Defined + gated now,
+   * consumed in V0.d (.vp-* · .nc-pol-* · trail crumbs · essence rows);
+   * invoke's base hue already passes, so its ramp is the identity. Interim
+   * pins — swap to NIKA_VERB_TEXT rows at the spec pin-bump. */
+  --nk-verb-infer-text: #90b4ff;
+  --nk-verb-exec-text: #ff9a6f;
+  --nk-verb-invoke-text: #22d3ee;
+  --nk-verb-agent-text: #c5a4ff;
+  --nk-st-failed-text: #ff9791;
   /* The one skeuomorphic constant: a 1px light catch on top edges. */
   --nk-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --nk-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.22);
@@ -720,7 +747,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
    Class flips only — zero animation (reduced-motion safe by construction). */
 
 .dag-node.lin-direct .node-bg {
-  stroke: var(--nk-accent, #5b8cff);
+  stroke: var(--nk-accent);
   stroke-opacity: 0.5;
 }
 
@@ -733,7 +760,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 .dag-edge.lin-path.edge-data {
-  stroke: var(--nk-accent, #5b8cff);
+  stroke: var(--nk-accent);
   stroke-width: 2;
 }
 
@@ -1898,6 +1925,25 @@ body[data-nk-theme='nika'] {
   --nk-st-retrying: #e0b071;
   --nk-st-muted: #5a606b;
   --nk-critical: #e6b873;
+  /* tokens v3 · the bright-accent seam: --nk-accent-bright IS the brand's
+   * accentBright (design-tokens.generated.ts NIKA_BRAND — the parity belt
+   * pins it); every blue tint/hairline in this skin derives from it via
+   * color-mix, so « ONE blue » is structural, not discipline. */
+  --nk-accent-bright: #8db4ff;
+  --nk-hairline-accent: color-mix(in srgb, var(--nk-accent-bright) 14%, transparent);
+  /* The deck chrome — the near-black instrument face under ports and the
+   * omnibar (extension-local: no spec row yet). */
+  --nk-chrome: #0a0d12;
+  /* The aurora voices (declared ONCE · spoken at a live run's close):
+   * the clean-close hue sweep, and the danger ring whose vivid stops ARE
+   * the skin's failed voice. */
+  --nk-aurora-sweep: conic-gradient(from 210deg,
+    #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be,
+    #32ade6, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30);
+  --nk-aurora-danger-deep: #7a1622;
+  --nk-aurora-danger: conic-gradient(from 210deg,
+    var(--nk-st-failed), var(--nk-aurora-danger-deep), var(--nk-st-failed),
+    var(--nk-aurora-danger-deep), var(--nk-st-failed));
   --nk-shadow-1: 0 1px 3px rgb(0 0 0 / 0.35), 0 1px 2px -1px rgb(0 0 0 / 0.35);
   --nk-shadow-2: 0 1px 3px rgb(0 0 0 / 0.35), 0 24px 48px -24px rgb(0 20 60 / 0.5);
   /* Bayer 4×4 print-grain (BRAND-11 ditherpunk) — not turbulence noise. */
@@ -1982,7 +2028,7 @@ body[data-nk-theme='nika'] #plan-rail {
 }
 
 body[data-nk-theme='nika'] #dag-toolbar button:hover {
-  background: rgb(141 180 255 / 0.08);
+  background: color-mix(in srgb, var(--nk-accent-bright) 8%, transparent);
 }
 
 /* Transport · machined deck — grain + blue hairline, Martian readout
@@ -1990,15 +2036,15 @@ body[data-nk-theme='nika'] #dag-toolbar button:hover {
 body[data-nk-theme='nika'] #transport {
   background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
   background-image: var(--nk-grain);
-  border-color: rgb(140 170 255 / 0.12);
+  border-color: color-mix(in srgb, var(--nk-accent-bright) 12%, transparent);
 }
 
 body[data-nk-theme='nika'] #tr-play:hover {
-  background: rgb(141 180 255 / 0.08);
+  background: color-mix(in srgb, var(--nk-accent-bright) 8%, transparent);
 }
 
 body[data-nk-theme='nika'] .tr-tick {
-  background: rgb(141 180 255 / 0.45);
+  background: color-mix(in srgb, var(--nk-accent-bright) 45%, transparent);
 }
 
 /* Module FACES (§4b): the nika card is a machined module — grain print
@@ -2019,17 +2065,17 @@ body[data-nk-theme='nika'] .nc-tile {
 /* Data circulation · the nika wire settles brand-blue; the particle
  * train (tokens, re-scoped above) carries the movement. */
 body[data-nk-theme='nika'] .dag-edge.flowing {
-  stroke: rgb(141 180 255 / 0.75);
+  stroke: color-mix(in srgb, var(--nk-accent-bright) 75%, transparent);
   stroke-linecap: round;
 }
 
 body[data-nk-theme='nika'] .legend-chip {
   background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
-  border-color: rgb(140 170 255 / 0.14);
+  border-color: var(--nk-hairline-accent);
 }
 
 body[data-nk-theme='nika'] #progress-track {
-  background: rgb(140 170 255 / 0.14);
+  background: color-mix(in srgb, var(--nk-accent-bright) 14%, transparent);
 }
 
 /* nika pins the brand CTA (the editor skin rides the theme's). */
@@ -2042,7 +2088,7 @@ body[data-nk-theme='nika'] {
 body[data-nk-theme='nika'] .es-button {
   color: var(--nk-cta-ink);
   background: var(--nk-cta);
-  border-color: rgb(140 170 255 / 0.25);
+  border-color: color-mix(in srgb, var(--nk-accent-bright) 25%, transparent);
 }
 
 body[data-nk-theme='nika'] .es-button:hover {
@@ -2073,9 +2119,7 @@ body[data-nk-theme='nika'] #aurora::before {
   inset: 0;
   border-radius: 18px;
   padding: 13px;
-  background: conic-gradient(from 210deg,
-    #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be,
-    #32ade6, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30);
+  background: var(--nk-aurora-sweep);
   filter: blur(26px) saturate(1.15);
   /* Ring mask — compositing op stays INSIDE the shorthand (minifier-safe). */
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -2102,7 +2146,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora {
 }
 
 body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
-  background: conic-gradient(from 210deg, #ff5d5d, #7a1622, #ff5d5d, #7a1622, #ff5d5d);
+  background: var(--nk-aurora-danger);
 }
 
 /* ─── Search / filter · `/` opens, Esc clears ───────────────────────────── */
@@ -2171,8 +2215,8 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 .dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-ok, #3fb950); }
 .dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-err, #f85149); }
 .dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying, #d29922); }
-.dag-node[data-diff='output-changed'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
-.dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent, #22d3ee); }
+.dag-node[data-diff='output-changed'] .diff-badge { fill: var(--nk-accent); }
+.dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent); }
 .dag-node[data-diff='removed'] { opacity: 0.55; }
 .dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-fg-mute, #8a93a6); }
 
@@ -3473,18 +3517,18 @@ body.lod-far .edge-hit { pointer-events: none; }
 
 /* nika skin refinements for the card + bar */
 body[data-nk-theme='nika'] .nc-chip {
-  background: rgb(141 180 255 / 0.06);
-  border-color: rgb(140 170 255 / 0.16);
+  background: color-mix(in srgb, var(--nk-accent-bright) 6%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent-bright) 16%, transparent);
 }
 
 body[data-nk-theme='nika'] .nc-port {
-  fill: #0a0d12;
-  stroke: rgb(140 170 255 / 0.35);
+  fill: var(--nk-chrome);
+  stroke: color-mix(in srgb, var(--nk-accent-bright) 35%, transparent);
 }
 
 body[data-nk-theme='nika'] #omnibar {
-  background: color-mix(in srgb, #0a0d12 92%, transparent);
-  border-color: rgb(140 170 255 / 0.14);
+  background: color-mix(in srgb, var(--nk-chrome) 92%, transparent);
+  border-color: var(--nk-hairline-accent);
 }
 
 /* ─── Run controls · the pill's left wing ───────────────────────────────── */
@@ -4433,13 +4477,13 @@ body.welcome #dag-status {
 
 /* Ghost button must out-specify the nika-skin primary fill. */
 body[data-nk-theme='nika'] .es-button-ghost {
-  color: #f4f5f7;
-  background: rgb(141 180 255 / 0.08);
-  border-color: rgb(140 170 255 / 0.20);
+  color: var(--nk-ink);
+  background: color-mix(in srgb, var(--nk-accent-bright) 8%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent-bright) 20%, transparent);
 }
 
 body[data-nk-theme='nika'] .es-button-ghost:hover {
-  background: rgb(141 180 255 / 0.14);
+  background: color-mix(in srgb, var(--nk-accent-bright) 14%, transparent);
 }
 
 /* ─── Forced-colors coverage for the new chips (F-8) ─────────────────────
@@ -4645,12 +4689,12 @@ body[data-nk-theme='editor'].vscode-light #minimap,
 body[data-nk-theme='editor'].vscode-light #activity,
 body[data-nk-theme='editor'].vscode-light #scrubber,
 body[data-nk-theme='editor'].vscode-light #transport {
-  background: #ffffff;
+  background: var(--nk-card);
   border-color: rgb(0 0 0 / 0.1);
 }
 
 body[data-nk-theme='editor'].vscode-light .legend-chip {
-  background: #ffffff;
+  background: var(--nk-card);
   border-color: rgb(0 0 0 / 0.1);
   box-shadow: var(--nk-shadow-1);
 }
@@ -5016,15 +5060,17 @@ body[data-nk-theme='phosphor'].lod-far #dag-container {
 /* The wake rule — full verb chroma EXACTLY while the task is live.
  * Attribute + three classes out-specify the resting .dag-node.verb-*
  * assignment; retrying keeps its amber dot (status voice) while the
- * tile/soul/ring pick the woken hue. */
+ * tile/soul/ring pick the woken hue. Reads the -canon name (tokens v3):
+ * the skin's desaturation retunes the PLAIN token only, so the woken
+ * chroma is structurally un-shadowable. */
 body[data-nk-theme='phosphor'] .dag-node.verb-infer.status-running,
-body[data-nk-theme='phosphor'] .dag-node.verb-infer.status-retrying { --dv-hue: #5b8cff; }
+body[data-nk-theme='phosphor'] .dag-node.verb-infer.status-retrying { --dv-hue: var(--nk-verb-infer-canon); }
 body[data-nk-theme='phosphor'] .dag-node.verb-exec.status-running,
-body[data-nk-theme='phosphor'] .dag-node.verb-exec.status-retrying { --dv-hue: #ff7a3c; }
+body[data-nk-theme='phosphor'] .dag-node.verb-exec.status-retrying { --dv-hue: var(--nk-verb-exec-canon); }
 body[data-nk-theme='phosphor'] .dag-node.verb-invoke.status-running,
-body[data-nk-theme='phosphor'] .dag-node.verb-invoke.status-retrying { --dv-hue: #22d3ee; }
+body[data-nk-theme='phosphor'] .dag-node.verb-invoke.status-retrying { --dv-hue: var(--nk-verb-invoke-canon); }
 body[data-nk-theme='phosphor'] .dag-node.verb-agent.status-running,
-body[data-nk-theme='phosphor'] .dag-node.verb-agent.status-retrying { --dv-hue: #b07bff; }
+body[data-nk-theme='phosphor'] .dag-node.verb-agent.status-retrying { --dv-hue: var(--nk-verb-agent-canon); }
 
 /* ─── L1 · the timeline lens (an alternate reading of the SAME panel:
  * body.timeline sleeps the map, the rows speak — One-DOM law) ────── */

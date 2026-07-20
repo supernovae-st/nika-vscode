@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { NIKA_VERB_HEX, NIKA_STATUS } from '../design-tokens.generated'
+import { NIKA_VERB_HEX, NIKA_STATUS, NIKA_BRAND } from '../design-tokens.generated'
 
 /* ── the dag.css ↔ SSOT structural gate ───────────────────────────────────────
    The webview stylesheet hand-authors two vocabulary surfaces that must BE
@@ -20,10 +20,39 @@ import { NIKA_VERB_HEX, NIKA_STATUS } from '../design-tokens.generated'
 const css = readFileSync(join(__dirname, '../webview/dag.css'), 'utf8')
 
 describe('dag.css · the hand-typed vocabulary IS the generated SSOT', () => {
-  it('the 4 verb hues match NIKA_VERB_HEX (every skin shares them)', () => {
+  it('the 4 verb hues match NIKA_VERB_HEX — canon holds the hex once, the plain name aliases it', () => {
     for (const [verb, hex] of Object.entries(NIKA_VERB_HEX)) {
-      expect(css, `--nk-verb-${verb}`).toContain(`--nk-verb-${verb}: ${hex};`)
+      expect(css, `--nk-verb-${verb}-canon`).toContain(`--nk-verb-${verb}-canon: ${hex};`)
+      expect(css, `--nk-verb-${verb} alias`).toContain(`--nk-verb-${verb}: var(--nk-verb-${verb}-canon);`)
     }
+  })
+
+  it('the phosphor wake reads the canon var — the desaturation can never shadow it', () => {
+    for (const verb of Object.keys(NIKA_VERB_HEX)) {
+      expect(css, `wake ${verb}`).toContain(`--dv-hue: var(--nk-verb-${verb}-canon);`)
+    }
+  })
+
+  it('the verb TEXT ramps carry the APCA interim pins (swap to NIKA_VERB_TEXT at the pin-bump)', () => {
+    /* interim literal pins — the spec companion PR (design-tokens-v3) adds
+       verbs.<v>.text + severity.fail_text rows; the moment the SPEC_PIN
+       bumps and NIKA_VERB_TEXT / NIKA_SEVERITY_TEXT land in the projection,
+       swap these literals for the imports (tokens-parity step 7 already
+       compares both directions once the rows exist). */
+    const interim: Record<string, string> = {
+      infer: '#90b4ff',
+      exec: '#ff9a6f',
+      invoke: '#22d3ee',
+      agent: '#c5a4ff',
+    }
+    for (const [verb, hex] of Object.entries(interim)) {
+      expect(css, `--nk-verb-${verb}-text`).toContain(`--nk-verb-${verb}-text: ${hex};`)
+    }
+    expect(css, '--nk-st-failed-text').toContain('--nk-st-failed-text: #ff9791;')
+  })
+
+  it('the nika skin bright accent IS NIKA_BRAND.accentBright (typed import, both directions)', () => {
+    expect(css).toContain(`--nk-accent-bright: ${NIKA_BRAND.accentBright};`)
   })
 
   it('the NIKA skin status block is NIKA_STATUS, verbatim and contiguous', () => {
