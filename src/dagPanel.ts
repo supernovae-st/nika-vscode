@@ -16,6 +16,7 @@ import * as crypto from 'crypto';
 import type { DagGraph, TaskStatus, ToolMeta } from './core/cliContract';
 import type { TraceTimeline } from './core/traceTimeline';
 import type { TimelineEntry } from './core/traceFold';
+import type { PersistedLayoutEntry } from './webview/layoutCache';
 import { SurfacedPaths } from './core/webviewPathGuard';
 
 export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract';
@@ -74,6 +75,9 @@ export type ExtToWebviewMessage =
   // under « loading <name>… » until dag:load clears it. Reveal-then-fill,
   // so a slow first spawn never shows a dead click.
   | { kind: 'dag:loading'; name: string }
+  // Layout cache seed (workspaceState → webview LRU) — sent in dag:ready
+  // BEFORE dag:load so a resurrected panel's first render can hit.
+  | { kind: 'dag:layoutCache'; entries: PersistedLayoutEntry[] }
   // The welcome (empty canvas): recent workflows for the resume list.
   | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
@@ -128,7 +132,10 @@ export type WebviewToExtMessage =
   // command · describe → the oracle-checked generate flow.
   | { kind: 'welcome:open'; uri: string }
   | { kind: 'welcome:cmd'; command: string }
-  | { kind: 'welcome:describe'; text: string };
+  | { kind: 'welcome:describe'; text: string }
+  // Debounced layout-cache flush (webview LRU → workspaceState) — laid
+  // results are re-derivable, so the store is opaque best-effort state.
+  | { kind: 'dag:layoutCacheStore'; entries: PersistedLayoutEntry[] };
 
 /** Edit requests bubbled to the extension (applied as YAML text edits). */
 export type DagEditRequest = Extract<
@@ -214,6 +221,13 @@ export class DagPanel implements vscode.Disposable {
     private readonly onOpenSub?: (path: string, workflowUri?: string) => void,
     /** Breadcrumb segment click — open that trail document. */
     private readonly onOpenTrail?: (uri: string) => void,
+    /** Cross-session ELK layout cache (workspaceState · the columnStore
+     *  pattern) — the webview LRU seeds from it at dag:ready and
+     *  flushes back debounced; entries are opaque to the host. */
+    private readonly layoutCacheStore?: {
+      get(): PersistedLayoutEntry[] | undefined;
+      set(entries: PersistedLayoutEntry[]): void;
+    },
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -770,6 +784,14 @@ export class DagPanel implements vscode.Disposable {
         this.onOpenPreflight?.();
         break;
       case 'dag:ready':
+        // Layout cache seed FIRST — before dag:load, so the very first
+        // render of a resurrected panel can hit instead of re-laying.
+        {
+          const laidEntries = this.layoutCacheStore?.get();
+          if (laidEntries !== undefined && laidEntries.length > 0) {
+            this.postMessage({ kind: 'dag:layoutCache', entries: laidEntries });
+          }
+        }
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
           this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
@@ -802,6 +824,11 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:nodeClicked':
         this.onNodeClicked?.(msg.taskId, msg.workflowUri);
+        break;
+
+      case 'dag:layoutCacheStore':
+        // Opaque, re-derivable, workspace-scoped — store as-is.
+        this.layoutCacheStore?.set(msg.entries);
         break;
 
       case 'dag:openSub':
@@ -983,6 +1010,11 @@ export class DagPanel implements vscode.Disposable {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'out', 'webview', 'dag.js'),
     );
+    // The ELK layout worker — the webview boots it via a meta tag (a
+    // Worker script rides worker-src, never the script nonce).
+    const workerUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'out', 'webview', 'elkWorker.js'),
+    );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'out', 'webview', 'dag.css'),
     );
@@ -1010,6 +1042,8 @@ export class DagPanel implements vscode.Disposable {
       `default-src 'none'`,
       `style-src ${webview.cspSource} 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
+      // The ELK layout worker (direct URI rung) + its blob fallback rung.
+      `worker-src ${webview.cspSource} blob:`,
       `img-src ${webview.cspSource} data:`,
       `font-src ${webview.cspSource}`,
       // Recorded audio artifacts play ON the card (workspace-rooted).
@@ -1025,6 +1059,7 @@ export class DagPanel implements vscode.Disposable {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
+  <meta id="nk-worker-uri" data-uri="${workerUri}">
   <link rel="stylesheet" href="${styleUri}">
   <style>
     @font-face {

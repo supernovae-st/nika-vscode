@@ -1486,7 +1486,7 @@
     "vscode:prepublish": "npm run clean && npm run compile",
     "clean": "rm -rf out",
     "compile": "npm run typecheck && node esbuild.mjs",
-    "typecheck": "tsc -p ./ && tsc --noEmit --strict --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts",
+    "typecheck": "tsc -p ./ && tsc --noEmit --strict --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts src/webview/elkWorker.ts",
     "watch": "node esbuild.mjs --watch",
     "lint": "eslint src",
     "parity": "node scripts/parity.mjs",

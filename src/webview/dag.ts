@@ -1,7 +1,10 @@
 // dag.ts — ELK.js layered layout + D3.js SVG rendering for Nika DAG visualization
 //
 // Runs inside VS Code webview (browser context). Bundled as IIFE by esbuild.
-// elkjs/lib/elk.bundled.js is aliased by esbuild — no Web Worker needed.
+// elkjs/lib/elk.bundled.js is aliased by esbuild. Layout runs OFF the main
+// thread when it can (elkClient ladder: Worker → blob Worker → the sync
+// main-thread call, byte-identical) and remembers itself (layoutCache LRU,
+// host-persisted) — the canvas paints stale-while-relayout on a miss.
 //
 // D3 imports are selective (d3-selection, d3-zoom, d3-shape, d3-transition)
 // to keep the bundle under 700 KB instead of 1.5 MB with the full d3 package.
@@ -36,6 +39,11 @@ import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
 import type { TraceTimeline } from '../core/traceTimeline';
 import { createTransport } from './transport';
 import { makeCategoryGlyph, makeVerbGlyph } from './verbGlyphs';
+import { createElkClient } from './elkClient';
+import {
+  LayoutLru, layoutHashOf, compactLaid, expandLaid,
+  type LayoutKeyNode, type LayoutKeyEdge, type PersistedLayoutEntry,
+} from './layoutCache';
 import { lineageOf, type LineageView } from '../core/lineage';
 import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
 
@@ -490,6 +498,9 @@ type ExtToWebviewMessage =
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
   | { kind: 'dag:loading'; name: string }
+  // Host-persisted layout cache (workspaceState) — seeds the LRU at
+  // dag:ready so a resurrected panel can hit before its first layout.
+  | { kind: 'dag:layoutCache'; entries: PersistedLayoutEntry[] }
   | { kind: 'welcome:data'; recent: Array<{ name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } }>; binaryMissing?: boolean };
 
 // ─── VS Code API ────────────────────────────────────────────────────────────
@@ -1317,48 +1328,79 @@ function toggleCardAudio(taskId: string, src: string, btn: HTMLButtonElement): v
 
 const elk = new ELK();
 
-/** Convert DagGraph into ELK input, run layout, return positioned result */
-async function computeLayout(graph: DagGraph): Promise<ElkNode> {
-  const elkGraph: ElkNode = {
+/** Convert DagGraph into ELK input — PURE (no layout call): the client
+ *  ships this to the worker; the cache keys derive from it. With `prev`
+ *  (a re-layout that painted a stale-while-relayout frame) the request
+ *  carries INTERACTIVE hints + the previous positions so ELK preserves
+ *  the mental map instead of re-deriving it — the COLD path keeps the
+ *  full production option set untouched. */
+function buildElkGraph(
+  graph: DagGraph,
+  prev?: ReadonlyMap<string, { x: number; y: number }>,
+): ElkNode {
+  const layoutOptions: Record<string, string> = {
+    'elk.algorithm': 'layered',
+    'elk.direction': 'DOWN',
+    'elk.spacing.nodeNode': '40',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '60',
+    'elk.edgeRouting': 'ORTHOGONAL',
+    'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+    // Straightness is the workflow-canvas quality metric — value
+    // wires that run plumb read as flow, not as routing accidents.
+    'elk.layered.nodePlacement.favorStraightEdges': 'true',
+    'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+    // The canvas is a READ projection of a YAML file: source order
+    // is the author's order — layout follows it (diff-stable across
+    // re-projections; a one-line edit never reshuffles the map).
+    'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+    // Recovery/backward reads route as explicit feedback loops
+    // instead of cutting through the layer stack.
+    'elk.layered.feedbackEdges': 'true',
+    // Typed edges are never merged into hyperedge stubs — each kind
+    // keeps its own path (the vocabulary needs its own ink).
+    'elk.layered.mergeEdges': 'false',
+    'elk.spacing.edgeNode': '24',
+    'elk.spacing.edgeEdge': '12',
+    // Labels are LAYOUT participants (annexe I2 · the mermaid-elk
+    // recipe): declared boxes make ELK reserve space and route the
+    // wire AROUND its own label — the structural anti-collision the
+    // midpoint drop could never give.
+    'elk.spacing.edgeLabel': '8',
+    'elk.layered.spacing.edgeNodeBetweenLayers': '20',
+    'elk.layered.spacing.edgeEdgeBetweenLayers': '15',
+    'elk.padding': `[top=${PADDING},left=${PADDING},bottom=${PADDING},right=${PADDING}]`,
+    'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
+  };
+  if (prev !== undefined) {
+    // The hinted (stale-while-relayout) option set — measured on the
+    // captured live request at n=300 (median of 3 · cold MV9 = 2.9s):
+    //   crossMin INTERACTIVE alone            2567ms  (89% — useless)
+    //   + drop considerModelOrder             1666ms  (58%)
+    //   + nodePlacement BRANDES_KOEPF          136ms  (4.7% ✓)
+    // cycleBreaking INTERACTIVE (the annexe-C candidate) measured
+    // TOXIC on snapped hints (5.5s vs 2.1s without) — the default
+    // (GREEDY) stays. considerModelOrder exists to keep COLD layouts
+    // diff-stable; on a hinted request the positions THEMSELVES carry
+    // that stability, and the two orderings fight. BRANDES_KOEPF
+    // activates the dormant bk.fixedAlignment BALANCED below — the
+    // convergence pass is pixel-judged (stills ×3 skins), the cold
+    // path never sees any of this.
+    layoutOptions['elk.layered.crossingMinimization.strategy'] = 'INTERACTIVE';
+    layoutOptions['elk.layered.nodePlacement.strategy'] = 'BRANDES_KOEPF';
+    delete layoutOptions['elk.layered.considerModelOrder.strategy'];
+  }
+  return {
     id: 'root',
-    layoutOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': 'DOWN',
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '60',
-      'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-      // Straightness is the workflow-canvas quality metric — value
-      // wires that run plumb read as flow, not as routing accidents.
-      'elk.layered.nodePlacement.favorStraightEdges': 'true',
-      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      // The canvas is a READ projection of a YAML file: source order
-      // is the author's order — layout follows it (diff-stable across
-      // re-projections; a one-line edit never reshuffles the map).
-      'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-      // Recovery/backward reads route as explicit feedback loops
-      // instead of cutting through the layer stack.
-      'elk.layered.feedbackEdges': 'true',
-      // Typed edges are never merged into hyperedge stubs — each kind
-      // keeps its own path (the vocabulary needs its own ink).
-      'elk.layered.mergeEdges': 'false',
-      'elk.spacing.edgeNode': '24',
-      'elk.spacing.edgeEdge': '12',
-      // Labels are LAYOUT participants (annexe I2 · the mermaid-elk
-      // recipe): declared boxes make ELK reserve space and route the
-      // wire AROUND its own label — the structural anti-collision the
-      // midpoint drop could never give.
-      'elk.spacing.edgeLabel': '8',
-      'elk.layered.spacing.edgeNodeBetweenLayers': '20',
-      'elk.layered.spacing.edgeEdgeBetweenLayers': '15',
-      'elk.padding': `[top=${PADDING},left=${PADDING},bottom=${PADDING},right=${PADDING}]`,
-      'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
-    },
-    children: graph.nodes.map((node) => ({
-      id: node.id,
-      width: NODE_WIDTH,
-      height: nodeHeightOf(node),
-    })),
+    layoutOptions,
+    children: graph.nodes.map((node) => {
+      const p = prev?.get(node.id);
+      return {
+        id: node.id,
+        width: NODE_WIDTH,
+        height: nodeHeightOf(node),
+        ...(p !== undefined ? { x: p.x, y: p.y } : {}),
+      };
+    }),
     edges: graph.edges.map((edge) => {
       // Mono metrics, never DOM measure (the Dagster law): 10px
       // Martian Mono ≈ 6px/char + breathing room.
@@ -1382,18 +1424,73 @@ async function computeLayout(graph: DagGraph): Promise<ElkNode> {
       };
     }),
   };
+}
 
-  const laid = await elk.layout(elkGraph);
-  // Post-layout grid snap (the n8n read): every card rounds to the 8px
-  // survey grid — crisp hairlines at 1x, horizontally agreeing wire
-  // runs, the manual-alignment feel for free. Edges re-derive from the
-  // snapped boxes (edgePathFor reads node positions, never stale ELK
-  // bendpoints for the straight runs).
+/** Post-layout grid snap (the n8n read): every card rounds to the 8px
+ *  survey grid — crisp hairlines at 1x, horizontally agreeing wire
+ *  runs, the manual-alignment feel for free. Edges re-derive from the
+ *  snapped boxes (edgePathFor reads node positions, never stale ELK
+ *  bendpoints for the straight runs). Main-side, post-worker — the
+ *  cache stores the SNAPPED result. */
+function snapLaid(laid: ElkNode): ElkNode {
   for (const child of laid.children ?? []) {
     if (typeof child.x === 'number') { child.x = Math.round(child.x / 8) * 8; }
     if (typeof child.y === 'number') { child.y = Math.round(child.y / 8) * 8; }
   }
   return laid;
+}
+
+/** Cache-key parts, derived from the BUILT elk graph — the key covers
+ *  exactly what ELK sees (heights included), never what it doesn't
+ *  (positions · statuses · manualPos · zoom). */
+function layoutKeyPartsOf(elkGraph: ElkNode): { nodes: LayoutKeyNode[]; edges: LayoutKeyEdge[] } {
+  return {
+    nodes: (elkGraph.children ?? []).map((c) => ({ id: c.id, h: c.height ?? 0 })),
+    edges: (elkGraph.edges ?? []).map((e) => ({
+      id: e.id,
+      source: e.sources[0] ?? '',
+      target: e.targets[0] ?? '',
+      labelLen: e.labels?.[0]?.text?.length ?? 0,
+    })),
+  };
+}
+
+// The layout transport + memory. The worker URI arrives on a meta tag
+// (the scriptUri pattern — dagPanel stamps it; the harness poses its
+// own); a page without one (or ?noworker) runs the sync rung, which is
+// the exact pre-worker code path.
+const elkClient = createElkClient({
+  workerUrl: document.getElementById('nk-worker-uri')?.getAttribute('data-uri') ?? null,
+  forceSync: new URLSearchParams(location.search).has('noworker'),
+  syncLayout: (g) => elk.layout(g),
+});
+const layoutLru = new LayoutLru(20);
+let rungLogged = false;
+let nkLayoutSeq = 0;
+
+// Debounced host flush — layout results are re-derivable, so losing a
+// flush costs a re-layout, never truth. 2s coalesces a burst of edits.
+let cachePersistTimer: number | undefined;
+function scheduleCachePersist(): void {
+  if (cachePersistTimer !== undefined) { window.clearTimeout(cachePersistTimer); }
+  cachePersistTimer = window.setTimeout(() => {
+    cachePersistTimer = undefined;
+    vscode.postMessage({ kind: 'dag:layoutCacheStore', entries: layoutLru.toPersist() });
+  }, 2000);
+}
+
+/** The layout note (>100 nodes): big graphs sit in ELK for seconds —
+ *  the canvas must never be silently blank meanwhile. Skipped when a
+ *  stale-while-relayout frame already painted (pixels beat prose). */
+function showLayoutNote(count: number): void {
+  let note = document.getElementById('nk-layout-note');
+  if (!note) {
+    note = document.createElement('div');
+    note.id = 'nk-layout-note';
+    note.setAttribute('role', 'status');
+    document.body.appendChild(note);
+  }
+  note.textContent = `laying out ${count} tasks…`;
 }
 
 // ─── D3 SVG Renderer ────────────────────────────────────────────────────────
@@ -1770,6 +1867,13 @@ class DagRenderer {
   private waveOf = new Map<string, number>();
   /** node id → laid-out box (centerOn · editor-driven focus). */
   private layoutBox = new Map<string, { x: number; y: number; w: number; h: number }>();
+  /** Which workflow the live layoutBox belongs to — the stale-while-
+   *  relayout frame only reuses positions from the SAME workflow (a
+   *  cross-workflow reuse would leak one file's shape into another). */
+  private lastLayoutScope: string | null = null;
+  /** Frame 0 of stale-while-relayout is up — no ELK sections exist yet,
+   *  so every wire routes as a direct curve until the worker converges. */
+  private swrProvisional = false;
   /** Live zoom transform (kept to preserve scale while centering). */
   private currentZoom = 1;
   /** The one floating + riding a hovered dependency wire (insert-on-edge). */
@@ -2049,18 +2153,10 @@ class DagRenderer {
   }
 
   private async renderCore(graph: DagGraph): Promise<void> {
-    // Big graphs sit in ELK for seconds (300 nodes ≈ 3.6s measured
-    // 2026-07-19) — the canvas must never be silently blank meanwhile.
-    if (graph.nodes.length > 100) {
-      let note = document.getElementById('nk-layout-note');
-      if (!note) {
-        note = document.createElement('div');
-        note.id = 'nk-layout-note';
-        note.setAttribute('role', 'status');
-        document.body.appendChild(note);
-      }
-      note.textContent = `laying out ${graph.nodes.length} tasks…`;
-    }
+    // The layout note rises INSIDE the inner pass (it knows whether a
+    // cache hit or a stale-while-relayout frame already put pixels up —
+    // 300 nodes ≈ 3.6s measured 2026-07-19 was the blank it kills);
+    // whatever happened, it never survives the pass.
     try {
       await this.renderCoreInner(graph);
     } finally {
@@ -2069,6 +2165,9 @@ class DagRenderer {
   }
 
   private async renderCoreInner(graph: DagGraph): Promise<void> {
+    // Perf seam (always on — marks are nanosecond writes): nk:layout ·
+    // nk:swr-frame · nk:paint-final measure from here.
+    performance.mark('nk:render-start');
     // A new graph is a new admission world — an armed simulation from
     // the previous document must not haunt this one.
     if (this.simSeed !== null && this.currentGraph !== graph) { this.clearSimulation(); }
@@ -2133,51 +2232,88 @@ class DagRenderer {
 
     this.saveState({ graph });
 
-    const layoutResult = await computeLayout(graph);
-
-    // Hand-dragged positions override the ELK result — presentation only
-    // (the YAML stays the truth); edges touching a moved card re-route as
-    // direct curves since their ELK sections no longer apply.
-    for (const child of layoutResult.children ?? []) {
-      const m = this.manualPos.get(child.id);
-      if (m) { child.x = m.x; child.y = m.y; }
-    }
-
-    // Update toolbar
-    const titleEl = document.getElementById('dag-title');
-    if (titleEl) titleEl.textContent = graph.workflowName;
-
-    // Loaded → the empty state yields to the canvas, chrome comes back.
-    document.getElementById('empty-state')?.setAttribute('hidden', '');
-    document.body.classList.remove('welcome');
-
-    // A workflow with ZERO tasks is an ARRIVAL, not a graph: the
-    // centered describe bar takes the stage (type the intent, or add
-    // the first task from the bar/N) and leaves as the first task lands.
-    const describeHost = document.getElementById('canvas-describe');
-    if (describeHost) {
-      const arriving = graph.nodes.length === 0;
-      const wasHidden = describeHost.hasAttribute('hidden');
-      describeHost.toggleAttribute('hidden', !arriving);
-      if (arriving && wasHidden) {
-        (document.getElementById('cd-input') as HTMLInputElement | null)?.focus();
+    // ── Layout: cache hit → worker (stale-while-relayout) → paint ──────
+    const scope = layoutKeyOf(graph);
+    // A graph WITHOUT a workflowUri has no durable identity — replayed
+    // traces and sketches synthesize uri-less graphs whose NAME can
+    // collide across genuinely different workflows (refuter-proven:
+    // two traces both named `deploy`). No identity → no cache, no
+    // position reuse; such graphs always lay out cold.
+    const cacheable = graph.workflowUri !== undefined;
+    const elkGraph = buildElkGraph(graph);
+    const parts = layoutKeyPartsOf(elkGraph);
+    const hash = layoutHashOf(scope, parts.nodes, parts.edges);
+    performance.mark('nk:layout-start');
+    let layoutResult: ElkNode;
+    let cacheHit = false;
+    let swrPainted = false;
+    let elkMs = 0;
+    const cached = cacheable ? layoutLru.get(hash) : undefined;
+    if (cached !== undefined) {
+      // The remembered SNAPPED result — no ELK, no worker, no wait.
+      layoutResult = expandLaid(cached, NODE_WIDTH);
+      cacheHit = true;
+    } else {
+      // Stale-while-relayout: when the SAME workflow's previous pass
+      // placed ≥50% of these nodes, paint frame 0 NOW — survivors at
+      // their position, newcomers at the centroid of their placed
+      // neighbors, wires as direct curves (the manualPos path). The
+      // worker then converges positions and the existing 300ms update
+      // transition IS the FLIP.
+      const prev: Map<string, { x: number; y: number }> | undefined =
+        cacheable && this.lastLayoutScope === scope && this.layoutBox.size > 0
+          ? new Map([...this.layoutBox].map(([id, b]) => [id, { x: b.x, y: b.y }]))
+          : undefined;
+      const known = prev !== undefined
+        ? graph.nodes.reduce((n, node) => n + (prev.has(node.id) ? 1 : 0), 0)
+        : 0;
+      const useSwr = prev !== undefined
+        && graph.nodes.length > 0
+        && known / graph.nodes.length >= 0.5;
+      if (useSwr) {
+        this.paintProvisional(graph, prev);
+        swrPainted = true;
+        performance.measure('nk:swr-frame', 'nk:render-start');
+      } else if (graph.nodes.length > 100) {
+        showLayoutNote(graph.nodes.length);
+      }
+      // Re-layouts carry INTERACTIVE hints + previous positions (mental
+      // map preserved, ELK time down); the COLD request is the full
+      // production option set, untouched.
+      const request = useSwr ? buildElkGraph(graph, prev) : elkGraph;
+      // Re-mark: nk:layout times the layout WAIT — the provisional
+      // paint above has its own measure (nk:swr-frame) and the whole
+      // pass has nk:paint-final; overlapping windows would double-count.
+      // The wait still absorbs main-side painting of the SWR frame —
+      // the ENGINE's own clock rides the response as elkMs.
+      performance.mark('nk:layout-start');
+      const laidRes = await elkClient.layout(hash, request);
+      if (laidRes === null) {
+        // Superseded — a newer render owns the canvas; abandon quietly.
+        return;
+      }
+      layoutResult = snapLaid(laidRes.laid);
+      elkMs = laidRes.elkMs;
+      if (cacheable) {
+        layoutLru.set(hash, compactLaid(layoutResult));
+        scheduleCachePersist();
       }
     }
-
-    // Remember laid-out boxes for editor-driven centerOn.
-    this.layoutBox.clear();
-    for (const n of layoutResult.children ?? []) {
-      this.layoutBox.set(n.id, {
-        x: n.x ?? 0, y: n.y ?? 0,
-        w: n.width ?? NODE_WIDTH, h: n.height ?? NODE_HEIGHT,
-      });
+    performance.measure('nk:layout', 'nk:layout-start');
+    this.lastLayoutScope = cacheable ? scope : null;
+    if (!rungLogged) {
+      rungLogged = true;
+      console.info(`[nika-dag] layout rung: ${elkClient.rung()}`);
     }
 
-    // Wave bands at the back, then edges, then nodes.
-    this.renderWaveBands(waves.length);
-    this.renderRegions();
-    this.renderEdges(layoutResult.edges ?? [], graph.edges);
-    this.renderNodes(layoutResult.children ?? [], graph.nodes);
+    this.swrProvisional = false;
+    this.paintLaid(layoutResult, graph);
+    performance.measure('nk:paint-final', 'nk:render-start');
+    // Judge seam: the settled layout + how it was produced (a property
+    // write — the perf/equivalence probes read it, users never do).
+    (window as unknown as { __nkLayout?: unknown }).__nkLayout = {
+      seq: ++nkLayoutSeq, rung: elkClient.rung(), hash, cacheHit, swr: swrPainted, elkMs, laid: layoutResult,
+    };
 
     // A focus carried over from a DIFFERENT workflow (follow-mode
     // retarget) would dim the entire new graph — drop it (lineage too:
@@ -2226,6 +2362,97 @@ class DagRenderer {
       this.pendingCenter = undefined;
       this.focusAndCenter(target);
     }
+  }
+
+  /** The paint tail — one code path for the provisional frame AND the
+   *  final laid result, so the d3 update joins tween between them (the
+   *  existing 300ms transform transition IS the FLIP). */
+  private paintLaid(layoutResult: ElkNode, graph: DagGraph): void {
+    // Hand-dragged positions override the ELK result — presentation only
+    // (the YAML stays the truth); edges touching a moved card re-route as
+    // direct curves since their ELK sections no longer apply.
+    for (const child of layoutResult.children ?? []) {
+      const m = this.manualPos.get(child.id);
+      if (m) { child.x = m.x; child.y = m.y; }
+    }
+
+    // Update toolbar
+    const titleEl = document.getElementById('dag-title');
+    if (titleEl) titleEl.textContent = graph.workflowName;
+
+    // Loaded → the empty state yields to the canvas, chrome comes back.
+    document.getElementById('empty-state')?.setAttribute('hidden', '');
+    document.body.classList.remove('welcome');
+
+    // A workflow with ZERO tasks is an ARRIVAL, not a graph: the
+    // centered describe bar takes the stage (type the intent, or add
+    // the first task from the bar/N) and leaves as the first task lands.
+    const describeHost = document.getElementById('canvas-describe');
+    if (describeHost) {
+      const arriving = graph.nodes.length === 0;
+      const wasHidden = describeHost.hasAttribute('hidden');
+      describeHost.toggleAttribute('hidden', !arriving);
+      if (arriving && wasHidden) {
+        (document.getElementById('cd-input') as HTMLInputElement | null)?.focus();
+      }
+    }
+
+    // Remember laid-out boxes for editor-driven centerOn.
+    this.layoutBox.clear();
+    for (const n of layoutResult.children ?? []) {
+      this.layoutBox.set(n.id, {
+        x: n.x ?? 0, y: n.y ?? 0,
+        w: n.width ?? NODE_WIDTH, h: n.height ?? NODE_HEIGHT,
+      });
+    }
+
+    // Wave bands at the back, then edges, then nodes.
+    this.renderWaveBands(this.waveCount);
+    this.renderRegions();
+    this.renderEdges(layoutResult.edges ?? [], graph.edges);
+    this.renderNodes(layoutResult.children ?? [], graph.nodes);
+  }
+
+  /** Frame 0 of stale-while-relayout: survivors at their previous
+   *  position, newcomers at the centroid of their placed neighbors
+   *  (else of everything placed), wires as direct curves — the exact
+   *  manualPos rendering path, no new mechanism. */
+  private paintProvisional(graph: DagGraph, prev: ReadonlyMap<string, { x: number; y: number }>): void {
+    const placed = new Map<string, { x: number; y: number }>();
+    for (const n of graph.nodes) {
+      const p = prev.get(n.id);
+      if (p !== undefined) { placed.set(n.id, p); }
+    }
+    let gx = 0; let gy = 0;
+    for (const p of placed.values()) { gx += p.x; gy += p.y; }
+    const fallback = placed.size > 0
+      ? { x: gx / placed.size, y: gy / placed.size }
+      : { x: 0, y: 0 };
+    const posOf = (id: string): { x: number; y: number } => {
+      const own = placed.get(id);
+      if (own !== undefined) { return own; }
+      let nx = 0; let ny = 0; let count = 0;
+      for (const up of this.upstreamOf.get(id) ?? []) {
+        const p = placed.get(up);
+        if (p !== undefined) { nx += p.x; ny += p.y; count++; }
+      }
+      for (const down of this.downstreamOf.get(id) ?? []) {
+        const p = placed.get(down);
+        if (p !== undefined) { nx += p.x; ny += p.y; count++; }
+      }
+      return count > 0 ? { x: nx / count, y: ny / count } : fallback;
+    };
+    const provisional: ElkNode = {
+      id: 'root',
+      children: graph.nodes.map((n) => {
+        const p = posOf(n.id);
+        return { id: n.id, x: p.x, y: p.y, width: NODE_WIDTH, height: nodeHeightOf(n) };
+      }),
+      // No sections yet — swrProvisional routes every wire direct.
+      edges: graph.edges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
+    };
+    this.swrProvisional = true;
+    this.paintLaid(provisional, graph);
   }
 
   /**
@@ -5164,7 +5391,9 @@ class DagRenderer {
    *  (its ELK sections describe a layout the card has left). */
   private edgePathFor(edge: ElkExtendedEdge): string {
     const ends = this.edgeEnds.get(edge.id);
-    if (ends && (this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
+    // The provisional frame has no ELK sections — every wire rides the
+    // direct-curve path (the same rendering a hand-dragged card gets).
+    if (ends && (this.swrProvisional || this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
       return this.edgePathDirect(ends.source, ends.target);
     }
     return this.smoothEdges ? this.edgePathSmooth(edge) : this.edgePath(edge);
@@ -5187,16 +5416,18 @@ class DagRenderer {
   private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
     // ELK placed this label as a layout participant — its coords are
     // the collision-free truth (top-left; center it · mermaid consume
-    // rule). Manual drags fall back to the live midpoint below.
+    // rule). Manual drags — and the provisional stale-while-relayout
+    // frame, which has no placed labels — fall back to the live
+    // midpoint below.
     const ends0 = this.edgeEnds.get(edge.id);
     const dragged = ends0 !== undefined
-      && (this.manualPos.has(ends0.source) || this.manualPos.has(ends0.target));
+      && (this.swrProvisional || this.manualPos.has(ends0.source) || this.manualPos.has(ends0.target));
     const placed = edge.labels?.[0];
     if (!dragged && placed && typeof placed.x === 'number' && typeof placed.y === 'number') {
       return [placed.x + (placed.width ?? 0) / 2, placed.y + (placed.height ?? 0) / 2];
     }
     const ends = this.edgeEnds.get(edge.id);
-    if (ends && (this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
+    if (ends && (this.swrProvisional || this.manualPos.has(ends.source) || this.manualPos.has(ends.target))) {
       const s = this.layoutBox.get(ends.source);
       const t = this.layoutBox.get(ends.target);
       if (s && t) {
@@ -6333,6 +6564,11 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'dag:loading':
       showLoadingSkeleton(msg.name);
+      break;
+    case 'dag:layoutCache':
+      // Host-persisted layout memory (arrives BEFORE dag:load) — a
+      // resurrected panel's first render can hit instead of re-laying.
+      layoutLru.seed(msg.entries);
       break;
     case 'dag:fitToView':
       renderer.fitToView();

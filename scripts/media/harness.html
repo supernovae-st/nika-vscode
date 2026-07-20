@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- The ELK layout worker (the panel stamps its own via asWebviewUri).
+       Under file:// the Worker ctor AND fetch refuse the URL — the
+       ladder lands on the sync rung, byte-identical layout; serve the
+       repo over http (scripts/perf/measure.mjs) to exercise the worker. -->
+  <meta id="nk-worker-uri" data-uri="../../out/webview/elkWorker.js">
   <link rel="stylesheet" href="../../out/webview/dag.css">
   <title>Nika DAG gif harness</title>
   <script>

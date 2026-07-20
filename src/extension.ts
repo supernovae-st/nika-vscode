@@ -32,6 +32,7 @@ import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { subCreateAllowed } from './core/webviewPathGuard';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
+import type { PersistedLayoutEntry } from './webview/layoutCache';
 import {
   addAfterEntry,
   deleteTask,
@@ -1726,6 +1727,13 @@ export function activate(context: ExtensionContext): void {
           await window.showTextDocument(doc);
         } catch { /* a deleted trail file — the next follow clears it */ }
       })();
+    },
+    // Cross-session ELK layout cache (the columnStore pattern): the
+    // webview's LRU seeds from workspaceState at dag:ready and flushes
+    // back debounced — layouts survive panel disposal without re-ELK.
+    {
+      get: () => context.workspaceState.get<PersistedLayoutEntry[]>('nika.layoutCache.v1'),
+      set: (entries) => { void context.workspaceState.update('nika.layoutCache.v1', entries); },
     },
   );
   state.activeDagPanel = dagPanel;
