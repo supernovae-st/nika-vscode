@@ -250,4 +250,47 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
     ].join('\n'));
     expect(facts.get('a')?.maxParallel).toBeUndefined();
   });
+
+  it('reads the for_each collection as written (unquoted interpolation — the spec form)', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  crawl:',
+      '    for_each: ${{ with.pages }}',
+      '    invoke:',
+      '      tool: nika:fetch',
+      '      args:',
+      '        url: ${{ item }}',
+      '  quiet:',
+      '    exec: echo hi',
+    ].join('\n'));
+    expect(facts.get('crawl')?.forEachSource).toBe('${{ with.pages }}');
+    expect(facts.get('quiet')?.forEachSource).toBeUndefined();
+  });
+
+  it('for_each alone earns the entry, quoted forms unwrap one quote layer', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  fan:',
+      '    for_each: "${{ tasks.list.output }}"',
+      '    exec: echo ${{ item }}',
+    ].join('\n'));
+    expect(facts.get('fan')?.forEachSource).toBe('${{ tasks.list.output }}');
+  });
+
+  it('a with-alias named for_each cannot impersonate the construct', () => {
+    const facts = collectBodyFacts([
+      'nika: v1',
+      'workflow: probe',
+      'tasks:',
+      '  a:',
+      '    exec: echo hi',
+      '    with:',
+      '      for_each: phantom',
+    ].join('\n'));
+    expect(facts.get('a')?.forEachSource).toBeUndefined();
+  });
 });

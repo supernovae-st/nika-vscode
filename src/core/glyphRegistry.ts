@@ -60,7 +60,7 @@ export const POLICY_GLYPH = {
   thinking: { glyph: '∴', sense: 'extended thinking budget' },
   vision: { glyph: CATEGORY_GLYPH.media, sense: 'image inputs ride the prompt (cognate of the media frame — sanctioned)' },
   typed: { glyph: '⊨', sense: 'proven assertion — typed output shape · a condition essence' },
-  parallel: { glyph: '∥', sense: 'fan-out concurrency cap' },
+  parallel: { glyph: '∥', sense: 'fan-out — the for_each construct (source row ∥ items ← x · concurrency cap ∥ max N)' },
   finally: { glyph: '◈', sense: 'on_finally cleanup steps' },
   outputs: { glyph: '⤳', sense: 'declared outputs' },
   gate: { glyph: '⌁', sense: 'a when: condition gate' },

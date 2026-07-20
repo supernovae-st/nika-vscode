@@ -183,6 +183,8 @@ export interface DagNode {
    *  from ITS engine projection (each file's truth stays its own; the
    *  parent never invents a rollup the engine has not blessed). */
   subManifest?: SubManifest;
+  /** `for_each:` — the fan-out's collection, as written (client YAML read). */
+  forEachSource?: string;
   /** `max_parallel:` — the fan-out's concurrency cap. */
   maxParallel?: number;
   /** `fail_fast: false` — per-item error handling (skip-and-report). */

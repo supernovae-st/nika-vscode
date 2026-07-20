@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The four voices — each verb speaks its anatomy
+
+- **infer speaks prose**: the prompt wears a 2px quote-rail in the verb's canon hue next to its « » marks — the ask reads as a quotation; rail and quotes leave together when the recorded output swaps in (data is not a quotation).
+- **exec speaks terminal**: `$ cmd` sits in a machine window — verb rail, ink-wash ground, strict mono (mono now holds in the editor skin too). The frame HOLDS through the settle: `→ stdout` keeps talking in the same window.
+- **invoke makes the tool the hero**: the one anatomy reorder — the essence (the tool's soul) leads the card and reads half a point larger; the mechanism line (`invoke · ⚒ nika:jq`) becomes the caption. Heights are safe by construction (`nodeHeightOf` is an order-independent sum).
+- **agent shows its loop, structured**: the loop/budget facts promote from prose into a LOOP BAND under the goal — `turn 3 · saw 5/12 tools` plus an HONEST budget meter: a declared budget fills a ratio bar in the agent text voice; totals without a ceiling stay a bare counter (a bar would invent the denominator). nudged/stalled/compose stay prose facts; live folds refresh the band through the one card re-painter.
+- **the fan-out names its collection**: `for_each:` now reads onto the card as an io-grammar row — `∥ items ← x` (a sole wrapping `${{ … }}` unwraps; the title keeps the source verbatim) — the ×N badge counts the iterations, this row says what they map over. Client YAML lane, same discipline as every policy fact (a `with:` alias can never impersonate the construct).
+- **DESIGN.md §1c + §2c**: the four voices table and the connected-grammar map (every flow construct → its one canvas surface).
+
 ### The dead surfaces animate — history tree, report links
 
 - **Run History is a native tree**: the cross-run grid's `command:` links were dead in the markdown preview at all three stages of the runtime (client allowlist · webview without command uris · link validation) — a clickable-looking affordance that did nothing. `Nika: Run History` now loads a when-gated `Run History` view: tasks partitioned by attention (`Flaky — N` mixed outcomes · `Slowing — N` trend past the noise floor · `Steady — N`, folded — a lone healthy pile dissolves to flat, a lone alarm section keeps its name), every task row wearing the grid's own glyph strip and median, click focuses the task on the DAG (the view knows its workflow — never « whatever editor is active »).

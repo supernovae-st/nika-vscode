@@ -35,6 +35,9 @@ export interface BodyFacts {
   thinkingBudget?: number;
   /** infer `vision:` — image inputs riding the prompt (list count). */
   visionCount?: number;
+  /** `for_each:` — the fan-out's collection, as written (spec 03 ·
+   *  `${{ ref }}` unquoted is the spec's own form). First line only. */
+  forEachSource?: string;
   /** `max_parallel:` — the fan-out's concurrency cap (spec 03). */
   maxParallel?: number;
   /** `fail_fast:` — false = per-item error handling (the « process N ·
@@ -215,6 +218,11 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         else { onErrorIndent = indent; }
       } else if (indent === taskIndent && name === 'output') {
         outputIndent = indent;
+      } else if (indent === taskIndent && name === 'for_each' && fact.forEachSource === undefined) {
+        // Task-level only — a `with:` alias named for_each can never
+        // impersonate the construct (same discipline as timeout).
+        const v = scalarAt(lines, i, indent);
+        if (v) { fact.forEachSource = clamp(v).split('\n')[0]; }
       } else if (indent === taskIndent && name === 'max_parallel' && fact.maxParallel === undefined) {
         const n = Number(line.slice(line.indexOf(':') + 1).trim());
         if (Number.isInteger(n) && n >= 1) { fact.maxParallel = n; }
@@ -273,7 +281,8 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         || fact.onError !== undefined || fact.toolsCount !== undefined
         || fact.outputNames !== undefined || fact.finallyCount !== undefined
         || fact.thinkingBudget !== undefined || fact.visionCount !== undefined
-        || fact.maxParallel !== undefined || fact.failFast !== undefined) {
+        || fact.maxParallel !== undefined || fact.failFast !== undefined
+        || fact.forEachSource !== undefined) {
       facts.set(task.id, fact);
     }
   }
