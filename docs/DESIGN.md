@@ -1,8 +1,10 @@
 # The canvas design system · nika-vscode
 
-The visual contract of the DAG webview. One anatomy, two registers
-(skins), one status grammar. Every rule lives in `src/webview/dag.css`
-behind the `--nk-*` token seam — rules consume tokens, never raw colors.
+The visual contract of the DAG webview. One anatomy, a family of skin
+registers (the `nika.dag.theme` enum in `package.json` is the living
+roster — never count skins here), one status grammar. Every rule lives
+in `src/webview/dag.css` behind the `--nk-*` token seam — rules
+consume tokens, never raw colors.
 
 References studied (2026-07-05): **ElevenLabs Flows** (floating-chrome
 canvas · satellite meta rows · port chips · the detail bar), **Well
@@ -173,9 +175,10 @@ I* (hero: the mark, the wordmark, one honest tagline), *how do I
 start* (a describe→generate bar — type a sentence, ✨ hands it to
 `nika.generateWorkflow` — then New / Examples / Replay / All
 commands), *what can this do* (recent `*.nika.yaml` from the
-workspace by mtime, then the capability map: eight one-line commands
-— check · report · inspect · permits · explain · spec · AI prompt ·
-MCP setup — every button a real `nika.*` command).
+workspace by mtime, then the capability map: the one-line commands
+— every button a real `nika.*` command; the living roster is the
+`es-caps` block in `dagPanel.ts`, gated by `WELCOME_COMMANDS` in
+`extension.ts` — count it there, never here).
 
 Rules: the canvas chrome RETRACTS (`body.welcome` hides toolbar,
 omnibar, minimap, legend, activity — no dead controls over the door;
@@ -186,7 +189,7 @@ scrollable card, single-column ≤460px. The sidebar tree mirrors the
 same door natively via `viewsWelcome` — logo-less, three verbs and
 the palette hint — so the first click can happen in either surface.
 
-## 4 · The two registers
+## 4 · The skin registers
 
 ### `nika` (default · the brand ambiance · always dark)
 
@@ -227,6 +230,14 @@ sharpen the craft:
 - **Dark — the Well read**: near-black page, visible dot grid,
   `editorWidget` cards, white hairlines (0.09 → 0.14 hover), inset top
   light catch, tight shadows.
+
+### `phosphor` (OLED · `nika.dag.theme: "phosphor"`)
+
+The contract, repatriated from the setting's `enumDescription` (the
+enum in `package.json` stays the living roster — this section mirrors
+it): true-black OLED register, phosphor-green ink, hairlines; verb
+chroma sleeps at rest and wakes only on LIVE tasks. An explicit
+choice — `auto` never picks it.
 
 `nika.dag.theme: "auto"` resolves live: the brand skin on dark
 themes, the adaptive skin on light — re-resolved on every theme
@@ -423,6 +434,29 @@ engine projection.
    that silently adds a gesture to a journey fails the suite. Run it
    with the harness flags toolchain
    (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
+
+## 7b · The editor chord family (contributes.keybindings)
+
+Every editor-side gesture lives on the `⌘K` chord prefix (`Ctrl+K` on
+Windows/Linux), second stroke modified — the native VS Code pattern
+for secondary chords — and every binding is when-scoped to
+`editorLangId == 'nika'` (the menu also answers from the canvas via
+`activeWebviewPanelId == 'nika.dagView'`):
+
+| gesture | chord | mnemonic |
+|---|---|---|
+| Check workflow | `⌘K ⌘K` | the anchor doubled — checK |
+| Run workflow | `⌘K ⌘E` | Execute |
+| Show DAG | `⌘K ⌘G` | Graph |
+| Add task | `⌘K ⌘N` | New task |
+| Menu | `⌘K ⌘M` | Menu |
+
+Why a chord family: plain `ctrl+alt+<letter>` IS AltGr on EU layouts
+(typing `€` or `@` fired commands), `ctrl+alt+t` is the GNOME
+terminal chord, and `cmd+shift+r` shadowed macOS Refactor inside nika
+files. The second strokes (E · G · K · M · N) are free in the default
+keymap, so nothing native is shadowed. Single keys on the canvas (the
+lens deck — `?` teaches them) are webview-focus scoped and unchanged.
 
 ## 8 · Voice — the twelve rules
 

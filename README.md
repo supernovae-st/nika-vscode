@@ -169,7 +169,7 @@ theme*, not to extensions:
   initializationOptions, no double-reporting)
 - **Syntax + snippets + semantic scopes** for the 4-verb surface · every
   snippet is own-corpus tested against `nika check`
-- **Add Task from anywhere** (`⌘⌥T` · `Nika: Add Task`) · one picker
+- **Add Task from anywhere** (`⌘K ⌘N` · `Nika: Add Task`) · one picker
   speaking the canvas palette's vocabulary · the 4 verbs and every
   builtin as a pre-wired `invoke:` (the binary's own catalog with its
   descriptions when present) · the skeleton lands after the task under
