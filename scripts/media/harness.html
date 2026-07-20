@@ -66,9 +66,9 @@
     </div>
     <div class="tb-group">
       <button id="btn-waves">≋<kbd>W</kbd></button>
-      <button id="btn-timeline">▤<kbd>T</kbd></button>
+      <button id="btn-timeline">▧<kbd>T</kbd></button>
       <button id="btn-audit">▦<kbd>P</kbd></button>
-      <button id="btn-dataflow">⧉<kbd>D</kbd></button>
+      <button id="btn-dataflow">⇉<kbd>D</kbd></button>
       <button id="btn-curve">∿</button>
       <button id="btn-heat">▥<kbd>H</kbd></button>
       <button id="btn-follow">⌖<kbd>G</kbd></button>
@@ -84,7 +84,7 @@
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">
-      <span class="cd-mark" aria-hidden="true">✨</span>
+      <span class="cd-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
       <input id="cd-input" type="text"
              placeholder="Describe this workflow — the tasks land checked by the engine…"
              aria-label="Describe the workflow to generate">
@@ -120,9 +120,40 @@
     <div class="es-card">
       <div class="es-hero"><div class="es-word">Nika</div>
       <div class="es-tag">The workflow canvas — audited before a token is spent.</div></div>
+      <form id="es-describe" autocomplete="off">
+        <input id="es-describe-input" type="text"
+               placeholder="Describe your workflow — “fetch HN, rank, post the brief to Slack”…"
+               aria-label="Describe the workflow to generate">
+        <button id="es-describe-go" type="submit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+      </form>
+      <div id="es-binary" hidden role="status">
+        <span class="es-binary-mark" aria-hidden="true">⚠</span>
+        <span class="es-binary-text">The nika engine is not on this machine — every check, graph
+        and run needs it.</span>
+        <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
+      </div>
+      <div class="es-actions" role="toolbar" aria-label="Start">
+        <button id="es-new" class="es-button">＋ New workflow</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Examples</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
+      </div>
       <div id="es-recent" hidden>
         <div class="es-sec">Recent in this workspace</div>
         <div id="es-recent-list"></div>
+      </div>
+      <div class="es-sec">What Nika does here</div>
+      <div class="es-caps">
+        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check — static pre-flight</button>
+        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>▩</span>Preflight — cost · secrets · keys</button>
+        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>⊞</span>Run history — flaky · trends</button>
+        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>⎙</span>Pre-flight report</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>
+        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span>¶</span>Explain the workflow</button>
+        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span>§</span>Embedded spec</button>
+        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⇗</span>Copy AI authoring prompt</button>
+        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>⎓</span>Setup MCP + agent rules</button>
       </div>
     </div>
   </div>
@@ -138,7 +169,7 @@
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
-      <button id="btn-run-resume" class="rc-resume" hidden>↻ changed</button>
+      <button id="btn-run-resume" class="rc-resume" hidden>Δ changed</button>
       <button id="btn-run-mock" class="rc-mock">▶ mock</button>
       <button id="btn-stop" class="rc-stop" hidden>■ Stop</button>
     </div>

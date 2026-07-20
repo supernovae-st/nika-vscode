@@ -177,7 +177,7 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
           if (at) {
             md.appendMarkdown(`  \n**shape** \`${renderShape(at)}\` — from \`${task.id}\`'s \`schema:\` (engine-proven at check-time)`);
           } else {
-            md.appendMarkdown(`  \n⚠️ \`${ref.path.slice(1).join('.')}\` is NOT in \`${task.id}\`'s declared schema \`${renderShape(shape)}\` — \`nika check\` will flag it`);
+            md.appendMarkdown(`  \n⚠ \`${ref.path.slice(1).join('.')}\` is NOT in \`${task.id}\`'s declared schema \`${renderShape(shape)}\` — \`nika check\` will flag it`);
           }
         } else if (shape) {
           md.appendMarkdown(`  \n**output shape** \`${renderShape(shape)}\``);
@@ -232,7 +232,7 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
         return new vscode.Hover(md, wordRange);
       }
       const md = new vscode.MarkdownString();
-      md.appendMarkdown(`⚠️ \`${word}\` is NOT in the embedded builtin set — \`nika check\` will flag it.`);
+      md.appendMarkdown(`⚠ \`${word}\` is NOT in the embedded builtin set — \`nika check\` will flag it.`);
       return new vscode.Hover(md, wordRange);
     }
 

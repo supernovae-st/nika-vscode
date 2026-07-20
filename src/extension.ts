@@ -1025,7 +1025,7 @@ export function activate(context: ExtensionContext): void {
   const loadGraphFor = async (doc: TextDocument) => {
     const text = doc.getText();
     const graph = await service.dagForDocument(doc);
-    // The ↻ re-run-changed affordance rides the binary's ADR-099 surface.
+    // The Δ re-run-changed affordance rides the binary's ADR-099 surface.
     graph.resumeCapable = service.caps.resume;
     try {
       const avgs = await collectTaskAverages(new Set(graph.nodes.map((n) => n.id)));
@@ -1340,13 +1340,15 @@ export function activate(context: ExtensionContext): void {
         dagPanel.note('✕', `task deleted · ${request.taskId}`, undefined, 'st-note');
         break;
       case 'dag:duplicateTask':
-        dagPanel.note('⧉', `task duplicated · ${request.taskId} → ${revealTask ?? '?'}`, revealTask, 'st-note');
+        dagPanel.note('❏', `task duplicated · ${request.taskId} → ${revealTask ?? '?'}`, revealTask, 'st-note');
         break;
       case 'dag:insertOnEdge':
         dagPanel.note('＋', `${revealTask ?? '?'} spliced into ${request.from} → ${request.to}`, revealTask, 'st-note');
         break;
       case 'dag:editModel':
-        dagPanel.note('⌁', `model changed · ${request.taskId}`, request.taskId, 'st-note');
+        // Δ = the what-changed family (glyphRegistry) — ⌁ stays the
+        // when:-gate's own mark, never a change note.
+        dagPanel.note('Δ', `model changed · ${request.taskId}`, request.taskId, 'st-note');
         break;
       case 'dag:omni':
         dagPanel.note('＋', `task added from the bar${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
@@ -1778,10 +1780,10 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
-  // ↻ re-run what changed — `run --resume <newest trace>` (ADR-099). The
+  // Δ re-run what changed — `run --resume <newest trace>` (ADR-099). The
   // ENGINE decides the dirty slice by def_hash/input_hash; unchanged
   // tasks cache-hit their recorded output. ONE flow shared by the canvas
-  // ↻ button and the `nika.resumeWorkflow` palette command.
+  // Δ button and the `nika.resumeWorkflow` palette command.
   async function resumeWorkflowFlow(uriLike?: Uri | string): Promise<void> {
     const doc = await requireNikaDocument(uriLike ?? dagWorkflowUri);
     if (!doc) { return; }
@@ -1933,7 +1935,7 @@ export function activate(context: ExtensionContext): void {
         onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
       });
     }),
-    // Command: ↻ resume — the palette twin of the canvas button (ADR-099).
+    // Command: Δ resume — the palette twin of the canvas button (ADR-099).
     commands.registerCommand('nika.resumeWorkflow', async (uri?: Uri) => {
       await resumeWorkflowFlow(uri);
     }),

@@ -6,6 +6,32 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### One glyph, one sense — the registry
+
+- **The glyph registry**: `src/core/glyphRegistry.ts` declares every
+  sense-bearing mark once ({glyph · sense · wordedOnly}); the five
+  status maps (history cells · editor badges · run report · activity
+  feed · live feed) import THE quartet — the skipped/cancelled/cached
+  dialects are unrepresentable by construction. The squatters moved
+  out: timeline `▧` · dataflow `⇉` · examples `⧈` · run history `⊞` ·
+  preflight `▩` · report `⎙` · copy-prompt `⇗` · MCP `⎓` · canvas
+  `⊡` · duplicate `❏` · replay `⟲` · resume `Δ changed` · cached `○`
+  · event `⚑` · fail-fast `⊗` — retry keeps `↻`, what-if keeps `⚡`,
+  files keep `▤`, data keeps `⧉`.
+- **Emoji leave the mono registry**: the welcome CTAs speak in text;
+  the describe bar's generate mark is the house sparkle SVG
+  (currentColor — forced-colors for free); the shield and no-entry
+  marks yield to `▩` and `✗ fail`.
+- **The activity quartet unified**: the canvas feed and the live-run
+  feed narrate skipped/cancelled with the recorded quartet ✓ ✗ ↷ ⊘ —
+  no dialect between surfaces, worded bypass (`⤼ skip` · `⤼ per-item`)
+  stays a policy chip.
+- **Legend swatches tell the truth**: the three rows that shared one
+  blue swatch now carry their own (policy outline · data wire ·
+  lineage fade); the card row reads `❏ duplicate`. Belt:
+  `scripts/glyph-registry.mjs` in `npm test` — registry-sync · banned
+  vocabulary never returns · worded-only marks hold.
+
 ### Tokens v3 — the seam speaks, raw colors die
 
 - **Verb canon + alias**: `--nk-verb-<v>-canon` holds each verb hex

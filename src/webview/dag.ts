@@ -21,6 +21,7 @@ import 'd3-transition';
 
 import { topoWaves, criticalPath } from '../core/cliContract';
 import { resolveCardIdentity, splitEssence, CATEGORY_GLYPH as IDENTITY_GLYPHS } from '../core/cardIdentity';
+import { STATUS_CHAR } from '../core/glyphRegistry';
 import type { AgentFacts } from '../core/traceFold';
 import { convexHull, deriveAuditFacts, type PermitDomain } from '../core/auditLens';
 import { formatUsd as formatTlUsd, type TimelineData } from '../core/timelineModel';
@@ -821,7 +822,7 @@ function paintBodyRest(
     ess.textContent = split.essence.render === 'condition'
       ? `⊨ ${split.essence.value}`
       : split.essence.render === 'event'
-      ? `⚡ ${split.essence.value}`
+      ? `⚑ ${split.essence.value}`
       : split.essence.value;
     ess.title = `${split.essence.key}: ${split.essence.value}`;
     el.appendChild(ess);
@@ -904,7 +905,7 @@ function cardFactsOf(node: DagNode): CardFact[] {
     const proof = node.defHash !== undefined && node.inputHash !== undefined
       ? ` — same definition (${node.defHash.slice(0, 8)}…) and inputs (${node.inputHash.slice(0, 8)}…) as the recorded run`
       : '';
-    facts.push({ k: 'resume', v: `↻ cache hit — recorded output reused, not re-executed${proof}` });
+    facts.push({ k: 'resume', v: `${STATUS_CHAR.cached} cache hit — recorded output reused, not re-executed${proof}` });
   }
   if (node.recoveredFrom) {
     facts.push({ k: 'repaired', v: `✚ recovered from ${node.recoveredFrom} — on_error.recover absorbed the failure` });
@@ -1011,7 +1012,7 @@ function peekGeomOf(node: DagNode): { w: number; h: number; renderW: number; ren
 /** The action labels a card wears (ONE source: the build renders
  *  them, the row budget flows them). */
 function actionLabelsOf(node: DagNode): string[] {
-  const labels = ['\u25B8 run', '\u26a1 what if', '⧉ dup'];
+  const labels = ['\u25B8 run', '\u26a1 what if', '❏ dup'];
   if (node.status === 'failed') {
     const code = NIKA_CODE_RE.exec(node.failPreview ?? '')?.[0];
     if (code !== undefined) { labels.push(`\u270e ${code}`); }
@@ -3053,7 +3054,7 @@ class DagRenderer {
       if (!node) { continue; }
       node.status = f.status as TaskStatus;
       node.durationMs = f.durationMs;
-      // Scrub = status time-travel: the ↻ follows the frame; the output
+      // Scrub = status time-travel: the ○ cache mark follows the frame; the output
       // fact is a resting truth (live/overlay), not a scrub-frame one.
       node.cached = f.cached === true;
       node.recoveredFrom = undefined;
@@ -3997,7 +3998,7 @@ class DagRenderer {
   }
 
   /** The actions row — every gesture the hover used to carry, VISIBLE
-   *  at the card's foot: ▸ run (upstream cone) · ⚡ what if · ⧉ dup ·
+   *  at the card's foot: ▸ run (upstream cone) · ⚡ what if · ❏ dup ·
    *  a failed card adds ✎ explain + ⑂ fork · K opens the full panel.
    *  Same handlers the hover had — one registry of behavior. */
   private appendCardActions(host: HTMLElement, node: DagNode): void {
@@ -4029,7 +4030,7 @@ class DagRenderer {
     btn('nc-x-sim', '\u26a1 what if',
       'Simulate this task failing — the gate algebra previews the blast (dead paths dim, failure reads light). No run. Esc clears. (X on the focused card)',
       () => { this.toggleSimulate(node.id); });
-    btn('', '⧉ dup',
+    btn('', '❏ dup',
       'Duplicate this task (⌘D) — fresh id, inbound wiring kept',
       () => {
         vscode.postMessage({
@@ -4460,7 +4461,7 @@ class DagRenderer {
         chip('nc-pol-skip', '⤼ skip',
           'on_error: skip — a failure skips this task; the error stays readable at tasks.X.error');
       } else if (node.onError === 'fail_workflow') {
-        chip('nc-pol-fail', '⛔ fail',
+        chip('nc-pol-fail', '✗ fail',
           'on_error: fail_workflow — a failure here stops the whole run');
       }
       if (node.thinkingBudget !== undefined) {
@@ -4488,7 +4489,7 @@ class DagRenderer {
         chip('nc-pol-peritem', '⤼ per-item',
           'fail_fast: false — one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).');
       } else if (node.failFast === true) {
-        chip('nc-pol-failfast', '⚡ fail-fast',
+        chip('nc-pol-failfast', '⊗ fail-fast',
           'fail_fast: true — the first iteration error fails the whole task; its output settles null, never a partial array.');
       }
       if (node.finallyCount !== undefined) {
@@ -4576,7 +4577,7 @@ class DagRenderer {
       { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
       { label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
       { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
-      { label: '⧉ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
+      { label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.status === 'failed') {
       acts.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
@@ -5271,7 +5272,7 @@ class DagRenderer {
     node.status = status;
     if (durationMs != null) node.durationMs = durationMs;
     // Assign, never accumulate — a fresh run's running-paint must CLEAR
-    // the ↻ (and the output fact) a previous resume left on the card.
+    // the ○ (and the output fact) a previous resume left on the card.
     node.cached = cached === true;
     node.recoveredFrom = recoveredFrom;
     node.usd = usd;
@@ -5537,7 +5538,7 @@ class DagRenderer {
       return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
     }
     // ADR-099 rehydration — no clock fact exists (nothing executed).
-    if (node.cached) return '\u21BB cached';
+    if (node.cached) return `${STATUS_CHAR.cached} cached`;
     // D-2026-07-08-N4 — a repaired success never paints clean.
     if (node.recoveredFrom !== undefined) return '✚ recovered';
     if (node.durationMs != null) {
@@ -5797,15 +5798,10 @@ class DagRenderer {
 
 // ─── Activity feed · every status transition, narrated live ────────────────
 
-const ACTIVITY_ICONS: Record<TaskStatus, string> = {
-  pending: '·',
-  running: '▶',
-  retrying: '↻',
-  success: '✓',
-  failed: '✗',
-  skipped: '⤼',
-  cancelled: '◼',
-};
+// The one status vocabulary (glyphRegistry) — the feed's private
+// skipped/cancelled dialect died by construction; every transition
+// speaks the recorded quartet.
+const ACTIVITY_ICONS: Record<TaskStatus, string> = STATUS_CHAR;
 
 const MAX_ACTIVITY = 120;
 
@@ -5859,7 +5855,7 @@ function pushActivityLine(icon: string, text: string, cls: string, taskId?: stri
 function appendActivity(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean): void {
   if (cached === true) {
     // ADR-099 rehydration — the feed must not read as a fresh success.
-    pushActivityLine('↻', `${taskId} cached · recorded output reused`, 'st-success', taskId);
+    pushActivityLine(STATUS_CHAR.cached, `${taskId} cached · recorded output reused`, 'st-success', taskId);
     return;
   }
   const dur = durationMs != null
@@ -5910,9 +5906,9 @@ function buildExplainer(): void {
     ['ex-glyph-critical', 'Critical path', 'the longest chain (real durations when known) — it alone decides the wall-clock'],
     ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
-    ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand — the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · \u29C9 duplicate · Space peeks the focused card · Shift+V sets every card'],
+    ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand — the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · ❏ duplicate · Space peeks the focused card · Shift+V sets every card'],
     ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) — the deck IS the parallel copies; the badge counts them'],
-    ['ex-glyph-data', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy — ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
+    ['ex-glyph-policy', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy — ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
     ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
     ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
@@ -5921,7 +5917,7 @@ function buildExplainer(): void {
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here — the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
-    ['ex-glyph-data', 'Lineage — follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades — Esc clears'],
+    ['ex-glyph-lineage', 'Lineage — follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades — Esc clears'],
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance — ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
     ['ex-glyph-dep', 'Gray dashed edges', 'control — after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read — cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
@@ -6094,7 +6090,7 @@ class Replayer {
     this.el?.removeAttribute('hidden');
     document.body.classList.add('replaying');
     const title = document.getElementById('dag-title');
-    if (title) { title.textContent = `↻ ${label}`; }
+    if (title) { title.textContent = `⟲ ${label}`; }
     // Land on the FINAL state (the outcome), ready to scrub back or replay.
     this.setPos(1);
   }
@@ -6182,7 +6178,7 @@ function applySkinMode(mode: 'nika' | 'editor' | 'phosphor' | 'auto'): void {
 applySkinMode(rawSkinMode);
 
 // The resolved binary ships --resume (stamped on the graph at load) —
-// gates the ↻ affordance + the honest stale-chip tooltip. Declared
+// gates the Δ affordance + the honest stale-chip tooltip. Declared
 // BEFORE the restore bootstrap below: refreshStaleChip reads it (and
 // applyResumeCapable assigns it) during restore — a later `let` is a
 // temporal-dead-zone ReferenceError on every panel revival.

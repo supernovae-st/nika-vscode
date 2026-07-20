@@ -408,8 +408,8 @@ describe('resume wire (task_cache_hit + output · real 0.93.1 fixture)', () => {
       .toBe('mock(echo) · Elaborate on mock(echo) · Name three colors. briefly.');
   });
 
-  it('summarizeRun counts the rehydrated slice (`↻ N cached`)', () => {
-    expect(summarizeRun(fixtureFold('resume-mixed.ndjson'))).toContain('↻ 2 cached');
+  it('summarizeRun counts the rehydrated slice (`○ N cached`)', () => {
+    expect(summarizeRun(fixtureFold('resume-mixed.ndjson'))).toContain('○ 2 cached');
     // A run with zero cache hits keeps its unchanged card line.
     expect(summarizeRun(fixtureFold('sig-run-a.ndjson'))).not.toContain('cached');
   });

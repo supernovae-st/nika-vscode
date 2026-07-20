@@ -10,6 +10,7 @@
 // fold publish or editor switch repaints from scratch.
 
 import * as vscode from 'vscode';
+import { STATUS_CHAR } from '../core/glyphRegistry';
 import { formatRunBadge } from '../core/traceFold';
 import { normalizeWorkflowKey, traceStore } from '../core/traceStore';
 import { parseRichWorkflow } from '../workflowParser';
@@ -145,7 +146,7 @@ function badgeHover(t: import('../core/traceFold').FoldedTask): vscode.MarkdownS
     const proof = t.defHash !== undefined && t.inputHash !== undefined
       ? ` — same definition (\`${t.defHash.slice(0, 8)}…\`) and inputs (\`${t.inputHash.slice(0, 8)}…\`) as the recorded run`
       : '';
-    md.appendMarkdown(`↻ cache hit — recorded output reused, not re-executed${proof}\n\n`);
+    md.appendMarkdown(`${STATUS_CHAR.cached} cache hit — recorded output reused, not re-executed${proof}\n\n`);
   }
   if (t.recoveredFrom !== undefined) {
     md.appendMarkdown(`✚ recovered${t.recoveredFrom ? ` from \`${t.recoveredFrom}\`` : ''} — on_error.recover absorbed the failure\n\n`);

@@ -58,7 +58,7 @@ every visible pixel.
   cached hollow. Readable at 40% zoom where text is not.
 - **The sub line is honest**: at rest it names the mechanism
   (`infer · mistral`); settled it becomes the run line — `✓ 2.3s`
-  green · `✗ 4.1s` red · `↻ cached` — after a run the dominant fact
+  green · `✗ 4.1s` red · `○ cached` — after a run the dominant fact
   IS the outcome.
 - **Pending is calm.** A card at rest looks normal (Well). Running
   lights up, failed screams, success is a quiet green fact. Never a
@@ -100,7 +100,7 @@ every visible pixel.
   in-port wears the data hue when wires actually plug in.
 - **The policy row**: declared execution policy as footer chips —
   `↻×N` retry.max_attempts · `⏱ 30s` timeout · on_error route
-  (`✚ recover` amber · `⤼ skip` dim · `⛔ fail` red) · `⤳ N outs`
+  (`✚ recover` amber · `⤼ skip` dim · `✗ fail` red) · `⤳ N outs`
   named output bindings · `▦ N` permits (engine-projected, #367).
   Facts only — an undeclared policy renders NOTHING.
 - **Card modes (card-first)** — every task fact lives ON the card;
@@ -149,6 +149,44 @@ rides the wire's midpoint), **motion = liveness only**.
   Far zoom recedes wires toward the page so TOPOLOGY carries; the
   failure hue demixes LAST, critical keeps its ink.
 
+## 2b · The glyph registry (one glyph, one sense)
+
+The unicode marks are a vocabulary, not a decoration — and a vocabulary
+tolerates no homonyms. The living roster is `src/core/glyphRegistry.ts`
+(`{glyph · sense · wordedOnly?}` entries — count it there, never here);
+the belt is `scripts/glyph-registry.mjs` (npm test). Three laws:
+
+1. **One glyph = one sense**, on every surface (webview · empty state ·
+   native views · package.json · harness) — and one sense = one glyph:
+   a second mark for a sense that already owns one is a bug, whichever
+   direction the duplication runs.
+2. **Worded-only marks never paint alone**: `⟳` `⟲` `⊗` `⤼` carry their
+   word as part of the mark (`⟲ Replay a trace` · `⊗ fail-fast` ·
+   `⤼ skip`). The rotation family is legislated: `↻` retry alone has
+   glyph-only rights; `⟳` restart and `⟲` replay are always worded.
+3. **Admission by neighborhood**: a new mark enters only if a neighbor
+   of its unicode block already ships — rendering proven by adjacency,
+   never by @font-face (the webview inherits VS Code's font stacks).
+
+The status vocabulary (the quartet + live states + overlays):
+
+| sense | glyph | note |
+|---|---|---|
+| pending | `·` | blank cell = not in that run |
+| running | `▶` | the one run family (Run · mock · play) |
+| retrying | `↻` | the attempt failing, not the task |
+| success | `✓` | check-clean rides the same family |
+| failed | `✗` | the `✗ fail` on_error route too |
+| skipped | `↷` | a decision, never a failure |
+| cancelled | `⊘` | a decision, never red |
+| paused | `⏸` | waiting on a human |
+| cached | `○` | rehydrated — nothing executed |
+
+Sanctioned outside the registry: 🦋 is the brand signature, never a UI
+sense; `$(...)` codicons are VS Code's own vocabulary, a separate
+register. Color emoji never enter the mono registry (law 1's floor —
+the belt bans the ranges).
+
 ## 3 · Chrome floats (the ElevenLabs read)
 
 The canvas is edge-to-edge; every control is a floating pill OVER it:
@@ -172,9 +210,9 @@ ellipsizes — chrome never clips.
 The empty canvas is not an error — it's the front door. One card on
 the grid answers the three first-minute questions in order: *where am
 I* (hero: the mark, the wordmark, one honest tagline), *how do I
-start* (a describe→generate bar — type a sentence, ✨ hands it to
-`nika.generateWorkflow` — then New / Examples / Replay / All
-commands), *what can this do* (recent `*.nika.yaml` from the
+start* (a describe→generate bar — type a sentence, the house sparkle
+hands it to `nika.generateWorkflow` — then New / Examples / Replay /
+All commands), *what can this do* (recent `*.nika.yaml` from the
 workspace by mtime, then the capability map: the one-line commands
 — every button a real `nika.*` command; the living roster is the
 `es-caps` block in `dagPanel.ts`, gated by `WELCOME_COMMANDS` in
@@ -287,7 +325,7 @@ strips every material (flat system colors).
 | success | base | green | `✓ 2.3s` green |
 | failed | red border + ring | red | `✗ 4.1s` red |
 | retrying | amber pulse | amber | `verb …` |
-| cached | dashed border, no flash | hollow green | `↻ cached` |
+| cached | dashed border, no flash | hollow green | `○ cached` |
 | skipped/cancelled | faded | gray | fact |
 
 ## 6 · Motion

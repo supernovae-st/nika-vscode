@@ -179,7 +179,7 @@ describe('formatClock', () => {
   });
 });
 
-// ─── Resume replay (ADR-099 · the ↻ survives the platine) ───────────────────
+// ─── Resume replay (ADR-099 · the ○ cache mark survives the platine) ────────
 
 describe('resume timeline (real 0.93.1 resume-mixed fixture)', () => {
   it('statesAt(1) hands the cached flag with the settled state', () => {
@@ -187,7 +187,7 @@ describe('resume timeline (real 0.93.1 resume-mixed fixture)', () => {
     const end = statesAt(tl, 1);
     expect(end.get('seed')).toMatchObject({ status: 'success', cached: true });
     expect(end.get('side')).toMatchObject({ status: 'success', cached: true });
-    // The re-executed task scrubs back to a plain success — no ↻.
+    // The re-executed task scrubs back to a plain success — no ○ mark.
     expect(end.get('expand')?.status).toBe('success');
     expect(end.get('expand')?.cached).toBeUndefined();
   });
