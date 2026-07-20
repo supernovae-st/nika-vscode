@@ -12,7 +12,12 @@
   <script>
     let __state;
     window.acquireVsCodeApi = () => ({
-      postMessage: (m) => console.log('[toExt]', JSON.stringify(m).slice(0, 200)),
+      // Judges probe window.__toExt for what the webview ASKED the
+      // extension (the connect journey asserts the dag:connect wire).
+      postMessage: (m) => {
+        (window.__toExt = window.__toExt || []).push(m);
+        console.log('[toExt]', JSON.stringify(m).slice(0, 200));
+      },
       getState: () => __state,
       setState: (s) => { __state = s; },
     });
@@ -176,6 +181,11 @@
     <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
+  <div id="connect-cmdk" hidden>
+    <input id="connect-input" type="text" placeholder="wire to — the picked task runs after this one…" role="combobox" aria-expanded="false" aria-controls="connect-list" aria-autocomplete="list" aria-label="Pick the task that will run after the focused one">
+    <div id="connect-list" role="listbox" aria-label="Valid connect targets"></div>
+  </div>
+  <div id="a11y-status" role="status" aria-live="polite"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar">

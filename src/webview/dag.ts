@@ -32,7 +32,7 @@ import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
-import { nextFocus, type NavDir } from '../core/canvasNav';
+import { connectTargets, nextFocus, nudgedPosition, type NavDir, type NudgeDir } from '../core/canvasNav';
 import { FALLBACK_TOOL_BLURBS, filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
@@ -276,6 +276,184 @@ class VerbCmdk {
 }
 
 const verbCmdk = new VerbCmdk();
+
+// ─── The polite status voice · one region, every keyboard step ──────────────
+// A single visually-hidden aria-live=polite region (the C1 floor — the
+// coalescing run narrator is its own chantier). Blank-then-set so a
+// repeated sentence still announces.
+let announceTimer: ReturnType<typeof setTimeout> | undefined;
+function announce(text: string): void {
+  const el = document.getElementById('a11y-status');
+  if (!el) { return; }
+  if (announceTimer) { clearTimeout(announceTimer); }
+  el.textContent = '';
+  announceTimer = setTimeout(() => { el.textContent = text; }, 30);
+}
+
+// ─── Connect-mode picker · the port-drag, pointer-free (WCAG 2.5.7) ────────
+// `c` on a focused card opens a combobox of VALID wire targets (the
+// drag's own table: self, cycle-closing ancestors and already-wired
+// dependents refused — core/canvasNav.connectTargets). Type to filter,
+// ↑↓ to aim (the canvas previews the wire), Enter posts the SAME
+// dag:connect the pointer drop posts, Esc cancels. Open/confirm/cancel
+// speak through the polite region; the aimed option speaks through
+// aria-activedescendant (the combobox contract, same as verb-cmdk).
+
+interface ConnectItem { id: string; verb: string; label: string }
+
+interface ConnectOpen {
+  from: string;
+  items: ConnectItem[];
+  anchor: { x: number; y: number } | null;
+  onPreview: (id: string | null) => void;
+  onPick: (id: string) => void;
+  onClose: () => void;
+}
+
+class ConnectCmdk {
+  private readonly el = document.getElementById('connect-cmdk');
+  private readonly input = document.getElementById('connect-input') as HTMLInputElement | null;
+  private readonly list = document.getElementById('connect-list');
+  private items: ConnectItem[] = [];
+  private shown: ConnectItem[] = [];
+  private active = 0;
+  private from = '';
+  private onPreview: ((id: string | null) => void) | undefined;
+  private onPick: ((id: string) => void) | undefined;
+  private onClose: (() => void) | undefined;
+
+  constructor() {
+    this.input?.addEventListener('input', () => this.render());
+    this.input?.addEventListener('keydown', (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { this.close(true); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this.move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.move(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); this.pick(this.active); }
+    });
+    document.addEventListener('mousedown', (e: MouseEvent) => {
+      if (this.isOpen && this.el && !this.el.contains(e.target as Node)) { this.close(true); }
+    });
+  }
+
+  get isOpen(): boolean {
+    return this.el?.hasAttribute('hidden') === false;
+  }
+
+  open(opts: ConnectOpen): boolean {
+    if (!this.el || !this.input) { return false; }
+    this.from = opts.from;
+    this.items = opts.items;
+    this.onPreview = opts.onPreview;
+    this.onPick = opts.onPick;
+    this.onClose = opts.onClose;
+    const W = 280, H = 400;
+    const x = Math.min(opts.anchor?.x ?? (window.innerWidth - W) / 2, window.innerWidth - W - 8);
+    const y = Math.min(opts.anchor?.y ?? 80, window.innerHeight - H - 8);
+    this.el.style.left = `${Math.max(8, x)}px`;
+    this.el.style.top = `${Math.max(8, y)}px`;
+    this.el.removeAttribute('hidden');
+    this.input.setAttribute('aria-expanded', 'true');
+    this.input.value = '';
+    this.active = 0;
+    this.render();
+    this.input.focus();
+    announce(this.items.length === 0
+      ? `Connect mode. No valid target for ${this.from} — every wire from here would loop or already exists. Escape closes.`
+      : `Connect mode. ${this.items.length} valid target${this.items.length === 1 ? '' : 's'} for ${this.from}. Type to filter, Enter connects, Escape cancels.`);
+    return true;
+  }
+
+  /** Retire the picker; `canceled` = the user backed out (Esc · click-away). */
+  close(canceled = false): void {
+    if (!this.isOpen) { return; }
+    this.el?.setAttribute('hidden', '');
+    this.input?.setAttribute('aria-expanded', 'false');
+    this.input?.removeAttribute('aria-activedescendant');
+    this.input?.blur();
+    const done = this.onClose;
+    this.onPreview = undefined;
+    this.onPick = undefined;
+    this.onClose = undefined;
+    done?.();
+    if (canceled) { announce('Connect canceled.'); }
+  }
+
+  private move(delta: number): void {
+    if (this.shown.length === 0) { return; }
+    this.active = (this.active + delta + this.shown.length) % this.shown.length;
+    this.paintActive();
+  }
+
+  private pick(index: number): void {
+    const entry = this.shown[index];
+    if (!entry) { return; }
+    const cb = this.onPick;
+    this.close();
+    cb?.(entry.id);
+  }
+
+  private render(): void {
+    if (!this.list) { return; }
+    const q = (this.input?.value ?? '').trim().toLowerCase();
+    this.shown = this.items.filter(
+      (t) => t.id.toLowerCase().includes(q) || t.label.toLowerCase().includes(q),
+    );
+    this.active = Math.min(this.active, Math.max(this.shown.length - 1, 0));
+    this.list.replaceChildren();
+    if (this.shown.length === 0) {
+      const none = document.createElement('div');
+      none.className = 'cmdk-cat';
+      none.setAttribute('role', 'presentation');
+      none.textContent = this.items.length === 0
+        ? 'no valid target — wires from here would loop or already exist'
+        : 'no match — Backspace widens';
+      this.list.appendChild(none);
+    }
+    this.shown.forEach((t, i) => {
+      const row = document.createElement('button');
+      row.dataset.i = String(i);
+      row.id = `connect-opt-${i}`;
+      row.setAttribute('role', 'option');
+      row.className = `cmdk-row verb-${t.verb}`;
+      const glyph = document.createElement('span');
+      glyph.className = 'cmdk-glyph';
+      const g = makeVerbGlyph(t.verb, 13);
+      if (g) { glyph.appendChild(g); }
+      else { glyph.textContent = '◇'; }
+      const name = document.createElement('span');
+      name.className = 'cmdk-name';
+      name.textContent = t.id;
+      const blurb = document.createElement('span');
+      blurb.className = 'cmdk-blurb';
+      blurb.textContent = t.label !== t.id ? t.label : t.verb;
+      row.append(glyph, name, blurb);
+      row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
+      row.addEventListener('click', () => this.pick(i));
+      this.list!.appendChild(row);
+    });
+    this.paintActive();
+  }
+
+  private paintActive(): void {
+    const rows = this.list?.querySelectorAll<HTMLElement>('.cmdk-row');
+    rows?.forEach((r) => {
+      const on = Number(r.dataset.i) === this.active;
+      r.classList.toggle('active', on);
+      r.setAttribute('aria-selected', String(on));
+      if (on) { r.scrollIntoView({ block: 'nearest' }); }
+    });
+    if (this.shown.length > 0) {
+      this.input?.setAttribute('aria-activedescendant', `connect-opt-${this.active}`);
+      this.onPreview?.(this.shown[this.active]?.id ?? null);
+    } else {
+      this.input?.removeAttribute('aria-activedescendant');
+      this.onPreview?.(null);
+    }
+  }
+}
+
+const connectCmdk = new ConnectCmdk();
 
 // ─── Edge aurora · run-verdict signal (nika skin only) ──────────────────────
 // One bright hue-travel on a clean close, a red flash on failure — the
@@ -1966,6 +2144,10 @@ class DagRenderer {
   /** Alt-drag edge creation state. */
   private connectFrom: string | null = null;
   private tempEdge: Selection<SVGPathElement, unknown, null, undefined> | null = null;
+  /** Keyboard connect-mode's rubber wire — separate from the drag's
+   *  tempEdge so the mouseup.connect pipeline never fires for it. */
+  private kbTempEdge: Selection<SVGPathElement, unknown, null, undefined> | null = null;
+  private nudgeSettleTimer: number | undefined;
   /** Structural DAG read, cached per load (card blast/pinch facts). */
   private structuralInsights: DagInsights | undefined;
   /** Hand-dragged card positions for the CURRENT workflow (root coords). */
@@ -3293,6 +3475,104 @@ class DagRenderer {
   cancelConnect(): boolean {
     if (!this.connectFrom) { return false; }
     this.endConnect();
+    return true;
+  }
+
+  // ─── Keyboard connect-mode · the drag's twin, pointer-free (2.5.7) ───────
+
+  /** Screen anchor for the connect picker — the focused card's right
+   *  edge in client space (root box through the live camera). */
+  private clientAnchorOf(id: string): { x: number; y: number } | null {
+    const b = this.layoutBox.get(id);
+    const svgEl = this.svg.node();
+    if (!b || !svgEl) { return null; }
+    const r = svgEl.getBoundingClientRect();
+    return {
+      x: r.left + this.currentTx + (b.x + b.w) * this.currentZoom + 10,
+      y: r.top + this.currentTy + b.y * this.currentZoom,
+    };
+  }
+
+  /** `c` — open the connect picker on the focused card. The target
+   *  table is the drag's own (cycles · self · already-wired refused);
+   *  Enter posts the SAME dag:connect the pointer drop posts. False
+   *  without a focused card or a graph (the key falls through). */
+  startKeyboardConnect(): boolean {
+    if (!this.focusedId || !this.currentGraph || connectCmdk.isOpen) { return false; }
+    const from = this.focusedId;
+    const items = connectTargets(this.currentGraph.nodes, this.currentGraph.edges, from)
+      .map((id): ConnectItem => {
+        const n = this.nodeMap.get(id);
+        return { id, verb: n?.verb ?? 'invoke', label: n?.label ?? id };
+      });
+    this.svg.classed('kb-connecting', true);
+    this.nodeGroup.select(`[data-id="${CSS.escape(from)}"]`).classed('kbc-src', true);
+    for (const t of items) {
+      this.nodeGroup.select(`[data-id="${CSS.escape(t.id)}"]`).classed('kbc-ok', true);
+    }
+    return connectCmdk.open({
+      from,
+      items,
+      anchor: this.clientAnchorOf(from),
+      onPreview: (id) => this.kbConnectPreview(from, id),
+      onPick: (id) => {
+        vscode.postMessage({
+          kind: 'dag:connect',
+          from,
+          to: id,
+          workflowUri: this.currentGraph?.workflowUri,
+        });
+        announce(`Connected — ${id} now depends on ${from}.`);
+      },
+      onClose: () => this.kbConnectCleanup(),
+    });
+  }
+
+  /** Aim the rubber wire at the picker's active option (null retires it). */
+  private kbConnectPreview(from: string, toId: string | null): void {
+    this.nodeGroup.selectAll<SVGGElement, unknown>('.dag-node.kbc-hot').classed('kbc-hot', false);
+    if (!toId) {
+      this.kbTempEdge?.remove();
+      this.kbTempEdge = null;
+      return;
+    }
+    const a = this.layoutBox.get(from);
+    const b = this.layoutBox.get(toId);
+    if (!a || !b) { return; }
+    this.kbTempEdge ??= this.rootGroup.append<SVGPathElement>('path').attr('class', 'temp-edge');
+    this.kbTempEdge.attr('d', `M ${a.x + a.w / 2} ${a.y + a.h} L ${b.x + b.w / 2} ${b.y}`);
+    this.nodeGroup.select(`[data-id="${CSS.escape(toId)}"]`).classed('kbc-hot', true);
+  }
+
+  /** Retire every connect-mode mark (picker closed, however it closed). */
+  private kbConnectCleanup(): void {
+    this.kbTempEdge?.remove();
+    this.kbTempEdge = null;
+    this.svg.classed('kb-connecting', false);
+    this.nodeGroup.selectAll<SVGGElement, unknown>('.kbc-src, .kbc-ok, .kbc-hot')
+      .classed('kbc-src', false)
+      .classed('kbc-ok', false)
+      .classed('kbc-hot', false);
+  }
+
+  /** ⌥arrows — nudge the focused card one 8px grid cell. Pins through
+   *  manualPos (the drag's own mechanism) and re-routes its wires on
+   *  the same local orthogonal path; the settle (persist · bands ·
+   *  regions · minimap) coalesces behind a short timer — a held key
+   *  repeats faster than a full re-render deserves. */
+  nudgeFocused(dir: NudgeDir): boolean {
+    if (!this.focusedId) { return false; }
+    const box = this.layoutBox.get(this.focusedId);
+    if (!box) { return false; }
+    const p = nudgedPosition(box.x, box.y, dir);
+    this.moveCard(this.focusedId, p.x, p.y);
+    window.clearTimeout(this.nudgeSettleTimer);
+    this.nudgeSettleTimer = window.setTimeout(() => {
+      this.persistManualLayout();
+      this.renderWaveBands(this.waveCount);
+      this.renderRegions();
+      this.renderMinimap();
+    }, 220);
     return true;
   }
 
@@ -7023,7 +7303,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['⇧V', 'display properties (density)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['C', 'connect \u2014 wire a task after this one'], ['\u2325\u2190\u2191\u2193\u2192', 'nudge the card (8px grid)'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['⇧V', 'display properties (density)'], ['Esc', 'clear'], ['?', 'this card']]) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -7803,6 +8083,22 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     e.preventDefault();
     openSearch();
     return;
+  }
+  // ⌥arrows — nudge the focused card one 8px grid cell; bare arrows
+  // keep the DAG-walk below. Swallowed with or without a focus: a
+  // half-nudge must never fall through to the workbench (alt+left is
+  // history-back on win/linux).
+  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault();
+    const dir: NudgeDir = e.key === 'ArrowUp' ? 'up'
+      : e.key === 'ArrowDown' ? 'down'
+        : e.key === 'ArrowLeft' ? 'left' : 'right';
+    renderer.nudgeFocused(dir);
+    return;
+  }
+  // C — connect-mode: the port-drag's keyboard twin (WCAG 2.5.7).
+  if ((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (renderer.startKeyboardConnect()) { e.preventDefault(); return; }
   }
   // Keyboard-first canvas nav (a11y + power): Tab (or ←/→) cycles the
   // topological node order, ↑ walks to a dependency, ↓ to a dependent.

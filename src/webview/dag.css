@@ -4461,7 +4461,8 @@ body.lod-far .region-label { display: none; }
 
 /* ─── Verb cmdk · the drop-a-port palette ───────────────────────────────── */
 
-#verb-cmdk {
+#verb-cmdk,
+#connect-cmdk {
   position: fixed;
   z-index: 52;
   width: 280px;
@@ -4485,13 +4486,15 @@ body.lod-far .region-label { display: none; }
 }
 
 @starting-style {
-  #verb-cmdk:not([hidden]) {
+  #verb-cmdk:not([hidden]),
+  #connect-cmdk:not([hidden]) {
     opacity: 0;
     transform: translateY(-4px);
   }
 }
 
-#verb-cmdk[hidden] {
+#verb-cmdk[hidden],
+#connect-cmdk[hidden] {
   display: none;
   opacity: 0;
   transform: translateY(-4px);
@@ -4500,12 +4503,14 @@ body.lod-far .region-label { display: none; }
 /* Reduced motion: the palette is simply there or gone — no fade, no drop
  * (an entrance is motion; the opt-out is instant, never a phantom fade). */
 @media (prefers-reduced-motion: reduce) {
-  #verb-cmdk { transition: none; }
+  #verb-cmdk,
+  #connect-cmdk { transition: none; }
 }
 
 /* The list scrolls (4 verbs + the 27-tool vocabulary); headers pin the
  * groups: `verbs`, then each builtin category. */
-#cmdk-list {
+#cmdk-list,
+#connect-list {
   max-height: 336px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4521,7 +4526,8 @@ body.lod-far .region-label { display: none; }
   user-select: none;
 }
 
-#cmdk-input {
+#cmdk-input,
+#connect-input {
   width: 100%;
   padding: 5px 8px;
   margin-bottom: 4px;
@@ -4534,7 +4540,8 @@ body.lod-far .region-label { display: none; }
   outline: none;
 }
 
-#cmdk-input:focus {
+#cmdk-input:focus,
+#connect-input:focus {
   border-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
 }
 
@@ -4588,6 +4595,39 @@ body.lod-far .region-label { display: none; }
 /* Tool rows read a notch quieter than the 4 verbs (name not bold). */
 .cmdk-tool .cmdk-name {
   font-weight: 500;
+}
+
+/* ─── Keyboard connect-mode (WCAG 2.5.7) · the drag, pointer-free ────────
+ * While the connect picker is open the canvas states the table: the
+ * source and every VALID target hold their ink, everything a wire
+ * cannot legally reach recedes (the lineage dim voice); the aimed
+ * option's card wears a dashed accent ring and the rubber wire (the
+ * drag's own .temp-edge) points at it. Class flips only — no new
+ * animation, nothing for reduced-motion to opt out of. */
+.dag-svg.kb-connecting .dag-node:not(.kbc-ok):not(.kbc-src) {
+  opacity: 0.25;
+}
+
+.dag-node.kbc-hot .node-bg {
+  stroke: var(--nk-accent);
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+}
+
+/* ─── The polite status voice · visually hidden, SR-first ────────────────
+ * One aria-live=polite region narrates keyboard steps (connect-mode
+ * open · confirm · cancel). Clipped, never display:none — a hidden
+ * region goes silent. */
+#a11y-status {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ─── The arrival bar · an EMPTY workflow greets with intent ─────────────
@@ -5197,9 +5237,19 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
     border: 1px solid CanvasText !important;
   }
 
-  #verb-cmdk .cmdk-row.active {
+  #verb-cmdk .cmdk-row.active,
+  #connect-cmdk .cmdk-row.active {
     background: Highlight !important;
     color: HighlightText !important;
+  }
+
+  /* Connect-mode marks survive high contrast: system inks, no dim. */
+  .dag-svg.kb-connecting .dag-node:not(.kbc-ok):not(.kbc-src) {
+    opacity: 1 !important;
+  }
+
+  .dag-node.kbc-hot .node-bg {
+    stroke: Highlight !important;
   }
 
   #scrubber-track {
