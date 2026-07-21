@@ -24,7 +24,7 @@ what it may reach, run and read), cost as a running meter. And when you
 press ▶, the graph executes wave by wave (a wave = the tasks that can
 run together) and closes on a verdict with a verifiable receipt:
 
-![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner with its trace chain head](media/canvas-live-run.gif)
+![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner, its trace chain head, and the first-green confetti](media/canvas-live-run.gif)
 
 *Real webview, real message protocol: this capture drives the extension's
 own bundle through the same `dag:*`/`run:*` messages a live `nika run`
@@ -281,7 +281,7 @@ static cost · recorded clocks, and each lens renders one question:
 
 ### See the run
 
-![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)
+![A 38-task brand-studio workflow executes: the map lights up wave by wave, the camera dives onto expanded cards where declared media frames develop into recorded artifacts (image as the card body, floating header, the params pill), then pulls back for the verdict](media/dag-execution.gif)
 
 *Tip: `▶ mock` on the run pill streams the same file without keys or
 network: every green close settles a ✓ wave through the cards.*
