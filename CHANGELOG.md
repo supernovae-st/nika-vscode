@@ -29,6 +29,7 @@ major.minor from 0.97).
 - **One roving tab stop**: the focused card carries the DOM twin of the visual focus (arrows, chords and gestures all keep their handlers). Keyboard focus hardens the ring past 3:1; forced colors get a real outline; a keyboard move always centers its card, so the focus is never off-viewport.
 - **One narrator, two channels**: run start and per-task failures speak assertive; lifecycle lands as coalesced polite milestones ("3 of 7 tasks complete, 2 running" · throttled, deduplicated, never every tick); the close is the verdict banner's own line. Replay scrubs stay silent: recorded history is read on focus, not announced.
 - **Accessibility help**: `Alt+F1` (or `?`) opens the canvas keymap as a real focused dialog; `Nika: Canvas Accessibility Help` serves the same single-source table as a QuickPick from anywhere, editor chords included · linked from the walkthrough.
+- **The canvas cold path warms**: the first keyboard landing on a big graph paints ~4× sooner (measured ~211→~52ms at 300 tasks), the first layout no longer stutters the page mid-wait, and a keyboard jump onto an off-screen card keeps screen-reader focus.
 
 ## [0.105.0] · 2026-07-21
 
