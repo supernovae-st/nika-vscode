@@ -30,6 +30,11 @@ serves the same table · `Alt+F1` opens it from inside the canvas,
 focused. The whole graph works without a pointer: one Tab stop, arrows
 walk the DAG, `C` wires a task, and one live region narrates runs.
 
+The same chord family carries the search: `⌘K ⌘M`
+([Nika: Search Everything](command:nika.search)) opens the root search
+from the canvas or the file · every command, workflow and recorded run
+in one ranked list.
+
 ## Composition
 
 A task that calls another workflow (`invoke: workflow: ./sub.nika.yaml`)
