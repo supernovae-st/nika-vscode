@@ -16,7 +16,7 @@ import ELK, {
 } from 'elkjs';
 
 import { select, type Selection } from 'd3-selection';
-import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent } from 'd3-zoom';
+import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
 import { line, curveMonotoneY, type Line } from 'd3-shape';
 import { easeCubicOut } from 'd3-ease';
 // Side-effect import: patches Selection.prototype with .transition()
@@ -4214,22 +4214,41 @@ class DagRenderer {
    *  (`instant` = keyboard source — no glide, per the motion charter). */
   focusAndCenter(taskId: string, instant = false): void {
     if (!this.nodeMap.has(taskId)) { return; }
-    this.applyFocus(taskId);
     const box = this.layoutBox.get(taskId);
-    const svgEl = this.svg.node();
     if (!box) {
       // dag:focus can land mid-render (layout is async) — replay after.
+      this.applyFocus(taskId);
       this.pendingCenter = taskId;
       return;
     }
-    if (!svgEl) { return; }
+    if (!this.svg.node()) { this.applyFocus(taskId); return; }
     const { w: svgW, h: svgH } = this.svgSize();
     const k = Math.max(this.currentZoom, 0.6);
     const t = zoomIdentity
       .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
       .scale(k);
+    // Camera BEFORE focus: applyFocus's roving focus() forces the one
+    // style flush of this task — behind the camera writes (transform ·
+    // lod band · zoom-comp) it resolves everything in a single pass.
+    this.applyCamera(t, instant || REDUCED_MOTION ? 0 : 420);
+    this.applyFocus(taskId);
+  }
+
+  /** Apply a camera transform. Duration 0 (keyboard · reduced motion —
+   *  the charter's jump) applies SYNCHRONOUSLY in the input task: the
+   *  d3 duration-0 transition would land the same transform one timer
+   *  tick later, splitting one press across two frames and re-resolving
+   *  style in each. interrupt() drops any in-flight glide first — the
+   *  exact cancellation a new transition would perform. Animated moves
+   *  keep the d3 transition (the camera speaks ease-out). */
+  private applyCamera(t: ZoomTransform, durMs: number): void {
+    if (durMs === 0) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.transform as D3ZoomCall, t);
+      return;
+    }
     this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 420)
+      .transition().duration(durMs)
       .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
@@ -7000,23 +7019,33 @@ class DagRenderer {
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     // Motion charter (law 7): keyboard-initiated camera moves NEVER
-    // animate — `instant` rides down from the key handlers.
-    this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 500)
-      .ease(easeCubicOut)
-      .call(this.zoomBehavior.transform as D3ZoomCall, t);
+    // animate — `instant` rides down from the key handlers, and the
+    // jump applies in the press's own frame (applyCamera).
+    this.applyCamera(t, instant || REDUCED_MOTION ? 0 : 500);
   }
 
   zoomIn(instant = false): void {
-    this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
-      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 1.3);
+    this.zoomStep(1.3, instant);
   }
 
   zoomOut(instant = false): void {
+    this.zoomStep(0.7, instant);
+  }
+
+  /** One zoom step. Instant (keyboard ±) applies synchronously — the
+   *  duration-0 transition it replaces could be interrupted by the NEXT
+   *  rapid press before its timer tick applied anything (probed in the
+   *  pan-near scenario: 8 back-to-back presses landed 4-6 steps); the
+   *  synchronous form makes every press land exactly once. */
+  private zoomStep(factor: number, instant: boolean): void {
+    if (instant || REDUCED_MOTION) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.scaleBy as D3ZoomCall, factor);
+      return;
+    }
     this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
-      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 0.7);
+      .transition().duration(300)
+      .call(this.zoomBehavior.scaleBy as D3ZoomCall, factor);
   }
 
   clear(): void {
