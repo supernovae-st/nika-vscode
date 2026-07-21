@@ -1282,6 +1282,30 @@
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
         "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.diffTraces",
+        "key": "ctrl+k ctrl+a",
+        "mac": "cmd+k cmd+a",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.replayTrace",
+        "key": "ctrl+k ctrl+p",
+        "mac": "cmd+k cmd+p",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.forkFromTask",
+        "key": "ctrl+k ctrl+b",
+        "mac": "cmd+k cmd+b",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.verifyTrace",
+        "key": "ctrl+k ctrl+v",
+        "mac": "cmd+k cmd+v",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
       }
     ],
     "languageModelTools": [

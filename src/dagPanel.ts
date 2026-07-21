@@ -1201,6 +1201,11 @@ export class DagPanel implements vscode.Disposable {
     <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
+  <div id="connect-cmdk" hidden>
+    <input id="connect-input" type="text" placeholder="wire to — the picked task runs after this one…" role="combobox" aria-expanded="false" aria-controls="connect-list" aria-autocomplete="list" aria-label="Pick the task that will run after the focused one">
+    <div id="connect-list" role="listbox" aria-label="Valid connect targets"></div>
+  </div>
+  <div id="a11y-status" role="status" aria-live="polite"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">

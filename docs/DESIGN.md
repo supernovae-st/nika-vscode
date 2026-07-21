@@ -647,13 +647,26 @@ for secondary chords — and every binding is when-scoped to
 | Show DAG | `⌘K ⌘G` | Graph |
 | Add task | `⌘K ⌘N` | New task |
 | Menu | `⌘K ⌘M` | Menu |
+| Diff two runs | `⌘K ⌘A` | A/B — one run against another |
+| Replay a recorded run | `⌘K ⌘P` | rePlay |
+| Fork from task | `⌘K ⌘B` | Branch |
+| Verify journal | `⌘K ⌘V` | Verify |
+
+The flight-recorder tier (A · P · B · V) answers from a nika file OR
+the canvas (`activeWebviewPanelId == 'nika.dagView'`) — every one of
+the four commands carries its own no-argument path (a trace picker, or
+an honest pointer at the Runs view), so a bare chord always lands.
 
 Why a chord family: plain `ctrl+alt+<letter>` IS AltGr on EU layouts
 (typing `€` or `@` fired commands), `ctrl+alt+t` is the GNOME
 terminal chord, and `cmd+shift+r` shadowed macOS Refactor inside nika
-files. The second strokes (E · G · K · M · N) are free in the default
-keymap, so nothing native is shadowed. Single keys on the canvas (the
-lens deck — `?` teaches them) are webview-focus scoped and unchanged.
+files. The second strokes (E · G · K · M · N · A · P · B · V) are free
+in the default keymap, so nothing native is shadowed — the default
+`⌘K ⌘<x>` chords occupy C · D · F · I · J · L · O · Q · R · S · T ·
+U · W · X and the digits (held by `keybindings.test.ts`, proven
+against the live editor's default-keybindings dump in the integration
+suite). Single keys on the canvas (the lens deck — `?` teaches them)
+are webview-focus scoped and unchanged.
 
 ## 8 · Voice — the twelve rules
 
