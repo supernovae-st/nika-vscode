@@ -86,7 +86,7 @@ Driving yourself is three gestures:
    `mock/echo`: **deterministic, zero API keys, zero network.**
 
 The **Nika status item** is the one door: it opens the root search
-(`⌘K ⌘M` in a nika file) · every command and task in one ranked
+(`⌘K ⌘M` in a nika file) · every command, task, workflow and recorded run in one ranked
 list, resting on *your* next step · no engine yet → **Finish Setup**
 (verified download · MCP · LSP, one gesture) · fresh repo → **Init
 this project** · then the 10-second proof and your files' Run ·
