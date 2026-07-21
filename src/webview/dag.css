@@ -710,6 +710,17 @@ body:not(.lod-far) .dag-edge {
     border-color: Highlight !important;
   }
 
+  /* Box-shadow rings die under forced colors — the keyboard focus
+   * indicator survives as a real outline (spec-sanctioned Highlight). */
+  .dag-node:focus-visible .nc {
+    outline: 2px solid Highlight !important;
+    outline-offset: 1px;
+  }
+
+  .dag-svg:focus-visible {
+    outline: 2px solid Highlight !important;
+  }
+
   .nc-tile {
     color: CanvasText !important;
     background: Canvas !important;
@@ -2439,6 +2450,38 @@ body.lod-far .dag-node:hover .nc {
   box-shadow:
     var(--nk-card-shadow-hover),
     0 0 0 calc(2.5px * var(--zoom-comp, 1)) color-mix(in srgb, var(--nk-accent) 28%, transparent);
+}
+
+/* Keyboard focus (the DOM twin): the ring hardens to >=2px at >=3:1
+ * against the void (WCAG 2.4.13 / 1.4.11 — the 28% selection wash sits
+ * near 1.5:1 and is a pointer aesthetic, not the focus indicator).
+ * :focus-visible only — a mouse click keeps the quiet claim above. */
+.dag-node:focus {
+  outline: none;
+}
+
+.dag-node:focus-visible .nc {
+  border-color: var(--nk-accent);
+  box-shadow:
+    var(--nk-card-shadow-hover),
+    0 0 0 calc(2.5px * var(--zoom-comp, 1)) color-mix(in srgb, var(--nk-accent) 78%, transparent);
+}
+
+/* The empty tab stop: the svg holds the single stop when no card is
+ * focused — a visible landing so Tab-into-the-canvas is never lost. */
+.dag-svg:focus {
+  outline: none;
+}
+
+.dag-svg:focus-visible {
+  outline: 2px solid var(--nk-accent);
+  outline-offset: -2px;
+}
+
+/* The help dialog is its own focus target; the overlay needs no ring
+ * (its appearance IS the state change a reader just landed in). */
+#explainer:focus {
+  outline: none;
 }
 
 .nc-head {
@@ -4664,11 +4707,13 @@ body.lod-far .region-label { display: none; }
   stroke-dasharray: 7 4;
 }
 
-/* ─── The polite status voice · visually hidden, SR-first ────────────────
- * One aria-live=polite region narrates keyboard steps (connect-mode
- * open · confirm · cancel). Clipped, never display:none — a hidden
- * region goes silent. */
-#a11y-status {
+/* ─── The canvas voice · visually hidden, SR-first ───────────────────────
+ * ONE narrator, two politeness channels: #a11y-status (polite) carries
+ * keyboard steps and coalesced run milestones; #a11y-alert (assertive)
+ * is reserved for run starts and failures. Clipped, never
+ * display:none — a hidden region goes silent. */
+#a11y-status,
+#a11y-alert {
   position: fixed;
   width: 1px;
   height: 1px;

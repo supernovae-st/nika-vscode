@@ -24,6 +24,11 @@ key each, `Esc` always comes home:
 | `H` | heatmap | where the time went, as a toggle |
 
 Press `?` on the canvas: it teaches every gesture, including these.
+Prefer a screen-reader-ready list?
+[Canvas Accessibility Help](command:nika.canvasAccessibilityHelp)
+serves the same table · `Alt+F1` opens it from inside the canvas,
+focused. The whole graph works without a pointer: one Tab stop, arrows
+walk the DAG, `C` wires a task, and one live region narrates runs.
 
 ## Composition
 

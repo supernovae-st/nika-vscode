@@ -27,6 +27,7 @@ import { registerNikaBadge } from './features/fileBadge';
 import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
+import { CANVAS_KEYMAP } from './core/canvasKeymap';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -1903,6 +1904,41 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.canvas.focusTask', (ctx: CanvasMenuCtx) => {
       if (!ctx?.taskId) { return; }
       dagPanel.focusNode(ctx.taskId);
+    }),
+    // Accessibility help — the canvas keymap, screen-reader ready. With
+    // a live canvas the in-webview dialog opens focused (annexe-P / VS
+    // Code Open Accessibility Help pattern); without one, a QuickPick
+    // serves the SAME table (core/canvasKeymap — one source) plus the
+    // editor chord family derived from package.json (zero drift).
+    commands.registerCommand('nika.canvasAccessibilityHelp', async () => {
+      if (dagPanel.hasPanel) {
+        dagPanel.show();
+        dagPanel.showA11yHelp();
+        return;
+      }
+      const isMac = process.platform === 'darwin';
+      const pkg = context.extension.packageJSON as {
+        contributes?: {
+          keybindings?: Array<{ command: string; key: string; mac?: string; when?: string }>;
+          commands?: Array<{ command: string; title: string }>;
+        };
+      };
+      const titles = new Map(
+        (pkg.contributes?.commands ?? []).map((c) => [c.command, c.title]),
+      );
+      const items: QuickPickItem[] = [
+        { label: 'Canvas — keys inside the DAG view', kind: QuickPickItemKind.Separator },
+        ...CANVAS_KEYMAP.map(([key, what]) => ({ label: key, description: what })),
+        { label: 'Editor — chords on .nika.yaml files', kind: QuickPickItemKind.Separator },
+        ...(pkg.contributes?.keybindings ?? []).map((b) => ({
+          label: (isMac && b.mac ? b.mac : b.key).replace(/\bcmd\b/g, '⌘').replace(/\bctrl\b/g, 'Ctrl'),
+          description: titles.get(b.command) ?? b.command,
+        })),
+      ];
+      await window.showQuickPick(items, {
+        title: 'Nika canvas — keyboard help',
+        placeHolder: 'Every gesture and chord · Esc to close',
+      });
     }),
     commands.registerCommand('nika.canvas.renameTask', (ctx: CanvasMenuCtx) => {
       void (async () => {

@@ -354,6 +354,11 @@
         "category": "Nika"
       },
       {
+        "command": "nika.canvasAccessibilityHelp",
+        "title": "Canvas Accessibility Help",
+        "category": "Nika"
+      },
+      {
         "command": "nika.tryDemo",
         "title": "Try the Demo Workflow",
         "category": "Nika"

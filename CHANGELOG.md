@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The canvas speaks: screen-reader depth
+
+- **Roles on the real DOM**: the canvas is an `application` scoped to its own container (browse mode survives everywhere else), the svg a `graphics-document` that names its workflow and task count, every card a `graphics-symbol` whose accessible name reads label, mechanism, status and its degree (dependencies, dependents): refreshed silently on every status change, so the on-focus read stays true.
+- **One roving tab stop**: the focused card carries the DOM twin of the visual focus (arrows, chords and gestures all keep their handlers). Keyboard focus hardens the ring past 3:1; forced colors get a real outline; a keyboard move always centers its card, so the focus is never off-viewport.
+- **One narrator, two channels**: run start and per-task failures speak assertive; lifecycle lands as coalesced polite milestones ("3 of 7 tasks complete, 2 running" · throttled, deduplicated, never every tick); the close is the verdict banner's own line. Replay scrubs stay silent: recorded history is read on focus, not announced.
+- **Accessibility help**: `Alt+F1` (or `?`) opens the canvas keymap as a real focused dialog; `Nika: Canvas Accessibility Help` serves the same single-source table as a QuickPick from anywhere, editor chords included · linked from the walkthrough.
+
 ## [0.105.0] · 2026-07-21
 
 The second ascension: thirty deliveries on one canvas. The card
