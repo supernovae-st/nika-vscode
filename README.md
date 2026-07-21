@@ -615,6 +615,7 @@ tasks:
 - Language spec (Apache-2.0) · https://github.com/supernovae-st/nika-spec
 - Engine (AGPL-3.0-or-later) · https://github.com/supernovae-st/nika
 - Docs · https://docs.nika.sh
+- Timeline (the verifiable record: eras · releases · claims re-proven in CI) · https://nika.sh/timeline
 
 ---
 🦋 SuperNovae Studio · Paris
