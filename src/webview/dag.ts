@@ -3080,15 +3080,23 @@ class DagRenderer {
     }
   }
 
-  /** Restore the DOM focus to the canvas (dialog close · overlay exit). */
+  /** Restore the DOM focus to the canvas (dialog close · overlay
+   *  exit). An EXPLICIT restore: takes the focus back when it sits on
+   *  body, on the svg, on a card, or inside a now-hidden overlay (a
+   *  hidden input drops to body a beat later) — never from a live
+   *  input elsewhere (omnibar · search). */
   restoreDomFocus(): void {
-    this.syncDomFocus();
-    if (this.focusedId === null && document.hasFocus()) {
-      const ae = document.activeElement;
-      if (ae === null || ae === document.body) {
-        this.svg.node()?.focus({ preventScroll: true });
-      }
-    }
+    if (!document.hasFocus()) { return; }
+    const ae = document.activeElement;
+    const orphaned = ae === null || ae === document.body || ae === this.svg.node()
+      || (ae instanceof Element
+        && (ae.closest('[hidden]') !== null || ae.classList.contains('dag-node')));
+    if (!orphaned) { return; }
+    const focusedEl = this.focusedId === null
+      ? null
+      : this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(this.focusedId)}"]`).node();
+    if (focusedEl) { focusedEl.focus({ preventScroll: true }); }
+    else { this.svg.node()?.focus({ preventScroll: true }); }
   }
 
   /**
@@ -3702,6 +3710,9 @@ class DagRenderer {
       .classed('kbc-src', false)
       .classed('kbc-ok', false)
       .classed('kbc-hot', false);
+    // The picker held the DOM focus; hidden inputs drop it on body —
+    // the roving stop takes it back so the reader lands on the card.
+    this.restoreDomFocus();
   }
 
   /** ⌥arrows — nudge the focused card one 8px grid cell. Pins through
