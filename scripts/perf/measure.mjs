@@ -8,7 +8,7 @@
 //
 //   NIKA_PLAYWRIGHT=<playwright install> node scripts/perf/measure.mjs [scenario]
 //
-// Scenarios: cold · switch · pan · equivalence · all (default).
+// Scenarios: cold · switch · pan · key-paint · equivalence · all (default).
 // cold        — n=300 worker vs ?noworker: nk:layout, nk:paint-final,
 //               longtasks >100ms DURING the layout window (budget: zero
 //               on the worker rung — the main thread is free).
@@ -19,6 +19,10 @@
 //               workflowUri MUST miss (layoutKeyOf lives in the key).
 // pan         — 3s continuous drag at n=300: rAF frame-delta p50/p95
 //               (the PR-B culling baseline — pose the missing number).
+// key-paint   — a landing press then a 20-press arrow walk over a
+//               settled n=300: trusted keydown timeStamp → the moved
+//               ring's first painted frame (double rAF). Walk p95
+//               <100ms ENFORCED (the Raycast law); landing REPORTED.
 // equivalence — n=40/120/300: laid JSON on the worker rung byte-equals
 //               the ?noworker sync rung (maker≠checker refuter claim 1).
 //
@@ -284,6 +288,74 @@ if (scenario === 'all' || scenario === 'pan-near') {
     frames: frames.length, p50: pct(0.5), p95: pct(0.95), max: pct(1),
     cull: await readCull(page),
   };
+  await page.close();
+}
+
+// ─── key-paint (keystroke → focus-ring paint · the Raycast law) ────────────
+// The keyboard walk is the canvas' tightest loop: an arrow press moves
+// the focus and the ring must land NOW. From a settled graph at rest,
+// focus the canvas and walk it: one LANDING press first (null → first
+// card — it pays the lineage dim-set over all 300 cards, the fit→0.6
+// zoom change and the mass cull flip in one gesture; measured at
+// 210-260ms, REPORTED apart the way pan drops its warmup frames — it
+// enters the walk, it is not the walk), then 20 presses, 10 ArrowRight
+// + 10 ArrowLeft. next/prev WRAP, so every press lands the ring on a
+// DIFFERENT card (a press that moved nothing would time an empty
+// frame; moved === presses is asserted so the number cannot flatter
+// itself). Each sample: the trusted keydown's timeStamp (the input
+// clock — queueing delay rides the number) → performance.now() on the
+// SECOND rAF tick after it. The document handler applies .selected +
+// the roving tabindex synchronously in the keydown task and the
+// duration-0 camera jump on that frame's timer tick; rAF#1 opens the
+// frame that renders them, rAF#2 opens the next — the delta closes
+// when the ring's FIRST frame is submitted. That is paint START
+// (style applied + frame out), never a transition's end (.selected
+// carries none). Budget: walk p95 <100ms ENFORCED exit 1 (the Raycast
+// law); landing/p50/max ride the report.
+if (scenario === 'all' || scenario === 'key-paint') {
+  const page = await settledPage('n=300&still');
+  await page.evaluate(() => {
+    window.__nkKeyPaint = [];
+    document.querySelector('svg.dag-svg')?.focus();
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') { return; }
+      const t0 = e.timeStamp;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        window.__nkKeyPaint.push({
+          ms: performance.now() - t0,
+          id: document.querySelector('.dag-node.selected')?.getAttribute('data-id') ?? null,
+        });
+      }));
+    }, { capture: true });
+  });
+  const presses = 21; // 1 landing + 10 right + 10 left, back where it started
+  for (let i = 0; i < presses; i++) {
+    const before = await page.evaluate(() => window.__nkKeyPaint.length);
+    await page.keyboard.press(i <= presses / 2 ? 'ArrowRight' : 'ArrowLeft');
+    await page.waitForFunction((n) => window.__nkKeyPaint.length > n, before, { timeout: 10_000 });
+  }
+  const all = await page.evaluate(() => window.__nkKeyPaint);
+  let moved = 0;
+  let prevId = null;
+  for (const s of all) {
+    if (s.id !== null && s.id !== prevId) { moved++; }
+    prevId = s.id;
+  }
+  const landing = all[0];
+  const walk = all.slice(1);
+  const sorted = walk.map((s) => s.ms).sort((a, b) => a - b);
+  const pct = (p) => +sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))].toFixed(1);
+  report['key-paint'] = {
+    landingMs: +landing.ms.toFixed(1),
+    presses: walk.length, moved,
+    p50: pct(0.5), p95: pct(0.95), max: pct(1),
+  };
+  if (moved !== all.length) {
+    failures.push(`key-paint: ${moved}/${all.length} presses moved the focus — the walk stalled, the timing would flatter empty frames`);
+  }
+  if (pct(0.95) >= 100) {
+    failures.push(`key-paint: walk p95 ${pct(0.95)}ms >= 100ms keystroke budget (the Raycast law — a key press paints NOW)`);
+  }
   await page.close();
 }
 
