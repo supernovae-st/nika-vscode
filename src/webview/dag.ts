@@ -33,6 +33,8 @@ import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/p
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
 import { connectTargets, nextFocus, nudgedPosition, type NavDir, type NudgeDir } from '../core/canvasNav';
+import { CANVAS_KEYMAP } from '../core/canvasKeymap';
+import { RunNarrator, type NarratorLine } from '../core/runNarrator';
 import { FALLBACK_TOOL_BLURBS, filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
 import { analyzeDag, type DagInsights } from '../core/dagAnalysis';
@@ -277,17 +279,48 @@ class VerbCmdk {
 
 const verbCmdk = new VerbCmdk();
 
-// ─── The polite status voice · one region, every keyboard step ──────────────
-// A single visually-hidden aria-live=polite region (the C1 floor — the
-// coalescing run narrator is its own chantier). Blank-then-set so a
-// repeated sentence still announces.
+// ─── The canvas voice · ONE narrator, two politeness channels ───────────────
+// A single visually-hidden live-region pair narrates the whole canvas
+// (never a region per node): #a11y-status stays the polite channel the
+// C1 keyboard steps speak through; #a11y-alert is the assertive channel
+// reserved for run starts and failures. Blank-then-set so a repeated
+// sentence still announces.
 let announceTimer: ReturnType<typeof setTimeout> | undefined;
+let alertTimer: ReturnType<typeof setTimeout> | undefined;
 function announce(text: string): void {
   const el = document.getElementById('a11y-status');
   if (!el) { return; }
   if (announceTimer) { clearTimeout(announceTimer); }
   el.textContent = '';
   announceTimer = setTimeout(() => { el.textContent = text; }, 30);
+}
+function announceAlert(text: string): void {
+  const el = document.getElementById('a11y-alert');
+  if (!el) { return; }
+  if (alertTimer) { clearTimeout(alertTimer); }
+  el.textContent = '';
+  alertTimer = setTimeout(() => { el.textContent = text; }, 30);
+}
+
+// The run narrator (pure core · coalescing contract belted in
+// runNarrator.test.ts): dag.ts owns the clock and the ONE flush timer.
+const narrator = new RunNarrator();
+let narratorFlushTimer: ReturnType<typeof setTimeout> | undefined;
+function speak(line: NarratorLine | null): void {
+  if (!line) { return; }
+  if (line.channel === 'assertive') { announceAlert(line.text); }
+  else { announce(line.text); }
+}
+/** Feed the narrator a fresh census; schedule the single ripen timer. */
+function narrateProgress(counts: { total: number; complete: number; running: number; failed: number }): void {
+  const out = narrator.progress(counts, performance.now());
+  speak(out.line);
+  if (out.flushInMs !== null && narratorFlushTimer === undefined) {
+    narratorFlushTimer = setTimeout(() => {
+      narratorFlushTimer = undefined;
+      speak(narrator.flush(performance.now()));
+    }, out.flushInMs + 10);
+  }
 }
 
 // ─── Connect-mode picker · the port-drag, pointer-free (WCAG 2.5.7) ────────
@@ -667,6 +700,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
+  | { kind: 'dag:accessibilityHelp' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
@@ -2225,11 +2259,24 @@ class DagRenderer {
   constructor(containerId: string) {
     this.container = document.getElementById(containerId)!;
 
+    // The screen-reader contract (annexe P composite): `application`
+    // scoped TIGHT to the canvas container alone — arrows and letters
+    // pass through to our handlers here, while browse mode survives on
+    // every sibling surface (toolbar · omnibar · legend). The svg is
+    // the graphics-document; nodes are its graphics-symbols.
+    this.container.setAttribute('role', 'application');
+    this.container.setAttribute('aria-label', 'Workflow canvas');
+
     this.svg = select(this.container)
       .append<SVGSVGElement>('svg')
       .attr('class', 'dag-svg')
       .attr('width', '100%')
-      .attr('height', '100%');
+      .attr('height', '100%')
+      // ONE tab stop: the svg holds it until a node takes focus, then
+      // the roving tabindex hands it to the focused card (applyFocus).
+      .attr('role', 'graphics-document')
+      .attr('aria-label', 'Workflow canvas — no workflow loaded')
+      .attr('tabindex', 0);
 
     // SVG defs: arrowhead markers
     const defs = this.svg.append('defs');
@@ -2659,6 +2706,11 @@ class DagRenderer {
     // Update toolbar
     const titleEl = document.getElementById('dag-title');
     if (titleEl) titleEl.textContent = graph.workflowName;
+    // The graph's accessible name — what a reader hears on landing.
+    const taskCount = graph.nodes.length;
+    const graphName = `${graph.workflowName || 'workflow'} — ${taskCount} task${taskCount === 1 ? '' : 's'}`;
+    this.svg.attr('aria-label', graphName);
+    this.container.setAttribute('aria-label', `Workflow canvas — ${graphName}`);
 
     // Loaded → the empty state yields to the canvas, chrome comes back.
     document.getElementById('empty-state')?.setAttribute('hidden', '');
@@ -2979,6 +3031,64 @@ class DagRenderer {
     this.lineage = id === null ? null : lineageOf(this.currentGraph?.edges ?? [], id);
     this.lineageFromEditor = false;
     this.refreshDim();
+    this.syncDomFocus();
+  }
+
+  /** The accessible name a reader hears on focus: label, mechanism,
+   *  status (+ clock), then the card's place in the graph. Updated
+   *  SILENTLY on every status change — the on-focus read stays true. */
+  private nodeAriaLabel(d: DagNode): string {
+    const mech = d.tool ?? d.verb;
+    const parts = [d.label, mech !== d.label ? mech : '', d.status];
+    if (d.status === 'success' && d.durationMs != null) {
+      parts[parts.length - 1] += ` ${(d.durationMs / 1000).toFixed(1)}s`;
+    }
+    const up = this.upstreamOf.get(d.id)?.length ?? 0;
+    const down = this.downstreamOf.get(d.id)?.length ?? 0;
+    if (up > 0) { parts.push(`${up} ${up === 1 ? 'dependency' : 'dependencies'}`); }
+    if (down > 0) { parts.push(`${down} ${down === 1 ? 'dependent' : 'dependents'}`); }
+    return parts.filter((p) => p !== '').join(', ');
+  }
+
+  /** The visual focus's DOM twin (roving tabindex): ONE tab stop — the
+   *  focused card carries it, the svg holds it when nothing does. The
+   *  DOM focus FOLLOWS the logical focus, never replaces it: every key
+   *  keeps its document-level handler. Focus only ever moves while it
+   *  already sits in canvas land (body · svg · a card) and the webview
+   *  document is focused — an input, a cmdk or a background panel is
+   *  never robbed. */
+  private syncDomFocus(): void {
+    const svgEl = this.svg.node();
+    if (!svgEl) { return; }
+    const focusedEl = this.focusedId === null
+      ? null
+      : this.nodeGroup.select<SVGGElement>(`[data-id="${CSS.escape(this.focusedId)}"]`).node();
+    this.nodeGroup.selectAll<SVGGElement, DagNode>('.dag-node')
+      .attr('tabindex', (d) => (d.id === this.focusedId ? 0 : -1));
+    svgEl.setAttribute('tabindex', focusedEl ? '-1' : '0');
+    if (!document.hasFocus()) { return; }
+    const ae = document.activeElement;
+    const inCanvasLand = ae === null || ae === document.body || ae === svgEl
+      || (ae instanceof Element && ae.classList.contains('dag-node'));
+    if (!inCanvasLand) { return; }
+    if (focusedEl) {
+      if (ae !== focusedEl) { focusedEl.focus({ preventScroll: true }); }
+    } else if (ae instanceof Element && ae.classList.contains('dag-node')) {
+      // Focus cleared while a card held the DOM focus — the svg takes
+      // the stop back so Tab keeps ONE entry into the canvas.
+      svgEl.focus({ preventScroll: true });
+    }
+  }
+
+  /** Restore the DOM focus to the canvas (dialog close · overlay exit). */
+  restoreDomFocus(): void {
+    this.syncDomFocus();
+    if (this.focusedId === null && document.hasFocus()) {
+      const ae = document.activeElement;
+      if (ae === null || ae === document.body) {
+        this.svg.node()?.focus({ preventScroll: true });
+      }
+    }
   }
 
   /**
@@ -3110,6 +3220,11 @@ class DagRenderer {
   /** The focused node id (Delete-key target · add-task anchor). */
   get focused(): string | null {
     return this.focusedId;
+  }
+
+  /** How many tasks the loaded graph carries (the narrator's census). */
+  get taskCount(): number {
+    return this.currentGraph?.nodes.length ?? 0;
   }
 
   /** Screen → root-group coordinates (inverts the live zoom transform). */
@@ -4290,6 +4405,12 @@ class DagRenderer {
       .append('g')
       .attr('class', (d) => nodeClassOf(d))
       .attr('data-id', (d) => d.id)
+      // Graphics Module semantics + the roving contract: every card is
+      // a named graphics-symbol, focusable only programmatically until
+      // applyFocus hands it the single tab stop (tabindex 0).
+      .attr('role', 'graphics-symbol')
+      .attr('aria-roledescription', 'task node')
+      .attr('tabindex', -1)
       .attr('opacity', 0);
 
     // Fan-out DECK — a map ×N task reads as a stack of sheets (two ghost
@@ -4506,6 +4627,9 @@ class DagRenderer {
     // The mode, readable on the group (CSS scope · probes · a11y).
     merged.attr('data-card-mode', (d) => this.renderModeOf(d.id));
     merged.attr('aria-expanded', (d) => String(this.renderModeOf(d.id) === 'grand'));
+    // The accessible name — refreshed on every render so a re-load
+    // with new statuses reads true on focus.
+    merged.attr('aria-label', (d) => this.nodeAriaLabel(d));
     // Native right-click: VS Code reads data-vscode-context off the DOM
     // path and shows the contributed webview/context menu — refreshed on
     // every render so the workflowUri never goes stale on a switch.
@@ -6518,6 +6642,10 @@ class DagRenderer {
       if (status === 'failed') {
         this.failureShockwave(taskId);
         this.teachFirstRed(taskId);
+        // The red speaks: assertive, once per task per run — the ONLY
+        // per-task announcement the narrator ever makes (silent when no
+        // run is live: replay scrubs read on focus instead).
+        speak(narrator.taskFailed(taskId, extra?.failPreview));
         // Card-first: a failure PROMOTES a min card to grand — the red
         // teaches on the card face (recorded as the retained mix; the
         // frame grows IN PLACE, no mid-run layout churn).
@@ -6543,6 +6671,9 @@ class DagRenderer {
 
     const el = this.nodeGroup.select(`[data-id="${CSS.escape(taskId)}"]`);
     el.attr('class', nodeClassOf(node));
+    // The accessible name follows the state SILENTLY (no announcement —
+    // the live region narrates milestones; the on-focus read stays true).
+    el.attr('aria-label', this.nodeAriaLabel(node));
     this.reapplySim();
     this.reapplyAuditMarks();
     el.select('.nc-sub-v').text(this.subValue(node));
@@ -6618,6 +6749,16 @@ class DagRenderer {
       this.lastRunTick = sig;
       vscode.postMessage({ kind: 'transport:tick', running });
     }
+
+    // The run narrator's census (coalesced + throttled in core — the
+    // narrator itself decides whether this tick becomes a milestone).
+    const nodes = this.currentGraph?.nodes ?? [];
+    narrateProgress({
+      total: nodes.length,
+      complete: nodes.filter((n) => n.status === 'success').length,
+      running: running.length,
+      failed: nodes.filter((n) => n.status === 'failed').length,
+    });
   }
 
   updateNodeStatus(taskId: string, status: TaskStatus, durationMs?: number, cached?: boolean, outputPreview?: string, recoveredFrom?: string, usd?: number): void {
@@ -7344,6 +7485,13 @@ function buildExplainer(): void {
   const el = document.getElementById('explainer');
   if (!el || el.childElementCount > 0) { return; }
 
+  // The in-webview accessibility help (VS Code's Open Accessibility
+  // Help pattern): a real dialog a reader can land in — alt+F1 or `?`
+  // opens it focused, Esc closes and hands focus back to the canvas.
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', 'Canvas help — every gesture and key');
+  el.setAttribute('tabindex', '-1');
+
   const card = document.createElement('div');
   card.className = 'ex-card';
 
@@ -7396,7 +7544,7 @@ function buildExplainer(): void {
 
   const keys = document.createElement('div');
   keys.className = 'ex-keys';
-  for (const [key, label] of [['Tab', 'next task'], ['↑↓', 'dep / dependent'], ['←→', 'prev / next'], ['⏎', 'open YAML'], ['R', 'run'], ['M', 'mock run'], ['S', 'stop'], ['F', 'fit'], ['A', 'auto-layout'], ['W', 'waves'], ['H', 'heatmap'], ['T', 'timeline'], ['P', 'audit'], ['D', 'dataflow'], ['G', 'follow run'], ['K', 'actions (focused) · command'], ['N', 'add a task'], ['/', 'filter'], ['\u2318D', 'duplicate'], ['C', 'connect \u2014 wire a task after this one'], ['\u2325\u2190\u2191\u2193\u2192', 'nudge the card (8px grid)'], ['X', 'what-if (simulate fail)'], ['Space', 'peek (pin the card story)'], ['⇧V', 'display properties (density)'], ['Esc', 'clear'], ['?', 'this card']]) {
+  for (const [key, label] of CANVAS_KEYMAP) {
     const kbd = document.createElement('kbd');
     kbd.textContent = key;
     const span = document.createElement('span');
@@ -7478,8 +7626,12 @@ function toggleExplainer(): void {
   if (el.hasAttribute('hidden')) {
     renderExplainerInsights();
     el.removeAttribute('hidden');
+    // The dialog takes the reader with it (annexe P #12): focus lands
+    // on the help so a screen reader can walk the whole keymap.
+    el.focus({ preventScroll: true });
   } else {
     el.setAttribute('hidden', '');
+    renderer.restoreDomFocus();
   }
 }
 
@@ -7731,6 +7883,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
     case 'dag:fitToView':
       renderer.fitToView();
       break;
+    case 'dag:accessibilityHelp':
+      // The command / walkthrough door into the keymap dialog — open
+      // (never toggle-shut) and focused for the reader.
+      if (document.getElementById('explainer')?.hasAttribute('hidden') !== false) {
+        toggleExplainer();
+      }
+      break;
     case 'theme:changed':
       // CSS variables update automatically; an `auto` skin re-resolves
       // against the swapped body theme class (dark ⇄ light live).
@@ -7746,12 +7905,19 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'run:state':
       setRunUiState(msg.running);
+      // The narrator's run gate: start speaks assertive with the task
+      // count; stop just closes the gate (the verdict line is the close).
+      if (msg.running) { speak(narrator.runStarted(renderer.taskCount, performance.now())); }
+      else { narrator.runStopped(); }
       break;
     case 'run:progress':
       applyRunProgress(msg.done, msg.total);
       break;
     case 'run:verdict':
       showRunVerdict(msg.icon, msg.text, msg.cls);
+      // One voice with the banner: the verdict text IS the summary —
+      // blocking closes (failed · paused) speak assertive.
+      speak(narrator.verdict(msg.text, msg.cls === 'st-failed' || msg.cls === 'st-paused'));
       break;
     case 'run:celebrate':
       celebrateFirstGreen();
@@ -8193,6 +8359,14 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if ((e.key === 'c' || e.key === 'C') && !e.metaKey && !e.ctrlKey && !e.altKey) {
     if (renderer.startKeyboardConnect()) { e.preventDefault(); return; }
   }
+  // ⌥F1 — accessibility help (the VS Code gesture): the keymap dialog,
+  // focused, screen-reader walkable. `?` keeps opening the same card.
+  if (e.altKey && e.key === 'F1') {
+    e.preventDefault();
+    const ex = document.getElementById('explainer');
+    if (ex?.hasAttribute('hidden') !== false) { toggleExplainer(); }
+    return;
+  }
   // Keyboard-first canvas nav (a11y + power): Tab (or ←/→) cycles the
   // topological node order, ↑ walks to a dependency, ↓ to a dependent.
   if (e.key === 'Tab') {
@@ -8210,7 +8384,11 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (renderer.clearSimulation()) { return; }
     if (renderer.cancelConnect()) { return; }
     const ex = document.getElementById('explainer');
-    if (ex && !ex.hasAttribute('hidden')) { ex.setAttribute('hidden', ''); return; }
+    if (ex && !ex.hasAttribute('hidden')) {
+      ex.setAttribute('hidden', '');
+      renderer.restoreDomFocus();
+      return;
+    }
     renderer.clearFocus();
   }
   if (e.key === 'V' && e.shiftKey) { e.preventDefault(); toggleDisplayPanel(); return; }

@@ -37,6 +37,9 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:note'; icon: string; text: string; taskId?: string; cls?: string }
   | { kind: 'dag:clear' }
   | { kind: 'dag:fitToView' }
+  // Accessibility help — opens the in-webview keymap dialog, focused
+  // (the command and the walkthrough link both land here).
+  | { kind: 'dag:accessibilityHelp' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
   // The platine: a normalized trace timeline the webview transport
@@ -257,6 +260,11 @@ export class DagPanel implements vscode.Disposable {
   /** Run-close verdict banner — the summary, visible without the feed. */
   public runVerdict(icon: string, text: string, cls: string): void {
     this.postMessage({ kind: 'run:verdict', icon, text, cls });
+  }
+
+  /** Open the canvas accessibility help (in-webview keymap dialog). */
+  public showA11yHelp(): void {
+    this.postMessage({ kind: 'dag:accessibilityHelp' });
   }
 
   /** First green ever — the one celebration overlay (firstGreen owns
@@ -1206,6 +1214,7 @@ export class DagPanel implements vscode.Disposable {
     <div id="connect-list" role="listbox" aria-label="Valid connect targets"></div>
   </div>
   <div id="a11y-status" role="status" aria-live="polite"></div>
+  <div id="a11y-alert" role="alert"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
