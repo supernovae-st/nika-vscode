@@ -8,6 +8,8 @@
 // first and "j" surfaces `jq` before `json_diff`. Pure — the webview
 // renders the ranked lists, the tests pin them.
 
+import { damerau } from './graphIntel';
+
 export interface VerbItem {
   verb: 'infer' | 'exec' | 'invoke' | 'agent';
   glyph: string;
@@ -131,11 +133,15 @@ export interface OmniAdd {
  * `nika:x` ref is accepted even outside `knownBares`: an unknown tool
  * is the ENGINE's diagnostic to give, not this parser's guess.
  */
+/** The `+ <token> [after <id>]` shape — parseOmniAdd and the did-you-mean
+ *  read the SAME grammar (the `+` stays the deterministic gate). */
+const OMNI_ADD_GRAMMAR = /^\+\s*([a-z][a-z0-9_:]*)(?:\s+after\s+([a-z][a-z0-9_]*))?\s*$/i;
+
 export function parseOmniAdd(
   text: string,
   knownBares: ReadonlySet<string>,
 ): OmniAdd | undefined {
-  const m = text.match(/^\+\s*([a-z][a-z0-9_:]*)(?:\s+after\s+([a-z][a-z0-9_]*))?\s*$/i);
+  const m = text.match(OMNI_ADD_GRAMMAR);
   if (!m) { return undefined; }
   const token = m[1].toLowerCase();
   const after = m[2]?.toLowerCase();
@@ -148,4 +154,46 @@ export function parseOmniAdd(
     return { verb: 'invoke', tool: `nika:${token}`, after };
   }
   return undefined;
+}
+
+/** A near-miss reading of a failed omni add: the `+` grammar matched but
+ *  the token names nothing — its Damerau ≤2 neighbours, nearest first. */
+export interface OmniAddSuggestion {
+  /** The mistyped token (lowercased). */
+  token: string;
+  /** Corrected adds — distance, then verbs before tools, then lexical. */
+  candidates: OmniAdd[];
+}
+
+/**
+ * Did-you-mean for the omnibar's `+` grammar (Raycast forgiveness: a
+ * typo'd token is never a sentence for the LLM). Fires ONLY when the
+ * text is a `+` phrase whose token missed the vocabulary — `+ ifner`
+ * suggests `infer`; free prose (`make me a workflow`) stays undefined
+ * so the caller keeps routing sentences to generate. A `nika:` ref is
+ * never fuzzed: an unknown tool ref is the ENGINE's diagnostic to give.
+ */
+export function omniAddDidYouMean(
+  text: string,
+  knownBares: ReadonlySet<string>,
+): OmniAddSuggestion | undefined {
+  const m = text.match(OMNI_ADD_GRAMMAR);
+  if (!m) { return undefined; }
+  const token = m[1].toLowerCase();
+  const after = m[2]?.toLowerCase();
+  if (token.includes(':')) { return undefined; }
+  const scored: Array<{ add: OmniAdd; d: number; tier: number; name: string }> = [];
+  for (const { verb } of VERB_ITEMS) {
+    const d = damerau(token, verb, 2);
+    if (d <= 2) { scored.push({ add: { verb, after }, d, tier: 0, name: verb }); }
+  }
+  for (const bare of knownBares) {
+    const d = damerau(token, bare, 2);
+    if (d <= 2) {
+      scored.push({ add: { verb: 'invoke', tool: `nika:${bare}`, after }, d, tier: 1, name: bare });
+    }
+  }
+  if (scored.length === 0) { return undefined; }
+  scored.sort((a, b) => a.d - b.d || a.tier - b.tier || (a.name < b.name ? -1 : 1));
+  return { token, candidates: scored.map((s) => s.add) };
 }

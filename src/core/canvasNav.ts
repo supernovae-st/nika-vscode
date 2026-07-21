@@ -113,3 +113,21 @@ export function nudgedPosition(
   if (dir === 'up') { return { x, y: snap(y - step) }; }
   return { x, y: snap(y + step) };
 }
+
+/** The zero-match teaching line — ONE voice: the `/` filter's count
+ *  pill and connect-mode's empty list speak the same words. */
+export const NO_MATCH_HINT = 'no match — Backspace widens';
+
+/**
+ * The `/` filter's live count line: `N matches` while typing, the
+ * teaching line at zero, null when the filter is idle (no query —
+ * the pill hides rather than counting the whole graph).
+ */
+export function searchCountLabel(
+  matches: number,
+  hasQuery: boolean,
+): string | null {
+  if (!hasQuery) { return null; }
+  if (matches === 0) { return NO_MATCH_HINT; }
+  return matches === 1 ? '1 match' : `${matches} matches`;
+}

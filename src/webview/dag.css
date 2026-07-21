@@ -2332,6 +2332,29 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   display: none;
 }
 
+/* The live match count — a quiet pill under the input: the number while
+ * typing, the teaching line at zero (ONE voice with connect-mode). */
+#dag-search-count {
+  position: fixed;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  border-radius: var(--nk-radius);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+#dag-search-count[hidden] {
+  display: none;
+}
+
 /* ─── Reduced motion · the nika-skin additions opt out too ──────────────── */
 
 @media (prefers-reduced-motion: reduce) {

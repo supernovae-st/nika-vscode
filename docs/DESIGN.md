@@ -665,6 +665,7 @@ for secondary chords — and every binding is when-scoped to
 | Replay a recorded run | `⌘K ⌘P` | rePlay |
 | Fork from task | `⌘K ⌘B` | Branch |
 | Verify journal | `⌘K ⌘V` | Verify |
+| Try the demo | `⌘K ⌘H` | Hands-on (D is a default chord: find-match) |
 
 The flight-recorder tier (A · P · B · V) answers from a nika file OR
 the canvas (`activeWebviewPanelId == 'nika.dagView'`) — every one of
@@ -674,13 +675,27 @@ an honest pointer at the Runs view), so a bare chord always lands.
 Why a chord family: plain `ctrl+alt+<letter>` IS AltGr on EU layouts
 (typing `€` or `@` fired commands), `ctrl+alt+t` is the GNOME
 terminal chord, and `cmd+shift+r` shadowed macOS Refactor inside nika
-files. The second strokes (E · G · K · M · N · A · P · B · V) are free
-in the default keymap, so nothing native is shadowed — the default
-`⌘K ⌘<x>` chords occupy C · D · F · I · J · L · O · Q · R · S · T ·
-U · W · X and the digits (held by `keybindings.test.ts`, proven
-against the live editor's default-keybindings dump in the integration
-suite). Single keys on the canvas (the lens deck — `?` teaches them)
-are webview-focus scoped and unchanged.
+files. The second strokes (E · G · K · M · N · A · P · V · H) are
+free where nika files live — the default `⌘K ⌘<x>` chords occupy
+C · D · F · I · J · L · O · Q · R · S · T · U · W · X and the digits
+(held by `keybindings.test.ts`, proven against the live editor's
+default-keybindings dump by
+`test-integration/suite/keybindings.test.ts`). The dump arbiter pins
+two truths by name: `⌘K ⌘D` stays upstream's
+moveSelectionToNextFindMatch (the demo's mnemonic initial was taken,
+so the demo rides H, and the pin will say when D frees up), and the
+family carries ONE accepted shadow — `⌘K ⌘B` sits on
+setSelectionAnchor in plain editors; inside nika files fork-from-task
+outranks that niche entry point (the palette still serves it there).
+Every chord is rebindable in Keyboard Shortcuts (`⌘K ⌘S` · search
+"nika"); the family is a default, not a cage. Single keys on the
+canvas (the lens deck — `?` teaches them) are webview-focus scoped
+and unchanged.
+
+The family teaches itself at the point of use (`core/chordLabels` —
+ONE derivation from `contributes.keybindings`): the status-bar menu
+prints each chorded row's shortcut on the right, and the canvas a11y
+help prints the same labels — two surfaces, zero drift.
 
 ## 8 · Voice — the twelve rules
 

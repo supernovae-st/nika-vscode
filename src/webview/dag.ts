@@ -32,7 +32,7 @@ import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
-import { connectTargets, nextFocus, nudgedPosition, type NavDir, type NudgeDir } from '../core/canvasNav';
+import { NO_MATCH_HINT, connectTargets, nextFocus, nudgedPosition, searchCountLabel, type NavDir, type NudgeDir } from '../core/canvasNav';
 import { CANVAS_KEYMAP } from '../core/canvasKeymap';
 import { RunNarrator, type NarratorLine } from '../core/runNarrator';
 import { FALLBACK_TOOL_BLURBS, filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
@@ -440,7 +440,7 @@ class ConnectCmdk {
       none.setAttribute('role', 'presentation');
       none.textContent = this.items.length === 0
         ? 'no valid target — wires from here would loop or already exist'
-        : 'no match — Backspace widens';
+        : NO_MATCH_HINT;
       this.list.appendChild(none);
     }
     this.shown.forEach((t, i) => {
@@ -2664,9 +2664,10 @@ class DagRenderer {
     // stale set must not dim everything).
     const search = document.getElementById('dag-search') as HTMLInputElement | null;
     if (search && !search.hidden && search.value.trim().length > 0) {
-      this.applyFilter(search.value.trim());
+      paintSearchCount(this.applyFilter(search.value.trim()), search.value.trim());
     } else {
       this.filterMatches = null;
+      paintSearchCount(0, '');
     }
     this.applyFocus(this.focusedId);
     this.updateEdgeFlow();
@@ -8213,7 +8214,7 @@ function runOmni(): void {
     if (searchEl) {
       searchEl.hidden = false;
       searchEl.value = text.slice(1).trim();
-      renderer.applyFilter(searchEl.value || null);
+      paintSearchCount(renderer.applyFilter(searchEl.value || null), searchEl.value);
       searchEl.focus();
     }
     if (omniInput) { omniInput.value = ''; }
@@ -8301,7 +8302,18 @@ syncCurveBtn();
 // ─── Search / filter (`/`) ──────────────────────────────────────────────────
 
 const searchEl = document.getElementById('dag-search') as HTMLInputElement | null;
+const searchCountEl = document.getElementById('dag-search-count');
 let searchCycle = 0;
+
+/** ONE painter for the count pill under the input — every writer of the
+ *  filter calls it (the overwrite-family law), so the number can never
+ *  go stale against applyFilter's truth. */
+function paintSearchCount(matches: number, query: string): void {
+  if (!searchCountEl) { return; }
+  const label = searchCountLabel(matches, query.length > 0);
+  searchCountEl.hidden = label === null;
+  searchCountEl.textContent = label ?? '';
+}
 
 function openSearch(): void {
   if (!searchEl) { return; }
@@ -8309,7 +8321,7 @@ function openSearch(): void {
   searchEl.focus();
   searchEl.select();
   const q = searchEl.value.trim();
-  if (q) { renderer.applyFilter(q); }
+  if (q) { paintSearchCount(renderer.applyFilter(q), q); }
 }
 
 /** Close + clear the filter. Returns true when it WAS open (Esc laddering). */
@@ -8319,12 +8331,14 @@ function closeSearch(): boolean {
   searchEl.value = '';
   searchCycle = 0;
   renderer.applyFilter(null);
+  paintSearchCount(0, '');
   return true;
 }
 
 searchEl?.addEventListener('input', () => {
   searchCycle = 0;
-  renderer.applyFilter(searchEl.value.trim() || null);
+  const q = searchEl.value.trim();
+  paintSearchCount(renderer.applyFilter(q || null), q);
 });
 
 searchEl?.addEventListener('keydown', (e: KeyboardEvent) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NUDGE_STEP, connectTargets, nextFocus, nudgedPosition, type NavEdge, type NavNode } from '../core/canvasNav';
+import { NO_MATCH_HINT, NUDGE_STEP, connectTargets, nextFocus, nudgedPosition, searchCountLabel, type NavEdge, type NavNode } from '../core/canvasNav';
 
 // seed → a, seed → b, a → join, b → join  (diamond)
 const nodes: NavNode[] = [{ id: 'seed' }, { id: 'a' }, { id: 'b' }, { id: 'join' }];
@@ -102,5 +102,22 @@ describe('nudgedPosition (alt+arrows · 8px grid)', () => {
 
   it('honors a custom step', () => {
     expect(nudgedPosition(0, 0, 'right', 16)).toEqual({ x: 16, y: 0 });
+  });
+});
+
+describe('searchCountLabel (the `/` filter count pill)', () => {
+  it('counts while typing, tabular voice', () => {
+    expect(searchCountLabel(7, true)).toBe('7 matches');
+    expect(searchCountLabel(1, true)).toBe('1 match');
+  });
+
+  it('zero speaks the teaching line, VERBATIM the connect-mode voice', () => {
+    expect(searchCountLabel(0, true)).toBe('no match — Backspace widens');
+    expect(searchCountLabel(0, true)).toBe(NO_MATCH_HINT);
+  });
+
+  it('an idle filter shows nothing (null hides the pill)', () => {
+    expect(searchCountLabel(0, false)).toBeNull();
+    expect(searchCountLabel(5, false)).toBeNull();
   });
 });

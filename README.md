@@ -435,7 +435,8 @@ network: every green close settles a ✓ wave through the cards.*
   makes) · `⌥`+arrows nudge a card one 8px grid cell · the `⌘K` chord
   family carries the flight recorder (`⌘K ⌘A` diff two runs ·
   `⌘K ⌘P` replay · `⌘K ⌘B` fork from task): the whole canvas without
-  the mouse
+  the mouse · every command is rebindable in Keyboard Shortcuts
+  (`⌘K ⌘S`: search "nika")
 - **The nika.sh skin** · the panel ships the landing page's design
   language by default: engineered-black register, one blue accent, the
   4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),

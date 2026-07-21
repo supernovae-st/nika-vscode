@@ -8,11 +8,18 @@
 // the documented `ctrl+k ctrl+<x>` surface (comment/fold/hover/theme/
 // close/trim/… — C · D · F · I · J · L · O · Q · R · S · T · U · W ·
 // X and the digits); the integration suite re-proves it against the
-// LIVE editor's default-keybindings dump (the runtime authority).
+// LIVE editor's default-keybindings dump (the runtime authority —
+// test-integration/suite/keybindings.test.ts). D notably is NOT free:
+// upstream binds ⌘K ⌘D to moveSelectionToNextFindMatch, which is why
+// the demo rides H, not its initial. The dump arbiter also found the
+// family's ONE accepted shadow — ⌘K ⌘B sits on setSelectionAnchor in
+// plain editors; fork-from-task keeps it inside nika files (pinned
+// there, absent from this table so the family's own B stays legal).
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { chordLabels, prettyChord } from '../core/chordLabels';
 
 interface Keybinding { command: string; key: string; mac?: string; when?: string }
 interface Command { command: string }
@@ -75,5 +82,29 @@ describe('the ⌘K chord family (DESIGN.md §7b)', () => {
       const b = bindings.find((x) => x.command === cmd);
       expect(b?.when).toContain("activeWebviewPanelId == 'nika.dagView'");
     }
+  });
+
+  it('the demo rides H (Hands-on) — D is a default chord, so H it is', () => {
+    const demo = bindings.find((b) => b.command === 'nika.tryDemo');
+    expect(demo?.key).toBe('ctrl+k ctrl+h');
+    expect(demo?.mac).toBe('cmd+k cmd+h');
+    expect(demo?.when).toContain("activeWebviewPanelId == 'nika.dagView'");
+  });
+});
+
+describe('the teaching labels (core/chordLabels — menu + a11y, one voice)', () => {
+  it('prettyChord speaks the a11y-help dialect on both platforms', () => {
+    const b = { key: 'ctrl+k ctrl+e', mac: 'cmd+k cmd+e' };
+    expect(prettyChord(b, true)).toBe('⌘+k ⌘+e');
+    expect(prettyChord(b, false)).toBe('Ctrl+k Ctrl+e');
+  });
+
+  it('the real manifest teaches every family chord, demo included', () => {
+    const labels = chordLabels(bindings, true);
+    expect(labels.get('nika.runWorkflow')).toBe('⌘+k ⌘+e');
+    expect(labels.get('nika.checkWorkflow')).toBe('⌘+k ⌘+k');
+    expect(labels.get('nika.showDag')).toBe('⌘+k ⌘+g');
+    expect(labels.get('nika.replayTrace')).toBe('⌘+k ⌘+p');
+    expect(labels.get('nika.tryDemo')).toBe('⌘+k ⌘+h');
   });
 });

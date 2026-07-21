@@ -28,6 +28,7 @@ import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { CANVAS_KEYMAP } from './core/canvasKeymap';
+import { chordLabels, prettyChord, type KeybindingContribution } from './core/chordLabels';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -111,7 +112,7 @@ import {
   type StarterPick,
 } from './core/newWorkflowWizard';
 import { buildSessionPicks } from './core/sessionLauncher';
-import { parseOmniAdd } from './core/verbPalette';
+import { omniAddDidYouMean, parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
@@ -495,7 +496,16 @@ export function activate(context: ExtensionContext): void {
   // provider · the Runs-view "Debug this run" action). The adapter IS
   // the engine: `nika dap` over stdio.
   registerDebugReplay(context, () => service.binaryPath, () => service.caps.dap);
-  const statusBar = new NikaStatusBar(service, () => currentJourney);
+  // The menu teaches its own chords (Raycast law 8: at the point of
+  // use) — derived from package.json, the same source the a11y help
+  // prints, so the hub can never contradict the manifest.
+  const menuChords = chordLabels(
+    (context.extension.packageJSON as {
+      contributes?: { keybindings?: KeybindingContribution[] };
+    }).contributes?.keybindings,
+    process.platform === 'darwin',
+  );
+  const statusBar = new NikaStatusBar(service, () => currentJourney, menuChords);
   context.subscriptions.push(statusBar);
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
@@ -1395,12 +1405,36 @@ export function activate(context: ExtensionContext): void {
       case 'dag:omni': {
         // `+ <verb|tool> [after id]` adds deterministically — the same
         // vocabulary as the task palette (`+ jq after gather` lands an
-        // invoke pinned to nika:jq); anything else routes to the
-        // oracle-checked generate pipeline.
-        const add = parseOmniAdd(
-          request.text,
-          new Set(Object.keys(service.toolCats ?? {})),
-        );
+        // invoke pinned to nika:jq). A `+` token that MISSES the
+        // vocabulary is a typo, never a sentence: one Damerau ≤2
+        // neighbour is inserted outright (`+ ifner` lands infer — the
+        // typo forgiven), several are proposed, and Esc cancels. Only
+        // free prose routes to the oracle-checked generate pipeline —
+        // the LLM stays the fallback of the PHRASE, never of the typo.
+        const knownBares = new Set(Object.keys(service.toolCats ?? {}));
+        let add = parseOmniAdd(request.text, knownBares);
+        if (!add) {
+          const near = omniAddDidYouMean(request.text, knownBares);
+          if (near) {
+            if (near.candidates.length === 1) {
+              add = near.candidates[0];
+            } else {
+              const picked = await window.showQuickPick(
+                near.candidates.map((c) => ({
+                  label: c.tool ? c.tool.slice('nika:'.length) : c.verb,
+                  description: c.tool ? 'builtin tool · invoke' : 'verb',
+                  add: c,
+                })),
+                {
+                  title: `\`${near.token}\` is not a verb or tool — did you mean…`,
+                  placeHolder: 'Enter inserts the corrected task · Esc cancels',
+                },
+              );
+              if (!picked) { return; }
+              add = picked.add;
+            }
+          }
+        }
         if (add) {
           const res = insertTaskSkeleton(text, add.verb, add.after, add.tool);
           if (res) {
@@ -1931,7 +1965,7 @@ export function activate(context: ExtensionContext): void {
         ...CANVAS_KEYMAP.map(([key, what]) => ({ label: key, description: what })),
         { label: 'Editor — chords on .nika.yaml files', kind: QuickPickItemKind.Separator },
         ...(pkg.contributes?.keybindings ?? []).map((b) => ({
-          label: (isMac && b.mac ? b.mac : b.key).replace(/\bcmd\b/g, '⌘').replace(/\bctrl\b/g, 'Ctrl'),
+          label: prettyChord(b, isMac),
           description: titles.get(b.command) ?? b.command,
         })),
       ];

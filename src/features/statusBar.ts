@@ -22,6 +22,10 @@ export class NikaStatusBar implements vscode.Disposable {
      *  consumed here for the head row + placeholder (one truth, never a
      *  second findFiles). */
     private readonly getJourney: () => import('../core/journey').Journey,
+    /** Chord labels per command (core/chordLabels, from package.json) —
+     *  the menu prints each row's shortcut so the hub teaches its own
+     *  keys (empty map = plain rows, tests included). */
+    private readonly chords: ReadonlyMap<string, string> = new Map(),
   ) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     this.item.command = 'nika.showMenu';
@@ -111,7 +115,17 @@ export class NikaStatusBar implements vscode.Disposable {
     const caps = this.service.caps;
     interface Item extends vscode.QuickPickItem { command?: string; args?: unknown[] }
     const items: Item[] = [];
-    const add = (cond: boolean, item: Item): void => { if (cond) { items.push(item); } };
+    // Every chorded row shows its shortcut at the right (Raycast law:
+    // teach at the point of use) — one seam, so future chords appear
+    // in the hub the day package.json declares them.
+    const add = (cond: boolean, item: Item): void => {
+      if (!cond) { return; }
+      const chord = item.command !== undefined ? this.chords.get(item.command) : undefined;
+      if (chord !== undefined) {
+        item.description = item.description !== undefined ? `${item.description} · ${chord}` : chord;
+      }
+      items.push(item);
+    };
 
     // JOURNEY-DRIVEN and SECTIONED (Rams #2 killed the 18-row wall; the
     // journey SSOT killed the four independent state probes). The head
