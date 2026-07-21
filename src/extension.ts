@@ -90,6 +90,7 @@ import {
 import { makeResilientFor } from './features/armorDoors';
 import { chooseCollectionFor, chooseGateFor, setServerIslandsProbe, wireInputsFor } from './features/flowDoors';
 import { registerStation } from './features/stationView';
+import { registerTreeActions } from './features/treeActions';
 import { chooseDefaultModelFor, ModelLensProvider, pickModelForLine } from './features/modelLens';
 import { chooseAgentToolsFor, VerbLensProvider, pickVerbBodyForLine } from './features/verbLens';
 import type { NikaVerb } from './core/verbStarters.generated';
@@ -656,8 +657,13 @@ export function activate(context: ExtensionContext): void {
     const count = countReportFindings(report);
     return count === 0 ? { kind: 'clean' } : { kind: 'findings', count };
   }, () => service.available);
+  // createTreeView (not registerTreeDataProvider): the tree action
+  // panel (⌘K ⌘.) reads the focused row from the view's selection.
+  const workflowsTreeView = window.createTreeView('nikaWorkflows', {
+    treeDataProvider: workflowTree,
+  });
   context.subscriptions.push(
-    window.registerTreeDataProvider('nikaWorkflows', workflowTree),
+    workflowsTreeView,
     service.onDidUpdateDocument(() => workflowTree.refresh()),
   );
   // The living-tree gestures (inline verbs on Workflows rows). Each
@@ -725,7 +731,20 @@ export function activate(context: ExtensionContext): void {
   // providers · workspace). Lane A pure: everything it shows comes
   // from `welcome --deep --json` + `doctor --json` + the grammar
   // canary; it degrades honestly to the one install action.
-  const station = registerStation(context, service, () => state.resolvedServerPath);
+  const stationHandles = registerStation(context, service, () => state.resolvedServerPath);
+  const station = stationHandles.provider;
+
+  // The tree action panel (⌘K ⌘. · DESIGN.md §7d): every tree row's
+  // verbs in one curated QuickPick — the keyboard reaches everything
+  // the hover icons reach. The keybinding rows pass the focused view
+  // id; each view's selection names the focused row.
+  registerTreeActions(context, service, menuChords, {
+    workflows: workflowsTreeView,
+    runs: runsTreeView,
+    history: history.view,
+    station: stationHandles.view,
+    historyDocUri: () => history.docUri(),
+  });
 
   // Trace watcher: refresh the runs view AND live-overlay a growing trace
   // onto the open DAG (an engine writing a run animates the graph in real

@@ -714,6 +714,11 @@
         "command": "nika.search.resetRanking",
         "title": "Reset Search Ranking",
         "category": "Nika"
+      },
+      {
+        "command": "nika.treeActions",
+        "title": "Tree Actions (every action of the focused row)",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -1102,6 +1107,10 @@
         {
           "command": "nika.workflows.focusTask",
           "when": "false"
+        },
+        {
+          "command": "nika.treeActions",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -1328,6 +1337,34 @@
         "key": "ctrl+k ctrl+h",
         "mac": "cmd+k cmd+h",
         "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.treeActions",
+        "key": "ctrl+k ctrl+.",
+        "mac": "cmd+k cmd+.",
+        "when": "focusedView == 'nikaWorkflows'",
+        "args": "nikaWorkflows"
+      },
+      {
+        "command": "nika.treeActions",
+        "key": "ctrl+k ctrl+.",
+        "mac": "cmd+k cmd+.",
+        "when": "focusedView == 'nikaRuns'",
+        "args": "nikaRuns"
+      },
+      {
+        "command": "nika.treeActions",
+        "key": "ctrl+k ctrl+.",
+        "mac": "cmd+k cmd+.",
+        "when": "focusedView == 'nikaRunHistory'",
+        "args": "nikaRunHistory"
+      },
+      {
+        "command": "nika.treeActions",
+        "key": "ctrl+k ctrl+.",
+        "mac": "cmd+k cmd+.",
+        "when": "focusedView == 'nikaStation'",
+        "args": "nikaStation"
       }
     ],
     "languageModelTools": [

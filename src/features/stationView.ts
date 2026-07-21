@@ -130,11 +130,17 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
   }
 }
 
+export interface StationHandles {
+  readonly provider: StationTreeProvider;
+  /** The live tree handle · the action panel reads its selection. */
+  readonly view: vscode.TreeView<StationRow>;
+}
+
 export function registerStation(
   context: vscode.ExtensionContext,
   service: NikaService,
   resolvedPath: () => string | undefined,
-): StationTreeProvider {
+): StationHandles {
   const provider = new StationTreeProvider(
     service,
     context.extension.packageJSON.version as string,
@@ -211,5 +217,5 @@ export function registerStation(
   }));
   context.subscriptions.push({ dispose: () => { if (refreshTimer) { clearTimeout(refreshTimer); } } });
   void provider.refresh();
-  return provider;
+  return { provider, view };
 }

@@ -1,14 +1,18 @@
 // keybindings.test.ts — the ⌘K chord family contract (DESIGN.md §7b).
 //
-// Every editor-side gesture lives on the ctrl+k chord prefix, second
-// stroke modified and when-scoped. This belt holds three promises:
-// the family shape (prefix + when + a real command), the family's own
-// second strokes never collide, and no second stroke lands on a chord
-// the DEFAULT keymap already owns. The default-occupied table below is
-// the documented `ctrl+k ctrl+<x>` surface (comment/fold/hover/theme/
-// close/trim/… — C · D · F · I · J · L · O · Q · R · S · T · U · W ·
-// X and the digits); the integration suite re-proves it against the
-// LIVE editor's default-keybindings dump (the runtime authority —
+// Every gesture lives on the ctrl+k chord prefix, second stroke
+// modified and when-scoped. The family carries TWO scope classes now:
+// editor-side (`editorLangId == 'nika'`, the canvas riding along) and
+// view-side (`focusedView == 'nika…'` — the tree action panel, §7d).
+// This belt holds three promises: the family shape (prefix + when + a
+// real command), the family's own second strokes never collide (one
+// stroke = one COMMAND; the tree panel's four view-scoped rows are one
+// gesture), and no second stroke lands on a chord the DEFAULT keymap
+// already owns. The default-occupied table below is the documented
+// `ctrl+k ctrl+<x>` surface (comment/fold/hover/theme/close/trim/… —
+// C · D · F · I · J · L · O · Q · R · S · T · U · W · X and the
+// digits); the integration suite re-proves it against the LIVE
+// editor's default-keybindings dump (the runtime authority —
 // test-integration/suite/keybindings.test.ts). D notably is NOT free:
 // upstream binds ⌘K ⌘D to moveSelectionToNextFindMatch, which is why
 // the demo rides H, not its initial. The dump arbiter also found the
@@ -21,7 +25,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { chordLabels, prettyChord } from '../core/chordLabels';
 
-interface Keybinding { command: string; key: string; mac?: string; when?: string }
+interface Keybinding { command: string; key: string; mac?: string; when?: string; args?: unknown }
 interface Command { command: string }
 
 const pkg = JSON.parse(
@@ -53,14 +57,30 @@ describe('the ⌘K chord family (DESIGN.md §7b)', () => {
   it('every binding is when-scoped and points at a declared command', () => {
     for (const b of bindings) {
       expect(b.when, b.command).toBeTruthy();
-      expect(b.when).toMatch(/editorLangId == 'nika'/);
+      // Two scope classes: nika editors (canvas riding along) and the
+      // nika views (the tree action panel) — never an unscoped chord.
+      expect(
+        /editorLangId == 'nika'/.test(b.when ?? '')
+        || /^focusedView == 'nika[A-Za-z]+'$/.test(b.when ?? ''),
+        `${b.command} must scope to nika editors or a nika view (got: ${b.when})`,
+      ).toBe(true);
       expect(known.has(b.command), `${b.command} is not a declared command`).toBe(true);
     }
   });
 
-  it('the family never collides with itself (one second stroke, one gesture)', () => {
-    const strokes = bindings.map((b) => secondStroke(b.key));
-    expect(new Set(strokes).size).toBe(strokes.length);
+  it('the family never collides with itself (one second stroke, one command)', () => {
+    // Scoped rows of ONE command share its stroke legally (the tree
+    // panel rides `.` under four view scopes); two COMMANDS never do.
+    const owners = new Map<string, Set<string>>();
+    for (const b of bindings) {
+      const s = secondStroke(b.key);
+      expect(s, b.key).toBeDefined();
+      if (!owners.has(s!)) { owners.set(s!, new Set()); }
+      owners.get(s!)!.add(b.command);
+    }
+    for (const [stroke, cmds] of owners) {
+      expect(cmds.size, `ctrl+k ctrl+${stroke} is claimed by: ${[...cmds].join(' · ')}`).toBe(1);
+    }
   });
 
   it('no second stroke lands on a default-keymap chord', () => {
@@ -97,6 +117,25 @@ describe('the ⌘K chord family (DESIGN.md §7b)', () => {
     expect(gate?.mac).toBe('cmd+k cmd+m');
     expect(gate?.when).toContain("activeWebviewPanelId == 'nika.dagView'");
     expect(bindings.some((b) => b.command === 'nika.showMenu')).toBe(false);
+  });
+
+  it('the tree panel rides ⌘K ⌘. across the four nika views, args naming each', () => {
+    // Why `.` and not `k` or `a`: a bare `k` is eaten by the trees'
+    // native type-to-find (unmodified printables navigate the list),
+    // and `a` is diff-traces' seat — the one-stroke-one-command law
+    // above would (rightly) refuse it. `.` is not in DEFAULT_OCCUPIED
+    // and the live dump arbiter re-proves it against the real host.
+    const rows = bindings.filter((b) => b.command === 'nika.treeActions');
+    const views = ['nikaWorkflows', 'nikaRuns', 'nikaRunHistory', 'nikaStation'];
+    expect(rows.map((r) => r.args)).toEqual(views);
+    for (const r of rows) {
+      expect(r.key).toBe('ctrl+k ctrl+.');
+      expect(r.mac).toBe('cmd+k cmd+.');
+      // The when-scope and the arg NAME THE SAME VIEW — the resolver
+      // reads focusedView, the command trusts the arg; a mismatch
+      // would open the panel on the wrong tree.
+      expect(r.when).toBe(`focusedView == '${String(r.args)}'`);
+    }
   });
 });
 
