@@ -6,7 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
-### The canvas speaks: screen-reader depth
+### The Raycast quick wins: forgiveness, teaching, counts
+
+- **A typo is forgiven, never routed to the LLM**: an omnibar `+` token that misses the vocabulary now looks for close neighbours (edit distance 2) among the four verbs and the engine's tools: one neighbour inserts outright (`+ ifner` lands an infer task), several are proposed, Esc cancels. Free prose still routes to generate: the model stays the fallback of the phrase, never of the typo.
+- **The demo joins the chord family**: `⌘K ⌘H` opens the offline demo from any nika file or the canvas (H, not D: the default keymap owns `⌘K ⌘D`, and a new integration test proves every family stroke against the live editor's own keybindings dump). Every command is rebindable in Keyboard Shortcuts.
+- **The `/` filter counts out loud**: a quiet pill under the search input says `N matches` while you type, and zero matches speaks the same teaching line as connect-mode: `no match — Backspace widens` (one voice, one shared constant).
+- **The menu teaches its own keys**: every chorded row in the status-bar menu now prints its shortcut on the right, derived from the manifest by the same code as the accessibility help, so the two surfaces cannot drift.
 
 - **Roles on the real DOM**: the canvas is an `application` scoped to its own container (browse mode survives everywhere else), the svg a `graphics-document` that names its workflow and task count, every card a `graphics-symbol` whose accessible name reads label, mechanism, status and its degree (dependencies, dependents): refreshed silently on every status change, so the on-focus read stays true.
 - **One roving tab stop**: the focused card carries the DOM twin of the visual focus (arrows, chords and gestures all keep their handlers). Keyboard focus hardens the ring past 3:1; forced colors get a real outline; a keyboard move always centers its card, so the focus is never off-viewport.

@@ -11,7 +11,10 @@
 // LIVE editor's default-keybindings dump (the runtime authority —
 // test-integration/suite/keybindings.test.ts). D notably is NOT free:
 // upstream binds ⌘K ⌘D to moveSelectionToNextFindMatch, which is why
-// the demo rides H, not its initial.
+// the demo rides H, not its initial. The dump arbiter also found the
+// family's ONE accepted shadow — ⌘K ⌘B sits on setSelectionAnchor in
+// plain editors; fork-from-task keeps it inside nika files (pinned
+// there, absent from this table so the family's own B stays legal).
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
