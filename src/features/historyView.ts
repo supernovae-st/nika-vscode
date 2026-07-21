@@ -23,6 +23,7 @@
 import * as vscode from 'vscode';
 import {
   buildHistoryRows,
+  historyFilterHits,
   renderHistory,
   type HistoryRow,
   type HistoryRun,
@@ -77,11 +78,17 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryRow> 
   docName: string | undefined;
   runs: HistoryRun[] = [];
 
-  load(docUri: vscode.Uri, docName: string, runs: HistoryRun[], nowMs = Date.now()): void {
+  load(
+    docUri: vscode.Uri,
+    docName: string,
+    runs: HistoryRun[],
+    nowMs = Date.now(),
+    filter?: string,
+  ): void {
     this.docUri = docUri;
     this.docName = docName;
     this.runs = runs;
-    this.rows = buildHistoryRows(runs, nowMs);
+    this.rows = buildHistoryRows(runs, nowMs, filter);
     this.changeEmitter.fire();
   }
 
@@ -95,8 +102,10 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryRow> 
 }
 
 export interface HistoryController {
-  /** Load the runs, raise the context key, focus the view. */
-  show(docUri: vscode.Uri, docName: string, runs: HistoryRun[]): Promise<void>;
+  /** Load the runs, raise the context key, focus the view. The optional
+   *  filter (the gate's query) narrows task rows; the description says
+   *  whether it bit. */
+  show(docUri: vscode.Uri, docName: string, runs: HistoryRun[], filter?: string): Promise<void>;
   /** The live tree handle · the action panel reads its selection. */
   readonly view: vscode.TreeView<HistoryRow>;
   /** The loaded workflow · task rows navigate with it. */
@@ -141,9 +150,18 @@ export function registerHistory(context: vscode.ExtensionContext): HistoryContro
   );
 
   return {
-    async show(docUri, docName, runs) {
-      provider.load(docUri, docName, runs);
-      view.description = `${docName} · ${runs.length} run${runs.length === 1 ? '' : 's'}`;
+    async show(docUri, docName, runs, filter) {
+      provider.load(docUri, docName, runs, Date.now(), filter);
+      // The description tells the filter's truth: it bit (`filter: q`),
+      // or it matched nothing and the whole story stayed (never an
+      // empty tree that looks like « no runs »).
+      const q = filter?.trim() ?? '';
+      const chip = q.length === 0
+        ? ''
+        : historyFilterHits(runs, q) > 0
+          ? ` · filter: ${q}`
+          : ` · "${q}" matches no task`;
+      view.description = `${docName} · ${runs.length} run${runs.length === 1 ? '' : 's'}${chip}`;
       await setActive(true);
       // Focus AFTER the context key lands — a when-hidden view has no
       // seat to take focus in.

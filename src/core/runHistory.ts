@@ -188,6 +188,23 @@ function relativeDay(ms: number, nowMs: number): string {
 }
 
 /**
+ * Distinct task ids matching the filter (case-insensitive SUBSTRING —
+ * a filter is a predictable grammar, never the search's subsequence)
+ * across the window. 0 = the filter would erase the whole story.
+ */
+export function historyFilterHits(runs: HistoryRun[], filter: string): number {
+  const needle = filter.trim().toLowerCase();
+  if (needle.length === 0) { return 0; }
+  const ids = new Set<string>();
+  for (const run of runs) {
+    for (const id of run.model.tasks.keys()) {
+      if (id.toLowerCase().includes(needle)) { ids.add(id); }
+    }
+  }
+  return ids.size;
+}
+
+/**
  * Fold N runs into the History tree rows — pure, clock injected.
  *
  * Partition is TOTAL and disjoint: Flaky (the grid's ⚠ · mixed outcomes)
@@ -201,10 +218,19 @@ function relativeDay(ms: number, nowMs: number): string {
  * the exported grid's column number. A column where the task never ran
  * has no child: a blank cell is the absence of a recorded fact, never
  * an invented row.
+ *
+ * The optional `filter` (the gate's query riding `nika.runHistory`)
+ * narrows TASK rows to matching ids and the partition recomputes over
+ * the survivors. A filter matching NOTHING relaxes to the whole story
+ * (never an empty tree — the view's description says so).
  */
-export function buildHistoryRows(runs: HistoryRun[], nowMs: number): HistoryRow[] {
+export function buildHistoryRows(runs: HistoryRun[], nowMs: number, filter?: string): HistoryRow[] {
   const ordered = [...runs].sort((a, b) => a.mtimeMs - b.mtimeMs);
-  const history = buildHistory(ordered);
+  const whole = buildHistory(ordered);
+  const needle = filter?.trim().toLowerCase() ?? '';
+  const history = needle.length > 0 && historyFilterHits(ordered, needle) > 0
+    ? whole.filter((t) => t.id.toLowerCase().includes(needle))
+    : whole;
 
   const taskRow = (t: TaskHistory): HistoryRow => {
     const children: HistoryRow[] = [];

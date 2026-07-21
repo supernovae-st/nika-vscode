@@ -45,6 +45,8 @@ const goldenOf = (fsPath: string): string => `${fsPath}.golden.json`;
 export function registerTestExplorer(
   context: vscode.ExtensionContext,
   service: NikaService,
+  /** The ONE cached workflow scan — discovery keeps its historical cap. */
+  filesOf: (cap: number) => Promise<vscode.Uri[]>,
 ): vscode.TestController {
   const ctrl = vscode.tests.createTestController('nika', 'Nika Workflows');
   context.subscriptions.push(ctrl);
@@ -84,7 +86,7 @@ export function registerTestExplorer(
   const discover = async (): Promise<void> => {
     let files: vscode.Uri[];
     try {
-      files = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 200);
+      files = await filesOf(200);
     } catch {
       return;
     }
