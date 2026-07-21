@@ -14,10 +14,10 @@ The run's last line prints the head:
 **One head everywhere.** The verdict banner, the Runs-view tooltip and
 the run report all carry the same head: if a journal fails the walk,
 the tooltip shows a shield and the report says its claims are
-unverified. **Verify Journal** (right-click a run) asks the engine
-itself: `nika trace verify` names the first broken link, or says
-*unchained* for pre-0.96 journals: nothing to verify, nothing to
-distrust.
+unverified. **Verify Journal** (right-click a run · `⌘K ⌘.` reaches
+the same actions from the keyboard) asks the engine itself:
+`nika trace verify` names the first broken link, or says *unchained*
+for pre-0.96 journals: nothing to verify, nothing to distrust.
 
 **Reproduce Run** compares two recorded runs of the same workflow and
 classifies every task: `reproduced` · `NONDETERMINISTIC` (same
