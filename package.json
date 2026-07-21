@@ -1311,6 +1311,12 @@
         "key": "ctrl+k ctrl+v",
         "mac": "cmd+k cmd+v",
         "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
+      },
+      {
+        "command": "nika.tryDemo",
+        "key": "ctrl+k ctrl+h",
+        "mac": "cmd+k cmd+h",
+        "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
       }
     ],
     "languageModelTools": [

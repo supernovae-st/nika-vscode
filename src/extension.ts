@@ -28,6 +28,7 @@ import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { CANVAS_KEYMAP } from './core/canvasKeymap';
+import { chordLabels, prettyChord, type KeybindingContribution } from './core/chordLabels';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -495,7 +496,16 @@ export function activate(context: ExtensionContext): void {
   // provider · the Runs-view "Debug this run" action). The adapter IS
   // the engine: `nika dap` over stdio.
   registerDebugReplay(context, () => service.binaryPath, () => service.caps.dap);
-  const statusBar = new NikaStatusBar(service, () => currentJourney);
+  // The menu teaches its own chords (Raycast law 8: at the point of
+  // use) — derived from package.json, the same source the a11y help
+  // prints, so the hub can never contradict the manifest.
+  const menuChords = chordLabels(
+    (context.extension.packageJSON as {
+      contributes?: { keybindings?: KeybindingContribution[] };
+    }).contributes?.keybindings,
+    process.platform === 'darwin',
+  );
+  const statusBar = new NikaStatusBar(service, () => currentJourney, menuChords);
   context.subscriptions.push(statusBar);
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
@@ -1955,7 +1965,7 @@ export function activate(context: ExtensionContext): void {
         ...CANVAS_KEYMAP.map(([key, what]) => ({ label: key, description: what })),
         { label: 'Editor — chords on .nika.yaml files', kind: QuickPickItemKind.Separator },
         ...(pkg.contributes?.keybindings ?? []).map((b) => ({
-          label: (isMac && b.mac ? b.mac : b.key).replace(/\bcmd\b/g, '⌘').replace(/\bctrl\b/g, 'Ctrl'),
+          label: prettyChord(b, isMac),
           description: titles.get(b.command) ?? b.command,
         })),
       ];
