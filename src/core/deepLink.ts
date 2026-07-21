@@ -41,14 +41,31 @@ const MAX_QUERY_LENGTH = 256;
  *  glob host-side, so only literal paths may pass. */
 const GLOB_OR_EXPANSION = /[*?[\]{}]/;
 
-/** C0 controls + DEL — never legitimate in a path or a search seed. */
-const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
+/** Characters that can lie to a parser or a human — C0 controls + DEL,
+ *  zero-widths (U+200B-200F), the bidi embed/override set (U+202A-202E),
+ *  the bidi isolates (U+2066-2069), and BOM. An RLO in a resolvable path
+ *  would make the confirm modal DISPLAY a different name than the one
+ *  that runs (the informed-click gap the refuter pass surfaced) — none
+ *  of these has a legitimate place in a relative path or a search seed,
+ *  so the whole class is rejected wholesale. Real RTL text needs no
+ *  invisible controls; the script itself carries direction. */
+function hasForbiddenChar(raw: string): boolean {
+  for (const ch of raw) {
+    const c = ch.codePointAt(0) ?? 0;
+    if (c <= 0x1f || c === 0x7f) { return true; }
+    if (c >= 0x200b && c <= 0x200f) { return true; }
+    if (c >= 0x202a && c <= 0x202e) { return true; }
+    if (c >= 0x2066 && c <= 0x2069) { return true; }
+    if (c === 0xfeff) { return true; }
+  }
+  return false;
+}
 
 /** True iff `raw` is a canonical relative workflow path safe to hand the
  *  host resolver. Every rejection is a closed door, not an error. */
 function safeWorkflowPath(raw: string): boolean {
   if (raw.length === 0 || raw.length > MAX_FILE_LENGTH) { return false; }
-  if (CONTROL_CHARS.test(raw)) { return false; }
+  if (hasForbiddenChar(raw)) { return false; }
   // Leftover escape material — the platform already percent-decoded once;
   // anything still encoded is a smuggling attempt (%2e%2e · %252e · %00).
   if (raw.includes('%')) { return false; }
@@ -59,6 +76,11 @@ function safeWorkflowPath(raw: string): boolean {
   if (/^[a-zA-Z]:/.test(raw)) { return false; }
   if (raw.startsWith('~')) { return false; }
   if (GLOB_OR_EXPANSION.test(raw)) { return false; }
+  // Query-grammar characters in a DECODED path value are separator
+  // confusion — the alternate-separator smuggling lane (`;`-joined
+  // pairs · encoded `&`/`=` re-emerging). No honest workflow path
+  // carries them; the whole class closes here (refuter pin).
+  if (/[;&=]/.test(raw)) { return false; }
   // Canonical segments — no `.`, no `..`, no empty (`a//b` · trailing /).
   if (raw.split('/').some((s) => s === '' || s === '.' || s === '..')) { return false; }
   // Structural belt: every openable target is a workflow file — rejects
@@ -68,7 +90,7 @@ function safeWorkflowPath(raw: string): boolean {
 
 /** True iff `raw` may seed the search box — free text, bounded, printable. */
 function safeSearchSeed(raw: string): boolean {
-  return raw.length <= MAX_QUERY_LENGTH && !CONTROL_CHARS.test(raw);
+  return raw.length <= MAX_QUERY_LENGTH && !hasForbiddenChar(raw);
 }
 
 /** Reads `key` once from `params`. Absent → undefined; repeated → null

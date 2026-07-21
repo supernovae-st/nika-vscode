@@ -108,6 +108,24 @@ describe('parseDeepLink · the file pins (run/check/dag)', () => {
     expect(parseDeepLink('/run', `file=${'a/'.repeat(300)}x.nika.yaml`)).toBeUndefined();
   });
 
+  it('rejects bidi overrides and zero-widths — the modal-spoof lane (refuter)', () => {
+    // An RLO in a resolvable path would make the confirm modal display a
+    // different name than the one that runs — the click would not be an
+    // informed one. The whole invisible class dies at the gate.
+    const invisibles = [
+      '\u202e', // RLO — right-to-left override
+      '\u202a', // LRE — left-to-right embedding
+      '\u2066', // LRI — left-to-right isolate
+      '\u200b', // ZWSP — zero-width space
+      '\u200f', // RLM — right-to-left mark
+      '\ufeff', // BOM / ZWNBSP
+    ];
+    for (const ch of invisibles) {
+      expect(parseDeepLink('/run', `file=${encodeURIComponent(`a${ch}b.nika.yaml`)}`)).toBeUndefined();
+    }
+    expect(parseDeepLink('/search', 'q=a%E2%80%AEb')).toBeUndefined();
+  });
+
   it('accepts honest nested relative workflows', () => {
     expect(parseDeepLink('/run', 'file=workflows/deploy.nika.yaml'))
       .toEqual({ action: 'run', file: 'workflows/deploy.nika.yaml' });
@@ -118,6 +136,17 @@ describe('parseDeepLink · the file pins (run/check/dag)', () => {
   it('a repeated file key poisons the whole link — no first-wins games', () => {
     expect(parseDeepLink('/run', 'file=good.nika.yaml&file=../evil.nika.yaml')).toBeUndefined();
     expect(parseDeepLink('/dag', 'file=a.nika.yaml&file=b.nika.yaml')).toBeUndefined();
+  });
+
+  it('semicolon is NOT a pair separator — one mangled value, dead link (refuter pin)', () => {
+    // URLSearchParams splits on `&` only, so a `;`-joined duplicate is
+    // ONE value carrying a literal semicolon — and query-grammar chars
+    // (`;` `&` `=`) in a decoded path are rejected outright. Pins the
+    // lane shut so a future parser swap that splits on `;` (reopening
+    // duplicate-key smuggling) goes red, not silent.
+    expect(parseDeepLink('/run', 'file=a.nika.yaml;file=../evil.nika.yaml')).toBeUndefined();
+    expect(parseDeepLink('/run', 'file=a%26b.nika.yaml')).toBeUndefined();
+    expect(parseDeepLink('/run', 'file=a%3Db.nika.yaml')).toBeUndefined();
   });
 
   it('a present-but-invalid file kills dag too — never silently dropped', () => {

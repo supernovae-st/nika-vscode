@@ -3657,8 +3657,13 @@ export function activate(context: ExtensionContext): void {
       // close the door with a breath.
       const hits = await workspace.findFiles(link.file, '**/node_modules/**', 2);
       const exact = hits.filter((h) => workspace.asRelativePath(h, false) === link.file);
-      if (exact.length === 0) {
-        flashStatus(`$(circle-slash) Nika: link target not in this workspace — ${link.file}`);
+      if (exact.length !== 1) {
+        // Zero hits (including the no-folder window) OR two workspace
+        // folders carrying the same relative path — ambiguity closes the
+        // door like a repeated key does (never a nondeterministic pick).
+        flashStatus(exact.length === 0
+          ? `$(circle-slash) Nika: link target not in this workspace — ${link.file}`
+          : `$(circle-slash) Nika: link target is ambiguous across workspace folders — ${link.file}`);
         return;
       }
       target = exact[0];
