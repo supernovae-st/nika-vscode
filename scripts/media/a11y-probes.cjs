@@ -231,6 +231,18 @@ function probe(name, ok, note = '') {
     probe('K opens the actions panel on the focused card', kOpen);
     probe('K panel Esc hands the focus back to the card', kBack.closed && kBack.backOnCard);
 
+    // The MOUSE path — a row click parks the DOM focus on a button the
+    // close() removes; the seam must hand it back to the card.
+    await p.keyboard.press('k');
+    await p.waitForTimeout(250);
+    await p.click('#nk-actions .nk-act-row:has-text("Expand")');
+    await p.waitForTimeout(250);
+    const kClick = await p.evaluate(() => ({
+      closed: document.getElementById('nk-actions') === null,
+      backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
+    }));
+    probe('K panel row CLICK hands the focus back to the card', kClick.closed && kClick.backOnCard);
+
     // N — the task palette TAKES the input… and Esc hands it back.
     await p.keyboard.press('n');
     await p.waitForTimeout(250);
