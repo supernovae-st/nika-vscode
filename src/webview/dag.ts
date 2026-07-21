@@ -5843,6 +5843,18 @@ class DagRenderer {
     const runCount = runActs.length;
     let active = 0;
     let sep: HTMLElement | null = null;
+    // A REAL hover moves the active row; the synthetic hover Chromium
+    // fires when the panel renders under a PARKED cursor does not —
+    // keyboard-open must land on the primary, never on whatever row
+    // the resting mouse happens to cover. First sample observes; only
+    // a coordinate CHANGE activates.
+    let hoverAt: string | null = null;
+    const hoverSet = (i: number, e: MouseEvent): void => {
+      const at = `${e.clientX},${e.clientY}`;
+      if (hoverAt === null || hoverAt === at) { hoverAt = at; return; }
+      hoverAt = at;
+      setActive(i);
+    };
     const rows: HTMLElement[] = acts.map((a, i) => {
       const row = document.createElement('button');
       row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
@@ -5862,7 +5874,8 @@ class DagRenderer {
         row.appendChild(kbd);
       }
       row.addEventListener('click', () => { fire(a, false); });
-      row.addEventListener('mouseenter', () => { setActive(i); });
+      row.addEventListener('mouseenter', (e) => { hoverSet(i, e); });
+      row.addEventListener('mousemove', (e) => { hoverSet(i, e); });
       panel.appendChild(row);
       if (i === runCount - 1) {
         sep = document.createElement('div');

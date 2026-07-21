@@ -290,26 +290,35 @@ function probe(name, ok, note = '') {
 
   // ── 8b · RC-2b: the K toggle lifecycle (the leaked listener dies) ────
   {
-    // Open with K, toggle CLOSED via the card's ⋯ button (the
-    // openNodeActions re-entry path — where the old code left its
-    // window-capture listener alive), then ONE Esc must still reach
-    // the canvas chain (clearFocus → the svg re-takes the stop). The
-    // leaked listener used to eat that Esc.
+    // The ⋯ door lives on the EXPANDED card's pill: focus, expand,
+    // open with K, then toggle CLOSED via ⋯ (the openNodeActions
+    // re-entry path — where the old code left its window-capture
+    // listener alive). One Esc must then still reach the canvas chain
+    // (clearFocus → the svg re-takes the stop): the leaked listener
+    // used to eat it.
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(200);
     await p.keyboard.press('ArrowRight');
     await p.waitForTimeout(250);
+    await p.keyboard.press('e');
+    await p.waitForTimeout(700);
+    const dots = await p.evaluate(() =>
+      document.querySelector('.dag-node[tabindex="0"] .nc-x-panel') !== null);
     await p.keyboard.press('k');
     await p.waitForTimeout(200);
     const kOpen2 = await p.evaluate(() => document.getElementById('nk-actions') !== null);
     await p.evaluate(() => {
-      const focused = document.querySelector('.dag-node[tabindex="0"]');
-      focused?.querySelector('.nc-x-panel')?.click();
+      const el = document.querySelector('.dag-node[tabindex="0"] .nc-x-panel');
+      if (el instanceof HTMLElement) { el.click(); }
     });
     await p.waitForTimeout(200);
     const toggled = await p.evaluate(() => ({
       closed: document.getElementById('nk-actions') === null,
       backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
     }));
-    probe('the ⋯ toggle closes the panel and restores the card', kOpen2 && toggled.closed && toggled.backOnCard);
+    probe('the ⋯ toggle closes the panel and restores the card', dots && kOpen2 && toggled.closed && toggled.backOnCard);
+    await p.keyboard.press('e');
+    await p.waitForTimeout(500);
     await p.keyboard.press('Escape');
     await p.waitForTimeout(250);
     const afterEsc = await p.evaluate(() => ({
