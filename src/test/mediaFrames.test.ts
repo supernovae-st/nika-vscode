@@ -40,7 +40,10 @@ function heightsRegion(): string {
 describe('heights — the declared frames budget their true boxes', () => {
   it('audio and check rows reserve PREVIEW_AUD_H behind the identity gate', () => {
     const h = heightsRegion();
-    expect(h).toContain("if (declared === 'image') { h += PREVIEW_GAP + PREVIEW_IMG_H; }");
+    // The image slot flushes to the top edge in grand (W-D12): CSS
+    // pulls margin-top −CARD_PAD_Y and drops the gap — the TS mirror
+    // subtracts the same pad (anatomy law 2).
+    expect(h).toContain("if (declared === 'image') { h += PREVIEW_IMG_H - CARD_PAD_Y; }");
     expect(h).toContain("else if (declared === 'audio' || declared === 'check') { h += PREVIEW_GAP + PREVIEW_AUD_H; }");
   });
 
@@ -101,12 +104,20 @@ describe('the declarations are decorative and unconfusable (refuter floor)', () 
     expect(src.slice(at - 120, at)).toContain("createElement('span')");
   });
 
-  it('the audio strip is FLAT by construction — one bar height, no level shape', () => {
+  it('the audio strip motif is CONSTANT — pure f(i), never task data (no fake VU)', () => {
     const at = src.indexOf("strip.setAttribute('class', 'nc-audio-strip');");
     expect(at).toBeGreaterThan(-1);
-    const loop = src.slice(at, at + 700);
-    const heights = [...loop.matchAll(/setAttribute\('height', '([^']+)'\)/g)].map((m) => m[1]);
-    expect(new Set(heights).size, 'every bar carries the SAME height (no fake VU)').toBe(1);
+    const loop = src.slice(at, at + 900);
+    // The heights derive from the loop index ALONE — identical on
+    // every tts card (iconography). A shape that consumed node data
+    // would be a fake VU meter; that stays refuted by construction.
+    expect(loop, 'the motif reads no node fact').not.toContain('node.');
+    expect(loop, 'index-pure parameter').toContain('const t = i / 25;');
+    // The pinned motif: symmetric arch (sin² envelope · cosine ripple
+    // — even under t→1−t) with amplitude bounded inside the 14 box.
+    expect(loop).toContain('const arch = Math.pow(Math.sin(Math.PI * t), 2);');
+    expect(loop).toContain('const h = 2.6 + arch * (5.2 + 1.8 * Math.cos(6 * Math.PI * t));');
+    expect(loop, 'bars center on the strip axis').toContain("setAttribute('y', (7 - h / 2).toFixed(2))");
   });
 });
 
