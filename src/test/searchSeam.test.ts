@@ -23,6 +23,7 @@ const ext = readFileSync(join(SRC, 'extension.ts'), 'utf-8');
 const gen = readFileSync(join(SRC, 'features', 'generate.ts'), 'utf-8');
 const door = readFileSync(join(SRC, 'features', 'searchGate.ts'), 'utf-8');
 const web = readFileSync(join(SRC, 'webview', 'dag.ts'), 'utf-8');
+const panel = readFileSync(join(SRC, 'dagPanel.ts'), 'utf-8');
 
 describe('pin 1 · the did-you-mean plural closes on the gate', () => {
   it('the row exists and speaks the mistyped token', () => {
@@ -63,5 +64,20 @@ describe('pin 4 · the seam is host-side (the kind is reused)', () => {
   it('the webview never speaks nika.search — dag:omni already carries the text', () => {
     expect(web).not.toContain('nika.search');
     expect(web).toContain("kind: 'dag:omni'");
+  });
+});
+
+describe('pin 5 · the empty Enter opens the gate (no dead end left)', () => {
+  it('the webview posts the empty text instead of bailing silently', () => {
+    expect(web).toContain("kind: 'dag:omni',\n      text: '',");
+  });
+
+  it('the host routes the void to the gate, never to generate', () => {
+    expect(ext).toContain("if (request.text.trim() === '')");
+    expect(ext).toContain("void commands.executeCommand('nika.search');");
+  });
+
+  it('the placeholder teaches the doorway in place', () => {
+    expect(panel).toContain('↵ everything');
   });
 });

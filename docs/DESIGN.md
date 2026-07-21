@@ -784,8 +784,11 @@ into it rather than dead-ending. The did-you-mean list closes on
 an open-root-search row carrying the mistyped token as the query
 (the chord taught in place), and the generated draft's confirm
 offers the same door with the whole intent prefilled, the staged
-draft left open. Whatever a hand types, the way out lands in the
-one ranked surface that learns (the searchSeam belt pins the two
+draft left open. And an empty Enter on the bar opens the gate
+itself at rest: nothing to compose is a launch, never a silent
+no-op (the placeholder teaches it in place: `↵ everything`).
+Whatever a hand types, the way out lands in the
+one ranked surface that learns (the searchSeam belt pins the three
 doors, the typeof-guarded seed and the host-side seam).
 
 ## 7d · The tree action panel (the K grammar for the trees)
