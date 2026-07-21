@@ -29,6 +29,8 @@ import { NikaDefinitionProvider } from './features/definitions';
 import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { CANVAS_KEYMAP } from './core/canvasKeymap';
 import { chordLabels, prettyChord, type KeybindingContribution } from './core/chordLabels';
+import { registerSearchGate } from './features/searchGate';
+import { SEARCH_COMMAND } from './core/rootSearch';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -496,7 +498,7 @@ export function activate(context: ExtensionContext): void {
   // provider · the Runs-view "Debug this run" action). The adapter IS
   // the engine: `nika dap` over stdio.
   registerDebugReplay(context, () => service.binaryPath, () => service.caps.dap);
-  // The menu teaches its own chords (Raycast law 8: at the point of
+  // The gate teaches its own chords (Raycast law 8: at the point of
   // use) — derived from package.json, the same source the a11y help
   // prints, so the hub can never contradict the manifest.
   const menuChords = chordLabels(
@@ -505,8 +507,12 @@ export function activate(context: ExtensionContext): void {
     }).contributes?.keybindings,
     process.platform === 'darwin',
   );
-  const statusBar = new NikaStatusBar(service, () => currentJourney, menuChords);
+  const statusBar = new NikaStatusBar(service);
   context.subscriptions.push(statusBar);
+  // The root search — ⌘K ⌘M · one ranked list for everything. The old
+  // journey menu lives on as its resting screen; `nika.showMenu` stays
+  // registered as the palette alias and opens the same gate.
+  registerSearchGate(context, service, statusBar, () => currentJourney, menuChords);
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
   state.rulesIntel = () => service.intel?.providers;
@@ -529,7 +535,7 @@ export function activate(context: ExtensionContext): void {
   // Command: Show output channel
   context.subscriptions.push(
     commands.registerCommand('nika.showOutput', () => outputChannel?.show()),
-    commands.registerCommand('nika.showMenu', () => statusBar.showMenu()),
+    commands.registerCommand('nika.showMenu', () => commands.executeCommand(SEARCH_COMMAND)),
   );
 
   // Language-identity enforcement (proven live on Cursor 2026-07-12: a
@@ -2618,9 +2624,10 @@ export function activate(context: ExtensionContext): void {
   // (binary-fed catalog when present · the fallback vocabulary offline).
   // Inserts AFTER the task under the cursor (end of file otherwise) and
   // lands the selection on the new id — the same skeleton the canvas
-  // palette and the omni `+ jq after gather` produce.
+  // palette and the omni `+ jq after gather` produce. The root search
+  // passes verb/tool pinned (its F2 rows) and skips the picker.
   context.subscriptions.push(
-    commands.registerCommand('nika.addTask', async () => {
+    commands.registerCommand('nika.addTask', async (verbArg?: unknown, toolArg?: unknown) => {
       const doc = activeNikaDocument();
       if (!doc) {
         void window.showInformationMessage('Nika: open a .nika.yaml file first.');
@@ -2634,23 +2641,35 @@ export function activate(context: ExtensionContext): void {
         ? taskAtLine(parseRichWorkflow(text), editor.selection.active.line)?.id
         : undefined;
 
-      const picks = buildAddTaskPicks(service.toolCats);
-      const picked = await window.showQuickPick(
-        picks.map((x) =>
-          x.kind === 'separator'
-            ? { label: x.label, kind: QuickPickItemKind.Separator }
-            : { label: x.label, description: x.description, pick: x },
-        ),
-        {
-          title: after ? `Nika: new task after \`${after}\`` : 'Nika: new task',
-          placeHolder: 'a verb — or type a builtin (jq · fetch · write …) for a pre-wired invoke',
-          matchOnDescription: true,
-        },
-      ) as { pick?: import('./core/addTaskPicks').AddTaskPick } | undefined;
-      const pick = picked?.pick;
-      if (!pick?.verb) { return; }
+      const VERBS = ['infer', 'exec', 'invoke', 'agent'] as const;
+      let verb = typeof verbArg === 'string' && (VERBS as readonly string[]).includes(verbArg)
+        ? verbArg as (typeof VERBS)[number]
+        : undefined;
+      let tool = verb !== undefined && typeof toolArg === 'string' && toolArg.length > 0
+        ? toolArg
+        : undefined;
 
-      const res = insertTaskSkeleton(text, pick.verb, after, pick.tool);
+      if (verb === undefined) {
+        const picks = buildAddTaskPicks(service.toolCats);
+        const picked = await window.showQuickPick(
+          picks.map((x) =>
+            x.kind === 'separator'
+              ? { label: x.label, kind: QuickPickItemKind.Separator }
+              : { label: x.label, description: x.description, pick: x },
+          ),
+          {
+            title: after ? `Nika: new task after \`${after}\`` : 'Nika: new task',
+            placeHolder: 'a verb — or type a builtin (jq · fetch · write …) for a pre-wired invoke',
+            matchOnDescription: true,
+          },
+        ) as { pick?: import('./core/addTaskPicks').AddTaskPick } | undefined;
+        const pick = picked?.pick;
+        if (!pick?.verb) { return; }
+        verb = pick.verb;
+        tool = pick.tool;
+      }
+
+      const res = insertTaskSkeleton(text, verb, after, tool);
       if (!res) {
         void window.showWarningMessage('Nika: could not insert a task here (no tasks block?).');
         return;
@@ -2864,7 +2883,7 @@ export function activate(context: ExtensionContext): void {
     });
 
   context.subscriptions.push(
-    commands.registerCommand('nika.newWorkflow', async () => {
+    commands.registerCommand('nika.newWorkflow', async (prefill?: unknown) => {
       const folder = workspace.workspaceFolders?.[0];
       if (!folder) {
         window.showErrorMessage('Nika: open a folder first.');
@@ -2873,7 +2892,9 @@ export function activate(context: ExtensionContext): void {
       const templates = await service.templatesList();
 
       // The step loop — Back re-enters the prior step with its value.
-      let name: string | undefined;
+      // The root search fallback seeds step 1 with its slugified query.
+      let name: string | undefined =
+        typeof prefill === 'string' && /^[a-z0-9-]+$/.test(prefill) ? prefill : undefined;
       let starterPick: StarterPick | undefined;
       let model: string | undefined;
       let step: 1 | 2 | 3 | 'done' | 'cancel' = 1;

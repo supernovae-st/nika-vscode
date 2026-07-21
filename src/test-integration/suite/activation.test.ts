@@ -40,9 +40,18 @@ suite('nika-lang · real extension host', () => {
 
   test('registers its command surface', async () => {
     const all = await vscode.commands.getCommands(true);
-    for (const cmd of ['nika.showDag', 'nika.checkWorkflow', 'nika.newWorkflow', 'nika.doctor']) {
+    for (const cmd of [
+      'nika.showDag', 'nika.checkWorkflow', 'nika.newWorkflow', 'nika.doctor',
+      'nika.search', 'nika.search.resetRanking', 'nika.showMenu',
+    ]) {
       assert.ok(all.includes(cmd), `command ${cmd} must be registered`);
     }
+  });
+
+  test('the search ranking reset runs clean (the learned-order escape)', async () => {
+    // The gate's frecency store lives in workspaceState — the reset must
+    // hold on an empty store too (idempotent, a quiet status-bar breath).
+    await vscode.commands.executeCommand('nika.search.resetRanking');
   });
 
   test('a .nika.yaml opens as the nika language', async () => {

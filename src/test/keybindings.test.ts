@@ -90,6 +90,14 @@ describe('the ⌘K chord family (DESIGN.md §7b)', () => {
     expect(demo?.mac).toBe('cmd+k cmd+h');
     expect(demo?.when).toContain("activeWebviewPanelId == 'nika.dagView'");
   });
+
+  it('the root search owns ⌘K ⌘M — the menu alias keeps no chord of its own', () => {
+    const gate = bindings.find((b) => b.command === 'nika.search');
+    expect(gate?.key).toBe('ctrl+k ctrl+m');
+    expect(gate?.mac).toBe('cmd+k cmd+m');
+    expect(gate?.when).toContain("activeWebviewPanelId == 'nika.dagView'");
+    expect(bindings.some((b) => b.command === 'nika.showMenu')).toBe(false);
+  });
 });
 
 describe('the teaching labels (core/chordLabels — menu + a11y, one voice)', () => {

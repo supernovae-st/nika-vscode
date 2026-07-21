@@ -703,6 +703,17 @@
         "title": "Focus Task in DAG",
         "icon": "$(target)",
         "category": "Nika"
+      },
+      {
+        "command": "nika.search",
+        "title": "Search Everything",
+        "icon": "$(search)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.search.resetRanking",
+        "title": "Reset Search Ranking",
+        "category": "Nika"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -1283,7 +1294,7 @@
         "when": "editorLangId == 'nika'"
       },
       {
-        "command": "nika.showMenu",
+        "command": "nika.search",
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
         "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"

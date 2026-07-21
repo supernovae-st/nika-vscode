@@ -85,10 +85,12 @@ Driving yourself is three gestures:
 3. Press **▶ mock** on the run pill. The DAG lights up wave by wave with
    `mock/echo`: **deterministic, zero API keys, zero network.**
 
-The **Nika status item** is the one door: its menu opens on *your*
-next step · no engine yet → **Finish Setup** (verified download · MCP ·
-LSP, one gesture) · fresh repo → **Init this project** · then the
-10-second proof and your files' Run · Check · Graph.
+The **Nika status item** is the one door: it opens the root search
+(`⌘K ⌘M` in a nika file) · every command and task in one ranked
+list, resting on *your* next step · no engine yet → **Finish Setup**
+(verified download · MCP · LSP, one gesture) · fresh repo → **Init
+this project** · then the 10-second proof and your files' Run ·
+Check · Graph.
 
 That's the whole loop: the same file then runs on any of the engine's
 providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
