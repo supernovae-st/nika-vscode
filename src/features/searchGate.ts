@@ -18,10 +18,9 @@
 import * as vscode from 'vscode';
 import { journeyPlaceholder, type Journey } from '../core/journey';
 import { buildAddTaskPicks } from '../core/addTaskPicks';
-import { SEARCH_COMMAND, type FrecencyStore, type SearchItem } from '../core/rootSearch';
+import type { FrecencyStore, SearchItem } from '../core/rootSearch';
 import {
   FRECENCY_KEY,
-  RESET_COMMAND,
   acceptPick,
   buildCatalog,
   buildRestingFoot,
@@ -63,7 +62,10 @@ export function registerSearchGate(
     context.workspaceState.get<FrecencyStore>(FRECENCY_KEY) ?? {};
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(SEARCH_COMMAND, (initialQuery?: unknown) => {
+    // The literal ids below ARE the model's SEARCH_COMMAND / the
+    // catalog's RESET_COMMAND (the parity belt reads literals; the
+    // searchCatalog belt pins the constants to these strings).
+    vscode.commands.registerCommand('nika.search', (initialQuery?: unknown) => {
       const seed = typeof initialQuery === 'string' ? initialQuery : '';
 
       // The synchronous families, fresh at open (manifest + vocabulary
@@ -117,7 +119,7 @@ export function registerSearchGate(
       qp.show();
     }),
 
-    vscode.commands.registerCommand(RESET_COMMAND, async () => {
+    vscode.commands.registerCommand('nika.search.resetRanking', async () => {
       await context.workspaceState.update(FRECENCY_KEY, undefined);
       // A quiet breath in the status bar — never a toast (#498 doctrine).
       vscode.window.setStatusBarMessage('Nika: search ranking reset · declaration order restored', 4000);

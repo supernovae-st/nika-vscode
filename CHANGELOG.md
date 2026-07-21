@@ -6,6 +6,11 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The root search: one gate for everything
+
+- **`⌘K ⌘M` now opens root search**: every command and task in one ranked list · match quality first, learned habit second (7-day half-life, never crossing a match tier), declaration order last · the journey menu lives on as the resting screen (your next step under `Now`, everything else habits-first) and `Nika: Command Menu` opens the same gate.
+- **A query never dead-ends**: zero matches fall onto ranked fallbacks with the query as the argument (did-you-mean · generate · new workflow with the name prefilled · run history · the VS Code palette) · `Nika: Reset Search Ranking` forgets the learned order with a status-bar breath, never a toast.
+
 ### The Raycast quick wins: forgiveness, teaching, counts
 
 - **A typo is forgiven, never routed to the LLM**: an omnibar `+` token that misses the vocabulary now looks for close neighbours (edit distance 2) among the four verbs and the engine's tools: one neighbour inserts outright (`+ ifner` lands an infer task), several are proposed, Esc cancels. Free prose still routes to generate: the model stays the fallback of the phrase, never of the typo.

@@ -660,7 +660,7 @@ for secondary chords — and every binding is when-scoped to
 | Run workflow | `⌘K ⌘E` | Execute |
 | Show DAG | `⌘K ⌘G` | Graph |
 | Add task | `⌘K ⌘N` | New task |
-| Menu | `⌘K ⌘M` | Menu |
+| Root search | `⌘K ⌘M` | Menu, grown into the gate (§7c) |
 | Diff two runs | `⌘K ⌘A` | A/B — one run against another |
 | Replay a recorded run | `⌘K ⌘P` | rePlay |
 | Fork from task | `⌘K ⌘B` | Branch |
@@ -693,9 +693,36 @@ canvas (the lens deck — `?` teaches them) are webview-focus scoped
 and unchanged.
 
 The family teaches itself at the point of use (`core/chordLabels` —
-ONE derivation from `contributes.keybindings`): the status-bar menu
+ONE derivation from `contributes.keybindings`): the root search
 prints each chorded row's shortcut on the right, and the canvas a11y
 help prints the same labels — two surfaces, zero drift.
+
+## 7c · The root search (the gate)
+
+`⌘K ⌘M` opens ONE ranked list holding every launchable thing: the
+manifest commands (palette-hidden rows excluded · each chorded row
+teaching its shortcut) and the add-task vocabulary (4 verbs + every
+builtin as a pre-wired invoke). The QuickPick is dynamic: every
+keystroke re-ranks through the pure model (`core/rootSearch` · match
+tier first: prefix, then word boundary, then subsequence · learned
+frecency second: 7-day half-life, tie-breaking inside a tier and
+never crossing one · declaration order last). `alwaysShow` rides
+every item: without it VS Code re-filters the list and ghosts the
+ranking.
+
+The empty query is a screen, never a void: the journey menu's head
+sections (fix-first · the next step per stage · the active file)
+fuse under one `Now` separator, the whole catalog follows
+habits-first under `Everything`, and the quiet footer closes (the
+lens deck · the earned ask). `nika.showMenu` stays registered as
+the palette alias and opens the same gate.
+
+Zero matches never dead-end: the query becomes the argument on
+ranked fallback rows (did-you-mean re-enters the door · generate ·
+new workflow with the slug prefilled · run history · the native
+palette). The learned order stays escapable: `Nika: Reset Search
+Ranking` clears the store and answers with a status-bar breath,
+never a toast.
 
 ## 8 · Voice — the twelve rules
 

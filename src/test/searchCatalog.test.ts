@@ -30,6 +30,14 @@ import {
 
 const NOW = Date.UTC(2026, 6, 21, 10, 0, 0);
 
+describe('the door ids (the literals the gate registers)', () => {
+  it('constants and manifest agree with the registered literals', () => {
+    expect(SEARCH_COMMAND).toBe('nika.search');
+    expect(MENU_COMMAND).toBe('nika.showMenu');
+    expect(RESET_COMMAND).toBe('nika.search.resetRanking');
+  });
+});
+
 const pkg = JSON.parse(
   readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8'),
 ) as ManifestLike & {
