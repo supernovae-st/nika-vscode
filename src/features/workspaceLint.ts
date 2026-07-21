@@ -39,6 +39,9 @@ export class WorkspaceLint implements vscode.Disposable {
   constructor(
     private readonly service: NikaService,
     private readonly log: (level: string, msg: string) => void,
+    /** The ONE cached workflow scan — the sweep keeps its MAX+1
+     *  truncation probe (the provider's cap dominates it). */
+    private readonly filesOf: (cap: number) => Promise<vscode.Uri[]>,
   ) {
     const watcher = vscode.workspace.createFileSystemWatcher('**/*.nika.yaml');
     this.disposables.push(
@@ -97,7 +100,7 @@ export class WorkspaceLint implements vscode.Disposable {
       // adopting nika on a legacy workspace must not train people to
       // ignore the Problems panel. Loaded once per sweep (cheap · fresh).
       this.baseline = await this.loadBaseline();
-      const files = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', MAX_FILES + 1);
+      const files = await this.filesOf(MAX_FILES + 1);
       if (files.length > MAX_FILES) {
         // findFiles itself truncated at MAX+1 — the true total is unknown.
         this.log('WARN', `workspace lint: ${MAX_FILES}+ workflows found — linting the first ${MAX_FILES} (cap)`);

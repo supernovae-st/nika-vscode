@@ -10,6 +10,7 @@ major.minor from 0.97).
 
 - **`⌘K ⌘M` now opens root search**: every command and task in one ranked list · match quality first, learned habit second (7-day half-life, never crossing a match tier), declaration order last · the journey menu lives on as the resting screen (your next step under `Now`, everything else habits-first) and `Nika: Command Menu` opens the same gate.
 - **A query never dead-ends**: zero matches fall onto ranked fallbacks with the query as the argument (did-you-mean · generate · new workflow with the name prefilled · run history · the VS Code palette) · `Nika: Reset Search Ranking` forgets the learned order with a status-bar breath, never a toast.
+- **The root search now reaches your workflows and runs**: both families append right after the gate paints (a keystroke never triggers a scan) · a workflow row opens the file and speaks its cached check state · a run row replays the journal, paused runs leading · the run-history fallback finally carries your query into the view as its initial task filter.
 
 ### The trees earn their action panel
 

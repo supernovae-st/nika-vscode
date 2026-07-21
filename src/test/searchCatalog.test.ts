@@ -16,16 +16,22 @@ import { SEARCH_COMMAND, type FrecencyStore } from '../core/rootSearch';
 import {
   MENU_COMMAND,
   RESET_COMMAND,
+  RUNS_SEARCH_CAP,
   acceptPick,
   buildCatalog,
   buildCommandItems,
   buildRestingFoot,
   buildRestingHead,
+  buildRunItems,
   buildTaskItems,
+  buildWorkflowItems,
   gateScreen,
   hiddenPaletteCommands,
+  mergeCatalog,
   type ManifestLike,
   type RestingDeps,
+  type RunSearchFact,
+  type WorkflowSearchFact,
 } from '../core/searchCatalog';
 
 const NOW = Date.UTC(2026, 6, 21, 10, 0, 0);
@@ -212,14 +218,128 @@ describe('acceptPick · the learned loop', () => {
     expect(out.args).toEqual(['invoke', 'nika:jq']);
   });
 
-  it('the history fallback runs bare until PR-3 teaches it a query', () => {
+  it('the history fallback finally carries its query (PR-3 landed the argument)', () => {
     const rows = gateScreen('zzzz qqqq', catalog, [], [], {}, NOW);
     const history = rows.find((r) => r.kind === 'item' && r.item.id === 'fallback.history');
     expect(history?.kind).toBe('item');
     if (history?.kind === 'item') {
       const out = acceptPick({}, history.item, NOW);
       expect(out.command).toBe('nika.runHistory');
-      expect(out.args).toEqual([]);
+      expect(out.args).toEqual(['zzzz qqqq']);
+    }
+  });
+});
+
+// ─── The async families (F3 workflows · F4 runs — the append) ───────────────
+
+const DAY = 86_400_000;
+
+const wfFact = (over: Partial<WorkflowSearchFact> & { fsPath: string }): WorkflowSearchFact => ({
+  relPath: over.fsPath.replace(/^\//, ''),
+  mtimeMs: NOW - DAY,
+  openArg: `uri:${over.fsPath}`,
+  ...over,
+});
+
+describe('F3 · the workflow files', () => {
+  const facts: WorkflowSearchFact[] = [
+    wfFact({ fsPath: '/w/old.nika.yaml', mtimeMs: NOW - 3 * DAY }),
+    wfFact({ fsPath: '/w/flows/deploy.nika.yaml', mtimeMs: NOW - 1000, badge: { kind: 'findings', count: 2 } }),
+    wfFact({ fsPath: '/w/daily.nika.yaml', mtimeMs: NOW - DAY, badge: { kind: 'clean' } }),
+  ];
+  const items = buildWorkflowItems(facts);
+
+  it('newest first — the mtime is the relevance prior', () => {
+    expect(items.map((x) => x.label)).toEqual(['deploy.nika.yaml', 'daily.nika.yaml', 'old.nika.yaml']);
+    expect(items.map((x) => x.declOrder)).toEqual([0, 1, 2]);
+  });
+
+  it('speaks the groupWorkflows state only when a verdict is KNOWN', () => {
+    const byLabel = new Map(items.map((x) => [x.label, x]));
+    expect(byLabel.get('deploy.nika.yaml')?.detail).toBe('2 findings');
+    expect(byLabel.get('daily.nika.yaml')?.detail).toBe('clean');
+    expect(byLabel.get('old.nika.yaml')?.detail).toBeUndefined();
+  });
+
+  it('opens the file with the door\'s own handle; the relPath is a keyword', () => {
+    const deploy = items[0];
+    expect(deploy.family).toBe('workflow');
+    expect(deploy.id).toBe('workflow./w/flows/deploy.nika.yaml');
+    expect(deploy.run).toEqual({ command: 'vscode.open', args: ['uri:/w/flows/deploy.nika.yaml'] });
+    expect(deploy.keywords).toEqual(['w/flows/deploy.nika.yaml']);
+    // Folder-qualified typing reaches the row through the keyword.
+    const rows = gateScreen('flows/dep', mergeCatalog([], items, []), [], [], {}, NOW);
+    expect(rows[0]).toMatchObject({ kind: 'item', item: { id: deploy.id } });
+  });
+});
+
+const runFact = (over: Partial<RunSearchFact> & { fsPath: string }): RunSearchFact => ({
+  mtimeMs: NOW - DAY,
+  status: 'completed',
+  openArg: `uri:${over.fsPath}`,
+  ...over,
+});
+
+describe('F4 · the recorded runs', () => {
+  it('paused leads whatever its mtime (the bucketOf pin), then running, then newest', () => {
+    const items = buildRunItems([
+      runFact({ fsPath: '/t/fresh.ndjson', mtimeMs: NOW - 1000 }),
+      runFact({ fsPath: '/t/stale-paused.ndjson', mtimeMs: NOW - 9 * DAY, status: 'paused' }),
+      runFact({ fsPath: '/t/live.ndjson', mtimeMs: NOW - 2000, status: 'running' }),
+    ], NOW);
+    expect(items.map((x) => x.label)).toEqual(['stale-paused.ndjson', 'live.ndjson', 'fresh.ndjson']);
+  });
+
+  it('the cap cuts the tail — a paused run always survives it', () => {
+    const crowd: RunSearchFact[] = Array.from({ length: RUNS_SEARCH_CAP + 5 }, (_, i) =>
+      runFact({ fsPath: `/t/run-${String(i).padStart(3, '0')}.ndjson`, mtimeMs: NOW - i * 1000 }));
+    const paused = runFact({ fsPath: '/t/waiting.ndjson', mtimeMs: NOW - 30 * DAY, status: 'paused' });
+    const items = buildRunItems([...crowd, paused], NOW);
+    expect(items).toHaveLength(RUNS_SEARCH_CAP);
+    expect(items[0].label).toBe('waiting.ndjson');
+  });
+
+  it('the status and the workflow name ride as keywords — typing `paused` finds the run', () => {
+    const items = buildRunItems([
+      runFact({ fsPath: '/t/a.ndjson', status: 'paused', workflowName: 'daily-digest' }),
+      runFact({ fsPath: '/t/b.ndjson' }),
+    ], NOW);
+    const a = items.find((x) => x.label === 'a.ndjson')!;
+    expect(a.detail).toBe('paused · daily-digest');
+    expect(a.keywords).toEqual(['paused', 'daily-digest']);
+    expect(a.run).toEqual({ command: 'nika.replayTrace', args: ['uri:/t/a.ndjson'] });
+    const rows = gateScreen('paused', mergeCatalog([], [], items), [], [], {}, NOW);
+    expect(rows[0]).toMatchObject({ kind: 'item', item: { id: 'run./t/a.ndjson' } });
+  });
+});
+
+describe('the append (mergeCatalog · the landing re-rank)', () => {
+  const wf = buildWorkflowItems([wfFact({ fsPath: '/w/digest.nika.yaml' })]);
+  const runs = buildRunItems([runFact({ fsPath: '/t/digest-run.ndjson' })], NOW);
+
+  it('re-numbers globally F1 F2 then F3 then F4, whatever order the families landed', () => {
+    const merged = mergeCatalog(catalog, wf, runs);
+    expect(merged.map((x) => x.declOrder)).toEqual(merged.map((_, i) => i));
+    expect(merged[catalog.length].family).toBe('workflow');
+    expect(merged[merged.length - 1].family).toBe('run');
+    // The sync families keep their seats — precedence inside a tier.
+    expect(merged.slice(0, catalog.length).map((x) => x.id)).toEqual(catalog.map((x) => x.id));
+  });
+
+  it('a query typed BEFORE the landing finds the appended row after it (the current-q re-rank)', () => {
+    const q = 'digest.nika';
+    const before = gateScreen(q, catalog, [], [], {}, NOW);
+    // Pre-landing: zero real matches — the fallback screen holds the q.
+    expect(before.every((r) => r.kind === 'item' && r.item.id.startsWith('fallback.'))).toBe(true);
+    const after = gateScreen(q, mergeCatalog(catalog, wf, runs), [], [], {}, NOW);
+    expect(after[0]).toMatchObject({ kind: 'item', item: { id: 'workflow./w/digest.nika.yaml' } });
+  });
+
+  it('never an empty screen: any query, landed or not, yields rows (the no-results law)', () => {
+    for (const q of ['', '   ', 'zzzz qqqq', 'a'.repeat(200), '§ø∆']) {
+      for (const cat of [catalog, mergeCatalog(catalog, wf, runs)]) {
+        expect(gateScreen(q, cat, [], [], {}, NOW).length).toBeGreaterThan(0);
+      }
     }
   });
 });

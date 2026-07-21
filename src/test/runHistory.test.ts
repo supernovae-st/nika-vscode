@@ -180,6 +180,41 @@ describe('buildHistoryRows', () => {
   });
 });
 
+// ─── The gate's query as the initial filter (nika.runHistory learns q) ──────
+
+import { historyFilterHits } from '../core/runHistory';
+
+describe('buildHistoryRows · the initial filter', () => {
+  const runs = [
+    run('r1', 1, [['digest', { status: 'success' }], ['upload', { status: 'success' }]]),
+    run('r2', 2, [['digest', { status: 'failed' }], ['upload', { status: 'success' }]]),
+  ];
+
+  it('narrows task rows by case-insensitive substring; the partition recomputes over survivors', () => {
+    const rows = buildHistoryRows(runs, 2, 'DIG');
+    // digest alone survives (flaky) — a lone alarm section keeps its name.
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('history.section.flaky');
+    expect(rows[0].children?.map((t) => t.taskId)).toEqual(['digest']);
+  });
+
+  it('a filter matching NOTHING relaxes to the whole story — never an empty tree', () => {
+    const bare = buildHistoryRows(runs, 2);
+    expect(buildHistoryRows(runs, 2, 'zzz-no-such-task')).toEqual(bare);
+    // Blank and whitespace filters are no filter at all.
+    expect(buildHistoryRows(runs, 2, '')).toEqual(bare);
+    expect(buildHistoryRows(runs, 2, '   ')).toEqual(bare);
+  });
+
+  it('historyFilterHits counts distinct matching ids (the description tells this truth)', () => {
+    expect(historyFilterHits(runs, 'digest')).toBe(1);
+    expect(historyFilterHits(runs, 'UP')).toBe(1);
+    expect(historyFilterHits(runs, 'd')).toBe(2); // digest + upload both carry a d
+    expect(historyFilterHits(runs, 'nope')).toBe(0);
+    expect(historyFilterHits(runs, '')).toBe(0);
+  });
+});
+
 // ─── traceBelongsTo — the contamination gate (0.97.2) ────────────────────────
 import { traceBelongsTo } from '../core/runHistory';
 

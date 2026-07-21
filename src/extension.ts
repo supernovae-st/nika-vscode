@@ -22,7 +22,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { WorkflowTreeProvider } from './workflowTree';
+import { WorkflowTreeProvider, type CheckBadge } from './workflowTree';
 import { registerNikaBadge } from './features/fileBadge';
 import { NikaDocLinkProvider } from './features/docLinks';
 import { NikaDefinitionProvider } from './features/definitions';
@@ -30,6 +30,7 @@ import { journey, SCAFFOLD_MARKERS, type Journey } from './core/journey';
 import { CANVAS_KEYMAP } from './core/canvasKeymap';
 import { chordLabels, prettyChord, type KeybindingContribution } from './core/chordLabels';
 import { registerSearchGate } from './features/searchGate';
+import { WorkflowIndex } from './features/workflowIndex';
 import { SEARCH_COMMAND } from './core/rootSearch';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
@@ -116,7 +117,7 @@ import {
 } from './core/newWorkflowWizard';
 import { buildSessionPicks } from './core/sessionLauncher';
 import { omniAddDidYouMean, parseOmniAdd } from './core/verbPalette';
-import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
+import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag, runsSearchSource } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
 import { initFirstGreen } from './features/firstGreen';
@@ -132,6 +133,7 @@ import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
 import { collectFindings, countReportFindings, parseCheckReport } from './core/cliContract';
+import { WORKFLOWS_SEARCH_CAP } from './core/searchCatalog';
 import { auditByTask } from './core/auditByTask';
 import { costForecast } from './core/costForecast';
 import { computeDirty } from './core/dirtyNodes';
@@ -510,10 +512,46 @@ export function activate(context: ExtensionContext): void {
   );
   const statusBar = new NikaStatusBar(service);
   context.subscriptions.push(statusBar);
+  // The ONE workflow scan (watcher-cached) — every surface that used to
+  // findFiles the workflow glob reads this instead (welcome recents ·
+  // fork-from-step · lint baseline · workspace symbols · workspace
+  // lint · test explorer · workflows tree · the gate's F3). Constructed
+  // FIRST: same-glob watchers fire in creation order, and the cache
+  // must drop before any consumer's handler reads it.
+  const workflowIndex = new WorkflowIndex(context);
+  // The cached check verdict as a badge — shared by the workflows tree
+  // and the gate's F3 detail (one derivation, zero extra spawns).
+  const checkBadgeOf = (uriString: string): CheckBadge => {
+    const report = service.peekCheck(uriString)?.report;
+    if (!report) { return undefined; }
+    const count = countReportFindings(report);
+    return count === 0 ? { kind: 'clean' } : { kind: 'findings', count };
+  };
   // The root search — ⌘K ⌘M · one ranked list for everything. The old
   // journey menu lives on as its resting screen; `nika.showMenu` stays
-  // registered as the palette alias and opens the same gate.
-  registerSearchGate(context, service, statusBar, () => currentJourney, menuChords);
+  // registered as the palette alias and opens the same gate. The two
+  // async families tap the shared sources: F3 the workflow index's
+  // mtime head, F4 the flight recorder's snapshot (stale = one async
+  // re-scan inside the source — never per keystroke).
+  registerSearchGate(context, service, statusBar, () => currentJourney, menuChords, {
+    workflows: async () => {
+      const recents = await workflowIndex.recent(WORKFLOWS_SEARCH_CAP);
+      return recents.map((s) => {
+        const badge = checkBadgeOf(s.item.toString());
+        return {
+          fsPath: s.item.fsPath,
+          relPath: workspace.asRelativePath(s.item, false),
+          mtimeMs: s.mtimeMs,
+          ...(badge !== undefined ? { badge } : {}),
+          openArg: s.item,
+        };
+      });
+    },
+    runs: async () => (await runsSearchSource.facts()).map((f) => ({
+      ...f,
+      openArg: Uri.file(f.fsPath),
+    })),
+  });
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
   state.rulesIntel = () => service.intel?.providers;
@@ -650,13 +688,13 @@ export function activate(context: ExtensionContext): void {
     }),
   );
   // Sidebar — workflow explorer (check badges from the cached report ·
-  // zero extra spawns) + flight-recorder runs.
-  const workflowTree = new WorkflowTreeProvider((uriString) => {
-    const report = service.peekCheck(uriString)?.report;
-    if (!report) { return undefined; }
-    const count = countReportFindings(report);
-    return count === 0 ? { kind: 'clean' } : { kind: 'findings', count };
-  }, () => service.available);
+  // zero extra spawns · files from the ONE watcher-cached scan) +
+  // flight-recorder runs.
+  const workflowTree = new WorkflowTreeProvider(
+    (cap) => workflowIndex.files(cap),
+    checkBadgeOf,
+    () => service.available,
+  );
   // createTreeView (not registerTreeDataProvider): the tree action
   // panel (⌘K ⌘.) reads the focused row from the view's selection.
   const workflowsTreeView = window.createTreeView('nikaWorkflows', {
@@ -751,6 +789,7 @@ export function activate(context: ExtensionContext): void {
   // time — debounced per file, majority-overlap gated).
   const overlayTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const onTraceEvent = (uri: Uri): void => {
+    runsSearchSource.invalidate();
     runsTree.refresh();
     if (!workspace.getConfiguration('nika').get<boolean>('traces.live', true)) { return; }
     if (!dagPanel.hasPanel) { return; }
@@ -793,7 +832,7 @@ export function activate(context: ExtensionContext): void {
   };
   traceWatcher.onDidCreate((uri) => { void nudgeGitignore(); onTraceEvent(uri); });
   traceWatcher.onDidChange(onTraceEvent);
-  traceWatcher.onDidDelete(() => runsTree.refresh());
+  traceWatcher.onDidDelete(() => { runsSearchSource.invalidate(); runsTree.refresh(); });
   // First CLEAN check in a workspace → hand over to the next step ONCE
   // (the 2026-07-08 funnel audit: verdicts appeared but nothing said
   // « now run it »). Same discipline as the gitignore nudge: asked,
@@ -844,7 +883,7 @@ export function activate(context: ExtensionContext): void {
 
   // Problems-panel coverage for CLOSED workflows (open ones stay with the
   // controller — ownership hands over on open/close).
-  context.subscriptions.push(new WorkspaceLint(service, log));
+  context.subscriptions.push(new WorkspaceLint(service, log, (cap) => workflowIndex.files(cap)));
 
   // Smart-expand selection + linked editing register via the
   // capability registry below (#103).
@@ -884,7 +923,7 @@ export function activate(context: ExtensionContext): void {
   // → full client intelligence; startClient reconciles on every
   // (re)start; a crash restores the client voice (lspClient wires it).
   const yieldRegistry = new YieldRegistry([
-    ...intelEntries(service),
+    ...intelEntries(service, (cap) => workflowIndex.files(cap)),
     ...structureNavEntries(),
     {
       cap: 'documentLinkProvider',
@@ -2062,19 +2101,10 @@ export function activate(context: ExtensionContext): void {
   // Recent workflows for the welcome (mtime-sorted · top 6 · rel labels).
   state.pushWelcomeData = async (): Promise<void> => {
     try {
-      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 30);
-      const stats = await Promise.all(files.map(async (f) => {
-        try {
-          const st = await workspace.fs.stat(f);
-          return { uri: f, mtime: st.mtime };
-        } catch {
-          return undefined;
-        }
-      }));
-      const picked = stats
-        .filter((v): v is { uri: Uri; mtime: number } => v !== undefined)
-        .sort((a, b) => b.mtime - a.mtime)
-        .slice(0, 6);
+      // The ONE cached scan already holds the stamped list — the top 6
+      // are the true newest, not the newest of an arbitrary head.
+      const picked = (await workflowIndex.recent(6))
+        .map((s) => ({ uri: s.item, mtime: s.mtimeMs }));
       const recent = await Promise.all(picked.map(async (v) => {
         const row: { name: string; uri: string; rel: string; skeleton?: { nodes: Array<{ id: string; verb: string; wave: number }>; edges: Array<{ source: string; target: string }> } } = {
           name: v.uri.path.split('/').pop() ?? v.uri.path,
@@ -2339,7 +2369,7 @@ export function activate(context: ExtensionContext): void {
       if (wanted !== undefined) {
         if (doc && parseRichWorkflow(doc.getText()).name !== wanted) { doc = undefined; }
         if (!doc) {
-          const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 500);
+          const wfFiles = await workflowIndex.files(500);
           const matches: Uri[] = [];
           for (const f of wfFiles) {
             try {
@@ -2367,7 +2397,7 @@ export function activate(context: ExtensionContext): void {
         }
       } else if (!doc || overlapOf(doc.getText()) < 0.5) {
         doc = undefined;
-        const wfFiles = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 200);
+        const wfFiles = await workflowIndex.files(200);
         let best: { uri: Uri; score: number } | undefined;
         for (const f of wfFiles) {
           try {
@@ -3146,8 +3176,12 @@ export function activate(context: ExtensionContext): void {
     // Command: run history — the cross-run grid (tasks × last N runs ·
     // flaky + slowdown callouts), computed from the journal directory
     // alone with the same majority-overlap law as replay.
-    commands.registerCommand('nika.runHistory', async (uri?: Uri) => {
-      const doc = await requireNikaDocument(uri);
+    commands.registerCommand('nika.runHistory', async (arg?: unknown) => {
+      // Typeof-guarded (the addTask pattern): a STRING is the gate's
+      // query — the view's initial task filter, never a path; a Uri
+      // stays the document; anything else runs bare on the active file.
+      const filter = typeof arg === 'string' ? arg : undefined;
+      const doc = await requireNikaDocument(arg instanceof Uri ? arg : undefined);
       if (!doc) { return; }
       const ids = new Set(parseRichWorkflow(doc.getText()).tasks.map((t) => t.id));
       if (ids.size === 0) {
@@ -3164,6 +3198,7 @@ export function activate(context: ExtensionContext): void {
         doc.uri,
         path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
         runs,
+        filter,
       );
     }),
     commands.registerCommand('nika.replayTrace', async (uri?: Uri) => {
@@ -3381,7 +3416,7 @@ export function activate(context: ExtensionContext): void {
       // Without the engine every check comes back empty — capturing now
       // would OVERWRITE the real grandfathered-debt record with nothing.
       if (!(await requireEngine(service, 'capturing the lint baseline'))) { return; }
-      const files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 300);
+      const files = await workflowIndex.files(300);
       const perFile = new Map<string, string[]>();
       await window.withProgress(
         { location: { viewId: 'nikaWorkflows' }, title: 'Nika: capturing lint baseline' },
@@ -3542,7 +3577,7 @@ export function activate(context: ExtensionContext): void {
 
   // Test Explorer — golden-backed workflows in the native testing UI
   // (per-file run · re-pin profile · engine diff as the message).
-  registerTestExplorer(context, service);
+  registerTestExplorer(context, service, (cap) => workflowIndex.files(cap));
 
   // Command: Restart language server
   context.subscriptions.push(

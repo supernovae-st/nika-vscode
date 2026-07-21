@@ -5,7 +5,6 @@ import {
   EventEmitter,
   Event,
   window,
-  workspace,
   Uri,
   ThemeIcon,
   ThemeColor,
@@ -165,6 +164,9 @@ export class WorkflowTreeProvider implements TreeDataProvider<WorkflowItem> {
     this._onDidChangeTreeData.event;
 
   constructor(
+    /** The ONE cached workflow scan (features/workflowIndex) — the tree
+     *  keeps its historical cap, the provider owns the findFiles. */
+    private readonly filesOf: (cap: number) => Promise<Uri[]>,
     private readonly badgeOf?: BadgeReader,
     private readonly engineAvailable?: () => boolean,
   ) {}
@@ -203,7 +205,7 @@ export class WorkflowTreeProvider implements TreeDataProvider<WorkflowItem> {
   private async scanRoot(): Promise<WorkflowItem[]> {
     let files: Uri[];
     try {
-      files = await workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 100);
+      files = await this.filesOf(100);
     } catch (e) {
       // A broken SCAN must never wear a welcome or an empty tree — one
       // honest row instead; the watcher's next event re-scans.

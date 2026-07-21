@@ -702,8 +702,13 @@ export class NikaFoldingProvider implements vscode.FoldingRangeProvider {
 // ─── Workspace symbols · jump to any task in any workflow (⌘T) ──────────────
 
 export class NikaWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
+  constructor(
+    /** The ONE cached workflow scan — ⌘T keeps its historical cap. */
+    private readonly filesOf: (cap: number) => Promise<vscode.Uri[]>,
+  ) {}
+
   async provideWorkspaceSymbols(query: string): Promise<vscode.SymbolInformation[]> {
-    const files = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', 50);
+    const files = await this.filesOf(50);
     const needle = query.toLowerCase();
     const symbols: vscode.SymbolInformation[] = [];
     for (const uri of files) {
@@ -735,7 +740,10 @@ export class NikaWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvid
  * restores it on crash/downgrade. Server owns MEANING; the client keeps
  * whatever the server does not speak.
  */
-export function intelEntries(service: NikaService): YieldEntry[] {
+export function intelEntries(
+  service: NikaService,
+  filesOf: (cap: number) => Promise<vscode.Uri[]>,
+): YieldEntry[] {
   const selector: vscode.DocumentSelector = [
     { language: 'nika', scheme: 'file' },
     { language: 'nika', scheme: 'untitled' },
@@ -806,7 +814,7 @@ export function intelEntries(service: NikaService): YieldEntry[] {
     {
       cap: 'workspaceSymbolProvider',
       label: 'symbols:workspace',
-      make: () => vscode.languages.registerWorkspaceSymbolProvider(new NikaWorkspaceSymbolProvider()),
+      make: () => vscode.languages.registerWorkspaceSymbolProvider(new NikaWorkspaceSymbolProvider(filesOf)),
     },
   ];
 }
