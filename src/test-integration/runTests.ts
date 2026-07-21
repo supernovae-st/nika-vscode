@@ -16,7 +16,13 @@ import { runTests } from '@vscode/test-electron';
 
 async function main(): Promise<void> {
   try {
-    const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+    // out-integration/ sits at the repo root — ONE level up IS the
+    // extension (package.json + out/). Two levels up is the parent
+    // folder: VS Code treats a package.json-less dev path as a folder
+    // OF extensions and scans its children — in a container layout
+    // that accidentally found repo/, in a shared scratchpad it loads
+    // whichever sibling clone wins the dedupe. Anchor to the root.
+    const extensionDevelopmentPath = path.resolve(__dirname, '..');
     const extensionTestsPath = path.resolve(__dirname, './suite/index');
     // The user-data-dir must be SHORT: VS Code opens a Unix domain socket
     // under it and the path is capped at 103 chars — our deep repo path
