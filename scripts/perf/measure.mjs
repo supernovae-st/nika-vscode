@@ -232,6 +232,26 @@ async function dragAndMeasure(page) {
 /** The culling judge seam (absent pre-PR-B — reported as null then). */
 const readCull = (page) => page.evaluate(() => window.__nkCull ?? null);
 
+/** Wait out the cold fit's 500ms camera glide: two zoom reads 120ms
+ *  apart agreeing = the camera is at rest. The near-zoom scenarios
+ *  press '+' — a press must compound from the SETTLED fit zoom.
+ *  Pressing mid-glide based the ladder on a transient k; the old
+ *  duration-0 transitions happened to let the glide swallow part of
+ *  press 1 (run-dependent), while the synchronous jump lands every
+ *  press exactly — compounding a mid-glide base to the 400% clamp,
+ *  a different world than the scenario means to measure. */
+async function settledCamera(page) {
+  let prev = '';
+  for (let i = 0; i < 40; i++) {
+    const cur = await page.evaluate(() =>
+      document.getElementById('zoom-pct')?.textContent ?? '');
+    if (cur !== '' && cur === prev) { return cur; }
+    prev = cur;
+    await page.waitForTimeout(120);
+  }
+  return prev;
+}
+
 if (scenario === 'all' || scenario === 'pan') {
   const page = await settledPage('n=300&still');
   report['pan'] = { ...(await dragAndMeasure(page)), cull: await readCull(page) };
@@ -240,9 +260,10 @@ if (scenario === 'all' || scenario === 'pan') {
 
 if (scenario === 'all' || scenario === 'pan-near') {
   const page = await settledPage('n=300&still');
-  // 8 instant zoom steps, SPACED: back-to-back presses interrupt each
-  // other's duration-0 d3 transition (probed: 8 rapid presses landed
-  // 4-6 steps, run-dependent) — 60ms gaps make the zoom deterministic.
+  await settledCamera(page);
+  // 8 instant zoom steps, SPACED for readability; each press applies
+  // synchronously (the instant camera path), so all 8 land exactly —
+  // from the settled fit this is the scenario's designed near zoom.
   for (let i = 0; i < 8; i++) {
     await page.keyboard.press('+');
     await page.waitForTimeout(60);
@@ -368,6 +389,7 @@ if (scenario === 'all' || scenario === 'key-paint') {
 // waking works (pan back → the culled count falls).
 if (scenario === 'all' || scenario === 'cull-canary') {
   const page = await settledPage('n=300&still');
+  await settledCamera(page);
   for (let i = 0; i < 8; i++) {
     await page.keyboard.press('+');
     await page.waitForTimeout(60);

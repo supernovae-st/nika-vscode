@@ -16,7 +16,7 @@ import ELK, {
 } from 'elkjs';
 
 import { select, type Selection } from 'd3-selection';
-import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent } from 'd3-zoom';
+import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
 import { line, curveMonotoneY, type Line } from 'd3-shape';
 import { easeCubicOut } from 'd3-ease';
 // Side-effect import: patches Selection.prototype with .transition()
@@ -2212,6 +2212,17 @@ class DagRenderer {
   private edgePlusHideTimer: number | undefined;
   private currentTx = 0;
   private currentTy = 0;
+  /** The svg viewport's CSS box, cached OFF the hot paths. fitToView ·
+   *  the cull pass · the minimap viewport · the rail sync all need the
+   *  panel size on camera frames — a live getBoundingClientRect there
+   *  lands AFTER class writes and forces a full style+layout flush
+   *  mid-task (traced at 23-47ms ×2-3 per landing press / cold paint
+   *  on n=300). The panel's only size channel is a window resize, so
+   *  one read per resize event serves every consumer; a zero cache
+   *  (pre-layout construction · hidden panel) self-heals with a live
+   *  read at the consumer. */
+  private viewSize = { w: 0, h: 0 };
+  private minimapSize = { w: 0, h: 0 };
   /** Graph extent in root coords (minimap scale). */
   private graphW = 1;
   private graphH = 1;
@@ -2440,6 +2451,9 @@ class DagRenderer {
         .scale(savedState.zoom);
       this.svg.call(this.zoomBehavior.transform, t);
     }
+
+    // Seed the panel-size cache on a clean tree (resize keeps it fresh).
+    this.refreshViewSizes();
   }
 
   private createArrowMarkers(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {
@@ -2972,7 +2986,7 @@ class DagRenderer {
     const ext = this.waveExtents.get(wave);
     const svgEl = this.svg.node();
     if (!ext || !svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = this.currentZoom;
     const cx = this.graphW / 2;
     const cy = (ext.top + ext.bottom) / 2;
@@ -2990,7 +3004,7 @@ class DagRenderer {
     if (!document.body.classList.contains('has-rail')) { return; }
     const svgEl = this.svg.node();
     if (!svgEl) { return; }
-    const { height: svgH } = svgEl.getBoundingClientRect();
+    const { h: svgH } = this.svgSize();
     const viewTop = (0 - this.currentTy) / this.currentZoom;
     const viewBottom = (svgH - this.currentTy) / this.currentZoom;
     const centerY = (viewTop + viewBottom) / 2;
@@ -3037,6 +3051,16 @@ class DagRenderer {
 
   private applyFocus(id: string | null): void {
     this.focusedId = id;
+    // A jump can land on a sleeping card (near-zoom walk wrap): wake it
+    // SYNCHRONOUSLY. The roving focus() targets it in THIS task and a
+    // display:none element refuses DOM focus — the cull pass wakes it
+    // only at the next rAF, after the focus() call already no-oped. Its
+    // edge quartet wakes with that pass; the pass itself keeps the card
+    // awake (cullProtected).
+    if (id !== null && this.culledIds.has(id)) {
+      this.culledIds.delete(id);
+      this.cullNodeEls.get(id)?.classList.remove('nk-offscreen');
+    }
     this.lineage = id === null ? null : lineageOf(this.currentGraph?.edges ?? [], id);
     this.lineageFromEditor = false;
     this.refreshDim();
@@ -3268,7 +3292,7 @@ class DagRenderer {
     const box = this.layoutBox.get(taskId);
     const svgEl = this.svg.node();
     if (!box || !svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = this.currentZoom;
     const sx = (box.x + box.w / 2) * k + this.currentTx;
     const sy = (box.y + box.h / 2) * k + this.currentTy;
@@ -3772,10 +3796,11 @@ class DagRenderer {
     const host = document.getElementById('minimap');
     if (!mm || !host || !this.currentGraph) { return; }
     const PAD = 6;
-    // The card is responsive (CSS shrinks it on narrow panels) — measure
-    // the live box; hardcoded dims would misplace the viewport rect.
-    const W = host.clientWidth || 148;
-    const H = host.clientHeight || 96;
+    // The card is responsive (CSS shrinks it on narrow panels) — the
+    // cached live box; hardcoded dims would misplace the viewport rect.
+    const mmSize = this.minimapHostSize();
+    const W = mmSize.w || 148;
+    const H = mmSize.h || 96;
     while (mm.firstChild) { mm.removeChild(mm.firstChild); }
     mm.setAttribute('width', String(W));
     mm.setAttribute('height', String(H));
@@ -3817,7 +3842,7 @@ class DagRenderer {
     const s = Number(mm.dataset.scale ?? 0);
     const pad = Number(mm.dataset.pad ?? 0);
     if (s <= 0) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     // Visible root-rect = the svg viewport pushed through the inverse zoom.
     const x0 = (-this.currentTx) / this.currentZoom;
     const y0 = (-this.currentTy) / this.currentZoom;
@@ -4199,22 +4224,41 @@ class DagRenderer {
    *  (`instant` = keyboard source — no glide, per the motion charter). */
   focusAndCenter(taskId: string, instant = false): void {
     if (!this.nodeMap.has(taskId)) { return; }
-    this.applyFocus(taskId);
     const box = this.layoutBox.get(taskId);
-    const svgEl = this.svg.node();
     if (!box) {
       // dag:focus can land mid-render (layout is async) — replay after.
+      this.applyFocus(taskId);
       this.pendingCenter = taskId;
       return;
     }
-    if (!svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    if (!this.svg.node()) { this.applyFocus(taskId); return; }
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = Math.max(this.currentZoom, 0.6);
     const t = zoomIdentity
       .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
       .scale(k);
+    // Camera BEFORE focus: applyFocus's roving focus() forces the one
+    // style flush of this task — behind the camera writes (transform ·
+    // lod band · zoom-comp) it resolves everything in a single pass.
+    this.applyCamera(t, instant || REDUCED_MOTION ? 0 : 420);
+    this.applyFocus(taskId);
+  }
+
+  /** Apply a camera transform. Duration 0 (keyboard · reduced motion —
+   *  the charter's jump) applies SYNCHRONOUSLY in the input task: the
+   *  d3 duration-0 transition would land the same transform one timer
+   *  tick later, splitting one press across two frames and re-resolving
+   *  style in each. interrupt() drops any in-flight glide first — the
+   *  exact cancellation a new transition would perform. Animated moves
+   *  keep the d3 transition (the camera speaks ease-out). */
+  private applyCamera(t: ZoomTransform, durMs: number): void {
+    if (durMs === 0) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.transform as D3ZoomCall, t);
+      return;
+    }
     this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 420)
+      .transition().duration(durMs)
       .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
@@ -6945,7 +6989,7 @@ class DagRenderer {
     const svgEl = this.svg.node();
     if (!svgEl) return;
 
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     if (svgW === 0 || svgH === 0) return;
 
     // Chrome floats OVER the canvas (top rail · omnibar · legend · the
@@ -6985,23 +7029,33 @@ class DagRenderer {
 
     const t = zoomIdentity.translate(tx, ty).scale(scale);
     // Motion charter (law 7): keyboard-initiated camera moves NEVER
-    // animate — `instant` rides down from the key handlers.
-    this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 500)
-      .ease(easeCubicOut)
-      .call(this.zoomBehavior.transform as D3ZoomCall, t);
+    // animate — `instant` rides down from the key handlers, and the
+    // jump applies in the press's own frame (applyCamera).
+    this.applyCamera(t, instant || REDUCED_MOTION ? 0 : 500);
   }
 
   zoomIn(instant = false): void {
-    this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
-      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 1.3);
+    this.zoomStep(1.3, instant);
   }
 
   zoomOut(instant = false): void {
+    this.zoomStep(0.7, instant);
+  }
+
+  /** One zoom step. Instant (keyboard ±) applies synchronously — the
+   *  duration-0 transition it replaces could be interrupted by the NEXT
+   *  rapid press before its timer tick applied anything (probed in the
+   *  pan-near scenario: 8 back-to-back presses landed 4-6 steps); the
+   *  synchronous form makes every press land exactly once. */
+  private zoomStep(factor: number, instant: boolean): void {
+    if (instant || REDUCED_MOTION) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.scaleBy as D3ZoomCall, factor);
+      return;
+    }
     this.svg
-      .transition().duration(instant || REDUCED_MOTION ? 0 : 300)
-      .call(this.zoomBehavior.scaleBy as D3ZoomCall, 0.7);
+      .transition().duration(300)
+      .call(this.zoomBehavior.scaleBy as D3ZoomCall, factor);
   }
 
   clear(): void {
@@ -7200,12 +7254,40 @@ class DagRenderer {
     }
   }
 
+  /** Re-read the cached panel sizes (construction · resize event — the
+   *  webview's only size channels). One clean-tree read here spares a
+   *  forced flush at every hot-path consumer. */
+  refreshViewSizes(): void {
+    const svgEl = this.svg.node();
+    if (svgEl) {
+      const r = svgEl.getBoundingClientRect();
+      this.viewSize = { w: r.width, h: r.height };
+    }
+    const host = document.getElementById('minimap');
+    if (host) {
+      this.minimapSize = { w: host.clientWidth, h: host.clientHeight };
+    }
+  }
+
+  /** Cached svg size — a cold cache (first paint racing layout) heals
+   *  itself with one live read. */
+  private svgSize(): { w: number; h: number } {
+    if (this.viewSize.w === 0 || this.viewSize.h === 0) { this.refreshViewSizes(); }
+    return this.viewSize;
+  }
+
+  /** Cached minimap host size (same self-heal). */
+  private minimapHostSize(): { w: number; h: number } {
+    if (this.minimapSize.w === 0 || this.minimapSize.h === 0) { this.refreshViewSizes(); }
+    return this.minimapSize;
+  }
+
   /** The viewport in root coordinates — cheap culling math for the
    *  BuildKit tick and the spinner density cap. */
   private viewportRootRect(): { x0: number; y0: number; x1: number; y1: number } {
-    const el = this.svg.node();
-    const w = el?.clientWidth ?? window.innerWidth;
-    const h = el?.clientHeight ?? window.innerHeight;
+    const size = this.svgSize();
+    const w = size.w || window.innerWidth;
+    const h = size.h || window.innerHeight;
     const k = this.currentZoom || 1;
     return {
       x0: (0 - this.currentTx) / k,
@@ -7268,8 +7350,8 @@ class DagRenderer {
     const total = this.currentGraph?.nodes.length ?? 0;
     const active = total > CULL_MIN_NODES;
     if (!force && !active && this.culledIds.size === 0) { return; }
-    const svgEl = this.svg.node();
-    if (!svgEl || svgEl.clientWidth === 0 || svgEl.clientHeight === 0) { return; }
+    const size = this.svgSize();
+    if (!this.svg.node() || size.w === 0 || size.h === 0) { return; }
     if (force) { this.rebuildCullDom(); }
     const vp = this.viewportRootRect();
     const m = cullMargins(this.currentZoom);
@@ -8846,6 +8928,7 @@ function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: str
 // wake the cards it now shows).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 window.addEventListener('resize', () => {
+  renderer.refreshViewSizes();
   renderer.scheduleCull();
   if (resizeTimer) { clearTimeout(resizeTimer); }
   resizeTimer = setTimeout(() => renderer.refreshMinimap(), 150);
