@@ -2674,6 +2674,16 @@ body.running .dag-node.status-success .nc::after {
   letter-spacing: 0.01em;
 }
 
+/* The id owns the head (W-D12 detail pass): beside a chip it never
+ * shrinks — the chip yields first. flex-shrink alone can't say that
+ * (shrink is base-proportional: a 5-char id lost pixels to a wide
+ * chip and rendered « bri… »). A monster id still caps, leaving the
+ * chip its readable floor. */
+.nc-head:has(.nc-chip) .nc-id {
+  flex-shrink: 0;
+  max-width: calc(100% - 118px);
+}
+
 .nc-badge {
   flex: 0 0 auto;
   font-size: 9.5px;
@@ -3229,12 +3239,38 @@ body.lod-far .nc-pill { display: none; }
   cursor: zoom-in;
 }
 
+/* Grand: the slot IS the corps (the ElevenLabs read) — the frame
+ * kisses the card's top edge, corners clipped to the card radius.
+ * The fond band the old 10+6px inset left above the artifact read as
+ * unfinished chrome. TS mirror: nodeHeightOf subtracts CARD_PAD_Y +
+ * PREVIEW_GAP for the image slot in grand (anatomy law). */
+body:not(.lod-far) .nc-mode-grand .nc-preview {
+  margin-top: -10px;
+  border-top: none;
+  border-radius: calc(var(--nk-radius-card) - 1px) calc(var(--nk-radius-card) - 1px) 0 0;
+}
+
 .nc-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 220ms var(--nk-ease-spatial);
+}
+
+/* The settle (W-D12): a landed artifact arrives, it never pops — one
+ * soft entry on FIRST land only (the renderer keys it; a re-render of
+ * an already-settled artifact must never replay the entrance). */
+@keyframes nc-art-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nc-art-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.nc-preview img.nc-art-in {
+  animation: nc-art-in 240ms var(--nk-ease-effects) backwards;
 }
 
 .nc-preview:hover img {
@@ -3244,6 +3280,8 @@ body.lod-far .nc-pill { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .nc-preview img { transition: none; }
   .nc-preview:hover img { transform: none; }
+  /* Motion swaps for opacity, never for nothing (the charter). */
+  .nc-preview img.nc-art-in { animation: nc-art-fade 160ms linear backwards; }
 }
 
 .nc-preview-label {
@@ -3683,7 +3721,10 @@ body.lod-far .nc-pill { display: none; }
 }
 
 .nc-pol {
-  flex: 0 1 auto;
+  /* No shrink: the builder packs chips by MEASURED width and folds the
+   * overflow into « +N » — five flex-mushed stumps (« ↻… ⏱ … ∴ th… »)
+   * carried zero information. A chip is whole or it is layered. */
+  flex: 0 0 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3854,12 +3895,17 @@ body.heatmap .dag-node:hover .nc {
 /* Far out the graph reads like a MAP: id + status only. Mid drops the
  * params. Near shows the whole card. Class set by the zoom handler. */
 
-body.lod-mid .nc-params { visibility: hidden; }
+/* Mid keeps the INFORMATIONAL rows as faint texture (the Linear read:
+ * real content at reading-impossible size still says « there is more
+ * here, compressed ») — a hidden row kept its footprint and left the
+ * grand card a half-empty shell at 35%. Interactive chrome (peek ·
+ * actions · the pill) stays hidden: no ghost hit-targets. */
+body.lod-mid .nc-params,
 body.lod-mid .nc-io,
 body.lod-mid .nc-policy,
 body.lod-mid .nc-x-facts,
+body.lod-mid .nc-x-chips { opacity: 0.35; }
 body.lod-mid .nc-x-peek,
-body.lod-mid .nc-x-chips,
 body.lod-mid .nc-x-actions { visibility: hidden; }
 /* Continuous zoom ink (annexe I2 · the n8n gamma read) — ONE number
  * (--nk-edge-vis · 100 at k≥1 · gamma-eased toward 52 at far) mixes
@@ -3930,6 +3976,10 @@ body.lod-far .nc-head .nc-dot {
   width: calc(7px * min(var(--zoom-comp, 1), 2.4));
   height: calc(7px * min(var(--zoom-comp, 1), 2.4));
 }
+/* The map read is id + status ONLY — a header chip at 22% renders as
+ * unreadable mush yet costs ~48px of id room (« hero » stumped to
+ * « …ro » while an invisible « openai » kept its seat). */
+body.lod-far .nc-head .nc-chip { display: none; }
 body.lod-far .nc-port { opacity: 0 !important; }
 /* The map-read morph rides the effects ease at the tier crossing — a
  * geometric size change, never a spring (overshoot would reflow-bounce). */

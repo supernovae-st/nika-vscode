@@ -964,6 +964,29 @@ const X_CHIPS_H = 18;
 const X_WRAP_CHARS = 31;
 const X_FACT_MAX_LINES = 2;
 
+// ─── Deterministic text measure (W-D12 detail pass) ────────────────
+/** The card's content column: NODE_WIDTH − .nc padding 12px × 2 (CSS
+ *  mirror — the same column the 31-char wrap budget describes). */
+const CONTENT_W = NODE_WIDTH - 24;
+/** Chips and voice rows pack by MEASURED width — flex-shrink is
+ *  base-proportional and mushed five policy chips into « ↻… ⏱ … »
+ *  stumps. One shared canvas; the mono family re-resolves when the
+ *  skin swaps (each skin declares its own --nk-mono). Widths only:
+ *  heights stay the TS-constant contract (anatomy law). */
+const measureCtx = document.createElement('canvas').getContext('2d');
+let monoFamily = '';
+let monoFamilyTheme: string | undefined;
+function measureMono(text: string, sizePx: number, weight = 400): number {
+  if (!measureCtx) { return text.length * sizePx * 0.62; }
+  const theme = document.body.dataset.nkTheme ?? '';
+  if (monoFamily === '' || monoFamilyTheme !== theme) {
+    monoFamily = getComputedStyle(document.body).getPropertyValue('--nk-mono').trim() || 'monospace';
+    monoFamilyTheme = theme;
+  }
+  measureCtx.font = `${weight} ${sizePx}px ${monoFamily}`;
+  return measureCtx.measureText(text).width;
+}
+
 /** Inbound wires shown ON the card (the rest counts into `+N`). */
 const IO_MAX_WIRES = 2;
 
@@ -1325,14 +1348,19 @@ function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): numb
   // the frame too). The sum below stays order-independent; the two
   // off-card zones join at the return.
   if (node.artifact) {
-    // file rides the audio row height (one-line receipt row).
-    h += PREVIEW_GAP + (node.artifact.kind === 'image' ? PREVIEW_IMG_H : PREVIEW_AUD_H);
+    // file rides the audio row height (one-line receipt row). The
+    // image slot FLUSHES to the top edge in grand (W-D12 — the slot
+    // is the corps: CSS pulls margin-top −CARD_PAD_Y and drops the
+    // 6px gap, so its net add is PREVIEW_IMG_H − CARD_PAD_Y).
+    h += node.artifact.kind === 'image'
+      ? PREVIEW_IMG_H - CARD_PAD_Y
+      : PREVIEW_GAP + PREVIEW_AUD_H;
   } else {
     // The declared frame reserves the SAME box the artifact will
     // take — constant height, so a status flip never needs relayout.
-    // image slot 124 · audio strip 30 · compose check-receipt row 30.
+    // image slot 124 flush-top · audio strip 30 · check-receipt row 30.
     const declared = resolveCardIdentity(node, toolCatsMap).preview;
-    if (declared === 'image') { h += PREVIEW_GAP + PREVIEW_IMG_H; }
+    if (declared === 'image') { h += PREVIEW_IMG_H - CARD_PAD_Y; }
     else if (declared === 'audio' || declared === 'check') { h += PREVIEW_GAP + PREVIEW_AUD_H; }
   }
   const body = bodyTextOf(node, mode);
@@ -1746,6 +1774,10 @@ class DagRenderer {
   private nodeGroup: Selection<SVGGElement, unknown, null, undefined>;
   private zoomBehavior: ZoomBehavior<SVGSVGElement, unknown>;
   private currentGraph: DagGraph | undefined;
+
+  /** Artifacts whose settle entry already played (`id:path`) — the
+   *  soft land fires once; re-renders never replay it (W-D12). */
+  private readonly settledArts = new Set<string>();
   private nodeMap: Map<string, DagNode> = new Map();
   private container: HTMLElement;
   /** Use smooth curves instead of orthogonal segments for edges */
@@ -2416,6 +2448,8 @@ class DagRenderer {
     // A new graph is a new admission world — an armed simulation from
     // the previous document must not haunt this one.
     if (this.simSeed !== null && this.currentGraph !== graph) { this.clearSimulation(); }
+    // New document → the settle ledger resets (its artifacts are new).
+    if (this.currentGraph !== graph) { this.settledArts.clear(); }
     this.currentGraph = graph;
     this.nodeMap.clear();
     graph.nodes.forEach((n) => this.nodeMap.set(n.id, n));
@@ -3679,6 +3713,9 @@ class DagRenderer {
       const el = this.nodeGroup.select(`[data-id="${CSS.escape(f.taskId)}"]`);
       el.attr('class', nodeClassOf(node));
       el.select('.nc-sub-v').text(this.subValue(node));
+      // The k-side re-fits with the v it now shares the row with
+      // (tool voices carry icon children — subKText leaves them).
+      if (node.tool === undefined) { el.select('.nc-sub-k').text(this.subKText(node)); }
       document.querySelector(`#minimap-svg rect[data-id="${CSS.escape(f.taskId)}"]`)
         ?.setAttribute('class', `mm-node st-${f.status}`);
     }
@@ -4449,6 +4486,8 @@ class DagRenderer {
     // Update classes + dynamic card facts (status line · duration).
     merged.attr('class', (d) => nodeClassOf(d));
     merged.select('.nc-sub-v').text((d) => this.subValue(d));
+    merged.filter((d) => d.tool === undefined)
+      .select('.nc-sub-k').text((d) => this.subKText(d));
     merged.each((d, i, els) => {
       const nc = (els[i] as SVGGElement).querySelector<HTMLElement>('.nc');
       if (nc) { this.paintSpin(nc, d); }
@@ -4498,7 +4537,7 @@ class DagRenderer {
       catSvg.classList.add('nc-chip-icon', `nc-cat-${cat}`);
       subK.append(`${node.verb} · `, catSvg, node.tool);
     } else {
-      subK.textContent = this.subMechanism(node);
+      subK.textContent = this.subKText(node);
     }
     const subV = document.createElement('span');
     subV.className = 'nc-sub-v';
@@ -4999,9 +5038,11 @@ class DagRenderer {
     return rail;
   }
 
-  /** tts_generate — the flat declared strip. The bars are uniform BY
-   *  DESIGN (no audio level exists on the wire — a shaped wave here
-   *  would be a fake VU meter); the run's honesty is the one sweep. */
+  /** tts_generate — the declared strip. The bars carry a CONSTANT
+   *  symmetric motif, IDENTICAL on every tts card — iconography, never
+   *  measurement (a per-task shape would fake a waveform; the old
+   *  uniform-flat line read as dead chrome, W-D12). The run's honesty
+   *  stays the one sweep. */
   private appendAudioDeclare(host: HTMLElement, node: DagNode): void {
     const d = mediaDeclareOf('tts_generate', node.argsPreview);
     const row = document.createElement('div');
@@ -5018,11 +5059,17 @@ class DagRenderer {
     strip.setAttribute('preserveAspectRatio', 'none');
     strip.setAttribute('aria-hidden', 'true');
     for (let i = 0; i < 26; i++) {
+      // One soft arch + a cosine ripple (even under t→1−t: the motif
+      // is exactly symmetric) — the « voice at rest » mark. Pure
+      // f(i): the same 26 heights on every card.
+      const t = i / 25;
+      const arch = Math.pow(Math.sin(Math.PI * t), 2);
+      const h = 2.6 + arch * (5.2 + 1.8 * Math.cos(6 * Math.PI * t));
       const bar = document.createElementNS(ns, 'rect');
       bar.setAttribute('x', String(i * 4));
-      bar.setAttribute('y', '5.5');
+      bar.setAttribute('y', (7 - h / 2).toFixed(2));
       bar.setAttribute('width', '2.4');
-      bar.setAttribute('height', '3');
+      bar.setAttribute('height', h.toFixed(2));
       bar.setAttribute('rx', '1.2');
       bar.setAttribute('fill', 'currentColor');
       strip.appendChild(bar);
@@ -5180,6 +5227,13 @@ class DagRenderer {
         img.src = a.src;
         img.alt = a.name;
         img.draggable = false;
+        // The settle is soft ON FIRST LAND only (W-D12) — a status
+        // batch re-renders the card and must never replay the entry.
+        const artKey = `${node.id}:${a.path ?? a.src}`;
+        if (!this.settledArts.has(artKey)) {
+          this.settledArts.add(artKey);
+          img.classList.add('nc-art-in');
+        }
         // The byte gate (annexe T): a hidden/culled card must not
         // decode its pixels — lazy defers offscreen loads, async
         // keeps the decode off the interaction path.
@@ -5404,8 +5458,24 @@ class DagRenderer {
         pending.push({ cls, text, title });
       };
       const flushChips = (): void => {
+        // Measured packing (W-D12): a chip is WHOLE or it is layered —
+        // the old flex-shrink mush served five « ↻… ⏱ … » stumps that
+        // carried zero information. Greedy in declaration order; the
+        // overflow folds into « +N » whose title lists everything.
         const MAX = 5;
-        const shown = pending.slice(0, pending.length > MAX ? MAX - 1 : MAX);
+        const gap = 5;
+        const chipW = (t: string): number => measureMono(t, 9) + 14; // pad 12 + border 2
+        const fitCount = (count: number, withMore: boolean): boolean => {
+          let w = withMore ? gap + chipW(`+${pending.length - count}`) : 0;
+          for (let i = 0; i < count; i++) { w += chipW(pending[i].text) + (i > 0 ? gap : 0); }
+          return w <= CONTENT_W;
+        };
+        let n = Math.min(pending.length, MAX);
+        if (n !== pending.length || !fitCount(n, false)) {
+          n = Math.min(pending.length - 1, MAX - 1);
+          while (n > 0 && !fitCount(n, true)) { n--; }
+        }
+        const shown = pending.slice(0, n);
         for (const c of shown) {
           const el = document.createElement('span');
           el.className = `nc-pol ${c.cls}`;
@@ -6476,6 +6546,7 @@ class DagRenderer {
     this.reapplySim();
     this.reapplyAuditMarks();
     el.select('.nc-sub-v').text(this.subValue(node));
+    if (node.tool === undefined) { el.select('.nc-sub-k').text(this.subKText(node)); }
     // The spectacle rides the same paint: family (dots · think · stream)
     // re-derived from the wire facts just assigned, phase re-locked.
     const ncHost = el.select<HTMLElement>('.nc').node();
@@ -6639,6 +6710,7 @@ class DagRenderer {
     }
     this.nodeGroup.selectAll('*').remove();
     this.currentGraph = undefined;
+    this.settledArts.clear();
     this.nodeMap.clear();
     this.edgeEnds.clear();
     this.upstreamOf.clear();
@@ -6688,6 +6760,24 @@ class DagRenderer {
     if (node.provider) return `${node.verb} \u00B7 ${node.provider}`;
     if (node.model) return `${node.verb} \u00B7 ${node.model.split('/')[0]}`;
     return node.verb;
+  }
+
+  /** The voice row never stumps (W-D12): when the verdict seg lands
+   *  and \u00AB infer \u00B7 ollama \u00BB would crumble to \u00AB infer \u00B7 ol\u2026 \u00BB, the
+   *  provider yields WHOLE \u2014 the header model chip already carries it.
+   *  Canvas-measured (no DOM reads in the batch path); tool voices are
+   *  untouched (the tool IS the identity \u2014 CSS ellipsis keeps its
+   *  head, and their k-node carries icon children). */
+  private subKText(node: DagNode): string {
+    const full = this.subMechanism(node);
+    if (node.tool !== undefined) { return full; }
+    const v = this.subValue(node);
+    if (v === '') { return full; }
+    // .nc-sub: 10.5px mono \u00B7 10px flex gap between k and v.
+    if (measureMono(full, 10.5) + 10 + measureMono(v, 10.5) > CONTENT_W) {
+      return node.verb;
+    }
+    return full;
   }
 
   /** The agent loop's pulse for the value column (`t3 · 610tk · `) —
@@ -6762,8 +6852,11 @@ class DagRenderer {
     // The static verdict outranks an empty pending cell: this task can
     // NEVER run — saying nothing would read as « just waiting ».
     if (node.deadGate === true && node.status === 'pending') { return 'never runs'; }
-    if (node.status === 'skipped') { return 'skipped'; }
-    if (node.status === 'cancelled') { return 'cancelled'; }
+    // The registry glyphs ride the words (W-D12): ✓ ✗ ○ already spoke
+    // in this seg — a bare « skipped » beside « ✗ failed » broke the
+    // one-voice status grammar (grid · legend · card all say ↷ ⊘).
+    if (node.status === 'skipped') { return '↷ skipped'; }
+    if (node.status === 'cancelled') { return '⊘ cancelled'; }
     return '';
   }
 
