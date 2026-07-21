@@ -2212,6 +2212,17 @@ class DagRenderer {
   private edgePlusHideTimer: number | undefined;
   private currentTx = 0;
   private currentTy = 0;
+  /** The svg viewport's CSS box, cached OFF the hot paths. fitToView ·
+   *  the cull pass · the minimap viewport · the rail sync all need the
+   *  panel size on camera frames — a live getBoundingClientRect there
+   *  lands AFTER class writes and forces a full style+layout flush
+   *  mid-task (traced at 23-47ms ×2-3 per landing press / cold paint
+   *  on n=300). The panel's only size channel is a window resize, so
+   *  one read per resize event serves every consumer; a zero cache
+   *  (pre-layout construction · hidden panel) self-heals with a live
+   *  read at the consumer. */
+  private viewSize = { w: 0, h: 0 };
+  private minimapSize = { w: 0, h: 0 };
   /** Graph extent in root coords (minimap scale). */
   private graphW = 1;
   private graphH = 1;
@@ -2440,6 +2451,9 @@ class DagRenderer {
         .scale(savedState.zoom);
       this.svg.call(this.zoomBehavior.transform, t);
     }
+
+    // Seed the panel-size cache on a clean tree (resize keeps it fresh).
+    this.refreshViewSizes();
   }
 
   private createArrowMarkers(defs: Selection<SVGDefsElement, unknown, null, undefined>): void {
@@ -2972,7 +2986,7 @@ class DagRenderer {
     const ext = this.waveExtents.get(wave);
     const svgEl = this.svg.node();
     if (!ext || !svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = this.currentZoom;
     const cx = this.graphW / 2;
     const cy = (ext.top + ext.bottom) / 2;
@@ -2990,7 +3004,7 @@ class DagRenderer {
     if (!document.body.classList.contains('has-rail')) { return; }
     const svgEl = this.svg.node();
     if (!svgEl) { return; }
-    const { height: svgH } = svgEl.getBoundingClientRect();
+    const { h: svgH } = this.svgSize();
     const viewTop = (0 - this.currentTy) / this.currentZoom;
     const viewBottom = (svgH - this.currentTy) / this.currentZoom;
     const centerY = (viewTop + viewBottom) / 2;
@@ -3268,7 +3282,7 @@ class DagRenderer {
     const box = this.layoutBox.get(taskId);
     const svgEl = this.svg.node();
     if (!box || !svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = this.currentZoom;
     const sx = (box.x + box.w / 2) * k + this.currentTx;
     const sy = (box.y + box.h / 2) * k + this.currentTy;
@@ -3772,10 +3786,11 @@ class DagRenderer {
     const host = document.getElementById('minimap');
     if (!mm || !host || !this.currentGraph) { return; }
     const PAD = 6;
-    // The card is responsive (CSS shrinks it on narrow panels) — measure
-    // the live box; hardcoded dims would misplace the viewport rect.
-    const W = host.clientWidth || 148;
-    const H = host.clientHeight || 96;
+    // The card is responsive (CSS shrinks it on narrow panels) — the
+    // cached live box; hardcoded dims would misplace the viewport rect.
+    const mmSize = this.minimapHostSize();
+    const W = mmSize.w || 148;
+    const H = mmSize.h || 96;
     while (mm.firstChild) { mm.removeChild(mm.firstChild); }
     mm.setAttribute('width', String(W));
     mm.setAttribute('height', String(H));
@@ -3817,7 +3832,7 @@ class DagRenderer {
     const s = Number(mm.dataset.scale ?? 0);
     const pad = Number(mm.dataset.pad ?? 0);
     if (s <= 0) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     // Visible root-rect = the svg viewport pushed through the inverse zoom.
     const x0 = (-this.currentTx) / this.currentZoom;
     const y0 = (-this.currentTy) / this.currentZoom;
@@ -4208,7 +4223,7 @@ class DagRenderer {
       return;
     }
     if (!svgEl) { return; }
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     const k = Math.max(this.currentZoom, 0.6);
     const t = zoomIdentity
       .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
@@ -6945,7 +6960,7 @@ class DagRenderer {
     const svgEl = this.svg.node();
     if (!svgEl) return;
 
-    const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
+    const { w: svgW, h: svgH } = this.svgSize();
     if (svgW === 0 || svgH === 0) return;
 
     // Chrome floats OVER the canvas (top rail · omnibar · legend · the
@@ -7200,12 +7215,40 @@ class DagRenderer {
     }
   }
 
+  /** Re-read the cached panel sizes (construction · resize event — the
+   *  webview's only size channels). One clean-tree read here spares a
+   *  forced flush at every hot-path consumer. */
+  refreshViewSizes(): void {
+    const svgEl = this.svg.node();
+    if (svgEl) {
+      const r = svgEl.getBoundingClientRect();
+      this.viewSize = { w: r.width, h: r.height };
+    }
+    const host = document.getElementById('minimap');
+    if (host) {
+      this.minimapSize = { w: host.clientWidth, h: host.clientHeight };
+    }
+  }
+
+  /** Cached svg size — a cold cache (first paint racing layout) heals
+   *  itself with one live read. */
+  private svgSize(): { w: number; h: number } {
+    if (this.viewSize.w === 0 || this.viewSize.h === 0) { this.refreshViewSizes(); }
+    return this.viewSize;
+  }
+
+  /** Cached minimap host size (same self-heal). */
+  private minimapHostSize(): { w: number; h: number } {
+    if (this.minimapSize.w === 0 || this.minimapSize.h === 0) { this.refreshViewSizes(); }
+    return this.minimapSize;
+  }
+
   /** The viewport in root coordinates — cheap culling math for the
    *  BuildKit tick and the spinner density cap. */
   private viewportRootRect(): { x0: number; y0: number; x1: number; y1: number } {
-    const el = this.svg.node();
-    const w = el?.clientWidth ?? window.innerWidth;
-    const h = el?.clientHeight ?? window.innerHeight;
+    const size = this.svgSize();
+    const w = size.w || window.innerWidth;
+    const h = size.h || window.innerHeight;
     const k = this.currentZoom || 1;
     return {
       x0: (0 - this.currentTx) / k,
@@ -7268,8 +7311,8 @@ class DagRenderer {
     const total = this.currentGraph?.nodes.length ?? 0;
     const active = total > CULL_MIN_NODES;
     if (!force && !active && this.culledIds.size === 0) { return; }
-    const svgEl = this.svg.node();
-    if (!svgEl || svgEl.clientWidth === 0 || svgEl.clientHeight === 0) { return; }
+    const size = this.svgSize();
+    if (!this.svg.node() || size.w === 0 || size.h === 0) { return; }
     if (force) { this.rebuildCullDom(); }
     const vp = this.viewportRootRect();
     const m = cullMargins(this.currentZoom);
@@ -8846,6 +8889,7 @@ function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: str
 // wake the cards it now shows).
 let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 window.addEventListener('resize', () => {
+  renderer.refreshViewSizes();
   renderer.scheduleCull();
   if (resizeTimer) { clearTimeout(resizeTimer); }
   resizeTimer = setTimeout(() => renderer.refreshMinimap(), 150);
