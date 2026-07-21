@@ -125,6 +125,10 @@ class VerbCmdk {
   private items: PaletteEntry[] = [];
   private active = 0;
   private onPick: ((pick: PalettePick) => void) | undefined;
+  /** Fires after EVERY close (Esc · pick · click-away) — the connect
+   *  seam's hook: the renderer hands the DOM focus back to the origin
+   *  card by id (svg root when the card is gone). Wired once at init. */
+  onClosed: (() => void) | undefined;
 
   constructor() {
     this.input?.addEventListener('input', () => this.render());
@@ -174,7 +178,9 @@ class VerbCmdk {
   close(): void {
     this.el?.setAttribute('hidden', '');
     this.input?.setAttribute('aria-expanded', 'false');
+    this.input?.blur();
     this.onPick = undefined;
+    this.onClosed?.();
   }
 
   private move(delta: number): void {
@@ -5746,7 +5752,7 @@ class DagRenderer {
     const node = this.nodeMap.get(this.focusedId);
     if (!node) { return false; }
     const existing = document.getElementById('nk-actions');
-    if (existing) { existing.remove(); return true; } // K toggles
+    if (existing) { existing.remove(); this.restoreDomFocus(); return true; } // K toggles
     const panel = document.createElement('div');
     panel.id = 'nk-actions';
     panel.setAttribute('role', 'menu');
@@ -5808,6 +5814,9 @@ class DagRenderer {
     const close = (): void => {
       panel.remove();
       window.removeEventListener('keydown', onKey, true);
+      // A row click parked the DOM focus on the removed button — the
+      // connect seam hands it back to the card (by id · never a rob).
+      this.restoreDomFocus();
     };
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
@@ -7650,6 +7659,9 @@ function toggleExplainer(): void {
 // ─── Initialize ─────────────────────────────────────────────────────────────
 
 const renderer = new DagRenderer('dag-container');
+// The task palette hands the DOM focus back wherever it closes (Esc ·
+// pick · click-away) — the connect seam: restore by id, svg when gone.
+verbCmdk.onClosed = () => renderer.restoreDomFocus();
 // The top-of-file listener updates REDUCED_MOTION first (registration
 // order); this one lets the renderer retire/spawn particle trains live.
 MOTION_QUERY.addEventListener('change', () => renderer.motionPrefChanged());
