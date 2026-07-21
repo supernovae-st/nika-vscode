@@ -648,11 +648,12 @@ engine projection.
 
 ## 7b · The editor chord family (contributes.keybindings)
 
-Every editor-side gesture lives on the `⌘K` chord prefix (`Ctrl+K` on
-Windows/Linux), second stroke modified — the native VS Code pattern
-for secondary chords — and every binding is when-scoped to
-`editorLangId == 'nika'` (the menu also answers from the canvas via
-`activeWebviewPanelId == 'nika.dagView'`):
+Every gesture lives on the `⌘K` chord prefix (`Ctrl+K` on
+Windows/Linux), second stroke modified (the native VS Code pattern
+for secondary chords), and every binding is when-scoped: the
+editor-side rows to `editorLangId == 'nika'` (the menu also answers
+from the canvas via `activeWebviewPanelId == 'nika.dagView'`), the
+tree-side row to its nika view (§7d):
 
 | gesture | chord | mnemonic |
 |---|---|---|
@@ -666,6 +667,14 @@ for secondary chords — and every binding is when-scoped to
 | Fork from task | `⌘K ⌘B` | Branch |
 | Verify journal | `⌘K ⌘V` | Verify |
 | Try the demo | `⌘K ⌘H` | Hands-on (D is a default chord: find-match) |
+| Tree actions | `⌘K ⌘.` | the action dot · view-scoped (§7d) |
+
+The family carries a second scope class since the tree panel: the
+tree-actions chord is when-scoped `focusedView == 'nika…'` (four
+rows of ONE command, each passing its view id in `args`: the
+keybinding resolver is the only honest reader of `focusedView`).
+The one-stroke-one-command law admits the scoped quadruplet; two
+COMMANDS still never share a stroke.
 
 The flight-recorder tier (A · P · B · V) answers from a nika file OR
 the canvas (`activeWebviewPanelId == 'nika.dagView'`) — every one of
@@ -723,6 +732,47 @@ new workflow with the slug prefilled · run history · the native
 palette). The learned order stays escapable: `Nika: Reset Search
 Ranking` clears the store and answers with a status-bar breath,
 never a toast.
+
+## 7d · The tree action panel (the K grammar for the trees)
+
+`⌘K ⌘.` on any nika tree opens ONE curated QuickPick for the
+focused row: the trees' twin of the canvas `K` node-actions menu,
+same grammar, three laws:
+
+- **Curated, never dumped**: each row kind serves its own registry
+  (a workflow file: run · check · open; a trace: the full
+  flight-recorder vocabulary, replay leading; a station fix row:
+  the wrench; a history cell: replay · the provable report). View
+  verbs follow under their own separator (refresh · new workflow ·
+  export · close), so no selection is a screen, never a void.
+- **Greyed with the reason, never hidden**: a missing capability
+  keeps its row and explains (`needs the engine · the Station
+  installs it` · `this engine predates \`nika run\`` · `this
+  engine has no \`nika dap\``). Enter on a greyed row answers with
+  a status-bar breath and keeps the panel open: readable, never
+  landable (the canvas run-menu read).
+- **The same commands, the same arguments**: every row re-runs the
+  exact command the hover icon or context menu would, with the
+  live tree element (or the trace Uri) as the argument. The panel
+  is a keyboard door onto the audited surface, never a second
+  implementation. Reachability is BELTED: `treeActions.test.ts`
+  walks the manifest's `view/item/context` rows and fails when an
+  inline action ships without a panel row.
+
+Focus, honestly: an extension cannot read `focusedView`, and a
+global command receives no tree item. The truthful chain is the
+keybinding resolver (four view-scoped rows of one command, `args`
+naming the view) → the per-view `TreeView.selection[0]`, which
+tracks keyboard focus in our single-select trees. The stroke rides
+`.` because a bare `k` is eaten by the trees' native type-to-find
+and `a` is diff-traces' seat.
+
+Rows print their chord when the action owns one (`core/chordLabels`
+· the run row teaches `⌘K ⌘E` even though the chord itself fires in
+editors: the family, taught at the point of use). Accepted picks
+visit the ROOT search's frecency store (`tree.<command>` ids · one
+store, never a second): an action you keep taking rises in the item
+section; view rows keep curated order, a short stable menu.
 
 ## 8 · Voice — the twelve rules
 
