@@ -288,6 +288,132 @@ function probe(name, ok, note = '') {
     probe('card gone mid-palette: the restore lands on the svg root', svgBack.closed && svgBack.onSvg);
   }
 
+  // ── 8b · RC-2b: the K toggle lifecycle (the leaked listener dies) ────
+  {
+    // Open with K, toggle CLOSED via the card's ⋯ button (the
+    // openNodeActions re-entry path — where the old code left its
+    // window-capture listener alive), then ONE Esc must still reach
+    // the canvas chain (clearFocus → the svg re-takes the stop). The
+    // leaked listener used to eat that Esc.
+    await p.keyboard.press('ArrowRight');
+    await p.waitForTimeout(250);
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    const kOpen2 = await p.evaluate(() => document.getElementById('nk-actions') !== null);
+    await p.evaluate(() => {
+      const focused = document.querySelector('.dag-node[tabindex="0"]');
+      focused?.querySelector('.nc-x-panel')?.click();
+    });
+    await p.waitForTimeout(200);
+    const toggled = await p.evaluate(() => ({
+      closed: document.getElementById('nk-actions') === null,
+      backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
+    }));
+    probe('the ⋯ toggle closes the panel and restores the card', kOpen2 && toggled.closed && toggled.backOnCard);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(250);
+    const afterEsc = await p.evaluate(() => ({
+      svgTab: document.querySelector('.dag-svg')?.getAttribute('tabindex'),
+      zeroNodes: [...document.querySelectorAll('.dag-node')].filter((n) => n.getAttribute('tabindex') === '0').length,
+    }));
+    probe('no stale listener: the very next Esc clears the focus', afterEsc.svgTab === '0' && afterEsc.zeroNodes === 0);
+  }
+
+  // ── 8c · RC-2b: typing filters the K rows (the / count voice) ────────
+  {
+    await p.keyboard.press('ArrowRight');
+    await p.waitForTimeout(250);
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    const baseline = await p.evaluate(() =>
+      document.querySelectorAll('#nk-actions .nk-act-row:not(.nk-act-hidden)').length);
+    await p.keyboard.type('run');
+    await p.waitForTimeout(150);
+    const narrowed = await p.evaluate(() => ({
+      visible: [...document.querySelectorAll('#nk-actions .nk-act-row:not(.nk-act-hidden)')].map((r) => r.textContent ?? ''),
+      line: document.querySelector('#nk-actions .nk-act-query')?.textContent ?? '',
+      activeHidden: document.querySelector('#nk-actions .nk-act-row.active')?.classList.contains('nk-act-hidden') ?? true,
+    }));
+    probe('typing narrows the K rows', narrowed.visible.length > 0 && narrowed.visible.length < baseline
+      && narrowed.visible.every((t) => /run/i.test(t)), `${narrowed.visible.length}/${baseline}`);
+    probe('the query line speaks the / count grammar', /^⌕ run · \d+ match/.test(narrowed.line), narrowed.line);
+    probe('the active row is never a filtered-out row', !narrowed.activeHidden);
+    await p.keyboard.type('zzz');
+    await p.waitForTimeout(150);
+    const zero = await p.evaluate(() => ({
+      visible: document.querySelectorAll('#nk-actions .nk-act-row:not(.nk-act-hidden)').length,
+      line: document.querySelector('#nk-actions .nk-act-query')?.textContent ?? '',
+    }));
+    probe('zero-match speaks the one voice', zero.visible === 0 && zero.line.includes('no match — Backspace widens'), zero.line);
+    await p.keyboard.press('Backspace');
+    await p.keyboard.press('Backspace');
+    await p.keyboard.press('Backspace');
+    await p.waitForTimeout(150);
+    const widened = await p.evaluate(() =>
+      document.querySelectorAll('#nk-actions .nk-act-row:not(.nk-act-hidden)').length);
+    probe('Backspace widens back to the narrowed set', widened === narrowed.visible.length);
+    await p.keyboard.press('k');
+    await p.waitForTimeout(120);
+    const stillOpen = await p.evaluate(() => document.getElementById('nk-actions') !== null);
+    probe('k mid-query types — the toggle waits for an empty query', stillOpen);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(200);
+  }
+
+  // ── 8d · RC-2b: the ⌘⏎ secondary (taught on the focused row) ─────────
+  {
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    const hint = await p.evaluate(() => {
+      const activeAlt = document.querySelector('#nk-actions .nk-act-row.active .nk-act-alt');
+      return {
+        text: activeAlt?.textContent ?? '',
+        shown: activeAlt ? getComputedStyle(activeAlt).display !== 'none' : false,
+        othersQuiet: [...document.querySelectorAll('#nk-actions .nk-act-row:not(.active) .nk-act-alt')]
+          .every((el) => getComputedStyle(el).display === 'none'),
+      };
+    });
+    probe('the focused row teaches its secondary', hint.shown && hint.text === '⌘⏎ run all' && hint.othersQuiet, hint.text);
+    await p.keyboard.press('Meta+Enter');
+    await p.waitForTimeout(150);
+    const fired = await p.evaluate(() => ({
+      closed: document.getElementById('nk-actions') === null,
+      backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
+      runDoor: document.body.classList.contains('run-starting') || document.body.classList.contains('running'),
+    }));
+    probe('⌘⏎ fires the run-all door and closes through the seam', fired.closed && fired.backOnCard && fired.runDoor);
+  }
+
+  // ── 8e · RC-2b: habits rise WITHIN their group (the fences hold) ─────
+  {
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    await p.click('#nk-actions .nk-act-row:has-text("Peek")');
+    await p.waitForTimeout(200);
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    await p.click('#nk-actions .nk-act-row:has-text("Peek")');
+    await p.waitForTimeout(200);
+    await p.keyboard.press('k');
+    await p.waitForTimeout(200);
+    const order = await p.evaluate(() => {
+      const kids = [...(document.getElementById('nk-actions')?.children ?? [])];
+      const sepIdx = kids.findIndex((el) => el.classList.contains('nk-act-sep'));
+      const afterSep = kids.slice(sepIdx + 1).filter((el) => el.classList.contains('nk-act-row'));
+      const rowsAll = kids.filter((el) => el.classList.contains('nk-act-row'));
+      return {
+        sepFound: sepIdx !== -1,
+        groupHead: afterSep[0]?.querySelector('span')?.textContent ?? '',
+        first: rowsAll[0]?.querySelector('span')?.textContent ?? '',
+        second: rowsAll[1]?.querySelector('span')?.textContent ?? '',
+      };
+    });
+    probe('a habit lifts the row to its GROUP head (never across)', order.sepFound && /Peek/.test(order.groupHead), order.groupHead);
+    probe('the pinned primary never moves', /Run from here/.test(order.first) && /What if/.test(order.second), `${order.first} · ${order.second}`);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(150);
+  }
+
   await b.close();
   console.log(`\na11y-probes: ${pass}/${pass + fail} green`);
   process.exit(fail === 0 ? 0 : 1);
