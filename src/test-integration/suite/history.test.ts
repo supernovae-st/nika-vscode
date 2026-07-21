@@ -175,4 +175,32 @@ suite('nika-lang · run history (V-SOTA.B B2 · the native tree)', () => {
       'close must return the view to its pre-load state (the context key drives it)',
     );
   });
+
+  test('a STRING arg is the gate query — the view loads filtered, the export stays whole', async function () {
+    this.timeout(30000);
+
+    // Query mode targets the ACTIVE document (a string is never a path
+    // — the typeof guard routes it to the filter seat).
+    const doc = await vscode.workspace.openTextDocument(docUri);
+    await vscode.window.showTextDocument(doc, { preview: false });
+    await vscode.commands.executeCommand('nika.runHistory', 'flk');
+    await sleep(800);
+    // The when-gated view rose on a string arg: focus resolves.
+    await vscode.commands.executeCommand('nikaRunHistory.focus');
+
+    // The filter narrows the TREE, never the document: the export is
+    // still the whole story, every task in the grid.
+    await vscode.commands.executeCommand('nika.history.exportDoc');
+    await sleep(800);
+    const exported = vscode.workspace.textDocuments.find((d) =>
+      d.getText().startsWith('# Run history — history-int'),
+    );
+    assert.ok(exported, 'exportDoc must open the grid in query mode too');
+    for (const id of ['flk', 'slw', 'std']) {
+      assert.ok(exported!.getText().includes(`\`${id}\``), `the export keeps ${id} (unfiltered)`);
+    }
+
+    await vscode.commands.executeCommand('nika.history.close');
+    await sleep(300);
+  });
 });

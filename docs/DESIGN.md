@@ -733,6 +733,36 @@ palette). The learned order stays escapable: `Nika: Reset Search
 Ranking` clears the store and answers with a status-bar breath,
 never a toast.
 
+The two async families append after the first paint (render first:
+a loading gate never claims a dead end it cannot know · the
+QuickPick's busy bar is the only wait). F3 · the workflow files,
+from the ONE watcher-cached scan (`features/workflowIndex` wraps
+`core/workflowScan` · the same cache now feeds the welcome recents,
+fork-from-step, the lint baseline, workspace symbols, workspace
+lint, the test explorer and the workflows tree · a create/delete
+drops membership, a change drops only the mtimes): newest 50 by
+mtime, the row opens the file, the check state rides the detail
+only when a cached verdict is KNOWN (`clean` · `N findings` ·
+unchecked claims nothing). F4 · the recorded runs, from the flight
+recorder's snapshot (the Runs view's own scans record it free · the
+gate re-scans async only when stale: 30s window or the traces
+watcher invalidated it): the Runs-view order flattened, paused
+leads (needs-you outranks working, whatever the mtime), the row
+replays the journal, and `paused` or the workflow name reach it as
+keywords. Each landing re-merges (family precedence survives any
+arrival order) and re-ranks with the query AS TYPED at that
+instant. A keystroke never triggers a scan: the two fetches fire
+once per open, and `onDidChangeValue` only re-renders (the
+searchAsyncContract belt holds all three laws).
+
+The history fallback finally carries its argument: `nika.runHistory`
+accepts a query (typeof-guarded · a string filters, a Uri stays the
+document) and the Run History view narrows its task rows to the
+matches (case-insensitive substring · the partition recomputes over
+the survivors · a filter matching nothing relaxes to the whole
+story and the view description says so · the export stays the whole
+grid).
+
 ## 7d · The tree action panel (the K grammar for the trees)
 
 `⌘K ⌘.` on any nika tree opens ONE curated QuickPick for the
