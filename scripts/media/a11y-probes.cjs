@@ -5,8 +5,9 @@
 // screen-reader contract end to end: Graphics Module roles, the
 // roving tab stop and its DOM focus twin, the silent aria-label
 // refresh, the ONE narrator (polite milestones coalesced · assertive
-// failures), pan-to-focus, the focus ring, the help dialog, and the
-// C1 connect-mode's focus round-trip. A change that silently drops a
+// failures), pan-to-focus, the focus ring, the help dialog, the
+// C1 connect-mode's focus round-trip, and the O14 overlays (K panel ·
+// task palette) handing the focus back. A change that silently drops a
 // role, steals the focus, or turns the narrator per-tick fails here.
 //
 // Run: NIKA_PLAYWRIGHT=<path> node scripts/media/a11y-probes.cjs
@@ -212,6 +213,67 @@ function probe(name, ok, note = '') {
       canceled: document.getElementById('a11y-status')?.textContent ?? '',
     }));
     probe('cancel restores the DOM focus to the card', back.closed && back.backOnCard, back.canceled);
+  }
+
+  // ── 8 · O14: the K panel + task palette round-trip the focus too ─────
+  {
+    // K — the actions panel opens on the focused card (it never steals
+    // the DOM focus)… and Esc hands the roving stop straight back.
+    await p.keyboard.press('k');
+    await p.waitForTimeout(250);
+    const kOpen = await p.evaluate(() => document.getElementById('nk-actions') !== null);
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(250);
+    const kBack = await p.evaluate(() => ({
+      closed: document.getElementById('nk-actions') === null,
+      backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
+    }));
+    probe('K opens the actions panel on the focused card', kOpen);
+    probe('K panel Esc hands the focus back to the card', kBack.closed && kBack.backOnCard);
+
+    // N — the task palette TAKES the input… and Esc hands it back.
+    await p.keyboard.press('n');
+    await p.waitForTimeout(250);
+    const nOpen = await p.evaluate(() => ({
+      open: document.getElementById('verb-cmdk')?.hasAttribute('hidden') === false,
+      inputFocused: document.activeElement === document.getElementById('cmdk-input'),
+    }));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(250);
+    const nBack = await p.evaluate(() => ({
+      closed: document.getElementById('verb-cmdk')?.hasAttribute('hidden') !== false,
+      backOnCard: document.activeElement?.classList?.contains('dag-node') ?? false,
+    }));
+    probe('the task palette opens focused (N)', nOpen.open && nOpen.inputFocused);
+    probe('palette Esc hands the focus back to the card', nBack.closed && nBack.backOnCard);
+
+    // The card VANISHES while the palette is open (a run pruned it) —
+    // the restore falls back to the svg root, never a throw.
+    const goneId = await p.evaluate(() => {
+      const focused = document.querySelector('.dag-node[tabindex="0"]');
+      return focused?.getAttribute('data-id') ?? null;
+    });
+    await p.keyboard.press('n');
+    await p.waitForTimeout(250);
+    await p.evaluate((id) => {
+      const graph = GRAPH; // harness fixture — top-level const, same realm
+      window.postMessage({
+        kind: 'dag:load',
+        graph: {
+          ...graph,
+          nodes: graph.nodes.filter((n) => n.id !== id),
+          edges: graph.edges.filter((e) => e.source !== id && e.target !== id),
+        },
+      }, '*');
+    }, goneId);
+    await p.waitForTimeout(900); // the reload lands (ELK round-trip)
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(250);
+    const svgBack = await p.evaluate(() => ({
+      closed: document.getElementById('verb-cmdk')?.hasAttribute('hidden') !== false,
+      onSvg: document.activeElement === document.querySelector('.dag-svg'),
+    }));
+    probe('card gone mid-palette: the restore lands on the svg root', svgBack.closed && svgBack.onSvg);
   }
 
   await b.close();
