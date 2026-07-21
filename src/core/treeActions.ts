@@ -146,6 +146,8 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
     case 'trace': {
       const engineOff = caps.available ? undefined : NEEDS_ENGINE;
       return [
+        // The row's own Enter (§7e) — the detail leads, the stack completes.
+        row('$(open-preview) Open the run detail', 'nika.runDetail', [item.traceUri]),
         row('$(play-circle) Replay onto the canvas', 'nika.replayTrace', [item.traceUri],
           { teach: 'nika.replayTrace' }),
         row('$(diff) Diff against another run', 'nika.diffTraces', [item.traceUri],
@@ -180,9 +182,16 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
     case 'historyCell': {
       const off = item.hasTrace === true ? undefined : 'this run recorded no trace path';
       return [
+        // The cell's own Enter (§7e) — absent only when no path was recorded.
         ...(item.click !== undefined
-          ? click('$(play-circle) Replay this run', off)
+          ? click('$(open-preview) Open the run detail', off)
           : []),
+        // Replay stays one row away — greyed with the reason when the
+        // journal path is gone (never hidden · the §7d law).
+        row('$(play-circle) Replay this run', 'nika.replayTrace',
+          item.hasTrace === true ? [item.traceUri] : [], {
+            teach: 'nika.replayTrace', ...(off !== undefined ? { off } : {}),
+          }),
         row('$(output) Run report · provable, from the trace', 'nika.history.report', [el],
           off !== undefined ? { off } : {}),
       ];

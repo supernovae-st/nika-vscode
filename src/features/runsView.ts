@@ -18,7 +18,7 @@ import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
-import { groupRuns, unreadableSection, UNREADABLE_DESCRIPTION, type RunStatus } from '../core/runsModel';
+import { groupRuns, runRowDescription, unreadableSection, UNREADABLE_DESCRIPTION, type RunStatus } from '../core/runsModel';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 
@@ -304,11 +304,15 @@ export async function latestTraceForGraph(
 class TraceItem extends vscode.TreeItem {
   constructor(readonly trace: TraceFile, liveChips: string[] = []) {
     super(path.basename(trace.uri.fsPath), vscode.TreeItemCollapsibleState.Collapsed);
-    // A LIVE row narrates its present (annexe B #6): in-flight spend +
-    // measured time-left ride the description as compact chips. Branch
-    // stays OWED — the journal wire records no VCS facts (nothing to
-    // show without inventing).
-    this.description = [summarizeRun(trace.model), ...liveChips].join(' · ');
+    // The uniform accessory law (DESIGN.md §7e): status glyph leads
+    // (the summary's own), duration rides, AGE closes — the same three
+    // columns a History cell wears. A LIVE row still narrates its
+    // present (annexe B #6): in-flight spend + measured time-left
+    // trail as compact chips. Branch stays OWED — the journal wire
+    // records no VCS facts (nothing to show without inventing).
+    this.description = runRowDescription(
+      summarizeRun(trace.model), trace.mtimeMs, Date.now(), liveChips,
+    );
     this.contextValue = 'nikaTrace';
     // A broken chain outranks the run verdict: an unverified journal's
     // "completed" is itself unverified (Proof Arc P2).
@@ -347,11 +351,13 @@ class TraceItem extends vscode.TreeItem {
     if (trace.model.unknownLines > 0) {
       md.appendMarkdown(`\n\n$(warning) ${trace.model.unknownLines} unparsed line${trace.model.unknownLines === 1 ? '' : 's'} (foreign dialect?)`);
     }
-    md.appendMarkdown(`\n\n_click to replay — re-render, never re-execute_`);
+    md.appendMarkdown(`\n\n_click opens the run detail · replay rides ⌘K ⌘P — re-render, never re-execute_`);
     this.tooltip = md;
+    // Enter pushes the DETAIL (§7e — the stack law); replay keeps its
+    // chord, its ⌘K ⌘. row and the palette. Args stay explicit.
     this.command = {
-      command: 'nika.replayTrace',
-      title: 'Replay',
+      command: 'nika.runDetail',
+      title: 'Open Run Detail',
       arguments: [trace.uri],
     };
   }

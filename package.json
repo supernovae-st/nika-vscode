@@ -468,6 +468,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.runDetail",
+        "title": "Run Detail (the run at a glance)",
+        "icon": "$(open-preview)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.runHistory",
         "title": "Run History (cross-run grid · flaky · trends)",
         "icon": "$(graph-line)",
@@ -1015,6 +1021,10 @@
         },
         {
           "command": "nika.history.report",
+          "when": "false"
+        },
+        {
+          "command": "nika.runDetail",
           "when": "false"
         },
         {

@@ -106,6 +106,34 @@ export function groupRuns(facts: RunRowFacts[], nowMs: number): RunSection[] {
   }));
 }
 
+/** Local-calendar distance in words — today · yesterday · `Nd ago`
+ *  (the one age vocabulary: Runs rows, History cells, the detail page
+ *  all speak it). Future mtimes read `today`: clock skew is a fact,
+ *  not a crash. Math.round absorbs the ±1h a DST boundary puts
+ *  between two local day floors. */
+export function relativeDay(ms: number, nowMs: number): string {
+  const days = Math.round((startOfLocalDay(nowMs) - startOfLocalDay(ms)) / 86_400_000);
+  if (days <= 0) { return 'today'; }
+  if (days === 1) { return 'yesterday'; }
+  return `${days}d ago`;
+}
+
+/**
+ * The uniform run-row accessory law (DESIGN.md §7e): every run row's
+ * description reads the SAME three columns in Runs and History —
+ * status glyph first (the summary leads with it), duration inside the
+ * summary, AGE closes. Extras (live chips) trail after the age. One
+ * composer, so the two trees cannot drift apart.
+ */
+export function runRowDescription(
+  summary: string,
+  mtimeMs: number,
+  nowMs: number,
+  extras: readonly string[] = [],
+): string {
+  return [summary, relativeDay(mtimeMs, nowMs), ...extras].join(' · ');
+}
+
 /** The unreadable story, verbatim from the existing toast — one
  *  vocabulary across surfaces (a row and a toast never disagree). */
 export const UNREADABLE_DESCRIPTION =
