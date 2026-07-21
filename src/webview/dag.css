@@ -6612,6 +6612,24 @@ body.dataflow .nc-io {
   font: 600 9.5px var(--nk-mono, monospace);
   opacity: 0.75;
 }
+/* RC-2b — the typing filter's voice line (⌕ query · the / count
+   grammar) and the filtered-out rows (arrows jump them). */
+#nk-actions .nk-act-query {
+  padding: 2px 10px 6px;
+  font: 500 11px var(--nk-mono, monospace);
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 55%, transparent);
+}
+#nk-actions .nk-act-hidden { display: none; }
+/* The ⌘⏎ secondary — taught on the FOCUSED row only (Raycast law 8:
+   the shortcut at the point of use, never a manual). */
+#nk-actions .nk-act-row .nk-act-alt {
+  display: none;
+  margin-left: auto;
+  font: 600 9.5px var(--nk-mono, monospace);
+  color: color-mix(in srgb, var(--nk-fg, #ccc) 60%, transparent);
+  white-space: nowrap;
+}
+#nk-actions .nk-act-row.active .nk-act-alt { display: inline; }
 @media (forced-colors: active) {
   #nk-actions { border: 1px solid CanvasText; background: Canvas; }
   #nk-actions .nk-act-row.active { background: Highlight; color: HighlightText; }

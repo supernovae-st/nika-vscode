@@ -77,11 +77,19 @@ describe('the verb palette hands the focus back (VerbCmdk)', () => {
 
 describe('the K panel hands the focus back (openNodeActions)', () => {
   const panel = sliceOf('openNodeActions(): boolean {', 'openRunMenu(');
+  const close = panel.slice(panel.indexOf('const close = (): void => {'), panel.indexOf('const fire'));
 
-  it('restores on close() and on the K toggle path', () => {
-    expect(panel).toContain("if (existing) { existing.remove(); this.restoreDomFocus(); return true; }");
-    const close = panel.slice(panel.indexOf('const close = (): void => {'), panel.indexOf('const onKey'));
+  it('every exit funnels through close() — Esc, pick, click, and the toggle', () => {
+    const toggle = panel.slice(panel.indexOf('if (existing) {'), panel.indexOf('const panel'));
+    expect(toggle).toContain('this.kPanelClose !== null');
     expect(close).toContain('this.restoreDomFocus();');
+  });
+
+  it('the capture listener dies WITH the panel (RC-2b: the toggle no longer eats an Esc)', () => {
+    expect(panel.match(/window\.addEventListener\('keydown', onKey, true\)/g)).toHaveLength(1);
+    expect(close).toContain("window.removeEventListener('keydown', onKey, true);");
+    expect(close).toContain('this.kPanelClose = null;');
+    expect(panel).toContain('this.kPanelClose = close;');
   });
 });
 

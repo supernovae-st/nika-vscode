@@ -34,6 +34,8 @@ import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
 import { NO_MATCH_HINT, connectTargets, nextFocus, nudgedPosition, searchCountLabel, type NavDir, type NudgeDir } from '../core/canvasNav';
 import { CANVAS_KEYMAP } from '../core/canvasKeymap';
+import { kRowMatches, orderKRows } from '../core/kPanel';
+import { visit, type FrecencyStore } from '../core/rootSearch';
 import { RunNarrator, type NarratorLine } from '../core/runNarrator';
 import { FALLBACK_TOOL_BLURBS, filterTools, filterVerbs, type ToolItem } from '../core/verbPalette';
 import type { TimelineEntry } from '../core/traceFold';
@@ -5741,18 +5743,45 @@ class DagRenderer {
     });
   }
 
+  /** Bootstrap hook — the whole-workflow run door (the K panel's one
+   *  honest ⌘⏎ secondary): wired once at init beside verbCmdk's
+   *  onClosed, so the panel reuses the exact muscle R already fires
+   *  (re-entry guard included) instead of re-posting the kind. */
+  onRunAll: (() => void) | null = null;
+
+  /** The K panel's learned habits — session-scoped (the webview's
+   *  life) with per-ACTION ids, so a habit learned on one card serves
+   *  every card. The shape is rootSearch's (PR-1 provides · RC-2b
+   *  consumes); the Memento store stays the QuickPick surfaces'. */
+  private kFrecency: FrecencyStore = {};
+
+  /** The open panel's close() — ONE lifecycle for every exit (Esc ·
+   *  pick · click · toggle): the window-capture listener dies WITH
+   *  the panel instead of surviving to eat the next Esc. */
+  private kPanelClose: (() => void) | null = null;
+
   /** The Raycast action panel (K on a focused card): every action the
    *  card offers, each with its shortcut printed at the right — the
    *  panel teaches the keymap that later makes it obsolete. Renders
    *  instantly, zero animation (keyboard-initiated · the Kowalski
    *  law). Items REUSE the card actions' handlers — one registry of
-   *  behavior, two surfaces. */
+   *  behavior, two surfaces. RC-2b: typing filters the rows (the house
+   *  matcher · Backspace widens · the `/` filter's count voice), a row
+   *  may declare ONE honest ⌘⏎ secondary (taught on the focused row),
+   *  and habits reorder rows within their group (kPanel's fences). */
   openNodeActions(): boolean {
     if (this.focusedId === null) { return false; }
     const node = this.nodeMap.get(this.focusedId);
     if (!node) { return false; }
     const existing = document.getElementById('nk-actions');
-    if (existing) { existing.remove(); this.restoreDomFocus(); return true; } // K toggles
+    if (existing) {
+      // K toggles — the toggle exit funnels through the SAME close()
+      // as Esc/pick/click (the O14 seam): the capture listener dies
+      // with the panel, it no longer eats the next Esc.
+      if (this.kPanelClose !== null) { this.kPanelClose(); }
+      else { existing.remove(); this.restoreDomFocus(); }
+      return true;
+    }
     const panel = document.createElement('div');
     panel.id = 'nk-actions';
     panel.setAttribute('role', 'menu');
@@ -5760,29 +5789,72 @@ class DagRenderer {
     title.className = 'nk-act-title';
     title.textContent = node.id;
     panel.appendChild(title);
-    interface Act { label: string; kbd?: string; run: () => void }
+    // The typing filter's voice line — hidden until the first key,
+    // then the `/` filter's exact count grammar (one voice).
+    const queryLine = document.createElement('div');
+    queryLine.className = 'nk-act-query';
+    queryLine.hidden = true;
+    panel.appendChild(queryLine);
+    interface Act {
+      id: string; label: string; kbd?: string;
+      /** The row's ⌘⏎ variant — declared only where one HONESTLY exists. */
+      alt?: { hint: string; run: () => void };
+      run: () => void;
+    }
     const uri = this.currentGraph?.workflowUri;
     // Grouped clean (the context-menu read · W11.5): the RUN family
     // first — run from here, its what-if twin, the failure fork — a
     // separator, then the story/editing verbs. One registry, sections.
+    // The ⌘⏎ inventory (RC-2b · nothing invented): run-from-here is
+    // the ONE row with an existing variant — the whole-workflow run.
+    // Mock-from-here, open-beside and expand-all have no host door,
+    // so those rows carry none.
     const runActs: Act[] = [
-      { label: '▶ Run from here', run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }) },
-      { label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+      {
+        id: 'run-from-here', label: '▶ Run from here',
+        alt: { hint: '⌘⏎ run all', run: () => { this.onRunAll?.(); } },
+        run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }),
+      },
+      { id: 'what-if', label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
     ];
     if (node.status === 'failed') {
-      runActs.push({ label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+      runActs.push({ id: 'fork-failure', label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
     }
-    const acts: Act[] = [
-      ...runActs,
-      { label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
-      { label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
-      { label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
-      { label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
+    const storyActs: Act[] = [
+      { id: 'peek', label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
+      { id: 'card-mode', label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
+      { id: 'open-yaml', label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
+      { id: 'duplicate', label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.tool?.startsWith('workflow:') === true) {
-      acts.push({ label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
+      storyActs.push({ id: 'open-sub', label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
     }
+    // Learned order: habits rise WITHIN their group — never across the
+    // separator, never onto the pinned primary — and the ⏎/⌘⏎ roles
+    // never trade places (kPanel's fences).
+    const acts = orderKRows(
+      [
+        ...runActs.map((a, i) => ({ ...a, group: 0, pinned: i === 0 })),
+        ...storyActs.map((a) => ({ ...a, group: 1 })),
+      ],
+      this.kFrecency,
+      Date.now(),
+    );
+    const runCount = runActs.length;
     let active = 0;
+    let sep: HTMLElement | null = null;
+    // A REAL hover moves the active row; the synthetic hover Chromium
+    // fires when the panel renders under a PARKED cursor does not —
+    // keyboard-open must land on the primary, never on whatever row
+    // the resting mouse happens to cover. First sample observes; only
+    // a coordinate CHANGE activates.
+    let hoverAt: string | null = null;
+    const hoverSet = (i: number, e: MouseEvent): void => {
+      const at = `${e.clientX},${e.clientY}`;
+      if (hoverAt === null || hoverAt === at) { hoverAt = at; return; }
+      hoverAt = at;
+      setActive(i);
+    };
     const rows: HTMLElement[] = acts.map((a, i) => {
       const row = document.createElement('button');
       row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
@@ -5790,43 +5862,115 @@ class DagRenderer {
       const label = document.createElement('span');
       label.textContent = a.label;
       row.appendChild(label);
+      if (a.alt !== undefined) {
+        const alt = document.createElement('span');
+        alt.className = 'nk-act-alt';
+        alt.textContent = a.alt.hint;
+        row.appendChild(alt);
+      }
       if (a.kbd !== undefined) {
         const kbd = document.createElement('kbd');
         kbd.textContent = a.kbd;
         row.appendChild(kbd);
       }
-      row.addEventListener('click', () => { close(); a.run(); });
-      row.addEventListener('mouseenter', () => { setActive(i); });
+      row.addEventListener('click', () => { fire(a, false); });
+      row.addEventListener('mouseenter', (e) => { hoverSet(i, e); });
+      row.addEventListener('mousemove', (e) => { hoverSet(i, e); });
       panel.appendChild(row);
-      if (i === runActs.length - 1) {
-        const sep = document.createElement('div');
+      if (i === runCount - 1) {
+        sep = document.createElement('div');
         sep.className = 'nk-act-sep';
         sep.setAttribute('role', 'separator');
         panel.appendChild(sep);
       }
       return row;
     });
-    const setActive = (i: number): void => {
+    const setActive = (i: number, dir: 1 | -1 = 1): void => {
+      const n = rows.length;
+      let next = ((i % n) + n) % n;
+      // The arrows jump the filtered-out rows (the greyed-jump family).
+      for (let step = 0; step < n && rows[next]?.classList.contains('nk-act-hidden') === true; step += 1) {
+        next = (next + dir + n) % n;
+      }
+      if (rows[next]?.classList.contains('nk-act-hidden') === true) { return; }
       rows[active]?.classList.remove('active');
-      active = ((i % rows.length) + rows.length) % rows.length;
+      active = next;
       rows[active]?.classList.add('active');
     };
     const close = (): void => {
       panel.remove();
       window.removeEventListener('keydown', onKey, true);
+      this.kPanelClose = null;
       // A row click parked the DOM focus on the removed button — the
       // connect seam hands it back to the card (by id · never a rob).
       this.restoreDomFocus();
     };
+    const fire = (a: Act, viaAlt: boolean): void => {
+      // Every launch is a visit: the habit learns the ROW (the ⏎/⌘⏎
+      // split never moves — only the row's standing does).
+      this.kFrecency = visit(this.kFrecency, a.id, Date.now());
+      const chosen = viaAlt && a.alt !== undefined ? a.alt.run : a.run;
+      close();
+      chosen();
+    };
+    let query = '';
+    const applyFilter = (): void => {
+      let matches = 0;
+      let firstVisible = -1;
+      const seen = acts.map((a, i) => {
+        const ok = kRowMatches(query, a.label);
+        rows[i]?.classList.toggle('nk-act-hidden', !ok);
+        if (ok) { matches += 1; if (firstVisible === -1) { firstVisible = i; } }
+        return ok;
+      });
+      // The separator dissolves when either of its sides empties.
+      const both = seen.slice(0, runCount).some(Boolean) && seen.slice(runCount).some(Boolean);
+      sep?.classList.toggle('nk-act-hidden', !both);
+      const count = searchCountLabel(matches, query.length > 0);
+      queryLine.hidden = count === null;
+      queryLine.textContent = count === null ? '' : `⌕ ${query} · ${count}`;
+      if (matches > 0 && rows[active]?.classList.contains('nk-act-hidden') === true) {
+        setActive(firstVisible);
+      }
+    };
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
-      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); setActive(active + 1); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); setActive(active - 1); return; }
-      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); const a = acts[active]; close(); a.run(); return; }
-      if (e.key === 'k' || e.key === 'K') { e.preventDefault(); e.stopPropagation(); close(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); setActive(active + 1, 1); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); setActive(active - 1, -1); return; }
+      if (e.key === 'Enter') {
+        e.preventDefault(); e.stopPropagation();
+        if (rows[active]?.classList.contains('nk-act-hidden') === true) { return; } // zero-match: nothing to pick
+        const a = acts[active];
+        if (e.metaKey || e.ctrlKey) {
+          // ⌘⏎ — the row's declared secondary; a row without one stays quiet.
+          if (a.alt !== undefined) { fire(a, true); }
+          return;
+        }
+        fire(a, false);
+        return;
+      }
+      // Typing filters (the Raycast read): printables narrow, Backspace
+      // widens — and K keeps its toggle ONLY at an empty query (typing
+      // `k` mid-query must type, never close).
+      if (e.key === 'Backspace') {
+        e.preventDefault(); e.stopPropagation();
+        if (query.length > 0) { query = query.slice(0, -1); applyFilter(); }
+        return;
+      }
+      if ((e.key === 'k' || e.key === 'K') && query.length === 0 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault(); e.stopPropagation(); close(); return;
+      }
+      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault(); e.stopPropagation();
+        if (query.length === 0 && e.key === ' ') { return; } // no leading space
+        query += e.key;
+        applyFilter();
+        return;
+      }
     };
     window.addEventListener('keydown', onKey, true);
     document.body.appendChild(panel);
+    this.kPanelClose = close;
     return true;
   }
 
@@ -8177,6 +8321,9 @@ function requestRun(preview: boolean, resume = false): void {
 document.getElementById('btn-run')?.addEventListener('click', () => requestRun(false));
 document.getElementById('btn-run-mock')?.addEventListener('click', () => requestRun(true));
 document.getElementById('btn-run-resume')?.addEventListener('click', () => requestRun(false, true));
+// The K panel's ⌘⏎ secondary fires the SAME whole-run door the R key
+// uses (re-entry guard included) — wired once, the verbCmdk idiom.
+renderer.onRunAll = () => requestRun(false);
 // The split ⌄ (W11.5) — the run vocabulary in one grouped menu.
 document.getElementById('btn-run-more')?.addEventListener('click', (e) => {
   renderer.openRunMenu(e.currentTarget as HTMLElement, (preview) => requestRun(preview));
