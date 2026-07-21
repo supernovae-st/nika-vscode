@@ -347,7 +347,18 @@ async function stageGeneratedWorkflow(
       'Save workflow',
       'Refine',
       'Discard',
+      'Open root search',
     );
+
+    if (choice === 'Open root search') {
+      // The bridge out of the fail path: free prose departed to the
+      // pipeline (the omnibar's silent route once), and the ONLY
+      // choice the pipeline already owns is this confirm — so the
+      // door to the ONE launcher lives here, the whole intent as the
+      // query. The staged draft stays open: nothing is lost.
+      void vscode.commands.executeCommand('nika.search', baseIntent);
+      return;
+    }
 
     if (choice === 'Save workflow') {
       const folder = vscode.workspace.workspaceFolders?.[0];
