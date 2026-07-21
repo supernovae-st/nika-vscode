@@ -11,6 +11,15 @@
 // neutralizes the native filter — without it VS Code re-filters the
 // list and ghosts the ranking (the annexe-AA risk).
 //
+// The two ASYNC families append after the first paint (render first —
+// the screen is never blank waiting on a scan): F3 the workflow files
+// from the ONE watcher-cached scan, F4 the recorded runs from the
+// flight recorder's snapshot (re-scanned async only when stale). BUSY
+// rides the QuickPick while they load; each landing re-merges and
+// re-ranks with the query AS TYPED at that instant. No scan is EVER
+// tied to a keystroke (annexe-AA risk ④): the two fetches below fire
+// once per open, and onDidChangeValue only re-renders.
+//
 // The learned half lives in workspaceState under FRECENCY_KEY (the
 // Memento pattern): each accepted pick visits its id; `Nika: Reset
 // Search Ranking` is the escape — a status-bar breath, never a toast.
@@ -25,12 +34,26 @@ import {
   buildCatalog,
   buildRestingFoot,
   buildRestingHead,
+  buildRunItems,
+  buildWorkflowItems,
   gateScreen,
+  mergeCatalog,
   type GateRow,
   type ManifestLike,
+  type RunSearchFact,
+  type WorkflowSearchFact,
 } from '../core/searchCatalog';
 import type { NikaService } from '../nikaService';
 import type { NikaStatusBar } from './statusBar';
+
+/** The async families' taps — the door pulls each ONCE per open. */
+export interface AsyncFamilies {
+  /** F3 · the mtime head of the one cached workflow scan, with badges. */
+  workflows(): Promise<WorkflowSearchFact[]>;
+  /** F4 · the flight recorder's facts (snapshot, or async re-scan when
+   *  stale — the source owns that decision, never the keystroke). */
+  runs(): Promise<RunSearchFact[]>;
+}
 
 interface GateQuickPickItem extends vscode.QuickPickItem {
   row?: SearchItem;
@@ -57,6 +80,7 @@ export function registerSearchGate(
   statusBar: NikaStatusBar,
   getJourney: () => Journey,
   chords: ReadonlyMap<string, string>,
+  families: AsyncFamilies,
 ): void {
   const readStore = (): FrecencyStore =>
     context.workspaceState.get<FrecencyStore>(FRECENCY_KEY) ?? {};
@@ -71,11 +95,12 @@ export function registerSearchGate(
       // The synchronous families, fresh at open (manifest + vocabulary
       // + the journey head — cheap, and the screen is never stale).
       const caps = service.caps;
-      const catalog = buildCatalog(
+      const sync = buildCatalog(
         context.extension.packageJSON as ManifestLike,
         chords,
         buildAddTaskPicks(service.toolCats),
       );
+      let catalog: SearchItem[] = sync;
       const j = getJourney();
       const activeDoc = vscode.window.activeTextEditor?.document;
       const active = activeDoc?.languageId === 'nika'
@@ -113,10 +138,41 @@ export function registerSearchGate(
         void context.workspaceState.update(FRECENCY_KEY, out.store).then(() =>
           vscode.commands.executeCommand(out.command, ...out.args));
       });
-      qp.onDidHide(() => qp.dispose());
+      let open = true;
+      qp.onDidHide(() => {
+        open = false;
+        qp.dispose();
+      });
       if (seed !== '') { qp.value = seed; }
       render(seed);
       qp.show();
+
+      // The async families (F3 workflows · F4 runs) — fetched ONCE per
+      // open, appended when ready. The sync screen is already up (law:
+      // render first, a loading gate never claims a dead end it cannot
+      // know); each landing re-merges (family precedence survives any
+      // arrival order) and re-ranks with the query AS TYPED NOW —
+      // qp.value, never the seed. A broken scan lands empty instead of
+      // wedging the busy bar.
+      let wfItems: SearchItem[] = [];
+      let runItems: SearchItem[] = [];
+      let pending = 2;
+      qp.busy = true;
+      const land = (): void => {
+        if (!open) { return; }
+        pending -= 1;
+        catalog = mergeCatalog(sync, wfItems, runItems);
+        if (pending === 0) { qp.busy = false; }
+        render(qp.value);
+      };
+      void families.workflows().then(
+        (facts) => { wfItems = buildWorkflowItems(facts); land(); },
+        () => { land(); },
+      );
+      void families.runs().then(
+        (facts) => { runItems = buildRunItems(facts, Date.now()); land(); },
+        () => { land(); },
+      );
     }),
 
     vscode.commands.registerCommand('nika.search.resetRanking', async () => {

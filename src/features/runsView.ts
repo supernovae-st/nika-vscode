@@ -18,9 +18,102 @@ import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
 import { diffRuns, summarizeDiff, type TaskDiff } from '../core/runDiff';
 import { buildTraceTimeline } from '../core/traceTimeline';
 import { traceStore } from '../core/traceStore';
-import { groupRuns, unreadableSection, UNREADABLE_DESCRIPTION } from '../core/runsModel';
+import { groupRuns, unreadableSection, UNREADABLE_DESCRIPTION, type RunStatus } from '../core/runsModel';
 import type { DagGraph, DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
+
+// ─── The gate's F4 source (the root search reaches the runs) ────────────────
+
+/** One journal as search facts — the runsModel shape plus the fold's
+ *  own workflow name (the search keyword nobody has to type a hash
+ *  for). */
+export interface RunScanFact {
+  fsPath: string;
+  mtimeMs: number;
+  status: RunStatus;
+  workflowName?: string;
+}
+
+/** The snapshot's freshness window — past it the gate re-scans ASYNC
+ *  at open (never per keystroke: annexe-AA risk ④). */
+const RUNS_FRESH_MS = 30_000;
+
+/**
+ * The flight recorder's last scan, shared with the root search: the
+ * view's own scans record here for free; the gate reads the snapshot
+ * and re-scans only when it is stale (never taken · invalidated by
+ * the traces watcher · older than the window). The re-scan is LIGHT —
+ * stat + cached fold, no chain walk, no artifact extraction — and
+ * in-flight calls share one promise.
+ */
+class RunsSearchSource {
+  private last: { facts: RunScanFact[]; atMs: number } | undefined;
+  private dirty = true;
+  private inflight: Promise<RunScanFact[]> | undefined;
+
+  record(facts: RunScanFact[], atMs: number): void {
+    this.last = { facts, atMs };
+    this.dirty = false;
+  }
+
+  /** The traces watcher marks the snapshot dirty (create/change/delete). */
+  invalidate(): void {
+    this.dirty = true;
+  }
+
+  stale(nowMs: number): boolean {
+    return this.dirty || this.last === undefined || nowMs - this.last.atMs > RUNS_FRESH_MS;
+  }
+
+  /** The gate's one read per open: fresh snapshot as-is, stale = one
+   *  shared async re-scan. */
+  facts(nowMs = Date.now()): Promise<RunScanFact[]> {
+    if (!this.stale(nowMs) && this.last !== undefined) {
+      return Promise.resolve(this.last.facts);
+    }
+    if (this.inflight === undefined) {
+      const p = this.scan().finally(() => {
+        if (this.inflight === p) { this.inflight = undefined; }
+      });
+      this.inflight = p;
+    }
+    return this.inflight;
+  }
+
+  private async scan(): Promise<RunScanFact[]> {
+    const glob = vscode.workspace.getConfiguration('nika').get<string>(
+      'traces.glob',
+      '**/.nika/traces/*.ndjson',
+    );
+    let files: vscode.Uri[];
+    try {
+      files = await vscode.workspace.findFiles(glob, '**/node_modules/**', 100);
+    } catch {
+      // A broken scan serves the last truth instead of a lie of absence.
+      return this.last?.facts ?? [];
+    }
+    const seen = new Set<string>();
+    const facts: RunScanFact[] = [];
+    for (const uri of files) {
+      if (seen.has(uri.fsPath)) { continue; }
+      seen.add(uri.fsPath);
+      const folded = foldTraceCached(uri.fsPath);
+      if (!folded) { continue; }
+      facts.push({
+        fsPath: uri.fsPath,
+        mtimeMs: folded.mtimeMs,
+        status: folded.model.workflowStatus,
+        ...(folded.model.workflowName !== undefined
+          ? { workflowName: folded.model.workflowName }
+          : {}),
+      });
+    }
+    this.record(facts, Date.now());
+    return facts;
+  }
+}
+
+export const runsSearchSource = new RunsSearchSource();
 
 interface TraceFile {
   uri: vscode.Uri;
@@ -547,13 +640,25 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }
     traces.sort((a, b) => b.mtimeMs - a.mtimeMs);
     this.onScan?.(traces.filter((t) => t.model.workflowStatus === 'paused').length);
+    const now = Date.now();
+    // The same facts feed the root search's F4 snapshot for free — a
+    // view refresh IS a recording (the gate re-scans only when stale).
+    // BEFORE the empty return: zero journals is a fact worth recording.
+    const facts: RunScanFact[] = traces.map((t) => ({
+      fsPath: t.uri.fsPath,
+      mtimeMs: t.mtimeMs,
+      status: t.model.workflowStatus,
+      ...(t.model.workflowName !== undefined
+        ? { workflowName: t.model.workflowName }
+        : {}),
+    }));
+    runsSearchSource.record(facts, now);
     // The reconciled empty state: nothing readable AND nothing
     // unreadable → [] — the viewsWelcome takes the stage (the old
     // synthetic item shadowed it forever). Any unreadable journal
     // keeps the tree: a welcome must never paper over real files.
     if (traces.length === 0 && unreadable.length === 0) { return []; }
     const models = traces.map((t) => t.model);
-    const now = Date.now();
     const itemOf = new Map<string, TraceItem>();
     for (const t of traces) {
       const chips: string[] = [];
@@ -568,14 +673,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }
     // Sections are answers (Now · Today · Yesterday · Earlier); a lone
     // calendar section dissolves and the list stays flat, newest first.
-    const sections = groupRuns(
-      traces.map((t) => ({
-        fsPath: t.uri.fsPath,
-        mtimeMs: t.mtimeMs,
-        status: t.model.workflowStatus,
-      })),
-      now,
-    );
+    const sections = groupRuns(facts, now);
     const out: vscode.TreeItem[] = sections.length === 0
       ? traces.map((t) => itemOf.get(t.uri.fsPath)!)
       : sections.map((s) => new RunsSectionItem(

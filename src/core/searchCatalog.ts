@@ -8,16 +8,23 @@
 //     the command id rides as a keyword so muscle memory finds
 //     `showdag`) and F2 the add-task vocabulary (4 verbs + builtins,
 //     each running the existing add command with its verb/tool pinned);
-//   · declOrder assigned GLOBALLY in build order (F1 then F2), so
-//     family precedence holds inside every match tier;
+//   · the two ASYNC families the door appends when they land — F3 the
+//     workflow files (the watcher-cached scan · newest first · a row
+//     opens the file) and F4 the recorded runs (the flight recorder's
+//     facts · paused leads, needs-you outranks working · a row replays
+//     the journal);
+//   · declOrder assigned GLOBALLY (F1 F2, then the async F3 F4 via
+//     mergeCatalog), so family precedence holds inside every match tier
+//     whatever order the async families LANDED in;
 //   · the resting screen — the old journey menu head under one `Now`
 //     separator, the whole catalog habits-first below, the quiet
 //     footer (lenses · the earned ask) closing;
 //   · the accept step — visit the id, then run (the history fallback
-//     runs bare until PR-3 teaches that view a query argument).
+//     carries its query since PR-3 taught that view the argument).
 
 import type { AddTaskPick } from './addTaskPicks';
 import type { JourneyStage } from './journey';
+import { bucketOf, type RunBucket, type RunStatus } from './runsModel';
 import {
   SEARCH_COMMAND,
   fallbacksFor,
@@ -122,6 +129,120 @@ export function buildCatalog(
 ): SearchItem[] {
   const commands = buildCommandItems(pkg, chords);
   return [...commands, ...buildTaskItems(picks, commands.length)];
+}
+
+// ─── The async families (F3 workflows · F4 runs — appended when ready) ─────
+
+/** F3 rows the door offers · the mtime head of the one cached scan. */
+export const WORKFLOWS_SEARCH_CAP = 50;
+
+/** F4 rows the door offers · the cut hits the TAIL of the Runs-view
+ *  order, so a paused run (which leads) always survives it. */
+export const RUNS_SEARCH_CAP = 40;
+
+/** What the door knows about one workflow file — facts only. The model
+ *  never mints a Uri: `openArg` carries the door's handle opaquely into
+ *  the accept step. */
+export interface WorkflowSearchFact {
+  fsPath: string;
+  /** Workspace-relative (the door's asRelativePath) — the extra match
+   *  surface for folder-qualified typing. */
+  relPath: string;
+  mtimeMs: number;
+  /** The cached check verdict (the workflows tree's badge) — absent =
+   *  unchecked, and the row claims nothing. */
+  badge?: { kind: 'clean' } | { kind: 'findings'; count: number };
+  openArg: unknown;
+}
+
+/** What the door knows about one recorded run — the runsView facts. */
+export interface RunSearchFact {
+  fsPath: string;
+  mtimeMs: number;
+  status: RunStatus;
+  /** The journal's own workflow name, when the fold recovered one. */
+  workflowName?: string;
+  openArg: unknown;
+}
+
+function searchBasename(fsPath: string): string {
+  const parts = fsPath.split(/[\\/]/);
+  return parts[parts.length - 1] ?? fsPath;
+}
+
+/**
+ * F3 · one row per workflow file, newest first (the mtime IS the
+ * relevance prior — same law as the welcome recents). The detail
+ * speaks the groupWorkflows state only when a check verdict is KNOWN
+ * (`clean` · `N findings`); unchecked claims nothing. The row opens
+ * the file.
+ */
+export function buildWorkflowItems(facts: readonly WorkflowSearchFact[]): SearchItem[] {
+  return [...facts]
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .map((f, i) => ({
+      id: `workflow.${f.fsPath}`,
+      family: 'workflow' as const,
+      label: searchBasename(f.fsPath),
+      ...(f.badge !== undefined
+        ? {
+          detail: f.badge.kind === 'clean'
+            ? 'clean'
+            : `${f.badge.count} finding${f.badge.count === 1 ? '' : 's'}`,
+        }
+        : {}),
+      keywords: [f.relPath],
+      declOrder: i,
+      run: { command: 'vscode.open', args: [f.openArg] },
+    }));
+}
+
+const BUCKET_RANK: Record<RunBucket, number> = { now: 0, today: 1, yesterday: 2, earlier: 3 };
+
+/**
+ * F4 · the Runs view's own order, flattened: Now leads with paused
+ * before running (needs-you outranks working — the bucketOf pin, so a
+ * paused run from last week still tops the list), the calendar follows
+ * newest-first. The status and the workflow name ride as keywords:
+ * typing `paused` or the workflow's name finds the run. The row
+ * replays the journal.
+ */
+export function buildRunItems(
+  facts: readonly RunSearchFact[],
+  nowMs: number,
+  cap = RUNS_SEARCH_CAP,
+): SearchItem[] {
+  const rank = (f: RunSearchFact): number =>
+    BUCKET_RANK[bucketOf({ fsPath: f.fsPath, mtimeMs: f.mtimeMs, status: f.status }, nowMs)];
+  const pausedFirst = (s: RunStatus): number => (s === 'paused' ? 0 : 1);
+  return [...facts]
+    .sort((a, b) =>
+      rank(a) - rank(b)
+      || pausedFirst(a.status) - pausedFirst(b.status)
+      || b.mtimeMs - a.mtimeMs)
+    .slice(0, cap)
+    .map((f, i) => ({
+      id: `run.${f.fsPath}`,
+      family: 'run' as const,
+      label: searchBasename(f.fsPath),
+      detail: [f.status, f.workflowName].filter((v) => v !== undefined).join(' · '),
+      keywords: [f.status, ...(f.workflowName !== undefined ? [f.workflowName] : [])],
+      declOrder: i,
+      run: { command: 'nika.replayTrace', args: [f.openArg] },
+    }));
+}
+
+/**
+ * The whole catalog re-numbered (F1 F2 then F3 then F4): the async
+ * families land in ANY order, and each landing re-merges so family
+ * precedence (declOrder inside a tier) never depends on arrival.
+ */
+export function mergeCatalog(
+  sync: readonly SearchItem[],
+  workflows: readonly SearchItem[],
+  runs: readonly SearchItem[],
+): SearchItem[] {
+  return [...sync, ...workflows, ...runs].map((it, i) => ({ ...it, declOrder: i }));
 }
 
 // ─── The resting screen (Raycast law 4: the empty query is a screen) ───────
@@ -270,9 +391,10 @@ export function gateScreen(
 }
 
 /**
- * The accept step, pure: record the habit, name the launch. The
- * history fallback runs bare — `nika.runHistory` takes a document,
- * not a query, until PR-3 teaches it one (owed there).
+ * The accept step, pure: record the habit, name the launch. Every row
+ * passes its args through — the history fallback included: since PR-3
+ * `nika.runHistory` understands a string query (typeof-guarded), so
+ * the q finally rides into the view as its initial filter.
  */
 export function acceptPick(
   store: FrecencyStore,
@@ -282,6 +404,6 @@ export function acceptPick(
   return {
     store: visit(store, item.id, nowMs),
     command: item.run.command,
-    args: item.id === 'fallback.history' ? [] : (item.run.args ?? []),
+    args: item.run.args ?? [],
   };
 }
