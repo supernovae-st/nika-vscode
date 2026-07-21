@@ -16,7 +16,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   gate:
@@ -28,6 +28,12 @@ jobs:
           node-version: 22 # vsce 3.x floor
           cache: npm
       - run: npm ci
+      # The tag IS the version claim — refuse a mislabeled VSIX before
+      # anything builds (a tag/manifest drift must never publish).
+      - name: The manifest matches the tag
+        run: |
+          v="$(node -p "require('./package.json').version")"
+          test "v$v" = "$GITHUB_REF_NAME" || { echo "manifest $v != tag $GITHUB_REF_NAME"; exit 1; }
       # compile = typecheck + esbuild bundle → out/extension.js, which the
       # parity check (run by `npm test`) asserts exists before packaging.
       - run: npm run compile

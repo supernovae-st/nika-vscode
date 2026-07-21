@@ -6,6 +6,29 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## [0.105.0] · 2026-07-21
+
+The second ascension: thirty deliveries on one canvas. The card
+becomes the whole surface: the hover tooltip is gone, every fact
+lives on the card in two modes (min for scanning, grand for depth),
+the header floats above the frame and the knobs settle into a
+detached pill below it. All 28 builtins speak their nature: media
+cards declare, develop and deliver their artifacts, and the four
+verbs each wear their own anatomy. A running workflow is alive:
+braille spinners phase-locked to one 80ms clock, a BuildKit-style
+elapsed timer, a settle cascade when the run lands green. Layout
+leaves the main thread (an ELK worker with a layout cache: a 2.9s
+freeze becomes zero blocked frames), graphs past 150 nodes cull
+offscreen cards without losing the DOM, and the hard wire elbows
+soften into one rounded language, whoever moved the card. The whole
+canvas now works from the keyboard: connect-mode wiring, chords, an
+8px nudge. First contact is zero gestures: on a true first install
+the offline demo opens and runs itself on the mock provider (no key,
+no network) and the one-time confetti lands mid-demo. The webview
+path surface is closed behind capability allowlists. One voice with
+the em dashes swept out, one glyph per meaning, one token seam: all
+three enforced by executable belts in npm test.
+
 ### The 28 identities: every builtin speaks its nature
 
 - **Five invented soul args die in a fixture**: the essence register spoke five words the catalog never had (`jq.query`, `emit.event`, `wait.for`, `hash.input`, `chart.title`; chart's real args are data, semantics, chart, out). The register now reads the engine's words, the real `catalog --tools` output is pinned as a test fixture, and every soul arg must exist in its builtin's catalog args: the drift class cannot reproduce. The phantom essences (append, copy, move) died with their phantom writers.

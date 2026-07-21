@@ -24,7 +24,7 @@ what it may reach, run and read), cost as a running meter. And when you
 press ▶, the graph executes wave by wave (a wave = the tasks that can
 run together) and closes on a verdict with a verifiable receipt:
 
-![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner with its trace chain head](media/canvas-live-run.gif)
+![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner, its trace chain head, and the first-green confetti](media/canvas-live-run.gif)
 
 *Real webview, real message protocol: this capture drives the extension's
 own bundle through the same `dag:*`/`run:*` messages a live `nika run`
@@ -281,7 +281,7 @@ static cost · recorded clocks, and each lens renders one question:
 
 ### See the run
 
-![The plan executes in the editor: the DAG lights task by task as the run streams, verb-hued, with the verdict landing on close](media/dag-execution.gif)
+![A 38-task brand-studio workflow executes: the map lights up wave by wave, the camera dives onto expanded cards where declared media frames develop into recorded artifacts (image as the card body, floating header, the params pill), then pulls back for the verdict](media/dag-execution.gif)
 
 *Tip: `▶ mock` on the run pill streams the same file without keys or
 network: every green close settles a ✓ wave through the cards.*
@@ -289,6 +289,11 @@ network: every green close settles a ✓ wave through the cards.*
 - **DAG visualization** · the engine's canonical graph projection (verb ·
   model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
   mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
+- **Wires read like a metro map** · one rounded-orthogonal language on
+  aligned rails, whoever moved the card (a dragged card re-routes in
+  the same voice, never a second dialect) · at crossings the upper
+  wire punches a quiet gap in the lower: over and under, readable at
+  a glance
 - **Arriving is describing** · a fresh (zero-task) workflow greets you
   with a centered describe bar: type the intent, the oracle-checked
   generate lands the tasks. Or press **N**: one searchable **task
@@ -297,12 +302,18 @@ network: every green close settles a ✓ wave through the cards.*
   it, named after the tool; its required args arrive as check findings:
   the engine teaches). `⧇ New` opens the next blank page without
   leaving the canvas
-- **The generation lands on the card** · media tasks show their
-  RECORDED artifact: image thumbnails (click opens the file) and
-  playable audio rows, pulled from the latest matching trace and
-  refreshed the moment a live run closes. Engine truth only: a file a
-  run actually wrote, or nothing. Running tasks tick their **observed
-  elapsed** (`12.4s ⋯`) until the engine's measured duration lands
+- **Media declare, develop, deliver** · a media card speaks before,
+  during and after the run: `image_generate` letterboxes a ghost frame
+  at its declared `aspect_ratio` (the `n:` count as a corner chip, the
+  provider as caption), `tts_generate` shows its declarative bar strip
+  with `voice · format`, `chart` sketches its declared type, `image_fx`
+  splits the frame into recipe and result. A develop sweep rides the
+  run, then the RECORDED artifact settles in as the card's body: image
+  thumbnails (click opens the file) and playable audio rows, pulled
+  from the latest matching trace and refreshed the moment a live run
+  closes. Engine truth only: a file a run actually wrote, or nothing.
+  Running tasks tick their **observed elapsed** (`12.4s ⋯`) until the
+  engine's measured duration lands
 - **The dense card** · the substance lives ON the node:
   - **the io row** · names the inbound wires (`alias ← producer`;
     click one, jump to the producer, `+N` when more)
@@ -311,6 +322,13 @@ network: every green close settles a ✓ wave through the cards.*
     `✚ recover`/`⤼ skip`/`✗ fail` · `⤳ 2 outs` named output bindings ·
     `▦ N` permits, engine-projected) · a settled verdict shows its
     recorded spend (`✓ 1.2s · $0.0042`)
+  - **the floating header + the pill** · an expanded card floats its
+    verb tile, task id and engine identity (the model chip stays the
+    click-to-change door) above the frame, and the declared knobs
+    settle into a detached pill under the card: key params
+    (`16:9 ×3` · `voice · format` · the HTTP method), the static cost
+    interval, the recorded `⌀` mean, then `⤓` open artifact ·
+    `⑂` fork · `⋯` every action with its shortcut (`K`)
   - **two modes** · `min` (head · verdict · one essence line) and
     `grand` (the full story: run-story facts, blast radius, pinch,
     needs/unlocks jumps, and a visible actions row `▸ run · ⚡ what
@@ -329,7 +347,9 @@ network: every green close settles a ✓ wave through the cards.*
     carries flowing current while the tool call is in flight, `agent`
     has an orbit ring that rotates while the loop turns. Matter at
     rest, character only while RUNNING (every animation has a
-    reduced-motion opt-out)
+    reduced-motion opt-out). And all 28 builtins carry their identity:
+    six category tints, port collars typed by what flows through them,
+    a soul line read from the engine's own catalog, never a guess
   - **editing on the card** · the **model chip edits** (provider
     picker → one undoable YAML edit), `⌀` badges carry the mean
     duration across your recorded runs, and ports appear on hover
@@ -408,9 +428,14 @@ network: every green close settles a ✓ wave through the cards.*
   your edits changed vs the last commit (the delta is the review signal:
   amber only when it grew). Every number is static: read before a token
   is spent
-- **Keyboard-drivable** · `Tab` / `⇧Tab` cycle the topological order, `↑`
-  walks to a dependency, `↓` to a dependent, `Enter` opens the YAML: the
-  whole canvas without the mouse
+- **Keyboard-drivable, completely** · `Tab` / `⇧Tab` cycle the
+  topological order, `↑` walks to a dependency, `↓` to a dependent,
+  `Enter` opens the YAML · `c` wires the focused card pointer-free
+  (connect-mode: a picker of the valid targets, the same wire the drag
+  makes) · `⌥`+arrows nudge a card one 8px grid cell · the `⌘K` chord
+  family carries the flight recorder (`⌘K ⌘A` diff two runs ·
+  `⌘K ⌘P` replay · `⌘K ⌘B` fork from task): the whole canvas without
+  the mouse
 - **The nika.sh skin** · the panel ships the landing page's design
   language by default: engineered-black register, one blue accent, the
   4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
