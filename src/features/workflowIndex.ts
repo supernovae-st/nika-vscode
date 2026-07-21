@@ -20,7 +20,10 @@ export class WorkflowIndex {
   constructor(context: vscode.ExtensionContext) {
     this.cache = new ScanCache<vscode.Uri>({
       list: async () => {
-        const found = await vscode.workspace.findFiles(WORKFLOW_GLOB, '**/node_modules/**', WORKFLOW_SCAN_CAP);
+        // The literal below IS the model's WORKFLOW_GLOB (the door-ids
+        // idiom) — the contract belt greps THIS literal to prove the
+        // whole codebase holds exactly one workflow scan.
+        const found = await vscode.workspace.findFiles('**/*.nika.yaml', '**/node_modules/**', WORKFLOW_SCAN_CAP);
         // One physical file = one entry: overlapping/nested workspace
         // roots can hand findFiles the SAME fsPath twice.
         const byPath = new Map<string, vscode.Uri>();
