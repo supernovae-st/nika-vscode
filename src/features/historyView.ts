@@ -97,6 +97,10 @@ export class HistoryTreeProvider implements vscode.TreeDataProvider<HistoryRow> 
 export interface HistoryController {
   /** Load the runs, raise the context key, focus the view. */
   show(docUri: vscode.Uri, docName: string, runs: HistoryRun[]): Promise<void>;
+  /** The live tree handle · the action panel reads its selection. */
+  readonly view: vscode.TreeView<HistoryRow>;
+  /** The loaded workflow · task rows navigate with it. */
+  docUri(): vscode.Uri | undefined;
 }
 
 export function registerHistory(context: vscode.ExtensionContext): HistoryController {
@@ -145,5 +149,7 @@ export function registerHistory(context: vscode.ExtensionContext): HistoryContro
       // seat to take focus in.
       await vscode.commands.executeCommand('nikaRunHistory.focus');
     },
+    view,
+    docUri: () => provider.docUri,
   };
 }
