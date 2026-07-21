@@ -798,9 +798,10 @@ focused row: the trees' twin of the canvas `K` node-actions menu,
 same grammar, three laws:
 
 - **Curated, never dumped**: each row kind serves its own registry
-  (a workflow file: run · check · open; a trace: the full
-  flight-recorder vocabulary, replay leading; a station fix row:
-  the wrench; a history cell: replay · the provable report). View
+  (a workflow file: run · check · open; a trace: the detail first
+  — the row's own Enter, §7e — then the full flight-recorder
+  vocabulary; a station fix row: the wrench; a history cell: the
+  detail · replay · the provable report). View
   verbs follow under their own separator (refresh · new workflow ·
   export · close), so no selection is a screen, never a void.
 - **Greyed with the reason, never hidden**: a missing capability
@@ -831,6 +832,33 @@ editors: the family, taught at the point of use). Accepted picks
 visit the ROOT search's frecency store (`tree.<command>` ids · one
 store, never a second): an action you keep taking rises in the item
 section; view rows keep curated order, a short stable menu.
+
+## 7e · The run detail (List → Detail · the stack completes)
+
+Every run row's Enter pushes its DETAIL — the stack law: a list item
+is never a cul-de-sac. One primary, one door: the Runs row, the
+History cell and the root search's run family all land on
+`nika.runDetail`, args explicit (never « whatever is selected »).
+
+The vehicle is the report's own: a `nika-run:` virtual markdown
+document shown as a preview — never a new webview class (the
+#206/#207 security surface stays closed). The page is the QUICK
+read: verdict line (the row's accessories writ large) · the paused
+question when the run waits on a human · per-task breakdown ·
+artifacts as `file:` links · the journal path. The provable depth
+stays where it was: `runReport` remains the export-grade document
+(integrity narrative · attempt ladders · the image gallery ·
+per-task spend). The traces watcher re-renders an open page while
+an engine writes, so a live run's detail breathes. `command:` links
+are dead in the preview (annexe R R13), so the page teaches its
+deeper doors BY NAME (`⌘K ⌘.` · `⌘K ⌘P`), never as fake anchors.
+
+Accessories are UNIFORM: a run row's description reads the same
+three columns in Runs and History — status glyph first, duration,
+AGE last (`✓ 5 tasks · 12.3s · today` · `✓ success · 1.2s · 3d
+ago`) — through one pure composer (`runsModel.runRowDescription`),
+so the two trees cannot drift apart. Live chips (in-flight spend ·
+measured time-left) trail after the age.
 
 ## 8 · Voice — the twelve rules
 

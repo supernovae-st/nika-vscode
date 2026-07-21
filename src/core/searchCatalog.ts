@@ -208,8 +208,8 @@ const BUCKET_RANK: Record<RunBucket, number> = { now: 0, today: 1, yesterday: 2,
  * before running (needs-you outranks working — the bucketOf pin, so a
  * paused run from last week still tops the list), the calendar follows
  * newest-first. The status and the workflow name ride as keywords:
- * typing `paused` or the workflow's name finds the run. The row
- * replays the journal.
+ * typing `paused` or the workflow's name finds the run. The row opens
+ * the run's DETAIL (§7e — the one primary every run item shares).
  */
 export function buildRunItems(
   facts: readonly RunSearchFact[],
@@ -232,7 +232,7 @@ export function buildRunItems(
       detail: [f.status, f.workflowName].filter((v) => v !== undefined).join(' · '),
       keywords: [f.status, ...(f.workflowName !== undefined ? [f.workflowName] : [])],
       declOrder: i,
-      run: { command: 'nika.replayTrace', args: [f.openArg] },
+      run: { command: 'nika.runDetail', args: [f.openArg] },
     }));
 }
 

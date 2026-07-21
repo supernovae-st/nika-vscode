@@ -98,13 +98,18 @@ function factsFromTreeItem(el: vscode.TreeItem): TreeItemFacts {
 function factsFromHistoryRow(rowEl: HistoryRow, docUri: vscode.Uri | undefined): TreeItemFacts {
   if (rowEl.kind === 'cell') {
     const hasTrace = typeof rowEl.traceFsPath === 'string' && rowEl.traceFsPath.length > 0;
+    const traceUri = hasTrace ? vscode.Uri.file(rowEl.traceFsPath!) : undefined;
     return {
       kind: 'historyCell',
       label: rowEl.label,
       element: rowEl,
       hasTrace,
-      ...(hasTrace
-        ? { click: { command: 'nika.replayTrace', args: [vscode.Uri.file(rowEl.traceFsPath!)] } }
+      // The cell's own Enter (§7e) + the replay row's handle.
+      ...(traceUri !== undefined
+        ? {
+          click: { command: 'nika.runDetail', args: [traceUri] },
+          traceUri,
+        }
         : {}),
     };
   }

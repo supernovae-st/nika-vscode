@@ -10,6 +10,7 @@
 import type { RunModel } from './traceFold';
 import { humanizeDuration } from './traceFold';
 import { STATUS_CHAR } from './glyphRegistry';
+import { runRowDescription } from './runsModel';
 
 export interface HistoryRun {
   /** Trace basename (the run's identity in the journal dir). */
@@ -170,23 +171,6 @@ export interface HistoryRow {
   children?: HistoryRow[];
 }
 
-function startOfLocalDay(ms: number): number {
-  const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-/** Local-calendar distance in words — today · yesterday · `Nd ago`
- *  (the Runs sections' own vocabulary). Future mtimes read `today`:
- *  clock skew is a fact, not a crash. Math.round absorbs the ±1h a
- *  DST boundary puts between two local day floors. */
-function relativeDay(ms: number, nowMs: number): string {
-  const days = Math.round((startOfLocalDay(nowMs) - startOfLocalDay(ms)) / 86_400_000);
-  if (days <= 0) { return 'today'; }
-  if (days === 1) { return 'yesterday'; }
-  return `${days}d ago`;
-}
-
 /**
  * Distinct task ids matching the filter (case-insensitive SUBSTRING —
  * a filter is a predictable grammar, never the search's subsequence)
@@ -240,14 +224,17 @@ export function buildHistoryRows(runs: HistoryRun[], nowMs: number, filter?: str
       const k = i + 1; // the doc grid's column number (oldest → newest)
       const glyph = cell.cached === true ? STATUS_CHAR.cached : CELL[cell.status] ?? STATUS_CHAR.pending;
       const word = cell.cached === true ? 'cache-hit' : cell.status;
+      // The uniform accessory law (§7e): status glyph leads, duration
+      // rides, AGE closes — the same three columns a Runs row wears.
+      const summary = [
+        `${glyph} ${word}`,
+        cell.durationMs !== undefined ? humanizeDuration(cell.durationMs) : undefined,
+      ].filter(Boolean).join(' · ');
       children.push({
         kind: 'cell',
         id: `history.cell.${t.id}.${k}`,
-        label: `run #${k} · ${glyph} ${word}`,
-        description: [
-          cell.durationMs !== undefined ? humanizeDuration(cell.durationMs) : undefined,
-          relativeDay(run.mtimeMs, nowMs),
-        ].filter(Boolean).join(' · '),
+        label: `run #${k}`,
+        description: runRowDescription(summary, run.mtimeMs, nowMs),
         ...(run.fsPath !== undefined ? { traceFsPath: run.fsPath } : {}),
       });
     });

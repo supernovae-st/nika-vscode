@@ -139,8 +139,12 @@ describe('buildHistoryRows', () => {
     const a = rows.flatMap((r) => r.kind === 'section' ? r.children ?? [] : [r]).find((t) => t.taskId === 'a')!;
     // Newest first · k = the chronological column number (1-based, oldest → newest);
     // the blank column 2 has no child — a blank cell is no recorded fact.
-    expect(a.children?.map((c) => c.label)).toEqual(['run #3 · ✗ failed', 'run #1 · ✓ success']);
+    // The label is the bare column handle; the status wears the
+    // description (the §7e uniform accessory: glyph · duration · age).
+    expect(a.children?.map((c) => c.label)).toEqual(['run #3', 'run #1']);
     expect(a.children?.map((c) => c.id)).toEqual(['history.cell.a.3', 'history.cell.a.1']);
+    expect(a.children?.[0].description).toMatch(/^✗ failed/);
+    expect(a.children?.[1].description).toMatch(/^✓ success/);
   });
 
   it('fsPath rides through to cells; renderHistory ignores it (zero doc break)', () => {
@@ -170,9 +174,11 @@ describe('buildHistoryRows', () => {
     expect(a.label).toBe('a');
     expect(a.description).toContain('✓ ○');            // the grid strip, verbatim
     expect(a.description).toContain('median');          // the doc's own column word
-    expect(a.children?.[0].label).toBe('run #2 · ○ cache-hit'); // the legend's word, never a dialect
-    expect(a.children?.[0].description).toContain('today');
-    expect(a.children?.[1].description).toContain('yesterday');
+    expect(a.children?.[0].label).toBe('run #2');
+    // The uniform accessory (§7e): glyph + the legend's word lead,
+    // duration rides, AGE closes — never a dialect.
+    expect(a.children?.[0].description).toBe('○ cache-hit · 2ms · today');
+    expect(a.children?.[1].description).toBe('✓ success · 100ms · yesterday');
   });
 
   it('zero runs → zero rows (the view welcome owns the empty story)', () => {

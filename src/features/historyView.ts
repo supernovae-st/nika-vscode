@@ -59,9 +59,11 @@ class HistoryItem extends vscode.TreeItem {
     } else {
       this.contextValue = 'nikaHistoryCell';
       if (row.traceFsPath !== undefined) {
+        // Enter pushes the DETAIL (§7e — the same primary a Runs row
+        // holds); replay stays one ⌘K ⌘. row away. Args explicit.
         this.command = {
-          command: 'nika.replayTrace',
-          title: 'Replay',
+          command: 'nika.runDetail',
+          title: 'Open Run Detail',
           arguments: [vscode.Uri.file(row.traceFsPath)],
         };
       }

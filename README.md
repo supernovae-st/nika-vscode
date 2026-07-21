@@ -379,9 +379,13 @@ network: every green close settles a ✓ wave through the cards.*
   card closes the loop per task: `cost $min → $max` (the estimate, on
   the params row) next to `spent $… recorded` (the terminal event's
   fact, in the grand fact block)
-- **Time-travel replay** · click a recorded run and **scrub its whole
-  timeline**: play/pause (Space), drag the handle, the DAG state at any
-  instant computed locally. Replay re-renders, never re-executes
+- **Every run opens its detail** · Enter on a recorded run shows one
+  calm page: verdict, per-task breakdown, artifacts, spend, the
+  question when a run waits on you · live while the engine writes
+- **Time-travel replay** · replay a recorded run (`⌘K ⌘P`) and **scrub
+  its whole timeline**: play/pause (Space), drag the handle, the DAG
+  state at any instant computed locally. Replay re-renders, never
+  re-executes
 - **F5 time-travel debugger** (nika ≥ 0.96) · set breakpoints in your
   `.nika.yaml`, press **F5**, and the engine's own DAP adapter replays a
   recorded run under the real VS Code debugger: step **forward and

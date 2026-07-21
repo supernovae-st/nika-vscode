@@ -166,6 +166,7 @@ import { scanSecrets } from './core/credentialLint';
 import { collectShapes, renderShape } from './core/schemaShape';
 import { traceBelongsTo, type HistoryRun } from './core/runHistory';
 import { registerHistory } from './features/historyView';
+import { registerRunDetail } from './features/runDetail';
 import { answerControlFor, encodeAnswer } from './core/pauseAnswer';
 import { BASELINE_REL_PATH, captureBaseline } from './core/lintBaseline';
 
@@ -765,6 +766,10 @@ export function activate(context: ExtensionContext): void {
   // export ($(markdown) in the view title).
   const history = registerHistory(context);
 
+  // The run detail page (`nika-run:` · DESIGN.md §7e) — the one primary
+  // every run item shares; the traces watcher keeps an open page live.
+  const runDetail = registerRunDetail(context);
+
   // The Station — the cockpit tree (engine · doctor · agents ·
   // providers · workspace). Lane A pure: everything it shows comes
   // from `welcome --deep --json` + `doctor --json` + the grammar
@@ -791,6 +796,9 @@ export function activate(context: ExtensionContext): void {
   const onTraceEvent = (uri: Uri): void => {
     runsSearchSource.invalidate();
     runsTree.refresh();
+    // A growing journal re-renders its OPEN detail page (§7e — the
+    // live run's detail breathes; a page nobody opened costs nothing).
+    runDetail.refresh(uri.fsPath);
     if (!workspace.getConfiguration('nika').get<boolean>('traces.live', true)) { return; }
     if (!dagPanel.hasPanel) { return; }
     const key = uri.toString();

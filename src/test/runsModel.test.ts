@@ -8,6 +8,8 @@ import { describe, it, expect } from 'vitest';
 import {
   bucketOf,
   groupRuns,
+  relativeDay,
+  runRowDescription,
   unreadableSection,
   UNREADABLE_DESCRIPTION,
   type RunBucket,
@@ -159,5 +161,36 @@ describe('unreadableSection — the counted catch', () => {
     expect(UNREADABLE_DESCRIPTION).toBe(
       'truncated (a killed run) or from another engine generation',
     );
+  });
+});
+
+describe('relativeDay — the one age vocabulary', () => {
+  it('today · yesterday · Nd ago, split at local midnight', () => {
+    expect(relativeDay(at(2026, 6, 20, 0, 1), NOW)).toBe('today');
+    expect(relativeDay(at(2026, 6, 19, 23, 59), NOW)).toBe('yesterday');
+    expect(relativeDay(at(2026, 6, 17, 12, 0), NOW)).toBe('3d ago');
+  });
+
+  it('a future mtime reads today — clock skew is a fact, not a crash', () => {
+    expect(relativeDay(NOW + 86_400_000, NOW)).toBe('today');
+  });
+});
+
+describe('runRowDescription — the uniform accessory law (§7e)', () => {
+  it('summary leads (status glyph rides it), AGE closes, extras trail', () => {
+    const summary = '✓ 5 tasks · 12.3s';
+    expect(runRowDescription(summary, at(2026, 6, 20, 9, 0), NOW))
+      .toBe('✓ 5 tasks · 12.3s · today');
+    expect(runRowDescription(summary, at(2026, 6, 19, 9, 0), NOW, ['~$0.02', '3s left']))
+      .toBe('✓ 5 tasks · 12.3s · yesterday · ~$0.02 · 3s left');
+  });
+
+  it('Runs and History compose through the SAME door — the trees cannot drift', () => {
+    // A Runs row summary and a History cell summary close on the same
+    // age token, by construction.
+    const runs = runRowDescription('✗ 3 tasks · 4.1s', at(2026, 6, 18, 9, 0), NOW);
+    const cell = runRowDescription('✗ failed · 4.1s', at(2026, 6, 18, 9, 0), NOW);
+    expect(runs.endsWith(' · 2d ago')).toBe(true);
+    expect(cell.endsWith(' · 2d ago')).toBe(true);
   });
 });
