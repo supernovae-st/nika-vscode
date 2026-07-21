@@ -116,7 +116,7 @@ import {
   type StarterPick,
 } from './core/newWorkflowWizard';
 import { buildSessionPicks } from './core/sessionLauncher';
-import { omniAddDidYouMean, parseOmniAdd } from './core/verbPalette';
+import { omniAddDidYouMean, parseOmniAdd, type OmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag, runsSearchSource } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
@@ -1483,18 +1483,33 @@ export function activate(context: ExtensionContext): void {
             if (near.candidates.length === 1) {
               add = near.candidates[0];
             } else {
-              const picked = await window.showQuickPick(
-                near.candidates.map((c) => ({
-                  label: c.tool ? c.tool.slice('nika:'.length) : c.verb,
-                  description: c.tool ? 'builtin tool · invoke' : 'verb',
-                  add: c,
-                })),
+              // The list closes on the bridge: the fail path ends at the
+              // ONE launcher (root search), the mistyped token riding
+              // along as the query — never a dead end, never a new
+              // screen. The chord comes from the one derivation
+              // (chordLabels), so the row teaches ⌘K ⌘M in place.
+              const gateChord = menuChords.get('nika.search');
+              const rows: Array<QuickPickItem & { add?: OmniAdd }> = near.candidates.map((c) => ({
+                label: c.tool ? c.tool.slice('nika:'.length) : c.verb,
+                description: c.tool ? 'builtin tool · invoke' : 'verb',
+                add: c,
+              }));
+              rows.push(
+                { label: '', kind: QuickPickItemKind.Separator },
                 {
-                  title: `\`${near.token}\` is not a verb or tool — did you mean…`,
-                  placeHolder: 'Enter inserts the corrected task · Esc cancels',
+                  label: `Open root search with "${near.token}"`,
+                  ...(gateChord !== undefined ? { description: gateChord } : {}),
                 },
               );
+              const picked = await window.showQuickPick(rows, {
+                title: `\`${near.token}\` is not a verb or tool — did you mean…`,
+                placeHolder: 'Enter inserts the corrected task · Esc cancels',
+              });
               if (!picked) { return; }
+              if (picked.add === undefined) {
+                void commands.executeCommand('nika.search', near.token);
+                return;
+              }
               add = picked.add;
             }
           }
