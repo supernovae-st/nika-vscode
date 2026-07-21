@@ -631,6 +631,20 @@ engine projection.
    that silently adds a gesture to a journey fails the suite. Run it
    with the harness flags toolchain
    (`NIKA_PLAYWRIGHT=… node scripts/media/journeys.cjs`).
+8. The canvas SPEAKS — `role="application"` scoped to the container
+   alone (browse mode survives on every sibling surface), the svg a
+   named `graphics-document`, every card a `graphics-symbol` whose
+   accessible name (label · mechanism · status · degree) refreshes
+   silently on status change. ONE roving tab stop follows the
+   logical focus (the DOM twin never replaces the key handlers; a
+   keyboard move always centers its card, so focus is never
+   obscured). ONE narrator per canvas, two channels: polite
+   coalesced milestones (`core/runNarrator` owns the throttle
+   contract), assertive reserved for run starts and failures.
+   `alt+F1` / `?` opens the keymap dialog focused;
+   `core/canvasKeymap` is the single source it shares with the
+   `nika.canvasAccessibilityHelp` QuickPick. Proven end-to-end by
+   `scripts/media/a11y-probes.cjs` (same toolchain as the journeys).
 
 ## 7b · The editor chord family (contributes.keybindings)
 
