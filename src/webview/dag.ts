@@ -8449,7 +8449,17 @@ const omniInput = document.getElementById('omni-input') as HTMLInputElement | nu
 
 function runOmni(): void {
   const text = omniInput?.value.trim();
-  if (!text) { return; }
+  if (!text) {
+    // An empty Enter is a launch, never a no-op: nothing to compose
+    // opens the gate at rest host-side (the empty screen answers
+    // « I don't know what to type » — the last dead end removed).
+    vscode.postMessage({
+      kind: 'dag:omni',
+      text: '',
+      workflowUri: vscode.getState()?.graph?.workflowUri,
+    });
+    return;
+  }
   if (text.startsWith('/')) {
     // Filter mode — route into the search affordance.
     if (searchEl) {

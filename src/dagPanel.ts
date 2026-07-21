@@ -1235,7 +1235,7 @@ export class DagPanel implements vscode.Disposable {
       <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     <input id="omni-input" type="text"
-           placeholder="+ infer · + jq after gather · / filter · or describe a workflow…"
+           placeholder="+ infer · + jq after gather · / filter · or describe a workflow… · ↵ everything"
            aria-label="Canvas command bar">
     <button id="omni-go" title="Run the command (Enter)">↵</button>
   </div>

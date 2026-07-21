@@ -1467,6 +1467,13 @@ export function activate(context: ExtensionContext): void {
         break;
       }
       case 'dag:omni': {
+        // An empty bar is a doorway, never a dead end: nothing to
+        // compose opens the gate at rest (root search · empty seed) —
+        // the LLM never sees the void.
+        if (request.text.trim() === '') {
+          void commands.executeCommand('nika.search');
+          return;
+        }
         // `+ <verb|tool> [after id]` adds deterministically — the same
         // vocabulary as the task palette (`+ jq after gather` lands an
         // invoke pinned to nika:jq). A `+` token that MISSES the
