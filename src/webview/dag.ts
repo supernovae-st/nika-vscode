@@ -3051,6 +3051,16 @@ class DagRenderer {
 
   private applyFocus(id: string | null): void {
     this.focusedId = id;
+    // A jump can land on a sleeping card (near-zoom walk wrap): wake it
+    // SYNCHRONOUSLY. The roving focus() targets it in THIS task and a
+    // display:none element refuses DOM focus — the cull pass wakes it
+    // only at the next rAF, after the focus() call already no-oped. Its
+    // edge quartet wakes with that pass; the pass itself keeps the card
+    // awake (cullProtected).
+    if (id !== null && this.culledIds.has(id)) {
+      this.culledIds.delete(id);
+      this.cullNodeEls.get(id)?.classList.remove('nk-offscreen');
+    }
     this.lineage = id === null ? null : lineageOf(this.currentGraph?.edges ?? [], id);
     this.lineageFromEditor = false;
     this.refreshDim();
