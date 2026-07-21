@@ -3,12 +3,15 @@
 // One ranked list holds every launchable thing (the annexe-AA design):
 // the gate feeds items from the four families and this module answers
 // the three questions that matter. WHO matches: a house subsequence
-// matcher with a word-boundary bonus. WHO leads: match tier first
-// (prefix 0 · word boundary 1 · subsequence 2), then learned frecency,
-// then declaration order · frecency NEVER crosses a tier, because a
-// learned habit must not beat a better literal match. WHERE the dead
-// ends go: nowhere · a zero-match query falls onto ranked fallback rows
-// where the query becomes the argument (the no-dead-ends law).
+// matcher with a word-boundary bonus, and above it the assigned alias
+// (the Raycast law: a two-letter habit the USER assigned beats every
+// ranking · exact equality only, never fuzzy). WHO leads: match tier
+// first (alias -1 · prefix 0 · word boundary 1 · subsequence 2), then
+// learned frecency, then declaration order · frecency NEVER crosses a
+// tier, because a learned habit must not beat a better literal match —
+// and an ASSIGNED habit outranks both. WHERE the dead ends go: nowhere
+// · a zero-match query falls onto ranked fallback rows where the query
+// becomes the argument (the no-dead-ends law).
 //
 // The frecency store is plain JSON (workspaceState-ready · the gate owns
 // the `nika.search.frecency.v1` key): visits decay with a 7-day
@@ -27,6 +30,10 @@ export interface SearchItem {
   readonly detail?: string;
   /** Display-form chord (the extension.ts derivation), when one exists. */
   readonly chord?: string;
+  /** User-assigned aliases (`nika.search.aliases` · attached by
+   *  applyAliases): tier -1 on FULL equality, case-insensitive · never
+   *  a fuzzy surface — an alias the query merely resembles is silence. */
+  readonly aliases?: readonly string[];
   /** Extra match surface · participates from tier 1, never tier 0. */
   readonly keywords?: readonly string[];
   /** Index in the family-ordered build · the last tiebreak. */
@@ -63,8 +70,9 @@ export function frecencyScore(e: FrecencyEntry, nowMs: number): number {
   return e.count * Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
 }
 
-/** Match quality: 0 label prefix · 1 word boundary / keyword · 2 subsequence. */
-export type MatchTier = 0 | 1 | 2;
+/** Match quality: -1 assigned alias (exact) · 0 label prefix · 1 word
+ *  boundary / keyword · 2 subsequence. */
+export type MatchTier = -1 | 0 | 1 | 2;
 
 /** The separators a word can start after (label and keyword grammar). */
 const WORD_SEP = new Set([' ', '\t', '-', '_', '.', ':', '/', '(', ')', '"', "'"]);
@@ -87,15 +95,22 @@ function isSubsequence(q: string, text: string): boolean {
 }
 
 /**
- * The house matcher. Tier 0 belongs to the label alone; keywords join
- * from tier 1 (a keyword prefix is a word-boundary hit, never a label
- * prefix). Case-insensitive throughout. `undefined` = no match at any
- * tier · the caller routes those to the fallbacks. The empty query
- * matches everything at tier 0 (the resting screen).
+ * The house matcher. Tier -1 belongs to the assigned alias, on FULL
+ * equality only (an alias is strict: `rw` answers `rw`, never `r` ·
+ * the alias string joins no other tier). Tier 0 belongs to the label
+ * alone; keywords join from tier 1 (a keyword prefix is a word-boundary
+ * hit, never a label prefix). Case-insensitive throughout. `undefined`
+ * = no match at any tier · the caller routes those to the fallbacks.
+ * The empty query matches everything at tier 0 (the resting screen).
  */
 export function matchTier(q: string, item: SearchItem): MatchTier | undefined {
   const qn = q.trim().toLowerCase();
   if (qn.length === 0) { return 0; }
+  if (item.aliases !== undefined) {
+    for (const a of item.aliases) {
+      if (a.toLowerCase() === qn) { return -1; }
+    }
+  }
   const label = item.label.toLowerCase();
   if (label.startsWith(qn)) { return 0; }
   if (startsAWord(qn, label)) { return 1; }

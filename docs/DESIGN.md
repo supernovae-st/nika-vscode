@@ -713,11 +713,24 @@ manifest commands (palette-hidden rows excluded · each chorded row
 teaching its shortcut) and the add-task vocabulary (4 verbs + every
 builtin as a pre-wired invoke). The QuickPick is dynamic: every
 keystroke re-ranks through the pure model (`core/rootSearch` · match
-tier first: prefix, then word boundary, then subsequence · learned
-frecency second: 7-day half-life, tie-breaking inside a tier and
-never crossing one · declaration order last). `alwaysShow` rides
+tier first: assigned alias, then prefix, then word boundary, then
+subsequence · learned frecency second: 7-day half-life, tie-breaking
+inside a tier and never crossing one · declaration order last).
+`alwaysShow` rides
 every item: without it VS Code re-filters the list and ghosts the
 ranking.
+
+An assigned alias beats everything: `nika.search.aliases` maps a
+two-or-three-letter habit to any row id (`{ "rw":
+"nika.runWorkflow" }`) and the exact query ranks its row at tier
+-1, above every literal match and every learned habit. Strict,
+never fuzzy: `r` does not reach `rw`, and the alias string joins
+no other tier. The row teaches the habit back in its description
+seat (`· rw`, after the chord: the same taught-in-place law).
+`applyAliases` runs over the BUILT catalog, so async family ids
+are valid targets too; a target the catalog does not hold drops
+in silence at build and the query falls back on the normal
+ranking, never a crash, never a toast.
 
 The empty query is a screen, never a void: the journey menu's head
 sections (fix-first · the next step per stage · the active file)

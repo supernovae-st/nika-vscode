@@ -18,6 +18,7 @@ import {
   RESET_COMMAND,
   RUNS_SEARCH_CAP,
   acceptPick,
+  applyAliases,
   buildCatalog,
   buildCommandItems,
   buildRestingFoot,
@@ -28,6 +29,7 @@ import {
   gateScreen,
   hiddenPaletteCommands,
   mergeCatalog,
+  rowDescription,
   type ManifestLike,
   type RestingDeps,
   type RunSearchFact,
@@ -193,6 +195,86 @@ describe('the typed screen and the no-dead-ends tier', () => {
       expect(first.item.run.command).toBe(SEARCH_COMMAND);
       expect(first.item.run.args).toEqual(['jq']);
     }
+  });
+});
+
+describe('the assigned aliases (applyAliases · the Raycast law)', () => {
+  it('attaches the alias to its target row, id verbatim', () => {
+    const out = applyAliases(catalog, { rw: 'nika.runWorkflow' });
+    const target = out.find((x) => x.id === 'nika.runWorkflow');
+    expect(target?.aliases).toEqual(['rw']);
+    // Nobody else grew one.
+    expect(out.filter((x) => x.aliases !== undefined)).toHaveLength(1);
+  });
+
+  it('a target the catalog does not hold is dropped in silence', () => {
+    const out = applyAliases(catalog, { zz: 'nika.ghostCommand' });
+    expect(out.every((x) => x.aliases === undefined)).toBe(true);
+    expect(out.map((x) => x.id)).toEqual(catalog.map((x) => x.id));
+  });
+
+  it('an empty alias and a non-string target are dropped at build', () => {
+    const broken = { '': 'nika.runWorkflow', '   ': 'nika.checkWorkflow', gd: 7 };
+    const out = applyAliases(catalog, broken as unknown as Record<string, string>);
+    expect(out.every((x) => x.aliases === undefined)).toBe(true);
+  });
+
+  it('several aliases may share one target: all attach, file order kept', () => {
+    const out = applyAliases(catalog, { rw: 'nika.runWorkflow', r2: 'nika.runWorkflow' });
+    expect(out.find((x) => x.id === 'nika.runWorkflow')?.aliases).toEqual(['rw', 'r2']);
+  });
+
+  it('the alias key is trimmed before it ships', () => {
+    const out = applyAliases(catalog, { ' rw ': 'nika.runWorkflow' });
+    expect(out.find((x) => x.id === 'nika.runWorkflow')?.aliases).toEqual(['rw']);
+  });
+
+  it('async family ids are valid targets too (applied on the merge)', () => {
+    const wf = buildWorkflowItems([
+      { fsPath: '/w/deploy.nika.yaml', relPath: 'deploy.nika.yaml', mtimeMs: NOW, openArg: 'u' },
+    ]);
+    const merged = applyAliases(mergeCatalog(catalog, wf, []), { dp: 'workflow./w/deploy.nika.yaml' });
+    expect(merged.find((x) => x.id === 'workflow./w/deploy.nika.yaml')?.aliases).toEqual(['dp']);
+  });
+
+  it('the aliased row leads its screen over a giant learned habit', () => {
+    const aliased = applyAliases(catalog, { rw: 'nika.runWorkflow' });
+    // `rw` scatters into plenty of labels: hand one of them a giant habit.
+    const rival = gateScreen('rw', aliased, [], [], {}, NOW)
+      .flatMap((r) => (r.kind === 'item' ? [r.item.id] : []))
+      .find((id) => id !== 'nika.runWorkflow');
+    expect(rival).toBeDefined();
+    const habit: FrecencyStore = { [rival!]: { count: 1_000_000, lastMs: NOW } };
+    const rows = gateScreen('rw', aliased, [], [], habit, NOW);
+    const first = rows[0];
+    expect(first.kind === 'item' && first.item.id).toBe('nika.runWorkflow');
+  });
+
+  it('a broken alias query falls back on the normal ranking (no dead end)', () => {
+    const aliased = applyAliases(catalog, { qqzz: 'nika.ghostCommand' });
+    const rows = gateScreen('qqzz', aliased, [], [], {}, NOW);
+    const ids = rows.map((r) => (r.kind === 'item' ? r.item.id : ''));
+    expect(ids).not.toContain('nika.ghostCommand');
+    expect(ids).toContain('fallback.generate');
+  });
+
+  it('the badge seat teaches the alias last: detail · chord · alias', () => {
+    const full = applyAliases(
+      [{
+        id: 'a', family: 'command', label: 'Run', detail: 'the run',
+        chord: '⌘K ⌘R', declOrder: 0, run: { command: 'a' },
+      }],
+      { rw: 'a' },
+    )[0];
+    expect(rowDescription(full)).toBe('the run · ⌘K ⌘R · rw');
+    expect(rowDescription({ ...full, aliases: ['rw', 'r2'] })).toBe('the run · ⌘K ⌘R · rw · r2');
+  });
+
+  it('the seat is unchanged for a row without an alias', () => {
+    const plain = catalog.find((x) => x.chord !== undefined && x.detail === undefined);
+    expect(plain).toBeDefined();
+    expect(rowDescription(plain!)).toBe(plain!.chord);
+    expect(rowDescription({ ...plain!, detail: 'd' })).toBe(`d · ${plain!.chord}`);
   });
 });
 

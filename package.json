@@ -928,6 +928,15 @@
           "order": 60,
           "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind, no oracle access."
         },
+        "nika.search.aliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "order": 65,
+          "markdownDescription": "Your own shortcuts for the root search (`⌘K ⌘M`): map a two-or-three-letter alias to the command or row it launches, e.g. `{ \"rw\": \"nika.runWorkflow\", \"gd\": \"nika.showDag\" }`. Typing the exact alias ranks its row first, above every learned habit; the row teaches it back as `· rw`. Aliases never match partially, and one whose target the catalog lacks is skipped in silence."
+        },
         "nika.autoSetup": {
           "type": "boolean",
           "default": true,

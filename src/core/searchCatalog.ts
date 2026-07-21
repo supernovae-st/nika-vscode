@@ -16,6 +16,10 @@
 //   · declOrder assigned GLOBALLY (F1 F2, then the async F3 F4 via
 //     mergeCatalog), so family precedence holds inside every match tier
 //     whatever order the async families LANDED in;
+//   · the assigned aliases (`nika.search.aliases` · applyAliases runs
+//     over the BUILT catalog, so any family's id is a valid target) —
+//     a target the catalog does not hold is dropped in silence: the
+//     alias query just falls back on the normal ranking, never a crash;
 //   · the resting screen — the old journey menu head under one `Now`
 //     separator, the whole catalog habits-first below, the quiet
 //     footer (lenses · the earned ask) closing;
@@ -245,6 +249,44 @@ export function mergeCatalog(
   return [...sync, ...workflows, ...runs].map((it, i) => ({ ...it, declOrder: i }));
 }
 
+// ─── The assigned aliases (Raycast law: your two letters beat everything) ──
+
+/** The `nika.search.aliases` setting shape · alias → command/row id. */
+export type AliasMap = Readonly<Record<string, string>>;
+
+/**
+ * Attach the user's assigned aliases to their target rows. Pure and
+ * total on setting-shaped input: an alias key is trimmed · an empty
+ * alias, a non-string target and a target the catalog does not hold
+ * are DROPPED in silence (a broken assignment must not crash the gate
+ * · the query just falls back on the normal ranking). Several aliases
+ * may point at one id: every one matches at tier -1 and the badge
+ * teaches them all. Runs over the MERGED catalog, so async family ids
+ * (`workflow.…` · `run.…`) are valid targets too.
+ */
+export function applyAliases(
+  items: readonly SearchItem[],
+  aliases: AliasMap,
+): SearchItem[] {
+  const byId = new Map<string, string[]>();
+  for (const [key, target] of Object.entries(aliases)) {
+    if (typeof target !== 'string') { continue; }
+    const alias = key.trim();
+    if (alias.length === 0) { continue; }
+    const prior = byId.get(target);
+    if (prior === undefined) {
+      byId.set(target, [alias]);
+    } else {
+      prior.push(alias);
+    }
+  }
+  if (byId.size === 0) { return [...items]; }
+  return items.map((it) => {
+    const assigned = byId.get(it.id);
+    return assigned === undefined ? it : { ...it, aliases: assigned };
+  });
+}
+
 // ─── The resting screen (Raycast law 4: the empty query is a screen) ───────
 
 /** The degradation headline the pill promised (core/statusTruth). */
@@ -355,6 +397,13 @@ export type GateRow =
 
 const sep = (label: string): GateRow => ({ kind: 'separator', label });
 const row = (item: SearchItem): GateRow => ({ kind: 'item', item });
+
+/** The description seat of one row: detail · chord · the alias badge
+ *  last (an assigned habit is taught at its point of use, the same
+ *  law that prints the chords). */
+export function rowDescription(item: SearchItem): string {
+  return [item.detail, item.chord, ...(item.aliases ?? [])].filter(Boolean).join(' · ');
+}
 
 /**
  * The whole screen for a query. Empty query = the resting screen (the

@@ -92,6 +92,58 @@ describe('matchTier · the house matcher', () => {
   });
 });
 
+describe('tier -1 · the assigned alias (strict, never fuzzy)', () => {
+  const aliased = item('nika.runWorkflow', 'Zeta board', 0, { aliases: ['rw'] });
+
+  it('the exact alias is tier -1, case-insensitive, whitespace-trimmed', () => {
+    expect(matchTier('rw', aliased)).toBe(-1);
+    expect(matchTier('RW', aliased)).toBe(-1);
+    expect(matchTier('  rw ', aliased)).toBe(-1);
+  });
+
+  it('an alias never matches partially: rw does not answer r, nor rwx', () => {
+    // The label carries no r and no w: only the alias could answer,
+    // and a strict alias stays silent on anything but full equality.
+    const bare = item('x', 'zeta', 0, { aliases: ['rw'] });
+    expect(matchTier('r', bare)).toBe(undefined);
+    expect(matchTier('rwx', bare)).toBe(undefined);
+  });
+
+  it('the alias string joins no other tier (no prefix, no subsequence)', () => {
+    // `w` is a subsequence of the alias `rw` but of nothing else: silence.
+    expect(matchTier('w', item('x', 'zeta', 0, { aliases: ['rw'] }))).toBe(undefined);
+  });
+
+  it('the empty query stays the resting screen, never the alias tier', () => {
+    expect(matchTier('', aliased)).toBe(0);
+  });
+
+  it('label and keywords still match an aliased item at their own tiers', () => {
+    expect(matchTier('zeta', aliased)).toBe(0);
+    expect(matchTier('board', aliased)).toBe(1);
+  });
+
+  it('every assigned alias of a row answers', () => {
+    const two = item('a', 'zeta', 0, { aliases: ['rw', 'r2'] });
+    expect(matchTier('rw', two)).toBe(-1);
+    expect(matchTier('r2', two)).toBe(-1);
+  });
+
+  it('the assigned alias beats a literal prefix hit riding enormous frecency', () => {
+    const prefix = item('prefix', 'rw exact prefix', 0);
+    const habit: FrecencyStore = { prefix: entry(1_000_000, NOW) };
+    const out = rankSearch('rw', [prefix, aliased], habit, NOW);
+    expect(out.map((x) => x.id)).toEqual(['nika.runWorkflow', 'prefix']);
+  });
+
+  it('frecency still never crosses INTO the alias tier', () => {
+    // A subsequence hit with a giant habit stays under the alias row.
+    const scatter = item('scatter', 'r and w', 0);
+    const out = rankSearch('rw', [scatter, aliased], { scatter: entry(9_999, NOW) }, NOW);
+    expect(out.map((x) => x.id)).toEqual(['nika.runWorkflow', 'scatter']);
+  });
+});
+
 describe('rankSearch · tiers are strict, frecency never crosses one', () => {
   it('prefix beats word boundary beats subsequence, whatever the habits', () => {
     const boundary = item('boundary', 'workflow run', 0);
