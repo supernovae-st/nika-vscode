@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterTools, filterVerbs, parseOmniAdd, VERB_ITEMS, type ToolItem } from '../core/verbPalette';
+import { filterTools, filterVerbs, omniAddDidYouMean, parseOmniAdd, VERB_ITEMS, type ToolItem } from '../core/verbPalette';
 
 const names = (q: string): string[] => filterVerbs(q).map((v) => v.verb);
 
@@ -93,5 +93,47 @@ describe('parseOmniAdd (the omnibar deterministic-add grammar)', () => {
 
   it('no leading + = not an add', () => {
     expect(parseOmniAdd('scrape hn and post to slack', KNOWN)).toBeUndefined();
+  });
+});
+
+describe('omniAddDidYouMean (the typo forgiven — Raycast forgiveness)', () => {
+  const KNOWN = new Set(['jq', 'fetch', 'chart', 'emit', 'edit']);
+
+  it('a near-miss verb corrects: + ifner means infer', () => {
+    expect(omniAddDidYouMean('+ ifner', KNOWN)).toEqual({
+      token: 'ifner',
+      candidates: [{ verb: 'infer', after: undefined }],
+    });
+  });
+
+  it('a near-miss tool corrects and keeps its anchor: + fech after gather', () => {
+    expect(omniAddDidYouMean('+ fech after gather', KNOWN)).toEqual({
+      token: 'fech',
+      candidates: [{ verb: 'invoke', tool: 'nika:fetch', after: 'gather' }],
+    });
+  });
+
+  it('several neighbours are ALL proposed — nearest first, lexical within', () => {
+    expect(omniAddDidYouMean('+ exit', KNOWN)).toEqual({
+      token: 'exit',
+      candidates: [
+        { verb: 'invoke', tool: 'nika:edit', after: undefined },
+        { verb: 'invoke', tool: 'nika:emit', after: undefined },
+        { verb: 'exec', after: undefined },
+      ],
+    });
+  });
+
+  it('a long unknown word has no neighbour — the caller keeps generate', () => {
+    expect(omniAddDidYouMean('+ frobnicate', KNOWN)).toBeUndefined();
+  });
+
+  it('free prose is never fuzzed — the + grammar stays the gate', () => {
+    expect(omniAddDidYouMean('make me a workflow', KNOWN)).toBeUndefined();
+    expect(omniAddDidYouMean('+ summarize the page', KNOWN)).toBeUndefined();
+  });
+
+  it('a nika: ref is never fuzzed — unknown refs are the engine diagnostic', () => {
+    expect(omniAddDidYouMean('+ nika:fech', KNOWN)).toBeUndefined();
   });
 });

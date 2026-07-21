@@ -111,7 +111,7 @@ import {
   type StarterPick,
 } from './core/newWorkflowWizard';
 import { buildSessionPicks } from './core/sessionLauncher';
-import { parseOmniAdd } from './core/verbPalette';
+import { omniAddDidYouMean, parseOmniAdd } from './core/verbPalette';
 import { RunsTreeProvider, collectCardArtifacts, collectTaskAverages, diffTracesOntoDag, latestTraceForGraph, overlayTraceOntoDag, replayIntoDag } from './features/runsView';
 import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive } from './features/runLive';
 import { initCommunityAsk } from './features/communityAsk';
@@ -1395,12 +1395,36 @@ export function activate(context: ExtensionContext): void {
       case 'dag:omni': {
         // `+ <verb|tool> [after id]` adds deterministically — the same
         // vocabulary as the task palette (`+ jq after gather` lands an
-        // invoke pinned to nika:jq); anything else routes to the
-        // oracle-checked generate pipeline.
-        const add = parseOmniAdd(
-          request.text,
-          new Set(Object.keys(service.toolCats ?? {})),
-        );
+        // invoke pinned to nika:jq). A `+` token that MISSES the
+        // vocabulary is a typo, never a sentence: one Damerau ≤2
+        // neighbour is inserted outright (`+ ifner` lands infer — the
+        // typo forgiven), several are proposed, and Esc cancels. Only
+        // free prose routes to the oracle-checked generate pipeline —
+        // the LLM stays the fallback of the PHRASE, never of the typo.
+        const knownBares = new Set(Object.keys(service.toolCats ?? {}));
+        let add = parseOmniAdd(request.text, knownBares);
+        if (!add) {
+          const near = omniAddDidYouMean(request.text, knownBares);
+          if (near) {
+            if (near.candidates.length === 1) {
+              add = near.candidates[0];
+            } else {
+              const picked = await window.showQuickPick(
+                near.candidates.map((c) => ({
+                  label: c.tool ? c.tool.slice('nika:'.length) : c.verb,
+                  description: c.tool ? 'builtin tool · invoke' : 'verb',
+                  add: c,
+                })),
+                {
+                  title: `\`${near.token}\` is not a verb or tool — did you mean…`,
+                  placeHolder: 'Enter inserts the corrected task · Esc cancels',
+                },
+              );
+              if (!picked) { return; }
+              add = picked.add;
+            }
+          }
+        }
         if (add) {
           const res = insertTaskSkeleton(text, add.verb, add.after, add.tool);
           if (res) {
