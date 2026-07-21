@@ -763,6 +763,18 @@ the survivors · a filter matching nothing relaxes to the whole
 story and the view description says so · the export stays the whole
 grid).
 
+The launcher is ONE: the omnibar composes, the gate launches, the
+fail path bridges. The canvas omnibar stays the argument composer
+(`+` adds deterministically · `/` filters · free prose generates);
+launching lives in the gate; and the omnibar's fail paths bridge
+into it rather than dead-ending. The did-you-mean list closes on
+an open-root-search row carrying the mistyped token as the query
+(the chord taught in place), and the generated draft's confirm
+offers the same door with the whole intent prefilled, the staged
+draft left open. Whatever a hand types, the way out lands in the
+one ranked surface that learns (the searchSeam belt pins the two
+doors, the typeof-guarded seed and the host-side seam).
+
 ## 7d · The tree action panel (the K grammar for the trees)
 
 `⌘K ⌘.` on any nika tree opens ONE curated QuickPick for the
