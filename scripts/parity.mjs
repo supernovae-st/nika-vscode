@@ -117,7 +117,7 @@ const ok = [];
     [...src.matchAll(/postMessage\(\s*\{[^}]*?kind:\s*'([^']+)'/gs)].map((m) => m[1]),
   );
   const caseKinds = (src) => new Set(
-    [...src.matchAll(/case\s+'([a-zA-Z:]+)'/g)].map((m) => m[1]),
+    [...src.matchAll(/case\s+'([a-zA-Z0-9:]+)'/g)].map((m) => m[1]),
   );
 
   const extSends = postKinds(panelSrc);
