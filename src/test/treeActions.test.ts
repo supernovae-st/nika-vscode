@@ -64,7 +64,8 @@ const FACTS: Record<string, { view: TreeViewId; facts: TreeItemFacts }> = {
     view: 'nikaRunHistory',
     facts: {
       kind: 'historyCell', label: '#3', element: { sentinel: 'cell' }, hasTrace: true,
-      click: { command: 'nika.replayTrace', args: ['uri'] },
+      click: { command: 'nika.runDetail', args: ['uri'] },
+      traceUri: { sentinel: 'uri' },
     },
   },
   fixable: {
@@ -112,17 +113,19 @@ describe('curation — each kind serves its verbs, primary first', () => {
     expect(p.itemRows[1].teach).toBe('nika.checkWorkflow');
   });
 
-  it('a trace: the full flight-recorder vocabulary, replay leading', () => {
+  it('a trace: the detail leads (the row\'s own Enter), the flight recorder follows', () => {
     const p = buildTreeActionPanel('nikaRuns', FACTS.nikaTrace.facts, ALL_ON);
     expect(p.itemRows.map((r) => r.command)).toEqual([
-      'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
+      'nika.runDetail', 'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
       'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport', 'nika.exportOtel',
     ]);
   });
 
-  it('a history cell: replay and the provable report (the Q4 named case)', () => {
+  it('a history cell: detail leads, replay and the provable report follow (the Q4 named case)', () => {
     const p = buildTreeActionPanel('nikaRunHistory', FACTS.nikaHistoryCell.facts, ALL_ON);
-    expect(p.itemRows.map((r) => r.command)).toEqual(['nika.replayTrace', 'nika.history.report']);
+    expect(p.itemRows.map((r) => r.command)).toEqual([
+      'nika.runDetail', 'nika.replayTrace', 'nika.history.report',
+    ]);
     expect(p.itemRows.every((r) => r.off === undefined)).toBe(true);
   });
 
@@ -169,11 +172,13 @@ describe('greyed with a reason — never hidden, never silent', () => {
     expect(dbg?.off).toBe('this engine has no `nika dap`');
   });
 
-  it('a history cell without a recorded path: the reason rides both rows', () => {
+  it('a history cell without a recorded path: the reason rides every row', () => {
     const facts: TreeItemFacts = { kind: 'historyCell', label: '#4', element: {}, hasTrace: false };
     const p = buildTreeActionPanel('nikaRunHistory', facts, ALL_ON);
-    expect(p.itemRows.map((r) => r.command)).toEqual(['nika.history.report']);
-    expect(p.itemRows[0].off).toBe('this run recorded no trace path');
+    // No click (no path) → no detail row; replay + report stay VISIBLE,
+    // each greyed with the reason (the §7d law: explain, never hide).
+    expect(p.itemRows.map((r) => r.command)).toEqual(['nika.replayTrace', 'nika.history.report']);
+    for (const r of p.itemRows) { expect(r.off).toBe('this run recorded no trace path'); }
   });
 });
 
@@ -187,10 +192,12 @@ describe('threading — the same argument the inline icon would pass', () => {
     }
   });
 
-  it('replay and diff take the trace URI, not the element (their real shape)', () => {
+  it('detail, replay and diff take the trace URI, not the element (their real shape)', () => {
     const p = buildTreeActionPanel('nikaRuns', FACTS.nikaTrace.facts, ALL_ON);
+    const detail = p.itemRows.find((r) => r.command === 'nika.runDetail');
     const replay = p.itemRows.find((r) => r.command === 'nika.replayTrace');
     const diff = p.itemRows.find((r) => r.command === 'nika.diffTraces');
+    expect(detail?.args).toEqual([FACTS.nikaTrace.facts.traceUri]);
     expect(replay?.args).toEqual([FACTS.nikaTrace.facts.traceUri]);
     expect(diff?.args).toEqual([FACTS.nikaTrace.facts.traceUri]);
   });

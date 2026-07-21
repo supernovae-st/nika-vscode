@@ -389,7 +389,9 @@ describe('F4 · the recorded runs', () => {
     const a = items.find((x) => x.label === 'a.ndjson')!;
     expect(a.detail).toBe('paused · daily-digest');
     expect(a.keywords).toEqual(['paused', 'daily-digest']);
-    expect(a.run).toEqual({ command: 'nika.replayTrace', args: ['uri:/t/a.ndjson'] });
+    // The one primary every run item shares (§7e): the row opens the
+    // run's DETAIL; replay stays a chord and a tree-panel row away.
+    expect(a.run).toEqual({ command: 'nika.runDetail', args: ['uri:/t/a.ndjson'] });
     const rows = gateScreen('paused', mergeCatalog([], [], items), [], [], {}, NOW);
     expect(rows[0]).toMatchObject({ kind: 'item', item: { id: 'run./t/a.ndjson' } });
   });

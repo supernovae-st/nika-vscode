@@ -10,9 +10,14 @@ major.minor from 0.97).
 
 - **`⌘K ⌘M` now opens root search**: every command and task in one ranked list · match quality first, learned habit second (7-day half-life, never crossing a match tier), declaration order last · the journey menu lives on as the resting screen (your next step under `Now`, everything else habits-first) and `Nika: Command Menu` opens the same gate.
 - **A query never dead-ends**: zero matches fall onto ranked fallbacks with the query as the argument (did-you-mean · generate · new workflow with the name prefilled · run history · the VS Code palette) · `Nika: Reset Search Ranking` forgets the learned order with a status-bar breath, never a toast.
-- **The root search now reaches your workflows and runs**: both families append right after the gate paints (a keystroke never triggers a scan) · a workflow row opens the file and speaks its cached check state · a run row replays the journal, paused runs leading · the run-history fallback finally carries your query into the view as its initial task filter.
+- **The root search now reaches your workflows and runs**: both families append right after the gate paints (a keystroke never triggers a scan) · a workflow row opens the file and speaks its cached check state · a run row opens the run's detail, paused runs leading · the run-history fallback finally carries your query into the view as its initial task filter.
 - **The omnibar bridges to the gate**: a mistyped `+` token's did-you-mean list now closes on `Open root search` with the token as the query (the `⌘K ⌘M` chord taught in place) · and the generated draft's confirm gains the same door with the whole intent prefilled, the staged draft left open: one launcher, no fail path dead-ends.
 - **Your own two letters beat everything**: `nika.search.aliases` maps an alias to any row (`{ "rw": "nika.runWorkflow" }`) · the exact query ranks its row first, above every literal match and learned habit, and the row teaches it back as `· rw` · strict, never fuzzy (`r` does not reach `rw`) · a target the catalog lacks is skipped in silence and the query falls back on the normal ranking.
+
+### Every run opens its detail
+
+- **Enter on a run now opens its detail page**: one calm page per recorded run (verdict · per-task breakdown · artifacts · spend when the trace priced anything · the question when a run waits on you), read from the journal alone and re-rendered live while an engine writes it · Runs rows, History cells and the root search's run family all walk through the same door · replay keeps its chord (`⌘K ⌘P`), its `⌘K ⌘.` row and the palette.
+- **Run rows wear the same three columns everywhere**: status glyph first, duration, age last · one pure composer serves Runs and History, so the two trees cannot drift apart.
 
 ### The trees earn their action panel
 

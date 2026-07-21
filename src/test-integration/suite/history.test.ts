@@ -157,9 +157,25 @@ suite('nika-lang · run history (V-SOTA.B B2 · the native tree)', () => {
     assert.ok(text.includes('## Flaky tasks'), 'the export carries the flaky callout (flk is flaky)');
     assert.ok(text.includes('## Slowing down'), 'the export carries the slowdown callout (slw is slowing)');
 
+    // The detail door (§7e): the one primary every run item shares —
+    // a real host materializes the nika-run: page with its sections.
+    const folder = vscode.workspace.workspaceFolders![0].uri.fsPath;
+    const newestTrace = vscode.Uri.file(path.join(folder, '.nika', 'traces', 'run-4.ndjson'));
+    await vscode.commands.executeCommand('nika.runDetail', newestTrace);
+    await sleep(800);
+    const detail = vscode.workspace.textDocuments.find((d) => d.uri.scheme === 'nika-run');
+    assert.ok(detail, 'nika.runDetail must materialize a nika-run: document');
+    const detailText = detail!.getText();
+    assert.ok(detailText.includes('# Run detail — history-int'), 'the page titles on the recorded workflow name');
+    assert.ok(detailText.includes('## Tasks'), 'the page carries the per-task breakdown');
+    assert.ok(detailText.includes('| `slw` |'), 'every folded task appears as a row');
+    assert.ok(!detailText.includes('](command:'), 'not one command: link (dead in the preview — annexe R)');
+
     // The wrappers hold the law: garbage in → silent no-op, never a throw.
     await vscode.commands.executeCommand('nika.history.report');
     await vscode.commands.executeCommand('nika.history.report', { traceFsPath: 42 });
+    await vscode.commands.executeCommand('nika.runDetail');
+    await vscode.commands.executeCommand('nika.runDetail', { traceFsPath: 42 });
     await vscode.commands.executeCommand('nika.runs.showTaskInDag');
     await vscode.commands.executeCommand('nika.runs.showTaskInDag', { taskId: 'flk' });
 
