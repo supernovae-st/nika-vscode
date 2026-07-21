@@ -31,6 +31,7 @@ import type { FrecencyStore, SearchItem } from '../core/rootSearch';
 import {
   FRECENCY_KEY,
   acceptPick,
+  applyAliases,
   buildCatalog,
   buildRestingFoot,
   buildRestingHead,
@@ -38,6 +39,8 @@ import {
   buildWorkflowItems,
   gateScreen,
   mergeCatalog,
+  rowDescription,
+  type AliasMap,
   type GateRow,
   type ManifestLike,
   type RunSearchFact,
@@ -60,12 +63,13 @@ interface GateQuickPickItem extends vscode.QuickPickItem {
 }
 
 /** One row → one QuickPick item · `alwaysShow` on EVERY row, so the
- *  native filter can never fight the model's ranking. */
+ *  native filter can never fight the model's ranking. The description
+ *  seat is the pure half's (detail · chord · the alias badge last). */
 function toQuickPickItem(r: GateRow): GateQuickPickItem {
   if (r.kind === 'separator') {
     return { label: r.label, kind: vscode.QuickPickItemKind.Separator, alwaysShow: true };
   }
-  const description = [r.item.detail, r.item.chord].filter(Boolean).join(' · ');
+  const description = rowDescription(r.item);
   return {
     label: r.item.label,
     ...(description !== '' ? { description } : {}),
@@ -94,13 +98,17 @@ export function registerSearchGate(
 
       // The synchronous families, fresh at open (manifest + vocabulary
       // + the journey head — cheap, and the screen is never stale).
+      // The assigned aliases read once per open with them: applyAliases
+      // runs over every (re)built catalog, so an alias can target any
+      // family's id and a broken target stays a silent no-op.
       const caps = service.caps;
+      const aliases = vscode.workspace.getConfiguration('nika').get<AliasMap>('search.aliases', {});
       const sync = buildCatalog(
         context.extension.packageJSON as ManifestLike,
         chords,
         buildAddTaskPicks(service.toolCats),
       );
-      let catalog: SearchItem[] = sync;
+      let catalog: SearchItem[] = applyAliases(sync, aliases);
       const j = getJourney();
       const activeDoc = vscode.window.activeTextEditor?.document;
       const active = activeDoc?.languageId === 'nika'
@@ -161,7 +169,7 @@ export function registerSearchGate(
       const land = (): void => {
         if (!open) { return; }
         pending -= 1;
-        catalog = mergeCatalog(sync, wfItems, runItems);
+        catalog = applyAliases(mergeCatalog(sync, wfItems, runItems), aliases);
         if (pending === 0) { qp.busy = false; }
         render(qp.value);
       };

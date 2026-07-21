@@ -12,6 +12,7 @@ major.minor from 0.97).
 - **A query never dead-ends**: zero matches fall onto ranked fallbacks with the query as the argument (did-you-mean · generate · new workflow with the name prefilled · run history · the VS Code palette) · `Nika: Reset Search Ranking` forgets the learned order with a status-bar breath, never a toast.
 - **The root search now reaches your workflows and runs**: both families append right after the gate paints (a keystroke never triggers a scan) · a workflow row opens the file and speaks its cached check state · a run row replays the journal, paused runs leading · the run-history fallback finally carries your query into the view as its initial task filter.
 - **The omnibar bridges to the gate**: a mistyped `+` token's did-you-mean list now closes on `Open root search` with the token as the query (the `⌘K ⌘M` chord taught in place) · and the generated draft's confirm gains the same door with the whole intent prefilled, the staged draft left open: one launcher, no fail path dead-ends.
+- **Your own two letters beat everything**: `nika.search.aliases` maps an alias to any row (`{ "rw": "nika.runWorkflow" }`) · the exact query ranks its row first, above every literal match and learned habit, and the row teaches it back as `· rw` · strict, never fuzzy (`r` does not reach `rw`) · a target the catalog lacks is skipped in silence and the query falls back on the normal ranking.
 
 ### The trees earn their action panel
 
