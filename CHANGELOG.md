@@ -38,6 +38,10 @@ major.minor from 0.97).
 - **Accessibility help**: `Alt+F1` (or `?`) opens the canvas keymap as a real focused dialog; `Nika: Canvas Accessibility Help` serves the same single-source table as a QuickPick from anywhere, editor chords included · linked from the walkthrough.
 - **The canvas cold path warms**: the first keyboard landing on a big graph paints ~4× sooner (measured ~211→~52ms at 300 tasks), the first layout no longer stutters the page mid-wait, and a keyboard jump onto an off-screen card keeps screen-reader focus.
 
+### Deep links from outside
+
+- **`vscode://supernovae.nika-lang/…` opens workflow surfaces from a runbook, a PR or a chat**: five guarded doors (`/run` · `/check` · `/dag` · `/search` · `/demo`) · `file` must be a workspace-relative workflow (absolute · `..` · anything outside the workspace is ignored) · `run`/`check` always ask with a native confirm before the engine touches the file · an unrecognized link breathes in the status bar and does nothing.
+
 ## [0.105.0] · 2026-07-21
 
 The second ascension: thirty deliveries on one canvas. The card

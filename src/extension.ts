@@ -36,6 +36,7 @@ import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWor
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { subCreateAllowed } from './core/webviewPathGuard';
+import { needsConfirm, parseDeepLink } from './core/deepLink';
 import { DagPanel, DagPanelSerializer, type DagEditRequest } from './dagPanel';
 import type { PersistedLayoutEntry } from './webview/layoutCache';
 import {
@@ -3633,6 +3634,89 @@ export function activate(context: ExtensionContext): void {
       } else {
         void informSoftly('binary-predates-lsp', 'Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
       }
+    }),
+  );
+
+  // ─── The front door: vscode:// deep links (external · guarded) ────────────
+  //
+  // `vscode://supernovae.nika-lang/<action>?<query>` — five actions, one
+  // gate (core/deepLink · the welcomeGuard discipline for EXTERNAL input:
+  // strict allowlist · canonical relative workflow paths · fails-closed).
+  // Resolution is a capability, not a path walk: the named file must be
+  // FOUND in this workspace by findFiles (which cannot leave it), so a
+  // link only ever reaches what the workspace already contains — a second
+  // belt on top of the parser's traversal pins. run/check EXECUTE the
+  // engine, so they ask first (modal — an external link is not a human
+  // gesture); dag/search/demo only open surfaces. A bad or unresolvable
+  // link breathes in the status bar and dies — never a toast, never a
+  // throw (notification diet).
+  const handleDeepLink = async (uri: Uri): Promise<void> => {
+    const link = parseDeepLink(uri.path, uri.query);
+    if (!link) {
+      flashStatus('$(circle-slash) Nika: unrecognized link ignored');
+      return;
+    }
+    let target: Uri | undefined;
+    if ('file' in link && link.file !== undefined) {
+      // The parser guarantees a literal relative path (no glob metachars),
+      // so findFiles matches at most the exact relative location per
+      // workspace folder; the asRelativePath belt drops any case-fold or
+      // multi-root surprise. Zero hits (including the no-folder window)
+      // close the door with a breath.
+      const hits = await workspace.findFiles(link.file, '**/node_modules/**', 2);
+      const exact = hits.filter((h) => workspace.asRelativePath(h, false) === link.file);
+      if (exact.length !== 1) {
+        // Zero hits (including the no-folder window) OR two workspace
+        // folders carrying the same relative path — ambiguity closes the
+        // door like a repeated key does (never a nondeterministic pick).
+        flashStatus(exact.length === 0
+          ? `$(circle-slash) Nika: link target not in this workspace — ${link.file}`
+          : `$(circle-slash) Nika: link target is ambiguous across workspace folders — ${link.file}`);
+        return;
+      }
+      target = exact[0];
+    }
+    switch (link.action) {
+      case 'run':
+      case 'check': {
+        // The WALL at the front door: an external link is not a human
+        // gesture — execution waits for the modal (needsConfirm is
+        // unit-pinned true for exactly these two).
+        if (needsConfirm(link)) {
+          const verb = link.action === 'run' ? 'Run' : 'Check';
+          const pick = await window.showInformationMessage(
+            `Nika: a link from outside VS Code asks to ${link.action} “${link.file}”. ${verb} it?`,
+            { modal: true },
+            verb,
+          );
+          if (pick !== verb) { return; }
+        }
+        await commands.executeCommand(
+          link.action === 'run' ? 'nika.runWorkflow' : 'nika.checkWorkflow',
+          target,
+        );
+        return;
+      }
+      case 'dag':
+        await commands.executeCommand('nika.showDag', target);
+        return;
+      case 'search':
+        await commands.executeCommand('nika.search', link.query ?? '');
+        return;
+      case 'demo':
+        await commands.executeCommand('nika.tryDemo');
+        return;
+    }
+  };
+  context.subscriptions.push(
+    window.registerUriHandler({
+      handleUri: (uri: Uri): void => {
+        // The door never crashes the host: a failing resolution or a
+        // rejecting command lands as the same quiet breath as a bad link.
+        handleDeepLink(uri).catch(() => {
+          flashStatus('$(circle-slash) Nika: link could not open its target');
+        });
+      },
     }),
   );
 

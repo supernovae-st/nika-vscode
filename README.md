@@ -574,6 +574,26 @@ cross-links, in the **Feature Contributions** tab.
 | `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
 | `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
 
+## Deep links
+
+A runbook, a PR description or a chat message can open the editor
+straight onto a workflow surface with a `vscode://` link:
+
+```text
+vscode://supernovae.nika-lang/dag?file=deploy.nika.yaml     open the canvas on a workflow
+vscode://supernovae.nika-lang/check?file=deploy.nika.yaml   audit it (asks first)
+vscode://supernovae.nika-lang/run?file=deploy.nika.yaml     run it (asks first)
+vscode://supernovae.nika-lang/search?q=deploy               open root search, seeded
+vscode://supernovae.nika-lang/demo                          land the offline demo
+```
+
+Links are guarded: `file` must be a workspace-relative workflow path
+(absolute paths, `..`, and anything that resolves outside the open
+workspace are ignored), and a link never executes anything on its own ·
+`run` and `check` always ask with a native confirm before the engine
+touches the file. An unrecognized link breathes in the status bar and
+does nothing.
+
 ## The language
 
 **4 verbs · locked forever.**

@@ -58,7 +58,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:nika",
-    "workspaceContains:**/*.nika.yaml"
+    "workspaceContains:**/*.nika.yaml",
+    "onUri"
   ],
   "extensionKind": [
     "workspace"
