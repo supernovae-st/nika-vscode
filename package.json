@@ -1728,7 +1728,8 @@
     "test": "vitest run && node scripts/parity.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
-    "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js",
+    "test:integration": "npm run compile && npm run compile:integration && node out-integration/runTests.js && node out-integration/runFirstContact.js",
+    "test:e2e:first-contact": "npm run compile && npm run compile:integration && node out-integration/runFirstContact.js",
     "package": "vsce package"
   },
   "dependencies": {
