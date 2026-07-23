@@ -1179,7 +1179,8 @@ export class DagPanel implements vscode.Disposable {
       </div>
       <form id="es-describe" autocomplete="off">
         <input id="es-describe-input" type="text"
-               placeholder="Describe your workflow — “fetch HN, rank, post the brief to Slack”…"
+               placeholder="Describe your workflow — “fetch HN, post the brief”…"
+               data-short-placeholder="Describe your workflow…"
                aria-label="Describe the workflow to generate">
         <button id="es-describe-go" type="submit" title="Generate it (checked by the engine before it lands)">${SPARKLE_SVG}</button>
       </form>

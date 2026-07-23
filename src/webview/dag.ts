@@ -2027,6 +2027,17 @@ class DagRenderer {
     this.timelineOn = !this.timelineOn;
     document.body.classList.toggle('timeline', this.timelineOn);
     if (this.timelineOn) {
+      // Words FIRST, data second: the lens paints its waiting line in the
+      // toggle's own frame — a host that answers slowly (or never: the
+      // request rides one message) must never leave a nude canvas with
+      // no words and no way to know Esc returns. renderTimeline replaces
+      // this group the moment truth lands.
+      this.timelineGroup?.remove();
+      const g = this.rootGroup.append<SVGGElement>('g').attr('class', 'tl-group');
+      this.timelineGroup = g;
+      g.append('text').attr('class', 'tl-empty').attr('x', 0).attr('y', 20)
+        .text('reading the recorded truth… (T or Esc returns to the map)');
+      this.fitTimeline();
       vscode.postMessage({ kind: 'timeline:request', workflowUri: this.currentGraph?.workflowUri });
     } else {
       this.timelineGroup?.remove();
@@ -9048,7 +9059,7 @@ document.addEventListener('pointerdown', (e) => {
 // ellipsize, it hard-clips at the field edge.
 const SHORT_PLACEHOLDER_MQ = window.matchMedia('(max-width: 560px)');
 function syncPlaceholders(): void {
-  for (const id of ['omni-input', 'cd-input']) {
+  for (const id of ['omni-input', 'cd-input', 'es-describe-input']) {
     const el = document.getElementById(id) as HTMLInputElement | null;
     if (!el) { continue; }
     if (!el.dataset.fullPlaceholder) { el.dataset.fullPlaceholder = el.placeholder; }
