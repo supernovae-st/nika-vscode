@@ -4,6 +4,12 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [Unreleased]
+
+### The canvas door never dead-ends
+
+- **A bare `Show DAG` finds your workflow**: the door walks a calm ladder — the active editor · the workflow the canvas already holds · a single visible workflow editor · a single workspace workflow — and only an honestly ambiguous state lands on the welcome home. The reported class dies: clicking the door while a tree or the webview held focus no longer replaces a live graph with the onboarding pitch.
+
 ## [0.105.0] · 2026-07-24
 
 The second ascension, whole: one hundred and thirty deliveries on one
