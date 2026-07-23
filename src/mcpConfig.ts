@@ -135,7 +135,7 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
     '',
     '## Key Rules',
     '- Interpolation: ${{ vars.x }} · ${{ env.KEY }} · ${{ with.alias }} — `tasks.*` ONLY inside with:/after:/on_error.recover (NIKA-VAR-021 elsewhere)',
-    '- The binding IS the edge: with: { alias: ${{ tasks.id.output }} } then the body reads ${{ with.alias }}',
+    '- The binding IS the edge: with: { alias: "${{ tasks.id.output }}" } (quote it in flow style — or use block style) then the body reads ${{ with.alias }}',
     '- Order without data: after: { task_id: succeeded } (predicates: succeeded | failed | skipped | terminal) — depends_on is dead (NIKA-PARSE-024 · check --fix migrates)',
     '- Model: combined form `model: provider/name` (e.g. ollama/llama3.2 · mock/echo for tests)',
     '- timeout is a Go-duration string, quoted: timeout: "5m"',

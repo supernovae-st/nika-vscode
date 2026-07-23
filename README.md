@@ -626,7 +626,7 @@ tasks:
   fetch_pr:
     invoke: { tool: "nika:fetch", args: { url: "${{ vars.pr_url }}" } }
   analyze_diff:
-    with: { diff: ${{ tasks.fetch_pr.output }} }
+    with: { diff: "${{ tasks.fetch_pr.output }}" }
     infer: { prompt: "Plan the review of ${{ with.diff }}." }
 
   # nika:region Ship
