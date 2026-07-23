@@ -8155,6 +8155,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       break;
     case 'run:state':
       setRunUiState(msg.running);
+      // A fresh run replaces any held verdict (the failed banner holds
+      // the floor between runs, never OVER a running graph).
+      if (msg.running) { hideRunVerdict(); }
       // The narrator's run gate: start speaks assertive with the task
       // count; stop just closes the gate (the verdict line is the close).
       if (msg.running) { speak(narrator.runStarted(renderer.taskCount, performance.now())); }
@@ -8310,7 +8313,10 @@ function showRunVerdict(icon: string, text: string, cls: string): void {
   // Double-rAF so the transition runs on reveal (hidden → visible needs a
   // painted frame in between); reduced-motion gets no slide via CSS.
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('rv-in')));
-  verdictTimer = setTimeout(hideRunVerdict, 8000);
+  // 8 seconds is for good news. A failure holds the floor until the user
+  // dismisses it (click) or the next run replaces it — the summary-level
+  // cause must survive a glance away.
+  if (cls !== 'st-failed') { verdictTimer = setTimeout(hideRunVerdict, 8000); }
 }
 
 document.getElementById('run-verdict')?.addEventListener('click', () => {
