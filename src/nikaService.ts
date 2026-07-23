@@ -12,6 +12,7 @@ import * as path from 'path';
 import { EventEmitter, type Event, type TextDocument } from 'vscode';
 import {
   buildCapabilities,
+  hasSchemaDoor,
   noCapabilities,
   type CapabilitySet,
 } from './core/capabilities';
@@ -187,7 +188,7 @@ export class NikaService {
     // Load the schema/canon-derived vocabulary (async — providers pick it
     // up on the next query; a change event re-renders open surfaces).
     this.intelValue = undefined;
-    if (this.capsValue.schema && this.capsValue.spec) {
+    if (hasSchemaDoor(this.capsValue)) {
       // New door first (engine ≥ the Rams pass: `spec --schema`), the
       // retired `schema` verb as the published-binary fallback.
       const [schemaNew, canonRes] = await Promise.all([
@@ -577,7 +578,7 @@ export class NikaService {
   }
 
   async schemaText(): Promise<string | undefined> {
-    if (!this.caps.schema) { return undefined; }
+    if (!hasSchemaDoor(this.caps)) { return undefined; }
     // New door first (`spec --schema` · the Rams pass), the retired
     // `schema` verb as the published-binary fallback.
     const fresh = await this.runCli(['spec', '--schema']);
