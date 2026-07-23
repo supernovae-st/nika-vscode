@@ -71,6 +71,15 @@ export function versionAtLeast(versionText: string, major: number, minor: number
   return maj > major || (maj === major && min >= minor);
 }
 
+/** The schema door: 0.105 folded the `schema` verb into `spec --schema`.
+ *  The door is open when EITHER form ships — consumers try the new form
+ *  first and keep the retired verb as the published-binary fallback.
+ *  Gating on `schema` alone left every 0.105 user without schema intel
+ *  (the fallback chain existed but sat behind a dead outer gate). */
+export function hasSchemaDoor(caps: Pick<CapabilitySet, 'spec' | 'schema'>): boolean {
+  return caps.spec || caps.schema;
+}
+
 /** Parse the clap `--help` output into the set of subcommand names. */
 export function parseHelpCommands(helpText: string): Set<string> {
   const commands = new Set<string>();
