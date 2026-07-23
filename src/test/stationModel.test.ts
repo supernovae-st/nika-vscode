@@ -12,6 +12,7 @@ import {
   formatBytes,
   formatCost,
   parseDoctorReport,
+  parseModelList,
   parseWelcomeDeep,
   type StationRow,
 } from '../core/stationModel';
@@ -310,5 +311,35 @@ describe('buildStationRows — probe honesty (census pattern 5)', () => {
     expect(all.find((r) => r.id === 'engine.predates')).toBeDefined();
     expect(all.find((r) => r.id === 'doctor.broke')).toBeUndefined();
     expect(all.find((r) => r.id === 'deep.broke')).toBeUndefined();
+  });
+});
+
+describe('parseModelList — the pulled-GGUF rows (plain text · real 0.105 shape)', () => {
+  const REAL = [
+    'models · /Users/x/.nika/models',
+    '  Qwen/Qwen3-0.6B-GGUF:Q8_0                    ·  609.8 MiB  ·  Qwen3-0.6B-Q8_0.gguf',
+    '  bartowski/SmolLM2-135M-Instruct-GGUF:Q4_K_M  ·  100.6 MiB  ·  SmolLM2-135M-Instruct-Q4_K_M.gguf  ·  llama — runner-only',
+    '',
+    'serve one: nika model serve --model <id>  ·  reclaim: nika model rm <id>',
+  ].join('\n');
+
+  it('parses the indented rows · header and footer teachings skipped', () => {
+    const models = parseModelList(REAL);
+    expect(models).toHaveLength(2);
+    expect(models[0]).toEqual({
+      id: 'Qwen/Qwen3-0.6B-GGUF:Q8_0',
+      size: '609.8 MiB',
+      file: 'Qwen3-0.6B-Q8_0.gguf',
+    });
+    expect(models[1].note).toBe('llama — runner-only');
+  });
+
+  it('an empty models dir yields the honest empty list', () => {
+    expect(parseModelList('models · /Users/x/.nika/models\n\nserve one: …')).toEqual([]);
+    expect(parseModelList('')).toEqual([]);
+  });
+
+  it('unexpected shapes fall out silently — never a throw', () => {
+    expect(parseModelList('  just-one-field\n  two · fields')).toEqual([]);
   });
 });

@@ -20,6 +20,8 @@ export interface CapabilitySet {
   init: boolean;
   spec: boolean;
   schema: boolean;
+  /** `nika model` — local GGUFs: pull · serve · list · rm (0.105+). */
+  model: boolean;
   examples: boolean;
   newTemplate: boolean;
   trace: boolean;
@@ -121,6 +123,7 @@ export function buildCapabilities(
     init: commands.has('init'),
     spec: commands.has('spec'),
     schema: commands.has('schema'),
+    model: commands.has('model'),
     examples: commands.has('examples'),
     newTemplate: commands.has('new'),
     trace: commands.has('trace'),

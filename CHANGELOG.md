@@ -6,6 +6,11 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Local models become visible: the sovereign lane gets its rows
+
+- **The Station lists your pulled GGUFs**: under Providers, one row per model (`owner/repo:QUANT` · size · file · the engine's own remark), read live from `nika model list` on a binary that carries the verb · the summary count stops being the whole story.
+- **`Serve a model…` is one gesture away**: a Station row (and `Nika: Serve a Local Model` in the palette) picks among your pulled models and opens the OpenAI-compatible server in a terminal · foreground on purpose: the banner says how workflows reach it, Ctrl-C stops it where it started.
+
 ### The breathe hint: one quiet offer, once
 
 - **A narrow panel holding a big graph offers the one gesture that helps**: `◫ this canvas breathes wider · tap to maximize the group` · an ephemeral line above the omnibar (the first-hint discipline: fades in 10s, fires once per workspace, never a toast) · tapping it toggles the editor-group maximize, and the same toggle brings your layout back.

@@ -172,6 +172,34 @@ export type Probe<T> =
   /** Real output that would not parse — engine/extension mismatch. */
   | { kind: 'unparseable'; detail: string };
 
+/** One pulled GGUF, as `nika model list` prints it. */
+export interface LocalModel {
+  /** `owner/repo:QUANT` — the id `serve --model` resolves. */
+  id: string;
+  /** Human size, engine-formatted (`609.8 MiB`). */
+  size: string;
+  /** The file inside the ONE models dir. */
+  file: string;
+  /** The engine's trailing remark, verbatim (`llama — runner-only`). */
+  note?: string;
+}
+
+/** Parse `nika model list` (plain text · no JSON door): model rows are
+ *  the indented ` · `-separated lines; the header (models dir) and the
+ *  footer teachings are unindented and skipped. Unexpected shapes fall
+ *  out silently — an empty list is the honest floor. */
+export function parseModelList(stdout: string): LocalModel[] {
+  const models: LocalModel[] = [];
+  for (const raw of stdout.split('\n')) {
+    if (!/^\s{2,}\S/.test(raw)) { continue; }
+    const parts = raw.trim().split(/\s+·\s+/);
+    if (parts.length < 3) { continue; }
+    const [id, size, file, ...rest] = parts;
+    models.push({ id, size, file, ...(rest.length > 0 ? { note: rest.join(' · ') } : {}) });
+  }
+  return models;
+}
+
 export interface StationSnapshot {
   /** Which binary won the resolution ladder (absent = none found). */
   binaryPath?: string;
@@ -188,6 +216,9 @@ export interface StationSnapshot {
   deepBroke?: string;
   /** Workspace scaffold facts (rules files the extension can see). */
   rulesPresent?: boolean;
+  /** Pulled local GGUFs (`nika model list` · absent when the verb is
+   *  not carried or the probe failed — the summary row stays honest). */
+  models?: LocalModel[];
 }
 
 export type StationRowKind =
@@ -387,6 +418,19 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
   // Providers (sovereign first — local models are a first-class row).
   if (snap.deep) {
     const env = snap.deep.environment;
+    // The pulled GGUFs, one row each — engine truth (`model list`),
+    // absent rows when the verb is not carried. Serve is a DOOR, not a
+    // toggle: the server is a foreground process, so the terminal is
+    // the honest vehicle (Ctrl-C stops it where it started).
+    const modelRows: StationRow[] = (snap.models ?? []).map((m) => ({
+      kind: 'fact',
+      id: `providers.model.${m.id}`,
+      label: m.id,
+      description: `${m.size} · ${m.file}${m.note !== undefined ? ` · ${m.note}` : ''}`,
+      tooltip: `serve: nika model serve --model ${m.id}\nreclaim: nika model rm ${m.id}`,
+      icon: 'chip',
+      level: 'ok',
+    }));
     nowChildren.push({
       kind: 'section',
       id: 'providers',
@@ -402,6 +446,17 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
           icon: 'vm',
           level: 'ok',
         },
+        ...modelRows,
+        ...(modelRows.length > 0
+          ? [{
+            kind: 'action' as const,
+            id: 'providers.serve',
+            label: 'Serve a model…',
+            description: 'OpenAI-compatible · 127.0.0.1 · foreground terminal',
+            icon: 'play-circle',
+            command: { id: 'nika.station.serveModel' },
+          }]
+          : []),
         {
           kind: 'fact',
           id: 'providers.cloud',
