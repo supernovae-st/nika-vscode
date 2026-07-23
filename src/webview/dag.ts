@@ -6994,8 +6994,17 @@ class DagRenderer {
 
     // Chrome floats OVER the canvas (top rail · omnibar · legend · the
     // plan rail's left column) — the fit parks the graph in the visible
-    // pool between them, or cards hide under pills forever.
-    const leftInset = document.body.classList.contains('has-rail') ? 132 : 0;
+    // pool between them, or cards hide under pills forever. The rail
+    // inset counts ONLY while the rail is actually painted: CSS hides it
+    // under 1000px, and paying 132px for an invisible element parked the
+    // graph right with a dead left gutter in narrow panels.
+    const railPainted = document.body.classList.contains('has-rail')
+      && window.matchMedia('(min-width: 1000px)').matches
+      && window.matchMedia('(min-height: 461px)').matches;
+    const leftInset = railPainted ? 132 : 0;
+    // Breathing room scales down with the panel — a fixed 40px ate a
+    // fifth of a sidebar-docked canvas.
+    const fitPad = Math.min(PADDING, Math.round(Math.min(svgW, svgH) * 0.05));
     const usableH = Math.max(svgH - TOP_INSET - 96, 160);
     const usableW = Math.max(svgW - leftInset, 240);
 
@@ -7010,17 +7019,17 @@ class DagRenderer {
         maxX = Math.max(maxX, b.x + b.w);
         maxY = Math.max(maxY, b.y + b.h);
       }
-      graphW = maxX + PADDING;
-      graphH = maxY + PADDING;
+      graphW = maxX + fitPad;
+      graphH = maxY + fitPad;
     } else if (elkResult) {
-      graphW = (elkResult.width ?? svgW) + PADDING * 2;
-      graphH = (elkResult.height ?? svgH) + PADDING * 2;
+      graphW = (elkResult.width ?? svgW) + fitPad * 2;
+      graphH = (elkResult.height ?? svgH) + fitPad * 2;
     } else {
       const rootNode = this.rootGroup.node();
       if (!rootNode) return;
       const bbox = rootNode.getBBox();
-      graphW = bbox.width + PADDING * 2;
-      graphH = bbox.height + PADDING * 2;
+      graphW = bbox.width + fitPad * 2;
+      graphH = bbox.height + fitPad * 2;
     }
 
     const scale = Math.min(usableW / graphW, usableH / graphH, 1.5);
@@ -7032,6 +7041,25 @@ class DagRenderer {
     // animate — `instant` rides down from the key handlers, and the
     // jump applies in the press's own frame (applyCamera).
     this.applyCamera(t, instant || REDUCED_MOTION ? 0 : 500);
+  }
+
+  /** Post-resize guard: when the WHOLE graph sits outside the shrunken
+   *  viewport, re-fit — a panning user keeps their camera as long as any
+   *  card still touches the visible pool. */
+  refitIfLost(): void {
+    if (this.layoutBox.size === 0) { return; }
+    const { w: svgW, h: svgH } = this.svgSize();
+    if (svgW === 0 || svgH === 0) { return; }
+    let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+    for (const b of this.layoutBox.values()) {
+      minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
+    }
+    const lost = maxX * this.currentZoom + this.currentTx < 0
+      || maxY * this.currentZoom + this.currentTy < 0
+      || minX * this.currentZoom + this.currentTx > svgW
+      || minY * this.currentZoom + this.currentTy > svgH;
+    if (lost) { this.fitToView(undefined, true); }
   }
 
   zoomIn(instant = false): void {
@@ -8939,6 +8967,84 @@ function renderWelcomeRecent(recent: Array<{ name: string; uri: string; rel: str
   });
 }
 
+// ─── The ⋯ door · what a narrow width sheds stays one click away ────────────
+// The CSS ladder hides lens/zoom buttons as the panel narrows; the door
+// lists every shed button (same title, same handler) and hides itself
+// while nothing hides. Keyboard chords keep working throughout — this
+// restores the VISIBLE reach.
+function shedButtons(): HTMLButtonElement[] {
+  const bar = document.getElementById('dag-toolbar');
+  if (!bar) { return []; }
+  return [...bar.querySelectorAll<HTMLButtonElement>('button')]
+    .filter((b) => b.id !== 'btn-more' && b.offsetParent === null);
+}
+
+function closeMorePop(): void {
+  document.getElementById('tb-more-pop')?.setAttribute('hidden', '');
+  document.getElementById('btn-more')?.setAttribute('aria-expanded', 'false');
+}
+
+function refreshMoreDoor(): void {
+  const group = document.getElementById('tb-more-group');
+  if (!group) { return; }
+  const any = shedButtons().length > 0;
+  group.toggleAttribute('hidden', !any);
+  if (!any) { closeMorePop(); }
+}
+
+document.getElementById('btn-more')?.addEventListener('click', () => {
+  const pop = document.getElementById('tb-more-pop');
+  const btn = document.getElementById('btn-more');
+  if (!pop || !btn) { return; }
+  if (!pop.hasAttribute('hidden')) { closeMorePop(); return; }
+  pop.replaceChildren();
+  for (const b of shedButtons()) {
+    const row = document.createElement('button');
+    row.className = 'tbm-row';
+    row.setAttribute('role', 'menuitem');
+    const glyph = document.createElement('span');
+    glyph.className = 'tbm-glyph';
+    glyph.textContent = (b.childNodes[0]?.textContent ?? '').trim().split(/\s+/)[0] || '·';
+    const label = document.createElement('span');
+    label.textContent = (b.title.split(/\s+[—·]\s+/)[0] || b.title).trim();
+    row.append(glyph, label);
+    const kbd = b.querySelector('kbd')?.textContent;
+    if (kbd) {
+      const hint = document.createElement('span');
+      hint.className = 'tbm-kbd';
+      hint.textContent = kbd;
+      row.append(hint);
+    }
+    row.addEventListener('click', () => { closeMorePop(); b.click(); });
+    pop.append(row);
+  }
+  pop.removeAttribute('hidden');
+  btn.setAttribute('aria-expanded', 'true');
+  (pop.firstElementChild as HTMLElement | null)?.focus();
+});
+
+document.addEventListener('pointerdown', (e) => {
+  const pop = document.getElementById('tb-more-pop');
+  if (!pop || pop.hasAttribute('hidden')) { return; }
+  const t = e.target as Element;
+  if (!pop.contains(t) && t.id !== 'btn-more' && !t.closest('#btn-more')) { closeMorePop(); }
+});
+
+// Tiny widths teach a shorter line — an input placeholder cannot
+// ellipsize, it hard-clips at the field edge.
+const SHORT_PLACEHOLDER_MQ = window.matchMedia('(max-width: 560px)');
+function syncPlaceholders(): void {
+  for (const id of ['omni-input', 'cd-input']) {
+    const el = document.getElementById(id) as HTMLInputElement | null;
+    if (!el) { continue; }
+    if (!el.dataset.fullPlaceholder) { el.dataset.fullPlaceholder = el.placeholder; }
+    const short = el.dataset.shortPlaceholder;
+    el.placeholder = SHORT_PLACEHOLDER_MQ.matches && short
+      ? short
+      : el.dataset.fullPlaceholder ?? el.placeholder;
+  }
+}
+
 // Panel resize re-scales the responsive minimap card (debounced) and
 // re-frames the culling viewport (rAF-coalesced — a wider panel must
 // wake the cards it now shows).
@@ -8946,8 +9052,10 @@ let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 window.addEventListener('resize', () => {
   renderer.refreshViewSizes();
   renderer.scheduleCull();
+  refreshMoreDoor();
+  syncPlaceholders();
   if (resizeTimer) { clearTimeout(resizeTimer); }
-  resizeTimer = setTimeout(() => renderer.refreshMinimap(), 150);
+  resizeTimer = setTimeout(() => { renderer.refreshMinimap(); renderer.refitIfLost(); }, 150);
 });
 
 // First-contact hint: one discreet line, once ever — the gestures are
@@ -8976,6 +9084,10 @@ if (!vscode.getState()?.seenHint) {
   };
   window.addEventListener('message', firstGraphListener);
 }
+
+// The width-dependent chrome speaks its truth from the first paint.
+refreshMoreDoor();
+syncPlaceholders();
 
 // ─── Signal Ready ───────────────────────────────────────────────────────────
 vscode.postMessage({ kind: 'dag:ready' });

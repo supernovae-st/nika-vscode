@@ -79,26 +79,30 @@
       <button id="zoom-pct">100%</button>
       <button id="btn-zoom-in">＋</button>
       <span class="tb-inner-sep"></span>
-      <button id="btn-fit">Fit<kbd>F</kbd></button>
-      <button id="btn-relayout">⌗<kbd>A</kbd></button>
+      <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
+      <button id="btn-relayout" title="Auto-layout — drop the dragged card positions">⌗<kbd>A</kbd></button>
     </div>
     <div class="tb-group">
-      <button id="btn-waves">≋<kbd>W</kbd></button>
-      <button id="btn-timeline">▧<kbd>T</kbd></button>
-      <button id="btn-audit">▦<kbd>P</kbd></button>
-      <button id="btn-dataflow">⇉<kbd>D</kbd></button>
-      <button id="btn-curve">∿</button>
-      <button id="btn-heat">▥<kbd>H</kbd></button>
-      <button id="btn-follow">⌖<kbd>G</kbd></button>
-      <button id="btn-feed">≣<kbd>L</kbd></button>
-      <button id="btn-help">?<kbd>?</kbd></button>
+      <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline — the run's truth as a Gantt">▧<kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit — what this file can DO before a token is spent">▦<kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow — where the data comes from and goes">⇉<kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges">∿</button>
+      <button id="btn-heat" title="Heatmap — tint cards by duration">▥<kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run — the camera tracks the frontier">⌖<kbd>G</kbd></button>
+      <button id="btn-feed" title="Activity feed — every status transition, live">≣<kbd>L</kbd></button>
+      <button id="btn-help" title="What am I looking at?">?<kbd>?</kbd></button>
+    </div>
+    <div class="tb-group" id="tb-more-group" hidden>
+      <button id="btn-more" title="More tools — everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
     </div>
     <div class="tb-group">
-      <button id="btn-export-svg">⤓ svg</button>
-      <button id="btn-export-png">⤓ png</button>
+      <button id="btn-export-svg" title="Export the graph as SVG">⤓ svg</button>
+      <button id="btn-export-png" title="Export the graph as PNG">⤓ png</button>
     </div>
     <span id="dag-status"></span>
   </div>
+  <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">

@@ -1115,18 +1115,23 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-feed" title="Activity feed — every status transition, live">≣<kbd>L</kbd></button>
       <button id="btn-help" title="What am I looking at?">?<kbd>?</kbd></button>
     </div>
+    <div class="tb-group" id="tb-more-group" hidden>
+      <button id="btn-more" title="More tools — everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
+    </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG (styles embedded)">⤓ svg</button>
       <button id="btn-export-png" title="Export the graph as PNG (2× raster)">⤓ png</button>
     </div>
     <span id="dag-status"></span>
   </div>
+  <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">
       <span class="cd-mark" aria-hidden="true">${SPARKLE_SVG}</span>
       <input id="cd-input" type="text"
              placeholder="Describe this workflow — the tasks land checked by the engine…"
+             data-short-placeholder="Describe this workflow…"
              aria-label="Describe the workflow to generate">
       <button id="cd-go" type="submit" title="Generate it (oracle-checked before it lands)">↵</button>
     </div>
@@ -1236,6 +1241,7 @@ export class DagPanel implements vscode.Disposable {
     </div>
     <input id="omni-input" type="text"
            placeholder="+ infer · + jq after gather · / filter · or describe a workflow… · ↵ everything"
+           data-short-placeholder="+ infer · / filter · ↵ everything"
            aria-label="Canvas command bar">
     <button id="omni-go" title="Run the command (Enter)">↵</button>
   </div>
