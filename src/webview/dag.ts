@@ -748,6 +748,8 @@ interface WebviewState {
   smoothEdges?: boolean;
   showFeed?: boolean;
   seenHint?: boolean;
+  /** The breathe hint fired once — narrow panel · big graph (one per workspace). */
+  seenBreatheHint?: boolean;
   /** Shift+V density dial — which optional card rows the map renders. */
   displayProps?: Partial<DisplayProps>;
   heatmap?: boolean;
@@ -9108,6 +9110,38 @@ if (!vscode.getState()?.seenHint) {
     }
   };
   window.addEventListener('message', firstGraphListener);
+}
+
+// The breathe hint: a NARROW panel holding a BIG graph offers the one
+// gesture that actually helps — once per workspace, an ephemeral line
+// (the first-hint discipline), never a toast. Clicking it maximizes
+// the editor group host-side; the hint itself fades either way.
+if (!vscode.getState()?.seenBreatheHint) {
+  let breatheScheduled = false;
+  const breatheListener = (event: MessageEvent<ExtToWebviewMessage>): void => {
+    if (event.data.kind !== 'dag:load' || breatheScheduled) { return; }
+    breatheScheduled = true;
+    setTimeout(() => {
+      if (vscode.getState()?.seenBreatheHint) { return; }
+      if (window.innerWidth >= 520 || renderer.taskCount <= 20) {
+        breatheScheduled = false; // not this graph — a later, bigger one may qualify
+        return;
+      }
+      const hint = document.createElement('button');
+      hint.id = 'breathe-hint';
+      hint.textContent = '◫ this canvas breathes wider — tap to maximize the group';
+      hint.addEventListener('click', () => {
+        vscode.postMessage({ kind: 'dag:maximize' });
+        hint.remove();
+      });
+      document.body.appendChild(hint);
+      setTimeout(() => hint.classList.add('fade'), 9000);
+      setTimeout(() => hint.remove(), 10000);
+      vscode.setState({ ...(vscode.getState() ?? {}), seenBreatheHint: true });
+      window.removeEventListener('message', breatheListener);
+    }, 900);
+  };
+  window.addEventListener('message', breatheListener);
 }
 
 // The width-dependent chrome speaks its truth from the first paint.
