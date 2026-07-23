@@ -34,6 +34,7 @@ import { registerSearchGate } from './features/searchGate';
 import { WorkflowIndex } from './features/workflowIndex';
 import { SEARCH_COMMAND } from './core/rootSearch';
 import { pickDagTarget } from './core/dagTarget';
+import { budgetError, extraArgsFor } from './core/runInputs';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -2519,6 +2520,54 @@ export function activate(context: ExtensionContext): void {
       }
       if (doc.isDirty) { await doc.save(); }
       runNikaCommand(state.resolvedServerPath, 'run --dry-run', doc.uri.fsPath);
+    }),
+    // Run with inputs — the check report's vars_required IS the input
+    // contract: one type-ahead box per required var (Esc anywhere cancels
+    // the whole run), then an optional spend ceiling riding
+    // --max-cost-usd. The engine still audits first; this just stops the
+    // copy-a-line-to-a-terminal dance for parameterized workflows.
+    commands.registerCommand('nika.runWorkflowWithInputs', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (!(await requireEngine(service, 'running with inputs'))) { return; }
+      if (!service.caps.run) {
+        void informSoftly('binary-predates-run', 'Nika: this binary predates `run` — update it to execute workflows.');
+        return;
+      }
+      if (doc.isDirty) { await doc.save(); }
+      const outcome = await service.checkDocument(doc);
+      const vars = outcome?.report?.requirements?.vars_required ?? [];
+      const answers = new Map<string, string>();
+      for (const v of vars) {
+        const val = await window.showInputBox({
+          title: `Run with inputs · ${v} (${answers.size + 1}/${vars.length})`,
+          prompt: `becomes --var ${v}=…`,
+          ignoreFocusOut: true,
+        });
+        if (val === undefined) { return; }
+        answers.set(v, val);
+      }
+      const budget = await window.showInputBox({
+        title: vars.length > 0 ? 'Spend ceiling (optional)' : 'Run with a spend ceiling',
+        prompt: 'USD · becomes --max-cost-usd · empty runs unbounded',
+        ignoreFocusOut: true,
+        validateInput: budgetError,
+      });
+      if (budget === undefined) { return; }
+      const extraArgs = extraArgsFor(answers, budget);
+      if (doc.uri.scheme === 'file'
+        && workspace.getConfiguration('nika').get<boolean>('run.liveDag', true)) {
+        dagWorkflowUri = doc.uri;
+        const graph = await loadGraphFor(doc);
+        dagPanel.show(graph);
+        runWorkflowLive(service, dagPanel, doc.uri.fsPath, log, undefined, {
+          extraArgs,
+          onClose: () => refreshStaleBadges(doc.uri.fsPath),
+          onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
+        });
+        return;
+      }
+      runNikaCommand(state.resolvedServerPath, `run ${extraArgs.join(' ')}`.trim(), doc.uri.fsPath);
     }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);

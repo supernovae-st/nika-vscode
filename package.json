@@ -212,6 +212,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.runWorkflowWithInputs",
+        "title": "Run Workflow with Inputs (and a spend ceiling)",
+        "icon": "$(play-circle)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.resumeWorkflow",
         "title": "Resume Last Run (re-run what changed)",
         "icon": "$(refresh)",

@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Run with inputs: the parameter form and the spend ceiling
+
+- **`Nika: Run Workflow with Inputs`**: the check report's own `vars_required` becomes a short form (one box per required input · Esc anywhere cancels the whole run), then an optional **spend ceiling** rides `--max-cost-usd` · the copy-a-line-to-a-terminal dance for parameterized workflows is over, and bounding a run's spend is finally a UI gesture, not a flag you had to know.
+
 ### Two-way doors: the graph is one gesture from anywhere, the YAML one gesture back
 
 - **Show DAG on every workflow row**: the Workflows tree carries the graph inline (run · check · DAG) and in its `⌘K ⌘.` action panel · a repo's graph is two gestures from cold, never three.
