@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The run detail names every mechanism
+
+- **A healthy task's note is its mechanism**: the Tasks table now carries the wire's own verb·tool descriptor (`infer · mock/echo`) on succeeded rows · the column used to sit empty until something broke, while the terminal named every task's mechanism all along · failures keep their NIKA story in the same column.
+
 ### Local models become visible: the sovereign lane gets its rows
 
 - **The Station lists your pulled GGUFs**: under Providers, one row per model (`owner/repo:QUANT` · size · file · the engine's own remark), read live from `nika model list` on a binary that carries the verb · the summary count stops being the whole story.

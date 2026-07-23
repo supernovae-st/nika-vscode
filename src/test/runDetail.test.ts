@@ -36,7 +36,8 @@ const NDJSON = [
   line('workflow_started', 0, [{ key: 'workflow', value: 'greet' }]),
   line('task_started', 10, [{ key: 'task', value: 'seed' }]),
   line('task_completed', 1210, [
-    { key: 'task', value: 'seed' }, { key: 'duration_ms', value: 1200 }, { key: 'usd', value: 0.01 },
+    { key: 'task', value: 'seed' }, { key: 'note', value: 'infer · mock/echo' },
+    { key: 'duration_ms', value: 1200 }, { key: 'usd', value: 0.01 },
   ]),
   line('task_started', 1220, [{ key: 'task', value: 'cachedone' }]),
   line('task_cache_hit', 1222, [{ key: 'task', value: 'cachedone' }, { key: 'duration_ms', value: 2 }]),
@@ -69,9 +70,11 @@ describe('renderRunDetail — the page', () => {
     expect(md).toMatch(/✗ \*\*failed\*\* · 2 succeeded · 1 failed · 1 from cache · .+ · today \(\d{4}-\d{2}-\d{2} \d{2}:\d{2}\)/);
   });
 
-  it('breaks down every task — glyph, the legend word for cache, duration, the failure note', () => {
+  it('breaks down every task — glyph, the legend word for cache, duration, the note', () => {
     expect(md).toContain('| task | status | duration | note |');
-    expect(md).toContain('| `seed` | ✓ success | 1.2s |  |');
+    // A healthy task's note is its MECHANISM (the wire's verb·tool
+    // descriptor) — the column no longer sits empty until something breaks.
+    expect(md).toContain('| `seed` | ✓ success | 1.2s | infer · mock/echo |');
     expect(md).toContain('| `cachedone` | ○ cache-hit | 2ms |  |');
     expect(md).toContain('| `flaky` | ✗ failed | 3.4s | exit 1: boom |');
   });
