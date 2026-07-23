@@ -259,7 +259,15 @@ export function runWorkflowLive(
   child.on('error', (err) => {
     setRunActive(undefined);
     dagPanel.setRunState(false);
-    void vscode.window.showWarningMessage(`Nika: run failed to start — ${err.message}`);
+    // A spawn error is a SETUP state (the classic: a cached path whose
+    // file vanished — ENOENT). Offer the door and clear the dead path so
+    // every surface re-probes instead of replaying the same failure.
+    void vscode.window
+      .showWarningMessage(`Nika: run failed to start — ${err.message}`, 'Finish setup')
+      .then((pick) => {
+        if (pick === 'Finish setup') { void vscode.commands.executeCommand('nika.finishSetup'); }
+      });
+    if (/ENOENT/i.test(err.message)) { void service.setBinary(undefined); }
   });
   child.on('close', (code) => {
     setRunActive(undefined);

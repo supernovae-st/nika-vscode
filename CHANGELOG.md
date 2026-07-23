@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Honest doors: every failure names its real cause
+
+- **A missing engine never masquerades as an old one**: canvas ▶ (and the welcome card's demo run) on an engine-less machine now says so and offers `Finish setup` · the old copy claimed "this binary predates run" (a lie born of probing an absent binary).
+- **A vanished binary is a setup problem, not a mystery**: a run that fails to spawn (the classic: a cached path deleted mid-session) offers `Finish setup` and clears the dead path, so every surface re-probes instead of replaying the failure.
+- **A failed verdict holds the floor**: the red banner no longer fades after 8 seconds · it stays until you dismiss it or the next run replaces it (good news keeps the 8s calm).
+- **The status item keeps its promise**: engine-less, its tooltip says "install options" and the click now lands exactly there, not on a search to read first.
+
 ### The canvas door never dead-ends
 
 - **A bare `Show DAG` finds your workflow**: the door walks a calm ladder (the active editor · the workflow the canvas already holds · a single visible workflow editor · a single workspace workflow) and only an honestly ambiguous state lands on the welcome home. The reported class dies: clicking the door while a tree or the webview held focus no longer replaces a live graph with the onboarding pitch.

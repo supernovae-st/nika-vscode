@@ -1764,6 +1764,17 @@ export function activate(context: ExtensionContext): void {
           await commands.executeCommand('nika.runWorkflow', doc.uri);
           return;
         }
+        // No binary at all is a SETUP state, not an old binary — the
+        // predates-run copy on a missing engine was a lie that dead-ended
+        // the welcome card's own « ▶ Try the demo ».
+        if (!service.binaryPath) {
+          void window
+            .showWarningMessage('Nika: previewing needs the engine binary — it is not on this machine yet.', 'Finish setup')
+            .then((pick) => {
+              if (pick === 'Finish setup') { void commands.executeCommand('nika.finishSetup'); }
+            });
+          return;
+        }
         if (!service.caps.run) {
           void informSoftly('binary-predates-run', 'Nika: this binary predates `run` — update it to preview workflows.');
           return;

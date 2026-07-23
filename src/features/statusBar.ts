@@ -71,9 +71,13 @@ export class NikaStatusBar implements vscode.Disposable {
         ? 'statusBarItem.errorBackground'
         : 'statusBarItem.warningBackground');
     if (!this.service.available) {
+      // The click keeps the tooltip's promise: engine-less lands straight
+      // on Finish setup, not on a search the user must read first.
+      this.item.command = 'nika.finishSetup';
       this.item.tooltip = 'Click for install options';
       return;
     }
+    this.item.command = 'nika.showMenu';
     // Feed the canary once per binary (cached; a no-op after the first
     // verdict) — a gen-0 floor must not wait for the Station to open.
     if (this.service.gen1 === undefined && caps.check) {
