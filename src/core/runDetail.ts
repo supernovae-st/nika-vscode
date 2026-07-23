@@ -158,7 +158,11 @@ export function renderRunDetail(i: RunDetailInputs): string {
     if (t.retries > 0) { notes.push(`↻${t.retries}`); }
     if (t.whyWhen !== undefined) { notes.push(`gate false: ${t.whyWhen.replace(/\|/g, '·')}`); }
     if (t.blockedBy !== undefined) { notes.push(`blocked by \`${t.blockedBy}\``); }
-    if (t.status === 'failed' && t.preview) { notes.push(t.preview.replace(/\|/g, '·')); }
+    // The preview is the failure story on a failed task and the verb·tool
+    // descriptor (`infer · mock/echo`) otherwise — BOTH belong in the
+    // note column: a healthy run's table used to waste the column while
+    // the terminal named every task's mechanism.
+    if (t.preview) { notes.push(t.preview.replace(/\|/g, '·')); }
     out.push(`| \`${t.id}\` | ${glyph} ${word} | ${t.durationMs !== undefined ? humanizeDuration(t.durationMs) : '—'} | ${notes.join(' · ')} |`);
   }
   out.push('');
