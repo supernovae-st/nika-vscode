@@ -4,7 +4,37 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased]
+## [0.105.0] · 2026-07-24
+
+The second ascension, whole: one hundred and thirty deliveries on one
+surface since the 0.104 line. The card became the whole canvas, and
+the search became the door: every command, task, workflow and recorded
+run in one ranked gate (`⌘K ⌘M`), habits learned, aliases yours, no
+query dead-ending. Every run opens its own detail page, the trees
+carry their actions on `⌘K ⌘.`, deep links open guarded doors from
+outside, and the canvas speaks: real roles on the real DOM, one
+roving tab stop, one narrator. First contact is proven whole by an
+end-to-end across two real launches: zero gestures to green.
+
+The card becomes the whole surface: the hover tooltip is gone, every
+fact lives on the card in two modes (min for scanning, grand for
+depth), the header floats above the frame and the knobs settle into a
+detached pill below it. All 28 builtins speak their nature: media
+cards declare, develop and deliver their artifacts, and the four
+verbs each wear their own anatomy. A running workflow is alive:
+braille spinners phase-locked to one 80ms clock, a BuildKit-style
+elapsed timer, a settle cascade when the run lands green. Layout
+leaves the main thread (an ELK worker with a layout cache: a 2.9s
+freeze becomes zero blocked frames), graphs past 150 nodes cull
+offscreen cards without losing the DOM, and the hard wire elbows
+soften into one rounded language, whoever moved the card. The whole
+canvas now works from the keyboard: connect-mode wiring, chords, an
+8px nudge. First contact is zero gestures: on a true first install
+the offline demo opens and runs itself on the mock provider (no key,
+no network) and the one-time confetti lands mid-demo. The webview
+path surface is closed behind capability allowlists. One voice with
+the em dashes swept out, one glyph per meaning, one token seam: all
+three enforced by executable belts in npm test.
 
 ### The root search: one gate for everything
 
@@ -32,6 +62,8 @@ major.minor from 0.97).
 - **The menu teaches its own keys**: every chorded row in the status-bar menu now prints its shortcut on the right, derived from the manifest by the same code as the accessibility help, so the two surfaces cannot drift.
 - **The canvas K panel learns your hand**: type to filter the focused card's actions · `⌘⏎` runs the one honest secondary (`Run from here` becomes run all) · actions you keep taking rise inside their group, never across the greyed line · and the `⋯` toggle no longer eats an Esc.
 
+### The canvas speaks: roles, one tab stop, one narrator
+
 - **Roles on the real DOM**: the canvas is an `application` scoped to its own container (browse mode survives everywhere else), the svg a `graphics-document` that names its workflow and task count, every card a `graphics-symbol` whose accessible name reads label, mechanism, status and its degree (dependencies, dependents): refreshed silently on every status change, so the on-focus read stays true.
 - **One roving tab stop**: the focused card carries the DOM twin of the visual focus (arrows, chords and gestures all keep their handlers). Keyboard focus hardens the ring past 3:1; forced colors get a real outline; a keyboard move always centers its card, so the focus is never off-viewport.
 - **One narrator, two channels**: run start and per-task failures speak assertive; lifecycle lands as coalesced polite milestones ("3 of 7 tasks complete, 2 running" · throttled, deduplicated, never every tick); the close is the verdict banner's own line. Replay scrubs stay silent: recorded history is read on focus, not announced.
@@ -41,29 +73,6 @@ major.minor from 0.97).
 ### Deep links from outside
 
 - **`vscode://supernovae.nika-lang/…` opens workflow surfaces from a runbook, a PR or a chat**: five guarded doors (`/run` · `/check` · `/dag` · `/search` · `/demo`) · `file` must be a workspace-relative workflow (absolute · `..` · anything outside the workspace is ignored) · `run`/`check` always ask with a native confirm before the engine touches the file · an unrecognized link breathes in the status bar and does nothing.
-
-## [0.105.0] · 2026-07-21
-
-The second ascension: thirty deliveries on one canvas. The card
-becomes the whole surface: the hover tooltip is gone, every fact
-lives on the card in two modes (min for scanning, grand for depth),
-the header floats above the frame and the knobs settle into a
-detached pill below it. All 28 builtins speak their nature: media
-cards declare, develop and deliver their artifacts, and the four
-verbs each wear their own anatomy. A running workflow is alive:
-braille spinners phase-locked to one 80ms clock, a BuildKit-style
-elapsed timer, a settle cascade when the run lands green. Layout
-leaves the main thread (an ELK worker with a layout cache: a 2.9s
-freeze becomes zero blocked frames), graphs past 150 nodes cull
-offscreen cards without losing the DOM, and the hard wire elbows
-soften into one rounded language, whoever moved the card. The whole
-canvas now works from the keyboard: connect-mode wiring, chords, an
-8px nudge. First contact is zero gestures: on a true first install
-the offline demo opens and runs itself on the mock provider (no key,
-no network) and the one-time confetti lands mid-demo. The webview
-path surface is closed behind capability allowlists. One voice with
-the em dashes swept out, one glyph per meaning, one token seam: all
-three enforced by executable belts in npm test.
 
 ### The 28 identities: every builtin speaks its nature
 
