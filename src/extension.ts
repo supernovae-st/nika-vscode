@@ -32,6 +32,7 @@ import { chordLabels, prettyChord, type KeybindingContribution } from './core/ch
 import { registerSearchGate } from './features/searchGate';
 import { WorkflowIndex } from './features/workflowIndex';
 import { SEARCH_COMMAND } from './core/rootSearch';
+import { pickDagTarget } from './core/dagTarget';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
@@ -3049,13 +3050,38 @@ export function activate(context: ExtensionContext): void {
   );
 
   // Command: Show DAG webview (engine projection → client fallback).
+  // The bare-invocation ladder lives in core/dagTarget (pure); this shell
+  // supplies the probes and opens the winner — a vanished file falls
+  // through to the welcome, never a toast.
+  const fallbackDagDocument = async (): Promise<TextDocument | undefined> => {
+    const pick = pickDagTarget({
+      activeIsWorkflow: false, // the caller probed the active editor first
+      panelHeld: dagWorkflowUri?.toString(),
+      visibleWorkflows: window.visibleTextEditors
+        .filter((e) => NIKA_FILE_RE.test(e.document.fileName))
+        .map((e) => e.document.uri.toString()),
+      workspaceWorkflows: (await workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 2))
+        .map((u) => u.toString()),
+    });
+    if (pick.kind === 'welcome' || pick.kind === 'active') { return undefined; }
+    try {
+      return await workspace.openTextDocument(Uri.parse(pick.uri, true));
+    } catch {
+      return undefined;
+    }
+  };
   context.subscriptions.push(
     commands.registerCommand('nika.showDag', async (uri?: Uri) => {
       // The door (#1): an explicit uri (explorer · menu) keeps the guard;
-      // a bare invocation (sidebar · walkthrough · palette) PROBES without
-      // toasting — no workflow in focus opens the welcome home, never a
-      // warning that dead-ends its own « ◇ Open the canvas ».
-      const doc = uri ? await requireNikaDocument(uri) : activeNikaDocument();
+      // a bare invocation (sidebar · walkthrough · palette) probes the
+      // ladder without toasting: active editor → the workflow the canvas
+      // already HOLDS → a single visible workflow editor → a single
+      // workspace workflow → only then the welcome home. A live graph
+      // never regresses to the welcome pitch because a tree or the
+      // webview held focus when the command fired (the reported class).
+      const doc = uri
+        ? await requireNikaDocument(uri)
+        : (activeNikaDocument() ?? await fallbackDagDocument());
       if (!doc) {
         dagPanel.show();
         void state.pushWelcomeData?.();
