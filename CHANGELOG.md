@@ -6,6 +6,15 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The canvas earns every geometry
+
+- **The toolbar never clips off-screen again**: lenses yield one by one as the panel narrows (comfort lenses first, the teach door last) and everything shed stays one click away behind a `⋯` door · same titles, same shortcuts, hidden while nothing hides. The old rail kept all 18 buttons in one no-wrap row and silently clipped half of them past the edge in any panel under ~600px.
+- **The phantom rail inset dies**: fit-to-view paid 132px of left margin for a plan rail the CSS hides under 1000px · narrow panels parked the graph right of a dead gutter at a smaller scale than the width allowed. The inset now counts only while the rail is painted, and fit breathing room scales with the panel.
+- **Zoom stays reachable at sidebar widths**: the `%` readout (click = fit) and `Fit` survive the narrowest cut · the old rule hid the whole camera group at ≤380px.
+- **The `?` explainer outranks the run pill**: it sits above the bottom dock and scrolls in short panels · its tail used to hide under the omnibar.
+- **A shrunken panel never strands the graph**: when a resize leaves every card off-screen, the canvas re-fits itself · a camera you panned stays yours as long as any card is visible.
+- **Teaching text stops hard-clipping**: the omnibar and describe placeholders switch to a short line under 560px (an input placeholder cannot ellipsize) · the feed and the centered omnibar no longer kiss in the 820-964px band · the legend clears the full-width omnibar instead of wrapping into it.
+
 ### Honest doors: every failure names its real cause
 
 - **A missing engine never masquerades as an old one**: canvas ▶ (and the welcome card's demo run) on an engine-less machine now says so and offers `Finish setup` · the old copy claimed "this binary predates run" (a lie born of probing an absent binary).
