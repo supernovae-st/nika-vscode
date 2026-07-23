@@ -688,6 +688,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.station.serveModel",
+        "title": "Serve a Local Model (terminal)",
+        "icon": "$(play-circle)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.station.fix",
         "title": "Apply Fix",
         "icon": "$(wrench)",

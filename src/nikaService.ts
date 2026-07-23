@@ -38,8 +38,10 @@ import { GRAMMAR_CANARY_DOC, grammarAccepted } from './core/grammarCanary';
 import { parseSemanticDocument, type TaskSpans } from './core/semanticDoc';
 import {
   parseDoctorReport,
+  parseModelList,
   parseWelcomeDeep,
   type DoctorReport,
+  type LocalModel,
   type Probe,
   type WelcomeDeep,
 } from './core/stationModel';
@@ -439,6 +441,15 @@ export class NikaService {
 
   /** Does THIS binary parse the refonte grammar? (D-V8 product probe —
    *  the Station says it honestly instead of letting doors crash.) */
+  /** The pulled GGUFs (`model list` · plain text, parsed) — [] when the
+   *  verb is not carried or the probe fails: the Station rows just
+   *  don't appear, the summary row stays the honest floor. */
+  async modelList(): Promise<LocalModel[]> {
+    if (!this.caps.model) { return []; }
+    const res = await this.runCli(['model', 'list', '--color', 'never'], 10000);
+    return res.code === EXIT.OK && res.stdout ? parseModelList(res.stdout) : [];
+  }
+
   async speaksGrammar(): Promise<boolean | undefined> {
     if (!this.caps.check) { return undefined; }
     if (this.grammarValue !== undefined) { return this.grammarValue; }

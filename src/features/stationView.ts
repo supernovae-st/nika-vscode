@@ -96,12 +96,13 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
     if (this.service.available) {
       // The wait lives ON the view (annexe A): the Station's own
       // progress bar while the doctor sweep runs — never a toast.
-      const [doctor, deep, grammar] = await vscode.window.withProgress(
+      const [doctor, deep, grammar, models] = await vscode.window.withProgress(
         { location: { viewId: 'nikaStation' } },
         () => Promise.all([
           this.service.doctorJson(cwd),
           this.service.welcomeDeep(cwd),
           this.service.speaksGrammar(),
+          this.service.modelList(),
         ]),
       );
       if (seq !== this.snapshotSeq) { return; }
@@ -115,6 +116,7 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
       else if (deep.kind === 'no-output') { snap.deepBroke = 'the engine answered nothing'; }
       else if (deep.kind === 'unparseable') { snap.deepBroke = deep.detail; }
       snap.speaksGrammar = grammar;
+      if (models.length > 0) { snap.models = models; }
     }
     this.rows = buildStationRows(snap);
     this.onSnapshot(snap);
@@ -192,6 +194,25 @@ export function registerStation(
     }),
     vscode.commands.registerCommand('nika.station.doctorReport', () => {
       inTerminal('nika doctor');
+    }),
+    // Serve a pulled GGUF — a FOREGROUND OpenAI-compatible server, so
+    // the terminal is the honest vehicle: the banner says how workflows
+    // reach it, Ctrl-C stops it where it started. The picker reads the
+    // engine's own list; ids are engine-validated on the other side.
+    vscode.commands.registerCommand('nika.station.serveModel', async () => {
+      const models = await service.modelList();
+      if (models.length === 0) {
+        void vscode.window.showInformationMessage(
+          'Nika: no local models pulled yet — `nika model pull <owner/repo>` downloads one into the models dir.',
+        );
+        return;
+      }
+      const pick = await vscode.window.showQuickPick(
+        models.map((m) => ({ label: m.id, description: `${m.size} · ${m.file}` })),
+        { title: 'Serve a local model (foreground terminal · Ctrl-C stops it)' },
+      );
+      if (pick === undefined) { return; }
+      inTerminal(`nika model serve --model ${pick.label}`);
     }),
     vscode.commands.registerCommand('nika.station.fix', async (row: unknown) => {
       // The inline wrench receives the tree row — typeof first (the
