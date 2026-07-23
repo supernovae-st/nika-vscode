@@ -8699,7 +8699,14 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       renderer.restoreDomFocus();
       return;
     }
+    const hadFocus = renderer.focused !== null;
     renderer.clearFocus();
+    if (!hadFocus) {
+      // Nothing left to clear — Esc is the reverse door: hand the YAML
+      // back instead of swallowing the press (clear-first semantics keep
+      // every overlay rung above this one).
+      vscode.postMessage({ kind: 'dag:openSource', workflowUri: vscode.getState()?.graph?.workflowUri });
+    }
   }
   if (e.key === 'V' && e.shiftKey) { e.preventDefault(); toggleDisplayPanel(); return; }
   if (e.key === 'w' || e.key === 'W') wavesBtn?.dispatchEvent(new Event('click'));
@@ -8763,6 +8770,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
 });
 
+// The title is the reverse door — one visible mouse path back to the
+// YAML (Enter on a card and Esc-at-rest are its keyboard twins).
+const titleDoor = document.getElementById('dag-title');
+titleDoor?.setAttribute('title', 'Open the workflow YAML');
+titleDoor?.addEventListener('click', () => {
+  vscode.postMessage({ kind: 'dag:openSource', workflowUri: vscode.getState()?.graph?.workflowUri });
+});
 document.getElementById('btn-help')?.addEventListener('click', () => toggleExplainer());
 document.getElementById('btn-feed')?.addEventListener('click', () => toggleActivity());
 document.getElementById('btn-export-svg')?.addEventListener('click', () => { void renderer.exportImage('svg'); });

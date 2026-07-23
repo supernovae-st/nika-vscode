@@ -102,15 +102,16 @@ describe('reachability — the keyboard reaches everything the hover reaches', (
 });
 
 describe('curation — each kind serves its verbs, primary first', () => {
-  it('a workflow file: run leads, check follows, open closes', () => {
+  it('a workflow file: run leads, check follows, the graph joins, open closes', () => {
     const p = buildTreeActionPanel('nikaWorkflows', FACTS.workflowFile.facts, ALL_ON);
     expect(p.itemRows.map((r) => r.command)).toEqual([
-      'nika.workflows.run', 'nika.workflows.check', 'vscode.open',
+      'nika.workflows.run', 'nika.workflows.check', 'nika.workflows.showDag', 'vscode.open',
     ]);
     expect(p.title).toBe('Workflows · deploy.nika.yaml');
     // The chord teachers point at the palette commands that own chords.
     expect(p.itemRows[0].teach).toBe('nika.runWorkflow');
     expect(p.itemRows[1].teach).toBe('nika.checkWorkflow');
+    expect(p.itemRows[2].teach).toBe('nika.showDag');
   });
 
   it('a trace: the detail leads (the row\'s own Enter), the flight recorder follows', () => {

@@ -93,6 +93,7 @@ export type WebviewToExtMessage =
   | { kind: 'dag:nodeClicked'; taskId: string; workflowUri?: string }
   | { kind: 'dag:requestRefresh' }
   | { kind: 'dag:showActive' }
+  | { kind: 'dag:openSource'; workflowUri?: string }
   // A card's ⚠N badge was clicked — open the full pre-flight report.
   | { kind: 'dag:openReport' }
   // Empty-state actions — scaffold a workflow · open the walkthrough.
@@ -231,6 +232,8 @@ export class DagPanel implements vscode.Disposable {
       get(): PersistedLayoutEntry[] | undefined;
       set(entries: PersistedLayoutEntry[]): void;
     },
+    /** The reverse door — title click / Esc-at-rest hands back the YAML. */
+    private readonly onOpenSource?: (workflowUri?: string) => void,
   ) {}
 
   /** Live-run lifecycle flag — mirrored to the webview, replayed on ready. */
@@ -902,6 +905,10 @@ export class DagPanel implements vscode.Disposable {
 
       case 'dag:showActive':
         this.onShowActive?.();
+        break;
+
+      case 'dag:openSource':
+        this.onOpenSource?.(msg.workflowUri);
         break;
 
       case 'dag:openArtifact':
