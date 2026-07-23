@@ -89,6 +89,7 @@ export const SURFACE_GLYPH = {
   copyPrompt: { glyph: '⇗', sense: 'copy the AI authoring prompt — take it elsewhere' },
   setupMcp: { glyph: '⎓', sense: 'setup MCP — the wiring jack' },
   openCanvas: { glyph: '⊡', sense: 'open the canvas — the card on the board' },
+  breathe: { glyph: '◫', sense: 'the canvas breathes wider — maximize the editor group (the breathe hint)' },
   duplicate: { glyph: '❏', sense: 'duplicate — the universal copy' },
   replay: { glyph: '⟲', sense: 'replay a recorded trace — winding time back', wordedOnly: true },
   restart: { glyph: '⟳', sense: 'restart / redetect the server', wordedOnly: true },

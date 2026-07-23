@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The breathe hint: one quiet offer, once
+
+- **A narrow panel holding a big graph offers the one gesture that helps**: `◫ this canvas breathes wider · tap to maximize the group` · an ephemeral line above the omnibar (the first-hint discipline: fades in 10s, fires once per workspace, never a toast) · tapping it toggles the editor-group maximize, and the same toggle brings your layout back.
+
 ### The browser-proven wave: no surface goes nude
 
 - **The timeline lens speaks before its data arrives**: toggling `T` paints `reading the recorded truth… (T or Esc returns to the map)` in the same frame · a host that answers slowly (or a request that never lands) can no longer leave a wordless empty canvas.

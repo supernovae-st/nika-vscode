@@ -99,6 +99,7 @@ export type WebviewToExtMessage =
   // Empty-state actions — scaffold a workflow · open the walkthrough.
   | { kind: 'dag:newWorkflow' }
   | { kind: 'dag:openWalkthrough' }
+  | { kind: 'dag:maximize' }
   | { kind: 'transport:tick'; running: string[] }
   | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
@@ -943,6 +944,12 @@ export class DagPanel implements vscode.Disposable {
           'workbench.action.openWalkthrough',
           'supernovae.nika-lang#nika.gettingStarted',
         );
+        break;
+
+      case 'dag:maximize':
+        // The breathe hint's one gesture — reversible (a toggle), takes
+        // no argument, mutates only layout: safe to expose to the view.
+        void vscode.commands.executeCommand('workbench.action.toggleMaximizeEditorGroup');
         break;
 
       case 'dag:export':
