@@ -160,7 +160,7 @@ three enforced by executable belts in npm test.
 
 ### The marketplace listing, refreshed
 
-- **README refonte**: live version/installs/rating badges (Open VSX kept) · the value line under the title · a top-five relief table and a jump-to line before the feature prose · headline Commands/Settings tables pointing at the full Feature Contributions tab · a tip line under every capture · claims re-verified against the shipped surface: the one door is the `Nika status item` (not the butterfly; the 🦋 stays the signature), all FOUR Language Model tools listed with their capability gate, and the install policy link now points at SECURITY.md instead of itself.
+- **README overhaul**: live version/installs/rating badges (Open VSX kept) · the value line under the title · a top-five relief table and a jump-to line before the feature prose · headline Commands/Settings tables pointing at the full Feature Contributions tab · a tip line under every capture · claims re-verified against the shipped surface: the one door is the `Nika status item` (not the butterfly; the 🦋 stays the signature), all FOUR Language Model tools listed with their capability gate, and the install policy link now points at SECURITY.md instead of itself.
 - **Keywords**: six ecosystem terms join the listing (ollama · local llm · tracing · observability · deterministic · open-source).
 
 ### Onboarding: the demo runs itself
