@@ -119,6 +119,30 @@ describe('renderRunDetail — the needs-you and trust facts', () => {
     expect(md).toContain('unverified');
   });
 
+  it('an intact chain is a positive fact — events sealed, head shown', () => {
+    const md = renderRunDetail(inputs({
+      chain: { kind: 'intact', events: 7, head: 'abcdef0123456789abcdef0123456789' },
+    }));
+    expect(md).toContain('**chain intact** · 7 events sealed');
+    expect(md).toContain('head `abcdef012345…`');
+  });
+
+  it('a torn tail is verified-not-tampered — said in one line', () => {
+    const md = renderRunDetail(inputs({ chain: { kind: 'torn', events: 3, head: 'ff00ff00ff00ff00' } }));
+    expect(md).toContain('**chain verified to the torn tail** · 3 events sealed');
+  });
+
+  it('a pre-chain journal states its era honestly', () => {
+    const md = renderRunDetail(inputs({ chain: { kind: 'unchained' } }));
+    expect(md).toContain('pre-chain journal (engine < 0.96)');
+  });
+
+  it('no chain input stays silent — nothing honest to claim', () => {
+    const md = renderRunDetail(inputs({}));
+    expect(md).not.toContain('chain intact');
+    expect(md).not.toContain('pre-chain journal');
+  });
+
   it('unparsed lines are counted, never papered over', () => {
     const model = foldTrace(`${NDJSON}\nnot json at all — a foreign dialect`);
     const md = renderRunDetail(inputs({ model }));

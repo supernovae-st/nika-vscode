@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The shield: tamper evidence is a positive fact
+
+- **Run Detail leads with its attestation**: `✓ chain intact · N events sealed · head …` (compare it against the head the run printed) · a torn tail says *verified, not tampered* (a crash mid-write is honest) · a broken chain keeps outranking everything on the page · a pre-chain journal names its era. The proof story stops hiding until something breaks: an intact chain SAYS so, in one line, with the `nika trace verify` twin named inline.
+
 ### Run with inputs: the parameter form and the spend ceiling
 
 - **`Nika: Run Workflow with Inputs`**: the check report's own `vars_required` becomes a short form (one box per required input · Esc anywhere cancels the whole run), then an optional **spend ceiling** rides `--max-cost-usd` · the copy-a-line-to-a-terminal dance for parameterized workflows is over, and bounding a run's spend is finally a UI gesture, not a flag you had to know.

@@ -55,6 +55,25 @@ function verdictGlyph(model: RunModel): string {
     : STATUS_CHAR.running;
 }
 
+/** The attestation line per chain verdict — undefined stays silent
+ *  (no journal read · nothing honest to claim). */
+function shieldLine(chain: ChainVerdict | undefined): string | undefined {
+  if (chain === undefined) { return undefined; }
+  switch (chain.kind) {
+    case 'intact':
+      return `✓ **chain intact** · ${chain.events} event${chain.events === 1 ? '' : 's'} sealed · head \`${chain.head.slice(0, 12)}…\` — matches \`nika trace verify\``;
+    case 'torn':
+      return `✓ **chain verified to the torn tail** · ${chain.events} event${chain.events === 1 ? '' : 's'} sealed (a crash mid-write is not tampering) — \`nika trace verify\` agrees`;
+    case 'broken':
+      return `⚠ **chain BROKEN at line ${chain.line}** — this journal fails \`nika trace verify\`; every claim on this page is unverified`;
+    case 'unchained':
+      return '○ pre-chain journal (engine < 0.96) — no tamper evidence was recorded for this run';
+    case 'empty':
+    case 'unreadable':
+      return undefined;
+  }
+}
+
 export function renderRunDetail(i: RunDetailInputs): string {
   const { model } = i;
   const tasks = [...model.tasks.values()];
@@ -94,6 +113,19 @@ export function renderRunDetail(i: RunDetailInputs): string {
   ].filter(Boolean).join(' · '));
   out.push('');
 
+  // ── The shield — the tamper-evidence verdict, positive OR negative ──
+  // The attestation is a first-class fact, not a silence: intact and
+  // torn SAY so (with the head to compare against the run's own print),
+  // broken outranks everything, unchained states the era honestly.
+  // `command:` links are dead in the preview (annexe R R13), so the
+  // one-gesture re-verify stays the K-panel door the footer teaches —
+  // the CLI twin rides inline as the self-verifiable claim.
+  const shield = shieldLine(i.chain);
+  if (shield !== undefined) {
+    out.push(shield);
+    out.push('');
+  }
+
   // ── The needs-you fact — a paused run leads with its question ──
   if (model.paused !== undefined) {
     const q = model.paused;
@@ -106,10 +138,6 @@ export function renderRunDetail(i: RunDetailInputs): string {
   }
 
   // ── Trust facts — stated, never papered over ──
-  if (i.chain?.kind === 'broken') {
-    out.push(`⚠ **chain BROKEN at line ${i.chain.line}** — this journal fails \`nika trace verify\`; every claim on this page is unverified`);
-    out.push('');
-  }
   if (model.unknownLines > 0) {
     out.push(`⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this page reads what it can prove`);
     out.push('');
