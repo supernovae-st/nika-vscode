@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The browser-proven wave: no surface goes nude
+
+- **The timeline lens speaks before its data arrives**: toggling `T` paints `reading the recorded truth… (T or Esc returns to the map)` in the same frame · a host that answers slowly (or a request that never lands) can no longer leave a wordless empty canvas.
+- **Rest fades, never hard cuts**: the three teaching inputs (omnibar · describe · welcome) fade their overflowing placeholder at the right edge while at rest · typing lifts the fade so the caret never sits in a faded zone.
+- **The welcome card owns its scroll**: in short panels a thin scrollbar appears (it was invisible: a scrollable card read as a cut-off one) · the welcome placeholder itself shortened to teach inside its box.
+
 ### The shield: tamper evidence is a positive fact
 
 - **Run Detail leads with its attestation**: `✓ chain intact · N events sealed · head …` (compare it against the head the run printed) · a torn tail says *verified, not tampered* (a crash mid-write is honest) · a broken chain keeps outranking everything on the page · a pre-chain journal names its era. The proof story stops hiding until something breaks: an intact chain SAYS so, in one line, with the `nika trace verify` twin named inline.

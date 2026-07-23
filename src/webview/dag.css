@@ -5079,6 +5079,18 @@ body.lod-far .nc-audit { display: none !important; }
 
 .es-card::-webkit-scrollbar { display: none; }
 
+/* Short panels: the card clips its tail at the viewport edge — an
+ * INVISIBLE scrollbar reads as « cut », not « scrollable ». The thin
+ * bar is the affordance where it matters. */
+@media (max-height: 640px) {
+  .es-card { scrollbar-width: thin; }
+  .es-card::-webkit-scrollbar { display: initial; width: 4px; }
+  .es-card::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--nk-ink) 22%, transparent);
+    border-radius: 2px;
+  }
+}
+
 .es-hero {
   display: flex;
   flex-direction: column;
@@ -5127,6 +5139,15 @@ body.lod-far .nc-audit { display: none !important; }
   background: transparent;
   border: none;
   outline: none;
+}
+
+/* An input cannot ellipsize its placeholder — it hard-clips. The rest
+ * fade says « more » where a sharp edge says « broken »; typing lifts
+ * it (the caret must never sit in a faded zone). */
+#omni-input:not(:focus),
+#cd-input:not(:focus),
+#es-describe-input:not(:focus) {
+  mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
 }
 
 #es-describe-input::placeholder {
