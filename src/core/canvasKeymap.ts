@@ -23,6 +23,8 @@ export const CANVAS_KEYMAP: ReadonlyArray<readonly [string, string]> = [
   ['P', 'audit'],
   ['D', 'dataflow'],
   ['G', 'follow run'],
+  ['L', 'activity feed'],
+  ['+ −', 'zoom in / out'],
   ['K', 'actions (focused · type filters) · command'],
   ['⌘⏎', 'K panel: the row secondary'],
   ['N', 'add a task'],

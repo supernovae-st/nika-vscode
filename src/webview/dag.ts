@@ -744,6 +744,9 @@ interface WebviewState {
   zoom?: number;
   panX?: number;
   panY?: number;
+  /** WHICH workflow the saved camera framed — a follow-switch to a
+   *  different file re-fits instead of inheriting a stranger's zoom. */
+  cameraOwner?: string;
   showWaves?: boolean;
   smoothEdges?: boolean;
   showFeed?: boolean;
@@ -1924,6 +1927,11 @@ class DagRenderer {
    *  scaffolding sleeps, the data wires + their binding labels carry
    *  the whole story, cards slim to their io. */
   dataflowOn = false;
+  /** The workflow the canvas currently frames (the lens-reset seam). */
+  get graphUri(): string | undefined {
+    return this.currentGraph?.workflowUri;
+  }
+
   toggleDataflow(): void {
     this.dataflowOn = !this.dataflowOn;
     document.body.classList.toggle('dataflow', this.dataflowOn);
@@ -2409,6 +2417,11 @@ class DagRenderer {
           zoom: event.transform.k,
           panX: event.transform.x,
           panY: event.transform.y,
+          // The camera belongs to THIS workflow — a later load of a
+          // different file must re-fit, never wear a stranger's frame.
+          ...(this.currentGraph?.workflowUri !== undefined
+            ? { cameraOwner: this.currentGraph.workflowUri }
+            : {}),
         });
         vscode.postMessage({
           kind: 'dag:viewportChanged',
@@ -2708,9 +2721,14 @@ class DagRenderer {
     this.updateEdgeFlow();
     this.updateStatusDisplay();
 
-    // Auto-fit on first render if no saved viewport
+    // Auto-fit on first render if no saved viewport — OR when the saved
+    // camera framed a DIFFERENT workflow (the follow-switch class: B
+    // used to land under A's zoom/pan, off-screen until a manual F).
     const savedState = vscode.getState();
-    if (!savedState?.zoom) {
+    const cameraForeign = savedState?.cameraOwner !== undefined
+      && this.currentGraph?.workflowUri !== undefined
+      && savedState.cameraOwner !== this.currentGraph.workflowUri;
+    if (!savedState?.zoom || cameraForeign) {
       this.fitToView(layoutResult);
     }
 
@@ -8121,6 +8139,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // race two async ELK layouts and double every entrance transition.
       if (replayer.active) { replayer.close(); }
       if (msg.toolCats) { toolCatsMap = msg.toolCats; }
+      // Lenses are per-QUESTION, not per-panel: audit/dataflow answered
+      // a question about the PREVIOUS file — a different workflow starts
+      // on the map (heatmap keeps its global dial by design).
+      if (renderer.graphUri !== undefined && msg.graph.workflowUri !== renderer.graphUri) {
+        if (renderer.auditOn) { renderer.toggleAudit(); }
+        if (renderer.dataflowOn) { renderer.toggleDataflow(); }
+      }
       void renderer.render(msg.graph).then(() => transport.resync());
       applyResumeCapable(msg.graph);
       refreshStaleChip();
