@@ -16,6 +16,7 @@ import {
   QuickPickItemKind,
   Selection,
   TextEditorRevealType,
+  ViewColumn,
   type QuickPickItem,
   type TextDocument,
 } from 'vscode';
@@ -731,6 +732,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.workflows.check', (item: unknown) => {
       const uri = workflowItemUri(item);
       if (uri) { void commands.executeCommand('nika.checkWorkflow', uri); }
+    }),
+    commands.registerCommand('nika.workflows.showDag', (item: unknown) => {
+      const uri = workflowItemUri(item);
+      if (uri) { void commands.executeCommand('nika.showDag', uri); }
     }),
     commands.registerCommand('nika.workflows.rerunTask', (item: unknown) => {
       const ref = workflowTaskRef(item);
@@ -1953,8 +1958,30 @@ export function activate(context: ExtensionContext): void {
       get: () => context.workspaceState.get<PersistedLayoutEntry[]>('nika.layoutCache.v1'),
       set: (entries) => { void context.workspaceState.update('nika.layoutCache.v1', entries); },
     },
+    // The reverse door — the canvas hands the YAML back (title click ·
+    // Esc at rest) without hunting the tab: column one, never a preview.
+    (workflowUri) => {
+      const target = workflowUri ? Uri.parse(workflowUri) : dagWorkflowUri;
+      if (!target) { return; }
+      void window.showTextDocument(target, { preview: false, viewColumn: ViewColumn.One });
+    },
   );
   state.activeDagPanel = dagPanel;
+
+  // A repo that already carries workflows greets ONCE per workspace —
+  // the butterfly activity icon is easy to never notice, and nothing
+  // else surfaces « this repo speaks nika ». A status breath, no toast.
+  const GREETED_KEY = 'nika.workspaceGreeted.v1';
+  if (!context.workspaceState.get<boolean>(GREETED_KEY)) {
+    void workspace
+      .findFiles('**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 10)
+      .then((found) => {
+        if (found.length === 0) { return; }
+        void context.workspaceState.update(GREETED_KEY, true);
+        const n = `${found.length}${found.length === 10 ? '+' : ''}`;
+        flashStatus(`$(sparkle) ${n} nika workflow${found.length > 1 ? 's' : ''} here — the Nika panel lists them`, 6000);
+      });
+  }
 
   // ─── The missing wire (V-SOTA.A): first contact runs the demo itself ──────
   // On a machine's FIRST activation ever, once the engine is here (at the

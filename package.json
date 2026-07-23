@@ -700,6 +700,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.workflows.showDag",
+        "title": "Show Workflow DAG",
+        "icon": "$(type-hierarchy)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.workflows.rerunTask",
         "title": "Re-run Task (and its upstream)",
         "icon": "$(debug-rerun)",
@@ -1121,6 +1127,10 @@
           "when": "false"
         },
         {
+          "command": "nika.workflows.showDag",
+          "when": "false"
+        },
+        {
           "command": "nika.workflows.rerunTask",
           "when": "false"
         },
@@ -1284,6 +1294,11 @@
           "command": "nika.workflows.check",
           "when": "view == nikaWorkflows && viewItem == workflowFile",
           "group": "inline@2"
+        },
+        {
+          "command": "nika.workflows.showDag",
+          "when": "view == nikaWorkflows && viewItem == workflowFile",
+          "group": "inline@3"
         },
         {
           "command": "nika.workflows.rerunTask",
