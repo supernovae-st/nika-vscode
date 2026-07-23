@@ -9,7 +9,7 @@ major.minor from 0.97).
 ### Two-way doors: the graph is one gesture from anywhere, the YAML one gesture back
 
 - **Show DAG on every workflow row**: the Workflows tree carries the graph inline (run · check · DAG) and in its `⌘K ⌘.` action panel · a repo's graph is two gestures from cold, never three.
-- **The canvas title is the reverse door**: click it to open the workflow YAML (column one, real tab) · **Esc at rest does the same** — once there is nothing left to clear, Esc hands you back to the text instead of swallowing the press · Enter on a card keeps jumping to its exact line.
+- **The canvas title is the reverse door**: click it to open the workflow YAML (column one, real tab) · **Esc at rest does the same**: once there is nothing left to clear, Esc hands you back to the text instead of swallowing the press · Enter on a card keeps jumping to its exact line.
 - **A workflow repo greets once**: opening a workspace that already carries `.nika.yaml` files breathes one status line naming the count and the panel · once per workspace, a breath, never a toast.
 
 ### The canvas earns every geometry
