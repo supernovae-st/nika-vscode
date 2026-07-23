@@ -933,7 +933,7 @@
           "type": "boolean",
           "default": true,
           "order": 60,
-          "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.99+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind, no oracle access."
+          "markdownDescription": "Register the Nika Language Model Tools (check · explain · graph · workspace on 0.104+ binaries) so in-editor AI agents validate workflows through the real oracle. Off: agents edit blind, no oracle access."
         },
         "nika.search.aliases": {
           "type": "object",

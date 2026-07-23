@@ -1,6 +1,6 @@
 // schemaIntel.ts — LSP-grade vocabulary DERIVED from the binary (pure).
 //
-// The engine is self-contained: `nika schema` ships the JSON Schema with
+// The engine is self-contained: `nika spec --schema` ships the JSON Schema with
 // field descriptions and closed enums; `nika spec --canon` ships the
 // canon (providers · extract modes). This module projects BOTH into the
 // completion/hover vocabulary — the extension hardcodes NOTHING, so a

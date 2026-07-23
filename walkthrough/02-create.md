@@ -24,7 +24,7 @@ offers the 4 verbs *and* every builtin as a pre-wired `invoke:`: type
 cursor. On the canvas, the same vocabulary lives in the `+` palette.
 
 **Or equip the whole repo in one click** · [Nika: Init Project](command:nika.initProject)
-scaffolds 7 files (`AGENTS.md` · `.cursor/rules` + `.cursor/mcp.json` ·
-`.vscode` schema wiring · Copilot brief · `CLAUDE.md` · the authoring
-skill) and wires MCP + agent rules for this editor. Existing files are
-never overwritten.
+scaffolds the repo (`AGENTS.md` · `.cursor/rules` + `.cursor/mcp.json` ·
+`.vscode` schema wiring · the `.agents/skills` authoring skill) and
+wires MCP + agent rules for this editor. Existing files are never
+overwritten.

@@ -109,7 +109,7 @@ step · each step checks itself off as you actually do it.
   [policy](SECURITY.md)).
   Without the binary you still get syntax, snippets and the client-side
   DAG (schema-driven completions come alive once the binary is found:
-  they read the engine's own `nika schema`).
+  they read the engine's own `nika spec --schema`).
 
 ## Icons in your editor
 
@@ -178,7 +178,7 @@ theme*, not to extensions:
 
 ### Language intelligence (LSP-grade · live today)
 - **Schema-derived completions & hover** · every key, enum and doc comes
-  FROM the binary (`nika schema` + `nika spec --canon`): top-level keys,
+  FROM the binary (`nika spec --schema` + `nika spec --canon`): top-level keys,
   task fields, per-verb bodies, `capture`/`backoff_strategy` enums, the
   closed builtin tool set, provider-prefixed `model:` values, `nika:fetch`
   extract modes · a new field in the engine lights up here with zero
@@ -218,7 +218,7 @@ theme*, not to extensions:
   composes what nothing else shows pre-run: every infer/agent model
   resolved against the engine catalog (`nika catalog`: the embedded
   provider/model list with capabilities and env-var requirements; the
-  builtin side lives in `nika tools`, the `nika:*` schemas an `invoke`
+  builtin side lives in `nika catalog --tools`, the `nika:*` schemas an `invoke`
   can reach without MCP) and its key requirements (local
   providers marked sovereign · mock marked zero-spend), secrets and env
   reads checked against your actual environment (`env`-sourced
@@ -528,7 +528,7 @@ network: every green close settles a ✓ wave through the cards.*
   `run` the day nika-runtime reached L3, zero extension update); `lsp` /
   `mcp` light up the same way the day they climb
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
-  are read from the self-contained binary (`nika spec` · `nika schema` ·
+  are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
   `nika examples` · `nika new`) · nothing duplicated, nothing drifts
 - **Binary auto-download** · optional (`nika.server.autoDownload`) · SHA256
   verified · zero telemetry anywhere
