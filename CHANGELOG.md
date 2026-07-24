@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The dimmed card answers engagement
+
+- **Hovering a faded card peeks it**: focus mode keeps its cast (lineage lit · the rest at 25%), and the pointer can now actually read a faded card · hover lifts it to 80% for as long as you look, the cast settles back when you leave · keyboard focus or selection lifts it fully: a focus ring on a ghost is not an answer. The card's existing opacity transition makes both moves breathe.
+
 ### The card type ladder: nine named voices
 
 - **The card's metric system becomes legible**: a census found 16 anonymous font sizes doing 9 jobs across the card scope · every card-scope size now reads one of nine role tokens (`--nk-fs-foot` 8.5 through `--nk-fs-heading` 12.5), values pinned to the census winners, so nothing moved visually · the one true accident collapsed (an 8px `.nc-fx-ops` beside its 8.5px siblings) · a new card surface picks a voice, never a raw px (DESIGN.md §1e is the law).
