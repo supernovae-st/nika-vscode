@@ -1942,6 +1942,7 @@ body.vscode-light .logo-dark { display: none; }
   }
 
   #first-hint,
+  #breathe-hint,
   .dag-node.status-running .node-bg,
   .dag-node.status-failed .node-status-bar,
   .dag-node.status-success .node-bg,
@@ -4340,9 +4341,36 @@ body.lod-far .edge-hit { pointer-events: none; }
   margin-left: auto;
   padding: 0 4px;
   font-size: 9.5px;
-  opacity: 0.55;
+  opacity: 0.7;
   border: 1px solid var(--nk-border);
   border-radius: 4px;
+}
+
+/* High contrast: the ⋯ menu, the breathe hint and the banner doors
+ * lean on blur + translucent surfaces — all of which flatten in
+ * forced-colors. Opaque system canvas + real borders instead. */
+@media (forced-colors: active) {
+  #tb-more-pop,
+  #breathe-hint {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+    backdrop-filter: none;
+  }
+
+  .tbm-row { color: CanvasText; }
+
+  .tbm-row:hover,
+  .tbm-row:focus-visible {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  #run-verdict .rv-act {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+  }
 }
 
 @media (max-width: 640px) {

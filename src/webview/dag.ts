@@ -8224,6 +8224,10 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // A fresh run replaces any held verdict (the failed banner holds
       // the floor between runs, never OVER a running graph).
       if (msg.running) { hideRunVerdict(); }
+      // The live present closes the SCRUBBER too — dag:updateStatus only
+      // deactivated the transport, so starting a run on the already-shown
+      // graph left replay chrome (a recorded t=…) over live-painting cards.
+      if (msg.running && replayer.active) { replayer.close(); }
       // The narrator's run gate: start speaks assertive with the task
       // count; stop just closes the gate (the verdict line is the close).
       if (msg.running) { speak(narrator.runStarted(renderer.taskCount, performance.now())); }
@@ -8714,6 +8718,9 @@ searchEl?.addEventListener('keydown', (e: KeyboardEvent) => {
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   // Only handle if not in an input field
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  // The ⋯ menu owns its keyboard while open — the canvas walk behind it
+  // must never move (arrows walk rows · Esc closes and refocuses ⋯).
+  if (morePopKeydown(e)) return;
   // Keyboard camera = INSTANT (motion charter law 7: a key press never
   // animates — the glides belong to pointer gestures).
   if (e.key === 'f' || e.key === 'F') renderer.fitToView(undefined, true);
@@ -9065,8 +9072,34 @@ function shedButtons(): HTMLButtonElement[] {
 }
 
 function closeMorePop(): void {
-  document.getElementById('tb-more-pop')?.setAttribute('hidden', '');
-  document.getElementById('btn-more')?.setAttribute('aria-expanded', 'false');
+  const pop = document.getElementById('tb-more-pop');
+  const wasOpen = pop !== null && !pop.hasAttribute('hidden');
+  pop?.setAttribute('hidden', '');
+  const btn = document.getElementById('btn-more');
+  btn?.setAttribute('aria-expanded', 'false');
+  // The WAI-ARIA menu contract: closing returns focus to the opener —
+  // [hidden] on the focused row otherwise drops keyboard focus to body.
+  if (wasOpen && pop !== null && pop.contains(document.activeElement)) { btn?.focus(); }
+}
+
+/** True when the ⋯ menu swallowed the key (it owns its own keyboard:
+ *  rows move with arrows, Esc closes — the canvas walk behind it must
+ *  never move while the menu is open). */
+function morePopKeydown(e: KeyboardEvent): boolean {
+  const pop = document.getElementById('tb-more-pop');
+  if (!pop || pop.hasAttribute('hidden') || !pop.contains(document.activeElement)) { return false; }
+  const rows = [...pop.querySelectorAll<HTMLButtonElement>('.tbm-row')];
+  const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+  if (e.key === 'Escape') { closeMorePop(); }
+  else if (e.key === 'ArrowDown') { rows[(at + 1) % rows.length]?.focus(); }
+  else if (e.key === 'ArrowUp') { rows[(at - 1 + rows.length) % rows.length]?.focus(); }
+  else if (e.key === 'Home') { rows[0]?.focus(); }
+  else if (e.key === 'End') { rows[rows.length - 1]?.focus(); }
+  else if (e.key === 'Tab') { closeMorePop(); return false; }
+  else { return false; }
+  e.preventDefault();
+  e.stopPropagation();
+  return true;
 }
 
 function refreshMoreDoor(): void {
