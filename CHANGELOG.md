@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The names travel
+
+- **Runs rows lead with the workflow name**: two runs in flight read as two workflows, not two opaque journal timestamps · the basename stays the fallback for nameless journals and rides the tooltip as the journal identity.
+- **The run report states what travels**: the artifacts section says it plainly: the recorded paths travel with the report, the `file:` links and inline previews resolve on this machine only.
+- **`/` finds tasks by their wires**: the filter matches the aliases a task consumes (`headline` finds the card reading `${{ with.headline }}`) alongside id · verb · model · tool · provider.
+
 ### The menu behaves: the ⋯ door earns the WAI-ARIA contract
 
 - **The ⋯ menu owns its keyboard**: arrows walk the rows (the canvas focus behind it no longer moves) · Home/End jump · Esc closes AND returns focus to the ⋯ button (it used to drop to nowhere while the canvas Esc-ladder fired underneath) · Tab closes and moves on.

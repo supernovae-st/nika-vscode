@@ -123,6 +123,8 @@ export function renderRunReport(inputs: RunReportInputs): string {
   if (allArts.length > 0) {
     out.push('## Artifacts');
     out.push('');
+    out.push('_The recorded paths travel with the report · the `file:` links (and inline previews) resolve on THIS machine only._');
+    out.push('');
     for (const [taskId, list] of allArts) {
       for (const a of list) {
         const facts = [
@@ -136,6 +138,10 @@ export function renderRunReport(inputs: RunReportInputs): string {
         // `command:` links it does not — annexe R R13). Angle-bracket
         // destination, the gallery's proven idiom — paths with spaces
         // stay one URL. Unresolved stays a code span: the gap says so.
+        // The RECORDED (relative) path leads the prose either way — a
+        // teammate on another machine reads the path that travels; the
+        // file:// destination is this machine's convenience, not the
+        // report's identity.
         out.push(abs !== undefined
           ? `- [\`${a.path}\`](<file://${abs}>) — ${facts} · produced by \`${taskId}\``
           : `- \`${a.path}\` — ${facts} · produced by \`${taskId}\``);

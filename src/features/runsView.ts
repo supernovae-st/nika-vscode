@@ -303,7 +303,14 @@ export async function latestTraceForGraph(
 
 class TraceItem extends vscode.TreeItem {
   constructor(readonly trace: TraceFile, liveChips: string[] = []) {
-    super(path.basename(trace.uri.fsPath), vscode.TreeItemCollapsibleState.Collapsed);
+    // The workflow NAME leads when the journal stamped one — two runs in
+    // flight read as two workflows, not two opaque timestamps. The
+    // basename stays the fallback (nameless/foreign journals) and rides
+    // the tooltip either way as the journal identity.
+    super(
+      trace.model.workflowName ?? path.basename(trace.uri.fsPath),
+      vscode.TreeItemCollapsibleState.Collapsed,
+    );
     // The uniform accessory law (DESIGN.md §7e): status glyph leads
     // (the summary's own), duration rides, AGE closes — the same three
     // columns a History cell wears. A LIVE row still narrates its
