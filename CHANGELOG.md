@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The switch keeps its promises
+
+- **The camera belongs to its workflow**: following a different file re-fits the canvas instead of framing the new graph under the previous file's zoom and pan (the off-screen-until-F class) · re-loading the SAME file keeps your camera, exactly as before.
+- **Lenses answer one file's question**: audit and dataflow reset when the canvas switches to a different workflow · they answered a question about the previous file · the heatmap keeps its global dial by design.
+- **The `?` dialog is honest again**: `L` (activity feed) and `+ −` (zoom) join the key list · the one dialog that promises every key now keeps that promise.
+
 ### The run detail names every mechanism
 
 - **A healthy task's note is its mechanism**: the Tasks table now carries the wire's own verb·tool descriptor (`infer · mock/echo`) on succeeded rows · the column used to sit empty until something broke, while the terminal named every task's mechanism all along · failures keep their NIKA story in the same column.
