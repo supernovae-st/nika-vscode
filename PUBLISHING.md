@@ -26,7 +26,10 @@ confidence gate between "the pyramid is green" and "a stranger's first
                                    unit-pinned — the harness's storage
                                    is memory-backed, cross-launch state
                                    is not observable there)
-               npx vsce package  → packages clean, size sane (<1 MB)
+               npx vsce package  → packages clean, size sane (~2 MB ·
+                                   the canvas bundle is the mass) and
+                                   NO `.nika/` inside (local run traces
+                                   never ship · the ignore is the belt)
 2. CROSS-REVIEW a diff review of the release delta (adversarial · the
                integration/compose bugs a single-feature test can't see)
                — every verified finding fixed, not just filed

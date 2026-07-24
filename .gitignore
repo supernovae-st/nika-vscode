@@ -3,3 +3,6 @@ out/
 *.vsix
 .vscode-test/
 out-integration/
+
+# Local run traces from manual testing (the DAG panel + nika run write here)
+.nika/
