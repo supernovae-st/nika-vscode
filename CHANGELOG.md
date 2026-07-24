@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The agent's oracle calls breathe
+
+- **An in-editor agent running `nika_check` is no longer invisible**: one quiet status breath (`agent checked <file> · N findings`) tells the human editing alongside that the oracle just ran · throttled to one breath per file per 10s, so a looping agent never spams.
+
 ### The names travel
 
 - **Runs rows lead with the workflow name**: two runs in flight read as two workflows, not two opaque journal timestamps · the basename stays the fallback for nameless journals and rides the tooltip as the journal identity.

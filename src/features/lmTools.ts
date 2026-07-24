@@ -12,6 +12,8 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { countReportFindings } from '../core/cliContract';
+import { flashStatus } from './notify';
 import type { NikaService } from '../nikaService';
 
 interface LmTextPartCtor { new (value: string): unknown }
@@ -66,6 +68,21 @@ export function registerLmTools(
   const { lm, TextPart, Result } = surface;
   const text = (s: string): unknown => new Result([new TextPart(s)]);
 
+  // The human editing alongside gets ONE quiet status breath when an
+  // agent runs the oracle — the check itself was invisible (the report
+  // returns to the AGENT only). Throttled per file so a looping agent
+  // breathes once, never spams.
+  const agentCheckSeen = new Map<string, number>();
+  const breatheAgentCheck = (fsPath: string, findings: number): void => {
+    const now = Date.now();
+    const last = agentCheckSeen.get(fsPath) ?? 0;
+    if (now - last < 10000) { return; }
+    agentCheckSeen.set(fsPath, now);
+    flashStatus(
+      `$(hubot) agent checked ${path.basename(fsPath)} · ${findings === 0 ? 'clean' : `${findings} finding${findings === 1 ? '' : 's'}`}`,
+    );
+  };
+
   context.subscriptions.push(
     lm.registerTool('nika_check', {
       invoke: async (options) => {
@@ -74,6 +91,7 @@ export function registerLmTools(
         if (!doc) { return text('No workflow file found — pass filePath or open a .nika.yaml.'); }
         const outcome = await service.checkDocument(doc);
         if (!outcome) { return text('The nika binary is not available (check capability missing).'); }
+        if (outcome.report) { breatheAgentCheck(doc.uri.fsPath, countReportFindings(outcome.report)); }
         return text(outcome.report ? JSON.stringify(outcome.report) : outcome.raw);
       },
     }),
