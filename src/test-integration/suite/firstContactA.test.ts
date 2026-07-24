@@ -18,9 +18,10 @@
 // The confetti itself is a run:celebrate postMessage into the webview —
 // no host API can observe another webview's messages, so the celebration
 // is asserted at the closest honest level: the green happened on a
-// virgin profile (both guards of maybeCelebrateFirstGreen hold), and the
-// launcher then proves nika.firstGreenRun.v1 PERSISTED to the profile.
-// Launch B proves the never-twice side behaviorally.
+// virgin profile (both guards of maybeCelebrateFirstGreen hold). The
+// never-twice side is unit-pinned (src/test/firstContact.test.ts): the
+// harness's storage is memory-backed, so persisted state is not
+// observable here (see runFirstContact.ts for the 2026-07-24 finding).
 
 import * as assert from 'assert';
 import * as fs from 'fs';
@@ -103,11 +104,25 @@ suite('first contact · launch A (virgin machine · zero gestures to green)', ()
   });
 
   suiteTeardown(async function () {
-    this.timeout(10000);
-    // Settle: let the host flush globalState (the launcher byte-scans
-    // the profile for the burned keys right after this window closes).
+    this.timeout(45000);
+    // The last test's anchor is the ENGINE's journal (workflow_completed)
+    // — but the extension's run-close handler (child exit + stream
+    // drain) runs a beat LATER. Killing the host between the two once
+    // masked the close path entirely (2026-07-24). Bridge with an
+    // OBSERVABLE per this suite's own law, never a blind sleep:
+    // persistTrace() writes the extension's own trace copy
+    // (`hello-canvas-<stamp>.ndjson` — slug-first, disjoint from the
+    // engine's stamp-first journal names) at the END of the close
+    // handler, so that file on disk proves the verdict/celebrate path
+    // ran to completion inside this window.
+    const dir = path.join(workspaceRoot(), '.nika', 'traces');
+    await until(
+      'the extension trace copy (the run-close handler ran)',
+      () => fs.existsSync(dir) && fs.readdirSync(dir).some((f) => f.startsWith('hello-canvas-')),
+      30000,
+    );
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    await sleep(1500);
+    await sleep(500);
   });
 
   test('the demo lands by itself — no command, no click, no key', async function () {
