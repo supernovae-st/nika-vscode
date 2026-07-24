@@ -807,7 +807,9 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 .wave-label-n {
-  fill: color-mix(in srgb, var(--nk-ink-dim) 55%, transparent);
+  /* Text stays readable: 55% of the dim ink sat near 2.5:1 — the
+   * hierarchy survives at 78% and the count repasses the AA floor. */
+  fill: color-mix(in srgb, var(--nk-ink-dim) 78%, transparent);
 }
 
 /* ─── Focus mode · lineage stays lit, the rest fades ────────────────────── */
@@ -5812,7 +5814,8 @@ body[data-nk-theme='editor'].vscode-dark {
 }
 
 .pr-n {
-  color: color-mix(in srgb, var(--nk-ink-dim) 55%, transparent);
+  /* Same law as .wave-label-n — dim is a HIERARCHY, not an illegibility. */
+  color: color-mix(in srgb, var(--nk-ink-dim) 78%, transparent);
 }
 
 .pr-cap {

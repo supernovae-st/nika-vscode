@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The dim stays readable
+
+- **Dim is a hierarchy, not an illegibility**: the two text surfaces that thinned the dim ink to 55% (the wave-band count · the plan-rail number) lift to 78% · the visual hierarchy survives, the contrast repasses the AA floor.
+
 ### Local models: the whole lifecycle from the Station
 
 - **`Pull a model…`** joins the Providers section (and `Nika: Pull a Local Model` in the palette): type an `owner/repo[:QUANT]` Hub id and the pull runs in a terminal · the engine's own ceremony holds: size prints before a byte downloads, 2 GiB and over confirms, an interrupted pull resumes from its `.part`.
