@@ -498,6 +498,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.answerLastPause",
+        "title": "Answer the Waiting Run",
+        "icon": "$(debug-pause)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.runHistory",
         "title": "Run History (cross-run grid · flaky · trends)",
         "icon": "$(graph-line)",

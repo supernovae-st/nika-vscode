@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The pause beacon: a state, not a moment
+
+- **A dismissed pause notification no longer strands the run**: a quiet warning status item (`⏸ <task> asks`) appears the moment a run pauses and survives the toast · click it (or `Nika: Answer the Waiting Run`) to walk the same guarded answer flow · it clears when the answer launches and repaints if the resumed run pauses again.
+
 ### The settings meet you where the need is
 
 - **`Nika: Pick the Canvas Theme`**: the four skins in one picker (engineered-black · follows-your-theme · OLED phosphor · auto), applied live: the config watcher re-skins the open canvas without a reload · the skin was pickable only from raw settings search, the one place you cannot see it change.
