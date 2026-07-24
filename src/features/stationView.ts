@@ -214,6 +214,35 @@ export function registerStation(
       if (pick === undefined) { return; }
       inTerminal(`nika model serve --model ${pick.label}`);
     }),
+    // Pull a GGUF — the terminal is the honest vehicle here too: the
+    // CLI prints the size BEFORE downloading and confirms ≥2GiB itself
+    // (its own ceremony · never bypassed with --yes from the UI), an
+    // interrupted pull resumes from its .part.
+    vscode.commands.registerCommand('nika.station.pullModel', async () => {
+      const id = await vscode.window.showInputBox({
+        title: 'Pull a local model (Hugging Face Hub)',
+        prompt: 'owner/repo[:QUANT] · default quant Q4_K_M when the repo tags one · HF_TOKEN authenticates gated repos',
+        placeHolder: 'Qwen/Qwen3-0.6B-GGUF:Q8_0',
+        ignoreFocusOut: true,
+        validateInput: (s) => (/^\S+\/\S+$/.test(s.trim()) ? undefined : 'The Hub id looks like owner/repo[:QUANT]'),
+      });
+      if (id === undefined || id.trim().length === 0) { return; }
+      inTerminal(`nika model pull ${id.trim()}`);
+      setTimeout(() => { void provider.refresh(); }, 8000);
+    }),
+    // Remove rides the wrench + a MODAL confirm — owner/repo removes
+    // every quant and the tokenizer beside them (the engine's own law).
+    vscode.commands.registerCommand('nika.station.rmModel', async (id: unknown) => {
+      if (typeof id !== 'string' || id.length === 0) { return; }
+      const go = await vscode.window.showWarningMessage(
+        `Remove ${id} from the models dir?`,
+        { modal: true, detail: 'owner/repo removes every quant (and the tokenizer beside them) · owner/repo:QUANT one file. The terminal shows exactly what the engine reclaims.' },
+        'Remove',
+      );
+      if (go !== 'Remove') { return; }
+      inTerminal(`nika model rm ${id}`);
+      setTimeout(() => { void provider.refresh(); }, 4000);
+    }),
     vscode.commands.registerCommand('nika.station.fix', async (row: unknown) => {
       // The inline wrench receives the tree row — typeof first (the
       // command is palette-hidden, but the guard is the law, not the

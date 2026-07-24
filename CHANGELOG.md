@@ -6,6 +6,11 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### Local models: the whole lifecycle from the Station
+
+- **`Pull a model…`** joins the Providers section (and `Nika: Pull a Local Model` in the palette): type an `owner/repo[:QUANT]` Hub id and the pull runs in a terminal · the engine's own ceremony holds: size prints before a byte downloads, 2 GiB and over confirms, an interrupted pull resumes from its `.part`.
+- **Reclaim rides the wrench**: every pulled-model row carries a remove repair behind a modal confirm (`owner/repo` removes every quant and the tokenizer beside it · the terminal shows exactly what the engine reclaims) · destruction is never a primary click.
+
 ### The agent's oracle calls breathe
 
 - **An in-editor agent running `nika_check` is no longer invisible**: one quiet status breath (`agent checked <file> · N findings`) tells the human editing alongside that the oracle just ran · throttled to one breath per file per 10s, so a looping agent never spams.
