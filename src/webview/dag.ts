@@ -721,7 +721,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:trail'; segments: Array<{ label: string; uri: string }>; active: number }
   | { kind: 'dag:cost'; forecast: { label: string; tooltip: string; unbounded: boolean; delta?: { label: string; tooltip: string; up: boolean } } | null }
   | { kind: 'run:progress'; done: number; total: number }
-  | { kind: 'run:verdict'; icon: string; text: string; cls: string }
+  | { kind: 'run:verdict'; icon: string; text: string; cls: string; failedTask?: string; failedCode?: string }
   | { kind: 'run:celebrate' }
   | { kind: 'dag:replayLoad'; timeline: TimelineEntry[]; label: string; speed: number }
   | { kind: 'dag:replayEnd' }
@@ -8233,7 +8233,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       applyRunProgress(msg.done, msg.total);
       break;
     case 'run:verdict':
-      showRunVerdict(msg.icon, msg.text, msg.cls);
+      showRunVerdict(msg.icon, msg.text, msg.cls, msg.failedTask, msg.failedCode);
       // One voice with the banner: the verdict text IS the summary —
       // blocking closes (failed · paused) speak assertive.
       speak(narrator.verdict(msg.text, msg.cls === 'st-failed' || msg.cls === 'st-paused'));
@@ -8362,7 +8362,7 @@ function hideRunVerdict(): void {
   el?.setAttribute('hidden', '');
 }
 
-function showRunVerdict(icon: string, text: string, cls: string): void {
+function showRunVerdict(icon: string, text: string, cls: string, failedTask?: string, failedCode?: string): void {
   const el = document.getElementById('run-verdict');
   if (!el) { return; }
   if (verdictTimer) { clearTimeout(verdictTimer); }
@@ -8374,6 +8374,39 @@ function showRunVerdict(icon: string, text: string, cls: string): void {
   const textEl = document.createElement('span');
   textEl.textContent = text;
   el.append(iconEl, textEl);
+  // A failure's banner carries its own doors — the one moment the user
+  // faces the failure must not be a passive read. Buttons stop the
+  // banner's own click (the feed) from swallowing theirs.
+  if (cls === 'st-failed' && failedTask !== undefined) {
+    const acts = document.createElement('span');
+    acts.className = 'rv-acts';
+    if (failedCode !== undefined) {
+      const explain = document.createElement('button');
+      explain.className = 'rv-act';
+      explain.textContent = `¶ ${failedCode}`;
+      explain.title = `Explain ${failedCode} — cause · category · fix form`;
+      explain.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({ kind: 'dag:explainCode', code: failedCode });
+      });
+      acts.append(explain);
+    }
+    const fork = document.createElement('button');
+    fork.className = 'rv-act';
+    fork.textContent = '⑂ fork';
+    fork.title = `Fork from \`${failedTask}\` — upstream rehydrates from the trace`;
+    fork.addEventListener('click', (e) => {
+      e.stopPropagation();
+      vscode.postMessage({
+        kind: 'dag:forkFromTask',
+        taskId: failedTask,
+        workflowUri: vscode.getState()?.graph?.workflowUri,
+      });
+      hideRunVerdict();
+    });
+    acts.append(fork);
+    el.append(acts);
+  }
   el.title = 'Click for the full run story (activity feed)';
   el.removeAttribute('hidden');
   // Double-rAF so the transition runs on reveal (hidden → visible needs a
