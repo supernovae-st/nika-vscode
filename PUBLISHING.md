@@ -15,8 +15,17 @@ confidence gate between "the pyramid is green" and "a stranger's first
                                    gate — v0.93.0 died here in 16s: a
                                    feature-branch merge moved a transitive
                                    esbuild without regenerating the lock)
-               npm test         → vitest + parity + eslint all green
-               npm run test:integration → real VS Code host, 4/4
+               npm test         → the belt suite whole (vitest · spec
+                                   parity · tokens parity · voice gate ·
+                                   glyph registry · walkthrough media ·
+                                   eslint)
+               npm run test:integration → real VS Code hosts: the
+                                   integration suite + the first-contact
+                                   e2e (launch A: zero gestures to
+                                   green; the never-twice guards are
+                                   unit-pinned — the harness's storage
+                                   is memory-backed, cross-launch state
+                                   is not observable there)
                npx vsce package  → packages clean, size sane (<1 MB)
 2. CROSS-REVIEW a diff review of the release delta (adversarial · the
                integration/compose bugs a single-feature test can't see)
