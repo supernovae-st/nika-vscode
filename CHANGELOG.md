@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The answer door: a paused run is one gesture from its answer
+
+- **The needs-you badge stops dead-ending**: a paused run's row in the Runs view now carries `Answer the Paused Run` inline and leads its `⌘K ⌘.` panel with it · the same guarded flow the toast starts (Yes/No · the workflow's own choices · a text box), the same one-shot ledger against accidental re-answers. The workflow file is found beside its journal (the stamped name wins exactly · ambiguity asks · never a silent guess) · the badge that says *a run is blocked on you* finally opens the door that unblocks it.
+
 ### The switch keeps its promises
 
 - **The camera belongs to its workflow**: following a different file re-fits the canvas instead of framing the new graph under the previous file's zoom and pan (the off-screen-until-F class) · re-loading the SAME file keeps your camera, exactly as before.

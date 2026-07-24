@@ -481,6 +481,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.answerPause",
+        "title": "Answer the Paused Run",
+        "icon": "$(comment-discussion)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.runHistory",
         "title": "Run History (cross-run grid · flaky · trends)",
         "icon": "$(graph-line)",
@@ -1047,6 +1053,10 @@
           "when": "false"
         },
         {
+          "command": "nika.answerPause",
+          "when": "false"
+        },
+        {
           "command": "nika.runs.showTaskInDag",
           "when": "false"
         },
@@ -1253,28 +1263,33 @@
           "group": "inline"
         },
         {
+          "command": "nika.answerPause",
+          "when": "view == nikaRuns && viewItem == nikaTracePaused",
+          "group": "inline@1"
+        },
+        {
           "command": "nika.diffTraces",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "inline"
         },
         {
           "command": "nika.debugReplay",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "inline"
         },
         {
           "command": "nika.verifyTrace",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "nika@3"
         },
         {
           "command": "nika.reproduceRun",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "nika@4"
         },
         {
           "command": "nika.exportOtel",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "nika@3"
         },
         {
@@ -1294,7 +1309,7 @@
         },
         {
           "command": "nika.runReport",
-          "when": "view == nikaRuns && viewItem == nikaTrace",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "context"
         },
         {

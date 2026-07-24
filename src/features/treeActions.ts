@@ -83,6 +83,10 @@ function factsFromTreeItem(el: vscode.TreeItem): TreeItemFacts {
       const traceUri = (el as { trace?: { uri?: unknown } }).trace?.uri;
       return { kind: 'trace', ...base, traceUri };
     }
+    case 'nikaTracePaused': {
+      const traceUri = (el as { trace?: { uri?: unknown } }).trace?.uri;
+      return { kind: 'tracePaused', ...base, traceUri };
+    }
     case 'nikaTraceTask': return { kind: 'traceTask', ...base };
     case 'nikaArtifact': return { kind: 'artifact', ...base };
     case 'nikaUnreadableTrace': return { kind: 'unreadableTrace', ...base };
