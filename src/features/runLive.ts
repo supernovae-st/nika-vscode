@@ -310,7 +310,19 @@ export function runWorkflowLive(
       dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}${suffix}`, undefined, cls);
       // The verdict banner — the same summary, visible WITHOUT opening the
       // feed (summarizeRun leads with its own icon; the banner owns it).
-      dagPanel.runVerdict(icon, `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`, cls);
+      // A failure hands the banner its FIRST failed task + the NIKA code
+      // its story named (when it did) — the Explain/Fork doors ride them.
+      const firstFailed = verdict === 'failed'
+        ? [...model.tasks.values()].find((t) => t.status === 'failed')
+        : undefined;
+      const failedCode = firstFailed?.preview?.match(/NIKA-[A-Z]+-\d+/)?.[0];
+      dagPanel.runVerdict(
+        icon,
+        `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`,
+        cls,
+        firstFailed?.id,
+        failedCode,
+      );
       // The peak (peak-end): the FIRST green verdict ever gets the one
       // confetti — the mock demo counts, the sandbox IS the aha. On a
       // fresh machine the auto-demo's close lands here, so the fall

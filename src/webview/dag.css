@@ -5573,7 +5573,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: min(72vw, 640px);
+  max-width: min(92vw, 640px);
   height: 30px;
   padding: 0 14px;
   font-size: 11px;
@@ -5581,7 +5581,6 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-bg) 88%, transparent);
   border: 1px solid var(--nk-border);
@@ -5600,6 +5599,41 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 
 #run-verdict[hidden] {
   display: none;
+}
+
+/* The banner is a flex ROW: the summary text ellipsizes in its own
+ * span, so the failure doors on the right stay visible at every width
+ * (the container-level ellipsis clipped the buttons off-screen). */
+#run-verdict > span:not(.rv-icon):not(.rv-acts) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The failure banner's own doors — Explain the code · fork from the
+ * failed task. Quiet pills inside the banner; their click never falls
+ * through to the banner's feed-opening click. */
+#run-verdict .rv-acts {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 4px;
+  flex: none;
+}
+
+#run-verdict .rv-act {
+  padding: 1px 8px;
+  font-family: var(--nk-mono);
+  font-size: 10.5px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#run-verdict .rv-act:hover {
+  background: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 #run-verdict .rv-icon {

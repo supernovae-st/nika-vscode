@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The failure banner carries its own doors
+
+- **A failed run's banner acts**: `¶ NIKA-XXXX` opens the code's explanation and `⑂ fork` re-runs from the failed task (upstream rehydrates from the trace) · right on the red banner, the one moment you are looking straight at the failure · the summary text ellipsizes so the doors stay visible at every panel width · clicking the banner body still opens the full run story.
+
 ### The detective pivot: diff against the previous run, in place
 
 - **A History cell diffs against the run before it in one gesture**: spot the column where a task flipped, click `$(diff)` (or its `⌘K ⌘.` row) · the previous run rides as the base, the cell compares against it, the first divergence paints on the DAG · the old path (leave the grid, open Runs, hand-pick two traces through a double picker) survives as the general door.

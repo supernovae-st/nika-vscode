@@ -55,7 +55,7 @@ export type ExtToWebviewMessage =
   | { kind: 'run:progress'; done: number; total: number }
   // Run close — the verdict banner (the summary made visible without
   // opening the feed): icon + one summarizeRun line + status class.
-  | { kind: 'run:verdict'; icon: string; text: string; cls: string }
+  | { kind: 'run:verdict'; icon: string; text: string; cls: string; failedTask?: string; failedCode?: string }
   // Live-run lifecycle — the toolbar flips ▶/■ on this (replayed on
   // dag:ready so a reloaded panel keeps the truthful state).
   | { kind: 'run:state'; running: boolean }
@@ -261,9 +261,15 @@ export class DagPanel implements vscode.Disposable {
     this.postMessage({ kind: 'run:progress', done, total });
   }
 
-  /** Run-close verdict banner — the summary, visible without the feed. */
-  public runVerdict(icon: string, text: string, cls: string): void {
-    this.postMessage({ kind: 'run:verdict', icon, text, cls });
+  /** Run-close verdict banner — the summary, visible without the feed.
+   *  A failure carries its first failed task (and its NIKA code when the
+   *  story named one): the banner's own Explain/Fork doors ride them. */
+  public runVerdict(icon: string, text: string, cls: string, failedTask?: string, failedCode?: string): void {
+    this.postMessage({
+      kind: 'run:verdict', icon, text, cls,
+      ...(failedTask !== undefined ? { failedTask } : {}),
+      ...(failedCode !== undefined ? { failedCode } : {}),
+    });
   }
 
   /** Open the canvas accessibility help (in-webview keymap dialog). */
