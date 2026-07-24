@@ -135,6 +135,8 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
         row('$(type-hierarchy) Show the workflow DAG', 'nika.workflows.showDag', [el], {
           teach: 'nika.showDag',
         }),
+        row('$(wrench) Fix with the engine (rename repairs)', 'nika.fixWorkflow', [el],
+          checkOff !== undefined ? { off: checkOff } : {}),
         ...click('$(go-to-file) Open the file'),
       ];
     }

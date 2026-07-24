@@ -121,6 +121,22 @@ Options:
     expect(caps.stdinDash).toBe(false);
   });
 
+  // `check --fix` rides the same discriminator surface: its own flag
+  // line in `check --help` (captured verbatim from the released 0.105).
+  const CHECK_HELP_FIX = `${CHECK_HELP_DASH}
+      --fix   Apply the machine-applicable rename repairs (typed did-you-mean suggestions only: fields · tools · args), rewrite the file, and re-audit
+`;
+
+  it('lights checkFix when check --help documents --fix', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.105.0', CHECK_HELP_FIX);
+    expect(caps.checkFix).toBe(true);
+  });
+
+  it('keeps checkFix off on a pre-fix binary — the door stays honest', () => {
+    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1', CHECK_HELP_DASH);
+    expect(caps.checkFix).toBe(false);
+  });
+
   // Captured verbatim from the engine #298 build (2026-07-08) — the file
   // form's own doc line is the discriminator, same law as stdinDash.
   const EXPLAIN_HELP_FILE_FORM = `Teach one error code (cause · category · fix-form) — or narrate a workflow FILE: what it does · the waves · cost before a token is spent · what it touches · how to run it

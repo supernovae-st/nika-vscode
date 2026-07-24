@@ -2597,6 +2597,23 @@ export function activate(context: ExtensionContext): void {
         onPaused: (paused) => { void onRunPaused(doc.uri.fsPath, paused); },
       });
     }),
+    // Command: the engine's own repair loop (`check --fix` · clippy-fix
+    // shape): the typed did-you-mean renames (fields · tools · args)
+    // applied to the ONE real file, then re-audited. A file MUTATION, so
+    // it rides the terminal like every other mutating gesture (model
+    // pull/rm · test --update): the engine narrates exactly what it
+    // renamed and what it skipped, and the check-as-you-type sweep
+    // repaints from the rewritten disk.
+    commands.registerCommand('nika.fixWorkflow', async (uri?: Uri) => {
+      const doc = await requireNikaDocument(uri);
+      if (!doc) { return; }
+      if (!service.caps.checkFix) {
+        void informSoftly('binary-predates-fix', 'Nika: this binary predates `check --fix` — update it to apply the engine\'s rename repairs.');
+        return;
+      }
+      if (doc.isDirty) { await doc.save(); }
+      runNikaCommand(state.resolvedServerPath, 'check --fix', doc.uri.fsPath);
+    }),
     // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
     // A human surface (the engine refuses it with --json), so it rides the
     // terminal: audit → PLAN → mock → run → resume, the full ladder.
