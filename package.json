@@ -511,6 +511,12 @@
         "category": "Nika"
       },
       {
+        "command": "nika.history.diffPrevious",
+        "title": "Diff Against the Previous Run",
+        "icon": "$(diff)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.runs.showTaskInDag",
         "title": "Show Task in DAG (replay this run · center the task)",
         "icon": "$(target)",
@@ -1049,6 +1055,10 @@
           "when": "false"
         },
         {
+          "command": "nika.history.diffPrevious",
+          "when": "false"
+        },
+        {
           "command": "nika.runDetail",
           "when": "false"
         },
@@ -1303,8 +1313,13 @@
           "group": "inline@2"
         },
         {
+          "command": "nika.history.diffPrevious",
+          "when": "view == nikaRunHistory && viewItem == nikaHistoryCellDiffable",
+          "group": "inline@1"
+        },
+        {
           "command": "nika.history.report",
-          "when": "view == nikaRunHistory && viewItem == nikaHistoryCell",
+          "when": "view == nikaRunHistory && viewItem =~ /^nikaHistoryCell(Diffable)?$/",
           "group": "inline"
         },
         {

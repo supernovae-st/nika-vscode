@@ -168,6 +168,9 @@ export interface HistoryRow {
   taskId?: string;
   /** Cell rows — the replay handle; absent when the run carried no path. */
   traceFsPath?: string;
+  /** Cell rows — the PREVIOUS column's journal, when it recorded one:
+   *  the « diff against the run before » one-gesture handle. */
+  prevTraceFsPath?: string;
   children?: HistoryRow[];
 }
 
@@ -236,6 +239,9 @@ export function buildHistoryRows(runs: HistoryRun[], nowMs: number, filter?: str
         label: `run #${k}`,
         description: runRowDescription(summary, run.mtimeMs, nowMs),
         ...(run.fsPath !== undefined ? { traceFsPath: run.fsPath } : {}),
+        ...(run.fsPath !== undefined && runs[i - 1]?.fsPath !== undefined
+          ? { prevTraceFsPath: runs[i - 1].fsPath }
+          : {}),
       });
     });
     children.reverse(); // NEWEST first — the freshest evidence leads

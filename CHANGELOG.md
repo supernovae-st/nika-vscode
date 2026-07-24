@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The detective pivot: diff against the previous run, in place
+
+- **A History cell diffs against the run before it in one gesture**: spot the column where a task flipped, click `$(diff)` (or its `⌘K ⌘.` row) · the previous run rides as the base, the cell compares against it, the first divergence paints on the DAG · the old path (leave the grid, open Runs, hand-pick two traces through a double picker) survives as the general door.
+
 ### The answer door: a paused run is one gesture from its answer
 
 - **The needs-you badge stops dead-ending**: a paused run's row in the Runs view now carries `Answer the Paused Run` inline and leads its `⌘K ⌘.` panel with it · the same guarded flow the toast starts (Yes/No · the workflow's own choices · a text box), the same one-shot ledger against accidental re-answers. The workflow file is found beside its journal (the stamped name wins exactly · ambiguity asks · never a silent guess) · the badge that says *a run is blocked on you* finally opens the door that unblocks it.

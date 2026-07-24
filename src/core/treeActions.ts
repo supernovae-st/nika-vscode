@@ -50,6 +50,8 @@ export interface TreeItemFacts {
   readonly traceUri?: unknown;
   /** History cell: a recorded trace path exists behind the row. */
   readonly hasTrace?: boolean;
+  /** History cell: the PREVIOUS column's trace — the one-gesture diff. */
+  readonly prevTraceUri?: unknown;
 }
 
 /** The capability truths the reasons speak from. */
@@ -198,6 +200,14 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
         // The cell's own Enter (§7e) — absent only when no path was recorded.
         ...(item.click !== undefined
           ? click('$(open-preview) Open the run detail', off)
+          : []),
+        // The detective pivot — spot the flaky column, compare it against
+        // the run BEFORE it without leaving the grid. Present only when a
+        // previous column recorded a path (the first column has no before).
+        ...(item.prevTraceUri !== undefined
+          ? [row('$(diff) Diff against the previous run', 'nika.history.diffPrevious', [el], {
+              teach: 'nika.diffTraces',
+            })]
           : []),
         // Replay stays one row away — greyed with the reason when the
         // journal path is gone (never hidden · the §7d law).
