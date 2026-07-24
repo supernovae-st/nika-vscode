@@ -191,9 +191,51 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
   }
 }
 
+// 10 · the metric system (W-D18 · DESIGN.md §1e) — every font-size in
+// dag.css reads a ladder voice; the ONLY raw px allowed are the
+// documented one-offs (glyph controls 13 · the es-title half-step
+// 13.5 · the palette touch target 14 · the display trio 18/22/26).
+// Card-scope border-radius reads a named step; the acquitted one-offs
+// stay raw. A new raw value fails HERE with the law in the message —
+// the ladder is structural, not aspirational.
+{
+  const FS_ONEOFFS = new Set(['13', '13.5', '14', '18', '22', '26']);
+  for (const m of css.matchAll(/font-size:\s*([\d.]+)px/g)) {
+    const v = m[1].replace(/\.0$/, '');
+    if (!FS_ONEOFFS.has(v)) {
+      findings.push(`dag.css: raw font-size ${v}px — pick a ladder voice (--nk-fs-*) or argue a new one in DESIGN.md §1e`);
+    }
+  }
+  const R_ONEOFFS = new Set(['9', '10', '18']);
+  const CARD = /(nc-|dag-node|node-fo)/;
+  let sel = '';
+  for (const part of css.split(/(\{[^{}]*\})/)) {
+    if (part.startsWith('{')) {
+      if (CARD.test(sel)) {
+        for (const m of part.matchAll(/border-radius:\s*([\d.]+)px\s*;/g)) {
+          const v = m[1].replace(/\.0$/, '');
+          if (!R_ONEOFFS.has(v)) {
+            findings.push(`dag.css: raw card border-radius ${v}px — pick a radius step (--nk-r-*) or argue it in DESIGN.md §1e`);
+          }
+        }
+      }
+    } else if (part.trim()) {
+      sel = part.trim().split('\n').pop();
+    }
+  }
+  // Self-probe: the gate must catch a planted raw value.
+  const planted = 'x { font-size: 7.25px; }';
+  const probeHits = [...planted.matchAll(/font-size:\s*([\d.]+)px/g)]
+    .filter((m) => !FS_ONEOFFS.has(m[1])).length;
+  if (probeHits !== 1) {
+    console.error('tokens-parity: metric-gate self-probe failed — judging nothing');
+    process.exit(2);
+  }
+}
+
 if (findings.length) {
   console.error(`tokens-parity: ${findings.length} finding(s)`);
   for (const f of findings) { console.error(`  ✗ ${f}`); }
   process.exit(1);
 }
-console.log(`tokens-parity: OK — verb canon+alias + wake vars + glyphs + motion identities + negative scan + dynamic twins + v3 roster + 6 category tints pinned across dag.css, dag.ts, verbPalette.ts, cardIdentity.ts`);
+console.log(`tokens-parity: OK — verb canon+alias + wake vars + glyphs + motion identities + negative scan + dynamic twins + v3 roster + 6 category tints + the metric ladders pinned across dag.css, dag.ts, verbPalette.ts, cardIdentity.ts`);

@@ -265,7 +265,7 @@ body[data-nk-theme] {
   line-height: 32px;
   padding: 0 12px;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--nk-fs-heading);
   letter-spacing: 0.01em;
   /* The reverse door — click opens the YAML (dag.ts wires it). */
   cursor: pointer;
@@ -339,7 +339,7 @@ body[data-nk-theme] {
   color: var(--nk-ink);
   border: none;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   font-family: inherit;
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects);
@@ -401,7 +401,7 @@ body[data-nk-theme] {
   height: 34px;
   line-height: 32px;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
   white-space: nowrap;
@@ -856,7 +856,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 .wave-label {
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   fill: var(--nk-ink-dim);
   opacity: 0.85;
@@ -1158,7 +1158,7 @@ body.running #progress-fill::after {
   border-radius: calc(var(--nk-radius) - 2px);
   background: transparent;
   color: var(--nk-ink);
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   line-height: 1;
   cursor: pointer;
 }
@@ -1230,7 +1230,7 @@ body.running #progress-fill::after {
 #tr-time {
   flex: none;
   font-family: var(--nk-mono);
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
   white-space: nowrap;
@@ -1385,7 +1385,7 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .es-sub {
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   color: var(--nk-ink-dim);
 }
 
@@ -1406,7 +1406,7 @@ body.vscode-light .logo-dark { display: none; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
 }
 
@@ -1418,7 +1418,7 @@ body.vscode-light .logo-dark { display: none; }
 .es-button {
   margin-top: 12px;
   padding: 5px 14px;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   font-family: inherit;
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
@@ -1448,7 +1448,7 @@ body.vscode-light .logo-dark { display: none; }
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
   border: 1px solid var(--nk-border);
@@ -1467,7 +1467,7 @@ body.vscode-light .logo-dark { display: none; }
   min-width: 15px;
   height: 15px;
   padding: 0 4px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   background: linear-gradient(
     color-mix(in srgb, var(--nk-ink) 7%, var(--nk-page)),
@@ -1487,7 +1487,7 @@ body.vscode-light .logo-dark { display: none; }
   max-width: calc(100vw - 24px);
   padding: 6px 14px;
   font-family: var(--nk-mono);
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
   border: 1px solid var(--nk-border);
@@ -1547,13 +1547,13 @@ body.vscode-light .logo-dark { display: none; }
   border-radius: 10px;
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
   animation: es-rise 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15);
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   line-height: 1.5;
 }
 
 .ex-title {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--nk-fs-heading);
   margin-bottom: 10px;
 }
 
@@ -1589,7 +1589,7 @@ body.vscode-light .logo-dark { display: none; }
 
 .ex-metric-k {
   color: var(--nk-ink-dim);
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
 }
 
 .ex-metric-v {
@@ -1601,7 +1601,7 @@ body.vscode-light .logo-dark { display: none; }
 .ex-metric-hint {
   grid-column: 2;
   color: var(--nk-ink-dim);
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
 }
 
 .ex-row strong {
@@ -1682,7 +1682,7 @@ body.vscode-light .logo-dark { display: none; }
   margin: 12px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--nk-border);
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
 }
 
@@ -1692,7 +1692,7 @@ body.vscode-light .logo-dark { display: none; }
 
 .ex-foot {
   margin-top: 10px;
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   letter-spacing: 0.03em;
   color: var(--nk-ink-dim);
   opacity: 0.8;
@@ -1811,7 +1811,7 @@ body.vscode-light .logo-dark { display: none; }
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-weight: 600;
   font-family: var(--nk-mono);
   letter-spacing: 0.07em;
@@ -1847,7 +1847,7 @@ body.vscode-light .logo-dark { display: none; }
   background: transparent;
   border: none;
   font-family: var(--nk-mono);
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   color: var(--nk-ink);
   text-align: left;
   cursor: pointer;
@@ -1867,7 +1867,7 @@ body.vscode-light .logo-dark { display: none; }
 
 .act-time {
   color: var(--nk-ink-dim);
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
 }
@@ -2239,7 +2239,7 @@ body[data-nk-theme='nika'] #dag-container::after {
 
 /* Toolbar pills · machined deck modules — extruded lip under each. */
 body[data-nk-theme='nika'] #dag-toolbar {
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   letter-spacing: 0.02em;
 }
 
@@ -2436,7 +2436,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   z-index: 45;
   width: min(340px, calc(100vw - 24px));
   padding: 5px 10px;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
@@ -2469,7 +2469,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   transform: translateX(-50%);
   z-index: 45;
   padding: 1px 8px;
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
@@ -2503,7 +2503,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
    color under the glyphs so badges stay legible over edges. */
 .diff-badge {
   font-family: var(--nk-mono, ui-monospace, monospace);
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-weight: 700;
   letter-spacing: 0.02em;
   fill: var(--nk-fg-mute, #8a93a6);
@@ -4061,7 +4061,7 @@ body.heatmap #legend-heat {
   align-items: center;
   gap: 7px;
   padding: 3px 10px;
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 80%, transparent);
@@ -4291,7 +4291,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   flex: 1;
   min-width: 0;
   padding: 4px 2px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: transparent;
@@ -4319,7 +4319,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
@@ -4382,7 +4382,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   border-radius: 6px;
   color: var(--nk-ink);
   font-family: var(--nk-mono);
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   text-align: left;
   cursor: pointer;
 }
@@ -4469,7 +4469,7 @@ body[data-nk-theme='nika'] #omnibar {
   gap: 4px;
   height: 26px;
   padding: 0 10px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   font-family: var(--nk-mono);
   border-radius: 5px;
   cursor: pointer;
@@ -4667,7 +4667,7 @@ body.lod-far .nc-stale {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
@@ -4723,7 +4723,7 @@ body.lod-far .nc-stale {
   flex: 0 0 auto;
   min-width: 42px;
   text-align: right;
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
@@ -4750,7 +4750,7 @@ body.replaying #minimap { bottom: 74px; }
 }
 
 .region-label {
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -4782,7 +4782,7 @@ body.lod-far .region-label { display: none; }
   align-items: center;
   height: 26px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   color: var(--nk-st-retrying);
   background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
@@ -4856,7 +4856,7 @@ body.lod-far .region-label { display: none; }
 .cmdk-cat {
   padding: 6px 8px 2px;
   font-family: var(--nk-mono);
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--nk-ink-dim);
@@ -4868,7 +4868,7 @@ body.lod-far .region-label { display: none; }
   width: 100%;
   padding: 5px 8px;
   margin-bottom: 4px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
@@ -4910,12 +4910,12 @@ body.lod-far .region-label { display: none; }
 .cmdk-glyph {
   flex: 0 0 auto;
   color: var(--dv-hue, var(--nk-ink-dim));
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
 }
 
 .cmdk-name {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   font-weight: 600;
 }
 
@@ -4924,7 +4924,7 @@ body.lod-far .region-label { display: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   color: var(--nk-ink-dim);
   text-align: right;
 }
@@ -5027,7 +5027,7 @@ body.lod-far .region-label { display: none; }
   flex: 1 1 auto;
   min-width: 0;
   padding: 7px 2px;
-  font-size: 12.5px;
+  font-size: var(--nk-fs-heading);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: none;
@@ -5058,7 +5058,7 @@ body.lod-far .region-label { display: none; }
 
 .cd-hint {
   font-family: var(--nk-mono);
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   color: var(--nk-ink-dim);
 }
 
@@ -5125,7 +5125,7 @@ body.lod-far .nc-audit { display: none !important; }
   align-items: center;
   height: 26px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   color: var(--nk-st-success);
@@ -5163,7 +5163,7 @@ body.lod-far .nc-audit { display: none !important; }
   align-items: center;
   height: 26px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   border-radius: 5px;
   white-space: nowrap;
@@ -5255,7 +5255,7 @@ body.lod-far .nc-audit { display: none !important; }
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: transparent;
@@ -5307,7 +5307,7 @@ body.lod-far .nc-audit { display: none !important; }
 /* Section labels + the resume list (the sidebar-sessions read). */
 .es-sec {
   margin: 16px 0 7px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -5329,7 +5329,7 @@ body.lod-far .nc-audit { display: none !important; }
   width: 100%;
   padding: 6px 10px;
   font-family: var(--nk-mono);
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   color: var(--nk-ink);
   background: transparent;
   border: 1px solid transparent;
@@ -5358,7 +5358,7 @@ body.lod-far .nc-audit { display: none !important; }
 
 .es-row-rel {
   flex: none;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   color: var(--nk-ink-dim);
 }
 
@@ -5374,7 +5374,7 @@ body.lod-far .nc-audit { display: none !important; }
   align-items: center;
   gap: 8px;
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   font-family: var(--nk-ui-font);
   color: var(--nk-ink-dim);
   background: transparent;
@@ -5431,14 +5431,14 @@ body.welcome #dag-status {
   border-left-width: 3px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   line-height: 1.5;
 }
 #es-binary[hidden] { display: none; }
 .es-binary-mark { color: var(--nk-st-retrying); flex: 0 0 auto; }
 .es-binary-text { color: var(--nk-ink); opacity: 0.9; flex: 1 1 auto; text-align: left; }
 .es-binary-text code {
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   padding: 1px 5px;
   border: 1px solid var(--nk-border);
   border-radius: 4px;
@@ -5476,7 +5476,7 @@ body.welcome #dag-status {
   display: flex;
   align-items: baseline;
   gap: 9px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
   line-height: 1.4;
 }
@@ -5495,7 +5495,7 @@ body.welcome #dag-status {
   min-width: 15px;
   height: 15px;
   padding: 0 4px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   border: 1px solid var(--nk-border);
@@ -5513,7 +5513,7 @@ body.welcome #dag-status {
 .es-link {
   margin-top: 6px;
   padding: 4px 8px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   font-family: inherit;
   color: var(--nk-accent);
   background: transparent;
@@ -5667,7 +5667,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   max-width: min(92vw, 640px);
   height: 30px;
   padding: 0 14px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -5715,7 +5715,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 #run-verdict .rv-act {
   padding: 1px 8px;
   font-family: var(--nk-mono);
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   color: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
@@ -5728,7 +5728,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 }
 
 #run-verdict .rv-icon {
-  font-size: 12px;
+  font-size: var(--nk-fs-ui);
 }
 
 /* One tint per §3.1 verdict — the icon carries the color, the border a
@@ -5863,7 +5863,7 @@ body[data-nk-theme='editor'].vscode-dark {
   gap: 7px;
   padding: 4px 9px;
   font-family: var(--nk-mono);
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   letter-spacing: 0.06em;
   color: var(--nk-ink-dim);
   background: transparent;
@@ -6647,7 +6647,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   transform: translateX(-50%);
   z-index: 3;
   padding: 4px 12px;
-  font-size: 11.5px;
+  font-size: var(--nk-fs-title);
   letter-spacing: 0.02em;
   color: color-mix(in srgb, var(--nk-ink) 68%, transparent);
   background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
@@ -6742,7 +6742,7 @@ body.audit .dag-node.audit-secret .nc {
 /* The timeline's agent gutter — the loop's quiet mark. */
 .tl-agent-turns {
   fill: var(--nk-verb-agent);
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
 }
 
 /* The typed-output chip — the contract family (data hue · a fact). */

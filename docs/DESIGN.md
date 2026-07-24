@@ -231,6 +231,16 @@ the selector map proved intentional · the 5px mini step is OPTICAL
 Deliberate one-offs stay raw: the 50% dot · the 18px full pill · the
 10px action pill · the agent ring accent · the exec cmd corner join.
 
+The whole chrome reads the same ladders (batch 4 · 59 declarations) ·
+the surviving raw px are the DOCUMENTED one-offs: 13px glyph controls
+(＋ · marks · close buttons; chrome PROSE inherits the body's
+`--vscode-font-size`, it is not a declared voice) · the 13.5px
+es-title half-step · the 14px palette touch target · the display trio
+18/22/26. The ladder is STRUCTURAL: tokens-parity fails any new raw
+`font-size` px (and any raw card-scope radius off the acquitted list)
+with this section in the message. A tenth voice starts by arguing
+here, then widens the gate's allowlist in the same commit.
+
 The chip grammar (batch 3): chip INK is semantic and stays so ·
 accent = live params (chip · pill facts · context chips) · dim = quiet
 metadata (badges · tags · kbd) · status hues = state chips (gate) ·
