@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The menu behaves: the ⋯ door earns the WAI-ARIA contract
+
+- **The ⋯ menu owns its keyboard**: arrows walk the rows (the canvas focus behind it no longer moves) · Home/End jump · Esc closes AND returns focus to the ⋯ button (it used to drop to nowhere while the canvas Esc-ladder fired underneath) · Tab closes and moves on.
+- **Live truth for screen readers**: the `/` filter's match count is a real live region now: `3 matches` speaks as you type, not only on focus.
+- **The scrubber yields to the present**: starting a run on the already-shown graph closes any open replay scrubber · recorded chrome never sits over live-painting cards.
+- **Quiet surfaces respect the system**: the breathe hint joins the reduced-motion opt-out (its sibling first-hint always had it) · the ⋯ menu, the breathe hint and the banner doors gain forced-colors treatment (opaque canvas · real borders · Highlight rows).
+
 ### The pause beacon: a state, not a moment
 
 - **A dismissed pause notification no longer strands the run**: a quiet warning status item (`⏸ <task> asks`) appears the moment a run pauses and survives the toast · click it (or `Nika: Answer the Waiting Run`) to walk the same guarded answer flow · it clears when the answer launches and repaints if the resumed run pauses again.

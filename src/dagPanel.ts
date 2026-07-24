@@ -1104,7 +1104,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="aurora" aria-hidden="true"></div>
   <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden
          aria-label="Filter tasks" aria-describedby="dag-search-count">
-  <span id="dag-search-count" hidden></span>
+  <span id="dag-search-count" role="status" aria-live="polite" hidden></span>
   <div id="dag-toolbar">
     <span id="dag-mark" aria-hidden="true">
       <img class="logo-dark" src="${logoDark}" alt="" width="16" height="16">
