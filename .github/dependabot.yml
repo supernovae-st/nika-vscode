@@ -1,0 +1,28 @@
+# Dependabot · supply-chain freshness for this repo's own CI + npm deps.
+#
+# github-actions bumps are GROUPED into ONE weekly PR. Lesson proven on
+# nika-spec 2026-07-19 (PR #135): a multi-step action pair such as
+# github/codeql-action's `init` + `analyze`, if bumped in SEPARATE PRs,
+# desyncs mid-merge and the scan breaks (init and analyze must ride the
+# same version). One grouped weekly PR keeps the pair, and every other
+# action, moving together. The npm ecosystem rides the same grouped-weekly
+# discipline (one PR, all deps) — the belt suite (`npm test`) judges the
+# whole group at once.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-all:
+        patterns:
+          - "*"
