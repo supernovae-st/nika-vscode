@@ -877,6 +877,20 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   pointer-events: auto;
 }
 
+/* The dimmed card answers engagement (W-D19): hovering PEEKS it — the
+ * focus-mode cast holds, the pointer gets to read one card — and
+ * keyboard focus or selection lifts it fully: a focus ring on a ghost
+ * is not an answer. The card's own opacity transition (0.2s) makes
+ * both moves breathe; reduced-motion inherits the no-transition rules. */
+.dag-node.dimmed:hover {
+  opacity: 0.8;
+}
+
+.dag-node.dimmed:focus-visible,
+.dag-node.dimmed.selected {
+  opacity: 1;
+}
+
 .dag-edge.dimmed {
   opacity: 0.1;
 }
