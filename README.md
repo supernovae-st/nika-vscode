@@ -411,7 +411,14 @@ network: every green close settles a ✓ wave through the cards.*
   with the question itself), a notification offers **Answer…**, and the
   control matches the mode: confirm → Yes/No, choice → the workflow's
   own options, input → a box. The answer resumes the exact journal the
-  engine wrote: upstream cache-hits, the gated side effects run live
+  engine wrote: upstream cache-hits, the gated side effects run live.
+  A dismissed toast strands nothing: a quiet `⏸ <task> asks` status
+  beacon holds the state until the answer launches
+- **Run with inputs, spend bounded** · `Nika: Run Workflow with
+  Inputs` turns the check report's own required vars into a short
+  form (Esc anywhere cancels the whole run), then an optional spend
+  ceiling rides `--max-cost-usd` · parameterized runs stop being a
+  copy-a-line-to-a-terminal dance
 - **The cross-run story** · `Nika: Run History` renders the last runs of
   THIS workflow as a grid (rows = tasks · columns = runs): flaky steps
   are a recorded fact, not a guess; and **diff v2** compares any two
@@ -522,6 +529,23 @@ network: every green close settles a ✓ wave through the cards.*
 - **Deterministic authoring prompt** · copy the template→check→repair
   protocol for any chat agent
 
+### The Station: the engine room
+
+- **One tree for the machinery** · the engine row (version · a
+  too-old grammar names itself), the doctor's verdict with each fix
+  one click away, the agent clients with their wire state
+  (`Agents — 3/6 wired`), and the providers: local runtimes detected,
+  cloud keys counted (`3/11 present`)
+- **Local models, the whole lifecycle** · one row per pulled GGUF
+  (`owner/repo:QUANT` · size · the engine's own remark), read live
+  from `nika model list` · **`Serve a model…`** opens the
+  OpenAI-compatible server in a terminal, foreground on purpose: the
+  banner says how workflows reach it, Ctrl-C stops it where it
+  started · **`Pull a model…`** keeps the engine's own ceremony (size
+  prints before a byte downloads · 2 GiB and over confirms · an
+  interrupted pull resumes) · reclaiming rides the wrench behind a
+  modal confirm: destruction is never a primary click
+
 ### Engine-honest by construction
 - **Capability-gated UI** · the extension probes what the binary ACTUALLY
   ships (`--help`) · the static suite + `run` light up today (the gate lit
@@ -535,7 +559,7 @@ network: every green close settles a ✓ wave through the cards.*
 
 ## Commands
 
-The fifteen you'll reach for first: the full set lives in the
+The sixteen you'll reach for first: the full set lives in the
 **Feature Contributions** tab.
 
 | Command | What it does |
@@ -544,6 +568,7 @@ The fifteen you'll reach for first: the full set lives in the
 | `Nika: New Workflow File` | the wizard: name · starter · model (mock first, locals next) |
 | `Nika: Show Workflow DAG` | the live canvas (the welcome home when no workflow is open) |
 | `Nika: Run Current Workflow` | `nika run --json` streamed onto the DAG, verdict on close |
+| `Nika: Run Workflow with Inputs` | required vars become a short form · a spend ceiling rides `--max-cost-usd` |
 | `Nika: Resume Last Run` | re-run what changed: unchanged tasks cache-hit their recorded output |
 | `Nika: Validate Current Workflow` | the engine's full `nika check` verdict on demand |
 | `Nika: Preflight` | cost · secrets · permits · the wave plan, ahead of the run |
