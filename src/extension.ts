@@ -1723,6 +1723,60 @@ export function activate(context: ExtensionContext): void {
     }
   };
 
+  // The Answer door — the needs-you badge used to dead-end in a read-only
+  // page: the paused Runs row (inline + its K-panel) now collects the
+  // answer through the SAME flow the toast starts. The workflow file is
+  // FOUND, never demanded: journals live at <cwd>/.nika/traces, so the
+  // run's own cwd is searched first — the stamped name wins exactly, a
+  // single candidate stands in for a nameless journal, ambiguity asks.
+  context.subscriptions.push(
+    commands.registerCommand('nika.answerPause', async (item?: {
+      trace?: {
+        uri?: Uri;
+        model?: { paused?: { task: string; mode: string; message?: string; choices?: string[] }; workflowName?: string };
+      };
+    }) => {
+      const traceUri = item?.trace?.uri;
+      const paused = item?.trace?.model?.paused;
+      if (!(traceUri instanceof Uri) || paused === undefined) { return; }
+      if (!(await requireEngine(service, 'answering a paused run'))) { return; }
+      const runCwd = path.dirname(path.dirname(path.dirname(traceUri.fsPath)));
+      const wanted = item?.trace?.model?.workflowName;
+      let candidates: Uri[] = [];
+      try {
+        candidates = fs.readdirSync(runCwd)
+          .filter((f) => NIKA_FILE_RE.test(f))
+          .map((f) => Uri.file(path.join(runCwd, f)));
+      } catch {
+        // unreadable cwd — the warning below owns the story
+      }
+      let target: Uri | undefined;
+      if (wanted !== undefined) {
+        const named = candidates.filter((f) => {
+          try { return parseRichWorkflow(fs.readFileSync(f.fsPath, 'utf-8')).name === wanted; } catch { return false; }
+        });
+        if (named.length === 1) { target = named[0]; }
+        if (named.length > 1) {
+          const pick = await window.showQuickPick(
+            named.map((f) => ({ label: path.basename(f.fsPath), uri: f })),
+            { placeHolder: `Several files declare \`${wanted}\` — answer which one?` },
+          );
+          if (!pick) { return; }
+          target = pick.uri;
+        }
+      } else if (candidates.length === 1) {
+        target = candidates[0];
+      }
+      if (!target) {
+        void window.showWarningMessage(
+          'Nika: the workflow this run came from was not found beside its journal — open it and use Resume instead.',
+        );
+        return;
+      }
+      await answerPausedRun(target.fsPath, { ...paused, tracePath: traceUri.fsPath });
+    }),
+  );
+
   const refreshStaleBadges = (fsPath: string): void => {
     try {
       const text = fs.readFileSync(fsPath, 'utf-8');

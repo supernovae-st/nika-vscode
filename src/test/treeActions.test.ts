@@ -56,6 +56,10 @@ const FACTS: Record<string, { view: TreeViewId; facts: TreeItemFacts }> = {
     view: 'nikaRuns',
     facts: { kind: 'trace', label: 'run.ndjson', element: { sentinel: 'trace' }, traceUri: { sentinel: 'uri' } },
   },
+  nikaTracePaused: {
+    view: 'nikaRuns',
+    facts: { kind: 'tracePaused', label: 'paused.ndjson', element: { sentinel: 'tracePaused' }, traceUri: { sentinel: 'uri' } },
+  },
   nikaTraceTask: {
     view: 'nikaRuns',
     facts: { kind: 'traceTask', label: 'summarize', element: { sentinel: 'traceTask' } },
@@ -92,11 +96,20 @@ describe('reachability — the keyboard reaches everything the hover reaches', (
 
   for (const e of entries) {
     it(`${e.command} (${e.group ?? 'context'} · ${e.when}) has a panel row`, () => {
-      const viewItem = /viewItem == (\w+)/.exec(e.when)?.[1];
-      expect(viewItem, e.when).toBeDefined();
-      const home = FACTS[viewItem!];
-      expect(home, `no panel facts modeled for viewItem ${viewItem}`).toBeDefined();
-      expect(commandsOf(home.view, home.facts, ALL_ON)).toContain(e.command);
+      // Two when-shapes: `viewItem == X` names one home; `viewItem =~
+      // /re/` names every FACTS key the regex admits — and EACH matched
+      // variant must carry the row (the belt got stronger, not looser).
+      const eq = e.when.match(/viewItem == (\w+)/)?.[1];
+      const re = e.when.match(/viewItem =~ \/(.+?)\//)?.[1];
+      const homes = eq !== undefined
+        ? [eq]
+        : Object.keys(FACTS).filter((k) => re !== undefined && new RegExp(re).test(k));
+      expect(homes.length, e.when).toBeGreaterThan(0);
+      for (const key of homes) {
+        const home = FACTS[key];
+        expect(home, `no panel facts modeled for viewItem ${key}`).toBeDefined();
+        expect(commandsOf(home.view, home.facts, ALL_ON)).toContain(e.command);
+      }
     });
   }
 });
@@ -120,6 +133,15 @@ describe('curation — each kind serves its verbs, primary first', () => {
       'nika.runDetail', 'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
       'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport', 'nika.exportOtel',
     ]);
+  });
+
+  it('a PAUSED trace: the answer leads — the one action the run waits for', () => {
+    const p = buildTreeActionPanel('nikaRuns', FACTS.nikaTracePaused.facts, ALL_ON);
+    expect(p.itemRows.map((r) => r.command)).toEqual([
+      'nika.answerPause', 'nika.runDetail', 'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
+      'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport', 'nika.exportOtel',
+    ]);
+    expect(p.itemRows[0].teach).toBe('nika.answerPause');
   });
 
   it('a history cell: detail leads, replay and the provable report follow (the Q4 named case)', () => {

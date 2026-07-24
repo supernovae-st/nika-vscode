@@ -26,6 +26,7 @@ export type TreeItemKind =
   | 'workflowTask'
   | 'workflowUnparseable'
   | 'trace'
+  | 'tracePaused'
   | 'traceTask'
   | 'artifact'
   | 'unreadableTrace'
@@ -146,9 +147,18 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
     }
     case 'workflowUnparseable':
       return click('$(go-to-file) Open the file · the check squiggles mark the line');
-    case 'trace': {
+    case 'trace':
+    case 'tracePaused': {
       const engineOff = caps.available ? undefined : NEEDS_ENGINE;
+      // A paused run leads with the one action it is WAITING for.
+      const answer = item.kind === 'tracePaused'
+        ? [row('$(comment-discussion) Answer the paused run', 'nika.answerPause', [el], {
+            teach: 'nika.answerPause',
+            ...(caps.available ? {} : { off: NEEDS_ENGINE }),
+          })]
+        : [];
       return [
+        ...answer,
         // The row's own Enter (§7e) — the detail leads, the stack completes.
         row('$(open-preview) Open the run detail', 'nika.runDetail', [item.traceUri]),
         row('$(play-circle) Replay onto the canvas', 'nika.replayTrace', [item.traceUri],

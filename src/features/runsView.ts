@@ -313,7 +313,9 @@ class TraceItem extends vscode.TreeItem {
     this.description = runRowDescription(
       summarizeRun(trace.model), trace.mtimeMs, Date.now(), liveChips,
     );
-    this.contextValue = 'nikaTrace';
+    // A paused run is a different KIND of row — it waits on a human, so
+    // its menus and K-panel lead with the Answer door.
+    this.contextValue = trace.model.workflowStatus === 'paused' ? 'nikaTracePaused' : 'nikaTrace';
     // A broken chain outranks the run verdict: an unverified journal's
     // "completed" is itself unverified (Proof Arc P2).
     this.iconPath = trace.chain.kind === 'broken'
