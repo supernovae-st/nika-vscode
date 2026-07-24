@@ -9,7 +9,6 @@ out/test/**
 **/*.ts
 **/*.map
 .gitignore
-!server/
 scripts/**
 .github/**
 PUBLISHING.md

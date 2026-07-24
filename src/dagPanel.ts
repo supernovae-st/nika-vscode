@@ -246,7 +246,14 @@ export class DagPanel implements vscode.Disposable {
    *  one native slot a background tab shows.) */
   private applyTitle(): void {
     if (!this.panel) { return; }
-    this.panel.title = `${this.runState ? '▶ ' : ''}${DagPanel.titleFor(this.currentGraph)}`;
+    try {
+      this.panel.title = `${this.runState ? '▶ ' : ''}${DagPanel.titleFor(this.currentGraph)}`;
+    } catch {
+      // Disposed under us (the run-close chain can outlive the tab —
+      // « Webview is disposed » at `set title`) · same corpse pattern
+      // as postMessage: release so the next show() builds fresh.
+      this.releaseDisposedPanel();
+    }
   }
 
   /** Called by the live runner at spawn/close — flips the toolbar ▶/■. */
