@@ -6,7 +6,7 @@
 
 ## Per-release readiness gate (run before ANY tag)
 
-The tag is the operator's call. Before it, walk this once — it's the
+The tag is the operator's call. Before it, walk this once · it's the
 confidence gate between "the pyramid is green" and "a stranger's first
 5 minutes won't embarrass us."
 
@@ -80,10 +80,10 @@ The version tracks the engine announce line. VS Marketplace's OFFICIAL
 pre-release convention is **odd-minor = pre-release**. `0.93.0` has an
 odd minor (93), so:
 - **Stable release** (recommended for the first public ship): publish
-  WITHOUT `--pre-release`. The odd minor is then cosmetic — the engine-
+  WITHOUT `--pre-release`. The odd minor is then cosmetic · the engine-
   parity number wins; ignore the convention.
 - **Pre-release channel**: `vsce publish --pre-release` embraces the
-  odd-minor. Don't mix — a stable at an odd minor then a `--pre-release`
+  odd-minor. Don't mix · a stable at an odd minor then a `--pre-release`
   at the same minor confuses the channel. Pick one lane and stay in it.
 
 ## Blockers · accounts (do these FIRST · lead time)
@@ -119,7 +119,7 @@ odd minor (93), so:
       `vscode:prepublish` runs clean+typecheck+build
 - [x] `capabilities.untrustedWorkspaces: limited` with
       `restrictedConfigurations: [nika.server.path, nika.server.extraArgs]`
-      — a malicious workspace must NOT choose which binary we spawn
+      · a malicious workspace must NOT choose which binary we spawn
 - [x] `capabilities.virtualWorkspaces: limited` (undeclared default is
       `true`, wrong for a binary-backed extension)
 - [x] activationEvents: `onLanguage:` implicit since 1.74 · only
@@ -136,13 +136,13 @@ odd minor (93), so:
 - [x] No telemetry → nothing to declare (there is NO manifest telemetry
       field); README states it
 - [x] Demo GIF in README (page-load friendly · the listing sells with it)
-      — the media pipeline embeds `media/dag-execution.gif` in the hero
+      · the media pipeline embeds `media/dag-execution.gif` in the hero
 
 ## Version strategy
 
 `0.93.x` tracks the engine announce line (was `0.81.x` pre-2026-07).
 See "The odd-minor trap" in the readiness gate above before choosing
-stable vs `--pre-release` — 93 is odd, so the convention reads it as a
+stable vs `--pre-release` · 93 is odd, so the convention reads it as a
 pre-release unless you publish stable and treat the minor as cosmetic.
 `vsce publish minor|patch` auto-bumps + tags; we bump by hand
 (`npm version`) to stay in engine-parity lockstep, so tag manually.

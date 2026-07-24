@@ -1,9 +1,9 @@
-# Canvas media — the README captures
+# Canvas media · the README captures
 
 Three of the README GIFs are captured from the extension's **real
 webview bundle** (`out/webview/dag.{js,css}`), driven through the
 extension's own message protocol (`dag:load` · `dag:batchUpdateStatus` ·
-`dag:artifacts` · `run:state` · `run:progress` · `run:verdict`) — the
+`dag:artifacts` · `run:state` · `run:progress` · `run:verdict`) · the
 same messages a live `nika run` streams onto the DAG. The run timelines
 are scripted replays (states illustrative, chrome and card anatomy
 real). `media/check-as-you-type.gif` is the exception: a real-editor
@@ -39,7 +39,7 @@ gifsicle -O3 --lossy=90 media/lens-deck.gif -o media/lens-deck.gif
 ```
 
 Chrome is required (no bundled chromium on dev machines): both runners
-launch `--channel chrome`. playwright is not a repo dependency — point
+launch `--channel chrome`. playwright is not a repo dependency · point
 `NIKA_PLAYWRIGHT` at any install (`npx playwright@latest` works, or the
 locally installed `node_modules/playwright` when judging).
 

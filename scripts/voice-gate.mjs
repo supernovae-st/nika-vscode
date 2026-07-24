@@ -19,9 +19,10 @@
 // · package.json copy strings. NEVER src/**/*.ts — code comments
 // em-dash freely, gating them is churn. Fenced blocks and inline
 // `code` spans quote engine and UI output verbatim and keep their
-// voice. Contributor surfaces (docs/ · SSOT · SECURITY · AGENTS ·
-// PUBLISHING · contrib · icons · scripts/media) are WARN-tier until
-// their own sweep lands; the sweep flips them to FAIL.
+// voice. Contributor surfaces graduated to FAIL-tier with their
+// 2026-07-24 sweep (SSOT · SECURITY · AGENTS · PUBLISHING · contrib ·
+// icons · scripts/media · docs/ALGORITHMS); docs/*.md arrives WARN by
+// glob and graduates per-sweep · DESIGN.md is the last holdout.
 //
 // Escape hatch: a `voice-ok` comment on the hit line or the line above.
 // package.json carries no comments, so its escape lives in the allowlist
@@ -83,19 +84,23 @@ const CONTENT_BANNED = [
 const CONTENT_FAIL_MD = [
   { rel: 'README.md' },
   { rel: 'CHANGELOG.md', opts: { unreleasedOnly: true } },
+  // Contributor surfaces · swept 2026-07-24 (63 findings) and graduated
+  // WARN → FAIL: a clean surface stays clean or the belt says so.
+  { rel: 'SSOT.md' },
+  { rel: 'SECURITY.md' },
+  { rel: 'AGENTS.md' },
+  { rel: 'PUBLISHING.md' },
+  { rel: 'contrib/README.md' },
+  { rel: 'icons/README.md' },
+  { rel: 'scripts/media/README.md' },
+  { rel: 'docs/ALGORITHMS.md' },
 ];
 
-// Contributor surfaces: scanned, reported, non-fatal. Their own deslop
-// sweep is owed; when it lands, move these rows into CONTENT_FAIL_MD.
-const CONTENT_WARN_MD = [
-  'SSOT.md',
-  'SECURITY.md',
-  'AGENTS.md',
-  'PUBLISHING.md',
-  'contrib/README.md',
-  'icons/README.md',
-  'scripts/media/README.md',
-];
+// Contributor surfaces still awaiting their own deslop sweep: scanned,
+// reported, non-fatal. When a sweep lands, its rows graduate into
+// CONTENT_FAIL_MD (docs/*.md arrives here by glob · DESIGN.md is the
+// last holdout, 186 findings, a full editorial pass of its own).
+const CONTENT_WARN_MD = [];
 
 // package.json keys whose string values are copy a user reads. Values
 // under any other key (commands, whens, paths, defaults, snippet
@@ -249,10 +254,13 @@ for (const { rel, opts } of CONTENT_FAIL_MD) {
 // ── content lane · contributor surfaces (WARN · sweep owed) ────────────────
 const warnFindings = [];
 const warnTargets = [...CONTENT_WARN_MD];
+const failRels = new Set(CONTENT_FAIL_MD.map((f) => f.rel));
 const docsDir = path.join(root, 'docs');
 if (fs.existsSync(docsDir)) {
   for (const entry of fs.readdirSync(docsDir)) {
-    if (entry.endsWith('.md')) { warnTargets.push(path.join('docs', entry)); }
+    const rel = path.join('docs', entry);
+    // A doc graduated into the FAIL lane is judged there — never twice.
+    if (entry.endsWith('.md') && !failRels.has(rel)) { warnTargets.push(rel); }
   }
 }
 for (const rel of warnTargets) {

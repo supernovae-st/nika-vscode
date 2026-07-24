@@ -32,7 +32,7 @@ flags. This is the JSON-Schema-as-type-system move:
 ### Transitive reduction · RETIRED with the gate algebra v2 (W2)
 
 - Aho, Garey & Ullman · *The Transitive Reduction of a Directed Graph* ·
-  SIAM J. Comput. 1(2), 1972 — powered the pre-W2 « redundant
+  SIAM J. Comput. 1(2), 1972 · powered the pre-W2 « redundant
   depends_on » hint. Under graph_format 2 every edge carries a
   PASS-SET (value admits {success, skipped} · `after: succeeded` admits
   {success} · …) and admission composes per edge, so an edge that is
@@ -40,15 +40,15 @@ flags. This is the JSON-Schema-as-type-system move:
   it can change what runs. The client hint and its quick fix left with
   the math's premise; the one narrow class that survives (a
   non-tightening `after:` restated beside a value edge) is the
-  reference linter's `one-obvious-way/010` — the engine's voice.
+  reference linter's `one-obvious-way/010` · the engine's voice.
 - (The « ghost edge » half of the same pre-W2 pair died with
   NIKA-DAG-003 itself: in W2 the binding IS the edge, so a data ref
-  without ordering is inexpressible — `NIKA-VAR-021` refuses the
+  without ordering is inexpressible · `NIKA-VAR-021` refuses the
   out-of-boundary ref at parse.)
 
 ### Bounded Damerau-Levenshtein did-you-mean · `core/graphIntel.ts`
 
-Damerau 1964 · Levenshtein 1966. OSA variant, band ≤2 with early exit —
+Damerau 1964 · Levenshtein 1966. OSA variant, band ≤2 with early exit ·
 same UX contract as the engine's tool suggestions, applied to task refs
 where the report carries no suggestion field.
 
@@ -67,9 +67,9 @@ permits.<path>`) + our one-click appliers + Fix All:
 - arXiv:2306.09896 · *Is Self-Repair a Silver Bullet?* (2023) · at
   matched budget, self-repair often loses to parallel resampling unless
   feedback comes from a real oracle. Ours is one.
-- arXiv:2510.13575 · industrial compiler-only auto-repair (2025) —
+- arXiv:2510.13575 · industrial compiler-only auto-repair (2025) ·
   plateau after the first rounds; **2, max 3 rounds is the frontier**.
-- arXiv:2310.01798 · *LLMs Cannot Self-Correct Reasoning Yet* (2023) —
+- arXiv:2310.01798 · *LLMs Cannot Self-Correct Reasoning Yet* (2023) ·
   never run a fix round without the checker's verdict in the prompt.
 
 → encoded in `core/aiPrompt.ts` AND executed by `core/generatePipeline.ts`
@@ -109,7 +109,7 @@ the closure (|ancestors| + |descendants| = n−1).
 We evaluated dominator analysis (Cooper, Harvey & Kennedy · *A Simple,
 Fast Dominance Algorithm* · Rice TR-06-33870, 2006 · the right choice
 under ~30k nodes over Lengauer-Tarjan TOPLAS 1979) and **rejected it**:
-dominators answer « which node is unavoidable to REACH the sink » —
+dominators answer « which node is unavoidable to REACH the sink » ·
 meaningful in control-flow graphs where paths are alternatives. In an
 AND-join workflow DAG every task executes, so unavoidability is trivial
 and the serialization question is the ANTICHAIN structure, not path
@@ -131,7 +131,7 @@ EVERY descendant (each waits on all its dependencies), so blast radius
   Math. 17(2), 1969 · ANY list schedule is within 2−1/k of optimal. The
   bracket `max(W/k, S) ≤ T_k ≤ W/k + S(k−1)/k` is property-tested.
 - Topcuoglu, Hariri & Wu · *Performance-Effective and Low-Complexity
-  Task Scheduling for Heterogeneous Computing* · IEEE TPDS 13(3), 2002 —
+  Task Scheduling for Heterogeneous Computing* · IEEE TPDS 13(3), 2002 ·
   HEFT. With homogeneous workers it degenerates to list scheduling with
   **upward-rank priority**, which is exactly what we run; the
   heterogeneity machinery would be dead weight here.
@@ -154,7 +154,7 @@ EVERY descendant (each waits on all its dependencies), so blast radius
 
 - Robertson & Zaragoza · *The Probabilistic Relevance Framework: BM25
   and Beyond* · FnTIR 3(4), 2009 (doi:10.1561/1500000019).
-- Why not embeddings at a ~30-doc corpus: BEIR (arXiv:2104.08663) —
+- Why not embeddings at a ~30-doc corpus: BEIR (arXiv:2104.08663) ·
   dense fails out-of-domain without in-domain training; CodeRAG-Bench
   (arXiv:2406.14497) · lexical competitive on code/docs;
   arXiv:2604.01733 · BM25 beats text-embedding-3-large as first-stage on
@@ -168,7 +168,7 @@ Grounding (the Prompt2DAG hybrid recipe · arXiv:2509.13487: template +
 LLM fill hit 78.5% executable vs 29.2% direct, 260 runs × 13 LLMs):
 
 - 1 BM25-routed template + ≤2 retrieved exemplars (count per
-  arXiv:2410.03981 · gains concentrate 0→1-3 shots; arXiv:2202.12837 —
+  arXiv:2410.03981 · gains concentrate 0→1-3 shots; arXiv:2202.12837 ·
   demonstrations teach FORMAT) + a spec-slice from `nika schema`
   (grammar prompting · arXiv:2305.19234).
 - Parallel-shaped intents ALWAYS see a fan-out exemplar: WorfBench
