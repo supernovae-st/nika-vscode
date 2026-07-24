@@ -214,8 +214,24 @@ role tokens, values pinned to the census winners.
 Law: a NEW card surface picks a voice from the ladder, never a raw
 px. A surface that needs a tenth voice argues for it HERE first. The
 `18px` dev-glyph stays raw on purpose (display one-off, not a voice).
-Chrome overlays and the radius/chip grammar ride later batches of the
-same reform.
+
+The radius scale rides the same reform (batch 2). Six named steps
+the selector map proved intentional · the 5px mini step is OPTICAL
+(corner chips sitting on 6px frames · the grand head's smaller tile):
+
+| token | px | who wears it |
+|---|---|---|
+| `--nk-r-bar` | 2 | meters and their fills |
+| `--nk-r-tag` | 3 | inline text tags (code · method · stale · audit) |
+| `--nk-r-chip` | 4 | standalone chips (params · policy · gate) |
+| `--nk-r-mini` | 5 | mini corner chips · the grand head tile |
+| `--nk-r-tile` | 6 | tiles · insets · verb heads |
+| `--nk-r-panel` | 8 | inner panels (audio · check previews) |
+
+Deliberate one-offs stay raw: the 50% dot · the 18px full pill · the
+10px action pill · the agent ring accent · the exec cmd corner join.
+Chrome overlays and the chip grammar (padding and ink) ride later
+batches of the same reform.
 
 ## 1d · The 28 identities · every builtin speaks its nature (W-D8 CI-3)
 

@@ -69,6 +69,25 @@ body {
   --nk-fs-title: 11.5px;
   --nk-fs-ui: 12px;
   --nk-fs-heading: 12.5px;
+  /* ── The card radius scale (W-D18 batch 2) ────────────────────────
+   * Six named steps the census proved intentional (3/4/5/6 read as
+   * drift until the selector map showed four distinct jobs · the 5px
+   * mini step is OPTICAL: corner chips sitting on 6px frames, the
+   * grand head's smaller tile). Deliberate one-offs stay raw: the
+   * 50% dot · the 18px full pill · the 10px action pill · the agent
+   * ring accent. A new rounded card surface picks a step.
+   *   bar   2  meters and their fills
+   *   tag   3  inline text tags (code · method · stale · audit)
+   *   chip  4  standalone chips (params · policy · gate)
+   *   mini  5  mini corner chips (media frame corners · grand tile)
+   *   tile  6  tiles · insets · verb heads
+   *   panel 8  inner panels (audio · check previews · context chips) */
+  --nk-r-bar: 2px;
+  --nk-r-tag: 3px;
+  --nk-r-chip: 4px;
+  --nk-r-mini: 5px;
+  --nk-r-tile: 6px;
+  --nk-r-panel: 8px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -2643,7 +2662,7 @@ body.lod-far .dag-node:hover .nc {
   align-items: center;
   justify-content: center;
   font-size: var(--nk-fs-label);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   color: var(--dv-hue, var(--nk-ink-dim));
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.07), transparent 45%),
@@ -3036,7 +3055,7 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-tile {
   width: 18px;
   height: 18px;
   font-size: var(--nk-fs-meta);
-  border-radius: 5px;
+  border-radius: var(--nk-r-mini);
 }
 
 body:not(.lod-far) .nc-mode-grand .nc-head .nc-st { height: 18px; }
@@ -3166,14 +3185,14 @@ body.lod-far .nc-pill { display: none; }
   width: 44px;
   height: 4px;
   margin-left: auto;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
   background: color-mix(in srgb, var(--nk-verb-agent) 18%, transparent);
   overflow: hidden;
 }
 .nc-ab-fill {
   display: block;
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
   background: var(--nk-verb-agent-text);
 }
 .nc-ab-tk {
@@ -3253,7 +3272,7 @@ body.lod-far .nc-pill { display: none; }
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
 }
@@ -3352,7 +3371,7 @@ body.lod-far .nc-pill { display: none; }
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
   cursor: pointer;
   transition: border-color 0.12s, color 0.12s;
 }
@@ -3388,7 +3407,7 @@ body.lod-far .nc-pill { display: none; }
   color: var(--nk-st-retrying);
   background: color-mix(in srgb, var(--nk-st-retrying) 9%, transparent);
   border: 1px dashed color-mix(in srgb, var(--nk-st-retrying) 45%, transparent);
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 
 /* The recorded-artifact preview — the GENERATION, on the card (engine
@@ -3474,7 +3493,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   background: color-mix(in srgb, var(--nk-page) 72%, transparent);
   backdrop-filter: blur(6px);
   border: 1px solid var(--nk-border-soft);
-  border-radius: 5px;
+  border-radius: var(--nk-r-mini);
 }
 
 /* Audio artifact — a playable row (ONE player canvas-wide; the ▶ is the
@@ -3488,7 +3507,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   margin: 6px 8px 0;
   padding: 0 8px;
   border: 1px solid var(--nk-card-border);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-card) 88%, var(--nk-ink));
   color: var(--nk-ink-dim);
   font: inherit;
@@ -3532,7 +3551,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   width: 58%;
   height: calc(100% - 18px);
   border: 1px dashed color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   color: var(--nk-ink-dim);
 }
 .nc-ghost-ratio { width: auto; height: auto; }
@@ -3553,7 +3572,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   border: 1px dashed color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
-  border-radius: 5px;
+  border-radius: var(--nk-r-mini);
 }
 
 /* image_fx — the recipe split: A declares source + ops chain · B is
@@ -3603,7 +3622,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
   border: 1px solid var(--nk-border-soft);
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 .nc-fx-b {
   flex: 1 1 54%;
@@ -3648,7 +3667,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   padding: 0 6px;
   background: color-mix(in srgb, var(--nk-ink) 4%, transparent);
   border: 1px solid var(--nk-border-soft);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
 }
 
 .nc-audio-play {
@@ -3765,7 +3784,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   color: color-mix(in srgb, var(--nk-critical) 55%, var(--nk-ink-dim));
   background: color-mix(in srgb, var(--nk-critical) 6%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-cat-introspection) 28%, transparent);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
 }
 .nc-check-glyph { flex: none; font-size: var(--nk-fs-label); opacity: 0.8; }
 .nc-check-flow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3825,7 +3844,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   color: var(--nk-ink-dim);
   background: none;
   border: none;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   cursor: pointer;
   transition: color 0.12s;
 }
@@ -3862,7 +3881,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   color: var(--nk-ink-dim);
   padding: 0 5px;
   border: 1px solid var(--nk-border-soft);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
 }
 
 /* The fan-out SOURCE row (W-D8 · the connected grammar): `∥ items ← x`
@@ -3911,7 +3930,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
   border: 1px solid var(--nk-border-soft);
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 
 .nc-pol-recover {
@@ -4146,7 +4165,7 @@ body.lod-far .nc-head .nc-tile {
   width: calc(18px * min(var(--zoom-comp, 1), 2.4));
   height: calc(18px * min(var(--zoom-comp, 1), 2.4));
   font-size: calc(9.5px * min(var(--zoom-comp, 1), 2.4));
-  border-radius: calc(5px * min(var(--zoom-comp, 1), 2.4));
+  border-radius: calc(var(--nk-r-mini) * min(var(--zoom-comp, 1), 2.4));
 }
 body.lod-far .nc-head .nc-dot {
   width: calc(7px * min(var(--zoom-comp, 1), 2.4));
@@ -4598,7 +4617,7 @@ body.run-starting .dag-node.status-pending .nc-dot {
   color: var(--nk-st-retrying);
   background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   white-space: nowrap;
 }
 
@@ -5065,7 +5084,7 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-st-failed);
   background: color-mix(in srgb, var(--nk-st-failed) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-st-failed) 35%, transparent);
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   cursor: pointer;
   pointer-events: auto;
   white-space: nowrap;
@@ -6004,7 +6023,7 @@ body.vscode-high-contrast .dag-edge.edge-data {
 .dag-node.verb-infer .nc-head {
   background: radial-gradient(130% 240% at 10% -60%,
     color-mix(in srgb, var(--dv-hue) 13%, transparent), transparent 58%);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
 }
 .dag-node.verb-infer.status-running .nc-tile {
   animation: nika-motion-infer 2.2s ease-in-out infinite;
@@ -6023,7 +6042,7 @@ body.vscode-high-contrast .dag-edge.edge-data {
 .dag-node.verb-exec .nc-head {
   background: repeating-linear-gradient(180deg,
     color-mix(in srgb, var(--dv-hue) 4%, transparent) 0 1px, transparent 1px 4px);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
 }
 .dag-node.verb-exec.status-running .nc-body::after {
   content: '▍';
@@ -6038,7 +6057,7 @@ body.vscode-high-contrast .dag-edge.edge-data {
 .dag-node.verb-invoke .nc-head {
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--dv-hue) 9%, transparent), transparent 34%);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
 }
 .dag-node.verb-invoke.status-running .nc-head {
   background: linear-gradient(90deg, transparent 0%,
@@ -6783,7 +6802,7 @@ body.dataflow .nc-io {
 .nc-ess-code {
   font-family: var(--nk-mono, monospace);
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   background: color-mix(in srgb, var(--nk-ink) 10%, transparent);
   color: var(--nk-data);
 }
@@ -6817,7 +6836,7 @@ body.dataflow .nc-io {
   letter-spacing: 0.04em;
   color: var(--nk-ink-dim);
   border: 1px solid var(--nk-border-soft);
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
 }
 
 /* ─── The action panel (K on a focused card) — Raycast grammar ──────
