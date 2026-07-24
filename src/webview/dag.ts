@@ -3270,7 +3270,10 @@ class DagRenderer {
           || n.verb.toLowerCase().includes(q)
           || (n.model ?? '').toLowerCase().includes(q)
           || (n.tool ?? '').toLowerCase().includes(q)
-          || (n.provider ?? '').toLowerCase().includes(q))
+          || (n.provider ?? '').toLowerCase().includes(q)
+          // The wires are searchable too: find the task by the alias it
+          // CONSUMES (`hn` finds the brief that reads ${{ with.hn }}).
+          || (n.bindingsIn ?? []).some((b) => b.alias.toLowerCase().includes(q)))
         .map((n) => n.id),
     );
     this.refreshDim();
