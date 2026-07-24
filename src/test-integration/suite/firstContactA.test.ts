@@ -138,12 +138,16 @@ suite('first contact · launch A (virgin machine · zero gestures to green)', ()
   });
 
   test('the canvas opens beside it — the DAG lights itself', async function () {
-    this.timeout(20000);
+    this.timeout(30000);
     await until('a webview tab (the DAG canvas)', hasWebviewTab, 15000);
-    // The demo YAML is visible too (tryDemo opens it non-preview).
-    const demoVisible = (): boolean => vscode.window.visibleTextEditors
-      .some((e) => e.document.uri.fsPath.endsWith(DEMO_FILE));
-    await until('the demo YAML visible in an editor', demoVisible, 5000);
+    // The demo YAML rides too — tryDemo's promise is a NON-PREVIEW TAB,
+    // so the tab is the observable (visibleTextEditors is stricter than
+    // the promise: rendering can trail a beat under load, and a covered
+    // editor in the same group drops off that list entirely).
+    const demoTab = (): boolean => vscode.window.tabGroups.all.some((g) =>
+      g.tabs.some((t) => t.input instanceof vscode.TabInputText
+        && t.input.uri.fsPath.endsWith(DEMO_FILE)));
+    await until('the demo YAML tab (non-preview)', demoTab, 15000);
   });
 
   test('the mock run unfolds in waves and reaches first green', async function () {
