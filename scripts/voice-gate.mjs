@@ -19,10 +19,10 @@
 // · package.json copy strings. NEVER src/**/*.ts — code comments
 // em-dash freely, gating them is churn. Fenced blocks and inline
 // `code` spans quote engine and UI output verbatim and keep their
-// voice. Contributor surfaces graduated to FAIL-tier with their
-// 2026-07-24 sweep (SSOT · SECURITY · AGENTS · PUBLISHING · contrib ·
-// icons · scripts/media · docs/ALGORITHMS); docs/*.md arrives WARN by
-// glob and graduates per-sweep · DESIGN.md is the last holdout.
+// voice. Every contributor surface graduated to FAIL-tier with the
+// 2026-07-24 sweeps (SSOT · SECURITY · AGENTS · PUBLISHING · contrib ·
+// icons · scripts/media · docs/ALGORITHMS · docs/DESIGN); a NEW
+// docs/*.md arrives WARN by glob and graduates with its own sweep.
 //
 // Escape hatch: a `voice-ok` comment on the hit line or the line above.
 // package.json carries no comments, so its escape lives in the allowlist
@@ -94,12 +94,13 @@ const CONTENT_FAIL_MD = [
   { rel: 'icons/README.md' },
   { rel: 'scripts/media/README.md' },
   { rel: 'docs/ALGORITHMS.md' },
+  { rel: 'docs/DESIGN.md' },
 ];
 
-// Contributor surfaces still awaiting their own deslop sweep: scanned,
-// reported, non-fatal. When a sweep lands, its rows graduate into
-// CONTENT_FAIL_MD (docs/*.md arrives here by glob · DESIGN.md is the
-// last holdout, 186 findings, a full editorial pass of its own).
+// The nursery: a NEW doc arrives here by the docs/*.md glob below,
+// scanned and reported but non-fatal, until its own sweep graduates it
+// into CONTENT_FAIL_MD. Every existing surface graduated 2026-07-24
+// (DESIGN.md closed the arc · 196 findings in the final pass).
 const CONTENT_WARN_MD = [];
 
 // package.json keys whose string values are copy a user reads. Values
