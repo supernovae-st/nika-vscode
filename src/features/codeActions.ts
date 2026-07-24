@@ -156,6 +156,26 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
       }
     }
 
+    // 6 · quiet this finding — the per-code calm dial, offered from the
+    // squiggle itself (the power setting was reachable only through raw
+    // settings search). Errors keep their voice: a run-blocking finding
+    // never softens from a quick fix.
+    const quieted = new Set<string>();
+    for (const { finding } of this.controller.findingsAt(document.uri, range)) {
+      if (finding.severity === 'error' || quieted.has(finding.code)) { continue; }
+      quieted.add(finding.code);
+      const action = new vscode.CodeAction(
+        `Nika: quiet ${finding.code} in this workspace (hint)`,
+        vscode.CodeActionKind.QuickFix,
+      );
+      action.command = {
+        command: 'nika.quietFinding',
+        title: 'Quiet this finding',
+        arguments: [finding.code],
+      };
+      actions.push(action);
+    }
+
     // 5 · literal secret → ${{ env.VAR }}
     for (const { secret, range: sRange } of this.controller.secretsAt(document.uri, range)) {
       const action = new vscode.CodeAction(

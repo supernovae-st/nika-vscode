@@ -416,6 +416,17 @@
         "category": "Nika"
       },
       {
+        "command": "nika.quietFinding",
+        "title": "Quiet a Finding in This Workspace",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.pickTheme",
+        "title": "Pick the Canvas Theme",
+        "icon": "$(color-mode)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.explainCode",
         "title": "Explain Error Code (NIKA-XXXX)",
         "category": "Nika"
@@ -1056,6 +1067,10 @@
         },
         {
           "command": "nika.history.diffPrevious",
+          "when": "false"
+        },
+        {
+          "command": "nika.quietFinding",
           "when": "false"
         },
         {
