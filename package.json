@@ -1811,7 +1811,7 @@
     "vscode:prepublish": "npm run clean && npm run compile",
     "clean": "rm -rf out",
     "compile": "npm run typecheck && node esbuild.mjs",
-    "typecheck": "tsc -p ./ && tsc --noEmit --strict --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts src/webview/elkWorker.ts",
+    "typecheck": "tsc -p ./ && tsc --noEmit --strict --skipLibCheck --target es2020 --module es2022 --moduleResolution bundler --lib es2022,dom,dom.iterable src/webview/dag.ts src/webview/elkWorker.ts",
     "watch": "node esbuild.mjs --watch",
     "lint": "eslint src",
     "parity": "node scripts/parity.mjs",
@@ -1830,7 +1830,6 @@
     "d3-shape": "^3.2.0",
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
-    "elkjs": "^0.9.3",
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
@@ -1845,6 +1844,7 @@
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^3.9.2",
+    "elkjs": "^0.12.0",
     "esbuild": "^0.28.1",
     "eslint": "^10.6.0",
     "glob": "^13.0.6",
