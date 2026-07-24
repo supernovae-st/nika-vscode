@@ -186,6 +186,21 @@ body[data-nk-theme] {
   pointer-events: auto;
 }
 
+@media (forced-colors: active) {
+  /* The floating rail's buttons are ghosts by design (transparent on
+   * the canvas) — under an OS High Contrast palette a ghost is an
+   * unbounded glyph. W-D14 measured it: omnibar/legend/minimap carry
+   * real borders here, the toolbar buttons carried border=none on a
+   * transparent fill. System button colors give every control its
+   * boundary (!important: the base button rules sit LATER in the file
+   * and win the same-specificity cascade — the shed-ladder lesson). */
+  #dag-toolbar button {
+    border: 1px solid ButtonBorder !important;
+    background: ButtonFace !important;
+    color: ButtonText !important;
+  }
+}
+
 #dag-mark {
   display: inline-flex;
   align-items: center;
