@@ -45,6 +45,12 @@ export interface CapabilitySet {
    *  carried the dash while still reporting 0.93.1); pre-dash binaries
    *  keep the tmp fallback. */
   stdinDash: boolean;
+  /** `check --fix` — the in-binary repair loop (`clippy --fix` shape):
+   *  applies the typed did-you-mean renames (fields · tools · args),
+   *  rewrites the ONE real file and re-audits; ambiguous tokens are
+   *  skipped with a note, never guessed. Probed on the `check --help`
+   *  text (the stdinDash law: help text over version numbers). */
+  checkFix: boolean;
   /** `explain <file>` narrates a workflow (engine #298 · the 30s arc):
    *  the positional routes a PATH to the story renderer (waves · cost
    *  honesty · touches · run/trace hand-off) with an `--json` machine
@@ -141,6 +147,8 @@ export function buildCapabilities(
     // The dash is an ARGUMENT shape, not a subcommand — the discriminator
     // is its own doc line in `check --help` ("`-` reads stdin").
     stdinDash: commands.has('check') && /reads stdin/.test(checkHelpText),
+    // A flag with its own help line — same law as stdinDash.
+    checkFix: commands.has('check') && /--fix\b/.test(checkHelpText),
     // The file form overloads an EXISTING subcommand — the discriminator
     // is its own doc line in `explain --help` (released 0.97 says only
     // « Teach one error code »; the file form adds « narrate a workflow

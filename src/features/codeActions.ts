@@ -156,6 +156,27 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
       }
     }
 
+    // 7 · the engine's own repair loop — offered exactly when a
+    // rename-shaped finding is under the cursor (`did you mean`): one
+    // action hands the file to `check --fix` (terminal · the engine
+    // narrates every rename and every skip · the sweep repaints from
+    // the rewritten disk). The client renames above fix ONE token; this
+    // door fixes every machine-applicable one in a single pass.
+    if (this.service.caps.checkFix
+      && [...this.controller.findingsAt(document.uri, range)]
+        .some(({ finding }) => /did you mean/i.test(finding.message))) {
+      const action = new vscode.CodeAction(
+        'Nika: fix every rename the engine can (check --fix)',
+        vscode.CodeActionKind.QuickFix,
+      );
+      action.command = {
+        command: 'nika.fixWorkflow',
+        title: 'Fix workflow',
+        arguments: [document.uri],
+      };
+      actions.push(action);
+    }
+
     // 6 · quiet this finding — the per-code calm dial, offered from the
     // squiggle itself (the power setting was reachable only through raw
     // settings search). Errors keep their voice: a run-blocking finding

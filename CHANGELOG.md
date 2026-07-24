@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The engine's own repair loop reaches the editor
+
+- **`Nika: Fix Workflow` (the engine's rename repairs)**: `check --fix` was the one released door the extension never pushed · the engine applies every typed did-you-mean rename (fields · tools · args), rewrites the one real file, re-audits, and narrates every skip · it rides the terminal like every mutating gesture, and the check-as-you-type sweep repaints from the rewritten disk. The door is everywhere the moment matters: the palette, the workflow row's `⌘K ⌘.` panel, and a quick fix that appears exactly when a `did you mean` squiggle is under the cursor (`fix every rename the engine can`). Capability-gated on the binary's own `check --help` (the stdinDash law: help text, never version numbers).
+
 ## [0.105.1] · 2026-07-24
 
 The geometry wave: twenty-four browser-proven deliveries in one
