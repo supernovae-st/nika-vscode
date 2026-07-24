@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The card type ladder: nine named voices
+
+- **The card's metric system becomes legible**: a census found 16 anonymous font sizes doing 9 jobs across the card scope · every card-scope size now reads one of nine role tokens (`--nk-fs-foot` 8.5 through `--nk-fs-heading` 12.5), values pinned to the census winners, so nothing moved visually · the one true accident collapsed (an 8px `.nc-fx-ops` beside its 8.5px siblings) · a new card surface picks a voice, never a raw px (DESIGN.md §1e is the law).
+
 ### The engine's own repair loop reaches the editor
 
 - **`Nika: Fix Workflow` (the engine's rename repairs)**: `check --fix` was the one released door the extension never pushed · the engine applies every typed did-you-mean rename (fields · tools · args), rewrites the one real file, re-audits, and narrates every skip · it rides the terminal like every mutating gesture, and the check-as-you-type sweep repaints from the rewritten disk. The door is everywhere the moment matters: the palette, the workflow row's `⌘K ⌘.` panel, and a quick fix that appears exactly when a `did you mean` squiggle is under the cursor (`fix every rename the engine can`). Capability-gated on the binary's own `check --help` (the stdinDash law: help text, never version numbers).

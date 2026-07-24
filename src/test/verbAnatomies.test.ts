@@ -151,8 +151,10 @@ describe('the four voices · CSS (dag.css)', () => {
     expect(rule).toContain('font-family: var(--nk-mono);');
   });
 
-  it('invoke essence reads half a point larger', () => {
-    expect(css).toContain('.dag-node.verb-invoke .nc-essence { font-size: 10.5px; }');
+  it('invoke essence reads half a point larger (the sub voice · §1e)', () => {
+    expect(css).toContain('.dag-node.verb-invoke .nc-essence { font-size: var(--nk-fs-sub); }');
+    // The voice's value is the contract (10.5 · half above body 10).
+    expect(css).toMatch(/--nk-fs-sub:\s*10\.5px/);
   });
 
   it('the band mirrors AGENT_BAND_H — 14px row + 4px gap = 18', () => {

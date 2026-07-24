@@ -190,6 +190,33 @@ its sections is height-safe by construction.
 The min anatomy stays fixed for every verb (head · verdict · one
 essence line) · the voices inflect the grand story, never the tile.
 
+## 1e · The card type ladder · nine named voices (W-D18)
+
+The card's metric system. A census (2026-07-24) found 16 anonymous
+font sizes doing 9 jobs across the card scope: a half-pixel dense
+ladder that was real but ILLEGIBLE, and drifting (an 8px `.nc-fx-ops`
+sat beside its 8.5px siblings · accident, not design). The reform is
+NAMING, not resizing: every card-scope `font-size` reads one of nine
+role tokens, values pinned to the census winners.
+
+| token | px | who speaks it |
+|---|---|---|
+| `--nk-fs-foot` | 8.5 | the smallest annotations · fx meta · stale · audit |
+| `--nk-fs-note` | 9 | tiny labels · engine · gate · io-more · wire labels |
+| `--nk-fs-meta` | 9.5 | mono metadata · badges · pill facts · kbd |
+| `--nk-fs-body` | 10 | the card's reading voice · prompt/cmd · errors |
+| `--nk-fs-sub` | 10.5 | sub-lines · the running sub · invoke essence |
+| `--nk-fs-label` | 11 | tiles · action pills |
+| `--nk-fs-title` | 11.5 | the grand card id · teaching inputs |
+| `--nk-fs-ui` | 12 | chrome controls (toolbar · buttons) |
+| `--nk-fs-heading` | 12.5 | the resting card id · dialog titles |
+
+Law: a NEW card surface picks a voice from the ladder, never a raw
+px. A surface that needs a tenth voice argues for it HERE first. The
+`18px` dev-glyph stays raw on purpose (display one-off, not a voice).
+Chrome overlays and the radius/chip grammar ride later batches of the
+same reform.
+
 ## 1d · The 28 identities · every builtin speaks its nature (W-D8 CI-3)
 
 The engine's catalog carries 28 builtins in 6 categories, and the
