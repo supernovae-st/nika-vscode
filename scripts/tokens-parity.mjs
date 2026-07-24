@@ -206,17 +206,22 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
       findings.push(`dag.css: raw font-size ${v}px — pick a ladder voice (--nk-fs-*) or argue a new one in DESIGN.md §1e`);
     }
   }
-  const R_ONEOFFS = new Set(['9', '10', '18']);
+  // Card scope and chrome each keep their acquitted raw list — the
+  // card trio (18 pill · 10 action pill · 9 agent ring) and the chrome
+  // one-offs (16 hint pills · 12 welcome card · 18 aurora · 1.5
+  // confetti · 999 full pills; 50% never matches the px scan).
+  const R_CARD_ONEOFFS = new Set(['9', '10', '18']);
+  const R_CHROME_ONEOFFS = new Set(['16', '12', '18', '1.5', '999']);
   const CARD = /(nc-|dag-node|node-fo)/;
   let sel = '';
   for (const part of css.split(/(\{[^{}]*\})/)) {
     if (part.startsWith('{')) {
-      if (CARD.test(sel)) {
-        for (const m of part.matchAll(/border-radius:\s*([\d.]+)px\s*;/g)) {
-          const v = m[1].replace(/\.0$/, '');
-          if (!R_ONEOFFS.has(v)) {
-            findings.push(`dag.css: raw card border-radius ${v}px — pick a radius step (--nk-r-*) or argue it in DESIGN.md §1e`);
-          }
+      const allow = CARD.test(sel) ? R_CARD_ONEOFFS : R_CHROME_ONEOFFS;
+      const where = CARD.test(sel) ? 'card' : 'chrome';
+      for (const m of part.matchAll(/border-radius:\s*([\d.]+)px\s*;/g)) {
+        const v = m[1].replace(/\.0$/, '');
+        if (!allow.has(v)) {
+          findings.push(`dag.css: raw ${where} border-radius ${v}px — pick a radius step (--nk-r-* · --nk-radius calc family) or argue it in DESIGN.md §1e`);
         }
       }
     } else if (part.trim()) {

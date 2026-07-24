@@ -80,14 +80,20 @@ body {
    *   tag   3  inline text tags (code · method · stale · audit)
    *   chip  4  standalone chips (params · policy · gate)
    *   mini  5  mini corner chips (media frame corners · grand tile)
-   *   tile  6  tiles · insets · verb heads
-   *   panel 8  inner panels (audio · check previews · context chips) */
+   *   tile  6  tiles · insets · verb heads · chrome rows and banners
+   *   panel 8  inner panels (audio · check previews · minimap · feed)
+   *   pop  10  popovers · overlay rails · panel cards (the ⋯ pop ·
+   *            plan rail · explainer card · describe home)
+   * Chrome CONTROLS ride --nk-radius (7) and its calc derivatives
+   * (-2 compact · +2 toolbar pill · +4 omnibar) — one base, optical
+   * steps around it, the pre-existing grammar now written everywhere. */
   --nk-r-bar: 2px;
   --nk-r-tag: 3px;
   --nk-r-chip: 4px;
   --nk-r-mini: 5px;
   --nk-r-tile: 6px;
   --nk-r-panel: 8px;
+  --nk-r-pop: 10px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -255,7 +261,7 @@ body[data-nk-theme] {
   background-image: var(--nk-grain);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: 9px;
+  border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-1);
 }
 
@@ -274,7 +280,7 @@ body[data-nk-theme] {
   background-image: var(--nk-grain);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: 9px;
+  border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-1);
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
@@ -310,7 +316,7 @@ body[data-nk-theme] {
   background-image: var(--nk-grain);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: 9px;
+  border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-1);
   overflow: hidden;
 }
@@ -338,7 +344,7 @@ body[data-nk-theme] {
   background: transparent;
   color: var(--nk-ink);
   border: none;
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   font-size: var(--nk-fs-ui);
   font-family: inherit;
   cursor: pointer;
@@ -392,7 +398,7 @@ body[data-nk-theme] {
   );
   border: 1px solid var(--nk-border);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 
 #dag-status {
@@ -412,7 +418,7 @@ body[data-nk-theme] {
   background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: 9px;
+  border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-1);
 }
 
@@ -1076,7 +1082,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   align-items: center;
   gap: 5px;
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   background: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
   font-size: var(--nk-fs-label);
@@ -1101,7 +1107,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   flex: 0 1 240px;
   max-width: 240px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
   background: var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
   overflow: hidden;
 }
@@ -1114,7 +1120,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   position: relative;
   height: 100%;
   width: 0;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
   background: var(--nk-st-running);
   transition: width 0.4s ease-out, background 0.3s;
   overflow: hidden;
@@ -1215,7 +1221,7 @@ body.running #progress-fill::after {
 
 #tr-scrub::-webkit-slider-runnable-track {
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
   background: linear-gradient(
     to right,
     var(--nk-accent) calc(var(--tr-p, 0) * 100%),
@@ -1238,7 +1244,7 @@ body.running #progress-fill::after {
 #tr-scrub:focus-visible {
   outline: 1px solid var(--nk-accent);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--nk-r-bar);
 }
 
 #tr-time {
@@ -1309,7 +1315,7 @@ body.vscode-light .logo-dark { display: none; }
   width: 148px;
   height: 96px;
   border: 1px solid var(--nk-border);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-surface) 82%, transparent);
   background-image: var(--nk-grain);
   backdrop-filter: blur(10px);
@@ -1343,7 +1349,7 @@ body.vscode-light .logo-dark { display: none; }
 #minimap-viewport {
   position: absolute;
   border: 1.5px solid var(--nk-accent);
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   background: color-mix(in srgb, var(--nk-accent) 8%, transparent);
   pointer-events: none;
 }
@@ -1407,7 +1413,7 @@ body.vscode-light .logo-dark { display: none; }
   font-family: var(--nk-mono);
   background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
 }
 
 .es-cmd {
@@ -1437,7 +1443,7 @@ body.vscode-light .logo-dark { display: none; }
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
   border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   box-shadow: var(--nk-bevel);
   transition: background 0.12s;
@@ -1489,7 +1495,7 @@ body.vscode-light .logo-dark { display: none; }
   );
   border: 1px solid var(--nk-border);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 
 /* The breathe hint — first-hint's clickable sibling (a real button). */
@@ -1558,7 +1564,7 @@ body.vscode-light .logo-dark { display: none; }
   background-image: var(--nk-grain);
   backdrop-filter: blur(14px);
   border: 1px solid var(--nk-border);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
   animation: es-rise 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15);
   font-size: var(--nk-fs-ui);
@@ -1584,7 +1590,7 @@ body.vscode-light .logo-dark { display: none; }
   margin: 0 0 12px;
   padding: 8px 10px;
   border: 1px solid var(--nk-border);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-accent) 4%, transparent);
   box-shadow: inset 0 1px 0 var(--nk-bevel);
 }
@@ -1626,7 +1632,7 @@ body.vscode-light .logo-dark { display: none; }
 .ex-glyph {
   flex: 0 0 22px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   align-self: center;
 }
 
@@ -1807,7 +1813,7 @@ body.vscode-light .logo-dark { display: none; }
   display: flex;
   flex-direction: column;
   border: 1px solid var(--nk-border);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
   background-image: var(--nk-grain);
   backdrop-filter: blur(10px);
@@ -4080,12 +4086,12 @@ body.heatmap #legend-heat {
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 80%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 9px;
+  border-radius: calc(var(--nk-radius) + 2px);
 }
 #legend-heat .lh-bar {
   width: 54px;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   background: linear-gradient(90deg, var(--nk-card), color-mix(in srgb, var(--nk-st-failed) 34%, var(--nk-card)), var(--nk-st-failed));
   border: 1px solid var(--nk-border-soft);
 }
@@ -4279,7 +4285,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   font-family: var(--nk-mono);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-base) var(--nk-ease-spatial);
 }
@@ -4337,7 +4343,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
 }
@@ -4380,7 +4386,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   background-image: var(--nk-grain);
   backdrop-filter: blur(14px);
   border: 1px solid var(--nk-border);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
 }
 
@@ -4393,7 +4399,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   padding: 5px 8px;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   color: var(--nk-ink);
   font-family: var(--nk-mono);
   font-size: var(--nk-fs-title);
@@ -4485,7 +4491,7 @@ body[data-nk-theme='nika'] #omnibar {
   padding: 0 10px;
   font-size: var(--nk-fs-label);
   font-family: var(--nk-mono);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
 }
@@ -4685,7 +4691,7 @@ body.lod-far .nc-stale {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
 }
@@ -4703,7 +4709,7 @@ body.lod-far .nc-stale {
   position: relative;
   flex: 1;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
   cursor: pointer;
 }
@@ -4714,7 +4720,7 @@ body.lod-far .nc-stale {
   top: 0;
   bottom: 0;
   width: 100%;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   background: var(--nk-accent);
   pointer-events: none;
 }
@@ -4801,7 +4807,7 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-st-retrying);
   background: color-mix(in srgb, var(--nk-st-retrying) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 35%, transparent);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   white-space: nowrap;
   cursor: help;
 }
@@ -4887,7 +4893,7 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   outline: none;
 }
 
@@ -4906,7 +4912,7 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-ink);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   text-align: left;
 }
@@ -5145,7 +5151,7 @@ body.lod-far .nc-audit { display: none !important; }
   color: var(--nk-st-success);
   background: color-mix(in srgb, var(--nk-st-success) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-st-success) 32%, transparent);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   white-space: nowrap;
   cursor: help;
 }
@@ -5179,7 +5185,7 @@ body.lod-far .nc-audit { display: none !important; }
   padding: 0 7px;
   font-size: var(--nk-fs-body);
   font-family: var(--nk-mono);
-  border-radius: 5px;
+  border-radius: calc(var(--nk-radius) - 2px);
   white-space: nowrap;
   cursor: pointer;
   color: var(--nk-st-success);
@@ -5223,7 +5229,7 @@ body.lod-far .nc-audit { display: none !important; }
   .es-card::-webkit-scrollbar { display: initial; width: 4px; }
   .es-card::-webkit-scrollbar-thumb {
     background: color-mix(in srgb, var(--nk-ink) 22%, transparent);
-    border-radius: 2px;
+    border-radius: var(--nk-r-bar);
   }
 }
 
@@ -5256,7 +5262,7 @@ body.lod-far .nc-audit { display: none !important; }
   padding: 5px 6px;
   background: color-mix(in srgb, var(--nk-page) 60%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   transition: border-color var(--nk-dur-base) var(--nk-ease-effects), box-shadow var(--nk-dur-base) var(--nk-ease-effects);
 }
 
@@ -5295,7 +5301,7 @@ body.lod-far .nc-audit { display: none !important; }
   flex: none;
   width: 32px;
   border: 1px solid color-mix(in srgb, var(--nk-cta) 40%, var(--nk-border));
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 48%),
     var(--nk-cta);
@@ -5347,7 +5353,7 @@ body.lod-far .nc-audit { display: none !important; }
   color: var(--nk-ink);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   cursor: pointer;
   text-align: left;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
@@ -5393,7 +5399,7 @@ body.lod-far .nc-audit { display: none !important; }
   color: var(--nk-ink-dim);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   cursor: pointer;
   text-align: left;
   transition: color var(--nk-dur-base) var(--nk-ease-effects), background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
@@ -5443,7 +5449,7 @@ body.welcome #dag-status {
   padding: 9px 12px;
   border: 1px solid color-mix(in srgb, var(--nk-st-retrying) 45%, transparent);
   border-left-width: 3px;
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
   font-size: var(--nk-fs-title);
   line-height: 1.5;
@@ -5455,7 +5461,7 @@ body.welcome #dag-status {
   font-size: var(--nk-fs-sub);
   padding: 1px 5px;
   border: 1px solid var(--nk-border);
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   white-space: nowrap;
 }
@@ -5482,7 +5488,7 @@ body.welcome #dag-status {
   padding: 12px 14px;
   text-align: left;
   border: 1px solid var(--nk-border);
-  border-radius: 8px;
+  border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-accent) 3%, transparent);
 }
 
@@ -5500,7 +5506,7 @@ body.welcome #dag-status {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
 }
 
 .es-gesture kbd {
@@ -5514,7 +5520,7 @@ body.welcome #dag-status {
   color: var(--nk-ink-dim);
   border: 1px solid var(--nk-border);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: var(--nk-r-chip);
 }
 
 .es-g-key {
@@ -5689,7 +5695,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-bg) 88%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   backdrop-filter: blur(6px);
   cursor: pointer;
   opacity: 0;
@@ -5733,7 +5739,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   color: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   cursor: pointer;
 }
 
@@ -5864,7 +5870,7 @@ body[data-nk-theme='editor'].vscode-dark {
   background-image: var(--nk-grain);
   backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   box-shadow: var(--nk-shadow-1);
 }
 
@@ -5882,7 +5888,7 @@ body[data-nk-theme='editor'].vscode-dark {
   color: var(--nk-ink-dim);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--nk-radius);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--nk-dur-base) var(--nk-ease-effects), background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
@@ -6322,7 +6328,7 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
   max-width: min(720px, calc(100vw - 48px));
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--nk-st-failed) 55%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-st-failed) 14%, var(--nk-bg, #0d0d0e));
   color: var(--nk-fg, #ddd);
   font: 500 11px/1.5 var(--nk-mono, monospace);
@@ -6459,7 +6465,7 @@ body.audit .dag-node .nc { opacity: 0.92; }
   max-width: min(860px, calc(100vw - 48px));
   padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 18%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 88%, var(--nk-ink));
   color: var(--nk-fg, #ddd);
   font: 500 11px/1.6 var(--nk-mono, monospace);
@@ -6552,7 +6558,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   overflow: hidden;
   padding: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 14%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
   font: 500 10.5px var(--nk-mono, monospace);
 }
@@ -6570,7 +6576,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
 }
 #nk-trail .nk-trail-crumb:hover {
   color: var(--nk-fg, #eee);
@@ -6598,7 +6604,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   z-index: 45;
   padding: 5px 12px;
   border: 1px solid color-mix(in srgb, var(--nk-st-failed) 40%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-st-failed) 10%, var(--nk-bg, #0d0d0e));
   color: var(--nk-fg, #ddd);
   font: 500 11px/1.5 var(--nk-mono, monospace);
@@ -6744,7 +6750,7 @@ body.audit .dag-node.audit-secret .nc {
   z-index: 30;
   padding: 6px 14px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 16%, transparent);
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
   color: color-mix(in srgb, var(--nk-fg, #ccc) 75%, transparent);
   font: 500 11.5px var(--nk-mono, monospace);
@@ -6868,7 +6874,7 @@ body.dataflow .nc-io {
   min-width: 300px;
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
   box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
 }
@@ -6887,7 +6893,7 @@ body.dataflow .nc-io {
   width: 100%;
   padding: 6px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: none;
   color: var(--nk-fg, #ddd);
   font: 500 12px var(--nk-mono, monospace);
@@ -6901,7 +6907,7 @@ body.dataflow .nc-io {
   padding: 0 5px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
   border-bottom-width: 2px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   font: 600 9.5px var(--nk-mono, monospace);
   opacity: 0.75;
 }
@@ -6940,7 +6946,7 @@ body.dataflow .nc-io {
   min-width: 250px;
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
   box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
 }
@@ -6952,7 +6958,7 @@ body.dataflow .nc-io {
   width: 100%;
   padding: 6px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: none;
   color: var(--nk-fg, #ddd);
   font: 500 12px var(--nk-mono, monospace);
@@ -6966,7 +6972,7 @@ body.dataflow .nc-io {
   padding: 0 5px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
   border-bottom-width: 2px;
-  border-radius: 3px;
+  border-radius: var(--nk-r-tag);
   font: 600 9.5px var(--nk-mono, monospace);
   opacity: 0.75;
 }
@@ -6996,7 +7002,7 @@ body.dataflow .nc-io {
   min-width: 340px;
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: 10px;
+  border-radius: var(--nk-r-pop);
   background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
   box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
 }
@@ -7015,7 +7021,7 @@ body.dataflow .nc-io {
   width: 100%;
   padding: 6px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--nk-r-tile);
   background: none;
   color: var(--nk-fg, #ddd);
   font: 500 12px var(--nk-mono, monospace);

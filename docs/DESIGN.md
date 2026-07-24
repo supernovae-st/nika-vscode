@@ -225,11 +225,19 @@ the selector map proved intentional · the 5px mini step is OPTICAL
 | `--nk-r-tag` | 3 | inline text tags (code · method · stale · audit) |
 | `--nk-r-chip` | 4 | standalone chips (params · policy · gate) |
 | `--nk-r-mini` | 5 | mini corner chips · the grand head tile |
-| `--nk-r-tile` | 6 | tiles · insets · verb heads |
-| `--nk-r-panel` | 8 | inner panels (audio · check previews) |
+| `--nk-r-tile` | 6 | tiles · insets · verb heads · chrome rows and banners |
+| `--nk-r-panel` | 8 | inner panels (audio · check previews · minimap · feed) |
+| `--nk-r-pop` | 10 | popovers · overlay rails · panel cards |
+
+Chrome CONTROLS ride `--nk-radius` (7) and its calc derivatives
+(`-2` compact controls · `+2` toolbar pills · `+4` the omnibar): one
+base with optical steps around it · the grammar existed, batch 5
+wrote it everywhere the values were its literal twins.
 
 Deliberate one-offs stay raw: the 50% dot · the 18px full pill · the
-10px action pill · the agent ring accent · the exec cmd corner join.
+10px action pill · the agent ring accent · the exec cmd corner join ·
+and in the chrome: the 16px hint pills · the 12px welcome card · the
+aurora and confetti. The metric gate holds both lists.
 
 The whole chrome reads the same ladders (batch 4 · 59 declarations) ·
 the surviving raw px are the DOCUMENTED one-offs: 13px glyph controls
