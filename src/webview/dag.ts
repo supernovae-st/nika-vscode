@@ -9215,10 +9215,18 @@ if (!vscode.getState()?.seenBreatheHint) {
   const breatheListener = (event: MessageEvent<ExtToWebviewMessage>): void => {
     if (event.data.kind !== 'dag:load' || breatheScheduled) { return; }
     breatheScheduled = true;
-    setTimeout(() => {
+    const paintBreathe = (): void => {
       if (vscode.getState()?.seenBreatheHint) { return; }
       if (window.innerWidth >= 520 || renderer.taskCount <= 20) {
         breatheScheduled = false; // not this graph — a later, bigger one may qualify
+        return;
+      }
+      // One hint at a time, oldest lesson first: on a virgin state the
+      // first-hint (« Press ? ») shares this exact spot — painting over
+      // it ate the more important teaching. Wait out its lifetime
+      // (fade 6s · remove 7s) and keep the one-shot unconsumed.
+      if (document.getElementById('first-hint') !== null) {
+        setTimeout(paintBreathe, 7500);
         return;
       }
       const hint = document.createElement('button');
@@ -9233,7 +9241,8 @@ if (!vscode.getState()?.seenBreatheHint) {
       setTimeout(() => hint.remove(), 10000);
       vscode.setState({ ...(vscode.getState() ?? {}), seenBreatheHint: true });
       window.removeEventListener('message', breatheListener);
-    }, 900);
+    };
+    setTimeout(paintBreathe, 900);
   };
   window.addEventListener('message', breatheListener);
 }

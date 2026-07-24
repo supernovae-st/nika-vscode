@@ -6,6 +6,10 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### One hint at a time
+
+- **The breathe hint waits its turn**: on a true first open of a big graph in a narrow panel, both one-shot hints wanted the same spot at the same moment · the breathe hint painted OVER `Press ? to learn this graph` and ate the more important lesson · it now waits out the first hint's lifetime and speaks alone, one-shot unconsumed while it waits.
+
 ### The dim stays readable
 
 - **Dim is a hierarchy, not an illegibility**: the two text surfaces that thinned the dim ink to 55% (the wave-band count · the plan-rail number) lift to 78% · the visual hierarchy survives, the contrast repasses the AA floor.
