@@ -15,6 +15,7 @@ import {
   QuickInputButtons,
   QuickPickItemKind,
   Selection,
+  StatusBarAlignment,
   TextEditorRevealType,
   ViewColumn,
   type QuickPickItem,
@@ -1710,13 +1711,47 @@ export function activate(context: ExtensionContext): void {
   // button starts the answer flow (never a modal, never auto-answered);
   // « Show node » deep-links to the waiting card on the canvas
   // (annexe B #5 — the needs-you toast lands you AT the ask).
+  // The pause beacon — a toast is a moment, the pause is a STATE. One
+  // quiet status item survives the dismissed notification and walks the
+  // same answer flow; it clears the moment the answer launches (the
+  // resume run repaints it if the engine pauses again).
+  const pauseBeacon = window.createStatusBarItem(StatusBarAlignment.Left, 99);
+  pauseBeacon.command = 'nika.answerLastPause';
+  context.subscriptions.push(pauseBeacon);
+  let lastPause: {
+    fsPath: string;
+    paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string };
+  } | undefined;
+  const paintPauseBeacon = (): void => {
+    if (lastPause === undefined) { pauseBeacon.hide(); return; }
+    pauseBeacon.text = `$(debug-pause) ${lastPause.paused.task} asks`;
+    pauseBeacon.tooltip = `Nika paused — ${lastPause.paused.message ?? `task \`${lastPause.paused.task}\` awaits an answer`}\nClick to answer.`;
+    pauseBeacon.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
+    pauseBeacon.show();
+  };
+  context.subscriptions.push(
+    commands.registerCommand('nika.answerLastPause', async () => {
+      if (lastPause === undefined) { return; }
+      const p = lastPause;
+      lastPause = undefined;
+      paintPauseBeacon();
+      await answerPausedRun(p.fsPath, p.paused);
+    }),
+  );
+
   const onRunPaused = async (
     fsPath: string,
     paused: { task: string; mode: string; message?: string; choices?: string[]; tracePath?: string },
   ): Promise<void> => {
+    lastPause = { fsPath, paused };
+    paintPauseBeacon();
     const q = paused.message ?? `task \`${paused.task}\` awaits an answer`;
     const choice = await window.showInformationMessage(`Nika paused — ${q}`, 'Answer…', 'Show node');
-    if (choice === 'Answer…') { await answerPausedRun(fsPath, paused); }
+    if (choice === 'Answer…') {
+      lastPause = undefined;
+      paintPauseBeacon();
+      await answerPausedRun(fsPath, paused);
+    }
     if (choice === 'Show node') {
       dagPanel.show();
       dagPanel.focusNode(paused.task);
