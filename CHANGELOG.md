@@ -6,6 +6,17 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+## [0.105.1] · 2026-07-24
+
+The geometry wave: twenty-four browser-proven deliveries in one
+overnight loop, all on the released 0.105 engine. The canvas earns
+every panel shape (the toolbar sheds behind a ⋯ door instead of
+clipping · fit stops paying for a hidden rail · zoom survives the
+narrowest cut), local models get their whole lifecycle from the
+Station (list · serve · pull · reclaim), a paused run keeps a beacon
+that survives its toast, a failed run's banner carries its own doors,
+and every dead end learned to name its real cause.
+
 ### One hint at a time
 
 - **The breathe hint waits its turn**: on a true first open of a big graph in a narrow panel, both one-shot hints wanted the same spot at the same moment · the breathe hint painted OVER `Press ? to learn this graph` and ate the more important lesson · it now waits out the first hint's lifetime and speaks alone, one-shot unconsumed while it waits.
