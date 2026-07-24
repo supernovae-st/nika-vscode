@@ -56,6 +56,14 @@ const FACTS: Record<string, { view: TreeViewId; facts: TreeItemFacts }> = {
     view: 'nikaRuns',
     facts: { kind: 'trace', label: 'run.ndjson', element: { sentinel: 'trace' }, traceUri: { sentinel: 'uri' } },
   },
+  nikaHistoryCellDiffable: {
+    view: 'nikaRunHistory',
+    facts: {
+      kind: 'historyCell', label: 'run #3', element: { sentinel: 'cell' },
+      hasTrace: true, traceUri: { sentinel: 'uri' }, prevTraceUri: { sentinel: 'prev' },
+      click: { command: 'nika.runDetail', args: [{ sentinel: 'uri' }] },
+    },
+  },
   nikaTracePaused: {
     view: 'nikaRuns',
     facts: { kind: 'tracePaused', label: 'paused.ndjson', element: { sentinel: 'tracePaused' }, traceUri: { sentinel: 'uri' } },
@@ -150,6 +158,14 @@ describe('curation — each kind serves its verbs, primary first', () => {
       'nika.runDetail', 'nika.replayTrace', 'nika.history.report',
     ]);
     expect(p.itemRows.every((r) => r.off === undefined)).toBe(true);
+  });
+
+  it('a DIFFABLE history cell adds the one-gesture diff — the detective pivot', () => {
+    const p = buildTreeActionPanel('nikaRunHistory', FACTS.nikaHistoryCellDiffable.facts, ALL_ON);
+    expect(p.itemRows.map((r) => r.command)).toEqual([
+      'nika.runDetail', 'nika.history.diffPrevious', 'nika.replayTrace', 'nika.history.report',
+    ]);
+    expect(p.itemRows[1].teach).toBe('nika.diffTraces');
   });
 
   it('a section is a screen, never a void: view rows still answer', () => {

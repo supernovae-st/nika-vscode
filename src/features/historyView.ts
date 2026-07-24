@@ -57,7 +57,9 @@ class HistoryItem extends vscode.TreeItem {
         };
       }
     } else {
-      this.contextValue = 'nikaHistoryCell';
+      // A cell WITH a previous recorded column carries the one-gesture
+      // diff — its own contextValue lights the inline action.
+      this.contextValue = row.prevTraceFsPath !== undefined ? 'nikaHistoryCellDiffable' : 'nikaHistoryCell';
       if (row.traceFsPath !== undefined) {
         // Enter pushes the DETAIL (§7e — the same primary a Runs row
         // holds); replay stays one ⌘K ⌘. row away. Args explicit.
@@ -148,6 +150,17 @@ export function registerHistory(context: vscode.ExtensionContext): HistoryContro
       const fsPath = (item as { traceFsPath?: unknown }).traceFsPath;
       if (typeof fsPath !== 'string' || fsPath.length === 0) { return; }
       void vscode.commands.executeCommand('nika.runReport', vscode.Uri.file(fsPath));
+    }),
+    // Inline $(diff) on a diffable cell — the detective pivot without
+    // leaving the grid: the PREVIOUS run is the base (the reference),
+    // THIS cell compares against it. Same element contract as report.
+    vscode.commands.registerCommand('nika.history.diffPrevious', (item: unknown) => {
+      if (typeof item !== 'object' || item === null) { return; }
+      const fsPath = (item as { traceFsPath?: unknown }).traceFsPath;
+      const prev = (item as { prevTraceFsPath?: unknown }).prevTraceFsPath;
+      if (typeof fsPath !== 'string' || fsPath.length === 0) { return; }
+      if (typeof prev !== 'string' || prev.length === 0) { return; }
+      void vscode.commands.executeCommand('nika.diffTraces', vscode.Uri.file(prev), vscode.Uri.file(fsPath));
     }),
   );
 

@@ -103,11 +103,15 @@ function factsFromHistoryRow(rowEl: HistoryRow, docUri: vscode.Uri | undefined):
   if (rowEl.kind === 'cell') {
     const hasTrace = typeof rowEl.traceFsPath === 'string' && rowEl.traceFsPath.length > 0;
     const traceUri = hasTrace ? vscode.Uri.file(rowEl.traceFsPath!) : undefined;
+    const prevTraceUri = typeof rowEl.prevTraceFsPath === 'string' && rowEl.prevTraceFsPath.length > 0
+      ? vscode.Uri.file(rowEl.prevTraceFsPath)
+      : undefined;
     return {
       kind: 'historyCell',
       label: rowEl.label,
       element: rowEl,
       hasTrace,
+      ...(prevTraceUri !== undefined ? { prevTraceUri } : {}),
       // The cell's own Enter (§7e) + the replay row's handle.
       ...(traceUri !== undefined
         ? {

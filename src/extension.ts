@@ -3572,10 +3572,12 @@ export function activate(context: ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    commands.registerCommand('nika.diffTraces', async (uri?: Uri) => {
+    // Both traces may arrive as args (the History grid's one-gesture
+    // diff-vs-previous); each missing side falls back to its QuickPick.
+    commands.registerCommand('nika.diffTraces', async (uri?: Uri, compareUri?: Uri) => {
       const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
       const files = await workspace.findFiles(glob, '**/node_modules/**', 50);
-      if (files.length < 2) {
+      if (files.length < 2 && !(uri && compareUri)) {
         void window.showInformationMessage('Nika: need at least two traces to diff.');
         return;
       }
@@ -3588,8 +3590,11 @@ export function activate(context: ExtensionContext): void {
         if (!picked) { return; }
         base = picked.uri;
       }
-      const rest = items.filter((i) => i.uri.toString() !== base?.toString());
-      const compare = await window.showQuickPick(rest, { title: 'Diff runs 2/2 — the run to compare against it' });
+      let compare: { uri: Uri } | undefined = compareUri instanceof Uri ? { uri: compareUri } : undefined;
+      if (!compare) {
+        const rest = items.filter((i) => i.uri.toString() !== base?.toString());
+        compare = await window.showQuickPick(rest, { title: 'Diff runs 2/2 — the run to compare against it' });
+      }
       if (!compare) { return; }
       // The diff paints the SHOWING graph — load the active workflow first
       // when the panel is empty (same ritual as replay).
