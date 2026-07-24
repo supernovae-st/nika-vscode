@@ -10,6 +10,7 @@ major.minor from 0.97).
 
 - **The card's metric system becomes legible**: a census found 16 anonymous font sizes doing 9 jobs across the card scope · every card-scope size now reads one of nine role tokens (`--nk-fs-foot` 8.5 through `--nk-fs-heading` 12.5), values pinned to the census winners, so nothing moved visually · the one true accident collapsed (an 8px `.nc-fx-ops` beside its 8.5px siblings) · a new card surface picks a voice, never a raw px (DESIGN.md §1e is the law).
 - **The radius scale joins it**: six named steps the selector map proved intentional (`--nk-r-bar` 2 · `tag` 3 · `chip` 4 · `mini` 5 · `tile` 6 · `panel` 8) · the 5px mini step is optical, not drift (corner chips on 6px frames) · deliberate one-offs stay raw (the 50% dot · the 18px pill · the 10px action pill) · the LOD-scaled tile keeps its zoom math on the named step.
+- **The chip grammar is judged, not guessed**: ink is semantic and stays so (accent = live params · dim = quiet metadata · status = state chips · data = code tags) · padding tracks the voice in optical ratio · two kbd constructions exist on purpose (the flat hint and the dimensional keycap with its 2px cap) · the chrome chip families now read the same ladders as the cards (kbd = meta voice + chip step · legend = label/body · es-tag = title).
 
 ### The engine's own repair loop reaches the editor
 

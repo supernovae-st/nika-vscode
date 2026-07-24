@@ -230,8 +230,18 @@ the selector map proved intentional · the 5px mini step is OPTICAL
 
 Deliberate one-offs stay raw: the 50% dot · the 18px full pill · the
 10px action pill · the agent ring accent · the exec cmd corner join.
-Chrome overlays and the chip grammar (padding and ink) ride later
-batches of the same reform.
+
+The chip grammar (batch 3): chip INK is semantic and stays so ·
+accent = live params (chip · pill facts · context chips) · dim = quiet
+metadata (badges · tags · kbd) · status hues = state chips (gate) ·
+data hue = code tags. Padding tracks the voice in optical ratio
+(meta-voice chips ride 6-7px horizontals · note-voice 6 · inline tags
+5/4/3 as they sit deeper in text). Two kbd constructions exist ON
+PURPOSE: the flat hint (`.tbm-kbd` · `.ex-keys kbd` · 0 4px) and the
+dimensional KEYCAP (`.cd-hint kbd` · 2px bottom cap + wash · 0 5px ·
+the cap's breathing). The chrome chip families read the same ladders
+as the cards (kbd = meta voice + chip step · legend = label voice,
+body voice at the narrow cut · es-tag = title voice).
 
 ## 1d · The 28 identities · every builtin speaks its nature (W-D8 CI-3)
 
