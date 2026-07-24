@@ -45,6 +45,30 @@ body {
   --nk-ui-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
   --nk-radius: 7px;
   --nk-radius-card: 12px;
+  /* ── The card type ladder (W-D18 · the metric system) ─────────────
+   * Nine named voices on a half-pixel dense scale — the census found
+   * 16 anonymous sizes doing 9 jobs; the ladder makes the intent
+   * legible and pins the drift (an 8px .nc-fx-ops sat beside its
+   * 8.5px siblings — accident, not design). Values are the census
+   * winners, UNCHANGED: naming is the reform, not resizing.
+   *   foot    8.5  the smallest annotations (fx meta · stale · audit)
+   *   note    9    tiny labels (engine · gate · io-more · wire labels)
+   *   meta    9.5  mono metadata (badges · pill facts · kbd)
+   *   body    10   the card's reading voice (prompt/cmd · errors)
+   *   sub     10.5 sub-lines (the running sub · invoke essence)
+   *   label   11   tiles · action pills
+   *   title   11.5 the grand card id · teaching inputs
+   *   ui      12   chrome controls (toolbar · buttons)
+   *   heading 12.5 the resting card id · dialog titles */
+  --nk-fs-foot: 8.5px;
+  --nk-fs-note: 9px;
+  --nk-fs-meta: 9.5px;
+  --nk-fs-body: 10px;
+  --nk-fs-sub: 10.5px;
+  --nk-fs-label: 11px;
+  --nk-fs-title: 11.5px;
+  --nk-fs-ui: 12px;
+  --nk-fs-heading: 12.5px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -1699,7 +1723,7 @@ body.vscode-light .logo-dark { display: none; }
    a control edge ────────────────────────────────────────────────────── */
 
 .edge-label {
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   letter-spacing: 0.03em;
   fill: var(--nk-data);
@@ -2618,7 +2642,7 @@ body.lod-far .dag-node:hover .nc {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   border-radius: 6px;
   color: var(--dv-hue, var(--nk-ink-dim));
   background:
@@ -2668,7 +2692,7 @@ body.lod-far .dag-node:hover .nc {
   text-align: center;
   pointer-events: none;
   font-family: var(--nk-mono);
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   color: var(--dv-hue, var(--nk-st-running));
   opacity: 0;
   visibility: hidden;
@@ -2820,7 +2844,7 @@ body.running .dag-node.status-success .nc::after {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: var(--nk-fs-heading);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -2837,7 +2861,7 @@ body.running .dag-node.status-success .nc::after {
 
 .nc-badge {
   flex: 0 0 auto;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   color: var(--nk-ink-dim);
   padding-right: 12px; /* clear the spinner corner */
 }
@@ -2848,7 +2872,7 @@ body.running .dag-node.status-success .nc::after {
   align-items: baseline;
   gap: 10px;
   height: 15px;
-  font-size: 10.5px;
+  font-size: var(--nk-fs-sub);
   color: var(--nk-ink-dim);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -2890,7 +2914,7 @@ body.running .dag-node.status-success .nc::after {
 
 .nc-body {
   margin-top: 4px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   line-height: 15px;
   color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
   overflow: hidden;
@@ -2953,7 +2977,7 @@ body.running .dag-node.status-success .nc::after {
 /* The tool is the HERO (W-D8): on an invoke card the essence leads
  * the anatomy (the build appends body before sub) and reads half a
  * point larger — the mechanism line is the caption, not the title. */
-.dag-node.verb-invoke .nc-essence { font-size: 10.5px; }
+.dag-node.verb-invoke .nc-essence { font-size: var(--nk-fs-sub); }
 
 /* The red teaches — the failure story where the prompt was: the
  * card's own body becomes the error line, clickable (explain). */
@@ -3011,12 +3035,12 @@ body:not(.lod-far) .nc-mode-grand .nc-head {
 body:not(.lod-far) .nc-mode-grand .nc-head .nc-tile {
   width: 18px;
   height: 18px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   border-radius: 5px;
 }
 
 body:not(.lod-far) .nc-mode-grand .nc-head .nc-st { height: 18px; }
-body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
+body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: var(--nk-fs-title); }
 
 /* The ENGINE identity at the header's right (the « Eleven Music »
  * position): the model picker keeps its chip door; a declared media
@@ -3030,7 +3054,7 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
 }
@@ -3076,7 +3100,7 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: 11.5px; }
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   font-variant-numeric: tabular-nums;
@@ -3128,7 +3152,7 @@ body.lod-far .nc-pill { display: none; }
   flex: none;
   min-width: 0;
   overflow: hidden;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
 }
 .nc-ab-loop {
@@ -3168,7 +3192,7 @@ body.lod-far .nc-pill { display: none; }
 .nc-x-error {
   flex: none;
   margin-top: 5px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   line-height: 15px;
   color: var(--nk-ink-dim);
 }
@@ -3185,7 +3209,7 @@ body.lod-far .nc-pill { display: none; }
 .nc-x-facts {
   flex: none;
   margin-top: 5px;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   line-height: 15px;
   color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
 }
@@ -3211,7 +3235,7 @@ body.lod-far .nc-pill { display: none; }
   line-height: 18px;
   margin-top: 5px;
   overflow: hidden;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   color: var(--nk-ink-dim);
 }
 
@@ -3220,7 +3244,7 @@ body.lod-far .nc-pill { display: none; }
 .nc-xc-chip {
   pointer-events: auto;
   font-family: var(--nk-mono);
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3257,7 +3281,7 @@ body.lod-far .nc-pill { display: none; }
   height: 20px;
   min-width: 20px;
   padding: 0 5px;
-  font-size: 11px;
+  font-size: var(--nk-fs-label);
   line-height: 1;
   font-family: var(--nk-mono);
   color: var(--nk-cta-ink);
@@ -3323,7 +3347,7 @@ body.lod-far .nc-pill { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 1px 7px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
@@ -3344,7 +3368,7 @@ body.lod-far .nc-pill { display: none; }
 }
 
 .nc-fact {
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   color: var(--nk-ink-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -3359,7 +3383,7 @@ body.lod-far .nc-pill { display: none; }
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 1px 6px;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   color: var(--nk-st-retrying);
   background: color-mix(in srgb, var(--nk-st-retrying) 9%, transparent);
@@ -3444,7 +3468,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 1px 6px;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-page) 72%, transparent);
@@ -3468,7 +3492,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   background: color-mix(in srgb, var(--nk-card) 88%, var(--nk-ink));
   color: var(--nk-ink-dim);
   font: inherit;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   cursor: pointer;
   text-align: left;
   min-width: 0;
@@ -3514,7 +3538,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 .nc-ghost-ratio { width: auto; height: auto; }
 .nc-ghost-half { width: 72%; }
 .nc-ghost-dim {
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   letter-spacing: 0.04em;
   color: var(--nk-ink-dim);
@@ -3525,7 +3549,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   top: 6px;
   right: 8px;
   padding: 0 5px;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   border: 1px dashed color-mix(in srgb, var(--nk-cat-media) 28%, transparent);
@@ -3555,7 +3579,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 }
 .nc-fx-src { display: inline-flex; align-items: center; gap: 4px; min-width: 0; opacity: 0.75; }
 .nc-fx-input {
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3568,13 +3592,14 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   justify-content: center;
   flex-wrap: wrap;
   gap: 3px;
-  font-size: 8px;
+  /* 8px was a 0.5px drift from the .nc-fx-* siblings — the foot voice. */
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
 }
 .nc-fx-op {
   padding: 1px 5px;
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
   border: 1px solid var(--nk-border-soft);
@@ -3632,7 +3657,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   width: 20px;
   height: 20px;
   padding: 0;
-  font-size: 10px;
+  font-size: var(--nk-fs-body);
   line-height: 1;
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
@@ -3660,7 +3685,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   text-align: left;
   color: var(--nk-ink);
@@ -3675,7 +3700,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 
 .nc-audio-dur {
   flex: none;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
@@ -3716,7 +3741,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
 }
@@ -3735,14 +3760,14 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   margin-top: 6px;
   padding: 0 8px;
   pointer-events: none;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: color-mix(in srgb, var(--nk-critical) 55%, var(--nk-ink-dim));
   background: color-mix(in srgb, var(--nk-critical) 6%, transparent);
   border: 1px solid color-mix(in srgb, var(--nk-cat-introspection) 28%, transparent);
   border-radius: 8px;
 }
-.nc-check-glyph { flex: none; font-size: 11px; opacity: 0.8; }
+.nc-check-glyph { flex: none; font-size: var(--nk-fs-label); opacity: 0.8; }
 .nc-check-flow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Exported files shed the preview bytes (webview URIs die outside the
@@ -3795,7 +3820,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   gap: 4px;
   min-width: 0;
   padding: 0 2px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   background: none;
@@ -3832,7 +3857,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 
 .nc-io-more {
   flex: none;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
   padding: 0 5px;
@@ -3851,7 +3876,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   gap: 4px;
   min-width: 0;
   padding: 0 2px;
-  font-size: 9.5px;
+  font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
   color: var(--nk-ink-dim);
 }
@@ -3880,7 +3905,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 1px 6px;
-  font-size: 9px;
+  font-size: var(--nk-fs-note);
   font-family: var(--nk-mono);
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
@@ -4567,7 +4592,7 @@ body.run-starting .dag-node.status-pending .nc-dot {
   flex: 0 0 auto;
   align-items: center;
   padding: 0 5px;
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   letter-spacing: 0.04em;
   color: var(--nk-st-retrying);
@@ -5034,7 +5059,7 @@ body.lod-far .region-label { display: none; }
   flex: 0 0 auto;
   align-items: center;
   padding: 0 5px;
-  font-size: 8.5px;
+  font-size: var(--nk-fs-foot);
   font-family: var(--nk-mono);
   letter-spacing: 0.03em;
   color: var(--nk-st-failed);
@@ -6425,7 +6450,7 @@ body.dataflow .dag-edge.edge-recovery {
   opacity: 0.07;
 }
 body.dataflow .edge-label.edge-label-ctl { opacity: 0.1; }
-body.dataflow .edge-label { opacity: 1; font-size: 10px; }
+body.dataflow .edge-label { opacity: 1; font-size: var(--nk-fs-body); }
 body.dataflow .dag-edge.edge-data { opacity: 1; }
 /* Slim cards: the body prose, policy chips, params and sub verdict
    rest — the io rows and output chips ARE the card. */
