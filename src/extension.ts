@@ -2831,6 +2831,32 @@ export function activate(context: ExtensionContext): void {
 
   // Command: Explain a NIKA-XXXX code (engine-embedded pedagogy).
   context.subscriptions.push(
+    // The per-code calm dial, written from the squiggle (the quick fix
+    // passes the code) — Workspace scope: quieting is a project choice.
+    commands.registerCommand('nika.quietFinding', async (code?: unknown) => {
+      if (typeof code !== 'string' || code.length === 0) { return; }
+      const cfg = workspace.getConfiguration('nika');
+      const map = { ...cfg.get<Record<string, string>>('diagnostics.severity', {}) };
+      map[code] = 'hint';
+      await cfg.update('diagnostics.severity', map, ConfigurationTarget.Workspace);
+      flashStatus(`$(bell-slash) ${code} → hint in this workspace · nika.diagnostics.severity owns the dial`);
+    }),
+    // The canvas skin, picked where you can SEE it change — the config
+    // watcher re-posts theme:mode, so the switch is live (no reload).
+    commands.registerCommand('nika.pickTheme', async () => {
+      const current = workspace.getConfiguration('nika').get<string>('dag.theme', 'nika');
+      const pick = await window.showQuickPick(
+        [
+          { label: 'nika', description: 'engineered-black · the landing register' },
+          { label: 'editor', description: 'follows your color theme' },
+          { label: 'phosphor', description: 'OLED true-black · verb chroma wakes on live tasks' },
+          { label: 'auto', description: 'resolves against your theme, live' },
+        ].map((i) => (i.label === current ? { ...i, description: `${i.description} · current` } : i)),
+        { title: 'Canvas theme — applies live (nika.dag.theme)' },
+      );
+      if (pick === undefined) { return; }
+      await workspace.getConfiguration('nika').update('dag.theme', pick.label, ConfigurationTarget.Global);
+    }),
     commands.registerCommand('nika.explainCode', async (code?: string) => {
       const value = code ?? await window.showInputBox({
         prompt: 'NIKA error code',

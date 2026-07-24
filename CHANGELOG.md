@@ -6,6 +6,11 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The settings meet you where the need is
+
+- **`Nika: Pick the Canvas Theme`**: the four skins in one picker (engineered-black · follows-your-theme · OLED phosphor · auto), applied live: the config watcher re-skins the open canvas without a reload · the skin was pickable only from raw settings search, the one place you cannot see it change.
+- **Quiet a finding from its own squiggle**: every non-error finding offers `quiet NIKA-XXX in this workspace (hint)` as a quick fix · it writes the `nika.diagnostics.severity` map (workspace scope) and the sweep re-paints · errors keep their voice: run-blocking findings never soften from a quick fix.
+
 ### The failure banner carries its own doors
 
 - **A failed run's banner acts**: `¶ NIKA-XXXX` opens the code's explanation and `⑂ fork` re-runs from the failed task (upstream rehydrates from the trace) · right on the red banner, the one moment you are looking straight at the failure · the summary text ellipsizes so the doors stay visible at every panel width · clicking the banner body still opens the full run story.
