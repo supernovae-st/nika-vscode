@@ -343,3 +343,31 @@ describe('parseModelList — the pulled-GGUF rows (plain text · real 0.105 shap
     expect(parseModelList('  just-one-field\n  two · fields')).toEqual([]);
   });
 });
+
+describe('buildStationRows — local models (v2: pull + reclaim)', () => {
+  const snap = {
+    binaryPath: '/opt/homebrew/bin/nika',
+    engineVersion: 'nika 0.105.0',
+    lspState: 'running' as const,
+    deep: parseWelcomeDeep(DEEP),
+    models: [
+      { id: 'Qwen/Qwen3-0.6B-GGUF:Q8_0', size: '609.8 MiB', file: 'Qwen3-0.6B-Q8_0.gguf' },
+    ],
+  };
+
+  it('a model row reclaims through the wrench, never the primary click', () => {
+    const all = flatten(buildStationRows(snap));
+    const row = all.find((r) => r.id === 'providers.model.Qwen/Qwen3-0.6B-GGUF:Q8_0');
+    expect(row?.fix).toEqual({ id: 'nika.station.rmModel', args: ['Qwen/Qwen3-0.6B-GGUF:Q8_0'] });
+    expect(row?.command).toBeUndefined();
+  });
+
+  it('serve and pull are QUESTIONS (action rows) · serve only with models on disk', () => {
+    const all = flatten(buildStationRows(snap));
+    expect(all.find((r) => r.id === 'providers.serve')?.command).toEqual({ id: 'nika.station.serveModel' });
+    expect(all.find((r) => r.id === 'providers.pull')?.command).toEqual({ id: 'nika.station.pullModel' });
+    const none = flatten(buildStationRows({ ...snap, models: [] }));
+    expect(none.find((r) => r.id === 'providers.serve')).toBeUndefined();
+    expect(none.find((r) => r.id === 'providers.pull')).toBeDefined();
+  });
+});

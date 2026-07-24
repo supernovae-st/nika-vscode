@@ -723,6 +723,17 @@
         "category": "Nika"
       },
       {
+        "command": "nika.station.pullModel",
+        "title": "Pull a Local Model (terminal)",
+        "icon": "$(cloud-download)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.station.rmModel",
+        "title": "Remove a Local Model",
+        "category": "Nika"
+      },
+      {
         "command": "nika.station.fix",
         "title": "Apply Fix",
         "icon": "$(wrench)",
@@ -1077,6 +1088,10 @@
         },
         {
           "command": "nika.quietFinding",
+          "when": "false"
+        },
+        {
+          "command": "nika.station.rmModel",
           "when": "false"
         },
         {

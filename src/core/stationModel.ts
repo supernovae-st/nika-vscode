@@ -430,6 +430,9 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
       tooltip: `serve: nika model serve --model ${m.id}\nreclaim: nika model rm ${m.id}`,
       icon: 'chip',
       level: 'ok',
+      // Reclaim rides the wrench (the Station click-law: destruction is
+      // never the primary click) — a modal confirm guards it host-side.
+      fix: { id: 'nika.station.rmModel', args: [m.id] },
     }));
     nowChildren.push({
       kind: 'section',
@@ -457,6 +460,14 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
             command: { id: 'nika.station.serveModel' },
           }]
           : []),
+        {
+          kind: 'action' as const,
+          id: 'providers.pull',
+          label: 'Pull a model…',
+          description: 'Hugging Face Hub → the ONE models dir · size prints before download',
+          icon: 'cloud-download',
+          command: { id: 'nika.station.pullModel' },
+        },
         {
           kind: 'fact',
           id: 'providers.cloud',
