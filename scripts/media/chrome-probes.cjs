@@ -33,6 +33,7 @@
 //      FORCED=1             OS High Contrast
 //      MOTION=reduce        prefers-reduced-motion (arms the MOTION lens)
 //      RUN=running|failed   drive the live run chrome (the sim only ends green)
+//      SHAPE=1              re-label with long / CJK / RTL / diacritic / 1-char ids
 // Headed, like its sister; playwright stays out of the manifest. Not
 // wired to CI by design — the judge runs it, the belt stays fast.
 const path = require('path');
@@ -49,6 +50,18 @@ const FORCED = process.env.FORCED === '1';
 const MOTION = process.env.MOTION === 'reduce' ? 'reduce' : 'no-preference';
 // RUN drives the live run chrome: 'running' mid-flight, 'failed' at the red close.
 const RUN = process.env.RUN === 'running' || process.env.RUN === 'failed' ? process.env.RUN : '';
+// SHAPE=1 re-labels the fixture with pathological task names before probing.
+// The metric ladder was tuned on short English ids; these are the shapes a
+// real corpus brings. The card title renders the ID, so ids and every edge
+// naming them are renamed together or the graph loses its wires.
+const SHAPE = process.env.SHAPE === '1';
+const SHAPE_NAMES = [
+  'a-task-name-that-simply-refuses-to-end-and-keeps-going-well-past-any-card',
+  '\u6458\u8981\u751f\u6210\u4e0e\u8d28\u91cf\u6821\u9a8c\u4efb\u52a1',
+  '\u0645\u0647\u0645\u0629-\u0627\u0644\u062a\u062d\u0642\u0642-\u0645\u0646-\u0627\u0644\u062c\u0648\u062f\u0629',
+  '\u00c4\u00d6\u00dc\u00df\u00e9\u00e0\u00e7\u00f1-diacritics-everywhere',
+  'x',
+];
 
 const PROBE = () => {
   const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [] };
@@ -244,6 +257,28 @@ const PROBE = () => {
     if (SCENE) { qs += '&' + SCENE; }
     await p.goto('file://' + path.join(process.cwd(), 'scripts/media/harness.html' + qs));
     await p.waitForTimeout(2400);
+    if (SHAPE) {
+      const html = require('fs').readFileSync(
+        path.join(process.cwd(), 'scripts/media/harness.html'), 'utf8');
+      const st = html.indexOf('const GRAPH = {');
+      const ls = html.indexOf('{', st), end = html.indexOf('\n    };', ls);
+      const g = new Function('return ' + html.slice(ls, end + 6).replace(/;\s*$/, ''))();
+      const map = {};
+      g.nodes.forEach((n, i) => {
+        if (i < SHAPE_NAMES.length) { map[n.id] = SHAPE_NAMES[i]; n.id = SHAPE_NAMES[i]; n.label = SHAPE_NAMES[i]; }
+      });
+      g.nodes.forEach((n) => {
+        if (n.producers) { n.producers = n.producers.map((x) => map[x] || x); }
+        if (n.bindingsIn) { n.bindingsIn.forEach((bd) => { bd.from = map[bd.from] || bd.from; }); }
+      });
+      g.edges.forEach((e) => {
+        e.source = map[e.source] || e.source; e.target = map[e.target] || e.target;
+        if (e.id) { e.id = `${e.source}->${e.target}`; }
+      });
+      await p.evaluate((gg) => window.postMessage({ kind: 'dag:load', graph: gg }, '*'), g);
+      await p.waitForTimeout(2600);
+    }
+
     // RUN=running|failed drives the live chrome the still scenes never show.
     // The harness sim only ever ends green, so the red path is POSTED the
     // way the extension posts it (the shapes a11y-probes drives).
@@ -265,7 +300,7 @@ const PROBE = () => {
       await p.waitForTimeout(900);
     }
     const r = await p.evaluate(PROBE);
-    const tag = [SCENE, RUN, FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
+    const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
     for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded']) {
