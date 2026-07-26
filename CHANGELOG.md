@@ -10,7 +10,7 @@ major.minor from 0.97).
 
 - **400px still threw the `⋯` door overboard**: the measured shed ladder closed a 240px band this morning, but its list held only the ten lenses · around 380 to 470 the CSS rungs have already hidden every one of them, so the ladder had nothing left to give while the bar still overflowed by ~17px, and the overflow door fell off the right edge again. One band lower, same casualty. Found by probing **320px**, the WCAG 1.4.10 Reflow threshold, which no earlier sweep had reached (520 was the narrowest).
 - **The ladder now continues past the lenses** into zoom, New and fit. Every one of them keeps a keyboard path when it yields (`+` and `−` for zoom, `F` for fit, `nika.newWorkflow` in the palette), and everything shed is one click behind the door · `＋ Task`, the door itself and the run status never yield.
-- **Proven functionally, not just geometrically**: at 400px the door sits at 373 inside the viewport, opens, and holds **13 rows** — each carrying its own key, including the `∿ Smooth edges B` this release minted.
+- **Proven functionally, not just geometrically**: at 400px the door sits at 373 inside the viewport, opens, and holds **13 rows** · each carrying its own key, including the `∿ Smooth edges B` this release minted.
 - **The matrix**: three skins × six widths from 320 to 1920, six lenses, all zero.
 
 ### At 300 nodes, the row that says where you are was the hardest to read
