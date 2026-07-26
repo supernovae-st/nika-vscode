@@ -51,7 +51,7 @@ scripted sim's (see `tour.cjs`).
 ## The two probe suites
 
 `harness.html` is also what the two judge suites drive. Neither is wired
-to CI by design — the belt stays fast, the judge runs these.
+to CI by design: the belt stays fast, the judge runs these.
 
 ```sh
 NIKA_PLAYWRIGHT=<path> node scripts/media/a11y-probes.cjs      # does it SPEAK
