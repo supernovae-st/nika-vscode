@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The one lens a keyboard could not reach
+
+- **`∿` smooth-edges had no keyboard path at all**: not a webview key, not a `nika.*` command, not a setting · and Tab never leaves the graph (the roving stop owns it, by design), so the single way to bend the wires was a mouse. The focus suite is what surfaced it: 60 Tab presses, 60 inside the canvas, which sent the question to the toolbar itself. Walking the five controls with no printed key settled it one by one · `⧇ New` reaches the palette as `nika.newWorkflow`, both exports reach it as `nika.exportDag`, `⋯` is a disclosure whose contents each carry their own key · and `∿` had nothing. One real gap out of five suspects.
+- **`B` bends the edges**: the letter is what was FREE (s, c and e were long taken by search, connect and expand), so the mnemonic follows the shape the toggle draws rather than the label it wears. It prints its key in the toolbar like every sibling lens, joins `CANVAS_KEYMAP` so `?` and `⌥F1` teach it, and the click handler became a named `toggleCurve` the keyboard shares · one behaviour, two doors. The taught keymap goes 30 keys to 31 and the a11y suite picked that up on its own.
+- **The harness was synced in the same edit this time**, not a debugging loop later.
+
 ### The one press that never got its reduced-motion opt-out
 
 - **The verb palette kept moving when the OS asked it not to**: `.vp-btn:active` scales to 0.94 on a 0.16s spatial easing, and it was the single animated surface in the canvas that shipped without the paired `prefers-reduced-motion` block every other effect here carries. Under `reduce`, four buttons still animated.

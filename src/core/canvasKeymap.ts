@@ -19,6 +19,7 @@ export const CANVAS_KEYMAP: ReadonlyArray<readonly [string, string]> = [
   ['A', 'auto-layout'],
   ['W', 'waves'],
   ['H', 'heatmap'],
+  ['B', 'bend edges'],
   ['T', 'timeline'],
   ['P', 'audit'],
   ['D', 'dataflow'],

@@ -8653,13 +8653,19 @@ syncHeatBtn();
 
 const curveBtn = document.getElementById('btn-curve');
 const syncCurveBtn = (): void => { curveBtn?.classList.toggle('active', renderer.smoothEdges); };
-curveBtn?.addEventListener('click', () => {
+// Named so the keyboard can reach it. This toggle lived on a click and
+// nothing else: no webview key, no `nika.*` command, no setting — while
+// Tab never leaves the graph (the roving stop owns it), so the one path
+// to smooth edges was a mouse. Every sibling lens already prints a key;
+// this one just never got minted.
+const toggleCurve = (): void => {
   renderer.smoothEdges = !renderer.smoothEdges;
   syncCurveBtn();
   vscode.setState({ ...(vscode.getState() ?? {}), smoothEdges: renderer.smoothEdges });
   const g = vscode.getState()?.graph;
   if (g) { renderer.render(g); }
-});
+};
+curveBtn?.addEventListener('click', toggleCurve);
 syncCurveBtn();
 
 // ─── Search / filter (`/`) ──────────────────────────────────────────────────
@@ -8806,6 +8812,10 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'a' || e.key === 'A') { void resetLayout(true); }
   if (e.key === 'h' || e.key === 'H') { toggleHeatmap(); }
   if (e.key === 'g' || e.key === 'G') { toggleFollow(); syncFollowBtn(); }
+  // B — bend: smooth edges. The letter is what was FREE (s, c and e were
+  // long taken by search, connect and expand); the mnemonic follows the
+  // shape the toggle draws, not the label it wears.
+  if (e.key === 'b' || e.key === 'B') { toggleCurve(); }
   // K — context-first (the Raycast read): a FOCUSED card opens its
   // action panel (every action · its shortcut printed); no focus
   // keeps K as the command muscle (the omnibar).
