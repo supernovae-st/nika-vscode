@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The one press that never got its reduced-motion opt-out
+
+- **The verb palette kept moving when the OS asked it not to**: `.vp-btn:active` scales to 0.94 on a 0.16s spatial easing, and it was the single animated surface in the canvas that shipped without the paired `prefers-reduced-motion` block every other effect here carries. Under `reduce`, four buttons still animated.
+- **Reduce now swaps the motion for a non-spatial answer, not for nothing**: the transform transition drops, the scale drops, and the press deepens its wash instead (currentColor 12% → 24%, border 35% → 55%). Measured both ways · no-preference: moves and speaks · reduce: does not move (`transform: none`) and speaks louder. A press that stops saying anything is the other way to fail the charter.
+- **A fifth lens now guards the class**: `chrome-probes.cjs` gained MOTION, which under `MOTION=reduce` reports any keyframe animation still running or any transition on a layout/transform property. It is what found this one. The suite also learned `SCENE=` (harness scenes) and `FORCED=1` (OS High Contrast) · the empty state, forced-colors and reduced-motion all read clean on the other four lenses.
+
 ### The toolbar stopped throwing its own door overboard
 
 - **A 240px band of ordinary panel widths pushed the run status and the `⋯` door off screen**: the shed ladder in CSS is a rung of width breakpoints whose numbers were tuned to a narrower toolbar, and every button added since raised the real overflow point above the top rung (980px). Between roughly 880 and 1120 the row spilled past its own `right: 12px` box, and because flex items refuse to shrink below their content, the casualties were whoever sat last: `#dag-status` at 1120, and at 900 the `⋯` door itself, entirely outside the viewport. A door you cannot reach is worse than the crowding it was built to answer.

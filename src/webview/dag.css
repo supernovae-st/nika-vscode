@@ -4320,6 +4320,24 @@ body.lod-far .edge-hit { pointer-events: none; }
   border-color: color-mix(in srgb, currentColor 35%, transparent);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* The press was the one spatial cue in this file that never got its
+   * opt-out: `transform: scale(.94)` on a 0.16s spatial easing, shipped
+   * without the paired reduce block every other animation here carries.
+   * Reduce swaps motion for a NON-spatial answer, never for nothing —
+   * the press still reads, it just deepens the wash instead of moving. */
+  .vp-btn {
+    transition: background var(--nk-dur-base) var(--nk-ease-effects),
+                border-color var(--nk-dur-base) var(--nk-ease-effects);
+  }
+
+  .vp-btn:active {
+    transform: none;
+    background: color-mix(in srgb, currentColor 24%, transparent);
+    border-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+}
+
 #omni-input {
   flex: 1;
   min-width: 0;
