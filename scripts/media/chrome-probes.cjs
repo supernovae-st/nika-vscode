@@ -29,6 +29,7 @@
 //      SCENE=empty          drive a harness scene (empty · media · celebrate)
 //      FORCED=1             OS High Contrast
 //      MOTION=reduce        prefers-reduced-motion (arms the MOTION lens)
+//      RUN=running|failed   drive the live run chrome (the sim only ends green)
 // Headed, like its sister; playwright stays out of the manifest. Not
 // wired to CI by design — the judge runs it, the belt stays fast.
 const path = require('path');
@@ -43,6 +44,8 @@ const SIZES = (process.env.SIZES || '1440x900').split(',').map((s) => {
 const SCENE = process.env.SCENE || '';
 const FORCED = process.env.FORCED === '1';
 const MOTION = process.env.MOTION === 'reduce' ? 'reduce' : 'no-preference';
+// RUN drives the live run chrome: 'running' mid-flight, 'failed' at the red close.
+const RUN = process.env.RUN === 'running' || process.env.RUN === 'failed' ? process.env.RUN : '';
 
 const PROBE = () => {
   const out = { clip: [], target: [], contrast: [], spill: [], motion: [] };
@@ -92,6 +95,12 @@ const PROBE = () => {
     if (r.width === 0 || r.height === 0) continue;
     // Only the chrome: the SVG canvas is transform-scaled, its geometry is layout-free.
     if (el.closest('#dag-container svg')) continue;
+    // Visually-hidden live regions (#a11y-status · #a11y-alert) are a 1x1
+    // box that text is SUPPOSED to overflow — a screen reader reads it, an
+    // eye never sees it. Judging them as clipped is the lens misreading the
+    // idiom, and it only shows once a run posts an announcement, so the
+    // still scenes never surfaced it.
+    if (cs.clipPath === 'inset(50%)' || /rect\(1px/.test(cs.clip || '')) continue;
 
     // 1 · CLIP — overflowing inline text with no ellipsis and no scrollbar
     const hasOwnText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
@@ -188,8 +197,28 @@ const PROBE = () => {
     if (SCENE) { qs += '&' + SCENE; }
     await p.goto('file://' + path.join(process.cwd(), 'scripts/media/harness.html' + qs));
     await p.waitForTimeout(2400);
+    // RUN=running|failed drives the live chrome the still scenes never show.
+    // The harness sim only ever ends green, so the red path is POSTED the
+    // way the extension posts it (the shapes a11y-probes drives).
+    if (RUN) {
+      const post = (m) => p.evaluate((msg) => window.postMessage(msg, '*'), m);
+      await post({ kind: 'run:state', running: true });
+      await post({ kind: 'dag:batchUpdateStatus', updates: [
+        { taskId: 'history', status: 'success', durationMs: 900 },
+        { taskId: 'digest', status: 'running' },
+        { taskId: 'chart', status: 'running' }] });
+      if (RUN === 'failed') {
+        await post({ kind: 'dag:batchUpdateStatus', updates: [{
+          taskId: 'digest', status: 'failed',
+          failPreview: 'NIKA-INFER-003 · provider refused the request' }] });
+        await post({ kind: 'run:state', running: false });
+        await post({ kind: 'run:verdict', icon: '✗', cls: 'st-failed',
+          text: 'run failed · 1 ✗ · ≥ $0.0104 · 8.3s · chain 3c92f1de' });
+      }
+      await p.waitForTimeout(900);
+    }
     const r = await p.evaluate(PROBE);
-    const tag = [SCENE, FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
+    const tag = [SCENE, RUN, FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
     for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion']) {
