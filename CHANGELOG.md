@@ -6,6 +6,12 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### At 300 nodes, the row that says where you are was the hardest to read
+
+- **The ACTIVE plan-rail number cleared no floor**: the resting `.pr-n` was lifted to 90% two waves ago and its active variant was missed · 70% of the accent measures **3.21:1** in nika and **4.22:1** in editor, both under 4.5, on the one number that marks where you currently are in the plan. It only surfaced at density, because the rail needs many waves before an active row is on screen at all.
+- **94% is where nika clears** (editor 6.48 · phosphor 10.32), and at 94% the alpha no longer hierarchises against the row's full-accent label. That is the point rather than a regret: on this hue alpha cannot be both dim enough to read as secondary and light enough to read at all, so the hierarchy moves to the bracket form the number already wears (`[ 05 ]` beside a bare `×2`), which never needed contrast to do its job.
+- **The SPILL lens stopped blaming the child for the container**: at 300 nodes the rail holds 24 rows in a 418px scroll box that itself sits 140→560 inside a 700px viewport, and five rows report past the bottom purely from `scrollTop`. Scrolled is not spilled. The lens now asks whether a scrollable ancestor put the row there before calling it a layout break.
+
 ### The one lens a keyboard could not reach
 
 - **`∿` smooth-edges had no keyboard path at all**: not a webview key, not a `nika.*` command, not a setting · and Tab never leaves the graph (the roving stop owns it, by design), so the single way to bend the wires was a mouse. The focus suite is what surfaced it: 60 Tab presses, 60 inside the canvas, which sent the question to the toolbar itself. Walking the five controls with no printed key settled it one by one · `⧇ New` reaches the palette as `nika.newWorkflow`, both exports reach it as `nika.exportDag`, `⋯` is a disclosure whose contents each carry their own key · and `∿` had nothing. One real gap out of five suspects.

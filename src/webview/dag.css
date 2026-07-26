@@ -5951,7 +5951,19 @@ body[data-nk-theme='editor'].vscode-dark {
 }
 
 .pr-row.active .pr-n {
-  color: color-mix(in srgb, var(--nk-accent) 70%, transparent);
+  /* The ACTIVE row's number is the one saying WHERE YOU ARE, and it was
+   * the least legible thing in the rail: 70% of the accent measures
+   * 3.21:1 in nika and 4.22:1 in editor, both under the floor. The
+   * resting `.pr-n` was lifted to 90% and this variant was missed.
+   *
+   * 94% is where nika clears (4.80 · editor 6.48 · phosphor 10.32), and
+   * at 94% the alpha no longer hierarchises against the row's full-accent
+   * label. That is fine here and it is the point: on this hue alpha
+   * cannot be both dim enough to read as secondary and light enough to
+   * read at all, so the hierarchy moves to the bracket form the number
+   * already wears (`[ 05 ]` beside a bare `×2`), which never needed
+   * contrast to do its job. */
+  color: color-mix(in srgb, var(--nk-accent) 94%, transparent);
 }
 
 .pr-row:focus-visible {

@@ -190,9 +190,21 @@ const PROBE = () => {
       }
     }
 
-    // 4 · SPILL — chrome painting off-viewport
+    // 4 · SPILL — chrome painting off-viewport.
+    // A row inside a SCROLLABLE ancestor is off-viewport because it is
+    // scrolled, not because the layout broke: at 300 nodes the plan rail
+    // holds 24 rows in a 418px scroll box that itself sits 140→560 inside
+    // a 700px viewport, and five rows report past the bottom purely from
+    // scrollTop. Ask the container before blaming the child.
     if (el.matches('#dag-toolbar *, #omnibar *, #plan-rail *, #minimap *, #activity *')) {
-      if (r.right > vw + 1 || r.left < -1 || r.bottom > vh + 1 || r.top < -1) {
+      let scrolled = false;
+      for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+        const ov = getComputedStyle(n).overflowY;
+        if ((ov === 'auto' || ov === 'scroll') && n.scrollHeight > n.clientHeight + 1) {
+          scrolled = true; break;
+        }
+      }
+      if (!scrolled && (r.right > vw + 1 || r.left < -1 || r.bottom > vh + 1 || r.top < -1)) {
         out.spill.push({ sel: sel(el), left: +r.left.toFixed(0), right: +r.right.toFixed(0), vw });
       }
     }
