@@ -15,13 +15,25 @@ export const NIKA_VERB_RGB: Record<NikaVerbName, readonly [number, number, numbe
   agent: [0.6902, 0.4824, 1.0],
 }
 
+/** the verb hues re-anchored for BODY COPY — clear rules.contrast_apca
+ *  .body (APCA Lc >= 60) on NIKA_BRAND.bgBase AND bgElevated; invoke
+ *  clears at its base hue, so its ramp is the identity. */
+export const NIKA_VERB_TEXT = { infer: '#90b4ff', exec: '#ff9a6f', invoke: '#22d3ee', agent: '#c5a4ff', } as const
+
 export const NIKA_VERB_GLYPH = { infer: '◇', exec: '▷', invoke: '◆', agent: '✦', } as const
 export const NIKA_VERB_CODICON = { infer: 'sparkle', exec: 'terminal', invoke: 'plug', agent: 'robot', } as const
 export const NIKA_VERB_FA = { infer: 'sparkles', exec: 'terminal', invoke: 'plug', agent: 'robot', } as const
 /** nika.sh ontology ids (public/brand/icons.json) */
 export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'console', invoke: 'api-connection', agent: 'agent-graph', } as const
 
+/** per-FEATURE codicon bindings (icons.features · an OPEN set, unlike
+ *  the 4 verbs) — drawn on the icon_grid contract: 16px · filled ·
+ *  currentColor. cost = credit-card interim (bespoke SVG is owed). */
+export const NIKA_FEATURE_CODICON = { doctor: 'pulse', wired: 'plug', trace: 'record', permits: 'shield', replay: 'debug-rerun', chain: 'verified-filled', station: 'radio-tower', cost: 'credit-card', } as const
+
 export const NIKA_SEVERITY = { ok: '#34d399', fail: '#ff5d5d' } as const
+/** the severity pair's body-copy ramp (fail only — ok has no consumer yet) */
+export const NIKA_SEVERITY_TEXT = { fail: '#ff9791' } as const
 
 /** the LIVE run-state palette — done/failed ARE severity (one storage,
  *  aliased here); running deliberately equals the infer hue. The vscode
@@ -30,6 +42,9 @@ export const NIKA_STATUS = { running: '#5b8cff', done: '#34d399', failed: '#ff5d
 
 export const NIKA_BRAND = {
   bg: '#08090b',
+  /** the two proving planes every *_TEXT ramp clears (APCA floors) */
+  bgBase: '#0d0d0e',
+  bgElevated: '#1c1d21',
   accent: '#4f86ff',
   accentStrong: '#2f6bff',
   accentBright: '#8db4ff',
