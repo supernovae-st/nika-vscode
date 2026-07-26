@@ -871,9 +871,12 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 }
 
 .wave-label-n {
-  /* Text stays readable: 55% of the dim ink sat near 2.5:1 — the
-   * hierarchy survives at 78% and the count repasses the AA floor. */
-  fill: color-mix(in srgb, var(--nk-ink-dim) 78%, transparent);
+  /* Text stays readable: 55% of the dim ink sat near 2.5:1. 78% was the
+   * first lift and it MISSED — measured 3.85:1 in the nika skin, still
+   * under the 4.5 floor it claimed to clear. 90% is the measured answer
+   * (nika 4.70 · editor 4.86 · phosphor 5.89) and the count still reads
+   * dimmer than full ink: the hierarchy survives, the legibility is real. */
+  fill: color-mix(in srgb, var(--nk-ink-dim) 90%, transparent);
 }
 
 /* ─── Focus mode · lineage stays lit, the rest fades ────────────────────── */
@@ -5881,7 +5884,11 @@ body[data-nk-theme='editor'].vscode-dark {
   display: flex;
   align-items: baseline;
   gap: 7px;
-  padding: 4px 9px;
+  /* 4px block padding put the row at 21.5px — under the WCAG 2.2 §2.5.8
+   * 24px target floor, conformant only by the spacing exception and only
+   * by half a pixel of it. 6px makes the target real (25.5px) instead of
+   * arguable, and the rail reads no different at a glance. */
+  padding: 6px 9px;
   font-family: var(--nk-mono);
   font-size: var(--nk-fs-meta);
   letter-spacing: 0.06em;
@@ -5895,8 +5902,9 @@ body[data-nk-theme='editor'].vscode-dark {
 }
 
 .pr-n {
-  /* Same law as .wave-label-n — dim is a HIERARCHY, not an illegibility. */
-  color: color-mix(in srgb, var(--nk-ink-dim) 78%, transparent);
+  /* Same law as .wave-label-n — dim is a HIERARCHY, not an illegibility.
+   * Same measured number, too: 90% is where the nika skin clears AA. */
+  color: color-mix(in srgb, var(--nk-ink-dim) 90%, transparent);
 }
 
 .pr-cap {

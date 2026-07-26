@@ -9151,18 +9151,71 @@ document.addEventListener('pointerdown', (e) => {
   if (!pop.contains(t) && t.id !== 'btn-more' && !t.closest('#btn-more')) { closeMorePop(); }
 });
 
-// Tiny widths teach a shorter line — an input placeholder cannot
+// Tiny FIELDS teach a shorter line — an input placeholder cannot
 // ellipsize, it hard-clips at the field edge.
-const SHORT_PLACEHOLDER_MQ = window.matchMedia('(max-width: 560px)');
+//
+// The field is what must be measured, never the window: the omnibar's
+// input sits at 151px inside a 1440px window once the run controls, the
+// changed pill and the lens chips have eaten the row, so a window media
+// query read "roomy" while the placeholder lost four fifths of its
+// lesson mid-word. Measure the glyph run against the content box the
+// browser actually paints into.
+const PLACEHOLDER_IDS = ['omni-input', 'cd-input', 'es-describe-input'];
+let phRuler: CanvasRenderingContext2D | null = null;
+
+/** Width of `text` as this field will actually paint it, or null when the
+ *  field has no box yet (hidden panel · pre-layout) and must not be judged. */
+function phMeasure(el: HTMLInputElement, text: string): { w: number; inner: number } | null {
+  const cs = getComputedStyle(el);
+  const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  if (!(inner > 0)) { return null; }
+  if (!phRuler) { phRuler = document.createElement('canvas').getContext('2d'); }
+  if (!phRuler) { return null; }
+  phRuler.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  return { w: phRuler.measureText(text).width, inner };
+}
+
+/** The longest declared rung that FITS — and when none does, the shortest
+ *  rung trimmed to a prefix that fits, ending in an ellipsis. A cut that
+ *  admits it cut beats an amputation mid-word: the card bodies have always
+ *  ellipsized, and the bar that teaches the gestures should not be the one
+ *  surface that lies about having more to say. */
+function fitPlaceholder(el: HTMLInputElement, rungs: string[]): string {
+  const probe = phMeasure(el, rungs[0]);
+  if (!probe) { return rungs[0]; }
+  if (probe.w <= probe.inner) { return rungs[0]; }
+  for (const rung of rungs.slice(1)) {
+    const m = phMeasure(el, rung);
+    if (m && m.w <= m.inner) { return rung; }
+  }
+  const last = rungs[rungs.length - 1];
+  let lo = 0, hi = last.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    const m = phMeasure(el, last.slice(0, mid).trimEnd() + '…');
+    if (m && m.w <= m.inner) { lo = mid; } else { hi = mid - 1; }
+  }
+  return lo > 0 ? last.slice(0, lo).trimEnd() + '…' : '';
+}
+
 function syncPlaceholders(): void {
-  for (const id of ['omni-input', 'cd-input', 'es-describe-input']) {
+  for (const id of PLACEHOLDER_IDS) {
     const el = document.getElementById(id) as HTMLInputElement | null;
     if (!el) { continue; }
     if (!el.dataset.fullPlaceholder) { el.dataset.fullPlaceholder = el.placeholder; }
+    const full = el.dataset.fullPlaceholder ?? el.placeholder;
     const short = el.dataset.shortPlaceholder;
-    el.placeholder = SHORT_PLACEHOLDER_MQ.matches && short
-      ? short
-      : el.dataset.fullPlaceholder ?? el.placeholder;
+    el.placeholder = fitPlaceholder(el, short ? [full, short] : [full]);
+  }
+}
+
+// The field can narrow with no window resize at all — a lens chip
+// appearing, the changed pill arriving mid-run. Watch the boxes.
+if (typeof ResizeObserver !== 'undefined') {
+  const phObserver = new ResizeObserver(() => syncPlaceholders());
+  for (const id of PLACEHOLDER_IDS) {
+    const el = document.getElementById(id);
+    if (el) { phObserver.observe(el); }
   }
 }
 
