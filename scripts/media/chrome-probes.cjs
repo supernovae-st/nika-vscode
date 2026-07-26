@@ -13,6 +13,9 @@
 //   CONTRAST  text under the 4.5:1 AA floor (3:1 for >=18.66px bold / 24px),
 //             alpha composited over its real backdrop first
 //   SPILL     chrome painting outside the viewport
+//   OCCLUDED  a card whose own title is painted over by another card
+//             (the one lens that looks INSIDE the svg: the question is who
+//             paints last, not layout geometry)
 //   MOTION    (under MOTION=reduce only) a keyframe animation still
 //             running, or a transition on a layout/transform property,
 //             i.e. an effect that never got its reduced-motion opt-out
@@ -48,7 +51,7 @@ const MOTION = process.env.MOTION === 'reduce' ? 'reduce' : 'no-preference';
 const RUN = process.env.RUN === 'running' || process.env.RUN === 'failed' ? process.env.RUN : '';
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -87,6 +90,38 @@ const PROBE = () => {
     }
     return parse(getComputedStyle(document.body).backgroundColor) || { r: 13, g: 13, b: 14, a: 1 };
   };
+
+  // 6 · OCCLUDED — a card whose own TITLE is painted over by another card.
+  // This one deliberately looks INSIDE the svg the other lenses skip: the
+  // question is not layout geometry but who paints last. An expanded card
+  // (the failure state grows one) can grow across a neighbour and swallow
+  // the name that says which task the neighbour is.
+  for (const g of document.querySelectorAll('#dag-container .dag-node')) {
+    const title = g.querySelector('.nc-title, .nc-head, text');
+    if (!title) continue;
+    const tr = title.getBoundingClientRect();
+    if (!(tr.width > 4 && tr.height > 4)) continue;
+    // Sample the title's leading edge, where the name actually starts.
+    const x = tr.left + Math.min(8, tr.width / 3), y = tr.top + tr.height / 2;
+    if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+    const top = document.elementFromPoint(x, y);
+    if (!top || g === top || g.contains(top) || top.contains(g)) continue;
+    const other = top.closest ? top.closest('.dag-node') : null;
+    if (!other || other === g) continue;
+    // The design has an answer for this and says so in dag.css: "a card
+    // grown past its laid-out box floats OVER its neighbors (the pinned
+    // peek · a mid-run failure promote) — elevation says so". A cover that
+    // wears nk-overgrown or nk-peek is DECLARED layering with a shadow to
+    // prove it, so it is not a finding. What would be one is a card
+    // covering a neighbour's name while claiming no elevation at all.
+    if (other.classList.contains('nk-overgrown') || other.classList.contains('nk-peek')) continue;
+    out.occluded.push({
+      sel: 'card:' + (title.textContent || '').trim().slice(0, 18),
+      coveredBy: 'card:' + (other.querySelector('.nc-title, .nc-head, text')?.textContent || '?')
+        .trim().slice(0, 18),
+      at: [Math.round(x), Math.round(y)],
+    });
+  }
 
   for (const el of document.querySelectorAll('body *')) {
     const cs = getComputedStyle(el);
@@ -181,7 +216,7 @@ const PROBE = () => {
   const uniq = (a, k) => { const s = new Set(); return a.filter((x) => !s.has(x[k]) && s.add(x[k])); };
   out.clip = uniq(out.clip, 'sel'); out.target = uniq(out.target, 'sel');
   out.contrast = uniq(out.contrast, 'sel'); out.spill = uniq(out.spill, 'sel');
-  out.motion = uniq(out.motion, 'sel');
+  out.motion = uniq(out.motion, 'sel'); out.occluded = uniq(out.occluded, 'sel');
   return out;
 };
 
@@ -221,7 +256,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));
