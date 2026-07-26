@@ -9116,10 +9116,21 @@ function morePopKeydown(e: KeyboardEvent): boolean {
 }
 
 /** Comfort yields first, the teach door (?) last — the same priority the
- *  CSS rungs encode, so the two agree instead of racing. */
+ *  CSS rungs encode, so the two agree instead of racing.
+ *
+ *  Past the lenses the list continues into the navigation controls,
+ *  because the lenses ALONE run out. Around 380-470 the CSS rungs have
+ *  already hidden every lens, so this list had nothing left to give while
+ *  the bar still overflowed by ~17px, and the ⋯ door fell off the right
+ *  edge again — the same casualty as before, one band lower. Everything
+ *  below keeps a keyboard path when it goes: zoom has + and -, fit has F,
+ *  New reaches the palette as `nika.newWorkflow`, and whatever is shed is
+ *  one click away behind the door that now survives. `＋ Task` (the
+ *  primary make-gesture), the door itself and the run status never yield. */
 const SHED_ORDER = [
   'btn-heat', 'btn-follow', 'btn-curve', 'btn-timeline', 'btn-dataflow',
   'btn-waves', 'btn-audit', 'btn-feed', 'btn-relayout', 'btn-help',
+  'btn-zoom-out', 'btn-zoom-in', 'btn-new', 'zoom-pct', 'btn-fit',
 ];
 
 /** Shed until the row fits its own box.
