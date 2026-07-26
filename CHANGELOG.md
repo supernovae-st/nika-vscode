@@ -6,6 +6,16 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The toolbar stopped throwing its own door overboard
+
+- **A 240px band of ordinary panel widths pushed the run status and the `⋯` door off screen**: the shed ladder in CSS is a rung of width breakpoints whose numbers were tuned to a narrower toolbar, and every button added since raised the real overflow point above the top rung (980px). Between roughly 880 and 1120 the row spilled past its own `right: 12px` box, and because flex items refuse to shrink below their content, the casualties were whoever sat last: `#dag-status` at 1120, and at 900 the `⋯` door itself, entirely outside the viewport. A door you cannot reach is worse than the crowding it was built to answer.
+- **The ladder gained a measured rung**: `fitToolbar` sheds lenses in the same priority the CSS rungs encode (comfort first, the teach door last) until the row fits its box, and gives them back the moment the panel widens · everything shed stays one click behind `⋯`, which is now always reachable. The media queries stay as the no-JS floor. A `ResizeObserver` on the bar carries it, because the first pass can measure before the stylesheet lands and a verdict of *fits* taken at zero width would otherwise latch forever.
+- **Proven across the matrix**: three skins × seven widths from 520 to 1920, all four lenses at zero.
+
+### `chrome-probes.cjs` · the sister suite
+
+- **a11y-probes asks whether the canvas speaks; this asks whether it fits**: four lenses (clipped text · WCAG 2.2 target size · AA contrast · off-viewport paint) swept across `SKINS` × `SIZES`, reporting instances rather than a verdict so a fix can be structural. Every defect in this release's polish waves was found by it, and every one of them was invisible to `npm test`. Not wired to CI by design, like its sister · the belt stays fast, the judge runs the sweep.
+
 ### The chrome measured itself, and three surfaces were caught
 
 A four-lens sweep (clipped text · pointer-target size · AA contrast · off-viewport paint) run against the harness in all three skins found three real defects, each now closed and each re-proven at zero.

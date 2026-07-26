@@ -48,6 +48,29 @@ The timeline lens is host-built truth (`timeline:request` →
 request itself with recorded-shape rows whose clocks mirror the
 scripted sim's (see `tour.cjs`).
 
+## The two probe suites
+
+`harness.html` is also what the two judge suites drive. Neither is wired
+to CI by design — the belt stays fast, the judge runs these.
+
+```sh
+NIKA_PLAYWRIGHT=<path> node scripts/media/a11y-probes.cjs      # does it SPEAK
+NIKA_PLAYWRIGHT=<path> node scripts/media/chrome-probes.cjs    # does it FIT
+```
+
+`chrome-probes` sweeps four lenses (clipped text · WCAG 2.2 target size ·
+AA contrast · off-viewport paint) across `SKINS` × `SIZES`, defaulting to
+all three skins at 1440x900. Widen the sweep when touching chrome:
+
+```sh
+SKINS=nika,editor,phosphor SIZES=520x760,880x700,1000x700,1440x900 \
+  NIKA_PLAYWRIGHT=<path> node scripts/media/chrome-probes.cjs
+```
+
+It reports instances, not a verdict, so a fix can be structural. Every
+defect it has caught so far was invisible to `npm test` and visible in
+one screenshot only if you already knew where to look.
+
 `harness.html` also serves as the ad-hoc pixel-proof page from
 `docs/DESIGN.md` (stubbed `acquireVsCodeApi`, `?skin=editor|phosphor` to
 flip the register, `?media=1` the brand-studio scene, `?celebrate` the

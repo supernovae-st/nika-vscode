@@ -1942,6 +1942,16 @@ body.vscode-light .logo-dark { display: none; }
   #dag-legend { bottom: 60px; }
 }
 
+/* The MEASURED rung of the shed ladder (dag.ts · fitToolbar).
+ * The width rungs below are a first-paint approximation whose numbers
+ * were tuned to a narrower toolbar; every button added since pushed the
+ * real overflow point above the top rung, and between ~880 and ~1120 the
+ * row spilled past its own box — taking the run status and, worst of
+ * all, the ⋯ door that holds everything shed. The measurement decides;
+ * the media queries stay as the no-JS floor. Same specificity trick as
+ * the rungs (id + attribute out-specifies `#dag-toolbar button`). */
+#dag-toolbar [data-shed] { display: none; }
+
 /* ─── The shed ladder · lenses yield one by one, never a cliff ──────────────
  * Between 380 and 820 the one-row toolbar used to CLIP past right:12
  * (body overflow:hidden = unreachable buttons). Comfort lenses yield

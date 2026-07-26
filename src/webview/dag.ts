@@ -9105,12 +9105,56 @@ function morePopKeydown(e: KeyboardEvent): boolean {
   return true;
 }
 
+/** Comfort yields first, the teach door (?) last — the same priority the
+ *  CSS rungs encode, so the two agree instead of racing. */
+const SHED_ORDER = [
+  'btn-heat', 'btn-follow', 'btn-curve', 'btn-timeline', 'btn-dataflow',
+  'btn-waves', 'btn-audit', 'btn-feed', 'btn-relayout', 'btn-help',
+];
+
+/** Shed until the row fits its own box.
+ *
+ *  The width rungs in dag.css were tuned to a narrower toolbar; every
+ *  button added since pushed the real overflow point above the top rung,
+ *  so between ~880 and ~1120 the bar spilled past `right: 12px` and the
+ *  casualties were whoever sat last in the row: the run status, and the
+ *  ⋯ door that holds everything already shed. A door you cannot reach is
+ *  worse than the crowding it was built to answer. Flex items do not
+ *  shrink below their content (`min-width: auto`), so the row cannot
+ *  solve this in CSS alone — it has to be measured. */
+function fitToolbar(): void {
+  const bar = document.getElementById('dag-toolbar');
+  // A bar with no box yet (pre-layout · stylesheet still arriving) would
+  // measure 0 against 0, read "fits", and latch that verdict forever —
+  // the observer below is what un-latches it.
+  if (!bar || !(bar.clientWidth > 0)) { return; }
+  // Start from the CSS truth every pass: a widening panel must give the
+  // lenses back, not strand them behind the door forever.
+  for (const id of SHED_ORDER) { document.getElementById(id)?.removeAttribute('data-shed'); }
+  for (const id of SHED_ORDER) {
+    if (bar.scrollWidth <= bar.clientWidth) { return; }
+    const el = document.getElementById(id);
+    // offsetParent === null means a media-query rung already took it.
+    if (el && el.offsetParent !== null) { el.setAttribute('data-shed', ''); }
+  }
+}
+
 function refreshMoreDoor(): void {
+  fitToolbar();
   const group = document.getElementById('tb-more-group');
   if (!group) { return; }
   const any = shedButtons().length > 0;
   group.toggleAttribute('hidden', !any);
   if (!any) { closeMorePop(); }
+}
+
+// The bar's box tracks the panel (left/right are fixed offsets), so its
+// own resize IS the width signal — and it fires once the stylesheet
+// lands, which is what rescues a first pass that measured too early.
+// Shedding changes children, never the bar's box: no feedback loop.
+if (typeof ResizeObserver !== 'undefined') {
+  const bar = document.getElementById('dag-toolbar');
+  if (bar) { new ResizeObserver(() => refreshMoreDoor()).observe(bar); }
 }
 
 document.getElementById('btn-more')?.addEventListener('click', () => {
