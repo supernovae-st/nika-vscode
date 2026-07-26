@@ -6,6 +6,14 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The language client crosses to 10, and the audit goes quiet
+
+- **`vscode-languageclient` 9 → 10 · the production tree reports zero vulnerabilities**: the 9.x line dragged a `minimatch` chain carrying three HIGH advisories into the shipped extension · an audit finding inside a product whose whole pitch is *a static audit before a token is spent* is a credibility problem before it is a security one. Version 10 cuts the chain: `npm audit --omit=dev` now reads **found 0 vulnerabilities**, and the whole belt (1389 tests · parity · tokens · voice · glyphs · walkthrough media · lint) stayed green across the crossing · zero source edits were needed, because the `tsconfig` already spoke `Node16` + `ES2022`, the two things client 10 asks for.
+- **The floor rises to VS Code 1.91**: client 10 declares `engines.vscode: ^1.91.0`, so the extension declares it too · honouring a dependency's floor is not optional, it is the difference between a supported install and a runtime crash on a host that lacks the API. 1.91 shipped in June 2024; every current VS Code, Cursor, Windsurf and VSCodium base is far past it. `@types/vscode` moves with it, staying at or under the engine like `vsce` requires.
+- **The toolchain rides its safe lines**: `@vscode/test-electron` 3.1 · `eslint` 10.8.
+- **TypeScript 7 is proven ready and deliberately not taken**: the compiler itself is clean on this codebase (zero errors, once `tsconfig` names the `@types` packages it consumes · 7 stopped auto-including them, so the field is now explicit and reads the same under 5.x). What blocks it is `typescript-eslint@8`, which pins `typescript <6.1.0` as a peer · taking 7 today would ship a tree `npm ci` cannot resolve, and the lockfile-in-sync gate is the one that killed v0.93.0 in sixteen seconds. The `types` field lands now so the crossing is a one-line change the day `typescript-eslint` widens its range.
+- **`@types/node` deliberately stays on 20**: the types must describe the runtime the extension actually gets, and 1.91 is the floor we support · typing Node 26 APIs over a Node 20 host is how an extension compiles clean and dies in the field.
+
 ### The dimmed card answers engagement
 
 - **Hovering a faded card peeks it**: focus mode keeps its cast (lineage lit · the rest at 25%), and the pointer can now actually read a faded card · hover lifts it to 80% for as long as you look, the cast settles back when you leave · keyboard focus or selection lifts it fully: a focus ring on a ghost is not an answer. The card's existing opacity transition makes both moves breathe.

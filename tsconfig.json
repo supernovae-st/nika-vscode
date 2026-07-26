@@ -6,6 +6,10 @@
     "lib": ["ES2022"],
     "noEmit": true,
     "strict": true,
+    // TypeScript 7 no longer auto-includes every `node_modules/@types` package;
+    // naming the three we actually consume keeps the ambient surface explicit
+    // (and identical under 5.x, which honours the same field).
+    "types": ["node", "vscode", "mocha"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
