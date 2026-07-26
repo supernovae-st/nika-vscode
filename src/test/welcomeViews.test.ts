@@ -58,7 +58,7 @@ describe('viewsWelcome — the state matrix', () => {
     // the demo is the aha; Create Workflow stays reachable as a secondary
     // inline link (not alone on its line → not a button).
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]).toContain('[▶ Try the demo — offline, zero keys](command:nika.tryDemo)');
+    expect(buttons[0]).toContain('[▶ Try the demo · offline, zero keys](command:nika.tryDemo)');
     expect(entry?.contents).toContain('(command:nika.newWorkflow)');
   });
 

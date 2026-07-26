@@ -1736,7 +1736,7 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'empty' && workspaceFolderCount != 0",
-        "contents": "No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo — offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
+        "contents": "No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo · offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
       },
       {
         "view": "nikaWorkflows",

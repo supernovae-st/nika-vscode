@@ -117,13 +117,7 @@ const CONTENT_COPY_KEYS = new Set([
 // EMPTY unless a string legitimately quotes a ban — e.g. settings prose
 // documenting the ban itself. Every entry is a debt with a reason.
 //
-// Debt: the tryDemo button keeps its em dash because
-// welcomeViews.test.ts:61 pins the exact string, and that test lives
-// outside the content sweep's file scope. Flip both in one PR, then
-// delete this entry.
-const PACKAGE_JSON_ALLOWLIST = [
-  'No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo — offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo.',
-];
+const PACKAGE_JSON_ALLOWLIST = [];
 
 const findings = [];
 
