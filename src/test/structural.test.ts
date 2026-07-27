@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { topoWaves, criticalPath } from '../core/cliContract';
 import {
   addAfterEntry,
-  addVarDeclaration,
+  addAuthorityDeclaration,
   deleteTask,
   duplicateTask,
   insertBetween,
   insertTaskSkeleton,
   nextTaskId,
-  parseVar001,
+  parseUnresolvedRef,
   removeAfterEntry,
 } from '../core/structuralFixes';
 import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
@@ -59,10 +59,29 @@ describe('topoWaves + criticalPath', () => {
 });
 
 describe('structuralFixes parsers', () => {
-  it('parses the VAR-001 message', () => {
-    expect(parseVar001('unresolved reference `vars.topic` in task `a`'))
-      .toEqual({ varName: 'topic', task: 'a' });
-    expect(parseVar001('unresolved reference `tasks.y` in task `a`')).toBeUndefined();
+  it('parses the VAR-001 message, keeping the authority it names', () => {
+    expect(parseUnresolvedRef('unresolved reference `inputs.topic` in task `a`'))
+      .toEqual({ authority: 'inputs', varName: 'topic', task: 'a' });
+    expect(parseUnresolvedRef('unresolved reference `tasks.y` in task `a`')).toBeUndefined();
+  });
+
+  it('reads EACH authority — the ref carries the classification', () => {
+    // The author already stated the role by the namespace they wrote.
+    // The fix follows it; it never picks one for them.
+    for (const ns of ['inputs', 'config', 'const', 'secrets'] as const) {
+      expect(parseUnresolvedRef(`unresolved reference \`${ns}.k\` in task \`a\``))
+        .toEqual({ authority: ns, varName: 'k', task: 'a' });
+    }
+    // A config/secret name is conventionally shout-case — still one ref.
+    expect(parseUnresolvedRef('unresolved reference `config.API_BASE` in task `a`'))
+      .toEqual({ authority: 'config', varName: 'API_BASE', task: 'a' });
+  });
+
+  it('refuses the DEAD spellings — they are a teaching, not a missing decl', () => {
+    // `vars.` / `env.` refuse with NIKA-VALUES-001/002. Offering « declare
+    // it » there would author the very field the engine rejects.
+    expect(parseUnresolvedRef('unresolved reference `vars.topic` in task `a`')).toBeUndefined();
+    expect(parseUnresolvedRef('unresolved reference `env.TOKEN` in task `a`')).toBeUndefined();
   });
 });
 
@@ -319,12 +338,12 @@ describe('edge-case hunt · YAML-surgery bugs', () => {
     expect(removeAfterEntry(quoted, 'third', 'first')).toBeUndefined();
   });
 
-  it('addVarDeclaration never splices INTO a multi-line var value', () => {
+  it('addAuthorityDeclaration never splices INTO a multi-line value', () => {
     const doc = [
       'nika: v1',
       'workflow:',
       '  id: t',
-      'vars:',
+      'const:',
       '  prompt: |',
       '    Summarize the input.',
       '    Keep it short.',
@@ -332,9 +351,9 @@ describe('edge-case hunt · YAML-surgery bugs', () => {
       '  a:',
       '    infer: { prompt: "x" }',
     ].join('\n');
-    const out = addVarDeclaration(doc, 'missing')!;
+    const out = addAuthorityDeclaration(doc, 'const', 'missing')!;
     const wf = parseRichWorkflow(out);
-    expect(wf.varsKeys.sort()).toEqual(['missing', 'prompt']);
+    expect(wf.constKeys.sort()).toEqual(['missing', 'prompt']);
     // The block scalar stays contiguous — the declaration lands AFTER it.
     expect(out).toContain('  prompt: |\n    Summarize the input.\n    Keep it short.\n  missing: ""');
   });
@@ -361,23 +380,52 @@ describe('edge-case hunt · YAML-surgery bugs', () => {
   });
 });
 
-describe('addVarDeclaration', () => {
-  it('creates the vars block before tasks: when absent', () => {
-    const out = addVarDeclaration(DOC, 'topic')!;
+describe('addAuthorityDeclaration', () => {
+  it('creates the authority block before tasks: when absent', () => {
+    const out = addAuthorityDeclaration(DOC, 'inputs', 'topic')!;
     const lines = out.split('\n');
-    const varsIdx = lines.indexOf('vars:');
-    expect(varsIdx).toBeGreaterThan(-1);
-    expect(lines[varsIdx + 1]).toBe('  topic: ""');
-    expect(varsIdx).toBeLessThan(lines.indexOf('tasks:'));
+    const idx = lines.indexOf('inputs:');
+    expect(idx).toBeGreaterThan(-1);
+    // `type:` is REQUIRED on an inputs entry (spec 01) — the untyped
+    // `name: ""` shorthand the old fix wrote is not a legal input.
+    expect(lines.slice(idx + 1, idx + 4)).toEqual([
+      '  topic:', '    type: string', '    default: ""',
+    ]);
+    expect(idx).toBeLessThan(lines.indexOf('tasks:'));
   });
 
   it('appends to an existing block and stays idempotent', () => {
-    const withVars = DOC.replace('tasks:', 'vars:\n  existing: "x"\n\ntasks:');
-    const out = addVarDeclaration(withVars, 'topic')!;
+    const withConst = DOC.replace('tasks:', 'const:\n  existing: "x"\n\ntasks:');
+    const out = addAuthorityDeclaration(withConst, 'const', 'topic')!;
     const lines = out.split('\n');
-    const varsIdx = lines.indexOf('vars:');
-    expect(lines[varsIdx + 1]).toBe('  existing: "x"');
-    expect(lines[varsIdx + 2]).toBe('  topic: ""');
-    expect(addVarDeclaration(withVars, 'existing')).toBeUndefined();
+    const idx = lines.indexOf('const:');
+    expect(lines[idx + 1]).toBe('  existing: "x"');
+    expect(lines[idx + 2]).toBe('  topic: ""');
+    expect(addAuthorityDeclaration(withConst, 'const', 'existing')).toBeUndefined();
+  });
+
+  it('writes the shape EACH authority actually takes', () => {
+    // const: a bare literal. secrets: a reference to a store, never an
+    // inline value (spec 01 §secrets) — so the fix writes source+key.
+    expect(addAuthorityDeclaration(DOC, 'const', 'dir')!).toContain('const:\n  dir: ""');
+    expect(addAuthorityDeclaration(DOC, 'secrets', 'api_key')!)
+      .toContain('secrets:\n  api_key:\n    source: env\n    key: API_KEY');
+    expect(addAuthorityDeclaration(DOC, 'config', 'region')!)
+      .toContain('config:\n  region:\n    type: string\n    default: ""');
+  });
+
+  it('never authors a dead envelope field', () => {
+    for (const ns of ['inputs', 'config', 'const', 'secrets'] as const) {
+      const out = addAuthorityDeclaration(DOC, ns, 'k')!;
+      expect(out).not.toMatch(/^vars:/m);
+      expect(out).not.toMatch(/^env:/m);
+    }
+  });
+
+  it('keeps each authority independent — same name, four homes', () => {
+    // A `k` under const: does not satisfy an `inputs.k` reference.
+    const withConst = addAuthorityDeclaration(DOC, 'const', 'k')!;
+    expect(addAuthorityDeclaration(withConst, 'inputs', 'k')).toBeDefined();
+    expect(addAuthorityDeclaration(withConst, 'const', 'k')).toBeUndefined();
   });
 });

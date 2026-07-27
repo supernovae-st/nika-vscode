@@ -374,7 +374,7 @@ describe('parseRichWorkflow', () => {
     'model: anthropic/claude-sonnet-4-6',
     'secrets:',
     '  github_token: required',
-    'vars:',
+    'const:',
     '  depth: 3',
     '',
     'tasks:',
@@ -405,8 +405,56 @@ describe('parseRichWorkflow', () => {
     expect(wf.name).toBe('audit');
     expect(wf.defaultModel).toBe('anthropic/claude-sonnet-4-6');
     expect(wf.secretsKeys).toEqual(['github_token']);
-    expect(wf.varsKeys).toEqual(['depth']);
+    expect(wf.constKeys).toEqual(['depth']);
     expect(wf.permitsLine).toBe(YAML.split('\n').findIndex((l) => l === 'permits:'));
+  });
+
+  it('keeps the four authorities apart — one home per spelling', () => {
+    const wf = parseRichWorkflow([
+      'nika: v1',
+      'workflow:',
+      '  id: t',
+      'inputs:',
+      '  topic: { type: string }',
+      'config:',
+      '  region: { type: string }',
+      'const:',
+      '  dir: "./out"',
+      'secrets:',
+      '  api_key:',
+      '    source: vault',
+      'tasks:',
+      '  a:',
+      '    exec: { command: ["echo"] }',
+    ].join('\n'));
+    expect(wf.inputsKeys).toEqual(['topic']);
+    expect(wf.configKeys).toEqual(['region']);
+    expect(wf.constKeys).toEqual(['dir']);
+    expect(wf.secretsKeys).toEqual(['api_key']);
+  });
+
+  it('still READS a pre-flip file, into the dead buckets', () => {
+    // `vars:`/`env:` refuse on the engine (NIKA-VALUES-001/002) but the
+    // editor must not go blind on a file the user has yet to migrate:
+    // it parses them apart so the surfaces can classify, never author.
+    const wf = parseRichWorkflow([
+      'nika: v1',
+      'workflow:',
+      '  id: t',
+      'vars:',
+      '  topic: "x"',
+      'env:',
+      '  TOKEN: "y"',
+      'tasks:',
+      '  a:',
+      '    exec: { command: ["echo"] }',
+    ].join('\n'));
+    expect(wf.deadVarsKeys).toEqual(['topic']);
+    expect(wf.deadEnvKeys).toEqual(['TOKEN']);
+    // and NOTHING leaks into a live authority
+    expect(wf.inputsKeys).toEqual([]);
+    expect(wf.configKeys).toEqual([]);
+    expect(wf.constKeys).toEqual([]);
   });
 
   it('captures tasks with spans, verbs, boundary edges and with-aliases', () => {

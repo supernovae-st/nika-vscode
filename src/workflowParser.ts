@@ -31,7 +31,8 @@ export interface ParsedTask {
 /**
  * The line ranges of the top-level `tasks:` block(s): [start+1, end)
  * line indices. A task key only counts INSIDE this block — indent-2 keys
- * under `vars:` / `secrets:` / `permits:` are not tasks.
+ * under `inputs:` / `config:` / `const:` / `secrets:` / `permits:` are
+ * not tasks.
  */
 function tasksBlockRanges(lines: string[]): Array<[number, number]> {
   const ranges: Array<[number, number]> = [];
@@ -128,8 +129,19 @@ export interface RichWorkflow {
   tasks: RichTask[];
   /** Keys declared under top-level `secrets:`. */
   secretsKeys: string[];
-  /** Keys declared under top-level `vars:`. */
-  varsKeys: string[];
+  /** Keys declared under top-level `inputs:`. */
+  inputsKeys: string[];
+  /** Keys declared under top-level `config:`. */
+  configKeys: string[];
+  /** Keys declared under top-level `const:`. */
+  constKeys: string[];
+  /** Keys under the DEAD `vars:` envelope field, when a pre-flip file
+   *  still carries one (NIKA-VALUES-001). Read to TEACH the migration —
+   *  never to author. */
+  deadVarsKeys: string[];
+  /** Keys under the DEAD `env:` envelope field (NIKA-VALUES-002). Same
+   *  contract: recognised so the editor can classify, never emitted. */
+  deadEnvKeys: string[];
   /** Line of the top-level `permits:` key, when present. */
   permitsLine?: number;
 }
@@ -168,7 +180,15 @@ function taskRefsIn(value: string): Array<{ from: string; path: string }> {
 
 export function parseRichWorkflow(content: string): RichWorkflow {
   const lines = content.split('\n');
-  const wf: RichWorkflow = { tasks: [], secretsKeys: [], varsKeys: [] };
+  const wf: RichWorkflow = {
+    tasks: [],
+    secretsKeys: [],
+    inputsKeys: [],
+    configKeys: [],
+    constKeys: [],
+    deadVarsKeys: [],
+    deadEnvKeys: [],
+  };
 
   // Pass 1 — top-level scalars and block keys.
   const collectBlockKeys = (start: number): string[] => {
@@ -212,8 +232,20 @@ export function parseRichWorkflow(content: string): RichWorkflow {
       case 'secrets':
         wf.secretsKeys = collectBlockKeys(i);
         break;
+      case 'inputs':
+        wf.inputsKeys = collectBlockKeys(i);
+        break;
+      case 'config':
+        wf.configKeys = collectBlockKeys(i);
+        break;
+      case 'const':
+        wf.constKeys = collectBlockKeys(i);
+        break;
       case 'vars':
-        wf.varsKeys = collectBlockKeys(i);
+        wf.deadVarsKeys = collectBlockKeys(i);
+        break;
+      case 'env':
+        wf.deadEnvKeys = collectBlockKeys(i);
         break;
       case 'permits':
         wf.permitsLine = i;

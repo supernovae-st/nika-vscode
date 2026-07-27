@@ -10,8 +10,8 @@ import * as vscode from 'vscode';
 import { didYouMean } from '../core/graphIntel';
 import { applyPermitsFix, parseFix } from '../core/permitsEdit';
 import {
-  addVarDeclaration,
-  parseVar001,
+  addAuthorityDeclaration,
+  parseUnresolvedRef,
 } from '../core/structuralFixes';
 import { parseRichWorkflow } from '../workflowParser';
 import type { DiagnosticsController } from './diagnostics';
@@ -126,12 +126,12 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
           }
         }
 
-        const varRef = parseVar001(finding.message);
+        const varRef = parseUnresolvedRef(finding.message);
         if (varRef) {
-          const rewritten = addVarDeclaration(text, varRef.varName);
+          const rewritten = addAuthorityDeclaration(text, varRef.authority, varRef.varName);
           if (rewritten !== undefined) {
             const action = new vscode.CodeAction(
-              `Nika: declare \`${varRef.varName}\` in the vars: block`,
+              `Nika: declare \`${varRef.varName}\` in the ${varRef.authority}: block`,
               vscode.CodeActionKind.QuickFix,
             );
             action.edit = this.fullRewrite(document, rewritten);
@@ -272,9 +272,9 @@ export class NikaFixAllProvider implements vscode.CodeActionProvider {
         }
       }
       if (finding.source === 'conformance') {
-        const varRef = parseVar001(finding.message);
+        const varRef = parseUnresolvedRef(finding.message);
         if (varRef) {
-          const next = addVarDeclaration(text, varRef.varName);
+          const next = addAuthorityDeclaration(text, varRef.authority, varRef.varName);
           if (next !== undefined && next !== text) { text = next; changed = true; }
         }
       }

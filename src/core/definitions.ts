@@ -2,7 +2,12 @@
 // wiring). The three navigable reference classes the spec defines:
 //   after: { NAME: succeeded } / block `NAME: pred` → the `NAME:` task-key declaration
 //   ${{ tasks.NAME... }}                            → the `NAME:` task-key declaration
-//   ${{ vars.KEY... }}                              → the KEY under the top-level vars: block
+//   ${{ <authority>.KEY... }}                       → the KEY under THAT authority's block
+//
+// The authority is whichever the reference names — inputs · config ·
+// const · secrets (spec 04 · the four value authorities). The dead
+// `vars.` / `env.` spellings still resolve against a pre-flip file so a
+// legacy document does not go silently un-navigable.
 export interface DefTarget { line: number; start: number; end: number }
 
 /** The `NAME:` task-key declaration line (W1 map form), or undefined. */
@@ -21,13 +26,18 @@ export function findTaskDeclaration(text: string, name: string): DefTarget | und
   return undefined;
 }
 
-/** The KEY under the top-level `vars:` block, or undefined. */
-export function findVarDeclaration(text: string, key: string): DefTarget | undefined {
+/** The KEY under the top-level `<block>:` block, or undefined. */
+export function findVarDeclaration(
+  text: string,
+  key: string,
+  block = 'inputs',
+): DefTarget | undefined {
   const lines = text.split('\n');
+  const blockRe = new RegExp(`^${block}:\\s*$`);
   let inVars = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^vars:\s*$/.test(line)) { inVars = true; continue; }
+    if (blockRe.test(line)) { inVars = true; continue; }
     if (inVars) {
       if (/^\S/.test(line)) { break; } // the block ended
       const m = line.match(/^(\s+)([\w-]+)(:)/);
@@ -88,14 +98,17 @@ export function resolveDefinition(
     return undefined;
   }
 
-  // ${{ tasks.NAME… }} / ${{ vars.KEY… }} islands on this line.
-  for (const m of lineText.matchAll(/\$\{\{\s*(tasks|vars)\.([\w-]+)/g)) {
+  // ${{ tasks.NAME… }} / ${{ <authority>.KEY… }} islands on this line.
+  // `vars` / `env` stay in the alternation so a pre-flip file still
+  // navigates — each resolves against its own (dead) block.
+  const NAV = /\$\{\{\s*(tasks|inputs|config|const|secrets|vars|env)\.([\w-]+)/g;
+  for (const m of lineText.matchAll(NAV)) {
     const rootStart = (m.index ?? 0) + m[0].indexOf(m[1]);
     const nameStart = rootStart + m[1].length + 1;
     if (character >= nameStart && character <= nameStart + m[2].length) {
       return m[1] === 'tasks'
         ? findTaskDeclaration(text, m[2])
-        : findVarDeclaration(text, m[2]);
+        : findVarDeclaration(text, m[2], m[1]);
     }
   }
   return undefined;

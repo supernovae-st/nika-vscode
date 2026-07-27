@@ -3,8 +3,8 @@
 //
 //   after entries   add/remove one `{producer: predicate}` control edge
 //                   (the canvas connect gesture · `after: {a: succeeded}`)
-//   NIKA-VAR-001    unresolved reference `vars.x` in task `X`
-//                   → declare x under the top-level vars: block
+//   NIKA-VAR-001    unresolved reference `<authority>.x` in task `X`
+//                   → declare x under THAT authority's envelope block
 //
 // All edits are textual and indentation-faithful; all are idempotent
 // (returns undefined when the target state already holds). The pre-W2
@@ -18,13 +18,31 @@ import { findTaskRefs } from './renameRefs';
 import { NIKA_VERB_STARTERS } from './verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
-export interface Var001 { varName: string; task?: string }
+/**
+ * The four VALUE AUTHORITIES (spec 04 · the closed family every workflow
+ * value is declared under · LAW-SURFACE-0201). `with` and `tasks` are the
+ * runtime namespaces — they are never declared in the envelope, so no
+ * declaration can repair them.
+ *
+ * The authority is NOT ours to guess: the unresolved reference the author
+ * wrote already names it (`${{ const.x }}` asks for a `const:` entry, not
+ * an input). That is what makes this a classification and not a rename —
+ * the fix follows the role the author declared, one authority per spelling.
+ */
+export type Authority = 'inputs' | 'config' | 'const' | 'secrets';
 
-/** Parse the VAR-001 message shape for `vars.x` references. */
-export function parseVar001(message: string): Var001 | undefined {
-  const m = message.match(/unresolved reference\s+`vars\.([a-z0-9_]+)`(?:\s+in task\s+`([a-z][a-z0-9_]*)`)?/);
+export interface UnresolvedRef { authority: Authority; varName: string; task?: string }
+
+/** Parse the VAR-001 message shape, keeping the authority the ref names.
+ *  The dead `vars.` / `env.` spellings are deliberately NOT matched: they
+ *  refuse with NIKA-VALUES-001/002, a classification teaching, not a
+ *  missing declaration — a quick fix there would re-teach the dead form. */
+export function parseUnresolvedRef(message: string): UnresolvedRef | undefined {
+  const m = message.match(
+    /unresolved reference\s+`(inputs|config|const|secrets)\.([A-Za-z0-9_]+)`(?:\s+in task\s+`([a-z][a-z0-9_]*)`)?/,
+  );
   if (!m) { return undefined; }
-  return { varName: m[1], task: m[2] };
+  return { authority: m[1] as Authority, varName: m[2], task: m[3] };
 }
 
 /**
@@ -318,16 +336,59 @@ export function duplicateTask(
   return { text: lines.join('\n'), taskId: newId };
 }
 
+/** The declaration body each authority takes (spec 01 §field-by-field).
+ *  `inputs:` and `config:` are TYPED declarations (`type:` required); a
+ *  `default:` keeps the file runnable, which is the contract the old
+ *  untyped `name: ""` fix carried. `const:` takes a bare literal.
+ *  `secrets:` is a reference to a store, never an inline value — `env`
+ *  is the 12-factor source, and the key is the conventional shout-case
+ *  of the name. */
+function declarationBody(authority: Authority, name: string, indent: string): string[] {
+  switch (authority) {
+    case 'inputs':
+    case 'config':
+      return [`${indent}${name}:`, `${indent}  type: string`, `${indent}  default: ""`];
+    case 'const':
+      return [`${indent}${name}: ""`];
+    case 'secrets':
+      return [
+        `${indent}${name}:`,
+        `${indent}  source: env`,
+        `${indent}  key: ${name.toUpperCase()}`,
+      ];
+  }
+}
+
+/** Keys already declared under `authority`. */
+function declaredKeys(wf: ReturnType<typeof parseRichWorkflow>, authority: Authority): string[] {
+  switch (authority) {
+    case 'inputs': return wf.inputsKeys;
+    case 'config': return wf.configKeys;
+    case 'const': return wf.constKeys;
+    case 'secrets': return wf.secretsKeys;
+  }
+}
+
 /**
- * Declare `varName` under the top-level `vars:` block (creating the block
- * after the envelope when absent). Returns undefined when already declared.
+ * Declare `varName` under the envelope block of the authority the
+ * unresolved reference NAMED (creating the block before `tasks:` when
+ * absent). Returns undefined when already declared.
+ *
+ * This never writes `vars:` / `env:` — both are dead envelope fields
+ * (NIKA-VALUES-001/002 · the E-split · R3a) and a quick fix that emitted
+ * one would hand the author YAML the engine refuses to parse.
  */
-export function addVarDeclaration(text: string, varName: string): string | undefined {
+export function addAuthorityDeclaration(
+  text: string,
+  authority: Authority,
+  varName: string,
+): string | undefined {
   const wf = parseRichWorkflow(text);
-  if (wf.varsKeys.includes(varName)) { return undefined; }
+  if (declaredKeys(wf, authority).includes(varName)) { return undefined; }
 
   const lines = text.split('\n');
-  const varsLine = lines.findIndex((l) => /^vars:\s*(#.*)?$/.test(l));
+  const blockRe = new RegExp(`^${authority}:\\s*(#.*)?$`);
+  const varsLine = lines.findIndex((l) => blockRe.test(l));
   if (varsLine !== -1) {
     // Append after the last line BELONGING to the block — any indented
     // line (entries AND their multi-line values: block scalars, nested
@@ -342,19 +403,20 @@ export function addVarDeclaration(text: string, varName: string): string | undef
       if (!sawEntry) { entryIndent = indent; sawEntry = true; }
       last = i;
     }
-    lines.splice(last + 1, 0, `${' '.repeat(entryIndent)}${varName}: ""`);
+    lines.splice(last + 1, 0, ...declarationBody(authority, varName, ' '.repeat(entryIndent)));
     return lines.join('\n');
   }
 
   // Create the block before `tasks:` (the conventional envelope order),
   // else at the end of the document.
   const tasksLine = lines.findIndex((l) => /^tasks:\s*(#.*)?$/.test(l));
-  const block = ['vars:', `  ${varName}: ""`, ''];
+  const body = declarationBody(authority, varName, '  ');
+  const block = [`${authority}:`, ...body, ''];
   if (tasksLine !== -1) {
     lines.splice(tasksLine, 0, ...block);
   } else {
     while (lines.length > 0 && lines[lines.length - 1].trim() === '') { lines.pop(); }
-    lines.push('', ...block.slice(0, 2), '');
+    lines.push('', ...block.slice(0, block.length - 1), '');
   }
   return lines.join('\n');
 }

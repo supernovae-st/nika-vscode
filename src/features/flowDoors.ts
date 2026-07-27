@@ -37,7 +37,7 @@ async function anchor(uri: vscode.Uri, taskId: string): Promise<Anchored | undef
   const wf = parseRichWorkflow(text);
   const task = wf.tasks.find((t) => t.id === taskId);
   if (!task) { return undefined; } // the task moved under us — refuse
-  return { doc, text, tasks: wf.tasks, task, varsKeys: wf.varsKeys };
+  return { doc, text, tasks: wf.tasks, task, varsKeys: wf.inputsKeys };
 }
 
 async function applyFullRewrite(doc: vscode.TextDocument, next: string): Promise<void> {

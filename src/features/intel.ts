@@ -49,12 +49,17 @@ export class TemplateCompletionProvider implements vscode.CompletionItemProvider
     const wf = parseRichWorkflow(text);
 
     if (ctx.kind === 'root') {
+      // The 6 namespaces (spec 04). The four value authorities first —
+      // they are what a value is DECLARED under — then the two runtime
+      // ones. `vars` / `env` are absent by law: dead envelope fields
+      // (NIKA-VALUES-001/002), never offered.
       const roots: Array<[string, string]> = [
-        ['tasks', 'Upstream task outputs — tasks.<id>.output'],
-        ['with', 'Aliases bound on THIS task'],
-        ['env', 'Environment variables (sovereign secret path)'],
+        ['inputs', 'Typed workflow inputs — supplied by the caller at launch'],
+        ['config', 'Non-sensitive runtime config — supplied by the deployment · may appear in logs'],
+        ['const', 'Named constants — fixed values baked into the workflow'],
         ['secrets', 'Declared workflow secrets (masked · IFC-tracked)'],
-        ['vars', 'Workflow vars block'],
+        ['with', 'Aliases bound on THIS task — the binding IS the edge'],
+        ['tasks', 'Settled task records — tasks.<id>.output · boundary surfaces only'],
       ];
       return roots.map(([name, doc]) => {
         const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Module);
@@ -122,14 +127,34 @@ export class TemplateCompletionProvider implements vscode.CompletionItemProvider
         return wf.secretsKeys.map(
           (k) => new vscode.CompletionItem(k, vscode.CompletionItemKind.Constant),
         );
-      case 'vars':
-        return wf.varsKeys.map(
-          (k) => new vscode.CompletionItem(k, vscode.CompletionItemKind.Value),
+      case 'inputs':
+        return wf.inputsKeys.map(
+          (k: string) => new vscode.CompletionItem(k, vscode.CompletionItemKind.Value),
         );
+      case 'config':
+        return wf.configKeys.map(
+          (k: string) => new vscode.CompletionItem(k, vscode.CompletionItemKind.Value),
+        );
+      case 'const':
+        return wf.constKeys.map(
+          (k: string) => new vscode.CompletionItem(k, vscode.CompletionItemKind.Constant),
+        );
+      // The dead spellings answer with the migration, not with silence:
+      // a pre-flip file typing `vars.` gets told where the value now lives.
+      case 'vars':
       case 'env': {
-        const item = new vscode.CompletionItem('YOUR_ENV_VAR', vscode.CompletionItemKind.Snippet);
-        item.insertText = new vscode.SnippetString('${1:NAME}');
-        item.documentation = 'Resolved from the process environment at run time — the sovereign way to carry credentials.';
+        const dead = ctx.root === 'vars' ? 'NIKA-VALUES-001' : 'NIKA-VALUES-002';
+        const item = new vscode.CompletionItem(
+          `${ctx.root} is a dead namespace`,
+          vscode.CompletionItemKind.Issue,
+        );
+        item.insertText = '';
+        item.documentation = new vscode.MarkdownString(
+          `\`${ctx.root}:\` is a dead envelope field (\`${dead}\`). Classify the value `
+          + 'into the authority its role commands · a typed parameter is `inputs:` · '
+          + 'a fixed value `const:` · non-sensitive runtime configuration `config:` · '
+          + 'a governed store reference `secrets:`.',
+        );
         return [item];
       }
       default:
@@ -519,18 +544,22 @@ export class TemplateDefinitionProvider implements vscode.DefinitionProvider {
           }
           break;
         }
-        case 'vars': {
-          const line = blockEntryLine('vars', name);
-          if (line !== undefined) { return new vscode.Location(document.uri, new vscode.Position(line, 0)); }
-          break;
-        }
-        case 'secrets': {
-          const line = blockEntryLine('secrets', name);
+        // Every value authority declares its key in its own envelope
+        // block, so the ref name IS the block key — one lookup, four
+        // homes. `vars` / `env` resolve too when a pre-flip file still
+        // carries the dead block (navigable while it is being migrated).
+        case 'inputs':
+        case 'config':
+        case 'const':
+        case 'secrets':
+        case 'vars':
+        case 'env': {
+          const line = blockEntryLine(ref.root, name);
           if (line !== undefined) { return new vscode.Location(document.uri, new vscode.Position(line, 0)); }
           break;
         }
         default:
-          break; // env.X has no in-file home
+          break;
       }
     }
 
@@ -683,7 +712,10 @@ export class NikaFoldingProvider implements vscode.FoldingRangeProvider {
 
     const lines = text.split('\n');
     for (let i = 0; i < lines.length; i++) {
-      if (!/^(vars|secrets|permits|outputs|env|tasks):\s*(#.*)?$/.test(lines[i])) { continue; }
+      // Foldable top-level blocks. `vars` / `env` stay listed: a pre-flip
+      // file still folds while it is being migrated.
+      const FOLDABLE = /^(inputs|config|const|secrets|types|permits|outputs|vars|env|tasks):\s*(#.*)?$/;
+      if (!FOLDABLE.test(lines[i])) { continue; }
       let end = i;
       for (let j = i + 1; j < lines.length; j++) {
         if (lines[j].trim() === '') { end = j; continue; }

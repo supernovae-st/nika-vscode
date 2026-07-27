@@ -3,12 +3,18 @@
 // The LSP v0.1 ships structure-level features; expression-level intel is
 // deferred to v0.8X (D-2026-06-10-N6). This module closes the gap CLIENT-
 // side: scan interpolation islands, resolve the reference under the cursor,
-// and classify the completion context so the editor can offer `tasks.` /
-// `with.` / `env.` / `secrets.` / `vars.` members without the server.
+// and classify the completion context so the editor can offer members
+// without the server.
 //
-// Grammar (spec §interpolation): ${{ <root>.<path> }} with roots
-// tasks · with · env · secrets · vars. Everything else inside the island
-// is out of scope here (CEL lives in `when:` · jq lives in `output:`).
+// Grammar (spec 04 §the 6 namespaces): ${{ <root>.<path> }} with roots
+//   inputs · config · const · secrets   the four VALUE AUTHORITIES
+//   with · tasks                        the two RUNTIME namespaces
+// Everything else inside the island is out of scope here (CEL lives in
+// `when:` · jq lives in `output:`).
+//
+// `vars` and `env` are recognised but DEAD (NIKA-VALUES-001/002 · the
+// E-split · R3a). They are scanned so the editor can still read a
+// pre-flip file and classify it; they are never offered in completion.
 
 export interface TemplateIsland {
   /** Offset of the `$` in `${{`. */
@@ -23,11 +29,29 @@ export interface TemplateIsland {
   unclosed: boolean;
 }
 
-const ROOTS = ['tasks', 'with', 'env', 'secrets', 'vars'] as const;
+/** The four value authorities — the closed family a value is declared
+ *  under (LAW-SURFACE-0201 · one authority, one spelling, no alias). */
+export const AUTHORITIES = ['inputs', 'config', 'const', 'secrets'] as const;
+export type Authority = (typeof AUTHORITIES)[number];
+
+/** The 6 live namespaces: the four authorities + the two runtime ones. */
+const ROOTS = ['tasks', 'with', ...AUTHORITIES] as const;
 export type RefRoot = (typeof ROOTS)[number];
 
+/** The pre-flip spellings. Scanned so a legacy file still resolves and
+ *  can be TAUGHT; never completed, never authored. */
+export const DEAD_ROOTS = ['vars', 'env'] as const;
+export type DeadRoot = (typeof DEAD_ROOTS)[number];
+
+export type AnyRoot = RefRoot | DeadRoot;
+
+/** True when `root` is one the engine still accepts. */
+export function isLiveRoot(root: AnyRoot): root is RefRoot {
+  return (ROOTS as readonly string[]).includes(root);
+}
+
 export interface TemplateRef {
-  root: RefRoot;
+  root: AnyRoot;
   /** Path segments after the root (e.g. ["extract", "output"]). */
   path: string[];
   /** Offset of the root token. */
@@ -66,14 +90,18 @@ export function scanIslands(text: string): TemplateIsland[] {
   return islands;
 }
 
-const REF_RE = /\b(tasks|with|env|secrets|vars)((?:\.[A-Za-z0-9_-]+)*)/g;
+const REF_RE = new RegExp(
+  `\\b(${[...ROOTS, ...DEAD_ROOTS].join('|')})((?:\\.[A-Za-z0-9_-]+)*)`,
+  'g',
+);
 
-/** Extract every root-anchored reference inside the islands. */
+/** Extract every root-anchored reference inside the islands — live roots
+ *  AND the two dead ones (a pre-flip file must still resolve). */
 export function scanRefs(text: string): TemplateRef[] {
   const refs: TemplateRef[] = [];
   for (const island of scanIslands(text)) {
     for (const m of island.inner.matchAll(REF_RE)) {
-      const root = m[1] as RefRoot;
+      const root = m[1] as AnyRoot;
       const path = m[2] ? m[2].slice(1).split('.') : [];
       const index = m.index ?? 0;
       refs.push({
@@ -94,7 +122,7 @@ export function refAt(text: string, offset: number): TemplateRef | undefined {
 
 export type CompletionContext =
   | { kind: 'root'; partial: string }
-  | { kind: 'member'; root: RefRoot; path: string[]; partial: string }
+  | { kind: 'member'; root: AnyRoot; path: string[]; partial: string }
   | undefined;
 
 /**
@@ -120,11 +148,14 @@ export function completionContextAt(text: string, offset: number): CompletionCon
     return { kind: 'root', partial: token };
   }
   const rootWord = token.slice(0, dot);
-  if (!(ROOTS as readonly string[]).includes(rootWord)) {
+  // Dead roots classify too — the editor answers `vars.` with the
+  // migration teaching rather than an empty, silent list.
+  const known: readonly string[] = [...ROOTS, ...DEAD_ROOTS];
+  if (!known.includes(rootWord)) {
     return { kind: 'root', partial: '' };
   }
   const rest = token.slice(dot + 1);
   const segments = rest.split('.');
   const partial = segments.pop() ?? '';
-  return { kind: 'member', root: rootWord as RefRoot, path: segments, partial };
+  return { kind: 'member', root: rootWord as AnyRoot, path: segments, partial };
 }
