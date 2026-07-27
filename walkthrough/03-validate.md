@@ -8,9 +8,10 @@ paints that audit live:
 - **Diagnostics** from the real conformance oracle (`nika check`) with
   `NIKA-XXXX` codes · hover, or use the *Explain* quick fix
 - **Quick fixes** · permits escapes repair themselves (`add "X" to
-  permits.<path>`) · literal secrets rewrite to `${{ env.VAR }}`
+  permits.<path>`) · literal secrets rewrite to a declared
+  `${{ secrets.<name> }}`
 - **Completions · hover · go-to-definition** inside `${{ ... }}` islands
-  (`tasks.` · `with.` · `env.` · `secrets.` · `vars.`)
+  (`inputs.` · `config.` · `const.` · `secrets.` · `with.` · `tasks.`)
 - **Static audit in the margin** · per-task cost `$min–max`, when-gates ⌁,
   fan-out ×N · the workflow cost ceiling on a code lens
 

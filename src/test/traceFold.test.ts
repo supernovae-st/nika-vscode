@@ -578,7 +578,7 @@ describe('the red teaches — the failure story crosses the wire (wave G)', () =
       ], 2),
       kv('task_skipped', [
         { key: 'task', value: 'b' },
-        { key: 'when', value: 'vars.publish' },
+        { key: 'when', value: 'inputs.publish' },
       ], 3),
     ].join('\n');
     const model = foldTrace(lines);
@@ -586,7 +586,7 @@ describe('the red teaches — the failure story crosses the wire (wave G)', () =
     expect(a?.status).toBe('failed');
     expect(a?.preview).toContain('NIKA-AGENT-003');
     const b = model.tasks.get('b');
-    expect(b?.whyWhen).toBe('vars.publish');
+    expect(b?.whyWhen).toBe('inputs.publish');
   });
 });
 
@@ -718,7 +718,7 @@ describe('formatRunBadge — the marathon vocabulary, one truncated line', () =>
 
   it('a gated skip stays SHORT inline (the why lives in the hover)', () => {
     const badge = formatRunBadge({
-      id: 'x', status: 'skipped', retries: 0, whyWhen: '${{ tasks.a.output == "ship" && vars.deep }}',
+      id: 'x', status: 'skipped', retries: 0, whyWhen: '${{ tasks.a.output == "ship" && inputs.deep }}',
     } as never);
     expect(badge).toContain('gated');
     expect(badge).not.toContain('tasks.a.output');

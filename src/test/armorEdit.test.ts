@@ -8,7 +8,7 @@ workflow:
 tasks:
   fetch_data:
     after: { gather: succeeded }
-    when: \${{ vars.live }}
+    when: \${{ inputs.live }}
     invoke:
       tool: "nika:fetch"
       args:

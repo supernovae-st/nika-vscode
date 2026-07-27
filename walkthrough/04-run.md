@@ -17,5 +17,5 @@ model: ollama/llama3.2   # no key at all
 
 Local-first: `ollama/`, `lmstudio/`, `llamacpp/`, `localai/`, `vllm/` need
 no cloud at all. Cloud when you choose it: `mistral/` · `huggingface/` ·
-`openai/` · `xai/` · `anthropic/` and more, keys via `${{ env.… }}` ·
+`openai/` · `xai/` · `anthropic/` and more, keys via `${{ secrets.… }}` ·
 every key stays yours.

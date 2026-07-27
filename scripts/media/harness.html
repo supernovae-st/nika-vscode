@@ -396,7 +396,7 @@
           bindingsIn: [{ alias: 'prompt', from: 'brief', path: 'visual' }], producers: ['brief'] },
         { id: 'poster', label: 'poster', verb: 'invoke', status: 'pending', avgMs: 8100, avgRuns: 2,
           tool: 'nika:image_generate',
-          argsPreview: 'aspect_ratio: ${{ vars.ratio }} · provider: gemini',
+          argsPreview: 'aspect_ratio: ${{ inputs.ratio }} · provider: gemini',
           bindingsIn: [{ alias: 'prompt', from: 'brief', path: 'visual' }], producers: ['brief'] },
         { id: 'stylize', label: 'stylize', verb: 'invoke', status: 'pending', avgMs: 640, avgRuns: 3,
           tool: 'nika:image_fx',

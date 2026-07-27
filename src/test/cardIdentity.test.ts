@@ -222,7 +222,7 @@ describe('waitDeclareOf — the declared countdown denominator', () => {
   });
 
   it('an interpolated or absent duration is a stated gap — no denominator', () => {
-    expect(waitDeclareOf('duration: ${{ vars.pause }}')).toBeUndefined();
+    expect(waitDeclareOf('duration: ${{ inputs.pause }}')).toBeUndefined();
     expect(waitDeclareOf('until: 2026-08-01T00:00:00Z')).toBeUndefined();
     expect(waitDeclareOf(undefined)).toBeUndefined();
   });
@@ -298,7 +298,7 @@ describe('mediaDeclareOf — what the frame can SAY before the run', () => {
   });
 
   it('an interpolated value is a STATED gap — the generic frame, never a guess', () => {
-    const d = mediaDeclareOf('image_generate', 'aspect_ratio: ${{ vars.ratio }} · provider: gemini');
+    const d = mediaDeclareOf('image_generate', 'aspect_ratio: ${{ inputs.ratio }} · provider: gemini');
     expect(d.ratio).toBeUndefined();
     expect(d.ratioLabel).toBeUndefined();
     expect(d.provider).toBe('gemini');

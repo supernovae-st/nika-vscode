@@ -124,7 +124,7 @@ re-composes into three zones under ONE layout footprint:
   new wired task.
 - **Every language feature is visible** (the Socratic rule · if the
   language knows it, the canvas shows it): a `when:` gate wears a
-  dashed amber chip (`⌁ vars.publish` · dashed = maybe, the cached
+  dashed amber chip (`⌁ inputs.publish` · dashed = maybe, the cached
   vocabulary); a fan-out task wears a DECK (two ghost sheets · the
   parallel copies) plus the ×N badge; builtin tools carry their
   category glyph (core ◦ · file ▤ · data ⧉ · network ⇄ ·

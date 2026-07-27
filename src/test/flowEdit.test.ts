@@ -14,7 +14,7 @@ tasks:
       prompt: "a"
   thread:
     after: { gather: succeeded }
-    when: \${{ vars.publish }}
+    when: \${{ inputs.publish }}
     infer:
       prompt: "b"
   sign:
@@ -85,20 +85,20 @@ describe('flowEdit (order on state · gate · fan out)', () => {
   it('gates write the wrapped canonical form, replacing in place', () => {
     const next = gateRewrite(WF, TASKS[1], 'size(with.doc) > 0')!;
     expect(next).toContain('    when: ${{ size(with.doc) > 0 }}');
-    expect(next).not.toContain('vars.publish');
+    expect(next).not.toContain('inputs.publish');
   });
 
   it('a fresh when: lands after after: — the canonical order', () => {
-    const next = gateRewrite(WF, TASKS[2], 'vars.publish')!;
+    const next = gateRewrite(WF, TASKS[2], 'inputs.publish')!;
     const lines = next.split('\n');
-    expect(lines[15]).toBe('    when: ${{ vars.publish }}');
+    expect(lines[15]).toBe('    when: ${{ inputs.publish }}');
     expect(lines[14]).toBe('      thread: terminal');
   });
 
   it('a fresh for_each lands after when:, unquoted like the spec', () => {
-    const next = fanoutRewrite(WF, TASKS[1], 'vars.urls')!;
+    const next = fanoutRewrite(WF, TASKS[1], 'inputs.urls')!;
     const lines = next.split('\n');
-    expect(lines[10]).toBe('    for_each: ${{ vars.urls }}');
+    expect(lines[10]).toBe('    for_each: ${{ inputs.urls }}');
     expect(lines[9]).toContain('when:');
   });
 
@@ -183,7 +183,7 @@ describe('islandKeyRewrite (the server-island position)', () => {
 
   it('an existing value is cleared to the island position, not duplicated', () => {
     const wf = parseRichWorkflow(DOC);
-    const gated = gateRewrite(DOC, wf.tasks[0], 'vars.publish');
+    const gated = gateRewrite(DOC, wf.tasks[0], 'inputs.publish');
     const wf2 = parseRichWorkflow(gated ?? '');
     const next = islandKeyRewrite(gated ?? '', wf2.tasks[0], 'when');
     expect(next).toBeDefined();

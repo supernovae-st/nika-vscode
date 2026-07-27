@@ -198,7 +198,7 @@ export class DiagnosticsController implements vscode.Disposable {
         d.code = 'nika.literal-secret';
         d.tags = [];
         if (applySeverityRemap(d)) { diagnostics.push(d); }
-        // Stored regardless — the ${{ env.VAR }} quick fix stays reachable
+        // Stored regardless — the secrets: quick fix stays reachable
         // even when the user silenced the squiggle.
         storedSecrets.push({ secret: s, range });
       }

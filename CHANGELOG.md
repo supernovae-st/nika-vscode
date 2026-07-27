@@ -6,6 +6,32 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The extension was teaching two forms the engine refuses
+
+- **`vars:` and `env:` are dead envelope fields** (`NIKA-VALUES-001` and `NIKA-VALUES-002` · the E-split · R3a), and the extension taught both · in the demo workflow `Try the Demo Workflow` writes, in the quick fix that declares a missing reference, in completions, go-to-definition, the gate and collection pickers, the authoring prompt handed to agents, and the README. The value namespaces are now the **six** the spec names · the four authorities `inputs` · `config` · `const` · `secrets`, plus the runtime `with` · `tasks`.
+- **Classified per role, never renamed in bulk.** Each old use was placed in the authority its ROLE commands, which is why the four fixture values landed in two different homes · the demo's `topic` and the fanout's `collection_source` are `inputs:` (a value the caller may override is an input, spec 01 §const), while the signature demo's `changes_dir` and `locales` are `const:` (one is hardcoded by a downstream `exec`, the other is pinned by the file's own description). A `sed` would have put all four in the same place and been wrong twice.
+- **The quick fix no longer guesses.** `addAuthorityDeclaration` reads the authority off the unresolved reference itself · `${{ const.x }}` asks for a `const:` entry, `${{ inputs.x }}` for an input. It writes the shape each authority actually takes rather than one shape four times, and it deliberately does NOT offer to « declare » a `vars.`/`env.` reference · those refuse with a classification teaching, not a missing declaration.
+- **Reading a pre-flip file still works.** `scanRefs`, go-to-definition and folding all still resolve `vars:`/`env:`, and the parser keeps them in their own buckets. The editor is the tool you migrate IN; going blind on the file you are here to fix would be the wrong trade. Completion is the one surface that refuses them, answering `vars.` with the migration teaching instead of a silent empty list.
+
+### Three wire fields we were reading under their old names
+
+- **The E-split moved the check report too**, not just the YAML. The checker reports `config_reads` · `config_defined` · `inputs_required`; the extension read `env_reads` · `env_defined` · `vars_required`. Every read was `?? []`, so against a post-flip engine the « Run with inputs » loop asked for nothing, the run line dropped its `--var` placeholders, and the required-input lens vanished · no error, no finding, the features just quietly stopped existing. Both spellings are read now, new first, so one client spans the flip.
+- **`--var` stays.** It is the flag that SUPPLIES an input and the engine still spells it that way. Only the noun moved.
+- **Preflight's config check was wrong in a way that promised too much**: it probed the OS environment for a `${{ config.X }}` read and reported « present » when the process had it. `config:` has no ambient fallback · a read resolves only against the envelope block · so that « present » described a run that cannot happen. A config read is now `defined` or it blocks.
+
+### The secrets lint was rewriting to the dead namespace
+
+- **The one fix whose job is « make this file safe »** was handing back `${{ env.VAR }}`. It now declares the key under `secrets:` (`source: env`) and reads `${{ secrets.<name> }}`, which is what actually gets the value MASKED in logs, traces and journal events. It is two edits, and has to be · `env` was ambient so the old reference needed no declaration, and an undeclared `${{ secrets.x }}` is `NIKA-VAR-001`. Replacing the literal alone would trade a leaked key for a broken file.
+
+### Fallout the rename surfaced
+
+- **`varsEdit.ts` is `inputsEdit.ts`** · the filename carried the dead spelling. Behind it: the « untyped » input the door offered is not a legal input at all (`type:` is required), the type reader matched `[a-z]+` so every `{ array: T }` entry read as UNTYPED, and `inferVarType` emitted `boolean` and the bare words `array`/`object`, none of which are types (R3b · `bool` is the one boolean spelling). `inferTypeExpr` lowers a list to `{ array: T }` and refuses to invent an `{ object: … }` · that constructor is closed, so a guessed shape would make every unlisted field a violation.
+
+### Not proven here
+
+- **There is no 0.106 binary to check against.** The installed and released engine is 0.105.0, and it refuses the new envelope outright (`NIKA-PARSE-005` unknown field `inputs`) exactly as engine main refuses the old one. The two forms are mutually exclusive, so **this work is only correct once 0.106 is the engine in hand** · shipping it before then breaks `Try the Demo Workflow` for every current user. The two real-binary suites now probe the envelope and skip with that reason rather than pinning a red, and they run for real the day a post-flip engine is on PATH. `SPEC_PIN` is untouched · its HOLD is the release lever and it is not ours to pull.
+
+
 ### The door survives the WCAG reflow width
 
 - **400px still threw the `⋯` door overboard**: the measured shed ladder closed a 240px band this morning, but its list held only the ten lenses · around 380 to 470 the CSS rungs have already hidden every one of them, so the ladder had nothing left to give while the bar still overflowed by ~17px, and the overflow door fell off the right edge again. One band lower, same casualty. Found by probing **320px**, the WCAG 1.4.10 Reflow threshold, which no earlier sweep had reached (520 was the narrowest).

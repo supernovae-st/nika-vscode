@@ -125,7 +125,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
     '- The 4 verbs: infer · exec · invoke · agent. Fetching a URL is',
     '  `invoke: { tool: "nika:fetch" }` with `args: { url: … }`, not a verb.',
     specSlice(service),
-    '- Secrets go through `${{ env.VAR }}` or `secrets:` — never literals.',
+    '- Secrets go through a declared `secrets:` entry read as `${{ secrets.name }}` — never literals.',
     '- Use `model: mock/echo` while drafting (deterministic · zero keys).',
     '- The binding IS the edge: import upstream data through `with:`',
     '  (`with: { doc: "${{ tasks.x.output }}" }` → body reads `${{ with.doc }}`);',

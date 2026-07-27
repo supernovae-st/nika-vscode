@@ -1057,7 +1057,7 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.chooseAgentTools', (uri: Uri, line: number, indent: number) =>
       chooseAgentToolsFor(service, uri, line, indent),
     ),
-    // The contract doors (V1): schema · outputs · vars.
+    // The contract doors (V1): schema · outputs · inputs.
     commands.registerCommand('nika.typeOutput', (uri: Uri, line: number, verb: NikaVerb) =>
       typeOutputForLine(uri, line, verb),
     ),

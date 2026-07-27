@@ -159,12 +159,12 @@ theme*, not to extensions:
   | `workflow:` | Check · DAG · Run | (the action row) |
   | `description:` | Explain | (the offline narrative) |
   | `model:` | *choose your model* | the catalog ref (local-first) |
-  | `vars:` | *declare an input* · *make it callable · N untyped* | a typed/untyped input · untyped→typed promotion |
-  | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N vars ride --var* | each run-blocking gap, one gesture |
+  | `inputs:` | *declare an input* · *make it callable · N untyped* | a typed input (`type:` is required) · untyped→typed repair |
+  | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N inputs ride --var* | each run-blocking gap, one gesture |
   | `greet:` (the task key) | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
   | `after:` | *order on state* | pre-checked multi-pick of `{producer: predicate}` control entries · descendants never offered (cycle-safe) |
-  | `when:` | *choose a gate* | a CEL v0.1 shape over LOCAL reads (vars · with) · upstream state becomes `after:` · an upstream value hoists through `with:` first |
-  | `for_each:` | *choose the collection* | typed array vars · upstream outputs (bound through `with:` · the binding IS the edge) |
+  | `when:` | *choose a gate* | a CEL v0.1 shape over LOCAL reads (the value authorities · with) · upstream state becomes `after:` · an upstream value hoists through `with:` first |
+  | `for_each:` | *choose the collection* | list-typed inputs (`{ array: T }`) · upstream outputs (bound through `with:` · the binding IS the edge) |
   | `infer:`/`exec:`/`agent:` | *choose a starter* · *type its output* (schema missing) | the spec's shapes · a proven schema (fields · list · verdict · grade) |
   | `invoke:` | *choose your tool* | starters + every builtin THIS binary carries, args skeleton from the tool's own schema |
   | agent `tools:` | *choose its tools* | the catalog multi-pick · MCP/globs/strangers survive verbatim; `[]` is least privilege |
@@ -174,7 +174,8 @@ theme*, not to extensions:
   Every write is surgical (one edit · one undo), refuses a moved
   anchor, and never guesses what the engine can judge.
 - **Secrets lint** · literal credentials flagged locally (pure scan · zero
-  network) with a `${{ env.VAR }}` rewrite quick fix
+  network) with a quick fix that declares the key under `secrets:`
+  (`source: env`) and reads it masked as `${{ secrets.<name> }}`
 
 ### Language intelligence (LSP-grade · live today)
 - **Schema-derived completions & hover** · every key, enum and doc comes
@@ -184,8 +185,9 @@ theme*, not to extensions:
   extract modes · a new field in the engine lights up here with zero
   extension update
 - **`${{ ... }}` expression intel** · completions, hover and
-  go-to-definition for `tasks.` / `with.` / `env.` / `secrets.` / `vars.`
-  references
+  go-to-definition across the 6 namespaces · the four value authorities
+  (`inputs.` / `config.` / `const.` / `secrets.`) and the two runtime
+  ones (`with.` / `tasks.`)
 - **Task rename & find-references** · hits all 4 syntactic homes
   (declaration · `after:` entries · `${{ tasks.X }}` islands · bare CEL
   in WIP text) and enforces the engine id grammar (snake_case · CEL-safe)
@@ -649,7 +651,7 @@ never sees it, so it costs nothing at runtime:
 tasks:
   # nika:region Ingest
   fetch_pr:
-    invoke: { tool: "nika:fetch", args: { url: "${{ vars.pr_url }}" } }
+    invoke: { tool: "nika:fetch", args: { url: "${{ inputs.pr_url }}" } }
   analyze_diff:
     with: { diff: "${{ tasks.fetch_pr.output }}" }
     infer: { prompt: "Plan the review of ${{ with.diff }}." }
@@ -657,7 +659,7 @@ tasks:
   # nika:region Ship
   post_comment:
     after: { analyze_diff: succeeded }
-    exec: { command: ["gh", "pr", "comment", "${{ vars.pr }}", "--body-file", "verdict.md"] }
+    exec: { command: ["gh", "pr", "comment", "${{ inputs.pr }}", "--body-file", "verdict.md"] }
 ```
 
 ## Links

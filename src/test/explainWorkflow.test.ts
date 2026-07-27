@@ -11,7 +11,7 @@ const graph: DagGraph = {
   nodes: [
     { id: 'fetch', label: 'fetch', verb: 'invoke', tool: 'nika:fetch', status: 'pending', producers: [] },
     { id: 'summarize', label: 'summarize', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', producers: ['fetch'] },
-    { id: 'title', label: 'title', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', producers: ['fetch'], when: 'vars.want_title' },
+    { id: 'title', label: 'title', verb: 'infer', model: 'mistral/mistral-small', status: 'pending', producers: ['fetch'], when: 'inputs.want_title' },
   ],
   edges: [
     { id: 'fetch->summarize:value:page', source: 'fetch', target: 'summarize', kind: 'value', label: 'page' },
@@ -53,7 +53,7 @@ describe('explainWorkflow (deterministic narration)', () => {
     expect(md).toContain('**3 tasks · 2 typed edges**');
     expect(md).toContain('1. **fetch** (invoke · nika:fetch)');
     expect(md).toContain('2 tasks run in parallel');
-    expect(md).toContain('runs only when `vars.want_title`');
+    expect(md).toContain('runs only when `inputs.want_title`');
     // Engine waves in play — no derived-from-graph caveat.
     expect(md).not.toContain('derived from the graph');
   });

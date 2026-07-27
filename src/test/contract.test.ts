@@ -329,10 +329,13 @@ tasks:
 
   it('graph-edit skeletons pass their own check (own-corpus · the n8n loop is safe)', async () => {
     const { insertTaskSkeleton } = await import('../core/structuralFixes');
-    // The graft law the spec's starters-projector uses: every `vars.X`
-    // a starter references is declared before the check (the SLOT teaches
-    // the author to wire THEIR input — the corpus proves the SHAPE).
-    const base = 'nika: v1\nworkflow:\n  id: edit-corpus\n\nmodel: mock/echo\n\nvars:\n  topic: "probe"\n  input: "probe"\n\ntasks:\n  seed:\n    infer:\n      prompt: "hello"\n';
+    // The graft law the spec's starters-projector uses: every
+    // `inputs.X` a starter references is declared before the check (the
+    // SLOT teaches the author to wire THEIR input — the corpus proves
+    // the SHAPE). The starters reference `inputs.*` since the E-split,
+    // so the corpus must DECLARE inputs: or every skeleton would read an
+    // undeclared name. This suite runs a dev-tree build, i.e. main.
+    const base = 'nika: v1\nworkflow:\n  id: edit-corpus\n\nmodel: mock/echo\n\ninputs:\n  topic: { type: string, default: "probe" }\n  input: { type: string, default: "probe" }\n\ntasks:\n  seed:\n    infer:\n      prompt: "hello"\n';
     for (const verb of ['infer', 'exec', 'invoke', 'agent'] as const) {
       const inserted = insertTaskSkeleton(base, verb, 'seed');
       expect(inserted).toBeDefined();

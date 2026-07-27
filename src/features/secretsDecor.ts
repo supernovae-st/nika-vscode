@@ -1,9 +1,17 @@
 // secretsDecor.ts — missing-requirement marks in the source.
 //
-// A red « ✗ not set » rides every `${{ env.X }}` the environment cannot
-// satisfy (and the workflow `env:` block does not define). Silence when
-// satisfied — only problems speak (the suggestion-timing law); the
-// green story lives in the preflight chip/doc, not as line noise.
+// A red mark rides every `${{ config.X }}` the envelope never declares.
+// Silence when satisfied — only problems speak (the suggestion-timing
+// law); the green story lives in the preflight chip/doc, not as line
+// noise.
+//
+// It reads « not declared », not « not set », and it no longer probes
+// the process environment: `config:` has NO ambient fallback (spec 01 ·
+// a read resolves ONLY against the envelope block, an undeclared one is
+// NIKA-VAR-001). Under the old `env:` an exported shell variable really
+// did satisfy the read; under `config:` it cannot, so staying silent
+// because the OS happened to have the name would hide a workflow that
+// cannot run.
 
 import * as vscode from 'vscode';
 import { collectPreflightFacts } from '../core/preflight';
@@ -14,7 +22,7 @@ const NIKA_RE = /\.nika\.ya?ml$/;
 export function registerSecretsDecor(context: vscode.ExtensionContext): void {
   const deco = vscode.window.createTextEditorDecorationType({
     after: {
-      contentText: ' ✗ not set',
+      contentText: ' ✗ not declared in config:',
       color: new vscode.ThemeColor('editorError.foreground'),
       fontStyle: 'italic',
     },
@@ -24,16 +32,15 @@ export function registerSecretsDecor(context: vscode.ExtensionContext): void {
     if (!ed || !NIKA_RE.test(ed.document.fileName)) { return; }
     const text = ed.document.getText();
     const facts = collectPreflightFacts(text);
-    const present = (n: string): boolean => (process.env[n] ?? '').length > 0;
     const ranges: vscode.Range[] = [];
     const marked = new Set<string>();
     for (const ref of scanRefs(text)) {
-      if (ref.root !== 'env' || ref.path.length === 0) { continue; }
+      if (ref.root !== 'config' || ref.path.length === 0) { continue; }
       // A ref living in a YAML comment is documentation, not a read.
       const lineStart = text.lastIndexOf('\n', ref.start) + 1;
       if (text.slice(lineStart, ref.start).trimStart().startsWith('#')) { continue; }
       const name = ref.path[0];
-      if (facts.envDefined.includes(name) || present(name)) { continue; }
+      if (facts.envDefined.includes(name)) { continue; }
       // One mark per name — the first occurrence teaches, ten repeats nag.
       if (marked.has(name)) { continue; }
       marked.add(name);

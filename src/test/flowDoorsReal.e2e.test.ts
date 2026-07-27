@@ -5,10 +5,14 @@
 // negative proofs pin the W2 boundary itself: a `when:` reading
 // `tasks.<id>` is NIKA-VAR-021 (the reason the gate door hoists through
 // with: first), and a dead `depends_on:` is NIKA-PARSE-024 (the door
-// never writes the dead key). Self-skips without a binary (CELLAR-first).
+// never writes the dead key). Self-skips without a binary (CELLAR-first)
+// AND on a pre-E-split binary: the doors now write `inputs.*`, which an
+// engine from before the flip refuses outright (NIKA-PARSE-005) exactly
+// as a post-flip engine refuses `vars:`. The skip carries its reason;
+// the day a post-flip engine is on PATH this proves the doors for real.
 
 import { describe, expect, it } from 'vitest';
-import { speaksGen1 } from './lspHarness';
+import { speaksESplit, speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { afterRewrite, bindingInsert, fanoutRewrite, gateRewrite } from '../core/flowEdit';
@@ -37,9 +41,9 @@ const BASE = [
   '  id: flow-doors-proof',
   'model: mock/echo',
   '',
-  'vars:',
+  'inputs:',
   '  urls:',
-  '    type: array',
+  '    type: { array: string }',
   '    default: ["https://example.com"]',
   '',
   'tasks:',
@@ -80,7 +84,7 @@ function taskOf(text: string, id: string) {
   return t!;
 }
 
-describe.skipIf(!BIN || !speaksGen1(BIN))('flow doors × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN) || !speaksESplit(BIN))('flow doors × the real binary', () => {
   it('order → bind → gate → fan-out, chained like the pickers, checks clean', () => {
     // « order on state » — thread waits for gather (control edge).
     const ordered = afterRewrite(BASE, taskOf(BASE, 'thread'), [['gather', 'succeeded']])!;
@@ -89,11 +93,11 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('flow doors × the real binary', () =>
     const bound = bindingInsert(ordered, taskOf(ordered, 'thread'), 'gather', 'tasks.gather.output', [])!;
     const gated = gateRewrite(bound.text, taskOf(bound.text, 'thread'), `size(with.${bound.alias}) > 0`)!;
     // « choose the collection » — the typed array input (local read).
-    const fanned = fanoutRewrite(gated, taskOf(gated, 'thread'), 'vars.urls')!;
+    const fanned = fanoutRewrite(gated, taskOf(gated, 'thread'), 'inputs.urls')!;
     expect(fanned).toContain('    after: { gather: succeeded }');
     expect(fanned).toContain('      gather: ${{ tasks.gather.output }}');
     expect(fanned).toContain('    when: ${{ size(with.gather) > 0 }}');
-    expect(fanned).toContain('    for_each: ${{ vars.urls }}');
+    expect(fanned).toContain('    for_each: ${{ inputs.urls }}');
     expect(check(BIN!, fanned).clean).toBe(true);
   });
 

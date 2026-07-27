@@ -30,7 +30,7 @@ export function buildAuthoringPrompt(workflowPath?: string): string {
     '3. FILL — edit ONLY the slot values (prompts, commands, models, ids).',
     '   The 4 verbs are infer · exec · invoke · agent — fetching a URL is',
     '   `invoke: { tool: "nika:fetch" }`, not a verb. Secrets go through',
-    '   `${{ env.VAR }}` or `secrets:` — never literals.',
+    '   a declared `secrets:` entry read as `${{ secrets.name }}` — never literals.',
     '4. CHECK — run `nika check ' + target + ' --json` and read the report:',
     '   conformance · secret leaks/egresses · permits escapes · schema',
     '   findings · unknown tools · cost ceiling. The report is maximal:',

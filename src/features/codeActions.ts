@@ -3,7 +3,8 @@
 // The engine emits ONE machine-applicable fix form (`add "X" to
 // permits.<path>`); this provider applies it as a WorkspaceEdit — the
 // exact convergence loop agents run in CI, one keystroke in the editor.
-// Plus: did-you-mean tool replacement · literal-secret → ${{ env.VAR }} ·
+// Plus: did-you-mean tool replacement · literal-secret → a declared
+// `secrets:` entry ·
 // explain-this-code · insert the whole inferred permits boundary.
 
 import * as vscode from 'vscode';
@@ -33,8 +34,9 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
     /** True when the LANGUAGE SERVER advertises codeActionProvider —
      *  the rename-shaped quickfixes (tool · task-id did-you-mean) are
      *  then the server's (one fix engine, 0.99.7+ engines); the client
-     *  keeps its structural classes (permits repair · secret → env ·
-     *  add var), which the server does not carry. Same
+     *  keeps its structural classes (permits repair · literal secret →
+     *  a declared secrets: entry · declare a missing authority key),
+     *  which the server does not carry. Same
      *  yield pattern as the expressionIntel capability handshake. */
     private readonly serverOwnsRenames: () => boolean = () => false,
   ) {}
