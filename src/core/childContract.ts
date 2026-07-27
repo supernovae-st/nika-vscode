@@ -1,11 +1,16 @@
 // childContract.ts — the callable contract, read from both sides.
 //
-// Spec 01 §vars: a child workflow's `vars:` block IS its input
-// contract — untyped (`name: value` · the value is the default) or
-// typed (`{ type, required, default, description }`), with the
-// normative discriminator: an object value carrying a string `type:`
-// key IS a typed declaration iff type is in the closed enum. The
-// parent supplies values through its invoke `args:` keys.
+// Spec 01 §inputs: a child workflow's `inputs:` block IS its input
+// contract — every entry a typed declaration
+// (`{ type, required, default, description }`), with the normative
+// discriminator: an object value carrying a string `type:` key IS a
+// typed declaration. The parent supplies values through its invoke
+// `args:` keys.
+//
+// A pre-flip child declaring `vars:` is still READ (its contract is
+// the same shape) so a half-migrated pair of files still paints a
+// card — the block is dead on the engine (NIKA-VALUES-001), not
+// unreadable here.
 //
 // This module reads the FACTS on both sides (client best-effort —
 // `nika check` owns conformance and the NIKA-COMP findings): what
@@ -13,7 +18,14 @@
 // card paints. No judgment, no invented verdicts — a required-and-
 // unsupplied row simply shows both facts side by side.
 
-const TYPE_ENUM = new Set(['string', 'number', 'integer', 'boolean', 'array', 'object']);
+// The 10 primitives of the closed type grammar (spec 09) plus the
+// constructor keywords a head word can carry. `boolean` is dead —
+// `bool` is the one boolean spelling (R3b · LAW-GRAMMAR-0211).
+const TYPE_ENUM = new Set([
+  'null', 'bool', 'integer', 'number', 'string',
+  'bytes', 'uri', 'path', 'duration', 'timestamp',
+  'array', 'map', 'object', 'union', 'optional', 'enum',
+]);
 
 export interface ContractVar {
   name: string;
@@ -23,9 +35,10 @@ export interface ContractVar {
   hasDefault?: boolean;
 }
 
-/** Parse the child's `vars:` block (top-level key · one level of
- *  names · the typed-form discriminator honored). Pure text read —
- *  the same degraded-honest contract as bodyFacts. */
+/** Parse the child's `inputs:` block (top-level key · one level of
+ *  names · the typed-form discriminator honored). A pre-flip `vars:`
+ *  block is accepted as the same shape. Pure text read — the same
+ *  degraded-honest contract as bodyFacts. */
 export function parseChildVars(text: string): ContractVar[] {
   const lines = text.split('\n');
   const out: ContractVar[] = [];
@@ -46,10 +59,10 @@ export function parseChildVars(text: string): ContractVar[] {
     const rest = key[3].trim();
 
     if (varsIndent === -1) {
-      if (indent === 0 && name === 'vars') { varsIndent = 0; }
+      if (indent === 0 && (name === 'inputs' || name === 'vars')) { varsIndent = 0; }
       continue;
     }
-    if (indent <= varsIndent) { break; } // vars: block closed
+    if (indent <= varsIndent) { break; } // the block closed
 
     if (nameIndent === -1) { nameIndent = indent; }
     if (indent === nameIndent) {

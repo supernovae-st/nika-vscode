@@ -4,7 +4,7 @@
 // fallback; the server serves islands at the empty when:/for_each:
 // value. Two dialects of ONE register — this belt proves the client
 // never invents vocabulary the engine does not speak: every LOCAL name
-// the client's shapes read (vars.* · with.*) must appear among the
+// the client's shapes read (inputs.* · with.*) must appear among the
 // server's island completions. Extra server items are the engine
 // evolving — logged, never red (the client follows through this belt
 // going red the day a client name goes missing).
@@ -13,18 +13,18 @@
 // declarations) — skips with reason on gen-0 binaries.
 
 import { describe, it, expect } from 'vitest';
-import { gen1Floor, lspSession } from './lspHarness';
+import { eSplitFloor, lspSession } from './lspHarness';
 import { gateShapes } from '../core/flowEdit';
 
-const FLOOR = gen1Floor();
+const FLOOR = eSplitFloor();
 
 const DOC = [
   'nika: v1',
   'workflow:',
   '  id: islands-probe',
   'model: mock/echo',
-  'vars:',
-  '  publish: true',
+  'inputs:',
+  '  publish: { type: bool, default: true }',
   'tasks:',
   '  gather:',
   '    infer:',
@@ -69,13 +69,13 @@ describe.skipIf(FLOOR.off)('door shapes × server islands (one register, two dia
       expect(server.length).toBeGreaterThan(0);
 
       // The client's KNOWLEDGE candidates for this doc: local reads only
-      // (when-kind shapes) — vars.publish · with.text. Gesture shapes
+      // (when-kind shapes) — inputs.publish · with.text. Gesture shapes
       // (after: · the hoist) are editor-side forever, not belt-checked.
       const knowledge = gateShapes(['publish'], ['text'], [])
         .filter((s) => s.action.kind === 'when')
         .map((s) => (s.action as { expr: string }).expr);
-      const names = [...new Set(knowledge.flatMap((e) => e.match(/(?:vars|with)\.\w+/g) ?? []))];
-      expect(names.sort()).toEqual(['vars.publish', 'with.text']);
+      const names = [...new Set(knowledge.flatMap((e) => e.match(/(?:inputs|with)\.\w+/g) ?? []))];
+      expect(names.sort()).toEqual(['inputs.publish', 'with.text']);
 
       const joined = server.join('\n');
       for (const name of names) {

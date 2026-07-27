@@ -243,11 +243,11 @@ export interface GateShape {
     | { kind: 'bind-when'; producer: string; path: string; aliasBase: string; exprOf: (alias: string) => string };
 }
 
-/** The gate register, built from THIS file's vars, the task's own
+/** The gate register, built from THIS file's inputs, the task's own
  * bindings and its upstream tasks — every `when:` expression inside
- * the CEL v0.1 subset and LOCAL (vars · with · never tasks.*): an
- * upstream STATE becomes an `after:` entry, an upstream VALUE crosses
- * through `with:` first (the hoist the spec teaches). */
+ * the CEL v0.1 subset and LOCAL (the value authorities · with · never
+ * tasks.*): an upstream STATE becomes an `after:` entry, an upstream
+ * VALUE crosses through `with:` first (the hoist the spec teaches). */
 export function gateShapes(
   varNames: readonly string[],
   withAliases: readonly string[],
@@ -257,15 +257,15 @@ export function gateShapes(
   for (const v of varNames) {
     shapes.push({
       id: `var-eq-${v}`,
-      label: `vars.${v} equals …`,
-      hint: `run only when \`vars.${v}\` matches a value you name`,
-      action: { kind: 'when', expr: `vars.${v} == 'value'` },
+      label: `inputs.${v} equals …`,
+      hint: `run only when \`inputs.${v}\` matches a value you name`,
+      action: { kind: 'when', expr: `inputs.${v} == 'value'` },
     });
     shapes.push({
       id: `var-flag-${v}`,
-      label: `vars.${v} is on`,
-      hint: `\`vars.${v}\` as a boolean switch`,
-      action: { kind: 'when', expr: `vars.${v}` },
+      label: `inputs.${v} is on`,
+      hint: `\`inputs.${v}\` as a boolean switch`,
+      action: { kind: 'when', expr: `inputs.${v}` },
     });
   }
   for (const a of withAliases) {
@@ -332,7 +332,7 @@ export function islandCleanupRewrite(
 export interface CollectionRef {
   /** Picker row. */
   label: string;
-  /** The `${{ … }}` body — LOCAL (vars.* or with.*). */
+  /** The `${{ … }}` body — LOCAL (an authority or with.*). */
   ref: string;
   /** Upstream task whose output must cross the boundary first — the
    *  door binds `with: { <alias>: ${{ tasks.<id>.output }} }` and the

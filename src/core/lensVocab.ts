@@ -36,11 +36,12 @@ export const DECLARE_BOUNDARY_DOOR = '$(shield) declare the boundary';
 /** An existing `permits:` block — recompute the tightest boundary. */
 export const TIGHTEN_BOUNDARY_DOOR = '$(shield) tighten the boundary';
 
-/** Status row, required vars — the ready-to-paste run line. */
+/** Status row, required inputs — the ready-to-paste run line. The
+ *  CLI flag stays `--var` (it is the flag that SUPPLIES an input). */
 export function varsDoorTitle(count: number): string {
   return count === 1
-    ? '$(symbol-variable) 1 var rides --var'
-    : `$(symbol-variable) ${count} vars ride --var`;
+    ? '$(symbol-variable) 1 input rides --var'
+    : `$(symbol-variable) ${count} inputs ride --var`;
 }
 
 /** An `infer:`/`agent:` with no `schema:` — the typed-unit move. */
@@ -49,10 +50,11 @@ export const TYPE_OUTPUT_DOOR = '$(symbol-structure) type its output';
 /** `outputs:` (and the dead-spend status CTA) — the workflow's return. */
 export const PUBLISH_DOOR = '$(export) choose what it publishes';
 
-/** `vars:` — grow the input half of the callable contract. */
+/** `inputs:` — grow the input half of the callable contract. */
 export const DECLARE_INPUT_DOOR = '$(symbol-parameter) declare an input';
 
-/** `vars:` with untyped rows — promote them to the callable form. */
+/** `inputs:` with untyped rows — promote them to the callable form
+ *  (`type:` is required, so an untyped row is not a legal input). */
 export function makeCallableDoorTitle(untypedCount: number): string {
   return `$(plug) make it callable · ${untypedCount} untyped`;
 }

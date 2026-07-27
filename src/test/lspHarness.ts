@@ -73,6 +73,67 @@ export function speaksGen1(bin: string): boolean {
   return ok;
 }
 
+/** The smallest legal E-split envelope: the four value authorities
+ *  replaced `vars:`/`env:` (R3a · spec 01). A pre-flip engine refuses
+ *  `inputs:` with NIKA-PARSE-005 « unknown field » exactly as a
+ *  post-flip engine refuses `vars:` with NIKA-VALUES-001 — the two
+ *  forms are MUTUALLY EXCLUSIVE, so a fixture can only speak one. */
+const E_SPLIT_DOC = [
+  'nika: v1',
+  'workflow:',
+  '  id: e-split-probe',
+  'model: mock/echo',
+  'inputs:',
+  '  topic: { type: string, default: "x" }',
+  'tasks:',
+  '  a:',
+  '    exec: { command: ["echo", "${{ inputs.topic }}"] }',
+  '',
+].join('\n');
+
+const eSplitCache = new Map<string, boolean>();
+
+/** Does this binary speak the four value authorities? Probed on the
+ *  envelope itself, never inferred from a version string. */
+export function speaksESplit(bin: string): boolean {
+  const hit = eSplitCache.get(bin);
+  if (hit !== undefined) { return hit; }
+  let ok = false;
+  try {
+    const out = execFileSync(bin, ['check', '-', '--json', '--color', 'never'], {
+      input: E_SPLIT_DOC,
+      timeout: 20000,
+      encoding: 'utf8',
+    });
+    ok = !JSON.parse(out).parse_fatal;
+  } catch (error) {
+    const stdout = (error as { stdout?: unknown }).stdout;
+    if (typeof stdout === 'string' && stdout.length > 0) {
+      try { ok = !JSON.parse(stdout).parse_fatal; } catch { ok = false; }
+    }
+  }
+  eSplitCache.set(bin, ok);
+  return ok;
+}
+
+/** The skip condition for suites that PROVE what the doors write. The
+ *  doors author `inputs:`; a pre-flip binary cannot judge that file, so
+ *  the suite says so rather than pinning a red for a known reason. The
+ *  day a post-flip engine is on PATH these suites run for real — this
+ *  is the release coupling made machine-checkable. */
+export function eSplitFloor(): { bin: string | undefined; off: boolean; reason: string } {
+  const floor = gen1Floor();
+  if (floor.off) { return floor; }
+  if (!speaksESplit(floor.bin!)) {
+    return {
+      bin: floor.bin,
+      off: true,
+      reason: `${floor.bin} predates the E-split (refuses \`inputs:\`) — set NIKA_BIN to a post-flip engine`,
+    };
+  }
+  return { bin: floor.bin, off: false, reason: '' };
+}
+
 /** The one skip condition for gen-1 suites — carries its own reason. */
 export function gen1Floor(): { bin: string | undefined; off: boolean; reason: string } {
   if (!REAL_BIN) {

@@ -1,17 +1,18 @@
 // contractDoors.ts — the callable-contract pickers behind the V1 doors:
 // « type its output » (schema shape onto an infer/agent) · « choose
 // what it publishes » (outputs: as a multi-pick over the DAG) ·
-// « declare an input » / « make it callable » (vars: growth +
+// « declare an input » / « make it callable » (inputs: growth +
 // untyped→typed promotion). Every edit is a core-module pure function
-// (schemaEdit · outputsEdit · varsEdit) — this file is only the
+// (schemaEdit · outputsEdit · inputsEdit) — this file is only the
 // QuickPick choreography and the one WorkspaceEdit per gesture.
 
 import * as vscode from 'vscode';
 import { SCHEMA_SHAPES, schemaInsert, type SchemaShape } from '../core/schemaEdit';
 import { findOutputsBlock, outputsRewrite, parseOutputs } from '../core/outputsEdit';
 import {
-  declareInput, findVarsBlock, parseVarEntries, promoteVar, type VarType,
-} from '../core/varsEdit';
+  declareInput, findInputsBlock, parseInputEntries, promoteInput,
+  PRIMITIVE_TYPES, type VarType,
+} from '../core/inputsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
 import type { NikaVerb } from '../core/verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
@@ -111,18 +112,16 @@ export async function pickOutputsFor(uri?: vscode.Uri): Promise<void> {
 
 // ─── « declare an input » · « make it callable » ─────────────────────────────
 
-const VAR_TYPES: readonly VarType[] = ['string', 'number', 'integer', 'boolean', 'array', 'object'];
-
 export async function declareInputFor(uri?: vscode.Uri): Promise<void> {
   const doc = await activeOrOpen(uri);
   if (!doc) { return; }
   const text = doc.getText();
   const lines = text.split('\n');
-  const block = findVarsBlock(lines);
-  const taken = new Set(block ? parseVarEntries(lines, block).map((e) => e.name) : []);
+  const block = findInputsBlock(lines);
+  const taken = new Set(block ? parseInputEntries(lines, block).map((e) => e.name) : []);
 
   const name = await vscode.window.showInputBox({
-    prompt: 'input name — reachable as ${{ vars.<name> }}',
+    prompt: 'input name — reachable as ${{ inputs.<name> }}',
     placeHolder: 'topic',
     validateInput: (v) => {
       if (!/^[a-z][a-z0-9_]*$/i.test(v)) { return 'snake_case identifier'; }
@@ -132,39 +131,42 @@ export async function declareInputFor(uri?: vscode.Uri): Promise<void> {
   });
   if (!name) { return; }
 
-  type TypePick = vscode.QuickPickItem & { type?: VarType };
+  // EVERY inputs: entry is a typed declaration — `type:` is required
+  // (spec 01 §inputs). There is no « untyped » option to offer: that
+  // shorthand is not a legal input. A value that just needs a default
+  // and is never caller-supplied is a `const:`, a different authority.
+  type TypePick = vscode.QuickPickItem & { type?: VarType; expr?: string };
   const typePick = await vscode.window.showQuickPick<TypePick>(
     [
-      ...VAR_TYPES.map((t) => ({
+      ...PRIMITIVE_TYPES.map((t) => ({
         label: `$(symbol-type-parameter) ${t}`,
         description: 'typed — validated at launch, part of the callable schema',
         type: t as VarType,
       })),
       {
-        label: '$(dash) untyped',
-        description: 'just a default value — simplest for a workflow you run yourself',
+        label: '$(symbol-array) { array: string }',
+        description: 'a list — the TypeExpr constructor (the bare word `array` is not a type)',
+        expr: '{ array: string }',
       },
     ],
-    { placeHolder: `vars.${name} — typed inputs make the workflow a callable unit (MCP · UI)` },
+    { placeHolder: `inputs.${name} — typed inputs make the workflow a callable unit (MCP · UI)` },
   );
   if (!typePick) { return; }
 
   const def = await vscode.window.showInputBox({
-    prompt: typePick.type
-      ? `default for \`${name}\` — LEAVE EMPTY to make it required (the caller must pass it)`
-      : `value for \`${name}\` — the untyped form IS its default`,
-    placeHolder: typePick.type === 'string' || typePick.type === undefined ? '"Rust async 2026"' : '',
+    prompt: `default for \`${name}\` — LEAVE EMPTY to make it required (the caller must pass it)`,
+    placeHolder: typePick.type === 'string' ? '"Rust async 2026"' : '',
   });
   if (def === undefined) { return; } // esc — empty string is a real answer
 
   const next = declareInput(text, {
     name,
-    type: typePick.type,
-    def: def.trim().length > 0 ? def.trim() : (typePick.type ? undefined : '""'),
-    required: typePick.type !== undefined && def.trim().length === 0,
+    type: typePick.expr ?? typePick.type,
+    def: def.trim().length > 0 ? def.trim() : undefined,
+    required: def.trim().length === 0,
   });
   if (next === undefined) {
-    void vscode.window.showWarningMessage('Nika: could not declare here (flow-style vars: or no envelope to anchor).');
+    void vscode.window.showWarningMessage('Nika: could not declare here (flow-style inputs: or no envelope to anchor).');
     return;
   }
   await applyFullRewrite(doc, next);
@@ -175,9 +177,9 @@ export async function promoteVarsFor(uri?: vscode.Uri): Promise<void> {
   if (!doc) { return; }
   const text = doc.getText();
   const lines = text.split('\n');
-  const block = findVarsBlock(lines);
+  const block = findInputsBlock(lines);
   const untyped = block
-    ? parseVarEntries(lines, block).filter((e) => !e.typed && e.inline !== undefined)
+    ? parseInputEntries(lines, block).filter((e) => !e.typed && e.inline !== undefined)
     : [];
   if (untyped.length === 0) {
     void vscode.window.showInformationMessage('Nika: every input is already typed — the contract is callable.');
@@ -199,7 +201,7 @@ export async function promoteVarsFor(uri?: vscode.Uri): Promise<void> {
   if (!picked || picked.length === 0) { return; }
   let next = text;
   for (const p of picked) {
-    next = promoteVar(next, p.name) ?? next;
+    next = promoteInput(next, p.name) ?? next;
   }
   if (next === text) { return; }
   await applyFullRewrite(doc, next);

@@ -1,18 +1,28 @@
 // contractDoorsReal.e2e.test.ts — what the contract doors WRITE, the
 // REAL binary must accept. The pure edits (schemaInsert · outputsRewrite
-// · declareInput · promoteVar) are chained on one fixture exactly as the
-// pickers chain them, and the result rides `nika check -` — clean, no
-// findings. A door that writes YAML the engine rejects is worse than no
-// door. Self-skips without a binary (CELLAR-first, the journeyReal
+// · declareInput · promoteInput) are chained on one fixture exactly as
+// the pickers chain them, and the result rides `nika check -` — clean,
+// no findings. A door that writes YAML the engine rejects is worse than
+// no door. Self-skips without a binary (CELLAR-first, the journeyReal
 // shield: PATH may carry a sister session's in-flight build).
+//
+// IT ALSO SKIPS ON A PRE-E-SPLIT BINARY, and that skip is the point.
+// The doors now write `inputs:` (spec 01 · `vars:` refuses
+// NIKA-VALUES-001). A binary from before the flip refuses `inputs:`
+// just as hard, with NIKA-PARSE-005 « unknown field » — the two forms
+// are MUTUALLY EXCLUSIVE, so no single fixture can satisfy both. Rather
+// than pin a red for a known reason, the suite probes the binary and
+// says so. The moment a post-flip engine is on PATH this test runs for
+// real and proves the doors end to end: it is the release coupling made
+// machine-checkable, not a hole in the coverage.
 
 import { describe, expect, it } from 'vitest';
-import { speaksGen1 } from './lspHarness';
+import { speaksESplit, speaksGen1 } from './lspHarness';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import { SCHEMA_SHAPES, schemaInsert } from '../core/schemaEdit';
 import { outputsRewrite } from '../core/outputsEdit';
-import { declareInput, promoteVar } from '../core/varsEdit';
+import { declareInput, promoteInput } from '../core/inputsEdit';
 
 const CELLAR = (() => {
   try {
@@ -37,13 +47,13 @@ const BASE = [
   '  id: contract-doors-proof',
   'model: mock/echo',
   '',
-  'vars:',
+  'inputs:',
   '  topic: "Rust async 2026"',
   '',
   'tasks:',
   '  gather:',
   '    infer:',
-  '      prompt: "Collect notes on ${{ vars.topic }}"',
+  '      prompt: "Collect notes on ${{ inputs.topic }}"',
   '',
 ].join('\n');
 
@@ -55,7 +65,7 @@ function check(bin: string, text: string): { clean?: boolean; findings?: unknown
   return JSON.parse(out) as { clean?: boolean; findings?: unknown[] };
 }
 
-describe.skipIf(!BIN || !speaksGen1(BIN))('contract doors × the real binary', () => {
+describe.skipIf(!BIN || !speaksGen1(BIN) || !speaksESplit(BIN))('contract doors × the real binary', () => {
   it('the chained door edits produce a workflow check calls clean', () => {
     // « type its output » — every proven shape, appended to the infer.
     const infLine = BASE.split('\n').findIndex((l) => /^\s+infer:/.test(l));
@@ -70,7 +80,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('contract doors × the real binary', (
       // required) + « make it callable » on the untyped topic.
       const published = outputsRewrite(typed, ['gather'])!;
       const declared = declareInput(published, { name: 'lang', type: 'string', required: true })!;
-      const promoted = promoteVar(declared, 'topic')!;
+      const promoted = promoteInput(declared, 'topic')!;
       expect(promoted).toContain('type: string');
 
       const report = check(BIN!, promoted);
@@ -78,8 +88,12 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('contract doors × the real binary', (
     }
   });
 
-  it('the untyped shorthand the declare door writes is equally legal', () => {
+  it('the type-defaulted declaration the door writes is equally legal', () => {
+    // No untyped form to prove any more: `type:` is required on an
+    // input, so the door falls back to `string` rather than emitting a
+    // row the engine refuses.
     const next = declareInput(BASE, { name: 'out_dir', def: '"./out"' })!;
+    expect(next).toContain('type: string');
     expect(check(BIN!, next).clean).toBe(true);
   });
 });

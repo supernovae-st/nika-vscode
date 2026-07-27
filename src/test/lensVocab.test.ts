@@ -34,9 +34,11 @@ describe('lensVocab (one voice for the lens doors)', () => {
     expect(graphDoorTitle(3)).toBe('$(target) see it in the graph · 3 refs');
   });
 
-  it('the vars door conjugates with its count', () => {
-    expect(varsDoorTitle(1)).toBe('$(symbol-variable) 1 var rides --var');
-    expect(varsDoorTitle(2)).toBe('$(symbol-variable) 2 vars ride --var');
+  it('the inputs door conjugates with its count', () => {
+    // The CLI flag stays `--var`: it is the flag that SUPPLIES an
+    // input (`nika run f.nika.yaml --var topic=…`). Only the NOUN moved.
+    expect(varsDoorTitle(1)).toBe('$(symbol-variable) 1 input rides --var');
+    expect(varsDoorTitle(2)).toBe('$(symbol-variable) 2 inputs ride --var');
   });
 
   it('the contract doors speak the same voice', () => {

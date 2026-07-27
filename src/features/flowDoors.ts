@@ -14,7 +14,7 @@ import {
   islandKeyRewrite, upstreamCandidates, type CollectionRef, type GateShape,
 } from '../core/flowEdit';
 import { DEFAULT_PREDICATE } from '../core/predicates';
-import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
+import { findInputsBlock, parseInputEntries } from '../core/inputsEdit';
 import { VERB_ITEMS } from '../core/verbPalette';
 import { parseRichWorkflow, type RichTask } from '../workflowParser';
 
@@ -221,7 +221,7 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
   const shapes = gateShapes(a.varsKeys, a.task.withAliases, upstream);
   if (shapes.length === 0) {
     void vscode.window.showInformationMessage(
-      'Nika: nothing to gate on yet — declare an input (vars:) or add an upstream task.',
+      'Nika: nothing to gate on yet — declare an input (inputs:) or add an upstream task.',
     );
     return;
   }
@@ -238,7 +238,7 @@ export async function chooseGateFor(uri: vscode.Uri, taskId: string): Promise<vo
     const g = s.action.kind === 'when' ? 'local' : 'tasks';
     if (g !== group) {
       rows.push({
-        label: g === 'local' ? 'local reads (vars · with)' : 'upstream tasks (after: / hoist)',
+        label: g === 'local' ? 'local reads (inputs · with)' : 'upstream tasks (after: / hoist)',
         kind: vscode.QuickPickItemKind.Separator,
       });
       group = g;
@@ -281,8 +281,10 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
   const a = await anchor(uri, taskId);
   if (!a) { return; }
   const lines = a.text.split('\n');
-  const varsBlock = findVarsBlock(lines);
-  const entries = varsBlock ? parseVarEntries(lines, varsBlock) : [];
+  const inputsBlock = findInputsBlock(lines);
+  const entries = inputsBlock ? parseInputEntries(lines, inputsBlock) : [];
+  // A list type is the `{ array: T }` constructor — the parser records
+  // its head word, so the discriminator stays `array` here.
   const arrays = entries.filter((e) => e.varType === 'array');
   const others = entries.filter((e) => e.varType !== 'array');
   const upstream = upstreamCandidates(a.tasks, taskId);
@@ -292,9 +294,9 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
     rows.push({ label: 'array inputs', kind: vscode.QuickPickItemKind.Separator });
     for (const e of arrays) {
       rows.push({
-        label: `$(symbol-array) vars.${e.name}`,
-        description: 'typed array — one run per element',
-        collection: { label: e.name, ref: `vars.${e.name}` },
+        label: `$(symbol-array) inputs.${e.name}`,
+        description: 'typed list — one run per element',
+        collection: { label: e.name, ref: `inputs.${e.name}` },
       });
     }
   }
@@ -320,9 +322,9 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
     rows.push({ label: 'other inputs', kind: vscode.QuickPickItemKind.Separator });
     for (const e of others) {
       rows.push({
-        label: `$(symbol-variable) vars.${e.name}`,
+        label: `$(symbol-variable) inputs.${e.name}`,
         description: 'runs if it holds a list at launch',
-        collection: { label: e.name, ref: `vars.${e.name}` },
+        collection: { label: e.name, ref: `inputs.${e.name}` },
       });
     }
   }
@@ -335,7 +337,7 @@ export async function chooseCollectionFor(uri: vscode.Uri, taskId: string): Prom
   }
   if (rows.length === 0) {
     void vscode.window.showInformationMessage(
-      'Nika: no collection in sight — declare an array input (vars:) or add an upstream task.',
+      'Nika: no collection in sight — declare a list input (inputs:) or add an upstream task.',
     );
     return;
   }

@@ -15,7 +15,7 @@ import {
 } from '../core/lensVocab';
 import { needsDefaultModel } from '../core/modelEdit';
 import { findOutputsBlock } from '../core/outputsEdit';
-import { findVarsBlock, parseVarEntries } from '../core/varsEdit';
+import { findInputsBlock, parseInputEntries } from '../core/inputsEdit';
 import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
 
@@ -238,7 +238,7 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         }
         // The two CTAs the report asks for (operator pass 2026-07-12):
         // an undeclared boundary offers the one-gesture infer; required
-        // vars offer the ready-to-paste run line.
+        // required inputs offer the ready-to-paste run line.
         if (r.hints.some((h) => h.kind === 'permits')) {
           lenses.push(new vscode.CodeLens(status, {
             command: 'nika.inferPermits',
@@ -307,18 +307,18 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
         }));
       }
     }
-    // The contract doors sit on the lines they grow: vars: (the input
+    // The contract doors sit on the lines they grow: inputs: (the input
     // half — typed inputs make the workflow a callable unit) and
     // outputs: (the return half — what CLI · MCP · compose callers read).
-    const varsBlock = findVarsBlock(lines);
+    const varsBlock = findInputsBlock(lines);
     if (varsBlock) {
       lenses.push(new vscode.CodeLens(row(varsBlock.line), {
         command: 'nika.declareInput',
         title: DECLARE_INPUT_DOOR,
         arguments: [document.uri],
-        tooltip: 'Add an input — reachable as ${{ vars.<name> }}; typed inputs validate at launch and power MCP/UI callers',
+        tooltip: 'Add an input — reachable as ${{ inputs.<name> }}; typed inputs validate at launch and power MCP/UI callers',
       }));
-      const untyped = parseVarEntries(lines, varsBlock)
+      const untyped = parseInputEntries(lines, varsBlock)
         .filter((e) => !e.typed && e.inline !== undefined).length;
       if (untyped > 0) {
         lenses.push(new vscode.CodeLens(row(varsBlock.line), {
