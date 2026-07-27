@@ -26,3 +26,24 @@ updates:
       npm-all:
         patterns:
           - "*"
+    # Three deps are not free to float. Their ceiling is set by something
+    # other than "latest", so a major bump here is a regression wearing a
+    # freshness badge. Lift a pin by raising the thing that caps it, never
+    # by taking the bump. Proven on PR #280 (2026-07-26), which proposed
+    # all three at once and failed the belt.
+    #
+    #   @types/vscode  capped by `engines.vscode` in package.json. Typing
+    #     above the declared floor lets code call APIs absent from the
+    #     oldest VS Code we claim to support, and nothing catches it until
+    #     a user on that version hits the missing symbol at runtime.
+    #   @types/node    capped by the Node that same floor ships (1.91 runs
+    #     on Node 20, so Node 26 types describe a host we do not target).
+    #   typescript     capped by typescript-eslint's peer range (>=4.8.4
+    #     <6.1.0 at 8.65). TS 7 resolves, then the lint leg has no parser.
+    ignore:
+      - dependency-name: "@types/vscode"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
