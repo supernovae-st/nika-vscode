@@ -1847,7 +1847,7 @@
     "@types/d3-zoom": "^3.0.8",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.91.0",
+    "@types/vscode": "^1.125.0",
     "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^3.9.2",
     "elkjs": "^0.12.0",
