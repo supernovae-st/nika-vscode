@@ -23,8 +23,10 @@ Please report vulnerabilities privately via
   before it lands. A checksum miss is a hard stop, not a warning.
 - **Credentials are linted, never collected.** The literal-credential
   lint is a pure local pattern scan (zero network · zero telemetry)
-  that pushes pasted secrets toward the `${{ env.VAR }}` sovereign
-  form. The extension stores no secrets of its own.
+  that pushes pasted secrets toward the sovereign form · a `secrets:`
+  entry (`source: env`) read as `${{ secrets.<name> }}`, which is what
+  gets the value MASKED in logs, traces and journal events. The
+  extension stores no secrets of its own.
 - **No telemetry.** Nothing phones home. The one outbound trace path ·
   Export Run to OpenTelemetry · is an explicit user command aimed at a
   collector the user names.

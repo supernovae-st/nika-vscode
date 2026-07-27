@@ -197,14 +197,29 @@ export class NikaCodeActionProvider implements vscode.CodeActionProvider {
       actions.push(action);
     }
 
-    // 5 · literal secret → ${{ env.VAR }}
+    // 5 · literal secret → a declared `secrets:` entry, read masked.
+    //
+    // TWO edits, not one. The old fix swapped the literal for
+    // `${{ env.VAR }}` and stopped: `env` was ambient, so a reference
+    // needed no declaration. Under the E-split there is no ambient
+    // namespace left — an undeclared `${{ secrets.x }}` is NIKA-VAR-001 —
+    // so the fix must ALSO write the entry. Replacing the literal alone
+    // would trade a leaked key for a broken file.
     for (const { secret, range: sRange } of this.controller.secretsAt(document.uri, range)) {
       const action = new vscode.CodeAction(
-        `Nika: replace literal with \${{ env.${secret.envVar} }}`,
+        `Nika: declare it under secrets: and read \${{ secrets.${secret.secretName} }}`,
         vscode.CodeActionKind.QuickFix,
       );
-      action.edit = new vscode.WorkspaceEdit();
-      action.edit.replace(document.uri, sRange, `\${{ env.${secret.envVar} }}`);
+      const whole = document.getText();
+      const start = document.offsetAt(sRange.start);
+      const end = document.offsetAt(sRange.end);
+      // Replace FIRST (offsets are still valid), then declare — the
+      // declaration inserts lines above and would shift them otherwise.
+      const replaced = whole.slice(0, start)
+        + `\${{ secrets.${secret.secretName} }}`
+        + whole.slice(end);
+      const declared = addAuthorityDeclaration(replaced, 'secrets', secret.secretName) ?? replaced;
+      action.edit = this.fullRewrite(document, declared);
       action.isPreferred = true;
       actions.push(action);
     }

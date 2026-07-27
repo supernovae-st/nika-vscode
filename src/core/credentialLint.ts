@@ -3,16 +3,28 @@
 // The engine's IFC analysis (check --json) proves where DECLARED secrets
 // flow; this complements it on the other side: credentials pasted as
 // LITERALS never even reach the masking boundary. Pure pattern scan,
-// zero network, zero telemetry — findings carry a `${{ env.VAR }}`
-// rewrite suggestion (the sovereign form).
+// zero network, zero telemetry.
+//
+// The rewrite target is a `secrets:` entry read as `${{ secrets.<name> }}`,
+// NOT the old `${{ env.VAR }}` — `env` is a dead namespace
+// (NIKA-VALUES-002) and its envelope block is a dead field. The sovereign
+// story is unchanged and in fact strengthened: `source: env` still reads
+// the value from the OS environment, and routing it through `secrets:`
+// is what gets it MASKED in logs, traces and journal events (spec 01
+// §secrets). A bare `${{ env.VAR }}` never was.
 
 export interface SecretFinding {
   line: number;       // 0-based
   startCol: number;   // 0-based, UTF-16 units
   endCol: number;
   kind: string;       // e.g. "anthropic-api-key"
-  /** Suggested env var name, derived from the YAML key when present. */
+  /** Suggested OS environment variable, derived from the YAML key when
+   *  present — the `key:` of the secrets entry. */
   envVar: string;
+  /** The `secrets:` entry name the reference reads
+   *  (`${{ secrets.<secretName> }}`) — the lower-case of `envVar`, so
+   *  the declaration's `key:` round-trips back to it exactly. */
+  secretName: string;
 }
 
 interface SecretPattern {
@@ -69,6 +81,7 @@ export function scanSecrets(text: string): SecretFinding[] {
           endCol: start + m[0].length,
           kind: p.kind,
           envVar: envVarFromKey(line, p.defaultEnv),
+          secretName: envVarFromKey(line, p.defaultEnv).toLowerCase(),
         });
       }
     }

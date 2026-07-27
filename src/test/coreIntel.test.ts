@@ -3,6 +3,7 @@ import { parseHelpCommands, buildCapabilities, describeCapabilities } from '../c
 import { scanIslands, scanRefs, refAt, completionContextAt } from '../core/expr';
 import { scanSecrets } from '../core/credentialLint';
 import { parseFix, applyPermitsFix, insertPermitsBlock } from '../core/permitsEdit';
+import { addAuthorityDeclaration } from '../core/structuralFixes';
 import { parseRichWorkflow, parseWorkflowTasks, taskAtLine } from '../workflowParser';
 
 // ─── capabilities ────────────────────────────────────────────────────────────
@@ -251,12 +252,50 @@ describe('secretsScan', () => {
     expect(findings[0].kind).toBe('anthropic-api-key');
     expect(findings[0].line).toBe(3);
     expect(findings[0].envVar).toBe('API_KEY');
+    // The secrets: entry name round-trips to its own key: — the fix
+    // writes `api_key: { source: env, key: API_KEY }` and the reference
+    // reads `${{ secrets.api_key }}`.
+    expect(findings[0].secretName).toBe('api_key');
+    expect(findings[0].secretName.toUpperCase()).toBe(findings[0].envVar);
+  });
+
+  it('the rewrite target is a DECLARED secret, never the dead env namespace', () => {
+    // `${{ env.X }}` is dead (NIKA-VALUES-002) and, unlike env, a
+    // `secrets.X` reference MUST be declared — so the quick fix pairs
+    // the replacement with the entry. Proven here on the composed text
+    // exactly as codeActions composes it.
+    const yaml = [
+      'nika: v1',
+      'workflow:',
+      '  id: t',
+      'tasks:',
+      '  ship:',
+      '    invoke:',
+      '      args: { token: "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345" }', // secrets-scan:allow (fixture)
+    ].join('\n');
+    const [f] = scanSecrets(yaml);
+    // The line's own key is `args`, which names nothing — so the vendor
+    // default carries the name (the existing envVarFromKey contract).
+    expect(f.secretName).toBe('github_token');
+
+    const lines = yaml.split('\n');
+    const before = lines.slice(0, f.line).join('\n').length + (f.line > 0 ? 1 : 0);
+    const replaced = yaml.slice(0, before + f.startCol)
+      + `\${{ secrets.${f.secretName} }}`
+      + yaml.slice(before + f.endCol);
+    const declared = addAuthorityDeclaration(replaced, 'secrets', f.secretName)!;
+
+    expect(declared).toContain('${{ secrets.github_token }}');
+    expect(declared).toContain('secrets:\n  github_token:\n    source: env\n    key: GITHUB_TOKEN');
+    expect(declared).not.toContain('ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345');
+    // and the reference is never left dangling
+    expect(parseRichWorkflow(declared).secretsKeys).toContain('github_token');
   });
 
   it('stays silent on templated values, comments, and prose', () => {
     const clean = [
       '# sk-ant-abc123def456ghi789jkl012 (docs example)',
-      'key: ${{ env.ANTHROPIC_API_KEY }}',
+      'key: ${{ secrets.anthropic_api_key }}',
       'note: "ask-antoine about it"',
     ].join('\n');
     expect(scanSecrets(clean)).toHaveLength(0);

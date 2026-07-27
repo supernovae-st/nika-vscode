@@ -191,7 +191,7 @@ export class DiagnosticsController implements vscode.Disposable {
         const range = new vscode.Range(s.line, s.startCol, s.line, s.endCol);
         const d = new vscode.Diagnostic(
           range,
-          `literal ${s.kind} — secrets never belong in workflow YAML; use \${{ env.${s.envVar} }}`,
+          `literal ${s.kind} — secrets never belong in workflow YAML; declare it under \`secrets:\` (source: env · key: ${s.envVar}) and read \${{ secrets.${s.secretName} }}`,
           vscode.DiagnosticSeverity.Warning,
         );
         d.source = NIKA_DIAG_SOURCE;
