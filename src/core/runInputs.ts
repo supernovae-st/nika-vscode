@@ -1,6 +1,6 @@
 // runInputs.ts — the run-with-inputs contract (pure).
 //
-// The check report's `requirements.vars_required` IS the input contract
+// The check report's `requirements.inputs_required` IS the input contract
 // (the engine derives it; the extension never re-guesses). Answers plus
 // an optional spend ceiling become the exact extra argv `run` takes —
 // argv arrays, never a shell string, so values need no quoting.

@@ -16,6 +16,7 @@ import {
 import { needsDefaultModel } from '../core/modelEdit';
 import { findOutputsBlock } from '../core/outputsEdit';
 import { findInputsBlock, parseInputEntries } from '../core/inputsEdit';
+import { inputsRequired } from '../core/cliContract';
 import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
 
@@ -247,7 +248,7 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
             tooltip: 'Insert the tightest permits: block the workflow needs — default-deny from then on',
           }));
         }
-        const varsRequired = r.requirements?.vars_required ?? [];
+        const varsRequired = r.requirements ? inputsRequired(r.requirements) : [];
         if (varsRequired.length > 0) {
           lenses.push(new vscode.CodeLens(status, {
             command: 'nika.copyRunLine',

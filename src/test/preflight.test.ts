@@ -17,8 +17,9 @@ secrets:
     key: GITHUB_TOKEN
   vault_pass:
     source: vault
-env:
+config:
   REGION: eu-west-1
+  GITHUB_ORG: supernovae-st
 permits:
   net:
     - api.github.com
@@ -30,7 +31,7 @@ tasks:
   digest:
     after: { fetch: succeeded }
     infer:
-      prompt: "Summarize \${{ tasks.fetch.output }} for \${{ env.REGION }} org \${{ env.GITHUB_ORG }}"
+      prompt: "Summarize \${{ tasks.fetch.output }} for \${{ config.REGION }} org \${{ config.GITHUB_ORG }}"
   local_pass:
     after: { fetch: succeeded }
     infer:
@@ -66,13 +67,13 @@ const report = (over: Partial<CheckReport>): CheckReport => ({
 });
 
 describe('collectPreflightFacts', () => {
-  it('reads secrets sources, env keys, permits, and resolved models', () => {
+  it('reads secrets sources, config keys, permits, and resolved models', () => {
     const f = collectPreflightFacts(YAML);
     expect(f.secrets).toEqual([
       { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
       { name: 'vault_pass', source: 'vault' },
     ]);
-    expect(f.envDefined).toEqual(['REGION']);
+    expect(f.envDefined).toEqual(['REGION', 'GITHUB_ORG']);
     expect(f.envRefs).toEqual(['REGION', 'GITHUB_ORG']);
     expect(f.permitsDeclared).toBe(true);
     expect(f.permitCategories).toEqual(['net', 'exec']);
@@ -118,20 +119,20 @@ describe('buildPreflight + renderPreflight', () => {
       catalog: parseCatalogProviders(CATALOG),
       envPresent: (n) => env.has(n),
     });
-    expect(m.blockers).toEqual([]);
     expect(m.waves).toEqual([['fetch'], ['digest', 'local_pass']]);
     expect(m.modelRows.find((r) => r.model === 'ollama/qwen3.5')?.status).toBe('local');
-    // REGION is read AND defined in the workflow env: block — covered, no
-    // process-env check; GITHUB_ORG is read-only → process env verified.
+    expect(m.blockers).toEqual([]);
+    // Both reads are DECLARED in `config:` — the only state that covers a
+    // config read (spec 01 · no ambient OS fallback).
     expect(m.envRows).toEqual([
       { name: 'REGION', status: 'defined' },
-      { name: 'GITHUB_ORG', status: 'present' },
+      { name: 'GITHUB_ORG', status: 'defined' },
     ]);
     const md = renderPreflight(m);
     expect(md).toContain('**READY**');
     expect(md).toContain('$0.04 – $0.12');
     expect(md).toContain('run together');
-    expect(md).toContain('defined in the workflow `env:` block');
+    expect(md).toContain('declared in the workflow `config:` block');
   });
 
   it('missing env secret + missing model key → blockers, never a fake green', () => {
@@ -143,19 +144,43 @@ describe('buildPreflight + renderPreflight', () => {
       catalog: parseCatalogProviders(CATALOG),
       envPresent: () => false,
     });
-    // 3 blockers: env secret + model key + the read-but-unset GITHUB_ORG.
-    // REGION is workflow-defined → NEVER a blocker even with empty env.
-    expect(m.blockers.length).toBe(3);
+    // 2 blockers: the env-source secret + the model key. Both config
+    // reads are declared → NEVER blockers, whatever the process env holds.
+    expect(m.blockers.length).toBe(2);
     expect(m.envRows).toEqual([
       { name: 'REGION', status: 'defined' },
-      { name: 'GITHUB_ORG', status: 'missing' },
+      { name: 'GITHUB_ORG', status: 'defined' },
     ]);
     expect(m.secretRows[0].status).toBe('missing');
     expect(m.secretRows[1].status).toBe('declared'); // vault: never fake-verified
     const md = renderPreflight(m);
-    expect(md).toContain('**BLOCKED — 3 missing requirements:**');
+    expect(md).toContain('**BLOCKED — 2 missing requirements:**');
     expect(md).toContain('GITHUB_TOKEN');
     expect(md).toContain('not statically verifiable');
+  });
+
+  it('an UNDECLARED config read blocks — the OS can never rescue it', () => {
+    // `${{ config.X }}` resolves ONLY against the envelope `config:`
+    // block; the engine never falls back to the ambient environment
+    // (spec 01 §config · « declared-only · no ambient OS fallback »).
+    // So a process env var of the same name is irrelevant — reporting
+    // « present » there would promise a run that cannot happen.
+    const undeclared = YAML.replace('  GITHUB_ORG: supernovae-st\n', '');
+    const m = buildPreflight({
+      workflowName: 'release-notes',
+      facts: collectPreflightFacts(undeclared),
+      report: report({}),
+      graph,
+      catalog: parseCatalogProviders(CATALOG),
+      envPresent: () => true, // the OS HAS it — and it still does not count
+    });
+    expect(m.envRows).toEqual([
+      { name: 'REGION', status: 'defined' },
+      { name: 'GITHUB_ORG', status: 'missing' },
+    ]);
+    expect(m.blockers).toContain(
+      'config `GITHUB_ORG`: read by the workflow, declared nowhere in config:',
+    );
   });
 
   it('unbounded cost stays a loud floor', () => {
@@ -232,8 +257,8 @@ describe('factsFromRequirements (E-REQ · the engine states the contract)', () =
         { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
         { name: 'vault_pass', source: 'vault', key: 'prod/db' },
       ],
-      env_reads: ['GITHUB_ORG', 'REGION'],
-      env_defined: ['REGION'],
+      config_reads: ['GITHUB_ORG', 'REGION'],
+      config_defined: ['REGION'],
       vars_required: ['target_url'],
     }, YAML);
     expect(facts.models.get('anthropic/claude-sonnet-4-6')).toEqual(['digest']);

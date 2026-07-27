@@ -3,7 +3,7 @@
 // « Costs and secrets visible BEFORE the run »: compose what the binary
 // already proves statically (`check --json` — cost ceiling · waves ·
 // permits escapes · secret flows) with what the client can verify
-// without spending a token (secrets/env declarations vs the actual
+// without spending a token (secrets/config declarations vs the actual
 // environment · models vs the catalog's key requirements). Every line
 // is DERIVED — nothing here executes, estimates never masquerade as
 // facts, and what cannot be verified says so (« declared », never
@@ -11,7 +11,10 @@
 
 import { parseRichWorkflow } from '../workflowParser';
 import { scanRefs } from './expr';
-import type { CheckReport, ReportRequirements } from './cliContract';
+import {
+  configDefined, configReads,
+  type CheckReport, type ReportRequirements,
+} from './cliContract';
 
 // ─── Static facts read from the YAML ────────────────────────────────────────
 
@@ -25,9 +28,9 @@ export interface SecretFact {
 
 export interface PreflightFacts {
   secrets: SecretFact[];
-  /** Keys DEFINED by the envelope `env:` block (values live in the YAML). */
+  /** Keys DECLARED by the envelope `config:` block (spec 01). */
   envDefined: string[];
-  /** Env vars the body actually READS (`${{ env.X }}`) — the requirements. */
+  /** Config names the body actually READS (`${{ config.X }}`). */
   envRefs: string[];
   /** model id → task ids that will call it (infer/agent only). */
   models: Map<string, string[]>;
@@ -47,8 +50,8 @@ export function factsFromRequirements(req: ReportRequirements, text: string): Pr
       source: s.source,
       key: s.source === 'env' ? s.key : undefined,
     })),
-    envDefined: req.env_defined,
-    envRefs: req.env_reads,
+    envDefined: configDefined(req),
+    envRefs: configReads(req),
     models: new Map(req.models.map((m) => [m.model, m.tasks])),
     permitCategories: clientFacts.permitCategories,
     permitsDeclared: clientFacts.permitsDeclared,
@@ -67,7 +70,7 @@ export function collectPreflightFacts(text: string): PreflightFacts {
   const permitCategories: string[] = [];
   let permitsDeclared = false;
 
-  type Block = 'secrets' | 'env' | 'permits' | null;
+  type Block = 'secrets' | 'config' | 'permits' | null;
   let block: Block = null;
   let current: SecretFact | null = null;
 
@@ -76,7 +79,7 @@ export function collectPreflightFacts(text: string): PreflightFacts {
     if (top) {
       current = null;
       block = top[1] === 'secrets' ? 'secrets'
-        : top[1] === 'env' ? 'env'
+        : top[1] === 'config' ? 'config'
           : top[1] === 'permits' ? 'permits' : null;
       if (top[1] === 'permits') { permitsDeclared = true; }
       continue;
@@ -87,7 +90,7 @@ export function collectPreflightFacts(text: string): PreflightFacts {
       if (block === 'secrets') {
         current = { name: key2[1], source: 'vault' };
         secrets.push(current);
-      } else if (block === 'env') {
+      } else if (block === 'config') {
         envDefined.push(key2[1]);
       } else {
         permitCategories.push(key2[1]);
@@ -112,11 +115,11 @@ export function collectPreflightFacts(text: string): PreflightFacts {
     (models.get(model) ?? models.set(model, []).get(model)!).push(task.id);
   }
 
-  // Requirements = what the body READS: `${{ env.X }}` refs (a key merely
-  // defined in the envelope is configuration, not a requirement).
+  // Requirements = what the body READS: `${{ config.X }}` refs (a key
+  // merely declared in the envelope is configuration, not a requirement).
   const envRefs = [...new Set(
     scanRefs(text)
-      .filter((r) => r.root === 'env' && r.path.length > 0)
+      .filter((r) => r.root === 'config' && r.path.length > 0)
       .map((r) => r.path[0]),
   )];
 
@@ -190,7 +193,11 @@ export interface PreflightModel {
   findings: number;
   waves: string[][];
   secretRows: SecretRow[];
-  envRows: Array<{ name: string; status: 'defined' | 'present' | 'missing' }>;
+  /** `config:` reads. 'defined' = the envelope declares it · 'missing'
+   *  = it does not. There is no OS-presence state: a `${{ config.X }}`
+   *  read resolves ONLY against the envelope block, the engine never
+   *  falls back to the ambient environment (spec 01 §config). */
+  envRows: Array<{ name: string; status: 'defined' | 'missing' }>;
   modelRows: ModelRow[];
   permits: { declared: boolean; categories: string[]; escapes: number; leaks: number; egresses: number };
   cost: { label: string; unbounded: boolean; topTasks: Array<{ task: string; label: string }> };
@@ -259,13 +266,17 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     };
   });
 
+  // DECLARED-ONLY · no ambient OS fallback. A `${{ config.X }}` the
+  // envelope does not declare is NIKA-VAR-001 at check — it can never be
+  // rescued by an environment variable of the same name, so probing the
+  // OS here would have reported « present » for a workflow that cannot
+  // run. The undeclared read is simply a blocker.
   const envRows = facts.envRefs.map((name) => {
     if (facts.envDefined.includes(name)) {
       return { name, status: 'defined' as const };
     }
-    const present = envPresent(name);
-    if (!present) { blockers.push(`env \`${name}\`: read by the workflow, not set, no workflow default`); }
-    return { name, status: present ? ('present' as const) : ('missing' as const) };
+    blockers.push(`config \`${name}\`: read by the workflow, declared nowhere in config:`);
+    return { name, status: 'missing' as const };
   });
 
   // Engine rates (0.96+): model → "$in/$out per 1M" — appended to the
@@ -465,7 +476,7 @@ export function renderPreflight(m: PreflightModel): string {
   out.push('## Secrets & env');
   out.push('');
   if (m.secretRows.length === 0 && m.envRows.length === 0) {
-    out.push('No `secrets:` or `env:` declared.');
+    out.push('No `secrets:` or `config:` declared.');
   } else {
     for (const s of m.secretRows) {
       const icon = s.status === 'present' ? '✓' : s.status === 'missing' ? '✗' : '·';
@@ -473,10 +484,10 @@ export function renderPreflight(m: PreflightModel): string {
     }
     for (const e of m.envRows) {
       const icon = e.status === 'missing' ? '✗' : '✓';
-      const detail = e.status === 'defined' ? 'defined in the workflow `env:` block'
-        : e.status === 'present' ? 'process env set'
-          : 'NOT set (and no workflow default)';
-      out.push(`- ${icon} env \`${e.name}\` — ${detail}`);
+      const detail = e.status === 'defined'
+        ? 'declared in the workflow `config:` block'
+        : 'read but NEVER declared — `config:` has no ambient fallback';
+      out.push(`- ${icon} config \`${e.name}\` — ${detail}`);
     }
   }
   out.push('');

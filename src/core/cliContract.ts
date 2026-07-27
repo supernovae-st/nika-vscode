@@ -402,13 +402,44 @@ export interface ReportDagAnalysis {
   blast_radius: Array<{ task: string; blocks: number }>;
 }
 
-/** E-REQ (0.95+): the caller contract, stated by the checker itself. */
+/**
+ * E-REQ (0.95+): the caller contract, stated by the checker itself.
+ *
+ * The E-split (R3a) renamed three of these ON THE WIRE — the envelope
+ * `env:` block became `config:` and `vars:` became `inputs:`, so the
+ * checker now reports `config_reads` / `config_defined` /
+ * `inputs_required`. Both spellings are declared here and read with the
+ * new one first: a field the running binary does not emit is simply
+ * absent, and reading only the old names made the required-input CTA
+ * vanish silently against a post-flip engine (an empty `?? []`, never
+ * an error — the worst kind of break).
+ */
 export interface ReportRequirements {
   models: Array<{ model: string; tasks: string[] }>;
   secrets: Array<{ name: string; source: string; key: string }>;
-  env_reads: string[];
-  env_defined: string[];
-  vars_required: string[];
+  /** Post-flip spellings (`config:` · `inputs:`). */
+  config_reads?: string[];
+  config_defined?: string[];
+  inputs_required?: string[];
+  /** Pre-flip spellings — a binary older than the E-split. */
+  env_reads?: string[];
+  env_defined?: string[];
+  vars_required?: string[];
+}
+
+/** The names the body READS from the deployment-config authority. */
+export function configReads(req: ReportRequirements): string[] {
+  return req.config_reads ?? req.env_reads ?? [];
+}
+
+/** The names the envelope DECLARES under that authority. */
+export function configDefined(req: ReportRequirements): string[] {
+  return req.config_defined ?? req.env_defined ?? [];
+}
+
+/** Inputs the caller MUST supply (`required: true`, no `default:`). */
+export function inputsRequired(req: ReportRequirements): string[] {
+  return req.inputs_required ?? req.vars_required ?? [];
 }
 
 export interface CheckReport {

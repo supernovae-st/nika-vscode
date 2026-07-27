@@ -9,6 +9,9 @@ import {
   collectFindings,
   countReportFindings,
   byteOffsetToPosition,
+  configDefined,
+  configReads,
+  inputsRequired,
   type GraphDoc,
 } from '../core/cliContract';
 
@@ -216,7 +219,10 @@ describe('parseCheckReport + collectFindings', () => {
       schema_lints: [],
       hints: [],
       analysis: { width: 1, width_witness: ['a'], pinch_points: [], blast_radius: [] },
-      requirements: { models: [], secrets: [], env_reads: [], env_defined: [], vars_required: [] },
+      requirements: {
+        models: [], secrets: [],
+        config_reads: [], config_defined: [], inputs_required: [],
+      },
       pricing: { models: [{ model: 'ollama/qwen3.5:4b', input_per_million: null, output_per_million: null }] },
     };
     const parsed = parseCheckReport(JSON.stringify(FULL_WIRE));
@@ -244,6 +250,30 @@ describe('parseCheckReport + collectFindings', () => {
     // absent on older binaries → undefined, never a throw
     const older = parseCheckReport(JSON.stringify({ report_version: 1, cost: {} }));
     expect(older?.requirements).toBeUndefined();
+  });
+
+  it('reads the requirements section in BOTH wire spellings (the E-split)', () => {
+    // R3a renamed three fields: the envelope `env:` block became
+    // `config:` and `vars:` became `inputs:`, so the checker reports
+    // config_reads / config_defined / inputs_required. Reading only the
+    // OLD names against a post-flip engine failed silently — an empty
+    // `?? []`, never an error — which quietly deleted the « run with
+    // inputs » CTA and the required-input run line. Both are read, new
+    // spelling first, so one client spans the flip.
+    const post = { models: [], secrets: [],
+      config_reads: ['REGION'], config_defined: ['REGION'], inputs_required: ['topic'] };
+    expect(inputsRequired(post)).toEqual(['topic']);
+    expect(configReads(post)).toEqual(['REGION']);
+    expect(configDefined(post)).toEqual(['REGION']);
+
+    const pre = { models: [], secrets: [],
+      env_reads: ['REGION'], env_defined: ['REGION'], vars_required: ['topic'] };
+    expect(inputsRequired(pre)).toEqual(['topic']);
+    expect(configReads(pre)).toEqual(['REGION']);
+    expect(configDefined(pre)).toEqual(['REGION']);
+
+    // Neither spelling present → empty, never a throw.
+    expect(inputsRequired({ models: [], secrets: [] })).toEqual([]);
   });
 
   it('prefers the engine-stamped severity + docs_url (E4 wire · ≥0.94)', () => {

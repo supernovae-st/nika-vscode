@@ -137,7 +137,9 @@ import { registerLmTools } from './features/lmTools';
 import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
-import { collectFindings, countReportFindings, parseCheckReport } from './core/cliContract';
+import {
+  collectFindings, countReportFindings, inputsRequired, parseCheckReport,
+} from './core/cliContract';
 import { WORKFLOWS_SEARCH_CAP } from './core/searchCatalog';
 import { auditByTask } from './core/auditByTask';
 import { costForecast } from './core/costForecast';
@@ -656,7 +658,8 @@ export function activate(context: ExtensionContext): void {
         : window.activeTextEditor?.document;
       if (!doc) { return; }
       const rel = workspace.asRelativePath(doc.uri);
-      const vars = service.peekCheck(doc.uri.toString())?.report?.requirements?.vars_required ?? [];
+      const req = service.peekCheck(doc.uri.toString())?.report?.requirements;
+      const vars = req ? inputsRequired(req) : [];
       const line = `nika run ${rel}${vars.map((v) => ` --var ${v}=<value>`).join('')}`;
       await env.clipboard.writeText(line);
       flashStatus(`$(clippy) run command copied — ${line}`);
@@ -2627,7 +2630,7 @@ export function activate(context: ExtensionContext): void {
       if (doc.isDirty) { await doc.save(); }
       runNikaCommand(state.resolvedServerPath, 'run --dry-run', doc.uri.fsPath);
     }),
-    // Run with inputs — the check report's vars_required IS the input
+    // Run with inputs — the check report's inputs_required IS the input
     // contract: one type-ahead box per required var (Esc anywhere cancels
     // the whole run), then an optional spend ceiling riding
     // --max-cost-usd. The engine still audits first; this just stops the
@@ -2642,7 +2645,7 @@ export function activate(context: ExtensionContext): void {
       }
       if (doc.isDirty) { await doc.save(); }
       const outcome = await service.checkDocument(doc);
-      const vars = outcome?.report?.requirements?.vars_required ?? [];
+      const vars = outcome?.report?.requirements ? inputsRequired(outcome.report.requirements) : [];
       const answers = new Map<string, string>();
       for (const v of vars) {
         const val = await window.showInputBox({
