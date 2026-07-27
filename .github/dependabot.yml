@@ -32,17 +32,19 @@ updates:
     # by taking the bump. Proven on PR #280 (2026-07-26), which proposed
     # all three at once and failed the belt.
     #
-    #   @types/vscode  capped by `engines.vscode` in package.json. Typing
-    #     above the declared floor lets code call APIs absent from the
-    #     oldest VS Code we claim to support, and nothing catches it until
-    #     a user on that version hits the missing symbol at runtime.
+    #   @types/vscode  IS the engine floor, so every bump is a floor change
+    #     and none of them belong here. It is pinned exactly in package.json
+    #     (no caret) because `^1.91.0` let it drift to 1.120.0 unnoticed:
+    #     the extension was type-checking against 29 minor versions of API
+    #     it does not promise, and nothing would have caught it until a user
+    #     on 1.91 hit a missing symbol. Raise `engines.vscode` and this pin
+    #     together, on purpose, or not at all.
     #   @types/node    capped by the Node that same floor ships (1.91 runs
     #     on Node 20, so Node 26 types describe a host we do not target).
     #   typescript     capped by typescript-eslint's peer range (>=4.8.4
     #     <6.1.0 at 8.65). TS 7 resolves, then the lint leg has no parser.
     ignore:
       - dependency-name: "@types/vscode"
-        update-types: ["version-update:semver-major"]
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
