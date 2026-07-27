@@ -10,15 +10,15 @@ workflow:
 
 model: mock/echo
 
-vars:
-  changes_dir: "./items"
-  locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]
+const:                                        # neither is caller-overridable
+  changes_dir: "./items"                      # `digest` hardcodes items/item-N.md
+  locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]   # the description pins ×4
 
 tasks:
   discover:
     invoke:
       tool: "nika:glob"
-      args: { pattern: "${{ vars.changes_dir }}/*.md" }
+      args: { pattern: "${{ const.changes_dir }}/*.md" }
 
   digest:
     after: { discover: succeeded }
@@ -46,7 +46,7 @@ tasks:
   translate:
     with:
       notes: ${{ tasks.draft.output }}
-    for_each: ${{ vars.locales }}
+    for_each: ${{ const.locales }}
     max_parallel: 4
     fail_fast: false
     timeout: "60s"

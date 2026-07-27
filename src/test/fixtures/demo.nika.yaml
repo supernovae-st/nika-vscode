@@ -18,14 +18,16 @@ workflow:
 
 model: mock/echo
 
-vars:
-  collection_source: "./items"      # SLOT: where the collection comes from
+inputs:                             # the caller may point the fanout elsewhere
+  collection_source:                # SLOT: where the collection comes from
+    type: string
+    default: "./items"
 
 tasks:
   discover:
     invoke:                         # SLOT: glob / fetch sitemap / exec + jq split
       tool: "nika:glob"
-      args: { pattern: "${{ vars.collection_source }}/*.md" }
+      args: { pattern: "${{ inputs.collection_source }}/*.md" }
 
   process:
     with:
