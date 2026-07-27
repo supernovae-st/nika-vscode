@@ -31,6 +31,29 @@ export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'console', invo
  *  currentColor. cost = credit-card interim (bespoke SVG is owed). */
 export const NIKA_FEATURE_CODICON = { doctor: 'pulse', wired: 'plug', trace: 'record', permits: 'shield', replay: 'debug-rerun', chain: 'verified-filled', station: 'radio-tower', cost: 'credit-card', } as const
 
+/** the semantic ROLE a .nika.yaml key carries — MEANING, not syntax.
+ *  A generic highlighter colours by syntax class because it does not
+ *  know the language; nika is a closed contract, so `command` reads as
+ *  exec's because it cannot live anywhere else. Membership is DERIVED
+ *  from schemas/workflow.schema.json (roles.*.seed + the closure) —
+ *  add a word to the schema and its role follows on the next
+ *  projection. Space-joined: a string costs a fraction of a literal
+ *  array in a consumer bundle. */
+export const NIKA_ROLE_WORDS = { boundary: 'permits secrets', wire: 'after with', fail: 'backoff_max_ms backoff_ms backoff_strategy fail_workflow jitter max_attempts on_codes on_error on_finally recover retry skip', } as const
+export type NikaRoleName = keyof typeof NIKA_ROLE_WORDS
+/** how each role MARKS its words — no role invents a hue, because the
+ *  seven layer hues already collide with the four verb hues by
+ *  construction (flow IS infer's blue, boundary IS exec's orange). */
+export const NIKA_ROLE_MARK = { boundary: 'glyph', wire: 'ref-ink', fail: 'danger', } as const
+export const NIKA_ROLE_CODICON = { boundary: 'shield', wire: 'arrow-right', fail: 'error', } as const
+/** the web binding: the CSS custom property each role reuses */
+export const NIKA_ROLE_WEB_TOKEN = { boundary: '--cf-key', wire: '--cf-ref', fail: '--danger', } as const
+/** the editor binding — a vscode semantic-token type, so an EDITOR can
+ *  speak the same roles the site does while its colours stay the
+ *  user's theme (LOCK-005: the skin is theme-driven, the MEANING is
+ *  ours). A DocumentSemanticTokensProvider maps these verbatim. */
+export const NIKA_ROLE_VSCODE = { boundary: 'keyword.control', wire: 'variable.other.link', fail: 'invalid.deprecated', } as const
+
 export const NIKA_SEVERITY = { ok: '#34d399', fail: '#ff5d5d' } as const
 /** the severity pair's body-copy ramp (fail only — ok has no consumer yet) */
 export const NIKA_SEVERITY_TEXT = { fail: '#ff9791' } as const
