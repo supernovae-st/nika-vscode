@@ -28,13 +28,13 @@ export const NIKA_VERB_STARTERS: Record<NikaVerb, readonly VerbStarter[]> = {
       id: "infer-typed",
       label: "prompt → typed JSON",
       hint: "schema: validates the response — type-safe extraction, no prose parsing.",
-      body: "infer:\n  prompt: \"Extract the key facts from: ${{ vars.input }}\"   # SLOT: what to extract\n  schema:                # the response MUST match — structured output\n    type: object\n    required: [summary]\n    properties:\n      summary: { type: string }\n",
+      body: "infer:\n  prompt: \"Extract the key facts from: ${{ inputs.input }}\"   # SLOT: what to extract\n  schema:                # the response MUST match — structured output\n    type: object\n    required: [summary]\n    properties:\n      summary: { type: string }\n",
     },
     {
       id: "infer-tuned",
       label: "system + model + tuning",
       hint: "A voice, a model override (<provider>/<name> · local-first) and sampling bounds.",
-      body: "infer:\n  system: \"You are a senior software architect.\"   # SLOT: the voice\n  prompt: \"Research the topic: ${{ vars.topic }}\"  # SLOT: the job\n  model: ollama/qwen3.5:4b   # SLOT: override · local runs unpriced, never free\n  temperature: 0.3\n  max_tokens: 2000\n",
+      body: "infer:\n  system: \"You are a senior software architect.\"   # SLOT: the voice\n  prompt: \"Research the topic: ${{ inputs.topic }}\"  # SLOT: the job\n  model: ollama/qwen3.5:4b   # SLOT: override · local runs unpriced, never free\n  temperature: 0.3\n  max_tokens: 2000\n",
     },
   ],
   exec: [
@@ -76,13 +76,13 @@ export const NIKA_VERB_STARTERS: Record<NikaVerb, readonly VerbStarter[]> = {
       id: "agent-tools",
       label: "agent + tools",
       hint: "The multi-turn loop — tools are default-deny, grant the least set explicitly.",
-      body: "agent:\n  system: \"You are a research assistant.\"           # SLOT: the voice\n  prompt: \"Research the topic: ${{ vars.topic }}\"   # SLOT: the mission\n  tools: [\"nika:fetch\"]   # SLOT: default-deny · least privilege\n  max_turns: 10\n",
+      body: "agent:\n  system: \"You are a research assistant.\"           # SLOT: the voice\n  prompt: \"Research the topic: ${{ inputs.topic }}\"   # SLOT: the mission\n  tools: [\"nika:fetch\"]   # SLOT: default-deny · least privilege\n  max_turns: 10\n",
     },
     {
       id: "agent-typed",
       label: "agent → typed final",
       hint: "schema: validates the FINAL message — name the contract in the prompt so the loop lands on it.",
-      body: "agent:\n  system: \"You are a meticulous analyst.\"\n  prompt: \"Produce findings for: ${{ vars.topic }}\"   # SLOT: the mission · name the contract + done condition\n  tools: [\"nika:fetch\", \"nika:read\"]   # SLOT: least privilege\n  max_turns: 12\n  schema:                # the final message MUST match\n    type: object\n    required: [findings]\n    properties:\n      findings: { type: array, items: { type: string } }\n",
+      body: "agent:\n  system: \"You are a meticulous analyst.\"\n  prompt: \"Produce findings for: ${{ inputs.topic }}\"   # SLOT: the mission · name the contract + done condition\n  tools: [\"nika:fetch\", \"nika:read\"]   # SLOT: least privilege\n  max_turns: 12\n  schema:                # the final message MUST match\n    type: object\n    required: [findings]\n    properties:\n      findings: { type: array, items: { type: string } }\n",
     },
   ],
 } as const;
