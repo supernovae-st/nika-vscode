@@ -4,77 +4,30 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased]
+## [0.106.0] · 2026-07-28
 
-### The extension was teaching two forms the engine refuses
+The measured wave: the engine's own repair loop reaches the editor, and
+everything else here is the canvas being measured rather than admired.
+Three probe suites (does it speak · does it fit · can a keyboard see
+where it is) judged surfaces the belt cannot reach, and every defect
+they named is closed and re-proven at zero. The card and chrome metrics
+became a named ladder the belt now enforces, the language client crossed
+to 10 so the shipped tree reads zero vulnerabilities, and the starter
+snippets stopped teaching a namespace the language had already retired.
 
-- **`vars:` and `env:` are dead envelope fields** (`NIKA-VALUES-001` and `NIKA-VALUES-002` · the E-split · R3a), and the extension taught both · in the demo workflow `Try the Demo Workflow` writes, in the quick fix that declares a missing reference, in completions, go-to-definition, the gate and collection pickers, the authoring prompt handed to agents, and the README. The value namespaces are now the **six** the spec names · the four authorities `inputs` · `config` · `const` · `secrets`, plus the runtime `with` · `tasks`.
-- **Classified per role, never renamed in bulk.** Each old use was placed in the authority its ROLE commands, which is why the four fixture values landed in two different homes · the demo's `topic` and the fanout's `collection_source` are `inputs:` (a value the caller may override is an input, spec 01 §const), while the signature demo's `changes_dir` and `locales` are `const:` (one is hardcoded by a downstream `exec`, the other is pinned by the file's own description). A `sed` would have put all four in the same place and been wrong twice.
-- **The quick fix no longer guesses.** `addAuthorityDeclaration` reads the authority off the unresolved reference itself · `${{ const.x }}` asks for a `const:` entry, `${{ inputs.x }}` for an input. It writes the shape each authority actually takes rather than one shape four times, and it deliberately does NOT offer to « declare » a `vars.`/`env.` reference · those refuse with a classification teaching, not a missing declaration.
-- **Reading a pre-flip file still works.** `scanRefs`, go-to-definition and folding all still resolve `vars:`/`env:`, and the parser keeps them in their own buckets. The editor is the tool you migrate IN; going blind on the file you are here to fix would be the wrong trade. Completion is the one surface that refuses them, answering `vars.` with the migration teaching instead of a silent empty list.
+One thing to read before installing: the supported floor rises to
+**VS Code 1.91** (June 2024), which every current VS Code, Cursor,
+Windsurf and VSCodium base is far past.
 
-### Three wire fields we were reading under their old names
+### The engine's own repair loop reaches the editor
 
-- **The E-split moved the check report too**, not just the YAML. The checker reports `config_reads` · `config_defined` · `inputs_required`; the extension read `env_reads` · `env_defined` · `vars_required`. Every read was `?? []`, so against a post-flip engine the « Run with inputs » loop asked for nothing, the run line dropped its `--var` placeholders, and the required-input lens vanished · no error, no finding, the features just quietly stopped existing. Both spellings are read now, new first, so one client spans the flip.
-- **`--var` stays.** It is the flag that SUPPLIES an input and the engine still spells it that way. Only the noun moved.
-- **Preflight's config check was wrong in a way that promised too much**: it probed the OS environment for a `${{ config.X }}` read and reported « present » when the process had it. `config:` has no ambient fallback · a read resolves only against the envelope block · so that « present » described a run that cannot happen. A config read is now `defined` or it blocks.
+- **`Nika: Fix Workflow` (the engine's rename repairs)**: `check --fix` was the one released door the extension never pushed · the engine applies every typed did-you-mean rename (fields · tools · args), rewrites the one real file, re-audits, and narrates every skip · it rides the terminal like every mutating gesture, and the check-as-you-type sweep repaints from the rewritten disk. The door is everywhere the moment matters: the palette, the workflow row's `⌘K ⌘.` panel, and a quick fix that appears exactly when a `did you mean` squiggle is under the cursor (`fix every rename the engine can`). Capability-gated on the binary's own `check --help` (the stdinDash law: help text, never version numbers).
 
-### The secrets lint was rewriting to the dead namespace
+### The starter snippets stop teaching a dead namespace
 
-- **The one fix whose job is « make this file safe »** was handing back `${{ env.VAR }}`. It now declares the key under `secrets:` (`source: env`) and reads `${{ secrets.<name> }}`, which is what actually gets the value MASKED in logs, traces and journal events. It is two edits, and has to be · `env` was ambient so the old reference needed no declaration, and an undeclared `${{ secrets.x }}` is `NIKA-VAR-001`. Replacing the literal alone would trade a leaked key for a broken file.
-
-### Fallout the rename surfaced
-
-- **`varsEdit.ts` is `inputsEdit.ts`** · the filename carried the dead spelling. Behind it: the « untyped » input the door offered is not a legal input at all (`type:` is required), the type reader matched `[a-z]+` so every `{ array: T }` entry read as UNTYPED, and `inferVarType` emitted `boolean` and the bare words `array`/`object`, none of which are types (R3b · `bool` is the one boolean spelling). `inferTypeExpr` lowers a list to `{ array: T }` and refuses to invent an `{ object: … }` · that constructor is closed, so a guessed shape would make every unlisted field a violation.
-
-### Not proven here
-
-- **There is no 0.106 binary to check against.** The installed and released engine is 0.105.0, and it refuses the new envelope outright (`NIKA-PARSE-005` unknown field `inputs`) exactly as engine main refuses the old one. The two forms are mutually exclusive, so **this work is only correct once 0.106 is the engine in hand** · shipping it before then breaks `Try the Demo Workflow` for every current user. The two real-binary suites now probe the envelope and skip with that reason rather than pinning a red, and they run for real the day a post-flip engine is on PATH. `SPEC_PIN` is untouched · its HOLD is the release lever and it is not ours to pull.
-
-
-### The door survives the WCAG reflow width
-
-- **400px still threw the `⋯` door overboard**: the measured shed ladder closed a 240px band this morning, but its list held only the ten lenses · around 380 to 470 the CSS rungs have already hidden every one of them, so the ladder had nothing left to give while the bar still overflowed by ~17px, and the overflow door fell off the right edge again. One band lower, same casualty. Found by probing **320px**, the WCAG 1.4.10 Reflow threshold, which no earlier sweep had reached (520 was the narrowest).
-- **The ladder now continues past the lenses** into zoom, New and fit. Every one of them keeps a keyboard path when it yields (`+` and `−` for zoom, `F` for fit, `nika.newWorkflow` in the palette), and everything shed is one click behind the door · `＋ Task`, the door itself and the run status never yield.
-- **Proven functionally, not just geometrically**: at 400px the door sits at 373 inside the viewport, opens, and holds **13 rows** · each carrying its own key, including the `∿ Smooth edges B` this release minted.
-- **The matrix**: three skins × six widths from 320 to 1920, six lenses, all zero.
-
-### At 300 nodes, the row that says where you are was the hardest to read
-
-- **The ACTIVE plan-rail number cleared no floor**: the resting `.pr-n` was lifted to 90% two waves ago and its active variant was missed · 70% of the accent measures **3.21:1** in nika and **4.22:1** in editor, both under 4.5, on the one number that marks where you currently are in the plan. It only surfaced at density, because the rail needs many waves before an active row is on screen at all.
-- **94% is where nika clears** (editor 6.48 · phosphor 10.32), and at 94% the alpha no longer hierarchises against the row's full-accent label. That is the point rather than a regret: on this hue alpha cannot be both dim enough to read as secondary and light enough to read at all, so the hierarchy moves to the bracket form the number already wears (`[ 05 ]` beside a bare `×2`), which never needed contrast to do its job.
-- **The SPILL lens stopped blaming the child for the container**: at 300 nodes the rail holds 24 rows in a 418px scroll box that itself sits 140→560 inside a 700px viewport, and five rows report past the bottom purely from `scrollTop`. Scrolled is not spilled. The lens now asks whether a scrollable ancestor put the row there before calling it a layout break.
-
-### The one lens a keyboard could not reach
-
-- **`∿` smooth-edges had no keyboard path at all**: not a webview key, not a `nika.*` command, not a setting · and Tab never leaves the graph (the roving stop owns it, by design), so the single way to bend the wires was a mouse. The focus suite is what surfaced it: 60 Tab presses, 60 inside the canvas, which sent the question to the toolbar itself. Walking the five controls with no printed key settled it one by one · `⧇ New` reaches the palette as `nika.newWorkflow`, both exports reach it as `nika.exportDag`, `⋯` is a disclosure whose contents each carry their own key · and `∿` had nothing. One real gap out of five suspects.
-- **`B` bends the edges**: the letter is what was FREE (s, c and e were long taken by search, connect and expand), so the mnemonic follows the shape the toggle draws rather than the label it wears. It prints its key in the toolbar like every sibling lens, joins `CANVAS_KEYMAP` so `?` and `⌥F1` teach it, and the click handler became a named `toggleCurve` the keyboard shares · one behaviour, two doors. The taught keymap goes 30 keys to 31 and the a11y suite picked that up on its own.
-- **The harness was synced in the same edit this time**, not a debugging loop later.
-
-### The one press that never got its reduced-motion opt-out
-
-- **The verb palette kept moving when the OS asked it not to**: `.vp-btn:active` scales to 0.94 on a 0.16s spatial easing, and it was the single animated surface in the canvas that shipped without the paired `prefers-reduced-motion` block every other effect here carries. Under `reduce`, four buttons still animated.
-- **Reduce now swaps the motion for a non-spatial answer, not for nothing**: the transform transition drops, the scale drops, and the press deepens its wash instead (currentColor 12% → 24%, border 35% → 55%). Measured both ways · no-preference: moves and speaks · reduce: does not move (`transform: none`) and speaks louder. A press that stops saying anything is the other way to fail the charter.
-- **A fifth lens now guards the class**: `chrome-probes.cjs` gained MOTION, which under `MOTION=reduce` reports any keyframe animation still running or any transition on a layout/transform property. It is what found this one. The suite also learned `SCENE=` (harness scenes) and `FORCED=1` (OS High Contrast) · the empty state, forced-colors and reduced-motion all read clean on the other four lenses.
-
-### The toolbar stopped throwing its own door overboard
-
-- **A 240px band of ordinary panel widths pushed the run status and the `⋯` door off screen**: the shed ladder in CSS is a rung of width breakpoints whose numbers were tuned to a narrower toolbar, and every button added since raised the real overflow point above the top rung (980px). Between roughly 880 and 1120 the row spilled past its own `right: 12px` box, and because flex items refuse to shrink below their content, the casualties were whoever sat last: `#dag-status` at 1120, and at 900 the `⋯` door itself, entirely outside the viewport. A door you cannot reach is worse than the crowding it was built to answer.
-- **The ladder gained a measured rung**: `fitToolbar` sheds lenses in the same priority the CSS rungs encode (comfort first, the teach door last) until the row fits its box, and gives them back the moment the panel widens · everything shed stays one click behind `⋯`, which is now always reachable. The media queries stay as the no-JS floor. A `ResizeObserver` on the bar carries it, because the first pass can measure before the stylesheet lands and a verdict of *fits* taken at zero width would otherwise latch forever.
-- **Proven across the matrix**: three skins × seven widths from 520 to 1920, all four lenses at zero.
-
-### `chrome-probes.cjs` · the sister suite
-
-- **a11y-probes asks whether the canvas speaks; this asks whether it fits**: four lenses (clipped text · WCAG 2.2 target size · AA contrast · off-viewport paint) swept across `SKINS` × `SIZES`, reporting instances rather than a verdict so a fix can be structural. Every defect in this release's polish waves was found by it, and every one of them was invisible to `npm test`. Not wired to CI by design, like its sister · the belt stays fast, the judge runs the sweep.
-
-### The chrome measured itself, and three surfaces were caught
-
-A four-lens sweep (clipped text · pointer-target size · AA contrast · off-viewport paint) run against the harness in all three skins found three real defects, each now closed and each re-proven at zero.
-
-- **The command bar stopped lying about its own lesson**: `#omni-input` teaches the whole omnibar vocabulary in its placeholder, and it was painting 635px of that lesson into a 151px field · cut mid-word, no ellipsis, four fifths of the teaching gone. The responsive-placeholder mechanism existed and was even declared on the element · it just measured **the window** (`max-width: 560px`) when the clipping is a property of **the field**: the omnibar's input sits at 151px inside a 1440px window once the run controls, the changed pill and the four verb chips have eaten the row, so the query never fired at any width a person actually uses. The ladder now measures the glyph run against the content box the browser paints into, takes the longest declared rung that fits, and when even the short rung does not fit, trims it to a prefix ending in `…` · a cut that admits it cut. A `ResizeObserver` watches the fields, because a lens chip appearing narrows the bar with no window resize at all.
-- **The plan rail rows became real targets**: 4px of block padding put `.pr-row` at 21.5px, under the WCAG 2.2 §2.5.8 24px floor and conformant only through the spacing exception, only by half a pixel of it. 6px makes the target 25.5px · unarguable instead of lawyerly, and the rail reads no different at a glance.
-- **The dim ink finished the climb it started**: `.wave-label-n` and `.pr-n` were lifted 55% → 78% in 0.105.1 with a comment claiming the count *repasses the AA floor*. Measured, 78% is **3.85:1** in the nika skin · still under 4.5. A sweep across all three skins put the answer at 90% (nika 4.70 · editor 4.86 · phosphor 5.89), so both twins now carry the measured number and the comments carry the measurement instead of the claim. Dim stays a hierarchy; it stops being an illegibility.
-- **The pixel-proof page rejoined the shell it mirrors**: `harness.html` had dropped `data-short-placeholder` and `aria-label` from the omni input, so the proof page could not have observed the bug even in principle · the fixture canary guards the graph literal, not the shell attributes, and this is the second time that gap has cost a debugging loop.
+- **Every verb starter now writes `${{ inputs.X }}`**: the `SPEC_PIN` the generated surfaces project from had fallen behind the tokens the tree already shipped, and advancing it re-projected `verbStarters.generated.ts` · the whole delta was `${{ vars.X }}` → `${{ inputs.X }}`. The spec's own canon names `vars` among the dead spellings `inputs` succeeded, so every starter the extension inserted was teaching a namespace the language had retired. Nobody sees that in a diff; it took the pin bump to surface it.
+- **The pin moves deliberately, never to spec HEAD**: it sits at the commit dated the day 0.105.0 cut, the minimal advance that makes the tree self-consistent · these generated surfaces are SERVED, so they follow the released clock, not main's.
+- **The design tokens rejoin the spec at v3**: purely additive · the verb hues re-anchored for body copy, the open feature set bound to codicons, the fail ramp, and the two proving planes those ramps clear against. Values change spec-first: the fix is the projector, never a hand edit.
 
 ### The language client crosses to 10, and the audit goes quiet
 
@@ -83,6 +36,12 @@ A four-lens sweep (clipped text · pointer-target size · AA contrast · off-vie
 - **The toolchain rides its safe lines**: `@vscode/test-electron` 3.1 · `eslint` 10.8.
 - **TypeScript 7 is proven ready and deliberately not taken**: the compiler itself is clean on this codebase (zero errors, once `tsconfig` names the `@types` packages it consumes · 7 stopped auto-including them, so the field is now explicit and reads the same under 5.x). What blocks it is `typescript-eslint@8`, which pins `typescript <6.1.0` as a peer · taking 7 today would ship a tree `npm ci` cannot resolve, and the lockfile-in-sync gate is the one that killed v0.93.0 in sixteen seconds. The `types` field lands now so the crossing is a one-line change the day `typescript-eslint` widens its range.
 - **`@types/node` deliberately stays on 20**: the types must describe the runtime the extension actually gets, and 1.91 is the floor we support · typing Node 26 APIs over a Node 20 host is how an extension compiles clean and dies in the field.
+
+
+### Three dependencies stop floating
+
+- **`@types/vscode` is pinned exactly to the floor the manifest advertises**: `engines.vscode` says `^1.91.0` and the types had drifted to 1.120 behind their own caret · the extension was type-checking against 29 minor versions of API beyond the floor it promises, and nothing would have caught a call into that gap until a user on 1.91 hit a missing symbol at runtime. The compiler is now the guard for what was previously only prose · the belt passes unchanged, so the code was already inside its floor, it just was not proven.
+- **`@types/node` and `typescript` are capped with the reason written beside them**: their ceiling comes from the supported floor and from typescript-eslint's peer range, not from what npm calls latest. Dependabot proposed all three majors in one PR and the belt caught it · majors on those three are now ignored, so the next reader lifts the cap deliberately instead of taking the bump.
 
 ### The dimmed card answers engagement
 
@@ -96,9 +55,121 @@ A four-lens sweep (clipped text · pointer-target size · AA contrast · off-vie
 - **The whole chrome joins, and the ladder becomes law**: 59 more declarations (toolbar · omnibar · explainer · palette · transport · feed) read the nine voices · the surviving raw px are documented one-offs (13 glyph controls · the 13.5 title half-step · the 14 touch target · the 18/22/26 display trio) · and tokens-parity now FAILS any new raw font-size px or off-list card radius, naming DESIGN.md §1e in the message: the metric system is structural, not aspirational.
 - **The chrome radii finish the reform**: the control grammar already existed (`--nk-radius` 7 + calc derivatives: `-2` compact · `+2` toolbar pills · `+4` omnibar) and 21 raw twins now write it · one new step names the popover family (`--nk-r-pop` 10: the ⋯ pop · plan rail · explainer card · describe home) · 42 more echo the card steps (rows and banners = tile · minimap and feed = panel · kbd and code = chip and tag · progress and scrollbars = bar) · 63 declarations total, computed values identical across seven families · the metric gate now holds a chrome allowlist beside the card one (hint pills · welcome card · aurora · confetti · full pills).
 
-### The engine's own repair loop reaches the editor
 
-- **`Nika: Fix Workflow` (the engine's rename repairs)**: `check --fix` was the one released door the extension never pushed · the engine applies every typed did-you-mean rename (fields · tools · args), rewrites the one real file, re-audits, and narrates every skip · it rides the terminal like every mutating gesture, and the check-as-you-type sweep repaints from the rewritten disk. The door is everywhere the moment matters: the palette, the workflow row's `⌘K ⌘.` panel, and a quick fix that appears exactly when a `did you mean` squiggle is under the cursor (`fix every rename the engine can`). Capability-gated on the binary's own `check --help` (the stdinDash law: help text, never version numbers).
+### The chrome measured itself, and three surfaces were caught
+
+A four-lens sweep (clipped text · pointer-target size · AA contrast · off-viewport paint) run against the harness in all three skins found three real defects, each now closed and each re-proven at zero.
+
+- **The command bar stopped lying about its own lesson**: `#omni-input` teaches the whole omnibar vocabulary in its placeholder, and it was painting 635px of that lesson into a 151px field · cut mid-word, no ellipsis, four fifths of the teaching gone. The responsive-placeholder mechanism existed and was even declared on the element · it just measured **the window** (`max-width: 560px`) when the clipping is a property of **the field**: the omnibar's input sits at 151px inside a 1440px window once the run controls, the changed pill and the four verb chips have eaten the row, so the query never fired at any width a person actually uses. The ladder now measures the glyph run against the content box the browser paints into, takes the longest declared rung that fits, and when even the short rung does not fit, trims it to a prefix ending in `…` · a cut that admits it cut. A `ResizeObserver` watches the fields, because a lens chip appearing narrows the bar with no window resize at all.
+- **The plan rail rows became real targets**: 4px of block padding put `.pr-row` at 21.5px, under the WCAG 2.2 §2.5.8 24px floor and conformant only through the spacing exception, only by half a pixel of it. 6px makes the target 25.5px · unarguable instead of lawyerly, and the rail reads no different at a glance.
+- **The dim ink finished the climb it started**: `.wave-label-n` and `.pr-n` were lifted 55% → 78% in 0.105.1 with a comment claiming the count *repasses the AA floor*. Measured, 78% is **3.85:1** in the nika skin · still under 4.5. A sweep across all three skins put the answer at 90% (nika 4.70 · editor 4.86 · phosphor 5.89), so both twins now carry the measured number and the comments carry the measurement instead of the claim. Dim stays a hierarchy; it stops being an illegibility.
+- **The pixel-proof page rejoined the shell it mirrors**: `harness.html` had dropped `data-short-placeholder` and `aria-label` from the omni input, so the proof page could not have observed the bug even in principle · the fixture canary guards the graph literal, not the shell attributes, and this is the second time that gap has cost a debugging loop.
+
+
+### The toolbar stopped throwing its own door overboard
+
+- **A 240px band of ordinary panel widths pushed the run status and the `⋯` door off screen**: the shed ladder in CSS is a rung of width breakpoints whose numbers were tuned to a narrower toolbar, and every button added since raised the real overflow point above the top rung (980px). Between roughly 880 and 1120 the row spilled past its own `right: 12px` box, and because flex items refuse to shrink below their content, the casualties were whoever sat last: `#dag-status` at 1120, and at 900 the `⋯` door itself, entirely outside the viewport. A door you cannot reach is worse than the crowding it was built to answer.
+- **The ladder gained a measured rung**: `fitToolbar` sheds lenses in the same priority the CSS rungs encode (comfort first, the teach door last) until the row fits its box, and gives them back the moment the panel widens · everything shed stays one click behind `⋯`, which is now always reachable. The media queries stay as the no-JS floor. A `ResizeObserver` on the bar carries it, because the first pass can measure before the stylesheet lands and a verdict of *fits* taken at zero width would otherwise latch forever.
+- **Proven across the matrix**: three skins × seven widths from 520 to 1920, all four lenses at zero.
+
+
+### The door survives the WCAG reflow width
+
+- **400px still threw the `⋯` door overboard**: the measured shed ladder closed a 240px band this morning, but its list held only the ten lenses · around 380 to 470 the CSS rungs have already hidden every one of them, so the ladder had nothing left to give while the bar still overflowed by ~17px, and the overflow door fell off the right edge again. One band lower, same casualty. Found by probing **320px**, the WCAG 1.4.10 Reflow threshold, which no earlier sweep had reached (520 was the narrowest).
+- **The ladder now continues past the lenses** into zoom, New and fit. Every one of them keeps a keyboard path when it yields (`+` and `−` for zoom, `F` for fit, `nika.newWorkflow` in the palette), and everything shed is one click behind the door · `＋ Task`, the door itself and the run status never yield.
+- **Proven functionally, not just geometrically**: at 400px the door sits at 373 inside the viewport, opens, and holds **13 rows** · each carrying its own key, including the `∿ Smooth edges B` this release minted.
+- **The matrix**: three skins × six widths from 320 to 1920, six lenses, all zero.
+
+
+### At 300 nodes, the row that says where you are was the hardest to read
+
+- **The ACTIVE plan-rail number cleared no floor**: the resting `.pr-n` was lifted to 90% two waves ago and its active variant was missed · 70% of the accent measures **3.21:1** in nika and **4.22:1** in editor, both under 4.5, on the one number that marks where you currently are in the plan. It only surfaced at density, because the rail needs many waves before an active row is on screen at all.
+- **94% is where nika clears** (editor 6.48 · phosphor 10.32), and at 94% the alpha no longer hierarchises against the row's full-accent label. That is the point rather than a regret: on this hue alpha cannot be both dim enough to read as secondary and light enough to read at all, so the hierarchy moves to the bracket form the number already wears (`[ 05 ]` beside a bare `×2`), which never needed contrast to do its job.
+- **The SPILL lens stopped blaming the child for the container**: at 300 nodes the rail holds 24 rows in a 418px scroll box that itself sits 140→560 inside a 700px viewport, and five rows report past the bottom purely from `scrollTop`. Scrolled is not spilled. The lens now asks whether a scrollable ancestor put the row there before calling it a layout break.
+
+
+### The one lens a keyboard could not reach
+
+- **`∿` smooth-edges had no keyboard path at all**: not a webview key, not a `nika.*` command, not a setting · and Tab never leaves the graph (the roving stop owns it, by design), so the single way to bend the wires was a mouse. The focus suite is what surfaced it: 60 Tab presses, 60 inside the canvas, which sent the question to the toolbar itself. Walking the five controls with no printed key settled it one by one · `⧇ New` reaches the palette as `nika.newWorkflow`, both exports reach it as `nika.exportDag`, `⋯` is a disclosure whose contents each carry their own key · and `∿` had nothing. One real gap out of five suspects.
+- **`B` bends the edges**: the letter is what was FREE (s, c and e were long taken by search, connect and expand), so the mnemonic follows the shape the toggle draws rather than the label it wears. It prints its key in the toolbar like every sibling lens, joins `CANVAS_KEYMAP` so `?` and `⌥F1` teach it, and the click handler became a named `toggleCurve` the keyboard shares · one behaviour, two doors. The taught keymap goes 30 keys to 31 and the a11y suite picked that up on its own.
+- **The harness was synced in the same edit this time**, not a debugging loop later.
+
+
+### The one press that never got its reduced-motion opt-out
+
+- **The verb palette kept moving when the OS asked it not to**: `.vp-btn:active` scales to 0.94 on a 0.16s spatial easing, and it was the single animated surface in the canvas that shipped without the paired `prefers-reduced-motion` block every other effect here carries. Under `reduce`, four buttons still animated.
+- **Reduce now swaps the motion for a non-spatial answer, not for nothing**: the transform transition drops, the scale drops, and the press deepens its wash instead (currentColor 12% → 24%, border 35% → 55%). Measured both ways · no-preference: moves and speaks · reduce: does not move (`transform: none`) and speaks louder. A press that stops saying anything is the other way to fail the charter.
+- **A fifth lens now guards the class**: `chrome-probes.cjs` gained MOTION, which under `MOTION=reduce` reports any keyframe animation still running or any transition on a layout/transform property. It is what found this one. The suite also learned `SCENE=` (harness scenes) and `FORCED=1` (OS High Contrast) · the empty state, forced-colors and reduced-motion all read clean on the other four lenses.
+
+
+### Forced colors gives every toolbar button its boundary
+
+- **Under OS High Contrast the rail's buttons were unbounded glyphs**: the omnibar, legend chips and minimap all carried real 1px system borders while the toolbar's own controls stayed transparent fills with no border at all. System button colors (`ButtonFace` · `ButtonText` · `ButtonBorder`) now bound every control, and `fit`, `more` and `help` all compute solid/1px under forced-colors in the rig.
+- **The wave's other two verdicts needed no code**: the reduced-motion animation census reads 35 → 0 (the CSS blocks hold globally), and the editor-light 3.48:1 reading was the probe's own pessimistic shim · real Light Modern lands the dim ink near 5.4:1.
+
+### The run close survives a tab closed under it
+
+- **Closing the canvas mid-run raised a rejection in the console**: `applyTitle()` was the last function touching a disposed webview without the house pattern its siblings already carried (`show()` and `postMessage()` release and rebuild on the throw). A run that closes after its tab is gone now releases the corpse instead of surfacing `Webview is disposed` to the user. The e2e count of that rejection is zero.
+
+### Local run traces can never ship in a vsix
+
+- **A local `vsce package` picked up 32 stale run traces**: 67 files instead of 35. The published vsix was never affected (CI packages a git checkout and the traces were untracked), but the readiness gate in `PUBLISHING.md` runs `npx vsce package` locally, which is exactly the hazard path. Double belt: `.gitignore` takes `.nika/` so a bulk `git add` can never commit a personal trace, `.vscodeignore` takes `.nika/**` so a local package can never ship one, and the gate now checks for it by name.
+- **The gate also tells the truth about size**: around 2 MB, the canvas bundle being the mass · the old sub-1 MB claim predated the webview's growth.
+
+### `chrome-probes.cjs` · the sister suite
+
+- **a11y-probes asks whether the canvas speaks; this asks whether it fits**: four lenses (clipped text · WCAG 2.2 target size · AA contrast · off-viewport paint) swept across `SKINS` × `SIZES`, reporting instances rather than a verdict so a fix can be structural. Every defect in this release's polish waves was found by it, and every one of them was invisible to `npm test`. Not wired to CI by design, like its sister · the belt stays fast, the judge runs the sweep.
+
+
+### `focus-probes.cjs` · the third sibling
+
+- **a11y-probes asks whether the canvas speaks, chrome-probes whether it fits, this one whether a keyboard can see where it is**: a real Tab walk measuring the focus indicator against the same control unfocused, WCAG 2.2 §2.4.11 focus-not-obscured at the control centre, and a trap detector. The walk has to be a real Tab walk · `:focus-visible` does not arm for `el.focus()` in Chromium, so a script-driven probe would report a false all-clear.
+- **Its first run says INCONCLUSIVE rather than printing three zeros**: sixty Tab presses, sixty of them inside the graph, zero on the chrome · the canvas binds Tab to card cycling by design. The probe sent the question to the toolbar instead, where it settled one control at a time and found the single real gap (see `B` above).
+
+### First contact observes what the harness can prove
+
+- **The zero-gesture e2e was gating on something it could not see**: the persisted-key byte scan stayed red across seven varied attempts on two VS Code versions, and the finding was the harness itself · its storage is memory-backed, the profile's `state.vscdb` is never created, so cross-launch state can neither be observed nor inherited. An unstable observation is not a gate.
+- **Launch A keeps the whole chain and now waits on an observable**: the demo lands, the canvas opens, the waves light in order, the first green closes · teardown waits on the extension's own trace copy, which is written at the END of the run-close handler and so proves the verdict path completed inside the window. The never-twice guards stay pinned where they are provable, in the decision-table units.
+
+### The storefront catches up with the 0.105 line
+
+- **The README never mentioned the Station tree or Run Workflow with Inputs**: two headline surfaces of the previous release. A Station section lands before Engine-honest (the machinery tree · the local-model lifecycle with the engine's own pull ceremony), the run section gains the inputs form, the spend ceiling and the pause beacon that survives a dismissed toast, and the command table grows to sixteen.
+- **`AGENTS.md` catches up with what the extension IS** (omnibar · Station · run detail · deep links) and names the belts an agent hits blind: the voice gate's ban on the long dash, the glyph registry's declared marks, the dagPanel/harness twin, the reachability rule.
+
+### The belts
+
+- **Eight contributor surfaces graduate WARN to FAIL in the voice gate**: 63 separator conversions across `SSOT` · `SECURITY` · `AGENTS` · `PUBLISHING` · `contrib` · `icons` · `scripts/media` · `ALGORITHMS`, and those rows now fail rather than warn · a swept surface stays clean or the belt says so. `docs/DESIGN.md` was the named holdout and closed its own pass, so the gate reads zero findings on every surface it judges.
+- **Grouped weekly dependency freshness joins this repo**, the one sibling without it: actions and npm each land as ONE weekly PR the belt suite judges whole.
+- **The dependency waves**: `elkjs` 0.12 with its layout proven in the browser · `mocha` 11.7.6 · `vsce` 3.9.2 · `esbuild` 0.28.1 · the GitHub Actions group by five. `npm audit --omit=dev` reads zero.### The predicate table flips · the doors speak the released dialect
+
+The `predicates.ts` module was built for one moment: spec #118 renamed
+`succeeded`/`failed` to `success`/`failure` while every released engine
+still spoke the old forms, and the module's own comment promised « when
+the engine's lane lands, THIS table flips and every consumer follows ·
+one line, zero hunt ». v0.106.0 landed the lane and the flip happened as
+designed: the order-on-state door, the canvas connect gesture, the demo's
+teaching comment, the MCP agent lesson and the admission-sim fallback all
+follow the table. The five `*Real` e2e suites woke on the brew binary,
+caught the old spellings plus three permits gaps in their own fixtures,
+and now pass 13 for 13 against the published engine.
+
+### The three canvas gifs re-shoot at the shipped surface
+
+Fourteen canvas commits sat between the old captures and the UI this
+release ships: the toolbar's B-key hint, the dim ink raised twice, the
+taller plan rail, the placeholder that stopped cutting mid-word. All
+three re-captured through the repo's own recipe (real webview bundle ·
+scripted replay · three megabytes each).
+
+### Three dependency ceilings get their reasons written down
+
+`@types/vscode` is pinned exactly to the engine floor (a caret had let it
+drift 29 minors above `engines.vscode`, typing APIs absent from the
+oldest VS Code we support), and TypeScript majors plus `@types/node`
+majors are held in dependabot config with the cap written next to each ·
+a bump that breaks the belt is a regression wearing a freshness badge.
+
+
 
 ## [0.105.1] · 2026-07-24
 
