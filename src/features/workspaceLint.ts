@@ -36,12 +36,22 @@ export class WorkspaceLint implements vscode.Disposable {
   private sweepAgain = false;
   private disposed = false;
 
+  /** The adoption door spoke once this session — never a nag loop. */
+  private adoptionSpoke = false;
+
   constructor(
     private readonly service: NikaService,
     private readonly log: (level: string, msg: string) => void,
     /** The ONE cached workflow scan — the sweep keeps its MAX+1
      *  truncation probe (the provider's cap dominates it). */
     private readonly filesOf: (cap: number) => Promise<vscode.Uri[]>,
+    /** First-contact adoption door: fires AT MOST ONCE per session, after
+     *  a sweep on a workspace with NO baseline lands findings across
+     *  `fileCount` files. The extension side decides whether to speak
+     *  (once per workspace, remembered) and offers the capture command —
+     *  a stranger opening a legacy repo must MEET the ratchet, not
+     *  discover it in a command list while Problems shouts. */
+    private readonly onAdoptionDebt?: (fileCount: number) => void,
   ) {
     const watcher = vscode.workspace.createFileSystemWatcher('**/*.nika.yaml');
     this.disposables.push(
@@ -122,6 +132,21 @@ export class WorkspaceLint implements vscode.Disposable {
         }
       };
       await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+      // The adoption door: no baseline + findings spread across several
+      // files = a legacy workspace meeting nika for the first time. Say
+      // it once, offer the ratchet — never let the first contact be a
+      // Problems panel shouting with no way out in sight.
+      if (!this.baseline && !this.adoptionSpoke && this.onAdoptionDebt) {
+        let filesWithFindings = 0;
+        this.collection.forEach((_uri, diags) => {
+          if (diags.length > 0) { filesWithFindings += 1; }
+        });
+        if (filesWithFindings >= 5) {
+          this.adoptionSpoke = true;
+          this.onAdoptionDebt(filesWithFindings);
+        }
+      }
     } finally {
       this.sweeping = false;
       if (this.sweepAgain) {

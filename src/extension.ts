@@ -903,7 +903,22 @@ export function activate(context: ExtensionContext): void {
 
   // Problems-panel coverage for CLOSED workflows (open ones stay with the
   // controller — ownership hands over on open/close).
-  context.subscriptions.push(new WorkspaceLint(service, log, (cap) => workflowIndex.files(cap)));
+  context.subscriptions.push(new WorkspaceLint(service, log, (cap) => workflowIndex.files(cap), (fileCount) => {
+    // The adoption door — once per workspace, remembered. A stranger
+    // opening a legacy repo meets the ratchet instead of a shouting
+    // Problems panel: capture today's findings as the baseline, and
+    // Problems only stays loud for what is NEW from here.
+    if (context.workspaceState.get<boolean>('nika.baselineOffered')) { return; }
+    void context.workspaceState.update('nika.baselineOffered', true);
+    void window.showInformationMessage(
+      `Nika found existing findings across ${fileCount} workflows here. Capture them as the lint baseline? Known debt demotes to Information — the Problems panel stays loud only for what is new.`,
+      'Capture baseline', 'Not now',
+    ).then((pick) => {
+      if (pick === 'Capture baseline') {
+        void commands.executeCommand('nika.captureLintBaseline');
+      }
+    });
+  }));
 
   // Smart-expand selection + linked editing register via the
   // capability registry below (#103).
