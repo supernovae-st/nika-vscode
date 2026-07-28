@@ -91,8 +91,10 @@ describe.skipIf(!BIN || !speaksGen1(BIN) || !speaksESplit(BIN))('contract doors 
   it('the type-defaulted declaration the door writes is equally legal', () => {
     // No untyped form to prove any more: `type:` is required on an
     // input, so the door falls back to `string` rather than emitting a
-    // row the engine refuses.
-    const next = declareInput(BASE, { name: 'out_dir', def: '"./out"' })!;
+    // row the engine refuses. Promote the bare topic first — the judged
+    // text must be legal END TO END on 0.106, and the subject stays the
+    // type-defaulted row the door writes.
+    const next = declareInput(promoteInput(BASE, 'topic')!, { name: 'out_dir', def: '"./out"' })!;
     expect(next).toContain('type: string');
     expect(check(BIN!, next).clean).toBe(true);
   });

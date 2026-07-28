@@ -12,7 +12,7 @@
 // W2 « the flow »: `depends_on` is dead (NIKA-PARSE-024). A task crosses
 // its boundary through exactly two doors — `with:` bindings (data edges:
 // every `${{ tasks.X.* }}` ref IS an edge) and `after:` entries (control
-// edges: `{producer: succeeded|failed|skipped|terminal}`). The fallback
+// edges: `{producer: success|failure|skipped|terminal}`). The fallback
 // stays as strict as the server: a `tasks.*` ref anywhere else is
 // NIKA-VAR-021 territory, never an edge.
 

@@ -2378,7 +2378,7 @@ class DagRenderer {
       }
       // Dropped on EMPTY canvas — the Flows gesture: open the task
       // palette AT the cursor (verb or tool); insertTaskSkeleton then
-      // declares after: { from: succeeded } extension-side.
+      // declares after: { from: success } extension-side.
       if (!targetEl) {
         verbCmdk.open(event.clientX, event.clientY, (pick) => {
           vscode.postMessage({

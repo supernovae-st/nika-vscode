@@ -103,13 +103,13 @@ const DOC = [
   '      prompt: "two"',
   '',
   '  third:',
-  '    after: { first: succeeded }',
+  '    after: { first: success }',
   '    exec:',
   '      command: ["echo", "hi"]',
   '',
   '  fourth:',
   '    after:',
-  '      first: succeeded',
+  '      first: success',
   '    exec:',
   '      command: ["echo", "ho"]',
 ].join('\n');
@@ -126,19 +126,19 @@ describe('addAfterEntry', () => {
     const out = addAfterEntry(DOC, 'first', 'fourth')!;
     const lines = out.split('\n');
     const idLine = lines.findIndex((l) => l.includes('first:'));
-    expect(lines[idLine + 1]).toBe('    after: { fourth: succeeded }');
+    expect(lines[idLine + 1]).toBe('    after: { fourth: success }');
   });
 
   it('extends an inline flow map', () => {
     const out = addAfterEntry(DOC, 'third', 'second')!;
-    expect(out).toContain('after: { first: succeeded, second: succeeded }');
+    expect(out).toContain('after: { first: success, second: success }');
   });
 
   it('appends to a block map at entry indent', () => {
     const out = addAfterEntry(DOC, 'fourth', 'second', 'terminal')!;
     const lines = out.split('\n');
     const blockIdx = lines.findIndex((l, i) => l.trim() === 'after:' && i > lines.findIndex((x) => x.includes('fourth:')));
-    expect(lines[blockIdx + 1].trim()).toBe('first: succeeded');
+    expect(lines[blockIdx + 1].trim()).toBe('first: success');
     expect(lines[blockIdx + 2].trim()).toBe('second: terminal');
   });
 
@@ -161,7 +161,7 @@ describe('graph editing backends (the n8n loop)', () => {
     const wf = parseRichWorkflow(res.text);
     const inserted = wf.tasks.find((t) => t.id === 'invoke')!;
     expect(inserted.verb).toBe('invoke');
-    expect(inserted.after).toEqual({ second: 'succeeded' });
+    expect(inserted.after).toEqual({ second: 'success' });
     expect(inserted.producers).toEqual(['second']);
     // Anchored right after `second`, before `third`.
     const order = wf.tasks.map((t) => t.id);
@@ -189,7 +189,7 @@ describe('graph editing backends (the n8n loop)', () => {
     const wf = parseRichWorkflow(res.text);
     const inserted = wf.tasks.find((t) => t.id === 'jq')!;
     expect(inserted.verb).toBe('invoke');
-    expect(inserted.after).toEqual({ second: 'succeeded' });
+    expect(inserted.after).toEqual({ second: 'success' });
     // Deliberately argless — the findings voice the required args.
     const span = res.text.split('\n').slice(inserted.line, inserted.endLine + 1).join('\n');
     expect(span).not.toContain('args:');
@@ -215,17 +215,17 @@ describe('graph editing backends (the n8n loop)', () => {
     expect(res.text).toContain('tool: nika:validate');
     const wf = parseRichWorkflow(res.text);
     const spliced = wf.tasks.find((t) => t.id === 'validate')!;
-    expect(spliced.after).toEqual({ second: 'succeeded' });
+    expect(spliced.after).toEqual({ second: 'success' });
     expect(wf.tasks.find((t) => t.id === 'third')!.after).toHaveProperty('validate');
   });
 
   it('removes an entry from inline flow maps, dropping the key when emptied', () => {
     const out = removeAfterEntry(DOC, 'third', 'first')!;
-    expect(out).not.toContain('after: { first: succeeded }');
+    expect(out).not.toContain('after: { first: success }');
     expect(parseRichWorkflow(out).tasks.find((t) => t.id === 'third')?.after).toEqual({});
     const two = addAfterEntry(DOC, 'third', 'second')!;
     const stillOne = removeAfterEntry(two, 'third', 'first')!;
-    expect(stillOne).toContain('after: { second: succeeded }');
+    expect(stillOne).toContain('after: { second: success }');
   });
 
   it('removes an entry from block maps, dropping the key when emptied', () => {
@@ -278,7 +278,7 @@ describe('graph editing backends (the n8n loop)', () => {
   it('keeps declared after entries on the copy (inbound edges duplicate)', () => {
     const res = duplicateTask(DOC, 'third')!;
     const wf = parseRichWorkflow(res.text);
-    expect(wf.tasks.find((t) => t.id === 'third_copy')?.after).toEqual({ first: 'succeeded' });
+    expect(wf.tasks.find((t) => t.id === 'third_copy')?.after).toEqual({ first: 'success' });
   });
 
   it('mints collision-free copy ids on repeat', () => {
@@ -295,8 +295,8 @@ describe('graph editing backends (the n8n loop)', () => {
     const res = duplicateTask(DOC, 'first')!;
     const wf = parseRichWorkflow(res.text);
     // third/fourth still run after `first`, nobody after the copy.
-    expect(wf.tasks.find((t) => t.id === 'third')?.after).toEqual({ first: 'succeeded' });
-    expect(wf.tasks.find((t) => t.id === 'fourth')?.after).toEqual({ first: 'succeeded' });
+    expect(wf.tasks.find((t) => t.id === 'third')?.after).toEqual({ first: 'success' });
+    expect(wf.tasks.find((t) => t.id === 'fourth')?.after).toEqual({ first: 'success' });
     const referenced = res.text.match(/first_copy/g) ?? [];
     expect(referenced.length).toBe(1); // only its own key line
   });
@@ -306,9 +306,9 @@ describe('graph editing backends (the n8n loop)', () => {
     const wf = parseRichWorkflow(res.text);
     const spliced = wf.tasks.find((t) => t.id === res.taskId)!;
     expect(spliced.verb).toBe('exec');
-    expect(spliced.after).toEqual({ first: 'succeeded' });
+    expect(spliced.after).toEqual({ first: 'success' });
     // The edge is REROUTED: third now waits on the spliced task, not first.
-    expect(wf.tasks.find((t) => t.id === 'third')?.after).toEqual({ [res.taskId]: 'succeeded' });
+    expect(wf.tasks.find((t) => t.id === 'third')?.after).toEqual({ [res.taskId]: 'success' });
     // Anchored right after the upstream end.
     const order = wf.tasks.map((t) => t.id);
     expect(order.indexOf(res.taskId)).toBe(order.indexOf('first') + 1);
@@ -318,7 +318,7 @@ describe('graph editing backends (the n8n loop)', () => {
     // second reads tasks.first via with: but declares NO after entry.
     const res = insertBetween(DOC, 'first', 'second', 'invoke')!;
     const wf = parseRichWorkflow(res.text);
-    expect(wf.tasks.find((t) => t.id === 'second')?.after).toEqual({ [res.taskId]: 'succeeded' });
+    expect(wf.tasks.find((t) => t.id === 'second')?.after).toEqual({ [res.taskId]: 'success' });
     // The data ref is untouched (bindings are never rewritten).
     expect(res.text).toContain('${{ tasks.first.output }}');
   });
@@ -331,10 +331,10 @@ describe('graph editing backends (the n8n loop)', () => {
 
 describe('edge-case hunt · YAML-surgery bugs', () => {
   it('a quoted after key is invisible to the surgeon — refuse, never corrupt', () => {
-    // YAML allows `after: { "first": succeeded }`; the client surgeon
+    // YAML allows `after: { "first": success }`; the client surgeon
     // does not speak quoted keys — it must REFUSE the edit (undefined),
     // never emit a corrupted map. (The engine parses the file fine.)
-    const quoted = DOC.replace('after: { first: succeeded }', 'after: { "first": succeeded }');
+    const quoted = DOC.replace('after: { first: success }', 'after: { "first": success }');
     expect(removeAfterEntry(quoted, 'third', 'first')).toBeUndefined();
   });
 

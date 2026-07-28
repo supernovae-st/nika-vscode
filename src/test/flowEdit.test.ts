@@ -13,7 +13,7 @@ tasks:
     infer:
       prompt: "a"
   thread:
-    after: { gather: succeeded }
+    after: { gather: success }
     when: \${{ inputs.publish }}
     infer:
       prompt: "b"
@@ -31,7 +31,7 @@ const range = (
 
 const TASKS: TaskRange[] = [
   range('gather', 4, 6),
-  range('thread', 7, 11, { gather: 'succeeded' }),
+  range('thread', 7, 11, { gather: 'success' }),
   range('sign', 12, 16, { thread: 'terminal' }),
 ];
 
@@ -61,24 +61,24 @@ describe('flowEdit (order on state · gate · fan out)', () => {
   });
 
   it('rewrites an existing flow after in place, predicates carried', () => {
-    const next = afterRewrite(WF, TASKS[1], [['gather', 'succeeded'], ['sign', 'terminal']])!;
-    expect(next).toContain('    after: { gather: succeeded, sign: terminal }');
+    const next = afterRewrite(WF, TASKS[1], [['gather', 'success'], ['sign', 'terminal']])!;
+    expect(next).toContain('    after: { gather: success, sign: terminal }');
   });
 
   it('collapses a block-map after to the flow form', () => {
-    const next = afterRewrite(WF, TASKS[2], [['thread', 'terminal'], ['gather', 'succeeded']])!;
-    expect(next).toContain('    after: { thread: terminal, gather: succeeded }');
+    const next = afterRewrite(WF, TASKS[2], [['thread', 'terminal'], ['gather', 'success']])!;
+    expect(next).toContain('    after: { thread: terminal, gather: success }');
     expect(next).not.toContain('      thread: terminal');
   });
 
   it('inserts a fresh after right after the key line', () => {
-    const next = afterRewrite(WF, TASKS[0], [['sign', 'succeeded']])!;
-    expect(next.split('\n')[5]).toBe('    after: { sign: succeeded }');
+    const next = afterRewrite(WF, TASKS[0], [['sign', 'success']])!;
+    expect(next.split('\n')[5]).toBe('    after: { sign: success }');
   });
 
   it('an empty pick removes the key — and removing the absent is a no-op', () => {
     const next = afterRewrite(WF, TASKS[1], [])!;
-    expect(next).not.toContain('after: { gather: succeeded }');
+    expect(next).not.toContain('after: { gather: success }');
     expect(afterRewrite(WF, TASKS[0], [])).toBe(WF);
   });
 
@@ -148,7 +148,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
       expect(s.action.kind === 'when' && s.action.expr).not.toMatch(/\btasks\./);
     }
     const after = shapes.find((s) => s.id === 'after-gather')!;
-    expect(after.action).toEqual({ kind: 'after', producer: 'gather', predicate: 'succeeded' });
+    expect(after.action).toEqual({ kind: 'after', producer: 'gather', predicate: 'success' });
     const hoist = shapes.find((s) => s.id === 'content-gather')!;
     expect(hoist.action.kind).toBe('bind-when');
     if (hoist.action.kind === 'bind-when') {
@@ -202,7 +202,7 @@ describe('descendantsOf at scale (the linear-walk law)', () => {
   const chain = (n: number): TaskRange[] =>
     Array.from({ length: n }, (_, i) => (
       i > 0
-        ? range(`t${i}`, i, i, { [`t${i - 1}`]: 'succeeded' })
+        ? range(`t${i}`, i, i, { [`t${i - 1}`]: 'success' })
         : range(`t${i}`, i, i)
     ));
 
@@ -221,9 +221,9 @@ describe('descendantsOf at scale (the linear-walk law)', () => {
   it('a diamond converges once — shared descendants are not re-walked', () => {
     const tasks: TaskRange[] = [
       range('root', 0, 0),
-      range('left', 1, 1, { root: 'succeeded' }),
-      range('right', 2, 2, { root: 'succeeded' }),
-      range('join', 3, 3, { left: 'succeeded', right: 'succeeded' }),
+      range('left', 1, 1, { root: 'success' }),
+      range('right', 2, 2, { root: 'success' }),
+      range('join', 3, 3, { left: 'success', right: 'success' }),
     ];
     expect(descendantsOf(tasks, 'root')).toEqual(new Set(['left', 'right', 'join']));
     expect(upstreamCandidates(tasks, 'left').map((t) => t.id)).toEqual(['root', 'right']);

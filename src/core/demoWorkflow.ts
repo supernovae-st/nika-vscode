@@ -95,7 +95,7 @@ tasks:
   # break_me — uncomment to watch a red teach you the feed (the walkthrough's
   # "break it on purpose" step). A failing exec stops the run at this wave.
   # break_me:
-  #   after: { receipt: succeeded }
+  #   after: { receipt: success }
   #   exec:
   #     command: ["false"]
 

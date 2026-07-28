@@ -2,7 +2,7 @@
 // no vscode):
 //
 //   after entries   add/remove one `{producer: predicate}` control edge
-//                   (the canvas connect gesture · `after: {a: succeeded}`)
+//                   (the canvas connect gesture · `after: {a: success}`)
 //   NIKA-VAR-001    unresolved reference `<authority>.x` in task `X`
 //                   → declare x under THAT authority's envelope block
 //
@@ -57,7 +57,7 @@ export function addAfterEntry(
   text: string,
   taskId: string,
   producer: string,
-  predicate = 'succeeded',
+  predicate = 'success',
 ): string | undefined {
   const wf = parseRichWorkflow(text);
   const task = wf.tasks.find((t) => t.id === taskId);
@@ -162,7 +162,7 @@ export function nextTaskId(text: string, base: string): string {
 
 /**
  * Insert a new task skeleton — after `afterTaskId` when given (wired
- * `after: { <id>: succeeded }` — the W2 spelling of a bare ordering),
+ * `after: { <id>: success }` — the W2 spelling of a bare ordering),
  * else at the end of the `tasks:` block (creating the block when
  * absent). Returns the rewritten document + the new id, or undefined
  * when the insert anchor cannot be resolved.
@@ -197,7 +197,7 @@ export function insertTaskSkeleton(
   const block = [
     '',
     `${itemIndent}${taskId}:`,
-    ...(afterTaskId ? [`${fieldIndent}after: { ${afterTaskId}: succeeded }`] : []),
+    ...(afterTaskId ? [`${fieldIndent}after: { ${afterTaskId}: success }`] : []),
     ...skeleton.map((l) => `${fieldIndent}${l}`),
   ];
 
@@ -282,7 +282,7 @@ export function deleteTask(
 
 /**
  * Splice a new task INTO a control edge (the n8n insert-on-edge move):
- * the skeleton lands right after `from` wired `after: { from: succeeded }`,
+ * the skeleton lands right after `from` wired `after: { from: success }`,
  * and the edge REROUTES — `to` drops its `from` entry (when declared; a
  * data edge has none) and gains the spliced task. Data refs are never
  * rewritten. Undefined when either end is unknown.

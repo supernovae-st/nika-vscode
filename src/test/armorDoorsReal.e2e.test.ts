@@ -37,6 +37,11 @@ const BASE = [
   'workflow:',
   '  id: armor-doors-proof',
   '  description: "the three walls"',
+  // 0.106 · absent permits is the EMPTY boundary (NIKA-AUTH-006) — the
+  // fixture grants exactly what it spends. And `succeeded` died with the
+  // predicate respelling: `success` is the vocabulary.
+  'permits:',
+  '  exec: ["cat", "true"]',
   'tasks:',
   '  cache_read:',
   '    exec:',
@@ -45,7 +50,7 @@ const BASE = [
   '    infer:',
   '      prompt: "fetch the live data"',
   '  consume:',
-  '    after: { live_fetch: succeeded }',
+  '    after: { live_fetch: success }',
   '    exec:',
   '      command: ["true"]',
   '',

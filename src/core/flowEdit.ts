@@ -177,7 +177,7 @@ export function taskKeyRewrite(
 
 // ─── The doors ───────────────────────────────────────────────────────────────
 
-/** `after: { a: succeeded, b: terminal }` — the compact flow form the
+/** `after: { a: success, b: terminal }` — the compact flow form the
  *  doors write (block forms collapse); empty removes the key. */
 export function afterRewrite(
   text: string,
@@ -279,8 +279,8 @@ export function gateShapes(
   for (const t of upstream) {
     shapes.push({
       id: `after-${t.id}`,
-      label: `${t.id} succeeded`,
-      hint: `state is control — writes \`after: { ${t.id}: succeeded }\`, never a when:`,
+      label: `${t.id} success`,
+      hint: `state is control — writes \`after: { ${t.id}: success }\`, never a when:`,
       action: { kind: 'after', producer: t.id, predicate: DEFAULT_PREDICATE },
     });
     shapes.push({

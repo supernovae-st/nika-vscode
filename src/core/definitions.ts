@@ -1,6 +1,6 @@
 // Go-to-definition, pure (the features/ provider owns the vscode
 // wiring). The three navigable reference classes the spec defines:
-//   after: { NAME: succeeded } / block `NAME: pred` → the `NAME:` task-key declaration
+//   after: { NAME: success } / block `NAME: pred` → the `NAME:` task-key declaration
 //   ${{ tasks.NAME... }}                            → the `NAME:` task-key declaration
 //   ${{ <authority>.KEY... }}                       → the KEY under THAT authority's block
 //
@@ -76,7 +76,7 @@ export function resolveDefinition(
   const lines = text.split('\n');
   const lineText = lines[line] ?? '';
 
-  // after: { a: succeeded, b: terminal } — a producer key under the cursor.
+  // after: { a: success, b: terminal } — a producer key under the cursor.
   const inline = lineText.match(/after:\s*\{([^}]*)\}/);
   if (inline && inline.index !== undefined) {
     const open = inline.index + inline[0].indexOf('{') + 1;
@@ -88,7 +88,7 @@ export function resolveDefinition(
     }
     return undefined;
   }
-  // Block entry `  producer: succeeded` under an `after:` line.
+  // Block entry `  producer: success` under an `after:` line.
   const entry = lineText.match(/^(\s+)([a-z][a-z0-9_]*)\s*:\s*[a-z]+\s*(#.*)?$/);
   if (entry && inAfterBlock(lines, line)) {
     const s = entry[1].length;

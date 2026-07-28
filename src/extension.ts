@@ -1554,7 +1554,7 @@ export function activate(context: ExtensionContext): void {
       }
       case 'dag:connect':
         // Edge from → to means « to runs after from » — the canvas
-        // gesture writes the strict control default (succeeded); the
+        // gesture writes the strict control default (success); the
         // data door stays with: (the binding is authored, not drawn).
         // Idempotent.
         newText = addAfterEntry(text, request.to, request.from);

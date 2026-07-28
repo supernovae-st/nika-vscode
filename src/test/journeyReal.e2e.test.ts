@@ -47,18 +47,20 @@ const BIN = CANDIDATES.find(probe);
 const WORKFLOW = `nika: v1
 workflow:
   id: journey-e2e
+permits:
+  exec: ["echo", "false"]
 tasks:
   seed:
     exec:
       command: ["echo", "hello-seed"]
   flaky:
-    after: { seed: succeeded }
+    after: { seed: success }
     retry:
       max_attempts: 2
     exec:
       command: ["false"]
   right:
-    after: { seed: succeeded }
+    after: { seed: success }
     exec:
       command: ["echo", "right-out"]
 `;
@@ -152,6 +154,9 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
         'nika: v1',
         'workflow:',
         '  id: pause-e2e',
+        'permits:',
+        '  tools: ["nika:prompt"]',
+        '  exec: ["echo"]',
         'tasks:',
         '  approve:',
         '    invoke:',
@@ -159,7 +164,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
         '      args:',
         '        message: "Ship it?"',
         '  ship:',
-        '    after: { approve: succeeded }',
+        '    after: { approve: success }',
         '    exec:',
         '      command: ["echo", "shipped"]',
       ].join('\n'));
@@ -190,7 +195,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
       fs.mkdirSync(wfDir);
       fs.mkdirSync(elsewhere);
       const wf = path.join(wfDir, 'probe.nika.yaml');
-      fs.writeFileSync(wf, 'nika: v1\nworkflow:\n  id: cwd-probe\ntasks:\n  a:\n    exec:\n      command: ["true"]\n');
+      fs.writeFileSync(wf, 'nika: v1\nworkflow:\n  id: cwd-probe\npermits:\n  exec: ["true"]\ntasks:\n  a:\n    exec:\n      command: ["true"]\n');
       run(BIN!, elsewhere, ['run', wf, '--json', '--color', 'never']);
       const here = traceFiles(elsewhere).length;
       const there = traceFiles(wfDir).length;

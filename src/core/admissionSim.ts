@@ -38,7 +38,7 @@ function passSet(edge: SimEdge): readonly string[] {
     case 'terminal-observation': return ['success', 'failure', 'skipped', 'cancelled'];
     case 'failure-observation': return ['failure', 'skipped'];
     case 'control': {
-      const pred = edge.predicate ?? 'succeeded';
+      const pred = edge.predicate ?? 'success';
       return isAfterPredicate(pred) ? PREDICATE_ADMITS[pred] : ['success'];
     }
     default: return ['success', 'skipped'];

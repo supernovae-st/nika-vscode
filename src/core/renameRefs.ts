@@ -2,7 +2,7 @@
 //
 // A task id is referenced from FOUR syntactic homes (W2 « the flow »):
 //   1. its declaration    `extract:` (the indent-2 map key · W1)
-//   2. after entries      `after: { extract: succeeded }` · block `extract: succeeded`
+//   2. after entries      `after: { extract: success }` · block `extract: success`
 //   3. template islands   `${{ tasks.extract.output }}` (with: values · recover:)
 //   4. bare CEL strings   an un-islanded `tasks.extract…` (WIP text — the
 //                         engine refuses it at parse, the rename still follows)

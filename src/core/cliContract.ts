@@ -51,7 +51,7 @@ export interface GraphDocEdge {
   to: string;
   /** Typed kind (GraphEdgeKind values today — unknown kinds tolerated). */
   kind: string;
-  /** control edges — the `after:` predicate (succeeded · failed · skipped · terminal). */
+  /** control edges — the `after:` predicate (success · failure · skipped · terminal). */
   predicate?: string;
   /** data/observation edges — the `with:` binding name that created it. */
   binding?: string;
@@ -227,7 +227,7 @@ export interface DagEdge {
    *  failure-observation · control · recovery (unknown kinds tolerated,
    *  rendered as data). There is no untyped edge anymore. */
   kind: string;
-  /** control edges — the `after:` predicate (succeeded · failed · skipped · terminal). */
+  /** control edges — the `after:` predicate (success · failure · skipped · terminal). */
   predicate?: string;
   /** data/observation edges — the `with:` binding name riding the wire. */
   label?: string;

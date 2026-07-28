@@ -87,14 +87,14 @@ function taskOf(text: string, id: string) {
 describe.skipIf(!BIN || !speaksGen1(BIN) || !speaksESplit(BIN))('flow doors × the real binary', () => {
   it('order → bind → gate → fan-out, chained like the pickers, checks clean', () => {
     // « order on state » — thread waits for gather (control edge).
-    const ordered = afterRewrite(BASE, taskOf(BASE, 'thread'), [['gather', 'succeeded']])!;
+    const ordered = afterRewrite(BASE, taskOf(BASE, 'thread'), [['gather', 'success']])!;
     // « choose a gate » content shape — the door HOISTS the value
     // through with: (the binding IS the edge), then reads the binding.
     const bound = bindingInsert(ordered, taskOf(ordered, 'thread'), 'gather', 'tasks.gather.output', [])!;
     const gated = gateRewrite(bound.text, taskOf(bound.text, 'thread'), `size(with.${bound.alias}) > 0`)!;
     // « choose the collection » — the typed array input (local read).
     const fanned = fanoutRewrite(gated, taskOf(gated, 'thread'), 'inputs.urls')!;
-    expect(fanned).toContain('    after: { gather: succeeded }');
+    expect(fanned).toContain('    after: { gather: success }');
     expect(fanned).toContain('      gather: ${{ tasks.gather.output }}');
     expect(fanned).toContain('    when: ${{ size(with.gather) > 0 }}');
     expect(fanned).toContain('    for_each: ${{ inputs.urls }}');

@@ -138,7 +138,7 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
     '- DEAD: `vars:` and `env:` are NOT envelope fields and ${{ vars.X }} / ${{ env.X }} are NOT namespaces (NIKA-VALUES-001/002). Classify each value into the authority its ROLE commands — a typed parameter is inputs:, a fixed value const:, non-sensitive runtime config config:, a governed store reference secrets:. Never a blind rename',
     '- `tasks.*` ONLY inside with:/after:/on_error.recover/on_finally/outputs (NIKA-VAR-021 elsewhere — hoist it into with:)',
     '- The binding IS the edge: with: { alias: "${{ tasks.id.output }}" } (quote it in flow style — or use block style) then the body reads ${{ with.alias }}',
-    '- Order without data: after: { task_id: succeeded } (predicates: succeeded | failed | skipped | terminal) — depends_on is dead (NIKA-PARSE-024 · check --fix migrates)',
+    '- Order without data: after: { task_id: success } (predicates: success | failure | skipped | terminal) — depends_on is dead (NIKA-PARSE-024 · check --fix migrates)',
     '- Model: combined form `model: provider/name` (e.g. ollama/llama3.2 · mock/echo for tests)',
     '- timeout is a Go-duration string, quoted: timeout: "5m"',
     '- Secrets: declare `secrets: { name: { source: env|vault|file, key: … } }` and read ${{ secrets.name }} — masked in logs/traces. NEVER literal keys in YAML, and never a bare env read',
