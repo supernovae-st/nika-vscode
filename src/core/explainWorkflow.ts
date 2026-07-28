@@ -165,7 +165,7 @@ export function explainWorkflow(graph: DagGraph, report?: CheckReport): string {
   }
 
   lines.push('---');
-  lines.push('_Go deeper: `Nika: Show Workflow DAG` (the living map) · `Nika: Open Check Report` (every finding) · `Nika: Run Current Workflow` (watch it live)._');
+  lines.push('_Go deeper: `Nika: Open the Canvas (workflow DAG)` (the living map) · `Nika: Open Check Report` (every finding) · `Nika: Run Current Workflow` (watch it live)._');
   lines.push('');
   return lines.join('\n');
 }

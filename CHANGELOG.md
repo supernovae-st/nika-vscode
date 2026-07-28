@@ -19,6 +19,32 @@ One thing to read before installing: the supported floor rises to
 **VS Code 1.91** (June 2024), which every current VS Code, Cursor,
 Windsurf and VSCodium base is far past.
 
+### The operator's first live F5 caught four first-contact defects
+
+The first manual pass ever taken against a living LSP (the transport fix
+above) surfaced four defects no probe suite could reach, each one sitting
+exactly where a new user lands:
+
+- **The demo grants its exec**: under the 0.106 empty-boundary law the
+  hello-canvas receipt (`printf`) refused `NIKA-AUTH-006` before the first
+  wave · the sandbox taught a refusal instead of the aha. The template now
+  declares `permits: exec: ["printf", "false"]` · `false` is pre-granted so
+  uncommenting `break_me` teaches a red task, not a permits death.
+- **The 10-second proof rides the right slot**: its arguments traveled
+  through the file-path parameter, so `path.dirname` turned them into a
+  phantom terminal cwd (`cwd "run 01-hello --model mock" does not exist`).
+  The whole invocation moved to the subcommand slot.
+- **A refused run speaks**: exit 2 with an empty journal (the pre-flight
+  check said no before the first wave) folded to `✗ run unknown · ▶ 0
+  tasks` · dishonest silence. The close handler now names the refusal,
+  greps the `NIKA-` codes from the streams, and hands the first one to the
+  verdict banner so the Explain door rides it.
+- **The canvas answers to its name**: the palette entry read `Show
+  Workflow DAG` while every other surface (codelens aside) says canvas ·
+  typing "canvas" found nothing but the accessibility help. The command is
+  now `Open the Canvas (workflow DAG)` · either vocabulary finds it, and
+  the READMEs plus the explain footer teach the same name.
+
 ### The engine's own repair loop reaches the editor
 
 - **`Nika: Fix Workflow` (the engine's rename repairs)**: `check --fix` was the one released door the extension never pushed · the engine applies every typed did-you-mean rename (fields · tools · args), rewrites the one real file, re-audits, and narrates every skip · it rides the terminal like every mutating gesture, and the check-as-you-type sweep repaints from the rewritten disk. The door is everywhere the moment matters: the palette, the workflow row's `⌘K ⌘.` panel, and a quick fix that appears exactly when a `did you mean` squiggle is under the cursor (`fix every rename the engine can`). Capability-gated on the binary's own `check --help` (the stdinDash law: help text, never version numbers).

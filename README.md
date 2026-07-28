@@ -30,7 +30,7 @@ run together) and closes on a verdict with a verifiable receipt:
 own bundle through the same `dag:*`/`run:*` messages a live `nika run`
 streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
 
-*Tip: `Nika: Show Workflow DAG` opens this canvas on any `.nika.yaml` ·
+*Tip: `Nika: Open the Canvas (workflow DAG)` opens this canvas on any `.nika.yaml` ·
 `Nika: Try the Demo Workflow` writes one to open it on.*
 
 > One extension, every VS Code-compatible editor. `nika-vscode` is the
@@ -80,7 +80,7 @@ this extension will ever throw.
 Driving yourself is three gestures:
 
 1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
-2. **`Nika: Show Workflow DAG`**. The file becomes a content-first
+2. **`Nika: Open the Canvas (workflow DAG)`**. The file becomes a content-first
    canvas: prompts on infer cards, `$ commands` on exec cards.
 3. Press **▶ mock** on the run pill. The DAG lights up wave by wave with
    `mock/echo`: **deterministic, zero API keys, zero network.**
@@ -568,7 +568,7 @@ The sixteen you'll reach for first: the full set lives in the
 |---|---|
 | `Nika: Try the Demo Workflow` | writes the four-wave hello-canvas beside the canvas · offline, nothing spent |
 | `Nika: New Workflow File` | the wizard: name · starter · model (mock first, locals next) |
-| `Nika: Show Workflow DAG` | the live canvas (the welcome home when no workflow is open) |
+| `Nika: Open the Canvas (workflow DAG)` | the live canvas (the welcome home when no workflow is open) |
 | `Nika: Run Current Workflow` | `nika run --json` streamed onto the DAG, verdict on close |
 | `Nika: Run Workflow with Inputs` | required vars become a short form · a spend ceiling rides `--max-cost-usd` |
 | `Nika: Resume Last Run` | re-run what changed: unchanged tasks cache-hit their recorded output |

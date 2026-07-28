@@ -40,7 +40,7 @@ What it asserts (`suite/activation.test.ts`):
 
 1. `code .` in the extension repo → F5 (Run Extension).
 2. In the dev host, open a `*.nika.yaml`.
-3. **DAG**: `Nika: Show Workflow DAG` → cards render in the nika skin,
+3. **DAG**: `Nika: Open the Canvas (workflow DAG)` → cards render in the nika skin,
    run pill + omnibar at the bottom; toggle `nika.dag.theme` → editor.
 4. **Run**: ▶ mock → the DAG lights wave by wave, aurora sweep on close.
 5. **Scrub**: click a run in the Runs view → the scrubber; play + drag.

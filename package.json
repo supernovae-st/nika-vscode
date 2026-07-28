@@ -362,7 +362,7 @@
       },
       {
         "command": "nika.showDag",
-        "title": "Show Workflow DAG",
+        "title": "Open the Canvas (workflow DAG)",
         "icon": "$(type-hierarchy)",
         "category": "Nika"
       },
@@ -759,7 +759,7 @@
       },
       {
         "command": "nika.workflows.showDag",
-        "title": "Show Workflow DAG",
+        "title": "Open the Canvas (workflow DAG)",
         "icon": "$(type-hierarchy)",
         "category": "Nika"
       },
