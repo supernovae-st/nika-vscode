@@ -19,7 +19,6 @@ import {
   LanguageClientOptions,
   ServerOptions,
   State,
-  TransportKind,
 } from 'vscode-languageclient/node';
 import { execFile } from 'child_process';
 import * as fs from 'fs';
@@ -154,10 +153,20 @@ export function startClient(
 
   // `nika lsp` (stdio) — the D-2026-06-10-N6 in-binary contract. Extra
   // flags stay user-side (`nika.server.extraArgs`) until the surface grows.
+  //
+  // NO `transport:` on purpose. Declaring TransportKind.stdio makes
+  // vscode-languageclient append `--stdio` to the args (node/main.js,
+  // Executable branch), and the engine's clap refuses the unknown flag
+  // with exit 2 before the first byte of JSON-RPC: « unexpected argument
+  // '--stdio' found ». Every spawn died that way — the operator's logs
+  // show the same death back to 0.104 × 0.105, masked for weeks by the
+  // client-side intelligence taking over, until the status chip learned
+  // to say « lsp down ». An undefined transport wires the exact same
+  // stdio pipes and appends nothing; the server accepts the bare
+  // `nika lsp` it was always meant to receive.
   const serverOptions: ServerOptions = {
     command: serverPath,
     args: ['lsp', ...extraArgs],
-    transport: TransportKind.stdio,
   };
 
   // Owned watcher: a restart would otherwise leak the previous one (the
