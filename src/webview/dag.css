@@ -2080,6 +2080,7 @@ body.vscode-light .logo-dark { display: none; }
   .nc-sub-v,
   .nc-body.nc-body-live,
   .dag-node .nc-dot,
+  #dag-status .agg-dot,
   body.running .dag-edge.edge-dep {
     animation: none !important;
   }
@@ -5764,7 +5765,12 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 }
 
 #run-verdict .rv-act {
-  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  /* WCAG 2.5.8 floor: a 24px hit target inside the 30px banner — the
+   * probe caught 16.5px the day the refusal scene first rendered one. */
+  min-height: 24px;
+  padding: 0 8px;
   font-family: var(--nk-mono);
   font-size: var(--nk-fs-sub);
   color: inherit;
