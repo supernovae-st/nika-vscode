@@ -49,7 +49,7 @@ const SCENE = process.env.SCENE || '';
 const FORCED = process.env.FORCED === '1';
 const MOTION = process.env.MOTION === 'reduce' ? 'reduce' : 'no-preference';
 // RUN drives the live run chrome: 'running' mid-flight, 'failed' at the red close.
-const RUN = process.env.RUN === 'running' || process.env.RUN === 'failed' ? process.env.RUN : '';
+const RUN = ['running', 'failed', 'refused'].includes(process.env.RUN ?? '') ? process.env.RUN : '';
 // SHAPE=1 re-labels the fixture with pathological task names before probing.
 // The metric ladder was tuned on short English ids; these are the shapes a
 // real corpus brings. The card title renders the ID, so ids and every edge
@@ -296,6 +296,18 @@ const PROBE = () => {
         await post({ kind: 'run:state', running: false });
         await post({ kind: 'run:verdict', icon: '✗', cls: 'st-failed',
           text: 'run failed · 1 ✗ · ≥ $0.0104 · 8.3s · chain 3c92f1de' });
+      }
+      if (RUN === 'refused') {
+        // The check-refused shape (exit 2 · EMPTY journal): the exact
+        // messages runLive's close handler posts — a verdict with a NIKA
+        // code but NO failedTask, and zero task status updates (nothing
+        // ever lit). Probes judge the banner alone carrying the story.
+        await post({ kind: 'run:state', running: false });
+        await post({ kind: 'dag:note', icon: '✗', cls: 'st-failed',
+          text: 'check refused the run · NIKA-AUTH-006 — fix the finding, then ▶' });
+        await post({ kind: 'run:verdict', icon: '✗', cls: 'st-failed',
+          text: 'check refused the run · NIKA-AUTH-006 — fix the finding, then ▶',
+          failedCode: 'NIKA-AUTH-006' });
       }
       await p.waitForTimeout(900);
     }

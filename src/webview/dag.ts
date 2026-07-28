@@ -8383,8 +8383,10 @@ function showRunVerdict(icon: string, text: string, cls: string, failedTask?: st
   el.append(iconEl, textEl);
   // A failure's banner carries its own doors — the one moment the user
   // faces the failure must not be a passive read. Buttons stop the
-  // banner's own click (the feed) from swallowing theirs.
-  if (cls === 'st-failed' && failedTask !== undefined) {
+  // banner's own click (the feed) from swallowing theirs. A refused run
+  // (check said no · exit 2 · empty journal) has a CODE but no task:
+  // Explain rides the code alone; fork still needs a task to fork from.
+  if (cls === 'st-failed' && (failedTask !== undefined || failedCode !== undefined)) {
     const acts = document.createElement('span');
     acts.className = 'rv-acts';
     if (failedCode !== undefined) {
@@ -8398,20 +8400,22 @@ function showRunVerdict(icon: string, text: string, cls: string, failedTask?: st
       });
       acts.append(explain);
     }
-    const fork = document.createElement('button');
-    fork.className = 'rv-act';
-    fork.textContent = '⑂ fork';
-    fork.title = `Fork from \`${failedTask}\` — upstream rehydrates from the trace`;
-    fork.addEventListener('click', (e) => {
-      e.stopPropagation();
-      vscode.postMessage({
-        kind: 'dag:forkFromTask',
-        taskId: failedTask,
-        workflowUri: vscode.getState()?.graph?.workflowUri,
+    if (failedTask !== undefined) {
+      const fork = document.createElement('button');
+      fork.className = 'rv-act';
+      fork.textContent = '⑂ fork';
+      fork.title = `Fork from \`${failedTask}\` — upstream rehydrates from the trace`;
+      fork.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({
+          kind: 'dag:forkFromTask',
+          taskId: failedTask,
+          workflowUri: vscode.getState()?.graph?.workflowUri,
+        });
+        hideRunVerdict();
       });
-      hideRunVerdict();
-    });
-    acts.append(fork);
+      acts.append(fork);
+    }
     el.append(acts);
   }
   el.title = 'Click for the full run story (activity feed)';
