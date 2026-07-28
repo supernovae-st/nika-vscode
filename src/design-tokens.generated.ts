@@ -164,3 +164,29 @@ export function nikaNodeClass(n: {
  *  run itself wears the critical red. Resolved at projection time, so
  *  a moved palette moves these too. */
 export const NIKA_CATEGORY_HUE = { core: '#5a606b', file: '#34d399', data: '#4f86ff', network: '#4f86ff', introspection: '#e0b071', media: '#8a83ff' } as const
+
+/** THE CARD'S IDENTITY · what a node shows beyond its verb.
+ *  The category's mark, the preview slot it earns, and WHICH argument
+ *  is a builtin's soul — a card that shows every arg shows nothing.
+ *  Read off the canvas, which was the only surface that had them. */
+export const NIKA_CATEGORY_GLYPH = { core: '◦', file: '▤', data: '⧉', network: '⇄', introspection: '⌕', media: '▣' } as const
+export const NIKA_PREVIEW_KINDS = ['image', 'audio', 'file', 'http', 'check', 'none'] as const
+export const NIKA_PREVIEW_BY_CATEGORY = { core: 'none', file: 'none', data: 'none', network: 'http', introspection: 'none', media: 'image' } as const
+export const NIKA_PREVIEW_OVERRIDE = { tts_generate: 'audio', write: 'file', edit: 'file', compose: 'check' } as const
+export const NIKA_ESSENCE_RENDERS = ['code', 'path', 'url', 'event', 'duration', 'condition', 'text'] as const
+export const NIKA_ESSENCE = { log: { arg: 'message', render: 'text' }, emit: { arg: 'event_type', render: 'event' }, assert: { arg: 'condition', render: 'condition' }, prompt: { arg: 'message', render: 'text' }, wait: { arg: 'duration', render: 'duration' }, read: { arg: 'path', render: 'path' }, write: { arg: 'path', render: 'path' }, edit: { arg: 'path', render: 'path' }, glob: { arg: 'pattern', render: 'code' }, grep: { arg: 'pattern', render: 'code' }, jq: { arg: 'expression', render: 'code' }, validate: { arg: 'schema', render: 'condition' }, convert: { arg: 'to', render: 'code' }, uuid: { arg: 'version', render: 'text' }, date: { arg: 'op', render: 'code' }, hash: { arg: 'content', render: 'text' }, decide: { arg: 'bundle', render: 'path' }, fetch: { arg: 'url', render: 'url' }, notify: { arg: 'target', render: 'text' }, inspect: { arg: 'view', render: 'code' }, compose: { arg: 'workflow_yaml', render: 'code' }, image_generate: { arg: 'prompt', render: 'text' }, tts_generate: { arg: 'text', render: 'text' } } as const
+export const NIKA_PORT = { directions: ['in', 'out'], flows: ['data', 'media', 'plain'], flow_hue: { data: 'builtin.category.data', media: 'builtin.category.media' } } as const
+
+/** THE PREVIEW SLOT · the category decides, four builtins differ.
+ *  Same answer as the canvas's previewFor(), proven over the whole
+ *  catalogue rather than asserted. */
+export function nikaPreviewOf(
+  builtin: string | undefined,
+  category: string | undefined,
+): (typeof NIKA_PREVIEW_KINDS)[number] {
+  if (!builtin) return 'none'
+  const over = (NIKA_PREVIEW_OVERRIDE as Record<string, string>)[builtin]
+  if (over) return over as (typeof NIKA_PREVIEW_KINDS)[number]
+  const byCat = (NIKA_PREVIEW_BY_CATEGORY as Record<string, string>)[category ?? '']
+  return (byCat ?? 'none') as (typeof NIKA_PREVIEW_KINDS)[number]
+}
