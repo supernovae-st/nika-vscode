@@ -128,6 +128,31 @@ export function checkVersionMismatch(context: ExtensionContext, log: LogFn, reso
             });
           }
         });
+      } else if (
+        // The MIRROR gap: the extension is AHEAD of the engine. For a
+        // PATH/brew binary that is the user's own package manager's
+        // business — but the binary WE downloaded into globalStorage is
+        // frozen forever unless someone speaks: nobody re-downloads it,
+        // and at the next flag-day this machine silently rejects every
+        // example the docs serve. One toast, one click, the same
+        // consented download lane refreshes it.
+        serverPath.startsWith(context.globalStorageUri.fsPath)
+        && (extParts[0] > srvParts[0] || (extParts[0] === srvParts[0] && extParts[1] > srvParts[1]))
+      ) {
+        window.showWarningMessage(
+          `Nika: the downloaded engine (v${serverMajorMinor}.x) is behind this extension (v${extVersion}) — refresh it?`,
+          'Update engine',
+        ).then((choice) => {
+          if (choice === 'Update engine') {
+            // Drop the frozen binary FIRST: resolveBinary would happily
+            // return it again (it runs — it is merely old), and the
+            // restart would be a no-op. With it gone, resolution falls
+            // through to the already-consented download lane.
+            fs.unlink(serverPath, () => {
+              void commands.executeCommand('nika.restartServer');
+            });
+          }
+        });
       }
     } else {
       log('INFO', `Version match: extension v${extVersion}, server v${stdout.trim()}`);
