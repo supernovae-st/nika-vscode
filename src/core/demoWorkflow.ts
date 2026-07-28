@@ -44,6 +44,15 @@ workflow:
 
 model: mock/echo
 
+# The boundary — 0.106 law: absent permits is the EMPTY boundary, and an
+# exec under it refuses NIKA-AUTH-006 before the first wave (the very
+# first live run of this demo on a 0.106 binary died exactly there —
+# operator F5, 2026-07-28). The grant is exact: printf writes the
+# receipt, and \`false\` is pre-granted so the break_me lesson below
+# teaches a RED TASK when uncommented, not a permits refusal.
+permits:
+  exec: ["printf", "false"]
+
 inputs:
   topic:
     type: string

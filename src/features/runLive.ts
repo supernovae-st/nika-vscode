@@ -170,6 +170,9 @@ export function runWorkflowLive(
   setRunActive({ kill: () => child.kill() });
 
   let buffer = '';
+  // Rolling stderr tail — the refused-run branch in `close` greps it for
+  // the NIKA codes a pre-flight check named (bounded · refusals are short).
+  let stderrTail = '';
   let lastPainted = '';
   let lastStorePublish = 0;
   let lastProgress = '';
@@ -244,6 +247,7 @@ export function runWorkflowLive(
   });
   child.stderr.setEncoding('utf-8');
   child.stderr.on('data', (chunk: string) => {
+    stderrTail = (stderrTail + chunk).slice(-4096);
     const m = chunk.match(/trace: (\S+\.ndjson)/);
     if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
     // The anchor (0.97+): the engine prints `· N events · chain <head32>`
@@ -294,7 +298,22 @@ export function runWorkflowLive(
     const cls = verdict === 'completed' ? 'st-success'
       : verdict === 'cancelled' ? 'st-cancelled'
       : verdict === 'paused' ? 'st-retrying' : 'st-failed';
-    if (verdict === 'paused' && model.paused) {
+    if (code !== 0 && code !== null && model.tasks.size === 0) {
+      // The refused run SPEAKS (operator F5 · 2026-07-28): exit 2 with an
+      // empty journal is the pre-flight check saying no BEFORE the first
+      // wave — the old fold rendered it « ✗ run unknown · ▶ 0 tasks »,
+      // which told the operator nothing (the demo's own permits gap died
+      // exactly here). Name the refusal, surface its NIKA codes (stdout
+      // JSON or stderr both carry them), and hand the first one to the
+      // verdict banner so the Explain door rides it.
+      const codes = [...new Set(`${buffer}\n${stderrTail}`.match(/NIKA-[A-Z]+-\d+/g) ?? [])];
+      const named = codes.slice(0, 3).join(' · ');
+      const story = code === 2
+        ? `check refused the run${named ? ` · ${named}` : ''} — fix the finding, then ▶`
+        : `run died before its first event (exit ${code})${named ? ` · ${named}` : ''}`;
+      dagPanel.note('✗', story, undefined, 'st-failed');
+      dagPanel.runVerdict('✗', story, 'st-failed', undefined, codes[0]);
+    } else if (verdict === 'paused' && model.paused) {
       const q = model.paused.message ?? `task \`${model.paused.task}\` awaits an answer`;
       dagPanel.note('⏸', `paused · ${model.paused.task} asks: ${q}`, model.paused.task, cls);
       dagPanel.runVerdict('⏸', `paused — ${q}`, cls);

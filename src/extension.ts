@@ -671,7 +671,12 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.runProof', async () => {
       if (!(await requireEngine(service, 'running the 10-second proof'))) { return; }
-      runNikaCommand(state.resolvedServerPath, 'examples', 'run 01-hello --model mock/echo');
+      // The whole invocation rides the SUBCOMMAND slot. Smuggling the
+      // arguments through the filePath parameter fed path.dirname a
+      // command line, and the terminal spawned with cwd
+      // « run 01-hello --model mock » — the operator's exact toast,
+      // 2026-07-28: the 10-second proof failed in its first second.
+      runNikaCommand(state.resolvedServerPath, 'examples run 01-hello --model mock/echo', '');
     }),
   );
 
