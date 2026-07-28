@@ -143,6 +143,64 @@
 .dag-node.status-cancelled :where(.nc-dot) { box-sizing: border-box; width: 7px; height: 2px; border-radius: 1px; border: 0 solid; outline: none; transform: rotate(-45deg); }
 :where(.dag-node.status-cancelled .nc-dot) { background: currentColor; box-shadow: none; }
 
+/* LA VALEUR TYPÉE · le premier primitif de contrôle. Chaque rendu emprunte une
+   teinte qui veut déjà dire quelque chose : un chemin porte le vert du succès
+   parce qu'un chemin a eu lieu ou non ; une condition porte l'ambre du non-réglé ;
+   une durée est sourde et tabulaire parce que c'est un nombre qu'on compare, pas
+   un mot qu'on lit. La forme vient de la spec, la teinte est un alias. */
+:where(.nc-ess-code) { color: var(--nk-ess-code, #4f86ff); font-family: var(--nk-mono, ui-monospace, monospace); padding: 0 4px; border-radius: 3px; background: color-mix(in srgb, currentColor 10%, transparent); }
+:where(.nc-ess-url) { color: var(--nk-ess-url, #4f86ff); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-ess-path) { color: var(--nk-ess-path, #34d399); font-family: var(--nk-mono, ui-monospace, monospace); }
+:where(.nc-ess-condition) { color: var(--nk-ess-condition, #e0b071); }
+:where(.nc-ess-event) { color: var(--nk-ess-event, #22d3ee); }
+:where(.nc-ess-duration) { color: var(--nk-ess-duration, #5a606b); font-variant-numeric: tabular-nums; }
+:where(.nc-ess-text) { color: inherit; }
+:where(.nc-ess-rest) { opacity: 0.55; font-weight: var(--nk-fw-plain, 400); }
+
+/* LES PASTILLES DE POLITIQUE · ce qu'une carte dit du COMPORTEMENT d'une tâche.
+   Aucune n'invente sa teinte : chacune emprunte une signification déjà posée.
+   Cinq n'avaient aucune peau dans le canvas — un `retry` était indiscernable
+   d'un `permits`, et c'est exactement la distinction que le code voulait. */
+:where(.nc-pol) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; padding: 1px 6px; border-radius: 4px; font-family: var(--nk-mono, ui-monospace, monospace); font-size: var(--nk-fs-note, 9px); color: var(--nk-ink-dim, inherit); background: color-mix(in srgb, currentColor 5%, transparent); border: 1px solid color-mix(in srgb, currentColor 22%, transparent); }
+:where(.nc-pol-retry) { color: var(--nk-pol-retry, #e0b071); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-timeout) { color: var(--nk-pol-timeout, #4f86ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-recover) { color: var(--nk-pol-recover, #e0b071); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-skip) { color: var(--nk-pol-skip, #5a606b); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-fail) { color: var(--nk-pol-fail, #ff5d5d); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-think) { color: var(--nk-pol-think, #90b4ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-vision) { color: var(--nk-pol-vision, #90b4ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-typed) { color: var(--nk-pol-typed, #4f86ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-parallel) { color: var(--nk-pol-parallel, #4f86ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-peritem) { color: var(--nk-pol-peritem, #5a606b); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-failfast) { color: var(--nk-pol-failfast, #e0b071); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-finally) { color: var(--nk-pol-finally, #5a606b); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-permits) { color: var(--nk-pol-permits, #ff7a3c); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+:where(.nc-pol-tools) { color: var(--nk-pol-tools, #c5a4ff); border-color: color-mix(in srgb, currentColor 40%, transparent); }
+
+/* LE CHIP ÉDITABLE · le seul contrôle de la carte qui écrit dans le fichier.
+   Un indicateur au repos, une bordure qui se renforce au survol, un anneau de
+   focus qu'on ne supprime pas. Le nom accessible reste à la charge de la
+   surface : une infobulle ajoute du contexte, elle ne nomme pas l'action. */
+:where(.nc-model) {
+  cursor: pointer;
+  border-color: color-mix(in srgb, currentColor 61%, transparent);
+}
+:where(.nc-model)::after {
+  /* « il y en a d'autres » · au repos, jamais seulement au survol */
+  content: '▾';
+  margin-left: 4px;
+  opacity: 0.66;
+  font-size: 0.85em;
+}
+.nc-model:hover {
+  border-color: color-mix(in srgb, currentColor 89%, transparent);
+}
+.nc-model:focus-visible {
+  /* jamais supprimé pour le polish — Geist le dit de chaque composant */
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :where(.nc) { transition: none; }
 }
