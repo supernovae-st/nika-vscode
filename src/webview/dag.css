@@ -1,3 +1,20 @@
+/* ── CE QUE LA SPEC PROJETTE ──────────────────────────────────────────────────
+ * Deux feuilles écrites par nika-spec (design-projector) et reçues ici :
+ * la nappe (trame, vignette, lampe, curseur d'arpentage) et la géométrie de la
+ * carte de nœud. Le site et le banc de design reçoivent les MÊMES octets.
+ *
+ * Elles sont importées EN TÊTE, et tout ce qu'elles posent est en :where() —
+ * spécificité zéro — sauf la forme de la pastille de statut, qui doit battre la
+ * base `.nc-dot` sinon elle ne s'appliquerait qu'à moitié. Les 139 sélecteurs de
+ * ce fichier gagnent donc partout ailleurs : une feuille projetée qui se
+ * battrait contre eux serait un second avis, pas une source.
+ *
+ * NE PAS ÉDITER ces deux fichiers ici · ils se régénèrent :
+ *   python3 ../nika-spec/scripts/design-projector.py --write
+ */
+@import './ground.generated.css';
+@import './node.generated.css';
+
 /* dag.css — DAG visualization styles using VS Code theme variables
  *
  * All colors use --vscode-* CSS custom properties so the graph adapts
