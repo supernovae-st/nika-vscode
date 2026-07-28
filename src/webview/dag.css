@@ -2102,6 +2102,13 @@ body.vscode-light .logo-dark { display: none; }
     animation: none !important;
   }
 
+  /* Press micro-transforms: the state still lands, instantly. */
+  #es-describe-go,
+  .rc-run,
+  .rc-stop {
+    transition: none !important;
+  }
+
   /* Spinner strips freeze at frame 1 — a static braille glyph carries
    * the alive-state hue while the BuildKit timer text keeps ticking
    * (the chiffres are motion-lite · annexe L taste 5). */
@@ -4617,7 +4624,9 @@ body.running #run-controls .rc-resume {
 }
 
 .rc-stop {
-  color: var(--nk-st-failed);
+  /* Pulled 25% toward ink: the raw failed red reads 4.29:1 at this
+   * 11px size on the editor skin — under the 4.5 small-text floor. */
+  color: color-mix(in srgb, var(--nk-st-failed) 75%, var(--nk-ink));
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 48%),
     color-mix(in srgb, var(--nk-st-failed) 10%, transparent);
