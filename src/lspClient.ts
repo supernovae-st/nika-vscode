@@ -22,6 +22,7 @@ import {
   TransportKind,
 } from 'vscode-languageclient/node';
 import { execFile } from 'child_process';
+import * as fs from 'fs';
 import { DagPanel, TaskStatus } from './dagPanel';
 import { type LogFn } from './mcpConfig';
 
@@ -140,6 +141,12 @@ export function startClient(
   state: ClientState,
   log: LogFn,
   overridePath?: string,
+  /** Fires once the client actually reaches Running — the explicit
+   *  restart gesture announces on THIS, never before. The old flow
+   *  flashed « restarted » unconditionally right after the (async)
+   *  start call, so a start that died left a green flash over an
+   *  orange chip (operator screenshot, 2026-07-28). */
+  onRunning?: () => void,
 ): void {
   const config = workspace.getConfiguration('nika');
   const serverPath = overridePath ?? getNikaPath();
@@ -206,6 +213,18 @@ export function startClient(
         handled: true,
       }),
       closed: () => {
+        // The brew-upgrade law: a server whose ABSOLUTE binary path
+        // vanished can never come back by respawning the same command —
+        // the upgrade deleted that Cellar/download from under it.
+        // Burning the restart budget on a dead path ends at the stop
+        // toast; re-resolving heals without a single user gesture (the
+        // PATH-resolved case already heals through the plain restart
+        // below, since 'nika' re-resolves at spawn).
+        if (path.isAbsolute(serverPath) && !fs.existsSync(serverPath)) {
+          log('WARN', `server binary vanished at ${serverPath} — re-resolving (the upgrade swap heals itself)`);
+          void commands.executeCommand('nika.restartServer');
+          return { action: CloseAction.DoNotRestart, handled: true };
+        }
         closedCount += 1;
         if (closedCount <= 2) {
           return { action: CloseAction.Restart };
@@ -241,6 +260,7 @@ export function startClient(
   state.client.start().then(() => {
     log('INFO', 'Language server started');
     state.statusSink?.('running');
+    onRunning?.();
     // One voice (#103): the server's advertised capabilities silence
     // their client twins — capability-gated, never version-gated; a
     // future server capability silences its twin with zero ext change.

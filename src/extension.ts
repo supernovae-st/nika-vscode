@@ -3882,8 +3882,12 @@ export function activate(context: ExtensionContext): void {
       if (fresh) { checkVersionMismatch(context, log, fresh); }
       void state.pushWelcomeData?.();
       if (service.caps.lsp) {
-        startClient(context, state, log, state.resolvedServerPath);
-        flashStatus('$(check) language server restarted');
+        // The flash rides the Running transition, never the launch: an
+        // unconditional « restarted » over a start that then died left a
+        // green flash above an orange chip (operator, 2026-07-28).
+        startClient(context, state, log, state.resolvedServerPath, () => {
+          flashStatus('$(check) language server restarted');
+        });
       } else {
         void informSoftly('binary-predates-lsp', 'Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
       }
