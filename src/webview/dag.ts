@@ -5064,6 +5064,8 @@ class DagRenderer {
       chip.className = 'nc-chip nc-model nc-engine';
       chip.textContent = node.model;
       chip.title = 'Change this task\'s model (edits the YAML · ⌘Z undoes)';
+      // The name states the ACTION and carries the value; the title adds the how.
+      chip.setAttribute('aria-label', `Change the model — currently ${node.model}`);
       chip.addEventListener('mousedown', (e) => e.stopPropagation());
       chip.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -5363,6 +5365,9 @@ class DagRenderer {
     auditChip.className = 'nc-audit';
     if (node.auditCount) {
       auditChip.textContent = `⚠ ${node.auditCount}`;
+      // The NAME states the action; ⚠ + a number is a glyph and a digit to a reader.
+      auditChip.setAttribute('aria-label',
+        `Open the pre-flight report — ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'} on this task`);
       auditChip.dataset.worst = node.auditWorst ?? 'error';
       auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task — click for the pre-flight report`;
     }
@@ -5506,6 +5511,9 @@ class DagRenderer {
         const play = document.createElement('button');
         play.className = 'nc-audio-play';
         play.textContent = '▶';
+        // ICON-ONLY · « ▶ » is a triangle to a reader. The name says what
+        // activating it does, and to what.
+        play.setAttribute('aria-label', `Play ${a.name}`);
         play.title = `Play ${a.name} (recorded output)`;
         play.addEventListener('mousedown', (e) => e.stopPropagation());
         play.addEventListener('click', (e) => {
