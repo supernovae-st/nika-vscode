@@ -309,7 +309,7 @@
         "4": {
           "patterns": [
             {
-              "match": "\\b(succeeded|failed|skipped|terminal)\\b",
+              "match": "\\b(success|failure|skipped|terminal)\\b",
               "name": "keyword.control.predicate.nika"
             },
             {

@@ -93,7 +93,7 @@ tasks:
       prompt: "Say ok."
 
   boom:
-    after: { ok_step: succeeded }
+    after: { ok_step: success }
     exec:
       shell: "exit 7"
 `;

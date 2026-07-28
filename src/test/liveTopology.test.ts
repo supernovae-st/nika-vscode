@@ -29,9 +29,9 @@ describe('topoKey — blind to prose, sensitive to topology', () => {
     const base = keyOf(SIGNATURE);
     expect(keyOf(SIGNATURE.replace('draft:', 'draft2:'))).not.toBe(base);
     // A control-edge change (after entry) moves the key…
-    expect(keyOf(SIGNATURE.replace('after: { discover: succeeded }', 'after: { draft: succeeded }'))).not.toBe(base);
+    expect(keyOf(SIGNATURE.replace('after: { discover: success }', 'after: { draft: success }'))).not.toBe(base);
     // …a PREDICATE change too (the gate is topology in W2)…
-    expect(keyOf(SIGNATURE.replace('after: { discover: succeeded }', 'after: { discover: terminal }'))).not.toBe(base);
+    expect(keyOf(SIGNATURE.replace('after: { discover: success }', 'after: { discover: terminal }'))).not.toBe(base);
     // …and a data-edge change (the binding IS the edge).
     expect(keyOf(SIGNATURE.replace('notes: ${{ tasks.draft.output }}', 'notes: ${{ tasks.digest.output }}'))).not.toBe(base);
     // W1: a task must live INSIDE the tasks block (the old list form let
@@ -51,7 +51,7 @@ describe('topoKey — blind to prose, sensitive to topology', () => {
     const statsArm = g.edges.find((e) => e.source === 'discover' && e.target === 'stats');
     expect(statsArm).toMatchObject({ kind: 'value', label: 'files' });
     const digestArm = g.edges.find((e) => e.source === 'discover' && e.target === 'digest');
-    expect(digestArm).toMatchObject({ kind: 'control', predicate: 'succeeded' });
+    expect(digestArm).toMatchObject({ kind: 'control', predicate: 'success' });
   });
 
   it('meets the keystroke budget — parse+key well under 30ms on 9 tasks', () => {

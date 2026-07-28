@@ -207,7 +207,7 @@ const RENAME_DOC = [
   '      args: { url: "https://x.com" }',
   '',
   '  use:',
-  '    after: { extract: succeeded, other: succeeded }',
+  '    after: { extract: success, other: success }',
   '    with:',
   '      page: ${{ tasks.extract.output }}',
   '    infer:',
@@ -237,7 +237,7 @@ describe('renameRefs', () => {
     const out = renameTask(RENAME_DOC, 'extract', 'fetch_page')!;
     expect(out).not.toMatch(/\bextract\b/);
     expect(out).toContain('fetch_page:');
-    expect(out).toContain('after: { fetch_page: succeeded, other: succeeded }');
+    expect(out).toContain('after: { fetch_page: success, other: success }');
     expect(out).toContain('${{ tasks.fetch_page.output }}');
     expect(out).toContain('tasks.fetch_page.status');
     expect(out).toContain('fetch_page: terminal');
@@ -264,7 +264,7 @@ describe('renameRefs', () => {
     // And at scale: a generated fan-in stays instant and exact.
     const big = ['tasks:']
       .concat(Array.from({ length: 800 }, (_, i) =>
-        `  t${i}:\n    after: {${i > 0 ? ` t${i - 1}: succeeded ` : ''}}\n    with:\n      seed: \${{ tasks.t0.output }}\n    exec:\n      command: ["echo"]`))
+        `  t${i}:\n    after: {${i > 0 ? ` t${i - 1}: success ` : ''}}\n    with:\n      seed: \${{ tasks.t0.output }}\n    exec:\n      command: ["echo"]`))
       .join('\n');
     const bigIds = new Set(Array.from({ length: 800 }, (_, i) => `t${i}`));
     const started = Date.now();

@@ -357,7 +357,7 @@ network: every green close settles a ✓ wave through the cards.*
   - **editing on the card** · the **model chip edits** (provider
     picker → one undoable YAML edit), `⌀` badges carry the mean
     duration across your recorded runs, and ports appear on hover
-    (drag out-port → card = `after: { from: succeeded }`, or drop on
+    (drag out-port → card = `after: { from: success }`, or drop on
     empty canvas → a new pre-wired task)
   - **the verb palette + omnibar** · at the bottom: `+ infer after
     gather` inserts deterministically, `/text` filters, a sentence
@@ -658,7 +658,7 @@ tasks:
 
   # nika:region Ship
   post_comment:
-    after: { analyze_diff: succeeded }
+    after: { analyze_diff: success }
     exec: { command: ["gh", "pr", "comment", "${{ inputs.pr }}", "--body-file", "verdict.md"] }
 ```
 

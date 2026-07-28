@@ -12,7 +12,7 @@ const WF = [
   '    invoke:',         // 7
   '      args: { path: "${{ const.source }}" }', // 8
   '  think:',            // 9
-  '    after: { gather: succeeded }',            // 10
+  '    after: { gather: success }',            // 10
   '    with:',           // 11
   '      doc: ${{ tasks.gather.output }}',       // 12
   '    infer:',          // 13

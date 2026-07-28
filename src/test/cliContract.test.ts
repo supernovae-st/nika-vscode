@@ -38,7 +38,7 @@ const DOC: GraphDoc = {
   ],
   edges: [
     { from: 'fetch_page', to: 'summarize', kind: 'value', binding: 'page' },
-    { from: 'summarize', to: 'fanout', kind: 'control', predicate: 'succeeded' },
+    { from: 'summarize', to: 'fanout', kind: 'control', predicate: 'success' },
     { from: 'summarize', to: 'fanout', kind: 'value', binding: 'summary' },
     { from: 'fetch_page', to: 'fanout', kind: 'recovery' },
   ],
@@ -63,7 +63,7 @@ describe('graphDocToDag', () => {
     const ids = dag.edges.map((e) => e.id);
     expect(new Set(ids).size).toBe(4);
     const ctl = dag.edges.find((e) => e.kind === 'control')!;
-    expect(ctl.predicate).toBe('succeeded');
+    expect(ctl.predicate).toBe('success');
     expect(ctl.label).toBeUndefined();
     const val = dag.edges.find((e) => e.kind === 'value' && e.target === 'fanout')!;
     expect(val.label).toBe('summary');

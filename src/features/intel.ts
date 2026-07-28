@@ -12,6 +12,7 @@
 import * as vscode from 'vscode';
 import { completionContextAt, refAt, scanRefs } from '../core/expr';
 import { EXTRACT_MODE_FACTS, extractModeRank } from '../core/extractModes';
+import { AFTER_PREDICATES } from '../core/predicates';
 import type { YieldEntry } from '../core/capabilityYield';
 import { findTaskRefs, isValidTaskId } from '../core/renameRefs';
 import { fieldInScope, type FieldDoc, type SchemaIntel } from '../core/schemaIntel';
@@ -423,7 +424,7 @@ export class SchemaCompletionProvider implements vscode.CompletionItemProvider {
           .map((t) => {
             const item = new vscode.CompletionItem(t.id, vscode.CompletionItemKind.Reference);
             item.detail = `${t.verb} task (line ${t.line + 1})`;
-            item.insertText = new vscode.SnippetString(`${t.id}: \${1|succeeded,failed,skipped,terminal|}`);
+            item.insertText = new vscode.SnippetString(`${t.id}: \${1|${AFTER_PREDICATES.join(',')}|}`);
             return item;
           });
       }
@@ -566,7 +567,9 @@ export class TemplateDefinitionProvider implements vscode.DefinitionProvider {
     // 2 · a task id inside an after: entry (inline map or block form)
     const lineText = document.lineAt(position.line).text;
     const wordRange = document.getWordRangeAtPosition(position, /[A-Za-z0-9_-]+/);
-    if (wordRange && /after:\s*\{|^\s*[a-z][a-z0-9_]*\s*:\s*(succeeded|failed|skipped|terminal)\b/.test(lineText)) {
+    // The live predicates plus the dead `succeeded`/`failed` spellings: a
+    // pre-flip document stays navigable (same courtesy as core/definitions).
+    if (wordRange && /after:\s*\{|^\s*[a-z][a-z0-9_]*\s*:\s*(success|failure|skipped|terminal|succeeded|failed)\b/.test(lineText)) {
       const word = document.getText(wordRange);
       const task = wf.tasks.find((t) => t.id === word);
       if (task && task.line !== position.line) {

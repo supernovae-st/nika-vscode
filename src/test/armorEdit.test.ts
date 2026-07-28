@@ -7,7 +7,7 @@ workflow:
   id: w
 tasks:
   fetch_data:
-    after: { gather: succeeded }
+    after: { gather: success }
     when: \${{ inputs.live }}
     invoke:
       tool: "nika:fetch"
@@ -27,7 +27,7 @@ tasks:
       prompt: "a"
 `;
 
-const FETCH: TaskRange = { id: 'fetch_data', line: 4, endLine: 10, after: { gather: 'succeeded' }, producers: ['gather'] };
+const FETCH: TaskRange = { id: 'fetch_data', line: 4, endLine: 10, after: { gather: 'success' }, producers: ['gather'] };
 const ARMORED: TaskRange = { id: 'armored', line: 11, endLine: 19, after: {}, producers: [] };
 
 describe('armorEdit (« make it resilient »)', () => {

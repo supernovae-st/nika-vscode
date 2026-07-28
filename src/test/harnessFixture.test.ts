@@ -37,7 +37,7 @@ function extractGraph(name = 'GRAPH'): { nodes: FixtureNode[]; edges: FixtureEdg
 
 const VERBS = new Set(['infer', 'exec', 'invoke', 'agent']);
 const KINDS = new Set(['value', 'terminal-observation', 'failure-observation', 'control', 'recovery']);
-const PREDICATES = new Set(['succeeded', 'failed', 'skipped', 'terminal']);
+const PREDICATES = new Set(['success', 'failure', 'skipped', 'terminal']);
 
 // Both fixtures (the README run scene + the ?media CI-2 scene) are held
 // against the SAME renderer contract — a drifting fixture fails here.
@@ -127,17 +127,17 @@ describe('the ?media scene — the CI-2 frame coverage floor', () => {
     }
   });
 
-  it('tints both predicate families — a succeeded read and a SHUT failed read', () => {
+  it('tints both predicate families — a success read and a SHUT failure read', () => {
     const preds = graph.edges
       .filter((e) => e.kind === 'control')
       .map((e) => (e as { predicate?: string }).predicate);
-    expect(preds).toContain('succeeded');
-    expect(preds).toContain('failed');
-    // The failed read must point at a task the sim never lands green —
+    expect(preds).toContain('success');
+    expect(preds).toContain('failure');
+    // The failure read must point at a task the sim never lands green —
     // an admitted-on-failure path completing as success would be an
     // impossible story on the proof canvas.
-    const failedEdge = graph.edges.find(
-      (e) => e.kind === 'control' && (e as { predicate?: string }).predicate === 'failed');
-    expect(failedEdge?.target).toBe('salvage');
+    const failureEdge = graph.edges.find(
+      (e) => e.kind === 'control' && (e as { predicate?: string }).predicate === 'failure');
+    expect(failureEdge?.target).toBe('salvage');
   });
 });

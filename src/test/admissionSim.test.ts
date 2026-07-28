@@ -20,8 +20,8 @@ const EDGES = [
   { source: 'b', target: 'e', kind: 'failure-observation' },
   // f observes b terminally (any outcome admits)
   { source: 'b', target: 'f', kind: 'terminal-observation' },
-  // g runs after b succeeds (control · succeeded)
-  { source: 'b', target: 'g', kind: 'control', predicate: 'succeeded' },
+  // g runs after b succeeds (control · success)
+  { source: 'b', target: 'g', kind: 'control', predicate: 'success' },
   // h is d's recovery reader (parking — never scheduled by d)
   { source: 'd', target: 'h', kind: 'recovery' },
 ];
@@ -40,7 +40,7 @@ describe('simulateFailure — the algebra decides', () => {
     const sim = simulateFailure('b', IDS, EDGES);
     expect(sim.get('e')).toBe('lit');       // failure-obs admits {failure, skipped}
     expect(sim.get('f')).toBe('ok');        // terminal-obs admits everything
-    expect(sim.get('g')).toBe('cancelled'); // control succeeded admits {success} only
+    expect(sim.get('g')).toBe('cancelled'); // control success admits {success} only
   });
 
   it('a cancelled producer does NOT feed a failure read (cancelled ∉ its pass-set)', () => {

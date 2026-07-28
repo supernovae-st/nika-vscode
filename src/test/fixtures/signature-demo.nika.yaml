@@ -14,6 +14,12 @@ const:                                        # neither is caller-overridable
   changes_dir: "./items"                      # `digest` hardcodes items/item-N.md
   locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]   # the description pins ×4
 
+# 0.106 · an absent permits block is the EMPTY boundary (NIKA-AUTH-006),
+# so the fixture grants exactly what its body spends — nothing wider.
+permits:
+  tools: ["nika:glob", "nika:jq"]
+  exec: ["cat", "printf"]
+
 tasks:
   discover:
     invoke:
@@ -21,7 +27,7 @@ tasks:
       args: { pattern: "${{ const.changes_dir }}/*.md" }
 
   digest:
-    after: { discover: succeeded }
+    after: { discover: success }
     exec:
       command: ["cat", "items/item-1.md", "items/item-2.md", "items/item-3.md", "items/item-4.md", "items/item-5.md"]
 
@@ -82,7 +88,7 @@ tasks:
         ${{ with.localized }}
 
   publish:
-    after: { verify: succeeded }
+    after: { verify: success }
     with:
       survivors: ${{ tasks.survivors.output }}
     when: ${{ size(with.survivors) > 0 }}

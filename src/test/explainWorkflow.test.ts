@@ -15,7 +15,7 @@ const graph: DagGraph = {
   ],
   edges: [
     { id: 'fetch->summarize:value:page', source: 'fetch', target: 'summarize', kind: 'value', label: 'page' },
-    { id: 'fetch->title:control:succeeded', source: 'fetch', target: 'title', kind: 'control', predicate: 'succeeded' },
+    { id: 'fetch->title:control:success', source: 'fetch', target: 'title', kind: 'control', predicate: 'success' },
   ],
 };
 
@@ -96,8 +96,8 @@ describe('explainWorkflow (deterministic narration)', () => {
         { id: 'b', label: 'b', verb: 'exec', status: 'pending', producers: ['a'] },
       ],
       edges: [
-        { id: 'a->b:control:succeeded', source: 'a', target: 'b', kind: 'control', predicate: 'succeeded' },
-        { id: 'b->a:control:succeeded', source: 'b', target: 'a', kind: 'control', predicate: 'succeeded' },
+        { id: 'a->b:control:success', source: 'a', target: 'b', kind: 'control', predicate: 'success' },
+        { id: 'b->a:control:success', source: 'b', target: 'a', kind: 'control', predicate: 'success' },
       ],
     };
     const md = explainWorkflow(cyclic);

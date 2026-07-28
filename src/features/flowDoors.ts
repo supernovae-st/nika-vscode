@@ -191,7 +191,7 @@ export async function wireInputsFor(uri: vscode.Uri, taskId: string): Promise<vo
   );
   if (!picked) { return; }
   // Kept picks keep their declared predicate; fresh picks gate on
-  // succeeded (the strict default — terminal/failed/skipped are hand
+  // success (the strict default — terminal/failure/skipped are hand
   // tunings the lens leaves in place once written).
   const entries = picked.map((p) => [p.id, current[p.id] ?? DEFAULT_PREDICATE] as const);
   const next = afterRewrite(a.text, a.task, entries);

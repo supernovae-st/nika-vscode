@@ -129,7 +129,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
     '- Use `model: mock/echo` while drafting (deterministic · zero keys).',
     '- The binding IS the edge: import upstream data through `with:`',
     '  (`with: { doc: "${{ tasks.x.output }}" }` → body reads `${{ with.doc }}`);',
-    '  order WITHOUT data via `after: { x: succeeded }` (or terminal/failed/',
+    '  order WITHOUT data via `after: { x: success }` (or terminal/failure/',
     '  skipped). `tasks.*` anywhere else is refused (NIKA-VAR-021). Truly',
     '  independent tasks must NOT be chained.',
     '',

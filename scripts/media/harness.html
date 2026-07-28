@@ -353,7 +353,7 @@
         { id: 'stats->chart', source: 'stats', target: 'chart', kind: 'value', isDataEdge: true, label: 'rows' },
         { id: 'digest->polish', source: 'digest', target: 'polish', kind: 'value', isDataEdge: true, label: 'draft' },
         { id: 'polish->notes', source: 'polish', target: 'notes', kind: 'value', isDataEdge: true, label: 'body' },
-        { id: 'stats->digest', source: 'stats', target: 'digest', kind: 'control', predicate: 'succeeded' },
+        { id: 'stats->digest', source: 'stats', target: 'digest', kind: 'control', predicate: 'success' },
         { id: 'chart->notes', source: 'chart', target: 'notes', kind: 'terminal-observation', isDataEdge: true, label: 'chart' },
         { id: 'notes->review', source: 'notes', target: 'review', kind: 'failure-observation', isDataEdge: true, label: 'errors' },
         { id: 'digest->review', source: 'digest', target: 'review', kind: 'recovery' },
@@ -523,26 +523,26 @@
         { id: 'rows->spread', source: 'rows', target: 'spread', kind: 'value', isDataEdge: true, label: 'data' },
         { id: 'rows->heat', source: 'rows', target: 'heat', kind: 'value', isDataEdge: true, label: 'data' },
         { id: 'draft->checkwf', source: 'draft', target: 'checkwf', kind: 'value', isDataEdge: true, label: 'draft' },
-        { id: 'checkwf->audit', source: 'checkwf', target: 'audit', kind: 'control', predicate: 'succeeded' },
+        { id: 'checkwf->audit', source: 'checkwf', target: 'audit', kind: 'control', predicate: 'success' },
         { id: 'stylize->save', source: 'stylize', target: 'save', kind: 'value', isDataEdge: true, label: 'art' },
         { id: 'velocity->save', source: 'velocity', target: 'save', kind: 'value', isDataEdge: true, label: 'chart' },
         { id: 'save->patch', source: 'save', target: 'patch', kind: 'value', isDataEdge: true, label: 'site' },
         { id: 'save->digest', source: 'save', target: 'digest', kind: 'value', isDataEdge: true, label: 'site' },
         { id: 'patch->announce', source: 'patch', target: 'announce', kind: 'value', isDataEdge: true, label: 'site' },
-        { id: 'announce->hold', source: 'announce', target: 'hold', kind: 'control', predicate: 'succeeded' },
-        { id: 'hold->note', source: 'hold', target: 'note', kind: 'control', predicate: 'succeeded' },
+        { id: 'announce->hold', source: 'announce', target: 'hold', kind: 'control', predicate: 'success' },
+        { id: 'hold->note', source: 'hold', target: 'note', kind: 'control', predicate: 'success' },
         { id: 'pull->shape', source: 'pull', target: 'shape', kind: 'value', isDataEdge: true, label: 'raw' },
         { id: 'shape->vet', source: 'shape', target: 'vet', kind: 'value', isDataEdge: true, label: 'data' },
         { id: 'shape->morph', source: 'shape', target: 'morph', kind: 'value', isDataEdge: true, label: 'data' },
         { id: 'diffcfg->mergecfg', source: 'diffcfg', target: 'mergecfg', kind: 'value', isDataEdge: true, label: 'target' },
         { id: 'vet->plan', source: 'vet', target: 'plan', kind: 'value', isDataEdge: true, label: 'evidence' },
-        { id: 'plan->ask', source: 'plan', target: 'ask', kind: 'control', predicate: 'succeeded' },
+        { id: 'plan->ask', source: 'plan', target: 'ask', kind: 'control', predicate: 'success' },
         { id: 'announce->ping', source: 'announce', target: 'ping', kind: 'value', isDataEdge: true, label: 'payload' },
-        { id: 'ping->wrap', source: 'ping', target: 'wrap', kind: 'control', predicate: 'succeeded' },
+        { id: 'ping->wrap', source: 'ping', target: 'wrap', kind: 'control', predicate: 'success' },
         // The failure read, tinted (§S.4) — and honest: gate succeeds
-        // in the sim, so the failed-predicate path stays SHUT (salvage
+        // in the sim, so the failure-predicate path stays SHUT (salvage
         // lands skipped, never success — the admits algebra on canvas).
-        { id: 'gate->salvage', source: 'gate', target: 'salvage', kind: 'control', predicate: 'failed' },
+        { id: 'gate->salvage', source: 'gate', target: 'salvage', kind: 'control', predicate: 'failure' },
       ],
     };
 
@@ -591,7 +591,7 @@
         const wave = Math.floor(i / COLS);
         if (wave > 0) {
           const parent = 't' + ((wave - 1) * COLS + (i % COLS));
-          edges.push({ id: parent + '->' + id, source: parent, target: id, kind: i % 7 === 3 ? 'control' : 'value', ...(i % 7 === 3 ? { predicate: 'succeeded' } : { isDataEdge: true, label: 'd' + i }) });
+          edges.push({ id: parent + '->' + id, source: parent, target: id, kind: i % 7 === 3 ? 'control' : 'value', ...(i % 7 === 3 ? { predicate: 'success' } : { isDataEdge: true, label: 'd' + i }) });
           nodes[i].producers = [parent];
           if (i % 5 === 0 && i % COLS > 0) {
             const uncle = 't' + ((wave - 1) * COLS + (i % COLS) - 1);

@@ -183,7 +183,7 @@ tasks:
     output:
       summary: ".text"
   save:
-    after: { guarded: succeeded }
+    after: { guarded: success }
     invoke:
       tool: "nika:write"
       args:
@@ -411,10 +411,10 @@ tasks:
       '  a:',
       '    exec: { command: ["echo", "a"] }',
       '  b:',
-      '    after: { a: succeeded }',
+      '    after: { a: success }',
       '    exec: { command: ["echo", "b"] }',
       '  c:',
-      '    after: { a: succeeded, b: succeeded }',
+      '    after: { a: success, b: success }',
       '    exec: { command: ["echo", "c"] }',
     ].join('\n');
     const file = tmpWorkflow(doc);
@@ -543,7 +543,7 @@ describe('graphDocToDag adaptation (pure)', () => {
         { id: 'a', verb: 'invoke', tool: 'nika:fetch', permits: ['net.http: api.example.org'] },
         { id: 'b', verb: 'infer', permits: [] },
       ],
-      edges: [{ from: 'a', to: 'b', kind: 'control', predicate: 'succeeded' }],
+      edges: [{ from: 'a', to: 'b', kind: 'control', predicate: 'success' }],
     };
     const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
     expect(dag.nodes[0].permits).toEqual(['net.http: api.example.org']);
@@ -601,17 +601,17 @@ tasks:
       prompt: "seed"
 
   left:
-    after: { root: succeeded }
+    after: { root: success }
     infer:
       prompt: "l"
 
   right:
-    after: { root: succeeded }
+    after: { root: success }
     infer:
       prompt: "r"
 
   join:
-    after: { left: succeeded, right: succeeded }
+    after: { left: success, right: success }
     infer:
       prompt: "j"
 `;

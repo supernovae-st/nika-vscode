@@ -7825,7 +7825,7 @@ function buildExplainer(): void {
     ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
     ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
-    ['ex-glyph-connect', '⌥ drag node → node', 'order on state — the YAML gets `after: { from: succeeded }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
+    ['ex-glyph-connect', '⌥ drag node → node', 'order on state — the YAML gets `after: { from: success }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
     ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb or a tool, the wire reroutes through it (control wires only; a binding is authored, never rerouted)'],
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],

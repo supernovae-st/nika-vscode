@@ -129,7 +129,7 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
     '',
     '## 4 Verbs (locked forever)',
     '- infer: LLM call ({ prompt, system?, temperature?, schema? })',
-    '- exec: subprocess ({ command, cwd?, capture: text|structured })',
+    '- exec: subprocess ({ command: ["prog", "arg"] argv-only, cwd?, shell? for pipes/redirects, capture: stdout|stderr|combined|structured })',
     '- invoke: builtin/MCP tool ({ tool, args }) — HTTP fetch = `tool: nika:fetch` (a TOOL, not a verb)',
     '- agent: agent loop ({ model, prompt, tools: default-deny whitelist, max_turns, max_tokens_total })',
     '',

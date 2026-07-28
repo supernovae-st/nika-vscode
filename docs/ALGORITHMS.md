@@ -34,7 +34,7 @@ flags. This is the JSON-Schema-as-type-system move:
 - Aho, Garey & Ullman · *The Transitive Reduction of a Directed Graph* ·
   SIAM J. Comput. 1(2), 1972 · powered the pre-W2 « redundant
   depends_on » hint. Under graph_format 2 every edge carries a
-  PASS-SET (value admits {success, skipped} · `after: succeeded` admits
+  PASS-SET (value admits {success, skipped} · `after: success` admits
   {success} · …) and admission composes per edge, so an edge that is
   redundant for REACHABILITY is not redundant for ADMISSION: removing
   it can change what runs. The client hint and its quick fix left with

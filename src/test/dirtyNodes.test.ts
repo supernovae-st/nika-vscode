@@ -11,15 +11,15 @@ tasks:
     infer:
       prompt: "Name three colors."
   branch_a:
-    after: { seed: succeeded }
+    after: { seed: success }
     infer:
       prompt: "Comment briefly."
   branch_b:
-    after: { seed: succeeded }
+    after: { seed: success }
     infer:
       prompt: "Count lines."
   join:
-    after: { branch_a: succeeded, branch_b: succeeded }
+    after: { branch_a: success, branch_b: success }
     infer:
       prompt: "Merge."
 `;
@@ -40,13 +40,13 @@ tasks:
   branch_a:
     infer:
       prompt: "Comment briefly."
-    after: { seed: succeeded }
+    after: { seed: success }
   branch_b:
-    after: { seed: succeeded }
+    after: { seed: success }
     infer:
       prompt: "Count lines."
   join:
-    after: { branch_a: succeeded, branch_b: succeeded }
+    after: { branch_a: success, branch_b: success }
     infer:
       prompt: "Merge."
 `;
@@ -60,11 +60,11 @@ tasks:
     const base = taskFingerprints(WF);
     expect(taskFingerprints(WF.replace('Name three colors.', 'Name four colors.')).get('seed'))
       .not.toBe(base.get('seed'));
-    expect(taskFingerprints(WF.replace('after: { branch_a: succeeded, branch_b: succeeded }', 'after: { branch_a: succeeded }')).get('join'))
+    expect(taskFingerprints(WF.replace('after: { branch_a: success, branch_b: success }', 'after: { branch_a: success }')).get('join'))
       .not.toBe(base.get('join'));
-    // A predicate change re-fingerprints too — terminal vs succeeded IS
+    // A predicate change re-fingerprints too — terminal vs success IS
     // a different gate (the run would admit differently).
-    expect(taskFingerprints(WF.replace('after: { seed: succeeded }', 'after: { seed: terminal }')).get('branch_a'))
+    expect(taskFingerprints(WF.replace('after: { seed: success }', 'after: { seed: terminal }')).get('branch_a'))
       .not.toBe(base.get('branch_a'));
     expect(taskFingerprints(WF.replace('  join:\n', '  join:\n    when: "${{ 1 > 0 }}"\n')).get('join'))
       .not.toBe(base.get('join'));
@@ -100,7 +100,7 @@ describe('computeDirty (direct + downstream cone)', () => {
 
   it('a NEW task is stale (and stales its cone) once a record exists', () => {
     const withNew = WF.replace('  join:', `  extra:
-    after: { seed: succeeded }
+    after: { seed: success }
     infer:
       prompt: "Extra."
   join:`);

@@ -211,7 +211,7 @@ describe('expr', () => {
   });
 
   it('ignores refs outside islands', () => {
-    expect(scanRefs('after: { fetch: succeeded }')).toHaveLength(0);
+    expect(scanRefs('after: { fetch: success }')).toHaveLength(0);
   });
 
   it('resolves the ref under the cursor', () => {
@@ -430,7 +430,7 @@ describe('parseRichWorkflow', () => {
     '',
     '  ship:',
     '    after:',
-    '      summarize: succeeded',
+    '      summarize: success',
     '    exec:',
     '      command: ["echo", "done"]',
     '',
@@ -510,7 +510,7 @@ describe('parseRichWorkflow', () => {
 
     const ship = wf.tasks[2];
     expect(ship.verb).toBe('exec');
-    expect(ship.after).toEqual({ summarize: 'succeeded' });
+    expect(ship.after).toEqual({ summarize: 'success' });
     expect(ship.producers).toEqual(['summarize']);
 
     const fetch = wf.tasks[0];
@@ -526,14 +526,14 @@ describe('parseRichWorkflow', () => {
       '    infer: { prompt: "First" }',
       '  b:',
       '    with: { prev: ${{ tasks.a.output }}, style: "concise" }',
-      '    after: { a: succeeded }',
+      '    after: { a: success }',
       '    infer: { prompt: "Second · ${{ with.prev }}" }',
     ].join('\n');
     const wf = parseRichWorkflow(inline);
     const b = wf.tasks.find((t) => t.id === 'b')!;
     expect(b.withAliases).toEqual(['prev', 'style']);
     expect(b.withRefs).toEqual([{ alias: 'prev', from: 'a', path: 'output' }]);
-    expect(b.after).toEqual({ a: 'succeeded' });
+    expect(b.after).toEqual({ a: 'success' });
     expect(b.producers).toEqual(['a']); // deduped across both doors
   });
 
@@ -589,7 +589,7 @@ describe('parseRichWorkflow', () => {
       '      command: ["echo", "a"]',
       '  b:',
       '    after:',
-      '      a: succeeded',
+      '      a: success',
       '',
       '      c: terminal',
       '    exec:',
@@ -599,6 +599,6 @@ describe('parseRichWorkflow', () => {
       '      command: ["echo", "c"]',
     ].join('\n');
     const wf = parseRichWorkflow(spaced);
-    expect(wf.tasks.find((t) => t.id === 'b')?.after).toEqual({ a: 'succeeded', c: 'terminal' });
+    expect(wf.tasks.find((t) => t.id === 'b')?.after).toEqual({ a: 'success', c: 'terminal' });
   });
 });

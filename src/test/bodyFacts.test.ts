@@ -19,14 +19,14 @@ tasks:
   shell_step:
     exec:
       command: echo processing && sleep 1
-    after: { gather: succeeded }
+    after: { gather: success }
   jq_step:
     invoke:
       tool: "nika:jq"
       args:
         expr: ".items | length"
         input: "\${{ tasks.gather.output }}"
-    after: { gather: succeeded }
+    after: { gather: success }
   bare:
     invoke:
       tool: "nika:read"

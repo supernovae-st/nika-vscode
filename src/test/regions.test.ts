@@ -24,7 +24,7 @@ tasks:
 
   #   nika:region  Summarize
   summarize:
-    after: { fetch_a: succeeded, fetch_b: succeeded }
+    after: { fetch_a: success, fetch_b: success }
     infer:
       prompt: "Merge."
 `;
