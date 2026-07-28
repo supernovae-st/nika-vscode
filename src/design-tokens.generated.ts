@@ -24,7 +24,7 @@ export const NIKA_VERB_GLYPH = { infer: '◇', exec: '▷', invoke: '◆', agent
 export const NIKA_VERB_CODICON = { infer: 'sparkle', exec: 'terminal', invoke: 'plug', agent: 'robot', } as const
 export const NIKA_VERB_FA = { infer: 'sparkles', exec: 'terminal', invoke: 'plug', agent: 'robot', } as const
 /** nika.sh ontology ids (public/brand/icons.json) */
-export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'console', invoke: 'api-connection', agent: 'agent-graph', } as const
+export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'code/console', invoke: 'code/api-connection', agent: 'code/agent', } as const
 
 /** per-FEATURE codicon bindings (icons.features · an OPEN set, unlike
  *  the 4 verbs) — drawn on the icon_grid contract: 16px · filled ·
@@ -48,6 +48,13 @@ export const NIKA_ROLE_MARK = { boundary: 'glyph', wire: 'ref-ink', fail: 'dange
 export const NIKA_ROLE_CODICON = { boundary: 'shield', wire: 'arrow-right', fail: 'error', } as const
 /** the web binding: the CSS custom property each role reuses */
 export const NIKA_ROLE_WEB_TOKEN = { boundary: '--cf-key', wire: '--cf-ref', fail: '--danger', } as const
+/** the role's visual QUANTITIES on the web · sparse: a role appears
+ *  here only if it carries one. boundary reads at a heavier cut of the
+ *  key ink (it is not a different colour, it is a firmer one); fail is
+ *  the danger hue mixed INTO the key ink rather than replacing it, so a
+ *  recovery word still reads as a key first. */
+export const NIKA_ROLE_WEB_WEIGHT = { boundary: 600, } as const
+export const NIKA_ROLE_WEB_MIX_PCT = { fail: 78, } as const
 /** the editor binding — a vscode semantic-token type, so an EDITOR can
  *  speak the same roles the site does while its colours stay the
  *  user's theme (LOCK-005: the skin is theme-driven, the MEANING is
@@ -97,3 +104,89 @@ export const NIKA_PROVIDERS_ORDER: readonly string[] = [
   'google',
   'xai',
 ] as const
+
+/** THE PLATE · one physical object, three surfaces.
+ *  The website, the VS Code canvas and the design bench all draw a
+ *  plate: a top edge that catches light, a face with a paper tooth, a
+ *  well cut into it where code sits, and two shadows — one where it
+ *  touches, one where it hangs. Before this block each surface
+ *  invented its own: three radii, three shadow recipes, three ideas
+ *  of how much an edge should glint.
+ *
+ *  THE LAMP IS THE POINT. One light in the room; every plate obeys it.
+ *  A plate alone cannot know where the light is, so these are
+ *  quantities on a SCENE — one gradient lights a hundred plates. */
+export const NIKA_MATERIAL = { plate: { radius_px: 7, pad_px: 7, bevel: 0.06, bevel_lit: 0.15, grain: 0.03, lift_px: 3, contact: { y_px: 1, blur_px: 3, alpha: 0.38 }, ambient: { y_px: 24, blur_px: 40, spread_px: -24, alpha: 0.55 } }, well: { inset_alpha: 0.4, glow_alpha: 0.05 }, lamp: { reach_vmax: 60, core: 0.26, falloff: 0.22, drift_s: 40 }, glass: { tint: 0.88, blur_px: 11, saturate: 1.12, border: 0.09, grain: 0.03 }, ground: { grid: { cell_px: 40, arm_px: 4, stroke: 0.05, far_cell_px: 96, far_arm_px: 6, far_stroke: 0.07 }, vignette: { reach_x: 1.2, reach_y: 1.0, at_y: 0.38, clear: 0.55, edge: 0.38 }, vignette_running: { reach_x: 1.1, reach_y: 0.92, at_y: 0.4, clear: 0.46, edge: 0.5 }, spot: { radius_px: 680, hue: '79 134 255', alpha: 0.06, fade: 0.7, ease_ms: 400 }, cursor: { box_px: 20, arm_px: 6, arm_held_px: 4, stroke_px: 1.5, halo: 0.55 } }, node: { status: ['pending', 'running', 'success', 'failed', 'retrying', 'skipped', 'cancelled'], marks: { stale: 'its recorded trace no longer matches the file', stale_up: 'something it depends on went stale', cached: 'it did not run · a previous identical run answered', recovered: 'it failed and its on_error branch caught it', audit: 'check found something · severity below', dead_gate: 'its when: can never be true · it will never run', asking: 'parked on a question · WAITING, not working' }, audit_severity: ['error', 'warning', 'info'], signal: { pending: 'small', running: 'ring', success: 'filled', failed: 'diamond', retrying: 'ring_halo', skipped: 'bar', cancelled: 'bar_struck' }, anatomy: { infer: ['head', 'sub', 'body', 'why'], exec: ['head', 'sub', 'body', 'why'], invoke: ['head', 'body', 'sub', 'why'], agent: ['head', 'sub', 'body', 'band', 'why'] }, classes: { wrapper: 'dag-node', card: 'nc', status_prefix: 'status-', verb_prefix: 'verb-', audit_prefix: 'audit-', mark: { stale: 'is-stale', stale_up: 'stale-up', cached: 'is-cached', recovered: 'is-recovered', audit: 'has-audit', dead_gate: 'dead-gate', asking: 'is-asking' }, part: { head: 'nc-head', tile: 'nc-tile', id: 'nc-id', st: 'nc-st', dot: 'nc-dot', sub: 'nc-sub', sub_k: 'nc-sub-k', sub_v: 'nc-sub-v', body: 'nc-body', band: 'nc-agent-band', why: 'nc-policy', why_line: 'nc-pol', badge: 'nc-badge', chip: 'nc-chip' } } }, card: { pad_x_px: 12, pad_y_px: 10, radius_px: 12, head_h_px: 22, head_gap_px: 7, tile_px: 22, tile_radius_px: 6, st_w_px: 18, dot_px: 7, dot_rest_alpha: 0.6, sub_h_px: 15, sub_gap_px: 10, body_top_px: 4, body_line_px: 15, body_clamp: 3, body_ink: 0.82, chip_pad_x_px: 7, chip_pad_y_px: 1, chip_radius_px: 4, chip_fill: 0.06, badge_clear_px: 12, base_ms: 160, fs: { heading_px: 12.5, label_px: 11, sub_px: 10.5, body_px: 10, meta_px: 9.5, note_px: 9 } }, motion: { lift_ms: 190, drawer_ms: 420, ease_lift: 'linear(0, 0.1 6%, 0.54 19%, 0.85 32%, 0.97 42%, 1.02 50%, 1.008 70%, 1)', ease_drawer: 'linear(0, 0.04 8%, 0.38 24%, 0.78 42%, 1.04 62%, 0.99 78%, 1)' } } as const
+
+/** THE NODE · two axes, never one.
+ *  ONE status, ANY marks. `pending` deliberately has no resting rule
+ *  in the canvas — a task that has not started should not advertise
+ *  itself. The anatomy is what verbAnatomies.test.ts asserts: head,
+ *  mechanism, essence, why — except invoke, whose essence leads. */
+export const NIKA_NODE_STATUS = ['pending', 'running', 'success', 'failed', 'retrying', 'skipped', 'cancelled'] as const
+export const NIKA_NODE_MARKS = { stale: 'its recorded trace no longer matches the file', stale_up: 'something it depends on went stale', cached: 'it did not run · a previous identical run answered', recovered: 'it failed and its on_error branch caught it', audit: 'check found something · severity below', dead_gate: 'its when: can never be true · it will never run', asking: 'parked on a question · WAITING, not working' } as const
+export const NIKA_AUDIT_SEVERITY = ['error', 'warning', 'info'] as const
+/** the hue each audit level wears. Aliases into the stored palette,
+ *  never a colour of its own: a finding borrows the weight it already
+ *  means (error = the failure red · warning = the retrying amber ·
+ *  info = the brand accent). Bound in tokens.yaml `severity.audit` —
+ *  before that the map lived only in the canvas's own stylesheet. */
+export const NIKA_AUDIT_HUE = { error: '#ff5d5d', warning: '#e0b071', info: '#4f86ff', } as const
+export const NIKA_NODE_ANATOMY = { infer: ['head', 'sub', 'body', 'why'], exec: ['head', 'sub', 'body', 'why'], invoke: ['head', 'body', 'sub', 'why'], agent: ['head', 'sub', 'body', 'band', 'why'] } as const
+export const NIKA_NODE_CLASSES = { wrapper: 'dag-node', card: 'nc', status_prefix: 'status-', verb_prefix: 'verb-', audit_prefix: 'audit-', mark: { stale: 'is-stale', stale_up: 'stale-up', cached: 'is-cached', recovered: 'is-recovered', audit: 'has-audit', dead_gate: 'dead-gate', asking: 'is-asking' }, part: { head: 'nc-head', tile: 'nc-tile', id: 'nc-id', st: 'nc-st', dot: 'nc-dot', sub: 'nc-sub', sub_k: 'nc-sub-k', sub_v: 'nc-sub-v', body: 'nc-body', band: 'nc-agent-band', why: 'nc-policy', why_line: 'nc-pol', badge: 'nc-badge', chip: 'nc-chip' } } as const
+
+/** THE ONE FUNCTION THAT NAMES A NODE.
+ *  Three surfaces draw this card; before this, each spelled its class
+ *  string by hand and two of the three were wrong in the same way —
+ *  they hung the state on the CARD. It hangs on the WRAPPER, and the
+ *  card inside carries none. Call this; do not re-spell it. */
+export function nikaNodeClass(n: {
+  status: (typeof NIKA_NODE_STATUS)[number]
+  verb: keyof typeof NIKA_NODE_ANATOMY
+  marks?: readonly (keyof typeof NIKA_NODE_CLASSES.mark)[]
+  auditWorst?: (typeof NIKA_AUDIT_SEVERITY)[number]
+}): string {
+  const c = NIKA_NODE_CLASSES
+  const out = [c.wrapper, c.status_prefix + n.status, c.verb_prefix + n.verb]
+  for (const m of n.marks ?? []) {
+    out.push(c.mark[m])
+    /* the severity rides WITH the audit mark — adjacent, not appended.
+       Order is nothing to CSS and everything to a parity test. */
+    if (m === 'audit') out.push(c.audit_prefix + (n.auditWorst ?? 'error'))
+  }
+  return out.join(' ')
+}
+
+/** THE BUILTIN'S HOUSE · one hue per catalogue category, ALIASED.
+ *  A category never introduces a colour — it borrows the one its
+ *  meaning already has: what touches your disk wears the success
+ *  green, what leaves the machine wears the accent, what looks at the
+ *  run itself wears the critical red. Resolved at projection time, so
+ *  a moved palette moves these too. */
+export const NIKA_CATEGORY_HUE = { core: '#5a606b', file: '#34d399', data: '#4f86ff', network: '#4f86ff', introspection: '#e0b071', media: '#8a83ff' } as const
+
+/** THE CARD'S IDENTITY · what a node shows beyond its verb.
+ *  The category's mark, the preview slot it earns, and WHICH argument
+ *  is a builtin's soul — a card that shows every arg shows nothing.
+ *  Read off the canvas, which was the only surface that had them. */
+export const NIKA_CATEGORY_GLYPH = { core: '◦', file: '▤', data: '⧉', network: '⇄', introspection: '⌕', media: '▣' } as const
+export const NIKA_PREVIEW_KINDS = ['image', 'audio', 'file', 'http', 'check', 'none'] as const
+export const NIKA_PREVIEW_BY_CATEGORY = { core: 'none', file: 'none', data: 'none', network: 'http', introspection: 'none', media: 'image' } as const
+export const NIKA_PREVIEW_OVERRIDE = { tts_generate: 'audio', write: 'file', edit: 'file', compose: 'check' } as const
+export const NIKA_ESSENCE_RENDERS = ['code', 'path', 'url', 'event', 'duration', 'condition', 'text'] as const
+export const NIKA_ESSENCE = { log: { arg: 'message', render: 'text' }, emit: { arg: 'event_type', render: 'event' }, assert: { arg: 'condition', render: 'condition' }, prompt: { arg: 'message', render: 'text' }, wait: { arg: 'duration', render: 'duration' }, read: { arg: 'path', render: 'path' }, write: { arg: 'path', render: 'path' }, edit: { arg: 'path', render: 'path' }, glob: { arg: 'pattern', render: 'code' }, grep: { arg: 'pattern', render: 'code' }, jq: { arg: 'expression', render: 'code' }, validate: { arg: 'schema', render: 'condition' }, convert: { arg: 'to', render: 'code' }, uuid: { arg: 'version', render: 'text' }, date: { arg: 'op', render: 'code' }, hash: { arg: 'content', render: 'text' }, decide: { arg: 'bundle', render: 'path' }, fetch: { arg: 'url', render: 'url' }, notify: { arg: 'target', render: 'text' }, inspect: { arg: 'view', render: 'code' }, compose: { arg: 'workflow_yaml', render: 'code' }, image_generate: { arg: 'prompt', render: 'text' }, tts_generate: { arg: 'text', render: 'text' } } as const
+export const NIKA_PORT = { directions: ['in', 'out'], flows: ['data', 'media', 'plain'], flow_hue: { data: 'builtin.category.data', media: 'builtin.category.media' } } as const
+
+/** THE PREVIEW SLOT · the category decides, four builtins differ.
+ *  Same answer as the canvas's previewFor(), proven over the whole
+ *  catalogue rather than asserted. */
+export function nikaPreviewOf(
+  builtin: string | undefined,
+  category: string | undefined,
+): (typeof NIKA_PREVIEW_KINDS)[number] {
+  if (!builtin) return 'none'
+  const over = (NIKA_PREVIEW_OVERRIDE as Record<string, string>)[builtin]
+  if (over) return over as (typeof NIKA_PREVIEW_KINDS)[number]
+  const byCat = (NIKA_PREVIEW_BY_CATEGORY as Record<string, string>)[category ?? '']
+  return (byCat ?? 'none') as (typeof NIKA_PREVIEW_KINDS)[number]
+}
