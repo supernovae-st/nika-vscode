@@ -1,0 +1,17 @@
+{
+  // The F5 door — PUBLISHING.md's manual gate assumes it exists. Launches
+  // the Extension Development Host (VS Code or Cursor alike) with THIS
+  // checkout's extension, compiled first. The marketplace copy, when
+  // installed, is automatically superseded inside the dev host.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "npm: compile"
+    }
+  ]
+}
