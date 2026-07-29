@@ -185,12 +185,14 @@
   cursor: pointer;
   border-color: color-mix(in srgb, currentColor 61%, transparent);
 }
-:where(.nc-model)::after {
-  /* « il y en a d'autres » · au repos, jamais seulement au survol */
-  content: '▾';
-  margin-left: 4px;
-  opacity: 0.66;
-  font-size: 0.85em;
+:where(.nc-model) {
+  /* « il y en a d'autres » · DESSINÉ en SVG, pas posé en content: — un glyphe
+     CSS n'est ni sélectionnable, ni traduit, ni annoncé. Au repos, jamais
+     seulement au survol. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0.6 0.6L3.5 3.4L6.4 0.6' fill='none' stroke='%23ffffff' stroke-opacity='0.66' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  padding-right: 17px;
 }
 .nc-model:hover {
   border-color: color-mix(in srgb, currentColor 89%, transparent);
