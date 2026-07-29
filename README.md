@@ -618,6 +618,8 @@ cross-links, in the **Feature Contributions** tab.
 
 **This building** · THE WORKBENCH · the full IDE surface: LSP, live DAG canvas, replay debugger.
 
+**Root** · neither · this building serves both roots to the editor. The schema is pinned from nika-spec (SPEC_PIN), the language server from the released engine · nothing authoritative is typed here.
+
 **Consumes** · the engine binary (LSP · check · replay · the pinned spec grammar).
 
 **Serves** · VS Code · Cursor · Windsurf (Marketplace + OpenVSX, one build).
