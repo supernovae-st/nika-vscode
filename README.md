@@ -601,6 +601,33 @@ cross-links, in the **Feature Contributions** tab.
 | `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
 | `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
 
+<!-- city:map -->
+## The city · where this repo sits
+
+```
+📜 nika-spec ──── the civil code · the law tables, the corpus, the exam
+    │ sync-pack: byte-gated mirror        │ projectors: drift-gated
+    ▼                                     ▼
+⚙️ nika ───────── the engine + the catalog (the yellow pages)
+    │ the release train                  🖥️ nika.sh · 📖 nika-docs
+    ▼                                     the showroom · the manual
+📦 homebrew-tap · npm · Docker ── the docks
+🔌 nika-client · 🎨 nika-vscode · 🤖 nika-agents ── the doors   ◀── you are here
+🏪 nika-registry ── the market · 🔍 nika-site-audit ── the witness
+```
+
+**This building** · THE WORKBENCH · the full IDE surface: LSP, live DAG canvas, replay debugger.
+
+**Consumes** · the engine binary (LSP · check · replay · the pinned spec grammar).
+
+**Serves** · VS Code · Cursor · Windsurf (Marketplace + OpenVSX, one build).
+
+**Truth lives** · rides the engine's release train · what the canvas shows derives from the engine's own reading, never re-derived site-side.
+
+Every fact has one home · everything else is a gated projection.
+The living map: [nika.sh/map](https://nika.sh/map).
+<!-- /city:map -->
+
 ## Deep links
 
 A runbook, a PR description or a chat message can open the editor
