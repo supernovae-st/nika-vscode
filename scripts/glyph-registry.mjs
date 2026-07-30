@@ -122,8 +122,18 @@ const findings = [];
 
 function scan(rel, checks) {
   const lines = read(rel).split('\n');
+  // The city map is a CROSS-REPO canonical block: the same bytes live inside
+  // <!-- city:map --> in thirteen repositories, and its marks are its
+  // identity. This law governs what THIS extension paints, not what a shared
+  // fence carries, and stripping the marks here alone would break the one
+  // property the block exists for. Line-by-line `glyph-ok` inside an ASCII
+  // diagram would work and would be unreadable; the fence says it once.
+  let inCityMap = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (line.includes('<!-- city:map -->')) { inCityMap = true; continue; }
+    if (line.includes('<!-- /city:map -->')) { inCityMap = false; continue; }
+    if (inCityMap) continue;
     if (line.includes('glyph-ok')) continue;
     if (i > 0 && lines[i - 1].includes('glyph-ok')) continue;
     checks(rel, i + 1, line);
