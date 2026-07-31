@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { extractBinaryFromTarGz, extractBinaryFromZip } from './core/archive';
+import { probeBinaryVersion, versionReceiptError } from './core/binaryVersion';
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/supernovae-st/nika/releases/latest';
 const GITHUB_LATEST_HTML = 'https://github.com/supernovae-st/nika/releases/latest';
@@ -233,6 +234,17 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         } else {
           await extractBinaryFromTarGz(archiveDest, binaryDest);
           fs.chmodSync(binaryDest, 0o755);
+        }
+
+        // The receipt: SHA256SUMS proved the download, this proves the
+        // install — the binary on disk must report the version we resolved.
+        // A mismatch refuses the install and removes the wrong binary (a
+        // bad executable in storage is worse than none).
+        progress.report({ message: 'Verifying the installed binary...' });
+        const receiptError = versionReceiptError(await probeBinaryVersion(binaryDest), version);
+        if (receiptError) {
+          fs.unlink(binaryDest, () => undefined);
+          throw new Error(receiptError);
         }
 
         // Clean up archive

@@ -12,6 +12,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as zlib from 'zlib';
 import { extractBinaryFromTarGz, extractBinaryFromZip } from '../core/archive';
+import { probeBinaryVersion, versionReceiptError } from '../core/binaryVersion';
 
 let dir: string;
 
@@ -236,5 +237,62 @@ describe('extractBinaryFromZip', () => {
     ]));
     await expect(extractBinaryFromZip(archive, path.join(dir, 'out')))
       .rejects.toThrow(/not found/i);
+  });
+});
+
+// ─── The version receipt (the installer validates the RIGHT binary) ────────
+//
+// SHA256SUMS proves the download; the receipt proves the install: the binary
+// that landed on disk must report the version we resolved, or the whole
+// download is refused (a wrong binary in storage is worse than none).
+
+describe('versionReceiptError', () => {
+  it('accepts an exact match', () => {
+    expect(versionReceiptError('1.2.3', '1.2.3')).toBeNull();
+  });
+
+  it('refuses a mismatch and names both versions', () => {
+    const err = versionReceiptError('0.0.1', '1.2.3');
+    expect(err).toMatch(/mismatch/i);
+    expect(err).toContain('0.0.1');
+    expect(err).toContain('1.2.3');
+  });
+
+  it('refuses when the binary reported no version at all', () => {
+    expect(versionReceiptError(null, '1.2.3')).toMatch(/did not report/i);
+  });
+
+  it('a prerelease tag is part of the identity, not noise', () => {
+    expect(versionReceiptError('1.2.3-rc.1', '1.2.3-rc.1')).toBeNull();
+    expect(versionReceiptError('1.2.3', '1.2.3-rc.1')).toMatch(/mismatch/i);
+  });
+});
+
+describe('probeBinaryVersion', () => {
+  const unix = process.platform === 'win32' ? it.skip : it;
+
+  const fakeBinary = (name: string, body: string): string => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, body, { mode: 0o755 });
+    return p;
+  };
+
+  unix('reads the version an executable reports via --version', async () => {
+    const bin = fakeBinary('nika', '#!/bin/sh\necho "nika 1.2.3"\n');
+    await expect(probeBinaryVersion(bin)).resolves.toBe('1.2.3');
+  });
+
+  unix('keeps the prerelease tail of the reported version', async () => {
+    const bin = fakeBinary('nika', '#!/bin/sh\necho "nika 1.2.3-rc.1"\n');
+    await expect(probeBinaryVersion(bin)).resolves.toBe('1.2.3-rc.1');
+  });
+
+  unix('returns null when the output carries no semver', async () => {
+    const bin = fakeBinary('nika', '#!/bin/sh\necho "not a version banner"\n');
+    await expect(probeBinaryVersion(bin)).resolves.toBeNull();
+  });
+
+  it('returns null for a path that cannot execute', async () => {
+    await expect(probeBinaryVersion(path.join(dir, 'missing-nika'))).resolves.toBeNull();
   });
 });
