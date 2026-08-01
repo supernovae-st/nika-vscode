@@ -6,12 +6,12 @@ major.minor from 0.97).
 
 ## [0.107.0] · 2026-08-01
 
-Lockstep on the engine's trust wave (v0.107.0 — the three doors ·
+Lockstep on the engine's trust wave (v0.107.0 · the three doors ·
 whole-catalog router · the honesty fixes). Extension-side since 0.106.0:
 
 - **The installer proves its binary.** The downloaded engine must speak
   its own version before the extension trusts it (the imposter class
-  from the 07-31 postmortem — a dev build stamped with a release string
+  from the 07-31 postmortem · a dev build stamped with a release string
   no longer passes).
 - **Spec-pin catch-up rides.** The generated surfaces follow the spec:
   the fourteen policy chips (and the editable one), the two projected
