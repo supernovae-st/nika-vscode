@@ -377,13 +377,31 @@ async function pickModel(
   const wf = parseRichWorkflow(text);
   const current = wf.tasks.find((t) => t.id === taskId)?.model ?? wf.defaultModel;
 
+  // The machine truth at the moment of choice: doctor's per-provider
+  // key state (« configured · key present » vs « MISTRAL_API_KEY
+  // unset ») rides each row — best-effort, never blocks the picker.
+  const keyState = new Map<string, { ok: boolean; note: string }>();
+  try {
+    const doc = await service.doctorJson();
+    const findings = doc.kind === 'ok' ? doc.value.findings : [];
+    for (const f of findings) {
+      if (f.label !== 'provider') { continue; }
+      const m = f.detail.match(/^([a-z0-9-]+) — recognized · (configured[^(]*|not configured \(([A-Z0-9_]+) unset\))/);
+      if (!m) { continue; }
+      const ok = m[2].startsWith('configured');
+      keyState.set(m[1], { ok, note: ok ? '● key present' : `○ needs ${m[3] ?? 'a key'}` });
+    }
+  } catch { /* the picker stays useful without the doctor */ }
+
   interface ProviderItem extends QuickPickItem { provider?: string }
   const items: ProviderItem[] = [];
   const push = (group: string, ids: string[]): void => {
     if (ids.length === 0) { return; }
     items.push({ label: group, kind: QuickPickItemKind.Separator });
     for (const id of ids) {
-      items.push({ label: id, provider: id, description: current?.startsWith(`${id}/`) ? 'current' : undefined });
+      const state = keyState.get(id)?.note;
+      const cur = current?.startsWith(`${id}/`) ? 'current' : undefined;
+      items.push({ label: id, provider: id, description: [cur, state].filter(Boolean).join('  ·  ') });
     }
   };
   if (providers) {
