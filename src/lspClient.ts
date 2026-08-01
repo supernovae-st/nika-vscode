@@ -267,6 +267,10 @@ export function startClient(
         // mechanically true: the dead server's capabilities no longer
         // own anything, restore every client voice (#103).
         state.reconcileIntel?.(undefined);
+        // The pill must tell the same truth as the toast (wave-3
+        // RANK-2: a crash-looped server left `LSP: running` forever) —
+        // the failed rung carries its own restart headline.
+        state.statusSink?.('failed');
         void window.showWarningMessage(
           'Nika language server stopped (it may have crashed or the binary changed). Client-side intelligence stays active.',
           'Restart server',

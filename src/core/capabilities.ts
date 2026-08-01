@@ -118,8 +118,15 @@ export function buildCapabilities(
   versionText: string,
   checkHelpText = '',
   explainHelpText = '',
+  probedOk: readonly string[] = [],
 ): CapabilitySet {
+  // 0.107 hides the machine verbs (inspect · spec · lsp · mcp · dap)
+  // from the first help screen (the V5 twelve-visible law) — they still
+  // answer their own --help. The caller probes those directly; a verb
+  // proven by its own door joins the set (the belt caught the dark
+  // caps against the released binary, 2026-08-01).
   const commands = parseHelpCommands(helpText);
+  for (const p of probedOk) { commands.add(p); }
   return {
     commands,
     version: versionText.trim(),

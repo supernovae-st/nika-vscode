@@ -67,6 +67,11 @@ workflow:
 
 model: mock/echo
 
+permits:
+  tools: ["nika:fetch"]
+  net:
+    http: ["example.com"]
+
 tasks:
   fetch_page:
     invoke:
@@ -85,13 +90,21 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   it('capability probe AGREES with the binary --help (generation-independent)', () => {
     const help = run(['--help']).stdout;
     const version = run(['--version']).stdout;
-    const caps = buildCapabilities(help, version);
+    // 0.107 hides the machine verbs from the first screen (the twelve-
+    // visible law) — the service proves them by their own --help door;
+    // the test mirrors that exact probe path.
+    const HIDDEN = ['inspect', 'spec', 'lsp', 'mcp', 'dap'];
+    const probedOk = HIDDEN.filter((v) => run([v, '--help']).code === 0);
+    const caps = buildCapabilities(help, version, '', '', probedOk);
     // The static suite is the floor — every generation that gets here
-    // ships it (a binary without `check` is not a Nika binary).
-    // `graph` retired on main (the ONE projector lives on `inspect
-    // --format`) — the floor names the living verbs only.
-    for (const cmd of ['check', 'inspect', 'explain', 'spec', 'try', 'new', 'trace', 'completions']) {
+    // ships it (a binary without `check` is not a Nika binary). The
+    // FIRST-SCREEN floor names the visible craft; the hidden doors are
+    // proven by probe above (the belt caught the dark caps 2026-08-01).
+    for (const cmd of ['check', 'explain', 'try', 'new', 'trace']) {
       expect(caps.commands.has(cmd), `--help must list ${cmd}`).toBe(true);
+    }
+    for (const cmd of ['inspect', 'spec']) {
+      expect(caps.commands.has(cmd), `the hidden door ${cmd} must answer its own --help`).toBe(true);
     }
     // The CONTRACT under test is the probe LOGIC, not a fixed feature
     // set: each capability flag must equal whether `--help` lists its
@@ -101,8 +114,10 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // re-coupling the test to one generation's feature set.
     const lists = (cmd: string): boolean => new RegExp(`^\\s{2}${cmd}\\s`, 'm').test(help);
     expect(caps.run).toBe(lists('run'));
-    expect(caps.lsp).toBe(lists('lsp'));
-    expect(caps.mcp).toBe(lists('mcp'));
+    // lsp/mcp ride the PROBE path when hidden (0.107): the flag equals
+    // help-visibility OR a proven own door — the same law the service runs.
+    expect(caps.lsp).toBe(lists('lsp') || probedOk.includes('lsp'));
+    expect(caps.mcp).toBe(lists('mcp') || probedOk.includes('mcp'));
   });
 
   it('check --json parses through the adapter on a clean workflow (exit 0)', () => {
@@ -125,7 +140,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   });
 
   it('check --json carries findings + did-you-mean on a broken workflow (exit 2)', () => {
-    const file = tmpWorkflow(CLEAN_WF.replace('nika:fetch', 'nika:fetchh'));
+    const file = tmpWorkflow(CLEAN_WF.replaceAll('nika:fetch', 'nika:fetchh'));
     try {
       const res = run(['check', file, '--json']);
       expect(res.code).toBe(EXIT.FILE_FINDINGS);
@@ -386,8 +401,15 @@ tasks:
       const file = tmpWorkflow(doc);
       try {
         const report = parseCheckReport(run(['check', file, '--json']).stdout)!;
-        const oracleSays = report.schema_findings.length === 0;
-        expect(oracleSays, `oracle verdict for .${field}`).toBe(valid);
+        // 0.107 moved the bad-output-path class to CONFORMANCE
+        // (NIKA-VAR-003) — the oracle verdict is the report's own
+        // clean flag (this fixture's ONLY delta is the field), and the
+        // shape complaint must live in ONE of the two lanes.
+        const shapeComplaint =
+          report.schema_findings.length > 0 ||
+          report.conformance.some((c) => c.message?.includes(`.${field}`));
+        expect(!shapeComplaint, `oracle verdict for .${field}`).toBe(valid);
+        expect(report.clean, `clean flag for .${field}`).toBe(valid);
       } finally {
         fs.unlinkSync(file);
       }

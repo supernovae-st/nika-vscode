@@ -671,6 +671,15 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.runProof', async () => {
       if (!(await requireEngine(service, 'running the 10-second proof'))) { return; }
+      // 0.106 binaries have no `try` door — teach the upgrade instead
+      // of spawning a doomed terminal (wave-3 RANK-1: the flagship
+      // first-contact button must never dead-end on a clap error).
+      if (!service.caps.examples) {
+        void window.showInformationMessage(
+          'Nika: this binary has no `try` showroom yet → update Nika (brew upgrade nika), then run the proof again.',
+        );
+        return;
+      }
       // The whole invocation rides the SUBCOMMAND slot. Smuggling the
       // arguments through the filePath parameter fed path.dirname a
       // command line, and the terminal spawned with cwd

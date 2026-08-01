@@ -174,17 +174,23 @@ export class NikaService {
     // `explain --help` for the file-form probe (engine #298): on a
     // binary without the subcommand, clap errors and the empty stdout
     // keeps the gate off — no conditional second round-trip.
-    const [help, version, checkHelp, explainHelp] = await Promise.all([
+    // The V5 help hides the machine verbs from the first screen — each
+    // still answers its own --help; a rc-0 door proves the verb.
+    const HIDDEN_VERBS = ['inspect', 'spec', 'lsp', 'mcp', 'dap'] as const;
+    const [help, version, checkHelp, explainHelp, ...hiddenProbes] = await Promise.all([
       spawnCli(binaryPath, ['--help'], 5000),
       spawnCli(binaryPath, ['--version'], 5000),
       spawnCli(binaryPath, ['check', '--help'], 5000),
       spawnCli(binaryPath, ['explain', '--help'], 5000),
+      ...HIDDEN_VERBS.map((v) => spawnCli(binaryPath, [v, '--help'], 5000)),
     ]);
+    const probedOk = HIDDEN_VERBS.filter((_, i) => hiddenProbes[i]?.code === 0);
     this.capsValue = buildCapabilities(
       help.stdout,
       version.stdout || version.stderr,
       checkHelp.stdout,
       explainHelp.stdout,
+      probedOk,
     );
     this.changeEmitter.fire();
 

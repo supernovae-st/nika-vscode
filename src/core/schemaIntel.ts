@@ -56,7 +56,10 @@ export function parseCanonErrorCodes(canonText: string): SpecErrorCode[] {
   const out: SpecErrorCode[] = [];
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\S/.test(line) && line.trim() !== '') { break; } // next top-level key
+    // Next top-level KEY ends the section — a column-0 comment does
+    // not (the 0.107 canon carries a full-width # separator mid-table;
+    // breaking on it silently dropped the last nine codes · belt catch).
+    if (/^\S/.test(line) && line.trim() !== '' && !line.startsWith('#')) { break; }
     const m = line.trim().match(ROW);
     if (m) {
       out.push({ code: m[1], category: m[2], transient: m[3], failure: m[4].replace(/\\"/g, '"') });
@@ -113,7 +116,10 @@ export function parseCanonItems(canonText: string, key: string): Record<string, 
   let inItems = false;
   for (let i = start + 1; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\S/.test(line) && line.trim() !== '') { break; } // next top-level key
+    // Next top-level KEY ends the section — a column-0 comment does
+    // not (the 0.107 canon carries a full-width # separator mid-table;
+    // breaking on it silently dropped the last nine codes · belt catch).
+    if (/^\S/.test(line) && line.trim() !== '' && !line.startsWith('#')) { break; }
     const trimmed = line.trim();
     if (trimmed === '' || trimmed.startsWith('#')) { continue; }
     if (/^items:\s*$/.test(trimmed)) { inItems = true; currentGroup = '_'; continue; }

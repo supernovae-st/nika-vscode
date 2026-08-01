@@ -63,3 +63,39 @@ jobs:
           python3 ../spec/scripts/starters-projector.py --check
           python3 ../spec/scripts/authoring-projector.py --check
           python3 ../spec/scripts/design-projector.py --check
+  # The real-engine belt (design wave 2026-08-01): the contract suite's
+  # describe.skipIf(!BIN) silently skipped in CI forever — a binary
+  # regression could only be caught on a dev machine. This job downloads
+  # the RELEASED engine (the same asset a user installs, checksum-
+  # verified) and runs ONLY the real-binary suites against it. It cannot
+  # skip silently: if the binary is missing the belt FAILS loud.
+  real-engine-belt:
+    name: engine contract · released binary
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Download the latest released engine (checksum-verified)
+        run: |
+          set -euo pipefail
+          tag="$(curl -fsSL https://api.github.com/repos/supernovae-st/nika/releases/latest | python3 -c 'import json,sys;print(json.load(sys.stdin)["tag_name"])')"
+          ver="${tag#v}"
+          curl -fsSLO "https://github.com/supernovae-st/nika/releases/download/${tag}/nika-linux-x64-${ver}.tar.gz"
+          curl -fsSLO "https://github.com/supernovae-st/nika/releases/download/${tag}/SHA256SUMS"
+          grep "nika-linux-x64-${ver}.tar.gz" SHA256SUMS | sha256sum -c -
+          tar -xzf "nika-linux-x64-${ver}.tar.gz"
+          bin="$(find . -maxdepth 2 -name nika -type f | head -1)"
+          [ -n "$bin" ] || { echo "no nika binary in the tarball"; exit 1; }
+          chmod +x "$bin"
+          echo "NIKA_BIN=$(realpath "$bin")" >> "$GITHUB_ENV"
+          "$(realpath "$bin")" --version
+      - name: Belt must be armed (the silent-skip class dies here)
+        run: |
+          [ -n "${NIKA_BIN:-}" ] && [ -x "$NIKA_BIN" ] || { echo "belt unarmed — NIKA_BIN missing"; exit 1; }
+      - name: Real-binary contract suites
+        run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts
