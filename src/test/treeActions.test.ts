@@ -139,7 +139,8 @@ describe('curation — each kind serves its verbs, primary first', () => {
     const p = buildTreeActionPanel('nikaRuns', FACTS.nikaTrace.facts, ALL_ON);
     expect(p.itemRows.map((r) => r.command)).toEqual([
       'nika.runDetail', 'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
-      'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport', 'nika.exportOtel',
+      'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport',
+      'nika.exportEvidence', 'nika.explainReceipt', 'nika.exportOtel',
     ]);
   });
 
@@ -147,7 +148,8 @@ describe('curation — each kind serves its verbs, primary first', () => {
     const p = buildTreeActionPanel('nikaRuns', FACTS.nikaTracePaused.facts, ALL_ON);
     expect(p.itemRows.map((r) => r.command)).toEqual([
       'nika.answerPause', 'nika.runDetail', 'nika.replayTrace', 'nika.diffTraces', 'nika.debugReplay',
-      'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport', 'nika.exportOtel',
+      'nika.verifyTrace', 'nika.reproduceRun', 'nika.runReport',
+      'nika.exportEvidence', 'nika.explainReceipt', 'nika.exportOtel',
     ]);
     expect(p.itemRows[0].teach).toBe('nika.answerPause');
   });

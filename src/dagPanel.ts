@@ -42,6 +42,7 @@ export type ExtToWebviewMessage =
   | { kind: 'dag:accessibilityHelp' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
+  | { kind: 'motion:mode'; calm: boolean }
   // The platine: a normalized trace timeline the webview transport
   // plays/scrubs LOCALLY — zero round-trips per frame.
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
@@ -502,14 +503,24 @@ export class DagPanel implements vscode.Disposable {
       }),
     );
 
-    // Skin flip is live — no panel reload needed.
+    // Skin flip is live — no panel reload needed. The motion dial rides
+    // the same seam (settings a11y: a calm canvas must not require an
+    // OS-wide accessibility switch).
     this.disposables.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('nika.dag.theme')) {
           this.postMessage({ kind: 'theme:mode', mode: DagPanel.themeMode() });
         }
+        if (e.affectsConfiguration('nika.dag.motion')) {
+          this.postMessage({ kind: 'motion:mode', calm: DagPanel.motionCalm() });
+        }
       }),
     );
+  }
+
+  /** The calm-canvas dial: true forces reduced motion webview-side. */
+  private static motionCalm(): boolean {
+    return vscode.workspace.getConfiguration('nika').get<string>('dag.motion', 'system') === 'calm';
   }
 
   /** The configured webview skin — brand · editor-adaptive · phosphor ·
@@ -1107,7 +1118,7 @@ export class DagPanel implements vscode.Disposable {
   </style>
   <title>Nika DAG</title>
 </head>
-<body data-nk-theme="${themeMode}">
+<body data-nk-theme="${themeMode}"${DagPanel.motionCalm() ? ' data-nk-calm' : ''}>
   <div id="aurora" aria-hidden="true"></div>
   <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden
          aria-label="Filter tasks" aria-describedby="dag-search-count">
@@ -1165,7 +1176,7 @@ export class DagPanel implements vscode.Disposable {
     <div class="cd-hint">or press <kbd>N</kbd> — add a task from the palette (a verb, or a builtin tool)</div>
   </form>
   <nav id="plan-rail" hidden aria-label="Execution plan"></nav>
-  <div id="minimap"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
+  <div id="minimap" aria-hidden="true"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
   <div id="activity" hidden>
     <div id="activity-head">Activity</div>
     <div id="activity-list"></div>
@@ -1275,7 +1286,7 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="scrubber" hidden>
     <button id="scrub-play" title="Play the run (Space)">▶</button>
-    <div id="scrub-track"><div id="scrub-fill"></div><div id="scrub-handle"></div></div>
+    <div id="scrub-track" role="slider" tabindex="0" aria-label="Replay position — arrows nudge, Home/End jump" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="scrub-fill"></div><div id="scrub-handle"></div></div>
     <span id="scrub-time">0.0s</span>
     <button id="scrub-close" title="Exit replay">✕</button>
   </div>
