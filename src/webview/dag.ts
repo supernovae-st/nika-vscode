@@ -6328,7 +6328,19 @@ class DagRenderer {
     const host = g.select<HTMLElement>('.nc').node();
     if (!host) { return; }
     const mode = this.renderModeOf(taskId);
+    // The chip flip (QRcodeAI): the tile flips Y only when the card's
+    // IDENTITY line changed (verb · model) — never on a status repaint.
+    const prevSub = host.querySelector('.nc-sub')?.textContent ?? '';
     this.buildCardHtml(host, node, mode);
+    const nextSub = host.querySelector('.nc-sub')?.textContent ?? '';
+    if (prevSub !== '' && nextSub !== prevSub) {
+      const tile = host.querySelector('.nc-tile');
+      if (tile) {
+        tile.classList.remove('nk-tile-flip');
+        void (tile as HTMLElement).offsetWidth; // restart the one-shot
+        tile.classList.add('nk-tile-flip');
+      }
+    }
     const h = nodeHeightOf(node, mode);
     this.syncFrameHeights(taskId, h);
     // Growing past the laid-out box (peek · a mid-run promote): paint
@@ -8263,6 +8275,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       if (renderer.graphUri !== undefined && msg.graph.workflowUri !== renderer.graphUri) {
         if (renderer.auditOn) { renderer.toggleAudit(); }
         if (renderer.dataflowOn) { renderer.toggleDataflow(); }
+      }
+      // The metamorphosis (QRcodeAI module-morph fallback): the SAME
+      // workflow re-forming gets a one-beat cross-fade — never the
+      // first paint, never a switch (the 10th-time law: change only).
+      if (renderer.graphUri !== undefined && msg.graph.workflowUri === renderer.graphUri) {
+        document.body.classList.add('nk-reform');
+        setTimeout(() => document.body.classList.remove('nk-reform'), 240);
       }
       void renderer.render(msg.graph).then(() => transport.resync());
       applyResumeCapable(msg.graph);

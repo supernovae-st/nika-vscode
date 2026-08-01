@@ -395,6 +395,31 @@ body[data-nk-theme] {
   transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
+/* ─── The metamorphosis + the chip flip (QRcodeAI · change-only) ────
+ * Both fire ONLY on change (the 10th-time law) · compositor-only ·
+ * interruptible · reduce/calm collapse them to instant. */
+body.nk-reform #dag-container {
+  animation: nk-reform var(--nk-dur-slow) var(--nk-ease-effects);
+}
+@keyframes nk-reform {
+  from { opacity: 0.82; transform: scale(0.996); }
+  to { opacity: 1; transform: none; }
+}
+.nc-tile.nk-tile-flip {
+  animation: nk-tile-flip var(--nk-dur-base) var(--nk-ease-spatial);
+}
+@keyframes nk-tile-flip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(88deg); }
+  100% { transform: rotateY(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.nk-reform #dag-container,
+  .nc-tile.nk-tile-flip { animation: none; }
+}
+body[data-nk-calm] #dag-container,
+body[data-nk-calm] .nc-tile.nk-tile-flip { animation: none !important; }
+
 /* ─── The gradient border (liquid-glass seam) ────────────────────────
  * A ::before ring in padding-box exclude: the surface keeps its own
  * border TRANSPARENT and the ring paints the directional light. The
