@@ -195,6 +195,12 @@
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
     <button id="btn-add-task" title="Add a task · the palette (N)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
+    <div id="verb-palette" role="toolbar">
+      <button class="vp-btn vp-infer" data-verb="infer">◇</button>
+      <button class="vp-btn vp-exec" data-verb="exec">▷</button>
+      <button class="vp-btn vp-invoke" data-verb="invoke">◆</button>
+      <button class="vp-btn vp-agent" data-verb="agent">✦</button>
+    </div>
     <div id="run-controls" role="toolbar">
       <button id="btn-run" class="rc-run">▶ Run</button>
       <button id="btn-run-more" class="rc-run rc-more" aria-haspopup="menu">⌄</button>
@@ -204,12 +210,6 @@
       <button id="btn-run-resume" class="rc-resume" hidden>Δ changed</button>
       <button id="btn-run-mock" class="rc-mock">▶ mock</button>
       <button id="btn-stop" class="rc-stop" hidden>■ Stop</button>
-    </div>
-    <div id="verb-palette" role="toolbar">
-      <button class="vp-btn vp-infer" data-verb="infer">◇</button>
-      <button class="vp-btn vp-exec" data-verb="exec">▷</button>
-      <button class="vp-btn vp-invoke" data-verb="invoke">◆</button>
-      <button class="vp-btn vp-agent" data-verb="agent">✦</button>
     </div>
     <input id="omni-input" type="text"
            placeholder="+ task · / filter · describe… · ↵ everything"

@@ -2650,7 +2650,7 @@ body[data-nk-theme='nika'] .dag-edge.flowing {
 
 body[data-nk-theme='nika'] .legend-chip {
   background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
-  border-color: var(--nk-hairline-accent);
+  border-color: transparent; /* a readout is never pressable-looking */
 }
 
 body[data-nk-theme='nika'] #progress-track {
@@ -4983,6 +4983,20 @@ body.running #run-controls .rc-more:disabled { opacity: 1; }
 #run-controls {
   display: inline-flex;
   gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+/* The MAKE cluster (+ · the four verbs) sits as one segment: the two
+ * speeds of the same gesture, side by side — the run cluster follows,
+ * then the line. One job, one place. */
+#omnibar > #btn-add-task { margin-right: 2px; }
+#omnibar #verb-palette {
+  padding-right: 0;
+  padding-left: 0;
+  border-right: 0;
+  border-left: 0;
+  margin-right: 8px;
   padding-right: 8px;
   border-right: 1px solid var(--nk-border);
 }
