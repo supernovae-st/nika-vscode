@@ -73,15 +73,7 @@
     <span id="dag-mark" aria-hidden="true"></span>
     <span id="dag-title"></span>
     <span class="tb-sep"></span>
-    <div class="tb-group"><button id="btn-add-task"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Task</button><button id="btn-new"><span class="tb-ic"><svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>New</button></div>
-    <div class="tb-group">
-      <button id="btn-zoom-out">−</button>
-      <button id="zoom-pct">100%</button>
-      <button id="btn-zoom-in">＋</button>
-      <span class="tb-inner-sep"></span>
-      <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg></span></button>
-    </div>
+    <div class="tb-group"><button id="btn-new"><span class="tb-ic"><svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>New</button></div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
       <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
       <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (T)"><kbd>T</kbd></button>
@@ -103,6 +95,14 @@
     <span id="dag-status"></span>
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
+  <div id="zoom-dock" role="toolbar" aria-label="Camera">
+    <button id="btn-zoom-out">−</button>
+    <button id="zoom-pct">100%</button>
+    <button id="btn-zoom-in">＋</button>
+    <span class="zd-sep"></span>
+    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+    <button id="btn-relayout" title="Auto-layout (A)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg></span></button>
+  </div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">
@@ -195,6 +195,7 @@
   <div id="a11y-alert" role="alert"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
+    <button id="btn-add-task" title="Add a task · the palette (N)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
     <div id="run-controls" role="toolbar">
       <button id="btn-run" class="rc-run">▶ Run</button>
       <button id="btn-run-more" class="rc-run rc-more" aria-haspopup="menu">⌄</button>

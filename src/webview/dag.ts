@@ -9247,8 +9247,7 @@ function morePopKeydown(e: KeyboardEvent): boolean {
  *  primary make-gesture), the door itself and the run status never yield. */
 const SHED_ORDER = [
   'btn-heat', 'btn-follow', 'btn-curve', 'btn-timeline', 'btn-dataflow',
-  'btn-waves', 'btn-audit', 'btn-feed', 'btn-relayout', 'btn-help',
-  'btn-zoom-out', 'btn-zoom-in', 'btn-new', 'zoom-pct', 'btn-fit',
+  'btn-waves', 'btn-audit', 'btn-feed', 'btn-help', 'btn-new',
 ];
 
 /** Shed until the row fits its own box.

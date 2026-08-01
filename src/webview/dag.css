@@ -291,6 +291,7 @@ body[data-nk-theme] {
   height: 34px;
   line-height: 32px;
   padding: 0 12px;
+  font-family: var(--nk-mono); /* a filename is code */
   font-weight: 600;
   font-size: var(--nk-fs-heading);
   letter-spacing: 0.01em;
@@ -481,6 +482,7 @@ body[data-nk-theme] {
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
   box-shadow: var(--nk-shadow-1);
+  font-family: var(--nk-mono);
 }
 
 #dag-status:empty {
@@ -1151,6 +1153,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   border: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
   font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
+  font-family: var(--nk-mono);
 }
 
 .legend-dot {
@@ -1367,6 +1370,64 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 /* ─── Minimap · the whole graph in a card ───────────────────────────────── */
+
+/* The camera dock — bottom-right above the minimap (the Figma
+ * placement): zoom · readout · fit · layout. Same ids as the old
+ * toolbar seats, the handlers rebind for free. */
+#zoom-dock {
+  position: fixed;
+  right: 12px;
+  bottom: 140px; /* minimap 96 + its 34 + 10 breathing */
+  z-index: 44;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px;
+  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  background-image: var(--nk-grain);
+  backdrop-filter: blur(12px) saturate(1.15);
+  border: 1px solid var(--nk-border);
+  border-radius: calc(var(--nk-radius) + 4px);
+  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+}
+#zoom-dock button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  background: transparent;
+  color: var(--nk-ink-dim);
+  border: none;
+  border-radius: var(--nk-radius);
+  font-size: var(--nk-fs-ui);
+  font-family: var(--nk-ui-font);
+  cursor: pointer;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+#zoom-dock button:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.14));
+  color: var(--nk-ink);
+}
+#zoom-dock button:active { transform: translateY(0.5px); }
+#zoom-dock button:focus-visible {
+  outline: var(--nk-ring);
+  outline-offset: var(--nk-ring-offset);
+}
+#zoom-dock kbd { display: none; }
+.zd-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--nk-border);
+}
+body[data-nk-theme='nika'] #zoom-dock {
+  background: color-mix(in srgb, var(--nk-chrome) 92%, transparent);
+  border-color: var(--nk-hairline-accent);
+}
+body.welcome #zoom-dock,
+body.dag-loading #zoom-dock { display: none; }
 
 #minimap {
   position: fixed;
@@ -2014,7 +2075,6 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 @media (max-width: 520px) {
-  #btn-add-task { padding: 0 6px; }
   #activity { width: 180px; max-height: 120px; }
   #minimap { width: 110px; height: 72px; }
   .legend-chip { font-size: var(--nk-fs-body); padding: 1px 6px; }
@@ -2023,6 +2083,7 @@ body.vscode-light .logo-dark { display: none; }
 
 @media (max-width: 420px) {
   #minimap { display: none; }
+  #zoom-dock { bottom: 12px; }
   #dag-title { display: none; }
   .ex-card { width: calc(100vw - 28px); }
 }
@@ -2037,15 +2098,14 @@ body.vscode-light .logo-dark { display: none; }
   /* Zoom stays REACHABLE: the ± yield, the % readout (click = fit) and
    * Fit survive — the old wholesale group-hide left a sidebar canvas
    * with no visible camera control at all. */
-  #dag-toolbar #btn-zoom-out, #dag-toolbar #btn-zoom-in { display: none; }
-  /* Out-specify the base #dag-toolbar button rule (id+type). */
-  #dag-toolbar #btn-add-task { min-width: 28px; padding: 0 7px; font-size: 0; }
-  #dag-toolbar #btn-add-task::before { content: '＋'; font-size: 13px; }
+  #zoom-dock #btn-zoom-out, #zoom-dock #btn-zoom-in { display: none; }
+
 }
 
 @media (max-height: 460px) {
   /* Bottom-docked panels: the canvas floor wins. */
   #minimap { display: none; }
+  #zoom-dock { bottom: 12px; }
   #activity { max-height: 80px; bottom: 8px; }
   #dag-legend { display: none; }
   #omnibar { bottom: 10px; }
@@ -2236,7 +2296,11 @@ body[data-nk-theme='nika'] {
   --nk-radius: 7px;
   --nk-radius-card: 10px;
   --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
-  --nk-ui-font: 'Martian Mono', var(--vscode-font-family, sans-serif);
+  /* The two-voice type system (the SITE's own pair · vendored bytes):
+   * chrome UI speaks the Grotesk (Gilroy rides first via local install),
+   * code/data/kbd keep the Mono. Display = Clash for the hero. */
+  --nk-ui-font: 'Gilroy', 'Martian Grotesk', var(--vscode-font-family, sans-serif);
+  --nk-display: 'Clash Display', 'Gilroy', 'Martian Grotesk', sans-serif;
   /* The run-state palette IS the register's (design/tokens.yaml status: +
    * severity — NIKA_STATUS in design-tokens.generated.ts · the designTokensCss
    * gate pins this block). The old #71e08a green was one hue off-canon. */
@@ -4602,6 +4666,33 @@ body[data-nk-theme='nika'] #omnibar {
 
 /* ─── Run controls · the pill's left wing ───────────────────────────────── */
 
+/* The make key — the Krea +: first slot of the bar, opens the task
+ * palette (same id the old toolbar seat had · the handler rebinds). */
+#omnibar > #btn-add-task {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
+  color: var(--nk-ink);
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  cursor: pointer;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+#omnibar > #btn-add-task:hover {
+  background: color-mix(in srgb, var(--nk-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nk-accent) 40%, var(--nk-border));
+  color: var(--nk-accent);
+}
+#omnibar > #btn-add-task:active { transform: translateY(1px); }
+#omnibar > #btn-add-task:focus-visible {
+  outline: var(--nk-ring);
+  outline-offset: var(--nk-ring-offset);
+}
+
 #run-controls {
   display: inline-flex;
   gap: 4px;
@@ -5411,10 +5502,10 @@ body.lod-far .nc-audit { display: none !important; }
 }
 
 .es-word {
-  font-family: var(--nk-mono);
+  font-family: var(--nk-display);
   font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--nk-ink);
 }
 
@@ -6330,7 +6421,11 @@ body[data-nk-theme='phosphor'] {
   --nk-radius: 7px;
   --nk-radius-card: 10px;
   --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
-  --nk-ui-font: 'Martian Mono', var(--vscode-font-family, sans-serif);
+  /* The two-voice type system (the SITE's own pair · vendored bytes):
+   * chrome UI speaks the Grotesk (Gilroy rides first via local install),
+   * code/data/kbd keep the Mono. Display = Clash for the hero. */
+  --nk-ui-font: 'Gilroy', 'Martian Grotesk', var(--vscode-font-family, sans-serif);
+  --nk-display: 'Clash Display', 'Gilroy', 'Martian Grotesk', sans-serif;
   /* Status voices, retuned for #000 (semantics untouched — LOCK-005). */
   --nk-st-running: #6ea8ff;
   --nk-st-success: #71e08a;

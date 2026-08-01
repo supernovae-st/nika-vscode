@@ -4,6 +4,31 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.5] · 2026-08-01
+
+The composition wave (the Krea/Figma read): typography, docks and the
+make gesture recompose around how the best canvas tools place things.
+
+- **The three-voice type system** · the site's own pair, vendored
+  bytes: chrome UI speaks Martian Grotesk (Gilroy rides first where
+  the machine has it), code/data/kbd/filenames keep Martian Mono, the
+  welcome hero speaks Clash Display · 80KB of woff2, the exact files
+  nika.sh serves · the all-mono wall dies, the canvas reads
+  professional.
+- **The dock map recomposes** · the make key (+) leads the bottom
+  action bar (it opens the task palette · the Krea +) · the camera
+  dock (zoom · fit · layout) moves bottom-right above the minimap
+  (the Figma placement) · the top rail slims to title + New + the
+  lens keycaps + status · responsive rungs follow (the dock takes the
+  minimap's floor when it yields).
+- The describe input and every chrome label flip to the UI sans; data
+  voices pin mono explicitly (filename title · status pill · legend ·
+  zoom readout).
+
+Proven: 1441/1441 · a11y-probes 45/45 · chrome-probes 0 across three
+skins · tokens-parity green · all three README GIFs regenerated on
+this composition.
+
 ## [0.107.4] · 2026-08-01
 
 The correlation wave: the extension's chrome now speaks the site's

@@ -1091,6 +1091,12 @@ export class DagPanel implements vscode.Disposable {
     const monoFont = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'fonts', 'martian-mono-variable.woff2'),
     );
+    const sansFont = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'fonts', 'martian-grotesk-variable.woff2'),
+    );
+    const displayFont = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'fonts', 'clash-display-600.woff2'),
+    );
     const themeMode = DagPanel.themeMode();
 
     // CSP: lock down everything except what we explicitly need.
@@ -1131,6 +1137,25 @@ export class DagPanel implements vscode.Disposable {
       font-style: normal;
       font-display: swap;
     }
+    /* The UI sans — the SITE's own body voice (same bytes: the vendored
+       martian-grotesk-variable.woff2 nika.sh serves). Gilroy rides first
+       via local() where the machine has it; the shipped deterministic
+       voice is the Grotesk. */
+    @font-face {
+      font-family: 'Martian Grotesk';
+      src: url('${sansFont}') format('woff2');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+    /* The display voice — the site's H1 face (clash-display-600). */
+    @font-face {
+      font-family: 'Clash Display';
+      src: url('${displayFont}') format('woff2');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
   </style>
   <title>Nika DAG</title>
 </head>
@@ -1147,16 +1172,7 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-title"></span>
     <span class="tb-sep"></span>
     <div class="tb-group">
-      <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired"><span class="tb-ic">${IC.plus}</span>Task</button>
       <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
-    </div>
-    <div class="tb-group">
-      <button id="btn-zoom-out" title="Zoom out (−)">−</button>
-      <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
-      <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
-      <span class="tb-inner-sep"></span>
-      <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
-      <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
     </div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
       <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
@@ -1179,6 +1195,14 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-status"></span>
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
+  <div id="zoom-dock" role="toolbar" aria-label="Camera">
+    <button id="btn-zoom-out" title="Zoom out (−)">−</button>
+    <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
+    <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
+    <span class="zd-sep"></span>
+    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
+    <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
+  </div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
     <div class="cd-pill">
@@ -1278,6 +1302,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="a11y-alert" role="alert"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
+    <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired"><span class="tb-ic">${IC.plus}</span></button>
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live">▶ Run</button>
       <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>

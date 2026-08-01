@@ -402,10 +402,13 @@ title always keeps the source verbatim.
 
 ## 3 · Chrome floats (the ElevenLabs read)
 
-The canvas is edge-to-edge; every control is a floating pill OVER it:
-title pill top-left, action pill-groups top rail, the omnibar
-bottom-center (run · cost Δ · verb palette · command input), minimap
-bottom-right, legend chips bottom-left. Fit-to-view accounts for the
+The canvas is edge-to-edge; every control is a floating pill OVER it
+(the Krea/Figma dock map · 2026-08-01): title + New top-left, the LENS
+DECK (keycaps) top rail, the omnibar bottom-center leading with the
+MAKE key (+ · opens the task palette) then run · cost Δ · verb palette
+· command input, the CAMERA DOCK (zoom − % + · fit · layout)
+bottom-right ABOVE the minimap, legend chips bottom-left. Exports live
+behind the ⋯ door. Fit-to-view accounts for the
 top rail AND the bottom dock · the graph never hides under chrome.
 On narrow panels the dock un-stacks into two floors; nothing overlaps.
 On WIDE panels the left flank carries the **plan rail** · every wave as
@@ -459,7 +462,14 @@ in the skin derives from `--nk-accent-bright` (the brand's
 `--nk-chrome`; the aurora speaks through `--nk-aurora-sweep` /
 `--nk-aurora-danger` (its vivid stops ARE `--nk-st-failed`). A raw
 `rgb()`/hex outside the token seam fails the parity belt's negative
-scan. Martian Mono everywhere. Quiet by default · glow is spent on
+scan. **The three-voice type system (2026-08-01 · the site's own pair,
+vendored bytes)**: `--nk-ui-font` = Gilroy (local-first) → Martian
+Grotesk (shipped · fonts/martian-grotesk-variable.woff2, the same file
+nika.sh serves) for chrome UI · `--nk-mono` = Martian Mono for code,
+data, kbd, filenames, costs and every card internal · `--nk-display` =
+Clash Display 600 (vendored) for the welcome hero. The old « Martian
+Mono everywhere » is superseded: mono is the DATA voice, never the
+whole chrome. Quiet by default · glow is spent on
 running/selected/failed only.
 
 **The background is a four-layer instrument, each layer with a job:**
