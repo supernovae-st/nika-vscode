@@ -3042,7 +3042,8 @@ body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
   isolation: isolate;
 }
 
-.nc-head::before {
+.nc-mode-min .nc-head::before,
+.nc:not([class*="nc-mode-"]) .nc-head::before {
   content: '';
   position: absolute;
   inset: -10px -12px -5px;
@@ -3051,6 +3052,33 @@ body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
   border-bottom: 1px solid var(--nk-border-soft);
   border-radius: var(--nk-radius-card) var(--nk-radius-card) 0 0;
   pointer-events: none;
+}
+
+/* GRAND: the head is a FLOATING title bar (hoisted -24px, outside the
+ * box) — it gets its own pill, never the in-card band (which drew a
+ * strip over the canvas · the operator's « arrondis dans les carrés »). */
+body:not(.lod-far) .nc-mode-grand .nc-head::before {
+  content: '';
+  position: absolute;
+  inset: -4px -8px -3px -6px;
+  z-index: -1;
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: var(--nk-r-panel);
+  pointer-events: none;
+}
+
+/* The title bar answers the card's states — focus, selection and the
+ * status hue reach it, so the two boxes read as ONE object. */
+body:not(.lod-far) .dag-node:focus-visible .nc-mode-grand .nc-head::before {
+  border-color: color-mix(in srgb, var(--nk-accent) 85%, transparent);
+  background: color-mix(in srgb, var(--nk-accent) 10%, transparent);
+}
+body:not(.lod-far) .dag-node.selected .nc-mode-grand .nc-head::before {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, transparent);
+}
+body:not(.lod-far) .dag-node:hover .nc-mode-grand .nc-head::before {
+  border-color: var(--nk-border);
 }
 
 /* The house verb glyphs (icon ontology) render as inline SVG inside the
@@ -3372,9 +3400,14 @@ body.running .dag-node.status-success .nc::after {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   word-break: break-word;
-  /* The Krea param-panel read (paint-only): the content sits in a
-   * faintly recessed well — the head band above, the well below, the
-   * card reads as TWO zones without moving a pixel of layout. */
+}
+
+/* The Krea param-panel read (paint-only · MIN card): the content sits
+ * in a faintly recessed well — the band above, the well below, the
+ * card reads as TWO zones without moving a pixel of layout. The GRAND
+ * body already wears the quote bar, so it keeps its own voice. */
+.nc-mode-min .nc-body,
+.nc:not([class*="nc-mode-"]) .nc-body {
   border-radius: var(--nk-r-chip);
   padding: 2px 5px;
   margin-left: -5px;
@@ -3675,7 +3708,7 @@ body.lod-far .nc-pill { display: none; }
 /* The migrated fact block — the run story (spent · resume · loop…). */
 .nc-x-facts {
   flex: none;
-  margin-top: 5px;
+  margin-top: 6px; /* the grand card's ONE section beat */
   font-size: var(--nk-fs-body);
   line-height: 15px;
   color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
