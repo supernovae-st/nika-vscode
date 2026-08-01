@@ -667,7 +667,7 @@ body:not(.lod-far) .dag-edge {
   /* Grab, not pointer: every card is draggable (click stays a select —
    * a 4px threshold separates the two gestures). */
   cursor: grab;
-  transition: opacity 0.2s, transform 0.18s ease-out;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 /* Mid-drag: the card rides the pointer raw (no transition lag), lifts
@@ -1142,7 +1142,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   width: 0;
   border-radius: var(--nk-r-bar);
   background: var(--nk-st-running);
-  transition: width 0.4s ease-out, background 0.3s;
+  transition: width var(--nk-dur-deliberate) var(--nk-ease-effects), background var(--nk-dur-slow) var(--nk-ease-effects);
   overflow: hidden;
 }
 
@@ -1315,7 +1315,7 @@ body.vscode-light .logo-dark { display: none; }
   stroke-width: calc(1px * var(--zoom-comp, 1));
   stroke-dasharray: 4 4;
   pointer-events: none;
-  transition: opacity 0.12s ease-out;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .dag-svg.connecting {
@@ -1342,7 +1342,7 @@ body.vscode-light .logo-dark { display: none; }
   box-shadow: var(--nk-shadow-1), var(--nk-bevel);
   overflow: hidden;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
   opacity: 0.85;
 }
 
@@ -1466,7 +1466,7 @@ body.vscode-light .logo-dark { display: none; }
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   box-shadow: var(--nk-bevel);
-  transition: background 0.12s;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .es-button:hover {
@@ -1497,7 +1497,7 @@ body.vscode-light .logo-dark { display: none; }
   backdrop-filter: blur(8px);
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
   pointer-events: none;
-  transition: opacity 0.9s ease-out;
+  transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 
 #first-hint kbd {
@@ -1546,7 +1546,7 @@ body.vscode-light .logo-dark { display: none; }
 
 #breathe-hint.fade {
   opacity: 0;
-  transition: opacity 0.9s ease-out;
+  transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 
 #first-hint.fade {
@@ -2301,7 +2301,7 @@ body[data-nk-theme='nika'] #dag-container::after {
   inset: 0;
   pointer-events: none;
   opacity: var(--spot-on, 0);
-  transition: opacity 0.4s ease-out;
+  transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
   background: radial-gradient(
     680px circle at var(--spot-x, 50%) var(--spot-y, 40%),
     rgb(79 134 255 / 0.06),
@@ -2410,7 +2410,7 @@ body[data-nk-theme='nika'] #aurora {
   z-index: 60;
   pointer-events: none;
   opacity: 0.045;
-  transition: opacity 0.9s ease-out;
+  transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 
 body[data-nk-theme='nika'] #aurora::before {
@@ -2427,7 +2427,7 @@ body[data-nk-theme='nika'] #aurora::before {
 
 body[data-nk-theme='nika'][data-aurora='sweep'] #aurora {
   opacity: 0.5;
-  transition: opacity 0.22s ease-out;
+  transition: opacity var(--nk-dur-slow) var(--nk-ease-effects);
 }
 
 body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
@@ -2442,7 +2442,7 @@ body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
 
 body[data-nk-theme='nika'][data-aurora='danger'] #aurora {
   opacity: 0.55;
-  transition: opacity 0.15s ease-out;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
@@ -3346,7 +3346,7 @@ body.lod-far .nc-pill { display: none; }
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-panel);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background var(--nk-dur-fast) var(--nk-ease-effects), border-color var(--nk-dur-fast) var(--nk-ease-effects);
 }
 
 .nc-xc-chip:hover {
@@ -3445,7 +3445,7 @@ body.lod-far .nc-pill { display: none; }
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-chip);
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
+  transition: border-color var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .nc-chip:hover:not(:disabled) {
@@ -3521,7 +3521,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 220ms var(--nk-ease-spatial);
+  transition: transform var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
 /* The settle (W-D12): a landed artifact arrives, it never pops — one
@@ -3918,7 +3918,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   border: none;
   border-radius: var(--nk-r-tag);
   cursor: pointer;
-  transition: color 0.12s;
+  transition: color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .nc-io-alias {
@@ -3926,7 +3926,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 0.12s;
+  transition: color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .nc-io-arr {
@@ -4415,7 +4415,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #omni-go:hover {
@@ -4563,7 +4563,7 @@ body[data-nk-theme='nika'] #omnibar {
   font-family: var(--nk-mono);
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #run-controls button:disabled {
@@ -4594,7 +4594,7 @@ body.running #run-controls .rc-resume {
     inset 0 1px 0 rgb(255 255 255 / 0.18),
     0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000),
     0 3px 6px rgb(0 0 0 / 0.3);
-  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow 90ms var(--nk-ease-effects), transform 90ms var(--nk-ease-spatial);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow var(--nk-dur-fast) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
 .rc-run:hover:not(:disabled) {
@@ -4648,7 +4648,7 @@ body.running #run-controls .rc-resume {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.08),
     0 2px 0 rgb(0 0 0 / 0.3);
-  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow 90ms var(--nk-ease-effects), transform 90ms var(--nk-ease-spatial);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), box-shadow var(--nk-dur-fast) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
 .rc-stop:hover {
@@ -4765,7 +4765,7 @@ body.lod-far .nc-stale {
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 #scrub-play:hover {
@@ -5182,7 +5182,7 @@ body.lod-far .region-label { display: none; }
   cursor: pointer;
   pointer-events: auto;
   white-space: nowrap;
-  transition: background 0.12s;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .dag-node.has-audit .nc-audit {
@@ -5380,7 +5380,7 @@ body.lod-far .nc-audit { display: none !important; }
   color: var(--nk-cta-ink);
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
-  transition: transform 90ms var(--nk-ease-spatial), box-shadow 90ms var(--nk-ease-effects);
+  transition: transform var(--nk-dur-fast) var(--nk-ease-spatial), box-shadow var(--nk-dur-fast) var(--nk-ease-effects);
 }
 
 #es-describe-go:active {
@@ -6711,7 +6711,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   color: var(--nk-fg, #ddd);
   font: 500 11px/1.5 var(--nk-mono, monospace);
   animation: nk-wall-in 200ms ease-out;
-  transition: opacity 700ms;
+  transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 #nk-red-teach.fade { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
@@ -7148,4 +7148,60 @@ body.dataflow .nc-io {
 @media (forced-colors: active) {
   #nk-display { border: 1px solid CanvasText; background: Canvas; }
   #nk-display .nk-act-row.active { background: Highlight; color: HighlightText; }
+}
+
+/* ── Symmetric exits (design wave · 2026-08-01) ─────────────────────
+ * Overlays that ENTER with motion no longer vanish in a display:none
+ * snap: the fade plays, the discrete display flip waits (the cmdk
+ * allow-discrete recipe · opacity-only so layout transforms stay
+ * untouched). Surfaces with their own es-rise entrance keep it; the
+ * fade-in @starting-style covers the rest. */
+#explainer,
+#activity,
+#dag-search,
+#tb-more-pop,
+#scrubber,
+#plan-rail,
+#transport,
+#canvas-describe {
+  transition:
+    opacity var(--nk-dur-base) var(--nk-ease-effects),
+    display var(--nk-dur-base) allow-discrete;
+}
+
+@starting-style {
+  #dag-search:not([hidden]),
+  #tb-more-pop:not([hidden]),
+  #scrubber:not([hidden]),
+  #plan-rail:not([hidden]),
+  #transport:not([hidden]),
+  #canvas-describe:not([hidden]) {
+    opacity: 0;
+  }
+}
+
+#explainer[hidden],
+#activity[hidden],
+#dag-search[hidden],
+#tb-more-pop[hidden],
+#scrubber[hidden],
+#plan-rail[hidden],
+#transport[hidden],
+#canvas-describe[hidden] {
+  display: none;
+  opacity: 0;
+}
+
+/* Reduced motion: there or gone, instantly — never a phantom fade. */
+@media (prefers-reduced-motion: reduce) {
+  #explainer,
+  #activity,
+  #dag-search,
+  #tb-more-pop,
+  #scrubber,
+  #plan-rail,
+  #transport,
+  #canvas-describe {
+    transition: none;
+  }
 }

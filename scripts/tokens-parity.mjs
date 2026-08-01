@@ -157,6 +157,19 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
 
 // 8 · PRESENCE — the v3 vocabulary exists (a silent delete would strand
 // consumers on the initial value; the belt keeps the roster whole).
+// 8b (design wave 2026-08-01) · VALUES — the duration scale is pinned
+// against the spec projection, not just present: a 240→260 edit used
+// to ship green through every gate (the audit's exact hole).
+{
+  const SPEC_DUR = { fast: 80, base: 160, slow: 240, deliberate: 400 };
+  for (const [name, ms] of Object.entries(SPEC_DUR)) {
+    const m = css.match(new RegExp(`--nk-dur-${name}:\\s*([\\d.]+)ms`));
+    if (!m) { findings.push(`dag.css: --nk-dur-${name} not a plain ms value — the value gate cannot judge it`); continue; }
+    if (Number(m[1]) !== ms) {
+      findings.push(`dag.css: --nk-dur-${name} = ${m[1]}ms, spec motion.yaml says ${ms}ms — values change SPEC-FIRST`);
+    }
+  }
+}
 {
   const roster = [
     '--nk-dur-fast:', '--nk-dur-base:', '--nk-dur-slow:', '--nk-dur-deliberate:',
