@@ -422,9 +422,12 @@ body[data-nk-theme] {
 body.nk-reform #dag-container {
   animation: nk-reform var(--nk-dur-slow) var(--nk-ease-effects);
 }
+/* Opacity ONLY: a transform on this container forces a compositing
+ * layer over the foreignObject cards — a screenshot caught them
+ * missing while the wires painted. The fade carries the beat alone. */
 @keyframes nk-reform {
-  from { opacity: 0.82; transform: scale(0.996); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0.82; }
+  to { opacity: 1; }
 }
 .nc-tile.nk-tile-flip {
   animation: nk-tile-flip var(--nk-dur-base) var(--nk-ease-spatial);
