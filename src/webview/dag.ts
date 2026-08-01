@@ -7743,8 +7743,9 @@ class DagRenderer {
         const dot = document.createElement('span');
         dot.className = 'legend-dot';
         const label = document.createElement('span');
-        // One word per state everywhere: the pill already says « done ».
-        label.textContent = `${counts[st]} ${st === 'success' ? 'done' : st}`;
+        // A legend keys COLORS — the status pill owns the numbers
+        // (two chrome surfaces narrated the same counts · Rams).
+        label.textContent = st === 'success' ? 'done' : st;
         chip.append(dot, label);
         chips.appendChild(chip);
       }
@@ -9525,6 +9526,19 @@ if (!vscode.getState()?.seenHint) {
     document.body.appendChild(hint);
     setTimeout(() => hint.classList.add('fade'), 6000);
     setTimeout(() => hint.remove(), 7000);
+    // The first gesture retires it early — a pointer moving toward a
+    // card must never find the hint painted OVER it (the occlusion
+    // wound); wheel/pointer/key all count as « seen ».
+    const retire = (): void => {
+      hint.classList.add('fade');
+      setTimeout(() => hint.remove(), 400);
+      window.removeEventListener('wheel', retire);
+      window.removeEventListener('pointerdown', retire);
+      window.removeEventListener('keydown', retire);
+    };
+    window.addEventListener('wheel', retire, { once: true, passive: true });
+    window.addEventListener('pointerdown', retire, { once: true });
+    window.addEventListener('keydown', retire, { once: true });
     vscode.setState({ ...(vscode.getState() ?? {}), seenHint: true });
     window.removeEventListener('message', firstGraphListener);
   };

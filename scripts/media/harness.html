@@ -850,7 +850,7 @@
         { taskId: 'salvage', status: 'skipped' },
       ]);
       post({ kind: 'run:state', running: false });
-      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 37/38 · 1 skipped · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
+      post({ kind: 'run:verdict', icon: '✓', text: 'every needed task landed · 37 ran · 1 skipped by design · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
       post({ kind: 'run:progress', done: 38, total: 38 });
     }, 16200);
 
@@ -941,7 +941,7 @@
 
     sim(() => {
       post({ kind: 'run:state', running: false });
-      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
+      post({ kind: 'run:verdict', icon: '✓', text: 'every task landed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
     }, 14500);
 
     sim(() => { if (CELEBRATE) { post({ kind: 'run:celebrate' }); } }, 14900);
