@@ -445,6 +445,9 @@ export function inputsRequired(req: ReportRequirements): string[] {
 export interface CheckReport {
   report_version: number;
   clean?: boolean;
+  /** The readiness grade riding every payload from 0.107 (advisory
+   * included) — absent on older binaries, the chip simply hides. */
+  risk_grade?: 'low' | 'supervised' | 'high' | 'unbounded';
   conformance: ConformanceViolation[];
   waves: number[][];
   cost: CostCeiling;
@@ -646,6 +649,9 @@ export function parseCheckReport(jsonText: string): CheckReport | undefined {
       secret_egresses: arr('secret_egresses') as SecretEgress[],
       capability_escapes: arr('capability_escapes') as CapabilityEscape[],
       schema_findings: arr('schema_findings') as SchemaTypeFinding[],
+      risk_grade: typeof v.risk_grade === 'string'
+        ? (v.risk_grade as CheckReport['risk_grade'])
+        : undefined,
       unknown_tools: arr('unknown_tools') as UnknownTool[],
       unknown_args: arr('unknown_args') as UnknownArg[],
       missing_args: arr('missing_args') as MissingArg[],

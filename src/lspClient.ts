@@ -153,6 +153,25 @@ export function checkVersionMismatch(context: ExtensionContext, log: LogFn, reso
             });
           }
         });
+      } else if (
+        // The PATH twin of the mirror gap: a brew/system binary behind
+        // this extension is the user's package manager's business — but
+        // silence left them discovering it door by door (try · wire
+        // greyed with no story). One SOFT note per engine version.
+        extParts[0] > srvParts[0] || (extParts[0] === srvParts[0] && extParts[1] > srvParts[1])
+      ) {
+        const nudgeKey = `nika.engineBehindNudge.${serverMajorMinor}`;
+        if (!context.globalState.get<boolean>(nudgeKey)) {
+          void context.globalState.update(nudgeKey, true);
+          window.showInformationMessage(
+            `Nika: engine v${serverMajorMinor}.x is behind this extension (v${extVersion}) — some doors (try · wire) need the newer engine.`,
+            'Copy brew command',
+          ).then((choice) => {
+            if (choice === 'Copy brew command') {
+              void env.clipboard.writeText('brew upgrade nika');
+            }
+          });
+        }
       }
     } else {
       log('INFO', `Version match: extension v${extVersion}, server v${stdout.trim()}`);

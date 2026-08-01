@@ -468,6 +468,18 @@
         "category": "Nika"
       },
       {
+        "command": "nika.exportEvidence",
+        "title": "Export Evidence Pack (journal · manifest · receipt · VERIFY.md)",
+        "icon": "$(package)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.explainReceipt",
+        "title": "Explain Receipt (readable projection)",
+        "icon": "$(book)",
+        "category": "Nika"
+      },
+      {
         "command": "nika.exportOtel",
         "title": "Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
         "icon": "$(telescope)",
@@ -1338,6 +1350,16 @@
           "command": "nika.reproduceRun",
           "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "nika@4"
+        },
+        {
+          "command": "nika.exportEvidence",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
+          "group": "nika@5"
+        },
+        {
+          "command": "nika.explainReceipt",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
+          "group": "nika@5"
         },
         {
           "command": "nika.exportOtel",

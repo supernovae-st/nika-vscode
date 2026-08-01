@@ -308,7 +308,15 @@ export function runWorkflowLive(
       // verdict banner so the Explain door rides it.
       const codes = [...new Set(`${buffer}\n${stderrTail}`.match(/NIKA-[A-Z]+-\d+/g) ?? [])];
       const named = codes.slice(0, 3).join(' · ');
-      const story = code === 2
+      // clap ALSO exits 2 on unknown argv (an older engine meeting
+      // --resume/--from) — that story is «update the engine», never
+      // «fix the finding» (the check-refusal words would gaslight).
+      const argvMiss = /unexpected argument|unrecognized subcommand/i.exec(stderrTail)
+        ? stderrTail.match(/(?:unexpected argument|unrecognized subcommand) '([^']+)'/i)?.[1]
+        : undefined;
+      const story = argvMiss
+        ? `this engine does not know ${argvMiss} — update nika (brew upgrade nika)`
+        : code === 2
         ? `check refused the run${named ? ` · ${named}` : ''} — fix the finding, then ▶`
         : `run died before its first event (exit ${code})${named ? ` · ${named}` : ''}`;
       dagPanel.note('✗', story, undefined, 'st-failed');
