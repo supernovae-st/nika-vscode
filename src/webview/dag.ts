@@ -6531,6 +6531,8 @@ class DagRenderer {
         return meta?.kind === 'control' ? meta.predicate ?? '' : meta?.label ?? '';
       });
 
+    this.destackEdgeLabels();
+
     // The WAIST is where an edge says its KIND — end arrowheads drown
     // under the target cards (the n8n 1.70 read), so the glyph rides
     // the wire's midpoint at any pan. One form per kind (the closed
@@ -6857,6 +6859,38 @@ class DagRenderer {
   }
 
   /** Label anchor — port midpoint for pinned edges, ELK midpoint else. */
+  /** No wire loses its name (the gauntlet: « commits »+« success »
+   *  overprinted as one word after a card grew). Labels sitting at the
+   *  same height on neighbouring wires get a vertical stagger — the
+   *  wire is vertical there, so each label stays ON its own wire and
+   *  every binding name survives (hiding one would lose information).
+   *  Graph-space boxes, so pan and zoom never re-trigger it. */
+  private destackEdgeLabels(): void {
+    const nodes = [...this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label').nodes()];
+    if (nodes.length < 2) { return; }
+    const boxes = nodes.map((n) => {
+      const b = n.getBBox();
+      return { n, x: b.x, y: b.y, w: b.width, h: b.height, base: Number(n.getAttribute('y') ?? 0) };
+    }).sort((a, b) => a.x - b.x);
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) {
+        const a = boxes[i];
+        const c = boxes[j];
+        if (c.x > a.x + a.w) { break; } // sorted by x: no later box can hit
+        const overlapsY = a.y < c.y + c.h && c.y < a.y + a.h;
+        if (!overlapsY) { continue; }
+        // The lift is the label's OWN measured height (graph units,
+        // which the zoom-compensated font makes elastic) plus a hair —
+        // a fixed constant was smaller than the box at fit zoom and
+        // resolved nothing (measured).
+        const lift = c.h + 3;
+        c.n.setAttribute('y', String(c.base - lift));
+        c.y -= lift;
+        c.base -= lift;
+      }
+    }
+  }
+
   private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
     // ELK placed this label as a layout participant — its coords are
     // the collision-free truth (top-left; center it · mermaid consume
