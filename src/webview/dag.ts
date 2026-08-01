@@ -7889,8 +7889,27 @@ function buildExplainer(): void {
 
   const title = document.createElement('div');
   title.className = 'ex-title';
-  title.textContent = 'Reading this graph';
+  title.textContent = 'The keys';
   card.appendChild(title);
+
+  // CHORDS FIRST (the power-user gauntlet: « I pressed ? expecting a
+  // keymap and got a lecture ») — the table a lost hand needs opens
+  // the dialog; the theory reads below it.
+  const keys = document.createElement('div');
+  keys.className = 'ex-keys';
+  for (const [key, label] of CANVAS_KEYMAP) {
+    const kbd = document.createElement('kbd');
+    kbd.textContent = key;
+    const span = document.createElement('span');
+    span.textContent = label;
+    keys.append(kbd, span);
+  }
+  card.appendChild(keys);
+
+  const readTitle = document.createElement('div');
+  readTitle.className = 'ex-title ex-title-section';
+  readTitle.textContent = 'Reading this graph';
+  card.appendChild(readTitle);
 
   // Dynamic per-graph engineering read — re-rendered at every open.
   const metrics = document.createElement('div');
@@ -7933,17 +7952,6 @@ function buildExplainer(): void {
     row.append(glyph, text);
     card.appendChild(row);
   }
-
-  const keys = document.createElement('div');
-  keys.className = 'ex-keys';
-  for (const [key, label] of CANVAS_KEYMAP) {
-    const kbd = document.createElement('kbd');
-    kbd.textContent = key;
-    const span = document.createElement('span');
-    span.textContent = label;
-    keys.append(kbd, span);
-  }
-  card.appendChild(keys);
 
   const foot = document.createElement('div');
   foot.className = 'ex-foot';

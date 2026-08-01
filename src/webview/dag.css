@@ -1767,6 +1767,13 @@ body.dag-loading #zoom-dock { display: none; }
   margin-bottom: 10px;
 }
 
+/* The second section head inside the dialog (chords open it now). */
+.ex-title-section {
+  margin-top: 14px;
+}
+.ex-title-section::before { content: '[ '; opacity: 0.5; }
+.ex-title-section::after { content: ' ]'; opacity: 0.5; }
+
 .ex-row {
   display: flex;
   gap: 10px;
