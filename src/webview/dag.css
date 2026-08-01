@@ -5281,6 +5281,11 @@ body.lod-far .region-label { display: none; }
   color: var(--nk-ink-dim);
   user-select: none;
 }
+/* The site's bracket grammar (es-sec · the wave rail · [ INTENT AS
+ * CODE ] on the home) · one section voice across the galaxy. */
+.cmdk-cat::before { content: '[ '; opacity: 0.5; }
+.cmdk-cat::after { content: ' ]'; opacity: 0.5; }
+
 
 #cmdk-input,
 #connect-input {

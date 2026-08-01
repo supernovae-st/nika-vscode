@@ -7704,7 +7704,8 @@ class DagRenderer {
         const dot = document.createElement('span');
         dot.className = 'legend-dot';
         const label = document.createElement('span');
-        label.textContent = `${counts[st]} ${st}`;
+        // One word per state everywhere: the pill already says « done ».
+        label.textContent = `${counts[st]} ${st === 'success' ? 'done' : st}`;
         chip.append(dot, label);
         chips.appendChild(chip);
       }
