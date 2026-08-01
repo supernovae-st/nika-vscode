@@ -360,6 +360,24 @@ sense; `$(...)` codicons are VS Code's own vocabulary, a separate
 register. Color emoji never enter the mono registry (law 1's floor ·
 the belt bans the ranges).
 
+### 2b-bis · The two icon layers (chrome SVG · prose glyph)
+
+The registry above governs SENSE MARKS IN TEXT (menus · legend · feed ·
+badges · titles) · those stay unicode, one glyph one sense. The CHROME
+FACES (toolbar buttons · welcome capability grid · action ghosts) ride
+the **vendored SuperNovae icon ontology** instead: the site's
+`design/icons.yaml` library baked at `public/brand/icons/` and synced
+into `src/icons.generated.ts` by `scripts/sync-icons.mjs` (grid 24 ·
+stroke 2 · round caps · currentColor · SSOT.md Lane B row). The
+correlation with nika.sh is the same bytes, never a resemblance.
+
+Chrome verbs the domain set does not carry (plus · fit · layout-grid)
+are authored in the same hand inside `dagPanel.TB_IC`. The LENS DECK is
+the deliberate exception to both layers: keyboard-first lenses wear
+their KEY as the face (a real keycap · W T P D B H G L) · the letter is
+the identity, and the unicode lens marks (≋ ▧ ▦ ⇉ ∿ ▥ ⌖ ≣) keep
+speaking in the lens-door TITLES and the ? keymap where they are prose.
+
 ## 2c · The connected grammar · every flow construct has its surface
 
 The language's flow words each own ONE canvas surface · no construct

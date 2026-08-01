@@ -4,6 +4,35 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.4] · 2026-08-01
+
+The correlation wave: the extension's chrome now speaks the site's
+design system with the SAME BYTES · the operator's read (« icons
+dégueulasses · boutons pas bons · pas de corrélation ») was right, and
+the wound was the chrome, not the cards (the card + ground sheets were
+already byte-identical spec projections on both sides).
+
+- **The icon ontology, vendored**: `scripts/sync-icons.mjs` syncs the
+  SuperNovae icon library (the site's `design/icons.yaml`, baked at
+  `public/brand/icons/`) into `src/icons.generated.ts` · SSOT Lane B.
+- **The welcome speaks it**: the ten capability rows and the action
+  ghosts wear the exact SVGs the site's feature rooms render (check ·
+  preflight · history · report · inspect · permits · explain · book ·
+  generate · mcp · examples · replay).
+- **The toolbar face rebuilds**: +Task/New/Fit/Layout carry house-set
+  icons (16px · stroke 2 · ink follows the button) · the chrome stops
+  pretending 11px unicode blobs are icons; the sense marks stay
+  canonical in menus, legend and feed where they are prose.
+- **The lens deck wears its keys**: W T P D B H G L as real keycaps ·
+  the letter IS the lens identity (the old marks all rendered as the
+  same dark square at toolbar size).
+- Exports leave the front row (behind the ⋯ door, listed by the shed) ·
+  ghost buttons breathe (flex · gap) · the harness mirrors everything
+  byte-identical and drops 34 em-dashes.
+
+Proven: 1441/1441 · a11y-probes 45/45 · chrome-probes 0 across three
+skins · all three README GIFs regenerated on this chrome.
+
 ## [0.107.3] · 2026-08-01
 
 The wow wave: five design lenses (Raycast rows · Vercel restraint ·
