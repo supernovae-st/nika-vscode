@@ -566,7 +566,8 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
 /* THE BUTTON WRITES WHAT IT DOES: the name unfurls on hover/focus —
  * a width morph on the spatial voice, the mark and key never move.
  * (Rams: the label earns its pixels only while you are asking.) */
-.tb-lenses button .tb-name {
+#dag-toolbar button .tb-name,
+#zoom-dock button .tb-name {
   display: inline-block;
   max-width: 0;
   overflow: hidden;
@@ -579,16 +580,23 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
     opacity var(--nk-dur-fast) var(--nk-ease-effects),
     margin var(--nk-dur-base) var(--nk-ease-spatial);
 }
-.tb-lenses button:hover .tb-name,
-.tb-lenses button:focus-visible .tb-name {
+#dag-toolbar button:hover .tb-name,
+#dag-toolbar button:focus-visible .tb-name,
+#zoom-dock button:hover .tb-name,
+#zoom-dock button:focus-visible .tb-name {
   max-width: 84px;
   opacity: 1;
   margin: 0 2px;
 }
+/* The named buttons need room to grow and a clip while closed. */
+#dag-toolbar button:has(.tb-name),
+#zoom-dock button:has(.tb-name) { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .tb-lenses button .tb-name { transition: none; }
+  #dag-toolbar button .tb-name,
+  #zoom-dock button .tb-name { transition: none; }
 }
-body[data-nk-calm] .tb-lenses button .tb-name { transition: none; }
+body[data-nk-calm] #dag-toolbar button .tb-name,
+body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
 
 /* THE BOTTOM BAR STATES ITS INTENT TOO: a verb tile unfurls its name,
  * the make key unfurls « Task » — the same morph, one law across the

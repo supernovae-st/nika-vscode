@@ -1188,10 +1188,10 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><span class="tb-ic">${HI.lensHeat}</span><span class="tb-name">Heatmap</span><kbd>H</kbd></button>
       <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><span class="tb-ic">${HI.lensFollow}</span><span class="tb-name">Follow</span><kbd>G</kbd></button>
       <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><span class="tb-ic">${HI.lensFeed}</span><span class="tb-name">Feed</span><kbd>L</kbd></button>
-      <button id="btn-help" title="What am I looking at? (?)"><span class="tb-ic">${HI.help}</span></button>
+      <button id="btn-help" title="What am I looking at? (?)"><span class="tb-ic">${HI.help}</span><span class="tb-name">Help</span></button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
-      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false"><span class="tb-ic">${HI.more}</span></button>
+      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false"><span class="tb-ic">${HI.more}</span><span class="tb-name">More</span></button>
     </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG (styles embedded)">⤓ svg</button>
@@ -1201,12 +1201,12 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="zoom-dock" role="toolbar" aria-label="Camera">
-    <button id="btn-zoom-out" title="Zoom out (−)"><span class="tb-ic">${HI.minus}</span></button>
+    <button id="btn-zoom-out" title="Zoom out (−)"><span class="tb-ic">${HI.minus}</span><span class="tb-name">Out</span></button>
     <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
-    <button id="btn-zoom-in" title="Zoom in (+)"><span class="tb-ic">${HI.plus}</span></button>
+    <button id="btn-zoom-in" title="Zoom in (+)"><span class="tb-ic">${HI.plus}</span><span class="tb-name">In</span></button>
     <span class="zd-sep"></span>
-    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
-    <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
+    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span><span class="tb-name">Fit</span></button>
+    <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span><span class="tb-name">Layout</span></button>
   </div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
