@@ -1393,7 +1393,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   border: 1px solid transparent; /* readout voice · never pressable-looking */
   font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
 }
 
 .legend-dot {
@@ -1843,7 +1843,7 @@ body.dag-loading #zoom-dock { display: none; }
   transform: translateX(-50%);
   max-width: calc(100vw - 24px);
   padding: 6px 14px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
@@ -2188,7 +2188,7 @@ body.dag-loading #zoom-dock { display: none; }
   padding: 6px 10px;
   font-size: var(--nk-fs-body);
   font-weight: 600;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--nk-ink-dim);
@@ -2246,7 +2246,7 @@ body.dag-loading #zoom-dock { display: none; }
   content: 'quiet · a run narrates here';
   display: block;
   padding: 8px 10px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-sub);
   color: var(--nk-ink-dim);
   opacity: 0.7;
@@ -4854,7 +4854,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   background: color-mix(in srgb, currentColor 6%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   border-radius: var(--nk-radius);
@@ -5480,7 +5480,7 @@ body.replaying #minimap { bottom: 74px; }
 
 .region-label {
   font-size: var(--nk-fs-body);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 70%, var(--nk-ink-dim));
@@ -6436,7 +6436,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   height: 30px;
   padding: 0 14px;
   font-size: var(--nk-fs-label);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -6497,7 +6497,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
    * probe caught 16.5px the day the refusal scene first rendered one. */
   min-height: 24px;
   padding: 0 8px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-sub);
   color: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
