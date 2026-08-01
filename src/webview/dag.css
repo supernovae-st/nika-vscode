@@ -352,7 +352,9 @@ body[data-nk-theme] {
 /* The title IS a filename: the stem carries the weight, the suffix
  * recedes (the operator: « affiche-le plus en mode nom de fichier »). */
 #dag-title .tt-ext {
-  opacity: 0.45;
+  /* 0.45 measured 4.23 · 3.10 · 3.83 · 2.38 across the four skins —
+   * the suffix must recede WITHOUT falling under the floor. */
+  opacity: 0.66;
   font-weight: 400;
 }
 
@@ -570,7 +572,13 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
 body[data-nk-theme='editor'].vscode-light #dag-toolbar .tb-lenses button > kbd {
   opacity: 0.78;
 }
-#dag-toolbar .tb-lenses button.active > kbd { color: var(--nk-accent); opacity: 0.9; }
+body[data-nk-theme='editor'].vscode-light #dag-toolbar .tb-lenses button.active > kbd {
+  color: color-mix(in srgb, var(--nk-accent) 82%, #000);
+}
+body[data-nk-theme='editor'].vscode-light #dag-title .tt-ext {
+  opacity: 0.78;
+}
+#dag-toolbar .tb-lenses button.active > kbd { color: var(--nk-accent); opacity: 1; }
 
 /* THE BUTTON WRITES WHAT IT DOES: the name unfurls on hover/focus —
  * a width morph on the spatial voice, the mark and key never move.
@@ -632,7 +640,9 @@ body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
   opacity: 0;
   font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-label);
-  color: currentColor;
+  /* The MARK carries the verb hue; the NAME is text and takes ink —
+   * currentColor put a pale verb tint on white (1.81:1 measured). */
+  color: var(--nk-ink);
   transition:
     max-width var(--nk-dur-base) var(--nk-ease-spatial),
     opacity var(--nk-dur-fast) var(--nk-ease-effects),
@@ -6600,6 +6610,21 @@ body[data-nk-theme='editor'].vscode-light #scrubber,
 body[data-nk-theme='editor'].vscode-light #transport {
   background: var(--nk-card);
   border-color: rgb(0 0 0 / 0.1);
+}
+
+/* The light twin of the verb ink ramp: the dark ramp lifts the hue
+ * toward white for a dark card · light darkens it for a white one.
+ * Same identity, the other direction (measured to clear 4.5). */
+body[data-nk-theme='editor'].vscode-light {
+  --nk-verb-infer-text: color-mix(in srgb, var(--nk-verb-infer) 62%, #000);
+  --nk-verb-exec-text: color-mix(in srgb, var(--nk-verb-exec) 55%, #000);
+  --nk-verb-invoke-text: color-mix(in srgb, var(--nk-verb-invoke) 48%, #000);
+  --nk-verb-agent-text: color-mix(in srgb, var(--nk-verb-agent) 62%, #000);
+  --nk-st-failed-text: color-mix(in srgb, var(--nk-st-failed) 78%, #000);
+}
+
+body[data-nk-theme='editor'].vscode-light .pr-n {
+  color: color-mix(in srgb, var(--nk-ink) 78%, transparent);
 }
 
 body[data-nk-theme='editor'].vscode-light .legend-chip {

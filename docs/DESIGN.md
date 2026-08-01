@@ -738,6 +738,24 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**The fourth skin is a skin (v21)** · `editor` on a LIGHT VS Code theme
+is a fourth register, not a variant — the same tokens land on a white
+ground and every dark-tuned ink inverts its meaning there. It was
+unrenderable in the harness and therefore unprobed for eleven waves.
+It is now a scene (`?light`) and a probe skin, and the sweep found the
+truth: the `--nk-verb-*-text` ramp is calibrated APCA ≥Lc60 on a DARK
+card and measured 1.81-2.08:1 on white. The light twin darkens the
+full-chroma hue instead of lifting it — same identity, the other
+direction.
+
+**A veil is ink too (v21)** · the contrast probe read `color` and its
+alpha but never the element's `opacity`, so every ink dimmed by a veil
+(0.45 the filename suffix · 0.62 the keycaps · 0.7 the labels)
+measured at full strength and could never fail. The probe now folds the
+cumulative opacity of the whole ancestor chain into the foreground
+alpha. That single repair turned a green gate into eleven real
+violations · a gate that cannot see a veil is not a gate.
+
 **Measure, then judge (v10-v16)** · a compositional claim is settled by
 `getBoundingClientRect`, not by eye: the omnibar sat at 44px while
 looking right, a 13-unit label lift resolved nothing because the

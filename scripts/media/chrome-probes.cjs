@@ -39,7 +39,10 @@
 const path = require('path');
 const { chromium } = require(process.env.NIKA_PLAYWRIGHT || 'playwright');
 
-const SKINS = (process.env.SKINS || 'nika,editor,phosphor').split(',');
+// `light` = the editor skin on a LIGHT host (the harness stamps VS
+// Code Light+'s own --vscode-* · before v21 no light pixel was ever
+// probed: the harness had no theme vars and « editor » fell back dark).
+const SKINS = (process.env.SKINS || 'nika,editor,phosphor,light').split(',');
 const SIZES = (process.env.SIZES || '1440x900').split(',').map((s) => {
   const [w, h] = s.split('x').map(Number); return { width: w, height: h };
 });
@@ -185,9 +188,18 @@ const PROBE = () => {
       out.target.push({ sel: sel(el), w: +r.width.toFixed(1), h: +r.height.toFixed(1), text: (el.textContent || '').trim().slice(0, 30) });
     }
 
-    // 3 · CONTRAST — own-text elements only
+    // 3 · CONTRAST — own-text elements only.
+    // The ink is the color TIMES the cumulative opacity: an element
+    // dimmed with `opacity:` used to measure at full strength and
+    // could never fail (the flat keycap sat at 3.08:1 and this lens
+    // said green · v21). Ancestors count — opacity multiplies down.
     if (hasOwnText) {
-      const fg = parse(cs.color), bg = bgOf(el);
+      const fg0 = parse(cs.color), bg = bgOf(el);
+      let op = 1;
+      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+        op *= Number(getComputedStyle(n).opacity || 1);
+      }
+      const fg = fg0 ? { ...fg0, a: fg0.a * op } : null;
       if (fg && bg && fg.a >= 0.05) {
         const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
         const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
@@ -198,6 +210,7 @@ const PROBE = () => {
           out.contrast.push({
             sel: sel(el), text: (el.textContent || '').trim().slice(0, 40),
             ratio: +ratio.toFixed(2), floor, px: +px.toFixed(1), color: cs.color,
+            ...(op < 0.999 ? { opacity: +op.toFixed(2) } : {}),
           });
         }
       }
@@ -253,7 +266,7 @@ const PROBE = () => {
       forcedColors: FORCED ? 'active' : 'none',
       reducedMotion: MOTION,
     });
-    let qs = '?still' + (skin === 'nika' ? '' : `&skin=${skin}`);
+    let qs = '?still' + (skin === 'nika' ? '' : skin === 'light' ? '&light' : `&skin=${skin}`);
     if (SCENE) { qs += '&' + SCENE; }
     await p.goto('file://' + path.join(process.cwd(), 'scripts/media/harness.html' + qs));
     await p.waitForTimeout(2400);
