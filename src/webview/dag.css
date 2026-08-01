@@ -6593,7 +6593,24 @@ body[data-nk-theme='editor'].vscode-light {
   --nk-shadow-2: 0 2px 4px rgb(0 0 0 / 0.06), 0 16px 40px -12px rgb(0 0 0 / 0.22);
   --nk-st-muted: #9ca3af;
   --nk-grain: none;
+  /* The material law INVERTS here. On a dark card the light catches the
+   * top edge (1px white inset); on a WHITE card that catch paints white
+   * on white and says nothing — what a sheet of paper actually shows is
+   * the SEAT: its bottom edge darkens where it meets the surface. */
+  --nk-bevel: inset 0 -1px 0 rgb(0 0 0 / 0.05);
+  --nk-specular: inset 0 1px 0 rgb(255 255 255 / 0);
 }
+
+/* The fan-out deck reads by DEPTH, and depth on paper is darker, not
+ * lighter · white sheets behind a white card on a near-white ground
+ * showed only two hairlines and read as a misalignment (measured:
+ * 7x8px of stack, invisible). Paper behind paper catches shade. */
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack {
+  fill: color-mix(in srgb, var(--nk-ink) 5%, var(--nk-card));
+  stroke: color-mix(in srgb, var(--nk-ink) 15%, transparent);
+}
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack-6 { opacity: 0.9; }
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack-12 { opacity: 0.6; }
 
 body[data-nk-theme='editor'].vscode-light {
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23000000' stroke-opacity='0.055'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
