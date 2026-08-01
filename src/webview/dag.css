@@ -1407,6 +1407,22 @@ body.vscode-light .logo-dark { display: none; }
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
+/* The door reveals in a composed stagger (hero · primary · the quiet
+ * rows) — backwards fill so late children hold their start frame. */
+.es-card .es-hero,
+.es-card #es-describe,
+.es-card .es-actions,
+.es-card .es-sec,
+.es-card .es-caps,
+.es-card #es-recent {
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial) backwards;
+}
+.es-card #es-describe { animation-delay: var(--nk-dur-fast); }
+.es-card .es-actions { animation-delay: calc(var(--nk-dur-fast) * 2); }
+.es-card .es-sec,
+.es-card .es-caps,
+.es-card #es-recent { animation-delay: calc(var(--nk-dur-fast) * 3); }
+
 @keyframes es-rise {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -2017,6 +2033,12 @@ body.vscode-light .logo-dark { display: none; }
   #btn-feed.pulse,
   #activity,
   .es-card,
+  .es-card .es-hero,
+  .es-card #es-describe,
+  .es-card .es-actions,
+  .es-card .es-sec,
+  .es-card .es-caps,
+  .es-card #es-recent,
   .ex-card {
     animation: none !important;
   }
@@ -2227,7 +2249,20 @@ body[data-nk-theme='nika'].lod-far #dag-container {
 
 /* Depth vignette — the pool falls away at the edges (paint-only), and
  * it KNOWS the run: while tasks execute the falloff tightens, pulling
- * the eye to the lit work; a finished canvas relaxes back. */
+ * the eye to the lit work; a finished canvas relaxes back. Typed
+ * custom props so ignition DIMS over the deliberate token instead of
+ * jump-cutting (gradients don't interpolate — registered values do). */
+@property --nk-vig-stop {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 55%;
+}
+@property --nk-vig-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgb(0 0 0 / 0.38);
+}
+
 body[data-nk-theme='nika'] #dag-container::before {
   content: '';
   position: absolute;
@@ -2235,18 +2270,23 @@ body[data-nk-theme='nika'] #dag-container::before {
   pointer-events: none;
   background: radial-gradient(
     120% 100% at 50% 38%,
-    transparent 55%,
-    rgb(0 0 0 / 0.38) 100%
+    transparent var(--nk-vig-stop),
+    var(--nk-vig-ink) 100%
   );
+  transition:
+    --nk-vig-stop var(--nk-dur-deliberate) var(--nk-ease-effects),
+    --nk-vig-ink var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 
 body[data-nk-theme='nika'].running #dag-container::before {
-  background: radial-gradient(
-    110% 92% at 50% 40%,
-    transparent 46%,
-    rgb(0 0 0 / 0.5) 100%
-  );
+  --nk-vig-stop: 46%;
+  --nk-vig-ink: rgb(0 0 0 / 0.5);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-nk-theme='nika'] #dag-container::before { transition: none; }
+}
+body[data-nk-calm] #dag-container::before { transition: none !important; }
 
 /* A faint blue lamp follows the pointer over the pool (Linear-class
  * depth cue). One fixed overlay, two custom props written per frame —
@@ -4551,10 +4591,23 @@ body[data-nk-theme='nika'] #omnibar {
 }
 
 /* A LIVE run clears the bench — the dead-disabled mock/resume yield
- * their width to the command line; ■ n/N is the action now. */
+ * their width to the command line; ■ n/N is the action now. The exit
+ * FADES (allow-discrete) instead of popping mid-ignition. */
 body.running #run-controls .rc-mock,
 body.running #run-controls .rc-resume {
+  opacity: 0;
   display: none;
+  transition: opacity var(--nk-dur-fast) var(--nk-ease-effects), display var(--nk-dur-fast) allow-discrete;
+}
+
+/* Ignition: the machine key LOOKS held while the engine spawns (the
+ * click landed — the press holds until run:state answers). */
+body.run-starting .rc-run {
+  transform: translateY(1.5px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 0.5px 0 color-mix(in srgb, var(--nk-cta) 40%, #000),
+    0 1px 2px rgb(0 0 0 / 0.3);
 }
 
 .rc-run {
@@ -4649,7 +4702,7 @@ body.running #run-controls .rc-resume {
 /* Optimistic queued pulse: the click answers instantly — pending cards
  * shimmer until the first engine event lands (run:state clears it). */
 body.run-starting .dag-node.status-pending .nc-dot {
-  animation: nk-dot-pulse 0.9s ease-in-out infinite;
+  animation: nk-dot-pulse 1.1s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6746,8 +6799,15 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   pointer-events: none;
 }
 body.dag-loading #es-ghost {
-  opacity: 0.3;
+  opacity: 0.5;
   animation: es-loading-breathe 1.5s ease-in-out infinite;
+}
+/* A graph is seconds away — never paint controls about to die (the
+ * full welcome pitch flashed under every first open of a real file). */
+body.dag-loading .es-card {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 @keyframes es-loading-breathe { 50% { opacity: 0.14; } }
 @media (prefers-reduced-motion: reduce) {
