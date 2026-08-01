@@ -32,7 +32,7 @@ core gestures broke silently.
 - **The design wave (six-lens audit, grounded file:line)**: the MV10
   hover language (wire lights its endpoint cards · focused card raises
   its wires) is RESCUED from the reduced-motion block a paste had
-  trapped it in — default-motion users get the core behavior back ·
+  trapped it in (default-motion users get the core behavior back) ·
   the introspection category hue converges on the spec value (#e0b071,
   the convergence tokens.yaml names as owed) · one entrance voice
   (es-rise rides the house spring on all five surfaces, the two
