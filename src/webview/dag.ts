@@ -6111,7 +6111,7 @@ class DagRenderer {
         run: () => requestRunFn(false),
       },
       {
-        label: '▷ Run mock — zero keys, zero network', kbd: 'M',
+        label: '▷ Run mock · zero keys, zero network', kbd: 'M',
         ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
         run: () => requestRunFn(true),
       },
