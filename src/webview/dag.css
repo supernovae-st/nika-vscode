@@ -480,6 +480,16 @@ body[data-nk-calm] .nc-tile.nk-tile-flip { animation: none !important; }
 }
 .tb-ic svg { width: 100%; height: 100%; }
 
+/* The run cluster's marks (play · stop) — the master set, sized to
+ * the 11px label they sit beside. */
+.rc-ic {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.rc-ic svg { width: 100%; height: 100%; }
+
 /* The ontology icon slot (welcome caps · action ghosts) — the SAME
  * bytes the site's rooms wear (icons.generated.ts · the vendored
  * SuperNovae set): 15px optical, ink follows the row. */
@@ -518,12 +528,23 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
   cursor: default;
 }
 
-.tb-lenses button { padding: 0 5px; }
-.tb-lenses button > kbd:only-child {
-  min-width: 17px;
-  height: 17px;
-  font-size: var(--nk-fs-label);
+.tb-lenses button {
+  gap: 3px;
+  padding: 0 6px;
 }
+/* The mark leads, the key subscripts it: the lens is recognizable
+ * (the icon) AND teachable (the key) — the gauntlet killed the blobs,
+ * the keycaps taught the chords; the master set gives both. */
+.tb-lenses button > kbd {
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  font-size: var(--nk-fs-foot);
+  border-bottom-width: 1px;
+  opacity: 0.75;
+}
+.tb-lenses button .tb-ic { width: 15px; height: 15px; }
+#dag-toolbar button.active .tb-ic { color: var(--nk-accent); }
 #dag-toolbar button.active > kbd {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));

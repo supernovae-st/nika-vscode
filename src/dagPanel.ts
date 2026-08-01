@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import { ONTOLOGY_ICON } from './icons.generated';
+import { HOUSE_ICON } from './house-icons.generated';
 import * as crypto from 'crypto';
 
 // ─── Typed Message Protocol ──────────────────────────────────────────────────
@@ -1055,17 +1056,22 @@ export class DagPanel implements vscode.Disposable {
    *  authored in the same hand where the domain set has no chrome verb.
    *  The unicode SENSE marks stay canonical in menus/legend/feed — the
    *  toolbar face stops pretending text glyphs are icons. */
+  /** Chrome icons — the SuperNovae MASTER set (house-icons.generated
+   *  · 24 grid · stroke 2 · round caps · currentColor · rendered
+   *  16px). page-add rides the site ontology. Nothing is authored
+   *  here anymore: the library speaks for the chrome. */
   private static readonly TB_IC = {
-    plus: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    plus: HOUSE_ICON.plus,
     pageAdd: '<svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    fit: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    layout: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>',
+    fit: HOUSE_ICON.fit,
+    layout: HOUSE_ICON.layout,
   } as const;
 
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
     const SPARKLE_SVG = DagPanel.SPARKLE_SVG;
     const IC = DagPanel.TB_IC;
+    const HI = HOUSE_ICON;
     const OI = ONTOLOGY_ICON;
 
     // Resolve webview-safe URIs for our bundled assets
@@ -1174,18 +1180,18 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
-      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><kbd>G</kbd></button>
-      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><kbd>L</kbd></button>
-      <button id="btn-help" title="What am I looking at?">?</button>
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic">${HI.lensWaves}</span><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><span class="tb-ic">${HI.lensTimeline}</span><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><span class="tb-ic">${HI.lensAudit}</span><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><span class="tb-ic">${HI.lensDataflow}</span><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><span class="tb-ic">${HI.lensCurve}</span><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><span class="tb-ic">${HI.lensHeat}</span><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><span class="tb-ic">${HI.lensFollow}</span><kbd>G</kbd></button>
+      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><span class="tb-ic">${HI.lensFeed}</span><kbd>L</kbd></button>
+      <button id="btn-help" title="What am I looking at? (?)"><span class="tb-ic">${HI.help}</span></button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
-      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false"><span class="tb-ic">${HI.more}</span></button>
     </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG (styles embedded)">⤓ svg</button>
@@ -1195,9 +1201,9 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="zoom-dock" role="toolbar" aria-label="Camera">
-    <button id="btn-zoom-out" title="Zoom out (−)">−</button>
+    <button id="btn-zoom-out" title="Zoom out (−)"><span class="tb-ic">${HI.minus}</span></button>
     <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
-    <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
+    <button id="btn-zoom-in" title="Zoom in (+)"><span class="tb-ic">${HI.plus}</span></button>
     <span class="zd-sep"></span>
     <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
     <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
@@ -1309,14 +1315,14 @@ export class DagPanel implements vscode.Disposable {
       <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     <div id="run-controls" role="toolbar" aria-label="Run controls">
-      <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live">▶ Run</button>
+      <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live"><span class="rc-ic">${HI.play}</span>Run</button>
       <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
       <button id="btn-run-resume" class="rc-resume" title="Re-run what changed · unchanged tasks cache-hit their recorded output (engine --resume)" hidden>Δ changed</button>
-      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo · deterministic · zero keys · zero network">▶ mock</button>
-      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
+      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo · deterministic · zero keys · zero network"><span class="rc-ic">${HI.play}</span>mock</button>
+      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden><span class="rc-ic rc-stop-sq">${HI.stop}</span>Stop</button>
     </div>
     <input id="omni-input" type="text"
            placeholder="+ task · / filter · describe… · ↵ everything"
