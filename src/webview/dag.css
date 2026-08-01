@@ -586,6 +586,52 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
   .tb-lenses button .tb-name { transition: none; }
 }
 body[data-nk-calm] .tb-lenses button .tb-name { transition: none; }
+
+/* THE BOTTOM BAR STATES ITS INTENT TOO: a verb tile unfurls its name,
+ * the make key unfurls « Task » — the same morph, one law across the
+ * chrome (the mark never moves · the name earns its pixels only while
+ * you are asking). */
+#omnibar #verb-palette .vp-btn,
+#omnibar > #btn-add-task {
+  overflow: hidden;
+  width: auto;
+  min-width: 30px;
+  gap: 3px;
+  padding: 0 7px;
+  transition:
+    background var(--nk-dur-base) var(--nk-ease-effects),
+    border-color var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+.vp-name,
+#omnibar > #btn-add-task .tb-name {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font-family: var(--nk-ui-font);
+  font-size: var(--nk-fs-label);
+  color: currentColor;
+  transition:
+    max-width var(--nk-dur-base) var(--nk-ease-spatial),
+    opacity var(--nk-dur-fast) var(--nk-ease-effects),
+    margin var(--nk-dur-base) var(--nk-ease-spatial);
+}
+#omnibar #verb-palette .vp-btn:hover .vp-name,
+#omnibar #verb-palette .vp-btn:focus-visible .vp-name,
+#omnibar > #btn-add-task:hover .tb-name,
+#omnibar > #btn-add-task:focus-visible .tb-name {
+  max-width: 62px;
+  opacity: 1;
+  margin-right: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vp-name,
+  #omnibar > #btn-add-task .tb-name { transition: none; }
+}
+body[data-nk-calm] .vp-name,
+body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 #dag-toolbar button.active > kbd {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
