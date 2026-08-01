@@ -4,6 +4,27 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.0] · 2026-08-01
+
+Lockstep on the engine's trust wave (v0.107.0 — the three doors ·
+whole-catalog router · the honesty fixes). Extension-side since 0.106.0:
+
+- **The installer proves its binary.** The downloaded engine must speak
+  its own version before the extension trusts it (the imposter class
+  from the 07-31 postmortem — a dev build stamped with a release string
+  no longer passes).
+- **Spec-pin catch-up rides.** The generated surfaces follow the spec:
+  the fourteen policy chips (and the editable one), the two projected
+  sheets with their second signal, and the pinned tokens.
+- **A11y debts paid.** Three buttons name their ACTION instead of their
+  value; the refused, running and empty matrices pay their contrast and
+  motion debts; the a11y suite launches system chrome like its sisters.
+- **The city island.** The README names this building's place in the
+  13-building city, links every neighbor, and carries no authoritative
+  root (the map fence is exempt from the glyph law it lives beside).
+- Design polish: the model chip chevron is drawn SVG riding the
+  projector, not a glyph.
+
 ## [0.106.0] · 2026-07-28
 
 The measured wave: the engine's own repair loop reaches the editor, and
