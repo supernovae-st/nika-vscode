@@ -1404,7 +1404,7 @@ body.vscode-light .logo-dark { display: none; }
   border: 1px solid var(--nk-border);
   border-radius: 12px;
   box-shadow: var(--nk-shadow-1), var(--nk-bevel);
-  animation: es-rise 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
 @keyframes es-rise {
@@ -1495,7 +1495,7 @@ body.vscode-light .logo-dark { display: none; }
   border-radius: 16px;
   box-shadow: var(--nk-shadow-1), var(--nk-bevel);
   backdrop-filter: blur(8px);
-  animation: es-rise 0.3s ease-out;
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
   pointer-events: none;
   transition: opacity 0.9s ease-out;
 }
@@ -1534,7 +1534,7 @@ body.vscode-light .logo-dark { display: none; }
   border-radius: 16px;
   box-shadow: var(--nk-shadow-1), var(--nk-bevel);
   backdrop-filter: blur(8px);
-  animation: es-rise 0.3s ease-out;
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
   cursor: pointer;
   z-index: 42;
 }
@@ -1586,7 +1586,7 @@ body.vscode-light .logo-dark { display: none; }
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
-  animation: es-rise 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
   font-size: var(--nk-fs-ui);
   line-height: 1.5;
 }
@@ -1839,7 +1839,7 @@ body.vscode-light .logo-dark { display: none; }
   backdrop-filter: blur(10px);
   box-shadow: var(--nk-shadow-1), var(--nk-bevel);
   overflow: hidden;
-  animation: es-rise 0.2s ease-out;
+  animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
 #activity[hidden] {
@@ -2124,10 +2124,22 @@ body.vscode-light .logo-dark { display: none; }
     display: none;
   }
 
-  /* ── The connection speaks (MV10) ─────────────────────────────────
+  .dag-node:hover .nc {
+    transform: none;
+  }
+
+  .wave-band {
+    animation: none !important;
+  }
+
+}
+
+/* ── The connection speaks (MV10) ─────────────────────────────────
  * Hovering a WIRE lights its two ends: the connection is one object,
  * never a lone stroke (answers « between whom? » in place). Kept
- * quieter than :hover/selected — a touch, not a claim. */
+ * quieter than :hover/selected — a touch, not a claim. (Rescued from
+ * the reduced-motion block 2026-08-01: a paste had trapped the core
+ * behavior where only reduce users could see it.) */
 .dag-node.edge-touch .nc {
   border-color: var(--nk-border-strong);
   box-shadow: var(--nk-card-shadow-hover);
@@ -2145,14 +2157,16 @@ body.vscode-light .logo-dark { display: none; }
   stroke: color-mix(in srgb, var(--nk-accent, var(--nk-data)) 45%, var(--nk-data));
 }
 
-.dag-node:hover .nc {
-    transform: none;
-  }
-
-  .wave-band {
-    animation: none !important;
-  }
-
+/* Keyboard reach parity (design wave 2026-08-01): the four surfaces
+ * the audit found ringless join the house focus ring. */
+.rv-act:focus-visible,
+.es-link:focus-visible,
+#breathe-hint:focus-visible {
+  outline: 1px solid var(--nk-accent);
+  outline-offset: 2px;
+}
+.cd-pill:focus-within {
+  border-color: var(--nk-accent);
 }
 
 .mm-node.st-retrying { fill: var(--nk-st-retrying); opacity: 0.95; }
@@ -2210,7 +2224,7 @@ body[data-nk-theme='nika'] {
   --nk-st-failed: #ff5d5d;
   --nk-st-retrying: #e0b071;
   --nk-st-muted: #5a606b;
-  --nk-critical: #e6b873;
+  --nk-critical: #e0b071; /* converged on spec builtin.category.introspection (= status.retrying) — tokens.yaml names the canvas as the side that converges */
   /* tokens v3 · the bright-accent seam: --nk-accent-bright IS the brand's
    * accentBright (design-tokens.generated.ts NIKA_BRAND — the parity belt
    * pins it); every blue tint/hairline in this skin derives from it via
@@ -5757,7 +5771,10 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   backdrop-filter: blur(6px);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.22s ease-out, transform 0.22s ease-out;
+  transition:
+    opacity var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-base) var(--nk-ease-effects),
+    display var(--nk-dur-base) allow-discrete;
   pointer-events: auto;
 }
 
@@ -5766,8 +5783,13 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   transform: translate(-50%, 0);
 }
 
+/* Exit mirrors the entry (the cmdk allow-discrete recipe): dropping
+ * `rv-in` plays the fade/slide out, `display` follows discretely —
+ * never the hard pop the audit measured. */
 #run-verdict[hidden] {
   display: none;
+  opacity: 0;
+  transform: translate(-50%, -8px);
 }
 
 /* The banner is a flex ROW: the summary text ellipsizes in its own
@@ -6251,7 +6273,7 @@ body[data-nk-theme='phosphor'] {
   --nk-st-failed: #ff6161;
   --nk-st-retrying: #e0b071;
   --nk-st-muted: #52605a;
-  --nk-critical: #e6b873;
+  --nk-critical: #e0b071; /* converged on spec builtin.category.introspection (= status.retrying) — tokens.yaml names the canvas as the side that converges */
   --nk-shadow-1: 0 1px 3px rgb(0 0 0 / 0.5);
   --nk-shadow-2: 0 1px 3px rgb(0 0 0 / 0.5), 0 24px 48px -24px rgb(0 40 20 / 0.6);
   /* Verb chroma at REST — asleep, one desaturated phosphor family. */

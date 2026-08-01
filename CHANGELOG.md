@@ -29,6 +29,16 @@ core gestures broke silently.
   released binary.
 - Labels, welcome views, README and the contributor doc stop naming
   dead forms; the flight-recorder empty state teaches `nika try`.
+- **The design wave (six-lens audit, grounded file:line)**: the MV10
+  hover language (wire lights its endpoint cards · focused card raises
+  its wires) is RESCUED from the reduced-motion block a paste had
+  trapped it in — default-motion users get the core behavior back ·
+  the introspection category hue converges on the spec value (#e0b071,
+  the convergence tokens.yaml names as owed) · one entrance voice
+  (es-rise rides the house spring on all five surfaces, the two
+  bespoke overshoots die) · the run-verdict banner exits the way it
+  enters (allow-discrete: fade out, never a hard pop) · four ringless
+  surfaces join the house focus ring.
 - **The separator law sweeps the rendered surfaces** (the anti-slop
   audit): ~35 user-facing strings across toasts, hovers, tree labels,
   the audit banner, the preflight report and the station drop their

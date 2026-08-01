@@ -8373,8 +8373,11 @@ let verdictTimer: ReturnType<typeof setTimeout> | undefined;
 function hideRunVerdict(): void {
   if (verdictTimer) { clearTimeout(verdictTimer); verdictTimer = undefined; }
   const el = document.getElementById('run-verdict');
-  el?.classList.remove('rv-in');
-  el?.setAttribute('hidden', '');
+  if (!el) { return; }
+  // Exit = entry mirrored: drop the class (the transition plays), let
+  // `display` follow via allow-discrete — hidden lands after the fade.
+  el.classList.remove('rv-in');
+  el.setAttribute('hidden', '');
 }
 
 function showRunVerdict(icon: string, text: string, cls: string, failedTask?: string, failedCode?: string): void {
