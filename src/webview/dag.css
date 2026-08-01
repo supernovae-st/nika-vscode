@@ -558,8 +558,17 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
   font-size: var(--nk-fs-foot);
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--nk-ink-dim);
-  opacity: 0.65;
+  /* The key is a HINT but it is still TEXT: the dim ink at 0.65
+   * measured 3.08:1 (nika) · 3.27 (editor) · 3.55 (phosphor), under
+   * the 4.5 floor. Full ink at a veil keeps it quieter than the mark
+   * AND legible (measured after: see the contrast probe). */
+  color: var(--nk-ink);
+  opacity: 0.62;
+}
+
+/* Light needs a touch more veil lift than the dark skins. */
+body[data-nk-theme='editor'].vscode-light #dag-toolbar .tb-lenses button > kbd {
+  opacity: 0.78;
 }
 #dag-toolbar .tb-lenses button.active > kbd { color: var(--nk-accent); opacity: 0.9; }
 

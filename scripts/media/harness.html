@@ -58,6 +58,34 @@
       if (skin === 'editor' || skin === 'phosphor' || skin === 'nika') {
         document.body.dataset.nkTheme = skin;
       }
+      // ?light — the LIGHT editor skin, judgeable at last. The panel
+      // gets its --vscode-* from the host; the harness had none, so the
+      // dark fallbacks fired and « editor » always rendered dark. This
+      // stamps a minimal light theme (the values VS Code's own Light+
+      // publishes) so the light craft can be SEEN and probed.
+      if (q.has('light')) {
+        document.body.dataset.nkTheme = 'editor';
+        document.body.classList.remove('vscode-dark');
+        document.body.classList.add('vscode-light');
+        const s = document.documentElement.style;
+        s.setProperty('--vscode-editor-background', '#ffffff');
+        s.setProperty('--vscode-editor-foreground', '#3b3b3b');
+        s.setProperty('--vscode-foreground', '#3b3b3b');
+        s.setProperty('--vscode-descriptionForeground', '#717171');
+        s.setProperty('--vscode-editorWidget-background', '#f8f8f8');
+        s.setProperty('--vscode-editorWidget-border', '#c8c8c8');
+        s.setProperty('--vscode-panel-border', '#e5e5e5');
+        s.setProperty('--vscode-focusBorder', '#005fb8');
+        s.setProperty('--vscode-textLink-foreground', '#005fb8');
+        s.setProperty('--vscode-button-background', '#005fb8');
+        s.setProperty('--vscode-button-foreground', '#ffffff');
+        s.setProperty('--vscode-button-hoverBackground', '#0258a8');
+        s.setProperty('--vscode-toolbar-hoverBackground', 'rgba(0,0,0,0.06)');
+        s.setProperty('--vscode-charts-blue', '#1a73e8');
+        s.setProperty('--vscode-charts-green', '#16825d');
+        s.setProperty('--vscode-charts-red', '#e51400');
+        s.setProperty('--vscode-charts-orange', '#c27d1a');
+      }
       // ?grand (and the ?media scene, whose frames ARE the show) seed
       // the persisted card dial BEFORE dag.js restores state · the
       // same host-state channel the real panel uses, stubbed.
@@ -70,7 +98,7 @@
   <input id="dag-search" type="text" placeholder="filter tasks · / to open · Esc to clear" hidden aria-label="Filter tasks" aria-describedby="dag-search-count">
   <span id="dag-search-count" role="status" aria-live="polite" hidden></span>
   <div id="dag-toolbar">
-    <span id="dag-mark" aria-hidden="true"><img class="logo-dark" src="../../icons/nika-dark.svg" alt="" width="16" height="16"></span>
+    <span id="dag-mark" aria-hidden="true"><img class="logo-dark" src="../../icons/nika-dark.svg" alt="" width="16" height="16"><img class="logo-light" src="../../icons/nika-light.svg" alt="" width="16" height="16"></span>
     <span id="dag-title"></span>
     <div class="tb-group"><button id="btn-new"><span class="tb-ic"><svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>New</button></div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
