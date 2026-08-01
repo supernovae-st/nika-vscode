@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- The ELK layout worker (the panel stamps its own via asWebviewUri).
-       Under file:// the Worker ctor AND fetch refuse the URL — the
+       Under file:// the Worker ctor AND fetch refuse the URL · the
        ladder lands on the sync rung, byte-identical layout; serve the
        repo over http (scripts/perf/measure.mjs) to exercise the worker. -->
   <meta id="nk-worker-uri" data-uri="../../out/webview/elkWorker.js">
@@ -21,7 +21,7 @@
       getState: () => __state,
       setState: (s) => { __state = s; },
     });
-    // Harness canary — the pixel-proof page must never lie by silence.
+    // Harness canary · the pixel-proof page must never lie by silence.
     // A boot exception once left 7 handler-less cards and three judges
     // called the corpse healthy. This strip is fixture-side on purpose:
     // the canary cannot depend on the bundle it guards.
@@ -37,7 +37,7 @@
             + 'padding:4px 10px;border-top:2px solid #ff5555;';
           document.documentElement.appendChild(el);
         }
-        el.textContent = 'HARNESS WALL — ' + msg;
+        el.textContent = 'HARNESS WALL · ' + msg;
       };
       window.addEventListener('error', (ev) => scream(ev.message || 'script error'));
       window.addEventListener('unhandledrejection', (ev) => {
@@ -49,7 +49,7 @@
 </head>
 <body data-nk-theme="nika" class="vscode-dark">
   <script>
-    // The pixel-proof page honors ?skin=nika|editor|phosphor — the same
+    // The pixel-proof page honors ?skin=nika|editor|phosphor · the same
     // body attribute dagPanel stamps. Without this the page silently
     // shot the NIKA skin three times and called it three proofs.
     (() => {
@@ -59,7 +59,7 @@
         document.body.dataset.nkTheme = skin;
       }
       // ?grand (and the ?media scene, whose frames ARE the show) seed
-      // the persisted card dial BEFORE dag.js restores state — the
+      // the persisted card dial BEFORE dag.js restores state · the
       // same host-state channel the real panel uses, stubbed.
       if (q.has('grand') || q.has('media')) {
         __state = { cardDial: 'grand', cardBase: 'grand' };
@@ -67,34 +67,34 @@
     })();
   </script>
   <div id="aurora" aria-hidden="true"></div>
-  <input id="dag-search" type="text" placeholder="filter tasks — / to open · Esc to clear" hidden aria-label="Filter tasks" aria-describedby="dag-search-count">
+  <input id="dag-search" type="text" placeholder="filter tasks · / to open · Esc to clear" hidden aria-label="Filter tasks" aria-describedby="dag-search-count">
   <span id="dag-search-count" role="status" aria-live="polite" hidden></span>
   <div id="dag-toolbar">
     <span id="dag-mark" aria-hidden="true"></span>
     <span id="dag-title"></span>
     <span class="tb-sep"></span>
-    <div class="tb-group"><button id="btn-add-task">＋ Task</button><button id="btn-new">⧇ New</button></div>
+    <div class="tb-group"><button id="btn-add-task"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Task</button><button id="btn-new"><span class="tb-ic"><svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>New</button></div>
     <div class="tb-group">
       <button id="btn-zoom-out">−</button>
       <button id="zoom-pct">100%</button>
       <button id="btn-zoom-in">＋</button>
       <span class="tb-inner-sep"></span>
-      <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
-      <button id="btn-relayout" title="Auto-layout — drop the dragged card positions">⌗<kbd>A</kbd></button>
+      <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg></span></button>
     </div>
-    <div class="tb-group">
-      <button id="btn-waves" title="Wave bands — topological execution levels">≋<kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline — the run's truth as a Gantt">▧<kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit — what this file can DO before a token is spent">▦<kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow — where the data comes from and goes">⇉<kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges — bend the wires (or keep them square)">∿<kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap — tint cards by duration">▥<kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run — the camera tracks the frontier">⌖<kbd>G</kbd></button>
-      <button id="btn-feed" title="Activity feed — every status transition, live">≣<kbd>L</kbd></button>
-      <button id="btn-help" title="What am I looking at?">?<kbd>?</kbd></button>
+    <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (T)"><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (P)"><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (D)"><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (H)"><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (G)"><kbd>G</kbd></button>
+      <button id="btn-feed" title="Activity feed · every status transition, live (L)"><kbd>L</kbd></button>
+      <button id="btn-help" title="What am I looking at?">?</button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
-      <button id="btn-more" title="More tools — everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
     </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG">⤓ svg</button>
@@ -108,11 +108,11 @@
     <div class="cd-pill">
       <span class="cd-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
       <input id="cd-input" type="text"
-             placeholder="Describe this workflow — the tasks land checked by the engine…"
+             placeholder="Describe this workflow · the tasks land checked by the engine…"
              aria-label="Describe the workflow to generate">
       <button id="cd-go" type="submit">↵</button>
     </div>
-    <div class="cd-hint">or press <kbd>N</kbd> — add a task from the palette (a verb, or a builtin tool)</div>
+    <div class="cd-hint">or press <kbd>N</kbd> · add a task from the palette (a verb, or a builtin tool)</div>
   </form>
   <nav id="plan-rail" hidden aria-label="Execution plan"></nav>
   <div id="minimap"><svg id="minimap-svg"></svg><div id="minimap-viewport"></div></div>
@@ -142,25 +142,25 @@
     <div id="es-loading" hidden role="status" aria-live="polite"></div>
     <div class="es-card">
       <div class="es-hero"><div class="es-word">Nika</div>
-      <div class="es-tag">The workflow canvas — audited before a token is spent.</div></div>
+      <div class="es-tag">The workflow canvas · audited before a token is spent.</div></div>
       <form id="es-describe" autocomplete="off">
         <input id="es-describe-input" type="text"
-               placeholder="Describe your workflow — “fetch HN, post the brief”…"
+               placeholder="Describe your workflow · “fetch HN, post the brief”…"
                data-short-placeholder="Describe your workflow…"
                aria-label="Describe the workflow to generate">
         <button id="es-describe-go" type="submit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
       </form>
       <div id="es-binary" hidden role="status">
         <span class="es-binary-mark" aria-hidden="true">⚠</span>
-        <span class="es-binary-text">The nika engine is not on this machine — every check, graph
+        <span class="es-binary-text">The nika engine is not on this machine · every check, graph
         and run needs it.</span>
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
         <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up">▶ Try the demo · offline, zero keys</button>
         <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Try</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4V20M9 4V20M14 4L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Examples</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1801 14.6739C10.683 15.0219 10 14.6663 10 14.0595V9.94049C10 9.33372 10.683 8.97811 11.1801 9.32607L14.1223 11.3856C14.5488 11.6842 14.5488 12.3158 14.1223 12.6144L11.1801 14.6739Z" fill="currentColor"/><path d="M4.35727 8.27096C5.73873 5.44577 8.64101 3.5 11.9977 3.5C16.6922 3.5 20.4977 7.30558 20.4977 12C20.4977 16.6944 16.6922 20.5 11.9977 20.5C7.9922 20.5 4.63378 17.7294 3.73438 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3.5 5V9H7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
       </div>
       <div id="es-recent" hidden>
@@ -169,26 +169,26 @@
       </div>
       <div class="es-sec">What Nika does here</div>
       <div class="es-caps">
-        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check — static pre-flight</button>
-        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>▩</span>Preflight — cost · secrets · keys</button>
-        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>⊞</span>Run history — flaky · trends</button>
-        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>⎙</span>Pre-flight report</button>
-        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
-        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>
-        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span>¶</span>Explain the workflow</button>
-        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span>§</span>Embedded spec</button>
-        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⇗</span>Copy AI authoring prompt</button>
-        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>⎓</span>Setup MCP + agent rules</button>
+        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.79754 5.21356L10.7975 3.02606C11.5641 2.69069 12.4359 2.69069 13.2025 3.02606L18.2025 5.21356C19.2944 5.6913 20 6.77014 20 7.96204V13C20 17.4183 16.4183 21 12 21C7.58172 21 4 17.4183 4 13V7.96204C4 6.77014 4.70558 5.6913 5.79754 5.21356Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 10L8 12L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 10L16 12L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Check · static pre-flight</button>
+        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.03282 7.04459L2 7.41875L4.3064 10.8175L4.05884 11.3459C3.83481 11.8241 3.80898 12.3714 3.98698 12.8686L4.06146 13.0766C4.43936 14.1321 5.61088 14.6708 6.65815 14.2707L10.25 12.8986L10.3405 14.1982C10.3867 14.8609 11.0542 15.2952 11.6787 15.069L12.3536 14.8245C12.9368 14.6132 13.4402 14.2263 13.7945 13.7171L15.75 10.9061L19.9899 9.37013C20.7644 9.08956 21.2803 8.35404 21.2803 7.53031C21.2803 6.6311 20.6674 5.84763 19.7947 5.63108L17.8511 5.14884C17.4596 5.05168 17.0487 5.07486 16.6707 5.21586C15.0634 5.8154 10.539 7.50106 8.60086 8.20317C8.04343 8.40511 7.42468 8.35018 6.91195 8.05323L5.55815 7.26917C4.79092 6.82482 3.86643 6.74261 3.03282 7.04459Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 19H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Preflight · cost · secrets · keys</button>
+        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8.5 9C8.5 7.89543 9.39543 7 10.5 7H13.5C14.6046 7 15.5 7.89543 15.5 9V17H8.5V9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M1.5 11.5C1.5 10.3954 2.39543 9.5 3.5 9.5H8.5V17H3.5C2.39543 17 1.5 16.1046 1.5 15V11.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15.5 11H20.5C21.6046 11 22.5 11.8954 22.5 13V15C22.5 16.1046 21.6046 17 20.5 17H15.5V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>Run history · flaky · trends</button>
+        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12.1716 3H8C6.34315 3 5 4.34315 5 6V18C5 19.6569 6.34315 21 8 21H16C17.6569 21 19 19.6569 19 18V9.82843C19 9.29799 18.7893 8.78929 18.4142 8.41421L13.5858 3.58579C13.2107 3.21071 12.702 3 12.1716 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13 3.5V7C13 8.10457 13.8954 9 15 9H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8.5 17.5V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17.5V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15.5 17.5V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Pre-flight report</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M15 15L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14.8735 20.5309C13.0122 21.1564 10.9868 21.1564 9.12546 20.5309M20.5304 9.12595C21.1559 10.9873 21.1559 13.0126 20.5304 14.874M9.12549 3.46912C10.9869 2.84362 13.0122 2.84363 14.8736 3.46913M3.46864 14.874C2.84314 13.0127 2.84313 10.9874 3.46864 9.12598" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Inspect anatomy</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.79754 5.21356L10.7975 3.02606C11.5641 2.69069 12.4359 2.69069 13.2025 3.02606L18.2025 5.21356C19.2944 5.6913 20 6.77014 20 7.96204V13C20 17.4183 16.4183 21 12 21C7.58172 21 4 17.4183 4 13V7.96204C4 6.77014 4.70558 5.6913 5.79754 5.21356Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11.9992" cy="15.6999" r="1.3" fill="currentColor"/><path d="M11.1 12.3C11.1149 12.5235 11.2228 12.7379 11.3913 12.8959C11.5604 13.0539 11.7762 13.1427 12 13.1427C12.2238 13.1427 12.4396 13.0539 12.6087 12.8959C12.7772 12.7379 12.8851 12.5235 12.9 12.3C12.9042 12.2367 12.9083 12.1733 12.9125 12.11C12.9875 10.97 13.0625 9.83 13.1375 8.69C13.1417 8.62667 13.1458 8.56333 13.15 8.5C13.1703 8.195 13.067 7.90249 12.851 7.68683C12.6357 7.47116 12.3253 7.35 12 7.35C11.6747 7.35 11.3643 7.47116 11.149 7.68683C10.933 7.90249 10.8297 8.195 10.85 8.5C10.8542 8.56333 10.8583 8.62667 10.8625 8.69C10.9375 9.83 11.0125 10.97 11.0875 12.11C11.0917 12.1733 11.0958 12.2367 11.1 12.3Z" fill="currentColor"/></svg></span>Infer permits boundary</button>
+        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 21H16C17.6569 21 19 19.6569 19 18V6C19 4.34315 17.6569 3 16 3H7C5.89543 3 5 3.89543 5 5V19M7 21C5.89543 21 5 20.1046 5 19M7 21H10M5 19C5 17.8954 5.89543 17 7 17H16C17.6569 17 19 15.6569 19 14V12" stroke="currentColor" stroke-width="2"/></svg></span>Explain the workflow</button>
+        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4.3C6.9 3.1 4.9 2.8 2.4 3v9.7c2.5-.2 4.5.1 5.6 1.3 1.1-1.2 3.1-1.5 5.6-1.3V3c-2.5-.2-4.5.1-5.6 1.3Z"/><path d="M8 4.3v9.7"/></svg></span>Embedded spec</button>
+        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19.9997L11.4997 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.8387 5.50841C18.2498 5.33882 18.6612 5.75016 18.4916 6.1613L17.2279 9.22465C17.1564 9.39798 17.1879 9.59674 17.3095 9.73949L19.4579 12.2624C19.7462 12.601 19.4821 13.1194 19.0387 13.0851L15.7348 12.8299C15.5479 12.8155 15.3686 12.9069 15.2704 13.0666L13.5348 15.8895C13.3019 16.2684 12.7273 16.1773 12.6229 15.745L11.8446 12.524C11.8005 12.3417 11.6583 12.1994 11.476 12.1554L8.25494 11.3771C7.82264 11.2727 7.73163 10.6981 8.11051 10.4652L10.9334 8.72962C11.0931 8.63142 11.1845 8.45212 11.1701 8.26518L10.9149 4.96127C10.8806 4.51784 11.399 4.25374 11.7376 4.54209L14.2605 6.69052C14.4032 6.81208 14.602 6.84356 14.7753 6.77206L17.8387 5.50841Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Copy AI authoring prompt</button>
+        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Setup MCP + agent rules</button>
       </div>
     </div>
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden>
-    <input id="cmdk-input" type="text" placeholder="add a task — verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <input id="cmdk-input" type="text" placeholder="add a task · verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
   <div id="connect-cmdk" hidden>
-    <input id="connect-input" type="text" placeholder="wire to — the picked task runs after this one…" role="combobox" aria-expanded="false" aria-controls="connect-list" aria-autocomplete="list" aria-label="Pick the task that will run after the focused one">
+    <input id="connect-input" type="text" placeholder="wire to · the picked task runs after this one…" role="combobox" aria-expanded="false" aria-controls="connect-list" aria-autocomplete="list" aria-label="Pick the task that will run after the focused one">
     <div id="connect-list" role="listbox" aria-label="Valid connect targets"></div>
   </div>
   <div id="a11y-status" role="status" aria-live="polite"></div>
@@ -236,7 +236,7 @@
   </div>
   <script src="../../out/webview/dag.js"></script>
   <script>
-    // Scripted run timeline for the README hero GIF — states illustrative,
+    // Scripted run timeline for the README hero GIF · states illustrative,
     // shapes and chrome are the real webview bundle (out/webview/dag.{js,css}).
     const CHART_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
       '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">'
@@ -291,7 +291,7 @@
         {
           id: 'polish', avgMs: 2100, avgRuns: 4,  label: 'polish', verb: 'infer', status: 'pending',
           model: 'mistral/mistral-small', provider: 'mistral',
-          promptPreview: 'Tighten the headline. Keep the maintainer voice — plain, direct.',
+          promptPreview: 'Tighten the headline. Keep the maintainer voice · plain, direct.',
           costMin: 0.001, costMax: 0.006, timeout: '30s',
           bindingsIn: [{ alias: 'draft', from: 'digest', path: 'headline' }],
           producers: ['digest'],
@@ -340,7 +340,7 @@
           id: 'review', avgMs: 2700, avgRuns: 4,  label: 'review', verb: 'agent', status: 'pending',
           toolsCount: 2,
           model: 'ollama/qwen3.5:9b', provider: 'ollama',
-          promptPreview: 'Verify every claim against the commits — flag anything overstated.',
+          promptPreview: 'Verify every claim against the commits · flag anything overstated.',
           retryMax: 2,
           bindingsIn: [{ alias: 'notes', from: 'notes', path: 'notes_path' }],
           producers: ['notes'],
@@ -348,7 +348,7 @@
       ],
       edges: [
         // The typed-kind fixture (graph_format 2): every closed-set kind
-        // on one canvas — the harness IS the vocabulary's pixel proof.
+        // on one canvas · the harness IS the vocabulary's pixel proof.
         { id: 'history->digest', source: 'history', target: 'digest', kind: 'value', isDataEdge: true, label: 'commits' },
         { id: 'stats->chart', source: 'stats', target: 'chart', kind: 'value', isDataEdge: true, label: 'rows' },
         { id: 'digest->polish', source: 'digest', target: 'polish', kind: 'value', isDataEdge: true, label: 'draft' },
@@ -361,7 +361,7 @@
       ],
     };
 
-    // ── The ?media scene (W-D8 CI-2) — declare · develop · deliver ──
+    // ── The ?media scene (W-D8 CI-2) · declare · develop · deliver ──
     // ~31 nodes seeding verb×tool across media / file / introspection /
     // data / core: every declared frame kind on one canvas (ghost-ratio
     // + stated-gap generic · fx recipe split · 5 chart shapes · flat
@@ -388,7 +388,7 @@
       nodes: [
         { id: 'brief', label: 'brief', verb: 'infer', status: 'pending', avgMs: 2100, avgRuns: 3,
           model: 'mistral/mistral-small', provider: 'mistral',
-          promptPreview: 'One launch visual: a lighthouse beam over a violet sea — write the brief.',
+          promptPreview: 'One launch visual: a lighthouse beam over a violet sea · write the brief.',
           outputNames: ['visual', 'copy'], producers: [] },
         { id: 'hero', label: 'hero', verb: 'invoke', status: 'pending', avgMs: 9400, avgRuns: 3,
           tool: 'nika:image_generate',
@@ -433,7 +433,7 @@
           bindingsIn: [{ alias: 'data', from: 'rows', path: 'output' }], producers: ['rows'] },
         { id: 'draft', label: 'draft', verb: 'infer', status: 'pending', avgMs: 5200, avgRuns: 2,
           model: 'ollama/qwen3.5:4b', provider: 'ollama',
-          promptPreview: 'Draft the campaign workflow YAML — assets in, site out.',
+          promptPreview: 'Draft the campaign workflow YAML · assets in, site out.',
           bindingsIn: [{ alias: 'brief', from: 'brief', path: 'copy' }], producers: ['brief'] },
         { id: 'checkwf', label: 'checkwf', verb: 'invoke', status: 'pending', avgMs: 240, avgRuns: 2,
           tool: 'nika:compose', argsPreview: 'workflow_yaml: ${{ draft.output }}',
@@ -539,9 +539,9 @@
         { id: 'plan->ask', source: 'plan', target: 'ask', kind: 'control', predicate: 'success' },
         { id: 'announce->ping', source: 'announce', target: 'ping', kind: 'value', isDataEdge: true, label: 'payload' },
         { id: 'ping->wrap', source: 'ping', target: 'wrap', kind: 'control', predicate: 'success' },
-        // The failure read, tinted (§S.4) — and honest: gate succeeds
+        // The failure read, tinted (§S.4) · and honest: gate succeeds
         // in the sim, so the failure-predicate path stays SHUT (salvage
-        // lands skipped, never success — the admits algebra on canvas).
+        // lands skipped, never success · the admits algebra on canvas).
         { id: 'gate->salvage', source: 'gate', target: 'salvage', kind: 'control', predicate: 'failure' },
       ],
     };
@@ -549,20 +549,20 @@
     const post = (m) => window.postMessage(m, '*');
     const batch = (updates) => post({ kind: 'dag:batchUpdateStatus', updates });
 
-    // ?still — the graph loads, the scripted run STAYS QUIET. A judge
+    // ?still · the graph loads, the scripted run STAYS QUIET. A judge
     // driving its own statuses must not wrestle the demo timeline
     // (assign-never-accumulate means the sim would erase its facts).
     const STILL = new URLSearchParams(location.search).has('still');
     const EMPTY = new URLSearchParams(location.search).has('empty');
-    // ?celebrate — replay the once-ever first-green confetti after the
+    // ?celebrate · replay the once-ever first-green confetti after the
     // sim's verdict (the real one is host-gated to one shot per machine).
     const CELEBRATE = new URLSearchParams(location.search).has('celebrate');
-    // ?media — the CI-2 scene: the brand-studio fixture replaces the
+    // ?media · the CI-2 scene: the brand-studio fixture replaces the
     // demo (declared frames → develop sweeps → artifacts settle). With
     // ?n it instead sprinkles media tools over the perf DAG (frames at
-    // scale — the pan gate's media leg).
+    // scale · the pan gate's media leg).
     const MEDIA_ON = new URLSearchParams(location.search).has('media');
-    // ?n=300 — the perf fixture: a generated layered DAG (deterministic,
+    // ?n=300 · the perf fixture: a generated layered DAG (deterministic,
     // no randomness: index math only) replaces the demo. Implies ?still.
     const PERF_N = Number(new URLSearchParams(location.search).get('n') || 0);
     const PERF_MEDIA_TOOLS = [
@@ -626,7 +626,7 @@
       });
     }, 600);
 
-    // ── The media-scene run (msim) — declare → develop → deliver ──
+    // ── The media-scene run (msim) · declare → develop → deliver ──
     // Artifacts are a SNAPSHOT per message (an absent task loses its
     // preview), so the timeline posts the CUMULATIVE list every time.
     const MEDIA_ARTS = [];
@@ -711,7 +711,7 @@
         { taskId: 'mint', status: 'success', durationMs: 4 },
         { taskId: 'diffcfg', status: 'success', durationMs: 26 },
         { taskId: 'mergecfg', status: 'running' },
-        // The declared frames DEVELOP — the one sweep, on every kind.
+        // The declared frames DEVELOP · the one sweep, on every kind.
         { taskId: 'hero', status: 'running' },
         { taskId: 'poster', status: 'running' },
         { taskId: 'voice', status: 'running' },
@@ -846,7 +846,7 @@
         { taskId: 'ping', status: 'success', durationMs: 12 },
         { taskId: 'wrap', status: 'success', durationMs: 3 },
         // The failed-read stayed shut: gate succeeded, salvage never
-        // admitted — skipped is the honest terminal, never success.
+        // admitted · skipped is the honest terminal, never success.
         { taskId: 'salvage', status: 'skipped' },
       ]);
       post({ kind: 'run:state', running: false });
@@ -893,7 +893,7 @@
 
     sim(() => { batch([{ taskId: 'polish', status: 'running' }]); }, 7200);
 
-    // Tokens live — the stream proof (chunks) flips the strip to the
+    // Tokens live · the stream proof (chunks) flips the strip to the
     // point pulse; liveUsd draws the ~$ curve on the sub line.
     sim(() => { batch([{ taskId: 'polish', status: 'running', chunks: 4, liveUsd: 0.0009 }]); }, 7800);
     sim(() => { batch([{ taskId: 'polish', status: 'running', chunks: 11, liveUsd: 0.0018 }]); }, 8500);
@@ -905,7 +905,7 @@
 
     sim(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 9900);
 
-    // One backoff beat — the amber strip + the ↻ sub prefix, then the
+    // One backoff beat · the amber strip + the ↻ sub prefix, then the
     // clean settle (retries keep the task's original wall clock).
     sim(() => { batch([{ taskId: 'notes', status: 'retrying' }]); }, 10150);
     sim(() => { batch([{ taskId: 'notes', status: 'running' }]); }, 10450);
@@ -929,7 +929,7 @@
     sim(() => { batch([{ taskId: 'review', status: 'running' }]); }, 11200);
 
     // The agent loop speaks (fold annotations): turn count + tool
-    // routing + the budget snapshot — the LOOP BAND draws the honest
+    // routing + the budget snapshot · the LOOP BAND draws the honest
     // meter (declared budget → ratio bar; the W-D8 anatomy).
     sim(() => { batch([{ taskId: 'review', status: 'running', agent: { turns: 1, offered: 4, universe: 12, budget: { totalTokens: 2100, budget: 20000 } } }]); }, 11900);
     sim(() => { batch([{ taskId: 'review', status: 'running', agent: { turns: 3, offered: 5, universe: 12, budget: { totalTokens: 8400, budget: 20000 } } }]); }, 12900);

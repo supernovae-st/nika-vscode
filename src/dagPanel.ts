@@ -4,6 +4,7 @@
 // asset URIs, postMessage typed protocol, state serialization/restoration.
 
 import * as vscode from 'vscode';
+import { ONTOLOGY_ICON } from './icons.generated';
 import * as crypto from 'crypto';
 
 // ─── Typed Message Protocol ──────────────────────────────────────────────────
@@ -1048,9 +1049,24 @@ export class DagPanel implements vscode.Disposable {
     + '<path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" '
     + 'stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
 
+  /** Chrome icons — one language (24 grid · stroke 2 · round caps ·
+   *  currentColor · rendered 16px). page-add rides the SuperNovae house
+   *  set (website public/brand icon ontology); plus/fit/layout are
+   *  authored in the same hand where the domain set has no chrome verb.
+   *  The unicode SENSE marks stay canonical in menus/legend/feed — the
+   *  toolbar face stops pretending text glyphs are icons. */
+  private static readonly TB_IC = {
+    plus: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    pageAdd: '<svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    fit: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    layout: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>',
+  } as const;
+
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
     const SPARKLE_SVG = DagPanel.SPARKLE_SVG;
+    const IC = DagPanel.TB_IC;
+    const OI = ONTOLOGY_ICON;
 
     // Resolve webview-safe URIs for our bundled assets
     const scriptUri = webview.asWebviewUri(
@@ -1131,26 +1147,26 @@ export class DagPanel implements vscode.Disposable {
     <span id="dag-title"></span>
     <span class="tb-sep"></span>
     <div class="tb-group">
-      <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired">＋ Task</button>
-      <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)">⧇ New</button>
+      <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired"><span class="tb-ic">${IC.plus}</span>Task</button>
+      <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
     <div class="tb-group">
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
       <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
       <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <span class="tb-inner-sep"></span>
-      <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
-      <button id="btn-relayout" title="Auto-layout · drop the dragged card positions">⌗<kbd>A</kbd></button>
+      <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
+      <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
     </div>
-    <div class="tb-group">
-      <button id="btn-waves" title="Wave bands · topological execution levels">≋<kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost)">▧<kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling)">▦<kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps)">⇉<kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square)">∿<kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run)">▥<kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it)">⌖<kbd>G</kbd></button>
-      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live">≣<kbd>L</kbd></button>
+    <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><kbd>G</kbd></button>
+      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><kbd>L</kbd></button>
       <button id="btn-help" title="What am I looking at?">?</button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
@@ -1225,8 +1241,8 @@ export class DagPanel implements vscode.Disposable {
       <div class="es-actions" role="toolbar" aria-label="Start">
         <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up">▶ Try the demo · offline, zero keys</button>
         <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples">⧈ Examples</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace">⟲ Replay a trace</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic">${OI['feature/examples']}</span>Examples</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic">${OI['feature/replay']}</span>Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
       </div>
       <div id="es-recent" hidden>
@@ -1235,16 +1251,16 @@ export class DagPanel implements vscode.Disposable {
       </div>
       <div class="es-sec">What Nika does here</div>
       <div class="es-caps">
-        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span>✓</span>Check · static pre-flight</button>
-        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span>▩</span>Preflight · cost · secrets · keys</button>
-        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span>⊞</span>Run history · flaky · trends</button>
-        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span>⎙</span>Pre-flight report</button>
-        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span>⌕</span>Inspect anatomy</button>
-        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span>▦</span>Infer permits boundary</button>
-        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span>¶</span>Explain the workflow</button>
-        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span>§</span>Embedded spec</button>
-        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span>⇗</span>Copy AI authoring prompt</button>
-        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span>⎓</span>Setup MCP + agent rules</button>
+        <button class="es-cap es-cmd" data-cmd="nika.checkWorkflow"><span class="es-cap-ic">${OI['feature/check']}</span>Check · static pre-flight</button>
+        <button class="es-cap es-cmd" data-cmd="nika.preflightWorkflow"><span class="es-cap-ic">${OI['feature/preflight']}</span>Preflight · cost · secrets · keys</button>
+        <button class="es-cap es-cmd" data-cmd="nika.runHistory"><span class="es-cap-ic">${OI['feature/history']}</span>Run history · flaky · trends</button>
+        <button class="es-cap es-cmd" data-cmd="nika.showReport"><span class="es-cap-ic">${OI['feature/report']}</span>Pre-flight report</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inspectWorkflow"><span class="es-cap-ic">${OI['builtin/inspect']}</span>Inspect anatomy</button>
+        <button class="es-cap es-cmd" data-cmd="nika.inferPermits"><span class="es-cap-ic">${OI['feature/permits']}</span>Infer permits boundary</button>
+        <button class="es-cap es-cmd" data-cmd="nika.explainWorkflow"><span class="es-cap-ic">${OI['feature/explain']}</span>Explain the workflow</button>
+        <button class="es-cap es-cmd" data-cmd="nika.openSpec"><span class="es-cap-ic">${OI['ui/book']}</span>Embedded spec</button>
+        <button class="es-cap es-cmd" data-cmd="nika.copyAiPrompt"><span class="es-cap-ic">${OI['feature/generate']}</span>Copy AI authoring prompt</button>
+        <button class="es-cap es-cmd" data-cmd="nika.setupMcp"><span class="es-cap-ic">${OI['feature/mcp']}</span>Setup MCP + agent rules</button>
       </div>
       <button id="es-walkthrough" class="es-link">Get started with Nika →</button>
     </div>

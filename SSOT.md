@@ -27,6 +27,7 @@ knowledge artifact is missing from this ledger (or points nowhere).
 | `src/core/verbStarters.generated.ts` | nika-spec `stdlib/verb-starters-v0.1.yaml` | `starters-projector.py` (oracle-proven) | CI `--check` (spec clone) |
 | `src/core/authoringShapes.generated.ts` (schema + armor registers) | nika-spec `stdlib/authoring-shapes-v0.1.yaml` | `authoring-projector.py` (oracle-proven) | CI `--check` (spec clone) |
 | `src/design-tokens.generated.ts` (verb hues · glyphs · status · brand · providers order) | nika-spec `design/tokens.yaml` | `design-projector.py` | CI `--check` + `tokens-parity.mjs` (internal coherence) |
+| `src/icons.generated.ts` (the vendored SuperNovae icon subset · welcome caps + chrome doors) | nika.sh `design/icons.yaml` (baked at `public/brand/icons/`) | `scripts/sync-icons.mjs` | `glyph-registry.mjs` (svg-slot census) · resync on ontology change (sibling checkout · no CI clone yet) |
 
 Derived in code from Lane B (no third copy): add-a-task skeletons =
 the verb's FIRST starter (`structuralFixes.skeletonFor`) · lens door
