@@ -219,6 +219,13 @@ export interface StationSnapshot {
   /** Pulled local GGUFs (`nika model list` · absent when the verb is
    *  not carried or the probe failed — the summary row stays honest). */
   models?: LocalModel[];
+  /** The machine-truth line (0.107 · RAMS-12): every count NAMES its
+   *  facet — parsed from the `nika catalog` header, absent on older
+   *  binaries (the row simply does not exist). */
+  machineTruth?: { catalogEntries: number; wired: number; keySlots: number };
+  /** Every client id this build can wire (`nika wire --help` possible
+   *  values · machine-derived) — the universe behind the detected list. */
+  wireTargets?: string[];
 }
 
 export type StationRowKind =
@@ -413,6 +420,22 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
           }),
       })),
     });
+    // The universe behind the detected list — machine-derived from the
+    // binary's own `wire --help` (the six 0.107 clients ride in free).
+    const universe = snap.wireTargets ?? [];
+    const beyond = universe.filter((id) => !clients.some((c) => c.id === id));
+    if (beyond.length > 0) {
+      const section = nowChildren[nowChildren.length - 1];
+      section.children?.push({
+        kind: 'fact',
+        id: 'client.universe',
+        label: `${universe.length} targets this build speaks`,
+        description: `${beyond.length} more than detected here`,
+        tooltip: `Not on this machine (yet): ${beyond.join(' · ')}\nnika wire detected --dry-run previews what this machine shows.`,
+        icon: 'globe',
+        level: 'ok',
+      });
+    }
   }
 
   // Providers (sovereign first — local models are a first-class row).
@@ -440,6 +463,15 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
       label: 'Providers',
       icon: 'server-process',
       children: [
+        ...(snap.machineTruth ? [{
+          kind: 'fact' as const,
+          id: 'providers.machineTruth',
+          label: `${snap.machineTruth.catalogEntries} catalog entries · ${snap.machineTruth.wired} wired in this build · ${snap.machineTruth.keySlots} take a key`,
+          description: 'every count names its facet',
+          tooltip: 'The machine-truth line (nika catalog · RAMS-12):\ncatalog entries = what the embedded catalog knows\nwired = adapters compiled into THIS binary\ntake a key = cloud slots (nika doctor shows their state)',
+          icon: 'law',
+          level: 'ok' as const,
+        }] : []),
         {
           kind: 'fact',
           id: 'providers.local',

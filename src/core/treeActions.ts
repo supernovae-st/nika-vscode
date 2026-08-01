@@ -177,6 +177,9 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
         row('$(sync) Reproduce the run · determinism check', 'nika.reproduceRun', [el],
           engineOff !== undefined ? { off: engineOff } : {}),
         row('$(output) Run report · provable, from the trace', 'nika.runReport', [el]),
+        row('$(archive) Export the evidence dossier', 'nika.exportEvidence', [item.traceUri],
+          engineOff !== undefined ? { off: engineOff } : {}),
+        row('$(book) Explain the receipt', 'nika.explainReceipt', [item.traceUri]),
         row('$(export) Export to OpenTelemetry', 'nika.exportOtel', [el]),
       ];
     }

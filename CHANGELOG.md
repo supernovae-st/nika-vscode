@@ -4,6 +4,89 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.2] · 2026-08-01
+
+The holes wave: a second swarm walked what the first two missed ·
+error paths that lied, keyboard users the canvas caged, settings whose
+prose promised what the code clamps · plus the four features the
+operator picked, each grounded on the released 0.107.0 binary.
+
+### The four doors deepen
+
+- **The showroom picker is rich**: bare `nika try` parses into grouped
+  rows (craft · machine floors), verb glyphs, a go-to-file button,
+  run-on-accept · anchored on the `.nika.yaml` token so rail and
+  heading lines can never masquerade as examples again.
+- **The trace evidence doors**: `Export the evidence dossier` runs
+  `nika trace evidence` and reveals the `<stem>.evidence/` folder;
+  `Explain the receipt` reads `receipt.json` and teaches export-first
+  when none exists · both ride the Runs context menu AND the
+  tree-action panel (the belt demanded both homes).
+- **The station tells machine truth**: a Providers fact row carries the
+  `nika catalog` header counts (« 38 catalog entries · 15 wired in
+  this build · 10 take a key ») · every count names its facet; the
+  Agents section adds the wire universe (« 21 targets this build
+  speaks »), parsed from the binary's own `wire --help`, never a
+  hardcoded list · the six 0.107 clients (grok · antigravity · kimi ·
+  kiro · copilot · amp) ride in free.
+- **The risk chip**: `check --json`'s `risk_grade` renders as a lazy
+  language-status item (low · supervised · high · unbounded, warning
+  severity on the top grades) · absent entirely on binaries that do
+  not speak it.
+
+### Error paths tell the truth
+
+- MCP config writers return what they DID; a malformed `mcp.json` no
+  longer flashes « wired » over a silent refusal · the warning names
+  the file with an Open-file door.
+- Finish setup: a wire failure says FAILED with a Details door instead
+  of collapsing into « unchanged ».
+- A check that never RAN (ENOENT · timeout) paints « nika check did
+  not run » with the setup door instead of an empty report tab ·
+  squiggle code `nika.env`, not `nika.parse`.
+- An older engine meeting `--resume` gets « this engine does not know
+  --resume · update nika », never the gaslighting « check refused the
+  run » story; fork-from-task gates on the resume capability.
+- Binary-not-found and mcp-too-old toasts lead with the in-product
+  gesture (Finish setup · Copy brew command); a PATH binary behind the
+  extension gets one soft note per engine version.
+- Init Project's no-binary gate was dead code · requireEngine guards it.
+- Auto-equip latches per workspace (the machine latch left every later
+  workspace silently unwired) · the opt-out (`nika.autoSetup`) is
+  named on every host at act time, not just Cursor.
+
+### The canvas speaks (a11y wave)
+
+- The Tab hijack yields outside canvas land: on the welcome state (no
+  graph) native Tab reaches the try-demo door, the describe input and
+  Get started · keyboard users were caged before.
+- The K action panel is a real menu (focus on the panel ·
+  aria-activedescendant · open announces «‹task› actions · N items»);
+  the split Run menu toggles aria-expanded and announces its size.
+- The replay scrubber seeks from the keyboard: a real slider (arrows
+  nudge 2%, Shift 10%, Home/End jump) speaking elapsed time.
+- All seven lens toggles carry aria-pressed and announce their flip;
+  the minimap leaves the accessibility tree (fully duplicated by fit,
+  zoom and the card walk).
+
+### Settings honesty
+
+- **`nika.dag.motion`** · the calm-canvas dial (`system` | `calm`):
+  particles, camera glides and live shimmer off without an OS-wide
+  accessibility switch · flips live, the OS preference always wins.
+- `nika.replay.speed` prose tells the clamp truth (playback always
+  fits a 2.5–8s window · the old text promised real time it cannot
+  give).
+
+### Media stops rotting
+
+- The check-as-you-type poster is now an AUTHORED theme-aware SVG
+  showing current grammar (`with:` is the edge · NIKA-VAR-021 live) ·
+  the replaced PNG showed `depends_on`, a form the oracle it advertised
+  flags as dead.
+- Walkthrough 03: the LSP line drops the future tense (every 0.107+
+  binary ships it).
+
 ## [0.107.1] · 2026-08-01
 
 The extension speaks the engine it just lockstepped to. A swarm audit

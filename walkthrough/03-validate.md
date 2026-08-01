@@ -1,6 +1,6 @@
 # Validate as you type
 
-![findings appear as you type, with their NIKA codes](./assets/check-as-you-type-poster.png)
+![findings appear as you type, with their NIKA codes](./assets/check-as-you-type.svg)
 
 Nika is the language you can **audit before it runs** · and the editor
 paints that audit live:
@@ -15,5 +15,5 @@ paints that audit live:
 - **Static audit in the margin** · per-task cost `$min–max`, when-gates ⌁,
   fan-out ×N · the workflow cost ceiling on a code lens
 
-The full language server (`nika lsp`) takes over automatically the day
-your binary ships it · same extension, deeper rename/symbols support.
+The full language server (`nika lsp`) takes over automatically · every
+0.107+ binary ships it · same extension, deeper rename/symbols support.

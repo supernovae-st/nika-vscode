@@ -2,7 +2,7 @@
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
   "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.107.1",
+  "version": "0.107.2",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -465,6 +465,18 @@
         "command": "nika.reproduceRun",
         "title": "Reproduce Run (determinism check)",
         "icon": "$(law)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.exportEvidence",
+        "title": "Export Evidence Pack (journal · manifest · receipt · VERIFY.md)",
+        "icon": "$(package)",
+        "category": "Nika"
+      },
+      {
+        "command": "nika.explainReceipt",
+        "title": "Explain Receipt (readable projection)",
+        "icon": "$(book)",
         "category": "Nika"
       },
       {
@@ -937,7 +949,21 @@
           "minimum": 1,
           "maximum": 100,
           "order": 44,
-          "markdownDescription": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default). 1 = real time; playback keeps its own floor and ceiling so every run stays watchable."
+          "markdownDescription": "Trace replay time compression in the DAG webview (6 = 6× faster than recorded, engine default). Playback always fits a 2.5–8s window: short runs stretch to stay visible, long runs compress to stay watchable · the dial matters most between those bounds, and 1 approaches real time only for runs under ~8s."
+        },
+        "nika.dag.motion": {
+          "type": "string",
+          "enum": [
+            "system",
+            "calm"
+          ],
+          "enumDescriptions": [
+            "Follow the OS reduced-motion preference (default)",
+            "Calm canvas: particles, camera glides and live shimmer off, no OS-wide accessibility switch needed"
+          ],
+          "default": "system",
+          "order": 46,
+          "description": "Motion in the DAG panel. The OS reduced-motion preference always wins when set."
         },
         "nika.dag.theme": {
           "type": "string",
@@ -1338,6 +1364,16 @@
           "command": "nika.reproduceRun",
           "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
           "group": "nika@4"
+        },
+        {
+          "command": "nika.exportEvidence",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
+          "group": "nika@5"
+        },
+        {
+          "command": "nika.explainReceipt",
+          "when": "view == nikaRuns && viewItem =~ /^nikaTrace(Paused)?$/",
+          "group": "nika@5"
         },
         {
           "command": "nika.exportOtel",

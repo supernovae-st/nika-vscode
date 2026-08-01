@@ -263,7 +263,9 @@ export class DiagnosticsController implements vscode.Disposable {
           vscode.DiagnosticSeverity.Error,
         );
         d.source = NIKA_DIAG_SOURCE;
-        d.code = 'nika.parse';
+        // The environment class (check never ran) is not a parse story —
+        // its code routes the reader at the machine, not the document.
+        d.code = outcome.envFailure ? 'nika.env' : 'nika.parse';
         if (applySeverityRemap(d)) { diagnostics.push(d); }
       }
       if (outcome?.report) {

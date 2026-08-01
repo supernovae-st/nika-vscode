@@ -58,8 +58,11 @@ import { roundedPolyline } from './wireGeometry';
 // (init-time captures keep their boot value; every new gesture respects
 // the change immediately).
 const MOTION_QUERY = window.matchMedia('(prefers-reduced-motion: reduce)');
-let REDUCED_MOTION = MOTION_QUERY.matches;
-MOTION_QUERY.addEventListener('change', (e) => { REDUCED_MOTION = e.matches; });
+// The calm-canvas dial (nika.dag.motion): the SETTING twin of the OS
+// preference — either one quiets the canvas, the OS always wins when set.
+let CALM_CANVAS = document.body.hasAttribute('data-nk-calm');
+let REDUCED_MOTION = MOTION_QUERY.matches || CALM_CANVAS;
+MOTION_QUERY.addEventListener('change', (e) => { REDUCED_MOTION = e.matches || CALM_CANVAS; });
 
 // An unseen canvas spends nothing (annexe L taste 5): CSS animations keep
 // running when the document hides — this attribute is their park brake
@@ -711,6 +714,7 @@ type ExtToWebviewMessage =
   | { kind: 'dag:accessibilityHelp' }
   | { kind: 'theme:changed' }
   | { kind: 'theme:mode'; mode: 'nika' | 'editor' | 'phosphor' | 'auto' }
+  | { kind: 'motion:mode'; calm: boolean }
   | { kind: 'transport:load'; timeline: TraceTimeline; speed?: number; autoPlay?: boolean }
   | { kind: 'transport:clear' }
   | { kind: 'diff:load'; entries: Array<{ taskId: string; verdict: string; badge: string }> }
@@ -4243,6 +4247,10 @@ class DagRenderer {
   /** Focus queued while ELK is still laying out (race: focus ≺ layout). */
   private pendingCenter: string | undefined;
 
+  /** The welcome/empty state has no graph — the Tab hijack must yield
+   *  to native traversal there or keyboard users can reach NOTHING. */
+  get hasGraph(): boolean { return this.currentGraph !== undefined; }
+
   /** Keyboard nav: move focus by direction over the DAG structure.
    *  Keyboard-initiated → the camera JUMPS (motion charter law 7). */
   navFocus(dir: NavDir): void {
@@ -5871,6 +5879,12 @@ class DagRenderer {
     const panel = document.createElement('div');
     panel.id = 'nk-actions';
     panel.setAttribute('role', 'menu');
+    panel.setAttribute('aria-label', `${node.id} actions`);
+    // The SR surface: focus rides the PANEL (one host · capture keys
+    // unchanged) and aria-activedescendant names the highlighted row —
+    // before this, K opened to silence and arrows moved nothing a
+    // screen reader could hear.
+    panel.tabIndex = -1;
     const title = document.createElement('div');
     title.className = 'nk-act-title';
     title.textContent = node.id;
@@ -5944,6 +5958,7 @@ class DagRenderer {
     const rows: HTMLElement[] = acts.map((a, i) => {
       const row = document.createElement('button');
       row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
+      row.id = `nk-act-row-${i}`;
       row.setAttribute('role', 'menuitem');
       const label = document.createElement('span');
       label.textContent = a.label;
@@ -5982,6 +5997,7 @@ class DagRenderer {
       rows[active]?.classList.remove('active');
       active = next;
       rows[active]?.classList.add('active');
+      if (rows[active]) { panel.setAttribute('aria-activedescendant', rows[active].id); }
     };
     const close = (): void => {
       panel.remove();
@@ -6056,6 +6072,9 @@ class DagRenderer {
     };
     window.addEventListener('keydown', onKey, true);
     document.body.appendChild(panel);
+    if (rows[0]) { panel.setAttribute('aria-activedescendant', rows[0].id); }
+    panel.focus({ preventScroll: true });
+    announce(`${node.id} actions · ${acts.length} items`);
     this.kPanelClose = close;
     return true;
   }
@@ -6068,7 +6087,7 @@ class DagRenderer {
    *  adjacent · the Kowalski law). */
   openRunMenu(anchor: HTMLElement, requestRunFn: (preview: boolean) => void): boolean {
     const existing = document.getElementById('nk-run-menu');
-    if (existing) { existing.remove(); return true; } // ⌄ toggles
+    if (existing) { existing.remove(); anchor.setAttribute('aria-expanded', 'false'); return true; } // ⌄ toggles
     const running = document.body.classList.contains('running');
     const focusedId = this.focusedId;
     const focused = focusedId !== null ? this.nodeMap.get(focusedId) : undefined;
@@ -6160,6 +6179,7 @@ class DagRenderer {
     };
     const close = (): void => {
       menu.remove();
+      anchor.setAttribute('aria-expanded', 'false');
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('mousedown', onAway, true);
     };
@@ -6180,6 +6200,8 @@ class DagRenderer {
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('mousedown', onAway, true);
     document.body.appendChild(menu);
+    anchor.setAttribute('aria-expanded', 'true');
+    announce(`Run menu · ${rows.length} items`);
     // Anchored ABOVE the run cluster (the omnibar docks at the bottom).
     const r = anchor.getBoundingClientRect();
     menu.style.left = `${Math.max(8, r.left)}px`;
@@ -8003,6 +8025,23 @@ class Replayer {
       if (this.dragging) { this.seekToClientX(e.clientX); }
     });
     window.addEventListener('mouseup', () => { this.dragging = false; });
+    // The keyboard seek (the #tr-scrub law applied here): the track is
+    // a real slider — arrows nudge 2% (Shift = 10%), Home/End jump.
+    // Before this, seeking was mouse-only; Space could play but no key
+    // could ever LAND anywhere.
+    this.track?.addEventListener('keydown', (e: KeyboardEvent) => {
+      const stepPct = e.shiftKey ? 0.10 : 0.02;
+      let next: number | undefined;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { next = this.pos + stepPct; }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { next = this.pos - stepPct; }
+      else if (e.key === 'Home') { next = 0; }
+      else if (e.key === 'End') { next = 1; }
+      else { return; }
+      e.preventDefault();
+      e.stopPropagation();
+      this.pause();
+      this.setPos(next);
+    });
   }
 
   get active(): boolean {
@@ -8043,9 +8082,14 @@ class Replayer {
     if (this.fill) { this.fill.style.width = pct; }
     if (this.handle) { this.handle.style.left = pct; }
     const atMs = this.startMs + this.pos * this.spanMs;
+    const elapsedMs = this.pos * this.spanMs;
+    const elapsedLabel = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${Math.round(elapsedMs)}ms`;
+    if (this.track) {
+      this.track.setAttribute('aria-valuenow', String(Math.round(this.pos * 100)));
+      this.track.setAttribute('aria-valuetext', elapsedLabel);
+    }
     if (this.timeLabel) {
-      const elapsed = this.pos * this.spanMs;
-      this.timeLabel.textContent = elapsed >= 1000 ? `${(elapsed / 1000).toFixed(1)}s` : `${Math.round(elapsed)}ms`;
+      this.timeLabel.textContent = elapsedLabel;
     }
     renderer.paintFrame(frameAt(this.timeline, atMs, renderer.nodeIds()));
     renderer.timelineCursor(atMs);
@@ -8229,6 +8273,13 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       applySkinMode(rawSkinMode);
       if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = undefined; }
       delete document.body.dataset.aurora;
+      break;
+    case 'motion:mode':
+      // The calm dial flips live — same seam as the OS listener.
+      CALM_CANVAS = msg.calm;
+      REDUCED_MOTION = MOTION_QUERY.matches || CALM_CANVAS;
+      document.body.toggleAttribute('data-nk-calm', CALM_CANVAS);
+      renderer.motionPrefChanged();
       break;
     case 'run:state':
       setRunUiState(msg.running);
@@ -8614,31 +8665,35 @@ omniInput?.addEventListener('keydown', (e: KeyboardEvent) => {
 document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 
 const dataflowBtn = document.getElementById('btn-dataflow');
-const syncDataflowBtn = (): void => { dataflowBtn?.classList.toggle('active', renderer.dataflowOn); };
+const syncDataflowBtn = (): void => { dataflowBtn?.classList.toggle('active', renderer.dataflowOn); dataflowBtn?.setAttribute('aria-pressed', String(renderer.dataflowOn)); };
 dataflowBtn?.addEventListener('click', () => {
   renderer.toggleDataflow();
   syncDataflowBtn();
+  announce(`Dataflow ${renderer.dataflowOn ? 'on' : 'off'}`);
 });
 
 const auditBtn = document.getElementById('btn-audit');
-const syncAuditBtn = (): void => { auditBtn?.classList.toggle('active', renderer.auditOn); };
+const syncAuditBtn = (): void => { auditBtn?.classList.toggle('active', renderer.auditOn); auditBtn?.setAttribute('aria-pressed', String(renderer.auditOn)); };
 auditBtn?.addEventListener('click', () => {
   renderer.toggleAudit();
   syncAuditBtn();
+  announce(`Audit lens ${renderer.auditOn ? 'on' : 'off'}`);
 });
 
 const timelineBtn = document.getElementById('btn-timeline');
-const syncTimelineBtn = (): void => { timelineBtn?.classList.toggle('active', renderer.timelineOn); };
+const syncTimelineBtn = (): void => { timelineBtn?.classList.toggle('active', renderer.timelineOn); timelineBtn?.setAttribute('aria-pressed', String(renderer.timelineOn)); };
 timelineBtn?.addEventListener('click', () => {
   renderer.toggleTimeline();
   syncTimelineBtn();
+  announce(`Timeline ${renderer.timelineOn ? 'on' : 'off'}`);
 });
 
 const wavesBtn = document.getElementById('btn-waves');
-const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); };
+const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); wavesBtn?.setAttribute('aria-pressed', String(renderer.showWaves)); };
 wavesBtn?.addEventListener('click', () => {
   renderer.showWaves = !renderer.showWaves;
   syncWavesBtn();
+  announce(`Waves ${renderer.showWaves ? 'on' : 'off'}`);
   vscode.setState({ ...(vscode.getState() ?? {}), showWaves: renderer.showWaves });
   const g = vscode.getState()?.graph;
   if (g) { renderer.render(g); }
@@ -8646,20 +8701,22 @@ wavesBtn?.addEventListener('click', () => {
 syncWavesBtn();
 
 const followBtn = document.getElementById('btn-follow');
-const syncFollowBtn = (): void => { followBtn?.classList.toggle('active', renderer.followRun); };
+const syncFollowBtn = (): void => { followBtn?.classList.toggle('active', renderer.followRun); followBtn?.setAttribute('aria-pressed', String(renderer.followRun)); };
 function toggleFollow(): void {
   renderer.followRun = !renderer.followRun;
   syncFollowBtn();
+  announce(`Follow run ${renderer.followRun ? 'on' : 'off'}`);
   vscode.setState({ ...(vscode.getState() ?? {}), followRun: renderer.followRun });
 }
 followBtn?.addEventListener('click', toggleFollow);
 syncFollowBtn();
 
 const heatBtn = document.getElementById('btn-heat');
-const syncHeatBtn = (): void => { heatBtn?.classList.toggle('active', renderer.heatmapOn); };
+const syncHeatBtn = (): void => { heatBtn?.classList.toggle('active', renderer.heatmapOn); heatBtn?.setAttribute('aria-pressed', String(renderer.heatmapOn)); };
 function toggleHeatmap(): void {
   renderer.heatmapOn = !renderer.heatmapOn;
   syncHeatBtn();
+  announce(`Heatmap ${renderer.heatmapOn ? 'on' : 'off'}`);
   renderer.applyHeatmap();
   vscode.setState({ ...(vscode.getState() ?? {}), heatmap: renderer.heatmapOn });
 }
@@ -8667,7 +8724,7 @@ heatBtn?.addEventListener('click', toggleHeatmap);
 syncHeatBtn();
 
 const curveBtn = document.getElementById('btn-curve');
-const syncCurveBtn = (): void => { curveBtn?.classList.toggle('active', renderer.smoothEdges); };
+const syncCurveBtn = (): void => { curveBtn?.classList.toggle('active', renderer.smoothEdges); curveBtn?.setAttribute('aria-pressed', String(renderer.smoothEdges)); };
 // Named so the keyboard can reach it. This toggle lived on a click and
 // nothing else: no webview key, no `nika.*` command, no setting — while
 // Tab never leaves the graph (the roving stop owns it), so the one path
@@ -8676,6 +8733,7 @@ const syncCurveBtn = (): void => { curveBtn?.classList.toggle('active', renderer
 const toggleCurve = (): void => {
   renderer.smoothEdges = !renderer.smoothEdges;
   syncCurveBtn();
+  announce(`Smooth edges ${renderer.smoothEdges ? 'on' : 'off'}`);
   vscode.setState({ ...(vscode.getState() ?? {}), smoothEdges: renderer.smoothEdges });
   const g = vscode.getState()?.graph;
   if (g) { renderer.render(g); }
@@ -8781,15 +8839,22 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   }
   // Keyboard-first canvas nav (a11y + power): Tab (or ←/→) cycles the
   // topological node order, ↑ walks to a dependency, ↓ to a dependent.
+  // Scoped to canvas land (the syncDomFocus guard): with no graph — the
+  // welcome state — or focus on HTML chrome (buttons · es-caps · Get
+  // started), native Tab must keep walking or a keyboard user is caged.
+  const ae = document.activeElement;
+  const inCanvasLand = renderer.hasGraph && (ae === null || ae === document.body
+    || (ae instanceof Element && (ae.classList.contains('dag-svg') || ae.classList.contains('dag-node'))));
   if (e.key === 'Tab') {
+    if (!inCanvasLand) { return; }
     e.preventDefault();
     renderer.navFocus(e.shiftKey ? 'prev' : 'next');
     return;
   }
-  if (e.key === 'ArrowUp') { e.preventDefault(); renderer.navFocus('up'); return; }
-  if (e.key === 'ArrowDown') { e.preventDefault(); renderer.navFocus('down'); return; }
-  if (e.key === 'ArrowLeft') { e.preventDefault(); renderer.navFocus('prev'); return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); renderer.navFocus('next'); return; }
+  if (e.key === 'ArrowUp') { if (!inCanvasLand) { return; } e.preventDefault(); renderer.navFocus('up'); return; }
+  if (e.key === 'ArrowDown') { if (!inCanvasLand) { return; } e.preventDefault(); renderer.navFocus('down'); return; }
+  if (e.key === 'ArrowLeft') { if (!inCanvasLand) { return; } e.preventDefault(); renderer.navFocus('prev'); return; }
+  if (e.key === 'ArrowRight') { if (!inCanvasLand) { return; } e.preventDefault(); renderer.navFocus('next'); return; }
   if (e.key === 'Escape') {
     if (closeSearch()) { return; }
     if (renderer.unpinPeek()) { return; }

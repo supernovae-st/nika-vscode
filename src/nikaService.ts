@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { EventEmitter, type Event, type TextDocument } from 'vscode';
+import { parseTryShowroom, type ShowroomRow } from './core/tryShowroom';
 import {
   buildCapabilities,
   hasSchemaDoor,
@@ -81,6 +82,9 @@ export interface CheckOutcome {
   report?: CheckReport;
   /** Raw stdout — shown when the report does not parse. */
   raw: string;
+  /** Set when the check never really RAN (spawn errno · timeout) — the
+   *  squiggle class is the environment, not the document. */
+  envFailure?: string;
 }
 
 interface CacheEntry<T> {
@@ -293,10 +297,17 @@ export class NikaService {
     // invalidate()/setBinary() detach flights, and a detached result must
     // not re-stamp a deliberately cleared cache.
     const promise: Promise<CheckOutcome> = this.runDocCli(doc, (file) => ['check', file, '--json']).then((res) => {
+      // A spawn-layer failure (ENOENT · EACCES · timeout kill) leaves
+      // BOTH streams empty — an empty report tab and a «nika check
+      // failed» squiggle at line 0 told the user nothing. Name it.
+      const never = res.code === EXIT.ENV && !res.stdout && !res.stderr;
       return {
         exit: res.code,
         report: parseCheckReport(res.stdout),
-        raw: res.stdout || res.stderr,
+        raw: never
+          ? `nika check did not run (${res.err ?? 'engine unavailable'}) — run «Nika: Finish setup» or check nika.server.path`
+          : (res.stdout || res.stderr),
+        ...(never ? { envFailure: res.err ?? 'engine unavailable' } : {}),
       } satisfies CheckOutcome;
     }).then((outcome) => {
       if (this.checkInFlight.get(flightKey) === promise) {
@@ -606,18 +617,18 @@ export class NikaService {
   }
 
   async examplesList(): Promise<string[]> {
+    return (await this.showroom()).map((r) => r.slug);
+  }
+
+  /** The try showroom, parsed rich: slug · title · verb glyphs · group.
+   * Anchored on the `<file>.nika.yaml` token — the old permissive
+   * `^[\s·•-]*` regex also swallowed rail/heading lines (the wave-3
+   * scout's live defect). */
+  async showroom(): Promise<ShowroomRow[]> {
     if (!this.caps.examples) { return []; }
-    // V5: bare `nika try` IS the showroom listing (same renderer the old
-    // `examples list` used — the slug lines parse identically).
     const res = await this.runCli(['try']);
     if (res.code !== EXIT.OK) { return []; }
-    return res.stdout
-      .split('\n')
-      .map((l) => {
-        const m = l.match(/^[\s·•-]*([a-z0-9][a-z0-9_-]+)\b/);
-        return m ? m[1] : undefined;
-      })
-      .filter((s): s is string => s !== undefined);
+    return parseTryShowroom(res.stdout);
   }
 
   async exampleShow(slug: string): Promise<string | undefined> {
@@ -645,6 +656,34 @@ export class NikaService {
     if (!this.caps.newTemplate) { return []; }
     const res = await this.runCli(['new', '?']);
     return parseTemplateSet(`${res.stdout}\n${res.stderr}`);
+  }
+
+  /** The wire universe — every client id THIS build can wire, parsed
+   * from `nika wire --help` « Possible values » (machine-derived ·
+   * never a hardcoded list · empty on older binaries). */
+  async wireTargets(): Promise<string[]> {
+    const res = await this.runCli(['wire', '--help'], 8000);
+    if (res.code !== EXIT.OK) { return []; }
+    const block = res.stdout.split('Possible values:')[1];
+    if (!block) { return []; }
+    const ids: string[] = [];
+    for (const line of block.split('\n')) {
+      const m = line.match(/^\s+- ([a-z][a-z0-9-]*)/);
+      if (m) { ids.push(m[1]); }
+      else if (ids.length > 0 && line.trim() === '') { break; }
+    }
+    return ids;
+  }
+
+  /** The machine-truth counts from the `nika catalog` header (0.107 ·
+   * RAMS-12: « N catalog entries · N wired in this build · N take a
+   * key ») — undefined on older binaries or an unexpected shape. */
+  async machineTruth(): Promise<{ catalogEntries: number; wired: number; keySlots: number } | undefined> {
+    const res = await this.runCli(['catalog'], 10000);
+    if (res.code !== EXIT.OK) { return undefined; }
+    const m = res.stdout.match(/(\d+) catalog entries[\s\S]*?(\d+) wired in this build · (\d+) take a key/);
+    if (!m) { return undefined; }
+    return { catalogEntries: Number(m[1]), wired: Number(m[2]), keySlots: Number(m[3]) };
   }
 
   async newFromTemplate(slug: string, destFsPath: string): Promise<CliResult> {

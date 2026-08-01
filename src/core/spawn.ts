@@ -15,6 +15,10 @@ export interface CliResult {
   code: number;
   stdout: string;
   stderr: string;
+  /** The spawn-layer errno when the process never really ran (ENOENT ·
+   *  EACCES · a timeout kill) — the caller's story must name it instead
+   *  of painting an empty tab. Absent on a real exit code. */
+  err?: string;
 }
 
 export function spawnCli(
@@ -31,11 +35,14 @@ export function spawnCli(
       { timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024, cwd, env: { ...process.env, NO_COLOR: '1' } },
       (error, stdout, stderr) => {
         let code = 0;
+        let err: string | undefined;
         if (error) {
-          const ec = (error as NodeJS.ErrnoException & { code?: unknown }).code;
-          code = typeof ec === 'number' ? ec : EXIT.ENV;
+          const e = error as NodeJS.ErrnoException & { code?: unknown; killed?: boolean };
+          code = typeof e.code === 'number' ? e.code : EXIT.ENV;
+          if (typeof e.code === 'string') { err = e.code; }
+          else if (e.killed) { err = 'timeout'; }
         }
-        resolve({ code, stdout: stdout ?? '', stderr: stderr ?? '' });
+        resolve({ code, stdout: stdout ?? '', stderr: stderr ?? '', ...(err ? { err } : {}) });
       },
     );
     if (stdin !== undefined && child.stdin) {

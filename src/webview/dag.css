@@ -2853,7 +2853,12 @@ body[data-nk-hidden] .nc-spin > i,
 body[data-nk-hidden] .nc::before,
 body[data-nk-hidden] .nc-dot,
 body[data-nk-hidden] #dag-status .agg-dot,
-body[data-nk-hidden] .dag-edge.edge-dep {
+body[data-nk-hidden] .dag-edge.edge-dep,
+body[data-nk-calm] .nc-spin > i,
+body[data-nk-calm] .nc::before,
+body[data-nk-calm] .nc-dot,
+body[data-nk-calm] #dag-status .agg-dot,
+body[data-nk-calm] .dag-edge.edge-dep {
   animation-play-state: paused !important;
 }
 

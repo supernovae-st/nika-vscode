@@ -31,6 +31,10 @@ export class NikaLanguageStatus implements vscode.Disposable {
   private readonly engineItem: vscode.LanguageStatusItem;
   private readonly checkItem: vscode.LanguageStatusItem;
   private readonly serverItem: vscode.LanguageStatusItem;
+  /** Lazily created on the first grade seen — pre-0.107 binaries carry
+   * no risk_grade and the chip simply never exists (the spec's
+   * undefined-safe law). */
+  private riskItem: vscode.LanguageStatusItem | undefined;
   private readonly disposables: vscode.Disposable[] = [];
   /** Uris with a lint pass in flight (busy spinner on the check item). */
   private readonly running = new Set<string>();
@@ -67,7 +71,9 @@ export class NikaLanguageStatus implements vscode.Disposable {
       controller.onDidRunState(({ uri, running }) => {
         if (running) { this.running.add(uri); } else { this.running.delete(uri); }
         this.renderCheck();
+        if (!running) { void this.renderRisk(); }
       }),
+      vscode.window.onDidChangeActiveTextEditor(() => { void this.renderRisk(); }),
     );
     this.renderAll();
   }
@@ -81,6 +87,37 @@ export class NikaLanguageStatus implements vscode.Disposable {
     this.renderEngine();
     this.renderCheck();
     this.renderServer();
+    void this.renderRisk();
+  }
+
+  /** The readiness grade chip (0.107 · risk_grade rides EVERY check
+   * payload): reads the version-cached outcome — a cache hit after the
+   * lint pass, never an extra spawn on the hot path. */
+  private async renderRisk(): Promise<void> {
+    const uri = activeNikaUri();
+    if (!uri || !this.service.caps.check) { this.riskItem?.dispose(); this.riskItem = undefined; return; }
+    const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
+    if (!doc) { this.riskItem?.dispose(); this.riskItem = undefined; return; }
+    const outcome = await this.service.checkDocument(doc);
+    const grade = outcome?.report?.risk_grade;
+    if (!grade) { this.riskItem?.dispose(); this.riskItem = undefined; return; }
+    if (!this.riskItem) {
+      this.riskItem = vscode.languages.createLanguageStatusItem('nika.status.risk', SELECTOR);
+      this.riskItem.name = 'Nika risk';
+      this.riskItem.command = { command: 'nika.showReport', title: 'Report' };
+      this.disposables.push(this.riskItem);
+    }
+    this.riskItem.text = `$(shield) risk ${grade}`;
+    this.riskItem.detail = grade === 'low'
+      ? 'bounded spend · literal grants'
+      : grade === 'supervised'
+        ? 'a human gate rides the run'
+        : grade === 'high'
+          ? 'glob or wildcard grants · review the boundary'
+          : 'uncapped spend — declare max_tokens / --max-cost-usd';
+    this.riskItem.severity = grade === 'high' || grade === 'unbounded'
+      ? vscode.LanguageStatusSeverity.Warning
+      : vscode.LanguageStatusSeverity.Information;
   }
 
   private renderEngine(): void {

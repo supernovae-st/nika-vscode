@@ -96,13 +96,15 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
     if (this.service.available) {
       // The wait lives ON the view (annexe A): the Station's own
       // progress bar while the doctor sweep runs — never a toast.
-      const [doctor, deep, grammar, models] = await vscode.window.withProgress(
+      const [doctor, deep, grammar, models, machineTruth, wireTargets] = await vscode.window.withProgress(
         { location: { viewId: 'nikaStation' } },
         () => Promise.all([
           this.service.doctorJson(cwd),
           this.service.welcomeDeep(cwd),
           this.service.speaksGrammar(),
           this.service.modelList(),
+          this.service.machineTruth(),
+          this.service.wireTargets(),
         ]),
       );
       if (seq !== this.snapshotSeq) { return; }
@@ -117,6 +119,8 @@ export class StationTreeProvider implements vscode.TreeDataProvider<StationRow> 
       else if (deep.kind === 'unparseable') { snap.deepBroke = deep.detail; }
       snap.speaksGrammar = grammar;
       if (models.length > 0) { snap.models = models; }
+      if (machineTruth) { snap.machineTruth = machineTruth; }
+      if (wireTargets.length > 0) { snap.wireTargets = wireTargets; }
     }
     this.rows = buildStationRows(snap);
     this.onSnapshot(snap);

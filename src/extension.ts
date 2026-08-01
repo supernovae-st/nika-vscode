@@ -14,6 +14,7 @@ import {
   languages,
   QuickInputButtons,
   QuickPickItemKind,
+  ThemeIcon,
   Selection,
   StatusBarAlignment,
   TextEditorRevealType,
@@ -74,6 +75,7 @@ import {
 import {
   ensureCursorGlobalMcpConfig,
   ensureCursorMcpConfig,
+  type McpWriteResult,
   ensureCursorRules,
   ensureVscodeMcpConfig,
   ensureWindsurfMcpConfig,
@@ -625,7 +627,7 @@ export function activate(context: ExtensionContext): void {
           startClient(context, state, log, fresh);
         }
       }
-      const wired = await equipHost(true);
+      const equip = await equipHost(true);
       const folder = workspace.workspaceFolders?.[0];
       let inited = false;
       if (folder && service.caps.init) {
@@ -640,10 +642,21 @@ export function activate(context: ExtensionContext): void {
         }
       }
       void refreshJourney();
+      if (equip === 'failed') {
+        // The one orchestrated gesture promised «nothing here is
+        // silent» — a wire failure must not collapse into ‹unchanged›.
+        void window.showWarningMessage(
+          `Nika setup: engine ${service.caps.version || 'ready'} ready, but the MCP wire FAILED — your agent cannot start the oracle yet.`,
+          'Details',
+        ).then((pick) => {
+          if (pick === 'Details') { void commands.executeCommand('nika.showOutput'); }
+        });
+        return;
+      }
       // Diet: a completed setup is visible in every surface it lit —
       // the recap flashes, no toast survives it.
       flashStatus(
-        `$(check) Nika setup complete · engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
+        `$(check) Nika setup complete · engine ${service.caps.version || 'ready'} · MCP ${equip === 'wired' ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
         6000,
       );
     }),
@@ -2496,6 +2509,13 @@ export function activate(context: ExtensionContext): void {
     // palette (trace picker → task picker).
     commands.registerCommand('nika.forkFromTask', async (item?: { traceUri?: Uri; taskId?: string }) => {
       if (!(await requireEngine(service, 'forking a run'))) { return; }
+      if (!service.caps.resume) {
+        void informSoftly(
+          'binary-predates-resume',
+          'Nika: this binary predates `run --resume` (the 0.93 line) — update it to fork from a task.',
+        );
+        return;
+      }
       let traceUri = item?.traceUri;
       let taskId = item?.taskId;
       if (!traceUri) {
@@ -3084,14 +3104,7 @@ export function activate(context: ExtensionContext): void {
         void window.showErrorMessage('Nika: open a folder first.');
         return;
       }
-      if (!state.resolvedServerPath && !getNikaPath()) {
-        const pick = await window.showWarningMessage(
-          'Nika: Init Project needs the engine binary — it is not on this machine yet.',
-          'Install binary first',
-        );
-        if (pick === 'Install binary first') {
-          void commands.executeCommand('nika.restartServer');
-        }
+      if (!(await requireEngine(service, 'initializing this repo'))) {
         return;
       }
       const res = await service.runCli(['init', folder.uri.fsPath, '--color', 'never'], 30000);
@@ -3579,6 +3592,63 @@ export function activate(context: ExtensionContext): void {
       }
     }),
 
+    // Command: export the run's evidence pack (0.107 · RAMS-15: the
+    // dossier lives under `trace` — journal + manifest + receipt +
+    // VERIFY.md in one directory, never clobbered).
+    commands.registerCommand('nika.exportEvidence', async (arg?: { trace?: { uri: Uri } }) => {
+      const trace = arg?.trace?.uri;
+      if (!trace) {
+        void window.showInformationMessage('Nika: pick a run in the Runs view to export its evidence pack.');
+        return;
+      }
+      const res = await service.runCli(['trace', 'evidence', trace.fsPath], 20000);
+      const noise = (res.stderr || res.stdout).trim();
+      if (/unrecognized subcommand|unexpected argument/.test(noise)) {
+        void window.showErrorMessage('Nika: this engine has no `trace evidence` — needs nika ≥ 0.107 (brew upgrade nika).');
+        return;
+      }
+      if (res.code !== 0) {
+        void window.showWarningMessage(`Nika: ${(res.stdout || noise).split('\n')[0]?.trim() ?? 'evidence export failed'}`);
+        return;
+      }
+      // The pack lands beside the trace (`<stem>.evidence/`) — door it.
+      const packDir = trace.fsPath.replace(/\.ndjson$/, '.evidence');
+      void window.showInformationMessage(
+        `Nika: evidence pack exported · ${path.basename(packDir)}`,
+        'Reveal',
+      ).then((pick) => {
+        if (pick === 'Reveal') { void commands.executeCommand('revealFileInOS', Uri.file(packDir)); }
+      });
+    }),
+
+    // Command: the receipt's readable projection (a READING, never a
+    // proof — `trace verify` owns the proof). The receipt exists once
+    // an evidence pack was exported; teach that order on a miss.
+    commands.registerCommand('nika.explainReceipt', async (arg?: { trace?: { uri: Uri } }) => {
+      const trace = arg?.trace?.uri;
+      if (!trace) {
+        void window.showInformationMessage('Nika: pick a run in the Runs view to read its receipt.');
+        return;
+      }
+      const receipt = path.join(trace.fsPath.replace(/\.ndjson$/, '.evidence'), 'receipt.json');
+      if (!fs.existsSync(receipt)) {
+        void window.showInformationMessage(
+          'Nika: no receipt beside this run yet → export the evidence pack first.',
+          'Export evidence pack',
+        ).then((pick) => {
+          if (pick === 'Export evidence pack') { void commands.executeCommand('nika.exportEvidence', arg); }
+        });
+        return;
+      }
+      const res = await service.runCli(['trace', 'receipt', 'explain', receipt], 15000);
+      if (res.code !== 0) {
+        void window.showWarningMessage(`Nika: ${(res.stdout || res.stderr).split('\n')[0]?.trim() ?? 'receipt read failed'}`);
+        return;
+      }
+      const doc = await workspace.openTextDocument({ content: res.stdout, language: 'markdown' });
+      void window.showTextDocument(doc, { preview: true });
+    }),
+
     // Command: reproduce a recorded run against another journal of the
     // SAME workflow — the engine's determinism taxonomy (0.96+): each
     // task classified reproduced / NONDETERMINISTIC / authored /
@@ -3757,13 +3827,48 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.openSpec', () => openNikaDoc('spec', undefined, 'markdown')),
     commands.registerCommand('nika.openSchema', () => openNikaDoc('schema', undefined, 'json')),
     commands.registerCommand('nika.browseExamples', async () => {
-      const slugs = await service.examplesList();
-      if (slugs.length === 0) {
+      const rows = await service.showroom();
+      if (rows.length === 0) {
         void window.showInformationMessage('Nika: this binary has no `try` showroom — update Nika (brew upgrade nika) to browse the embedded catalog.');
         return;
       }
-      const picked = await window.showQuickPick(slugs, { title: 'Nika: try an example (offline showroom)' });
-      if (picked) { await openNikaDoc('example', picked, 'yaml'); }
+      // The rich vitrine (0.107): slug · verb glyphs · title, grouped
+      // as the shelf prints them; ENTER runs the pick OFFLINE in the
+      // terminal (try's default seat), the side button reads the file.
+      type Item = QuickPickItem & { slug?: string };
+      const items: Item[] = [];
+      let group = '';
+      for (const r of rows) {
+        if (r.group !== group) {
+          group = r.group;
+          items.push({ label: group, kind: QuickPickItemKind.Separator });
+        }
+        items.push({
+          slug: r.slug,
+          label: `${r.glyphs ? `${r.glyphs} ` : ''}${r.slug}`,
+          description: 'offline · zero keys',
+          detail: r.title,
+          buttons: [{ iconPath: new ThemeIcon('go-to-file'), tooltip: 'Read the file (take it with nika new)' }],
+        });
+      }
+      const qp = window.createQuickPick<Item>();
+      qp.title = 'Nika: try an example — runs offline on ENTER';
+      qp.placeholder = 'pick one · nika try <slug> (mock rehearsal · zero keys · zero flags)';
+      qp.items = items;
+      qp.matchOnDetail = true;
+      qp.onDidTriggerItemButton(async (e) => {
+        qp.hide();
+        if (e.item.slug) { await openNikaDoc('example', e.item.slug, 'yaml'); }
+      });
+      qp.onDidAccept(() => {
+        const picked = qp.selectedItems[0];
+        qp.hide();
+        if (picked?.slug) {
+          runNikaCommand(state.resolvedServerPath, `try ${picked.slug}`, '');
+        }
+      });
+      qp.onDidHide(() => qp.dispose());
+      qp.show();
     }),
   );
 
@@ -3784,10 +3889,14 @@ export function activate(context: ExtensionContext): void {
         flashStatus(`$(check) nika binary OK · ${p} · ${service.caps.version}`, 6000);
       } else {
         window.showWarningMessage(
-          'Nika: binary not found — install it or let the extension download it.',
-          'Install instructions',
+          'Nika: binary not found — the extension can install it for you.',
+          'Finish setup',
+          'Copy brew command',
+          'Install guide',
         ).then(choice => {
-          if (choice) { commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
+          if (choice === 'Finish setup') { void commands.executeCommand('nika.finishSetup'); }
+          else if (choice === 'Copy brew command') { void env.clipboard.writeText('brew install supernovae-st/tap/nika'); }
+          else if (choice === 'Install guide') { void commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
         });
       }
     }),
@@ -3803,10 +3912,12 @@ export function activate(context: ExtensionContext): void {
       }
       if (!service.caps.mcp) {
         window.showWarningMessage(
-          'Nika: this binary does not expose `nika mcp` yet. Update Nika, then run setup again.',
-          'Install instructions',
+          'Nika: this binary does not expose `nika mcp` yet — update it, then run setup again.',
+          'Copy brew command',
+          'Install guide',
         ).then(choice => {
-          if (choice) { commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
+          if (choice === 'Copy brew command') { void env.clipboard.writeText('brew upgrade nika'); }
+          else if (choice === 'Install guide') { void commands.executeCommand('vscode.open', Uri.parse(GITHUB_INSTALL_URL)); }
         });
         return;
       }
@@ -4119,22 +4230,26 @@ export function activate(context: ExtensionContext): void {
  * mid-session must light everything without a reload — the gap the
  * first cut had) and the Finish-setup orchestrator.
  */
-async function equipHost(silent = false): Promise<boolean> {
+type EquipOutcome = 'wired' | 'failed' | 'skipped';
+
+async function equipHost(silent = false): Promise<EquipOutcome> {
   const folder = workspace.workspaceFolders?.[0];
-  let wired = false;
+  let outcome: EquipOutcome = 'skipped';
   if (svc.caps.wire && folder) {
     const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
     const res = await svc.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
-    wired = res.code === 0;
-    if (!wired) {
+    outcome = res.code === 0 ? 'wired' : 'failed';
+    if (outcome === 'failed') {
       log('WARN', `auto wire ${target} failed (${res.code}): ${res.stderr || res.stdout}`);
     }
   }
-  if (!wired && isCursor() && state.resolvedServerPath) {
-    await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
-    wired = true;
+  if (outcome !== 'wired' && isCursor() && state.resolvedServerPath) {
+    const fallback = await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
+    // The fallback only counts when it actually holds the wiring — a
+    // refused/failed write must never upgrade a failure to «wired».
+    if (fallback.state === 'wired' || fallback.state === 'unchanged') { outcome = 'wired'; }
   }
-  if (wired && !silent) {
+  if (outcome === 'wired' && !silent) {
     // ONE toast per activation (Rams pass): the Cursor plugin pointer
     // rides it; the separate one-shot stays for the auto-setup-off path.
     const cursorTail = isCursor()
@@ -4146,19 +4261,24 @@ async function equipHost(silent = false): Promise<boolean> {
       // this extension cannot make itself — worth one toast, once ever.
       void informSoftly('cursor-live-plugin', `Nika is live · MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`);
     } else {
-      // Diet: the pill + views already show the lit state — flash only.
-      flashStatus('$(check) Nika is live · MCP wired · language server on · diagnostics running', 6000);
+      // A config-writing act names its opt-out on EVERY host — the 6s
+      // flash could not (the settings finding: the switch was taught
+      // only on Cursor).
+      void informSoftly('host-live-autosetup', 'Nika is live · MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).');
     }
   }
-  return wired;
+  return outcome;
 }
 
-/** One-shot per machine, only when auto-setup is on and a binary exists. */
+/** One-shot per WORKSPACE, only when auto-setup is on and a binary
+ *  exists. Per-workspace because `nika wire` writes into the current
+ *  folder — the old per-machine latch left every workspace after the
+ *  first one silently unwired (idempotent, so a re-fire is safe). */
 async function autoEquipOnce(): Promise<void> {
   if (!svc.available) { return; }
   if (!workspace.getConfiguration('nika').get<boolean>('autoSetup', true)) { return; }
-  if (extContext.globalState.get<boolean>('nika.autoEquipDone')) { return; }
-  await extContext.globalState.update('nika.autoEquipDone', true);
+  if (extContext.workspaceState.get<boolean>('nika.autoEquipDone')) { return; }
+  await extContext.workspaceState.update('nika.autoEquipDone', true);
   await equipHost();
 }
 
@@ -4171,22 +4291,42 @@ async function configureMcpForHost(
     window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
     return;
   }
+  let written: McpWriteResult;
   if (isCursor()) {
-    await ensureCursorMcpConfig(resolvedServerPath, log);
+    written = await ensureCursorMcpConfig(resolvedServerPath, log);
     await ensureCursorRules(log, providers);
-    if (notify) {
-      flashStatus('$(plug) MCP + .cursor/rules wired for Cursor');
+    if (notify && written.state !== 'refused-malformed') {
+      flashStatus(written.state === 'unchanged'
+        ? '$(plug) MCP already wired for Cursor'
+        : '$(plug) MCP + .cursor/rules wired for Cursor');
     }
   } else if (isWindsurf()) {
-    await ensureWindsurfMcpConfig(resolvedServerPath, log);
-    if (notify) {
-      flashStatus('$(plug) MCP config wired for Windsurf');
+    written = await ensureWindsurfMcpConfig(resolvedServerPath, log);
+    if (notify && written.state !== 'refused-malformed') {
+      flashStatus(written.state === 'unchanged'
+        ? '$(plug) MCP already wired for Windsurf'
+        : '$(plug) MCP config wired for Windsurf');
     }
   } else {
-    await ensureVscodeMcpConfig(resolvedServerPath, log);
-    if (notify) {
-      flashStatus('$(plug) MCP config wired (.vscode/mcp.json)');
+    written = await ensureVscodeMcpConfig(resolvedServerPath, log);
+    if (notify && written.state !== 'refused-malformed') {
+      flashStatus(written.state === 'unchanged'
+        ? '$(plug) MCP already wired (.vscode/mcp.json)'
+        : '$(plug) MCP config wired (.vscode/mcp.json)');
     }
+  }
+  if (written.state === 'refused-malformed' && written.file) {
+    // The refusal was the SILENT lie: the file it will not touch gets
+    // named, with the door to fix it — «wired» never flashes over it.
+    const file = written.file;
+    void window.showWarningMessage(
+      `Nika: ${path.basename(file)} is not valid JSON — refusing to overwrite it. Fix the file, then rerun setup.`,
+      'Open file',
+    ).then((pick) => {
+      if (pick === 'Open file') {
+        void window.showTextDocument(Uri.file(file));
+      }
+    });
   }
   // The PATH gap, CLOSED instead of warned (first-run intelligence):
   // when the only binary is the extension-downloaded one, `nika` is not
