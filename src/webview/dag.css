@@ -122,6 +122,16 @@ body {
    * on it, micro-state rides base, panels ride slow, ceremonies ride
    * deliberate. The legacy --nk-dur now ALIASES base (V0.d remapped every
    * consumer to a named step; the name survives for any stray reader). */
+  /* THE GRADIENT BORDER (the QRcodeAI liquid-glass seam): light has a
+   * DIRECTION — the border reads brighter at the top-left, quieter at
+   * the bottom. Token-derived (--nk-ink), every skin re-voices it. */
+  --nk-border-grad: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--nk-ink) 20%, transparent) 0%,
+    color-mix(in srgb, var(--nk-ink) 5%, transparent) 50%,
+    color-mix(in srgb, var(--nk-ink) 10%, transparent) 100%
+  );
+
   /* THE LIQUID GLASS (one recipe · two tiers · Rams): raised docks
    * breathe the canvas through; overlays read as a LENS — deeper blur,
    * saturation bleed, a specular top edge. Consumers pair the filter
@@ -383,6 +393,43 @@ body[data-nk-theme] {
   font-family: inherit;
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+
+/* ─── The gradient border (liquid-glass seam) ────────────────────────
+ * A ::before ring in padding-box exclude: the surface keeps its own
+ * border TRANSPARENT and the ring paints the directional light. The
+ * consumers keep position:relative from their own rules (fixed counts).
+ * forced-colors: the ::before dies, the real border returns (below). */
+:is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+    #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+    .es-card, #minimap, #activity, #dag-search) {
+  position: relative;
+  border-color: transparent;
+}
+:is(#omnibar, #zoom-dock, .tb-group:not(.tb-lenses), #dag-title, #dag-mark, #dag-status,
+    #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+    .es-card, #minimap, #activity, #dag-search)::before,
+.tb-lenses::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--nk-border-grad);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 0;
+}
+@media (forced-colors: active) {
+  :is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+      #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+      .es-card, #minimap, #activity, #dag-search) { border-color: CanvasText; }
+  :is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+      #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+      .es-card, #minimap, #activity, #dag-search)::before { display: none; }
 }
 
 /* The chrome icon slot — one optical size, ink follows the button. */
