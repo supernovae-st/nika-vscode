@@ -398,8 +398,7 @@ body[data-nk-theme] {
 
 /* Keycap chips — the tasteful skeuomorphism point (real kbd look). */
 #dag-toolbar kbd,
-.es-hint kbd,
-.ex-keys kbd {
+#first-hint kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -863,7 +862,7 @@ body:not(.lod-far) .dag-edge {
   fill: var(--vscode-editorWidget-background, rgba(128, 128, 128, 0.06));
   opacity: 0.2;
   pointer-events: none;
-  animation: nk-band-in 0.5s ease-out backwards;
+  animation: nk-band-in calc(var(--nk-dur-slow) * 2) var(--nk-ease-effects) backwards;
 }
 
 /* The deep pool swallowed the 0.2 band — one compensating step. */
@@ -1015,11 +1014,11 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
    shorter. TS drops the class once the heat has left. */
 
 .dag-edge.afterglow {
-  animation: nk-afterglow 2.4s ease-out both;
+  animation: nk-afterglow calc(var(--nk-dur-deliberate) * 6) var(--nk-ease-effects) both;
 }
 
 .dag-edge.afterglow-fail {
-  animation: nk-afterglow-fail 2.4s ease-out both;
+  animation: nk-afterglow-fail calc(var(--nk-dur-deliberate) * 6) var(--nk-ease-effects) both;
 }
 
 @keyframes nk-afterglow {
@@ -1153,11 +1152,14 @@ body.running #progress-fill::after {
   inset: 0;
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
   transform: translateX(-100%);
-  animation: nk-sweep 1.6s var(--nk-ease-effects) infinite;
+  animation: nk-sweep calc(var(--nk-dur-deliberate) * 4) linear infinite;
 }
 
+/* Reach the far edge at 70%, hold — each pass breathes instead of
+   snapping back (the hard-decelerating ease on a loop restarted with a
+   visible teleport every pass). */
 @keyframes nk-sweep {
-  to { transform: translateX(100%); }
+  70%, 100% { transform: translateX(100%); }
 }
 
 #progress-fill.complete { background: var(--nk-st-success); }
@@ -1274,13 +1276,6 @@ body.running #progress-fill::after {
   font-variant-numeric: tabular-nums;
   color: var(--nk-ink-dim);
   white-space: nowrap;
-}
-
-/* ─── Toolbar toggle state ──────────────────────────────────────────────── */
-
-#dag-toolbar button.active {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
 }
 
 /* ─── Theme-adaptive logo (VS Code sets vscode-light/dark on body) ──────── */
@@ -1413,41 +1408,8 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .es-mark {
-  font-size: 26px;
   margin-bottom: 8px;
   filter: saturate(0.85);
-}
-
-.es-title {
-  font-weight: 600;
-  font-size: 13.5px;
-  margin-bottom: 4px;
-}
-
-.es-sub {
-  font-size: var(--nk-fs-ui);
-  color: var(--nk-ink-dim);
-}
-
-.es-sub code {
-  font-family: var(--nk-mono);
-  background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
-  padding: 0 4px;
-  border-radius: var(--nk-r-tag);
-}
-
-.es-cmd {
-  color: var(--nk-accent);
-}
-
-.es-hint {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: var(--nk-fs-label);
-  color: var(--nk-ink-dim);
 }
 
 /* The empty state ACTS — its card is clickable, the rest stays inert. */
@@ -1500,23 +1462,6 @@ body.vscode-light .logo-dark { display: none; }
   transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 
-#first-hint kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 4px;
-  font-size: var(--nk-fs-meta);
-  font-family: var(--nk-mono);
-  background: linear-gradient(
-    color-mix(in srgb, var(--nk-ink) 7%, var(--nk-page)),
-    var(--nk-page)
-  );
-  border: 1px solid var(--nk-border);
-  border-bottom-width: 2px;
-  border-radius: var(--nk-r-chip);
-}
 
 /* The breathe hint — first-hint's clickable sibling (a real button). */
 #breathe-hint {
@@ -1727,7 +1672,12 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .ex-keys kbd {
-  margin-right: -4px;
+  padding: 0 4px;
+  font-size: var(--nk-fs-meta);
+  font-family: var(--nk-mono);
+  color: var(--nk-ink-dim);
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-r-chip);
 }
 
 .ex-foot {
@@ -1891,7 +1841,7 @@ body.vscode-light .logo-dark { display: none; }
   color: var(--nk-ink);
   text-align: left;
   cursor: pointer;
-  animation: act-in 0.18s ease-out;
+  animation: act-in var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 @keyframes act-in {
@@ -2054,7 +2004,6 @@ body.vscode-light .logo-dark { display: none; }
   #first-hint,
   #breathe-hint,
   .dag-node.status-running .node-bg,
-  .dag-node.status-failed .node-status-bar,
   .dag-node.status-success .node-bg,
   .dag-node.cursor-hint .node-bg,
   .temp-edge,
@@ -2212,6 +2161,7 @@ body[data-nk-theme='nika'] {
    * second unrelated blue (the AI-slop tell). */
   --nk-cta: color-mix(in srgb, var(--nk-accent) 62%, #0b2fbd);
   --nk-cta-hover: color-mix(in srgb, var(--nk-accent) 74%, #0b2fbd);
+  --nk-cta-ink: #f4f5f7;
   --nk-radius: 7px;
   --nk-radius-card: 10px;
   --nk-mono: 'Martian Mono', var(--vscode-editor-font-family, monospace);
@@ -2378,13 +2328,6 @@ body[data-nk-theme='nika'] #progress-track {
   background: color-mix(in srgb, var(--nk-accent-bright) 14%, transparent);
 }
 
-/* nika pins the brand CTA (the editor skin rides the theme's). */
-body[data-nk-theme='nika'] {
-  --nk-cta: #2b62ea;
-  --nk-cta-hover: #2f6bff;
-  --nk-cta-ink: #f4f5f7;
-}
-
 body[data-nk-theme='nika'] .es-button {
   color: var(--nk-cta-ink);
   background: var(--nk-cta);
@@ -2431,7 +2374,7 @@ body[data-nk-theme='nika'][data-aurora='sweep'] #aurora {
 }
 
 body[data-nk-theme='nika'][data-aurora='sweep'] #aurora::before {
-  animation: nk-aurora-hue 1.25s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: nk-aurora-hue 1.25s var(--nk-ease-effects);
 }
 
 @keyframes nk-aurora-hue {
@@ -2578,19 +2521,19 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   font-size: var(--nk-fs-meta);
   font-weight: 700;
   letter-spacing: 0.02em;
-  fill: var(--nk-fg-mute, #8a93a6);
-  stroke: var(--nk-page, #101418);
+  fill: var(--nk-ink-dim);
+  stroke: var(--nk-page);
   stroke-width: 3px;
   paint-order: stroke;
   pointer-events: none;
 }
-.dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-ok, #3fb950); }
-.dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-err, #f85149); }
-.dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying, #d29922); }
+.dag-node[data-diff='faster'] .diff-badge { fill: var(--nk-st-success); }
+.dag-node[data-diff='slower'] .diff-badge { fill: var(--nk-st-failed); }
+.dag-node[data-diff='status-changed'] .diff-badge { fill: var(--nk-st-retrying); }
 .dag-node[data-diff='output-changed'] .diff-badge { fill: var(--nk-accent); }
 .dag-node[data-diff='added'] .diff-badge { fill: var(--nk-accent); }
 .dag-node[data-diff='removed'] { opacity: 0.55; }
-.dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-fg-mute, #8a93a6); }
+.dag-node[data-diff='removed'] .diff-badge { fill: var(--nk-ink-dim); }
 
 @media (forced-colors: active) {
   .diff-badge { fill: CanvasText !important; stroke: Canvas !important; }
@@ -2858,8 +2801,23 @@ body[data-nk-calm] .nc-spin > i,
 body[data-nk-calm] .nc::before,
 body[data-nk-calm] .nc-dot,
 body[data-nk-calm] #dag-status .agg-dot,
-body[data-nk-calm] .dag-edge.edge-dep {
+body[data-nk-calm] .dag-edge.edge-dep,
+body[data-nk-calm] #progress-fill::after,
+body[data-nk-calm] .nc-dev-sweep::after,
+body[data-nk-calm] .nc-cat-network,
+body[data-nk-calm] .nk-taper.nk-taper-live,
+body[data-nk-calm] #btn-feed.pulse,
+body[data-nk-calm] .dag-node.verb-infer.status-running .nc-tile,
+body[data-nk-calm] .dag-node.verb-exec.status-running .nc-tile,
+body[data-nk-calm] .dag-node.verb-invoke.status-running .nc-tile,
+body[data-nk-calm] .dag-node.verb-agent.status-running .nc-tile,
+body[data-nk-calm] #es-ghost .esg-run,
+body[data-nk-calm] #es-ghost .esg-run-edge {
   animation-play-state: paused !important;
+}
+/* The one-shot ceremony yields too — calm means no aurora sweep. */
+body[data-nk-calm][data-aurora] #aurora::before {
+  animation: none !important;
 }
 
 /* The far read is the map — glyph strips are sub-pixel there; the dot
@@ -3463,13 +3421,6 @@ body.lod-far .nc-pill { display: none; }
   opacity: 0.8;
 }
 
-.nc-fact {
-  font-size: var(--nk-fs-meta);
-  color: var(--nk-ink-dim);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 /* The when: GATE — conditional execution wears a dashed amber chip
  * (dashed = « maybe », the same vocabulary as cached's dashed border). */
 .nc-gate {
@@ -3541,7 +3492,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   to { opacity: 1; }
 }
 .nc-preview img.nc-art-in {
-  animation: nc-art-in 240ms var(--nk-ease-effects) backwards;
+  animation: nc-art-in var(--nk-dur-slow) var(--nk-ease-effects) backwards;
 }
 
 .nc-preview:hover img {
@@ -3552,7 +3503,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   .nc-preview img { transition: none; }
   .nc-preview:hover img { transform: none; }
   /* Motion swaps for opacity, never for nothing (the charter). */
-  .nc-preview img.nc-art-in { animation: nc-art-fade 160ms linear backwards; }
+  .nc-preview img.nc-art-in { animation: nc-art-fade var(--nk-dur-base) linear backwards; }
 }
 
 .nc-preview-label {
@@ -3731,7 +3682,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
  * round-trip made visible. The mechanism line's category icon pulses
  * while the task runs, in the network tint it wears (currentColor —
  * the W11.3 chip removal orphaned this rule; the icon carries it now). */
-.dag-node.status-running .nc-cat-network { animation: nk-fetch-pulse 800ms cubic-bezier(0.2, 0, 0, 1) infinite; }
+.dag-node.status-running .nc-cat-network { animation: nk-fetch-pulse calc(var(--nk-dur-deliberate) * 2) var(--nk-ease-effects) infinite; }
 @keyframes nk-fetch-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 .nc-preview-audio {
@@ -4426,11 +4377,6 @@ body.lod-far .edge-hit { pointer-events: none; }
 #omni-go:hover {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
-}
-
-/* The legend slides under the omnibar — keep both readable. */
-#dag-legend {
-  bottom: 8px;
 }
 
 @media (max-width: 820px) {
@@ -5557,56 +5503,6 @@ body.welcome #dag-status {
   background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
 }
 
-.es-gestures {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin: 18px 0 6px;
-  padding: 12px 14px;
-  text-align: left;
-  border: 1px solid var(--nk-border);
-  border-radius: var(--nk-r-panel);
-  background: color-mix(in srgb, var(--nk-accent) 3%, transparent);
-}
-
-.es-gesture {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  font-size: var(--nk-fs-title);
-  color: var(--nk-ink-dim);
-  line-height: 1.4;
-}
-
-.es-gesture code {
-  font-family: var(--nk-mono);
-  color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-ink) 7%, transparent);
-  padding: 0 4px;
-  border-radius: var(--nk-r-tag);
-}
-
-.es-gesture kbd {
-  display: inline-flex;
-  align-items: center;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 4px;
-  font-size: var(--nk-fs-meta);
-  font-family: var(--nk-mono);
-  color: var(--nk-ink-dim);
-  border: 1px solid var(--nk-border);
-  border-bottom-width: 2px;
-  border-radius: var(--nk-r-chip);
-}
-
-.es-g-key {
-  flex: 0 0 16px;
-  text-align: center;
-  font-family: var(--nk-mono);
-  color: var(--nk-accent);
-}
-
 .es-link {
   margin-top: 6px;
   padding: 4px 8px;
@@ -5711,11 +5607,11 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
     stroke: Highlight !important;
   }
 
-  #scrubber-track {
+  #scrub-track {
     background: GrayText !important;
   }
 
-  #scrubber-handle {
+  #scrub-handle {
     background: Highlight !important;
     border-color: HighlightText !important;
   }
@@ -5770,7 +5666,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   white-space: nowrap;
   overflow: hidden;
   color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-bg) 88%, transparent);
+  background: color-mix(in srgb, var(--nk-page) 88%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-radius);
   backdrop-filter: blur(6px);
@@ -6436,10 +6332,10 @@ body.simulating .dag-node:not(.sim-failed):not(.sim-lit):not(.sim-dead) .nc {
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--nk-st-failed) 55%, transparent);
   border-radius: var(--nk-r-tile);
-  background: color-mix(in srgb, var(--nk-st-failed) 14%, var(--nk-bg, #0d0d0e));
-  color: var(--nk-fg, #ddd);
+  background: color-mix(in srgb, var(--nk-st-failed) 14%, var(--nk-page));
+  color: var(--nk-ink);
   font: 500 11px/1.5 var(--nk-mono, monospace);
-  animation: nk-wall-in 160ms ease-out;
+  animation: nk-wall-in var(--nk-dur-base) var(--nk-ease-effects);
 }
 #nk-wall .nk-wall-text {
   overflow: hidden;
@@ -6573,8 +6469,8 @@ body.audit .dag-node .nc { opacity: 0.92; }
   padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 18%, transparent);
   border-radius: var(--nk-r-tile);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 88%, var(--nk-ink));
-  color: var(--nk-fg, #ddd);
+  background: color-mix(in srgb, var(--nk-page) 88%, var(--nk-ink));
+  color: var(--nk-ink);
   font: 500 11px/1.6 var(--nk-mono, monospace);
 }
 #audit-banner .audit-banner-k {
@@ -6666,7 +6562,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   padding: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 14%, transparent);
   border-radius: var(--nk-r-tile);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
+  background: color-mix(in srgb, var(--nk-page) 90%, var(--nk-ink));
   font: 500 10.5px var(--nk-mono, monospace);
 }
 #nk-trail .nk-trail-sep {
@@ -6677,7 +6573,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   border: 0;
   padding: 1px 3px;
   background: none;
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 72%, transparent);
+  color: color-mix(in srgb, var(--nk-ink) 72%, transparent);
   font: inherit;
   cursor: pointer;
   white-space: nowrap;
@@ -6686,7 +6582,7 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   border-radius: var(--nk-r-tag);
 }
 #nk-trail .nk-trail-crumb:hover {
-  color: var(--nk-fg, #eee);
+  color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
   text-decoration: underline;
 }
@@ -6712,10 +6608,10 @@ body.dataflow .dag-edge.edge-data { marker-end: url(#arrow-data) !important; }
   padding: 5px 12px;
   border: 1px solid color-mix(in srgb, var(--nk-st-failed) 40%, transparent);
   border-radius: var(--nk-r-tile);
-  background: color-mix(in srgb, var(--nk-st-failed) 10%, var(--nk-bg, #0d0d0e));
-  color: var(--nk-fg, #ddd);
+  background: color-mix(in srgb, var(--nk-st-failed) 10%, var(--nk-page));
+  color: var(--nk-ink);
   font: 500 11px/1.5 var(--nk-mono, monospace);
-  animation: nk-wall-in 200ms ease-out;
+  animation: nk-wall-in var(--nk-dur-base) var(--nk-ease-effects);
   transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
 }
 #nk-red-teach.fade { opacity: 0; }
@@ -6814,15 +6710,15 @@ body.dag-loading #es-ghost {
   font: 500 9.5px var(--nk-mono, monospace);
   line-height: 15px;
 }
-.nc-ct-name { color: var(--nk-fg, #ccc); }
+.nc-ct-name { color: var(--nk-ink); }
 .nc-ct-state { flex: none; opacity: 0.85; }
 .nc-ct-supplied .nc-ct-state { color: var(--nk-data); }
 .nc-ct-default .nc-ct-state { color: var(--nk-st-muted); }
 .nc-ct-required-unset .nc-ct-state { color: var(--nk-st-retrying); }
-.nc-ct-optional .nc-ct-state { color: color-mix(in srgb, var(--nk-fg, #ccc) 40%, transparent); }
+.nc-ct-optional .nc-ct-state { color: color-mix(in srgb, var(--nk-ink) 40%, transparent); }
 .nc-ct-more {
   justify-content: flex-end;
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 45%, transparent);
+  color: color-mix(in srgb, var(--nk-ink) 45%, transparent);
 }
 @media (forced-colors: active) {
   .nc-contract { border-top: 1px solid CanvasText; }
@@ -6858,8 +6754,8 @@ body.audit .dag-node.audit-secret .nc {
   padding: 6px 14px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 16%, transparent);
   border-radius: var(--nk-r-tile);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 90%, var(--nk-ink));
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 75%, transparent);
+  background: color-mix(in srgb, var(--nk-page) 90%, var(--nk-ink));
+  color: color-mix(in srgb, var(--nk-ink) 75%, transparent);
   font: 500 11.5px var(--nk-mono, monospace);
 }
 @media (forced-colors: active) {
@@ -6882,7 +6778,7 @@ body.audit .dag-node.audit-secret .nc {
 /* Calm density (Linear): the policy overflow chip — quiet, listing
    everything it holds in its title. */
 .nc-pol-more {
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 55%, transparent);
+  color: color-mix(in srgb, var(--nk-ink) 55%, transparent);
   border-color: color-mix(in srgb, var(--nk-ink) 20%, transparent);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
 }
@@ -6898,7 +6794,7 @@ body.audit .dag-node.audit-secret .nc {
   100% { transform: scale(1); }
 }
 .nc-confirm {
-  animation: nk-confirm 240ms var(--nk-spring, ease-out);
+  animation: nk-confirm var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 @media (prefers-reduced-motion: reduce) {
   .nc-confirm { animation: none; }
@@ -6908,14 +6804,14 @@ body.audit .dag-node.audit-secret .nc {
    4px, opacity — perceived speed without theater). One entrance
    grammar for every lens surface; reduced-motion stills them all. */
 .tl-group, .audit-hulls, #audit-banner, #nk-trail {
-  animation: nk-lens-in 160ms ease-out;
+  animation: nk-lens-in var(--nk-dur-base) var(--nk-ease-effects);
 }
 @keyframes nk-lens-in {
   from { opacity: 0; transform: translateY(4px); }
 }
 body.dataflow .dag-edge.edge-data,
 body.dataflow .nc-io {
-  transition: opacity 160ms ease-out;
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 @media (prefers-reduced-motion: reduce) {
   .tl-group, .audit-hulls, #audit-banner, #nk-trail { animation: none; }
@@ -6948,7 +6844,7 @@ body.dataflow .nc-io {
 .nc-ess-condition { color: var(--nk-st-retrying); }
 .nc-ess-event { color: var(--nk-verb-invoke-text); }
 .nc-ess-duration { color: var(--nk-st-muted); font-variant-numeric: tabular-nums; }
-.nc-ess-text { color: var(--nk-fg, #ddd); }
+.nc-ess-text { color: var(--nk-ink); }
 .nc-ess-rest {
   opacity: 0.55;
   font-weight: 400;
@@ -6968,31 +6864,38 @@ body.dataflow .nc-io {
   border-radius: var(--nk-r-tag);
 }
 
-/* ─── The action panel (K on a focused card) — Raycast grammar ──────
-   Every action, its shortcut printed at the right. NO entrance
-   animation: keyboard-initiated surfaces render instantly (the
-   Kowalski law — never animate what the keyboard repeats). */
-#nk-actions {
+/* ─── The action-panel FAMILY (K panel · split-Run menu · display) ──
+   Raycast grammar: one panel surface, one row anatomy, one kbd chip —
+   declared ONCE, three consumers (#nk-actions keyboard-instant per the
+   Kowalski law; the pointer-opened two get the cmdk entrance below).
+   Overlay tier: the deep shadow (--nk-shadow-2), never the hairline. */
+:is(#nk-actions, #nk-run-menu, #nk-display) {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 70;
-  min-width: 300px;
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
   border-radius: var(--nk-r-pop);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
-  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
+  background: color-mix(in srgb, var(--nk-page) 92%, var(--nk-ink));
+  box-shadow: var(--nk-shadow-2);
 }
-#nk-actions .nk-act-title {
+:is(#nk-actions, #nk-display) {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+#nk-actions { min-width: 300px; }
+#nk-run-menu { min-width: 250px; }
+#nk-display { min-width: 340px; }
+.nk-act-title {
   padding: 4px 10px 6px;
-  font: 700 11px var(--nk-mono, monospace);
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 60%, transparent);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 700;
+  font-size: var(--nk-fs-label);
+  color: color-mix(in srgb, var(--nk-ink) 60%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
   margin-bottom: 4px;
 }
-#nk-actions .nk-act-row {
+.nk-act-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7002,87 +6905,50 @@ body.dataflow .nc-io {
   border: 0;
   border-radius: var(--nk-r-tile);
   background: none;
-  color: var(--nk-fg, #ddd);
-  font: 500 12px var(--nk-mono, monospace);
+  color: var(--nk-ink);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 500;
+  font-size: var(--nk-fs-ui);
   text-align: left;
   cursor: pointer;
 }
-#nk-actions .nk-act-row.active {
+.nk-act-row.active {
   background: color-mix(in srgb, var(--nk-data) 14%, transparent);
 }
-#nk-actions .nk-act-row kbd {
+/* The keycap construction (§1e batch 3): cap + wash, the chip radius. */
+.nk-act-row kbd {
   padding: 0 5px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
   border-bottom-width: 2px;
-  border-radius: var(--nk-r-tag);
-  font: 600 9.5px var(--nk-mono, monospace);
-  opacity: 0.75;
+  border-radius: var(--nk-r-chip);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 600;
+  font-size: var(--nk-fs-meta);
+  color: var(--nk-ink-dim);
 }
 /* RC-2b — the typing filter's voice line (⌕ query · the / count
    grammar) and the filtered-out rows (arrows jump them). */
 #nk-actions .nk-act-query {
   padding: 2px 10px 6px;
-  font: 500 11px var(--nk-mono, monospace);
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 55%, transparent);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 500;
+  font-size: var(--nk-fs-label);
+  color: color-mix(in srgb, var(--nk-ink) 55%, transparent);
 }
 #nk-actions .nk-act-hidden { display: none; }
 /* The ⌘⏎ secondary — taught on the FOCUSED row only (Raycast law 8:
    the shortcut at the point of use, never a manual). */
-#nk-actions .nk-act-row .nk-act-alt {
+.nk-act-row .nk-act-alt {
   display: none;
   margin-left: auto;
-  font: 600 9.5px var(--nk-mono, monospace);
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 60%, transparent);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 600;
+  font-size: var(--nk-fs-meta);
+  color: color-mix(in srgb, var(--nk-ink) 60%, transparent);
   white-space: nowrap;
 }
-#nk-actions .nk-act-row.active .nk-act-alt { display: inline; }
-@media (forced-colors: active) {
-  #nk-actions { border: 1px solid CanvasText; background: Canvas; }
-  #nk-actions .nk-act-row.active { background: Highlight; color: HighlightText; }
-  #nk-run-menu { border: 1px solid CanvasText; background: Canvas; }
-  #nk-run-menu .nk-act-row.active { background: Highlight; color: HighlightText; }
-}
-
-/* The split-Run menu (W11.5) — the action-panel family, docked above
-   the run cluster: the run vocabulary grouped, chords printed, the
-   unavailable rows greyed with their reason (never hidden — the menu
-   teaches what exists). Instant render (keyboard-adjacent). */
-#nk-run-menu {
-  position: fixed;
-  z-index: 70;
-  min-width: 250px;
-  padding: 6px;
-  border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: var(--nk-r-pop);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
-  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
-}
-#nk-run-menu .nk-act-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  width: 100%;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: var(--nk-r-tile);
-  background: none;
-  color: var(--nk-fg, #ddd);
-  font: 500 12px var(--nk-mono, monospace);
-  text-align: left;
-  cursor: pointer;
-}
-#nk-run-menu .nk-act-row.active {
-  background: color-mix(in srgb, var(--nk-data) 14%, transparent);
-}
-#nk-run-menu .nk-act-row kbd {
-  padding: 0 5px;
-  border: 1px solid color-mix(in srgb, var(--nk-ink) 25%, transparent);
-  border-bottom-width: 2px;
-  border-radius: var(--nk-r-tag);
-  font: 600 9.5px var(--nk-mono, monospace);
-  opacity: 0.75;
-}
+.nk-act-row.active .nk-act-alt { display: inline; }
 
 /* Greyed = readable, never landable (arrow nav skips; the title says
    why) — the ElevenLabs disabled-row read. */
@@ -7098,61 +6964,29 @@ body.dataflow .nc-io {
   background: color-mix(in srgb, var(--nk-ink) 14%, transparent);
 }
 
-/* The display panel (Shift+V) — the action-panel family. Off rows
-   dim their label; the state column says it in words. */
-#nk-display {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 70;
-  min-width: 340px;
-  padding: 6px;
-  border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: var(--nk-r-pop);
-  background: color-mix(in srgb, var(--nk-bg, #0d0d0e) 92%, var(--nk-ink));
-  box-shadow: var(--nk-shadow-1, 0 8px 30px rgba(0,0,0,0.5));
-}
-#nk-display .nk-act-title {
-  padding: 4px 10px 6px;
-  font: 700 11px var(--nk-mono, monospace);
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 60%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
-  margin-bottom: 4px;
-}
-#nk-display .nk-act-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  width: 100%;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: var(--nk-r-tile);
-  background: none;
-  color: var(--nk-fg, #ddd);
-  font: 500 12px var(--nk-mono, monospace);
-  text-align: left;
-  cursor: pointer;
-}
-#nk-display .nk-act-row.active { background: color-mix(in srgb, var(--nk-data) 14%, transparent); }
+/* Display-panel specifics (Shift+V): off rows dim their label; the
+   state column says it in words. */
 #nk-display .nk-act-row.nk-disp-off > span:first-child { opacity: 0.45; }
 #nk-display .nk-disp-state {
   flex: none;
-  font: 600 9.5px var(--nk-mono, monospace);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 600;
+  font-size: var(--nk-fs-meta);
   color: var(--nk-st-success);
 }
 #nk-display .nk-act-row.nk-disp-off .nk-disp-state { color: var(--nk-st-muted); }
 #nk-display .nk-disp-foot {
   padding: 5px 10px 3px;
-  font: 500 9.5px var(--nk-mono, monospace);
-  color: color-mix(in srgb, var(--nk-fg, #ccc) 45%, transparent);
+  font-family: var(--nk-mono, monospace);
+  font-weight: 500;
+  font-size: var(--nk-fs-meta);
+  color: color-mix(in srgb, var(--nk-ink) 45%, transparent);
   border-top: 1px solid color-mix(in srgb, var(--nk-ink) 12%, transparent);
   margin-top: 4px;
 }
 @media (forced-colors: active) {
-  #nk-display { border: 1px solid CanvasText; background: Canvas; }
-  #nk-display .nk-act-row.active { background: Highlight; color: HighlightText; }
+  :is(#nk-actions, #nk-run-menu, #nk-display) { border: 1px solid CanvasText; background: Canvas; }
+  .nk-act-row.active { background: Highlight; color: HighlightText; }
 }
 
 /* ── Symmetric exits (design wave · 2026-08-01) ─────────────────────
