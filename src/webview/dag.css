@@ -3538,6 +3538,14 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: var(--nk-fs-title
  * dial rows (visibility keeps the footprint); far kills it (the map
  * read) while the :not gates above return the head in-frame. */
 body.lod-mid .nc-pill { visibility: hidden; }
+/* MID = the readable map (the gauntlet: full text at fit zoom was
+ * anti-aliased mush): the MIN card simplifies to head + mechanism —
+ * the body and policy wait for a lean-in. visibility keeps the flow
+ * (the box heights are TS-measured · paint-only law). */
+body.lod-mid .nc-body,
+body.lod-mid .nc-policy,
+body.lod-mid .nc-preview,
+body.lod-mid .nc-badge { visibility: hidden; }
 body.lod-far .nc-pill { display: none; }
 
 @media (forced-colors: active) {

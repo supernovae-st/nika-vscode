@@ -4063,9 +4063,10 @@ class DagRenderer {
     this.applyLod(this.currentZoom);
   }
 
-  /** Semantic zoom (DESIGN.md §6c). Thresholds sit BELOW the typical
-   *  fit zoom (~0.42) — the first paint shows the FULL card; far is a
-   *  deliberate zoom-out to the map read. Each boundary is a hysteresis
+  /** Semantic zoom (DESIGN.md §6c · v8). MID catches the typical fit
+   *  zoom — the first paint shows head + mechanism CLEAN (the gauntlet
+   *  judged full text at fit « anti-aliased mush »); the full card is
+   *  one lean-in away; far is the deliberate map read. Each boundary is a hysteresis
    *  BAND (enter low · leave high) so a pinch resting on a threshold
    *  never flaps the whole canvas. */
   private applyLod(k: number): void {
@@ -4073,7 +4074,7 @@ class DagRenderer {
     const state = cls.contains('lod-far') ? 'far' : cls.contains('lod-mid') ? 'mid' : 'near';
     let next: 'far' | 'mid' | 'near';
     if (k < (state === 'far' ? 0.34 : 0.3)) { next = 'far'; }
-    else if (k < (state === 'mid' ? 0.46 : 0.42)) { next = 'mid'; }
+    else if (k < (state === 'mid' ? 0.68 : 0.62)) { next = 'mid'; }
     else { next = 'near'; }
     if (next !== state) {
       cls.remove('lod-far', 'lod-mid', 'lod-near');
