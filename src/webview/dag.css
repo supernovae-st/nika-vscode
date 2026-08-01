@@ -122,6 +122,14 @@ body {
    * on it, micro-state rides base, panels ride slow, ceremonies ride
    * deliberate. The legacy --nk-dur now ALIASES base (V0.d remapped every
    * consumer to a named step; the name survives for any stray reader). */
+  /* THE LIQUID GLASS (one recipe · two tiers · Rams): raised docks
+   * breathe the canvas through; overlays read as a LENS — deeper blur,
+   * saturation bleed, a specular top edge. Consumers pair the filter
+   * with --nk-specular inside their box-shadow list. */
+  --nk-glass-raised: blur(14px) saturate(1.22);
+  --nk-glass-overlay: blur(22px) saturate(1.35);
+  --nk-specular: inset 0 1px 0 rgb(255 255 255 / 0.10);
+
   /* ONE focus ring (Linear law): a single declared voice — every
    * :focus-visible reads the pair, never a literal. */
   --nk-ring: 2px solid var(--nk-accent);
@@ -149,8 +157,8 @@ body {
   --nk-card-border: var(--nk-border);
   --nk-border-strong: color-mix(in srgb, var(--nk-ink) 24%, var(--nk-border));
   --nk-border-soft: color-mix(in srgb, var(--nk-border) 55%, transparent);
-  --nk-card-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 10px 24px -18px rgb(0 0 0 / 0.35);
-  --nk-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 0.2), 0 16px 32px -18px rgb(0 0 0 / 0.42);
+  --nk-card-shadow: var(--nk-bevel), inset 0 -1px 0 rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.18), 0 10px 24px -18px rgb(0 0 0 / 0.35);
+  --nk-card-shadow-hover: var(--nk-bevel), inset 0 -1px 0 rgb(0 0 0 / 0.14), 0 2px 4px rgb(0 0 0 / 0.2), 0 16px 32px -18px rgb(0 0 0 / 0.42);
   /* The one solid CTA (Run · empty-state primary) — the editor skin
    * speaks the THEME's button voice; nika pins the brand blue. */
   --nk-cta: var(--vscode-button-background, #2b62ea);
@@ -278,12 +286,12 @@ body[data-nk-theme] {
   width: 34px;
   height: 34px;
   flex: none;
-  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1);
 }
 
 #dag-title {
@@ -298,12 +306,12 @@ body[data-nk-theme] {
   /* The reverse door — click opens the YAML (dag.ts wires it). */
   cursor: pointer;
   color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1);
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
   min-width: 36px;
@@ -334,12 +342,12 @@ body[data-nk-theme] {
   height: 34px;
   padding: 2px;
   gap: 1px;
-  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1);
   overflow: hidden;
 }
 
@@ -1383,12 +1391,12 @@ body.vscode-light .logo-dark { display: none; }
   align-items: center;
   gap: 2px;
   padding: 3px 4px;
-  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 4px);
-  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
 }
 #zoom-dock button {
   display: inline-flex;
@@ -1671,7 +1679,7 @@ body.dag-loading #zoom-dock { display: none; }
 .ex-row {
   display: flex;
   gap: 10px;
-  align-items: baseline;
+  align-items: flex-start;
   margin-bottom: 8px;
   color: var(--nk-ink-dim);
 }
@@ -2278,11 +2286,13 @@ body[data-nk-theme='nika'] {
   --nk-border-strong: rgb(255 255 255 / 0.2);
   --nk-border-soft: rgb(255 255 255 / 0.06);
   --nk-card-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    inset 0 -1px 0 rgb(0 0 0 / 0.22),
     0 1px 3px rgb(0 0 0 / 0.32),
     0 14px 30px -20px rgb(0 0 0 / 0.55);
   --nk-card-shadow-hover:
-    inset 0 1px 0 rgb(255 255 255 / 0.07),
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    inset 0 -1px 0 rgb(0 0 0 / 0.22),
     0 2px 5px rgb(0 0 0 / 0.38),
     0 20px 40px -20px rgb(0 0 0 / 0.65);
   --nk-ink: #f4f5f7;
@@ -2603,7 +2613,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   left: 50%;
   transform: translateX(-50%);
   z-index: 45;
-  width: min(340px, calc(100vw - 24px));
+  width: min(360px, calc(100vw - 24px));
   padding: 5px 10px;
   font-size: var(--nk-fs-ui);
   font-family: var(--nk-mono);
@@ -2612,7 +2622,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   backdrop-filter: blur(10px);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-radius);
-  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
   outline: none;
 }
 
@@ -2755,7 +2765,37 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 .dag-node:hover .nc {
   border-color: var(--nk-border-strong);
   box-shadow: var(--nk-card-shadow-hover);
+  transition-duration: var(--nk-dur-fast); /* light answers fast · exit settles on base */
 }
+
+/* Status voice survives the pointer (one voice per job: status owns the
+ * border hue — hover may only BRIGHTEN the card's own claim). */
+.dag-node.status-running:hover .nc {
+  border-color: color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 52%, var(--nk-border-strong));
+  box-shadow:
+    var(--nk-card-shadow-hover),
+    0 0 0 3px color-mix(in srgb, var(--dv-hue, var(--nk-st-running)) 15%, transparent);
+}
+.dag-node.status-retrying:hover .nc {
+  border-color: color-mix(in srgb, var(--nk-st-retrying) 52%, var(--nk-border-strong));
+}
+.dag-node.status-failed:hover .nc {
+  border-color: color-mix(in srgb, var(--nk-st-failed) 80%, var(--nk-border-strong));
+  box-shadow:
+    var(--nk-card-shadow-hover),
+    0 0 0 3px color-mix(in srgb, var(--nk-st-failed) 16%, transparent);
+}
+
+/* Press seat — 1px in on the fast beat; the spatial transition springs
+ * the release (the most-touched element was the one silent one). */
+.dag-node:active:not(.dragging) .nc {
+  transform: translateY(1px);
+  transition-duration: var(--nk-dur-fast);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dag-node:active:not(.dragging) .nc { transform: none; }
+}
+body[data-nk-calm] .dag-node:active:not(.dragging) .nc { transform: none; }
 
 /* Expand/peek/promote unfold instead of snapping: the frame's geometry
  * glides on the spatial voice (the SVG2 geometry-property transition ·
@@ -3790,7 +3830,7 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-right: 1px dashed color-mix(in srgb, var(--nk-cat-media) 18%, transparent);
   color: var(--nk-ink-dim);
 }
@@ -4438,12 +4478,12 @@ body.lod-far .edge-hit { pointer-events: none; }
    * under 820px the dock un-stacks instead (see the media block). */
   width: min(620px, calc(100vw - 344px));
   padding: 6px 8px;
-  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 4px);
-  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
 }
 
 #verb-palette {
@@ -4461,8 +4501,8 @@ body.lod-far .edge-hit { pointer-events: none; }
   justify-content: center;
   font-size: 14px;
   font-family: var(--nk-mono);
-  background: transparent;
-  border: 1px solid transparent;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   border-radius: var(--nk-radius);
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
@@ -4525,13 +4565,14 @@ body.lod-far .edge-hit { pointer-events: none; }
 
 #omni-input::placeholder {
   color: var(--nk-ink-dim);
-  opacity: 0.75;
+  opacity: 0.65;
 }
+#omni-input:focus::placeholder { opacity: 0.85; }
 
 #omni-go {
   flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4539,7 +4580,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) - 2px);
+  border-radius: var(--nk-radius);
   cursor: pointer;
   transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
@@ -4667,6 +4708,45 @@ body[data-nk-theme='nika'] #omnibar {
 
 /* ─── Run controls · the pill's left wing ───────────────────────────────── */
 
+/* One key, ONE hairline: the split key's junction is .rc-more's own
+ * border-left — the run face yields its right edge. */
+#run-controls .rc-run:has(+ .rc-more) { border-right: 0; }
+.vp-btn svg { width: 16px; height: 16px; }
+
+/* A LIVE run retires the machine key to GHOST (the disabled CTA read:
+ * a dimmed blue key still shouted CTA · the ghost IS the disabled). */
+body.running #run-controls .rc-run {
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border-color: var(--nk-border);
+  box-shadow: none;
+}
+body.running #run-controls .rc-run:disabled { opacity: 1; }
+body.running #run-controls .rc-more {
+  color: var(--nk-ink-dim);
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border-color: var(--nk-border);
+  border-left-color: var(--nk-border);
+  box-shadow: none;
+}
+body.running #run-controls .rc-more:disabled { opacity: 1; }
+
+/* Rams: the bench mock copy retires — the ⌄ menu carries it (kbd M). */
+#omnibar #btn-run-mock { display: none; }
+
+/* The pill carries the input's focus ring (one ring, never a double
+ * glow+ring voice) — per-button rings inside stay. */
+#omni-input:focus-visible { outline: none; }
+#omnibar:has(#omni-input:focus-visible) {
+  border-color: var(--nk-accent);
+}
+
+/* The submit sparkle appears when there is something to submit. */
+#omnibar:has(#omni-input:placeholder-shown) #omni-go {
+  visibility: hidden;
+  opacity: 0;
+}
+
 /* The make key — the Krea +: first slot of the bar, opens the task
  * palette (same id the old toolbar seat had · the handler rebinds). */
 #omnibar > #btn-add-task {
@@ -4705,11 +4785,11 @@ body[data-nk-theme='nika'] #omnibar {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 26px;
+  height: 30px;
   padding: 0 10px;
   font-size: var(--nk-fs-label);
   font-family: var(--nk-mono);
-  border-radius: calc(var(--nk-radius) - 2px);
+  border-radius: var(--nk-radius);
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
@@ -5143,15 +5223,20 @@ body.lod-far .region-label { display: none; }
 #cmdk-input,
 #connect-input {
   width: 100%;
-  padding: 5px 8px;
+  padding: 6px 8px 8px;
   margin-bottom: 4px;
   font-size: var(--nk-fs-title);
   font-family: var(--nk-mono);
   color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
-  border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) - 2px);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--nk-border);
+  border-radius: 0;
   outline: none;
+}
+#cmdk-input:focus,
+#connect-input:focus {
+  border-bottom-color: color-mix(in srgb, var(--nk-accent) 55%, var(--nk-border));
 }
 
 #cmdk-input:focus,
@@ -5936,7 +6021,8 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   background: color-mix(in srgb, var(--nk-page) 88%, transparent);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-radius);
-  backdrop-filter: blur(6px);
+  backdrop-filter: var(--nk-glass-overlay);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2);
   cursor: pointer;
   opacity: 0;
   transition:
@@ -6418,7 +6504,8 @@ body[data-nk-theme='phosphor'] {
   --nk-border-strong: rgb(158 232 182 / 0.32);
   --nk-border-soft: rgb(126 214 156 / 0.08);
   --nk-card-shadow:
-    inset 0 1px 0 rgb(190 255 214 / 0.04),
+    inset 0 1px 0 rgb(190 255 214 / 0.05),
+    inset 0 -1px 0 rgb(0 0 0 / 0.3),
     0 1px 3px rgb(0 0 0 / 0.55),
     0 14px 30px -20px rgb(0 0 0 / 0.8);
   --nk-card-shadow-hover:
@@ -7154,8 +7241,9 @@ body.dataflow .nc-io {
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
   border-radius: var(--nk-r-pop);
-  background: color-mix(in srgb, var(--nk-page) 92%, var(--nk-ink));
-  box-shadow: var(--nk-shadow-2);
+  background: color-mix(in srgb, var(--nk-page) 84%, transparent);
+  backdrop-filter: var(--nk-glass-overlay);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2);
 }
 :is(#nk-actions, #nk-display) {
   top: 50%;
@@ -7187,7 +7275,7 @@ body.dataflow .nc-io {
   gap: 18px;
   width: 100%;
   padding: 6px 10px;
-  border: 0;
+  border: 1px solid transparent; /* the ring slot — no shift on select */
   border-radius: var(--nk-r-tile);
   background: none;
   color: var(--nk-ink);
@@ -7199,6 +7287,11 @@ body.dataflow .nc-io {
 }
 .nk-act-row.active {
   background: color-mix(in srgb, var(--nk-data) 14%, transparent);
+  border-color: color-mix(in srgb, var(--nk-data) 32%, transparent);
+}
+
+.nk-act-row:active:not(.nk-act-off) {
+  background: color-mix(in srgb, var(--nk-data) 22%, transparent);
 }
 /* The keycap construction (§1e batch 3): cap + wash, the chip radius. */
 .nk-act-row kbd {

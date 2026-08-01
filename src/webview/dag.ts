@@ -403,7 +403,7 @@ class ConnectCmdk {
     this.render();
     this.input.focus();
     announce(this.items.length === 0
-      ? `Connect mode. No valid target for ${this.from} — every wire from here would loop or already exists. Escape closes.`
+      ? `Connect mode. No valid target for ${this.from} · every wire from here would loop or already exists. Escape closes.`
       : `Connect mode. ${this.items.length} valid target${this.items.length === 1 ? '' : 's'} for ${this.from}. Type to filter, Enter connects, Escape cancels.`);
     return true;
   }
@@ -450,7 +450,7 @@ class ConnectCmdk {
       none.className = 'cmdk-cat';
       none.setAttribute('role', 'presentation');
       none.textContent = this.items.length === 0
-        ? 'no valid target — wires from here would loop or already exist'
+        ? 'no valid target · wires from here would loop or already exist'
         : NO_MATCH_HINT;
       this.list.appendChild(none);
     }
@@ -782,11 +782,11 @@ const vscode = acquireVsCodeApi();
 // Esc closes. Toggling re-renders (heights follow the register — the
 // boxes stay TRUE). Choices persist per workspace via webview state.
 const DISPLAY_LABELS: Record<keyof DisplayProps, string> = {
-  body: 'Body — the prompt · command · essence line',
-  io: 'IO rows — alias ← producer wires',
-  params: 'Params — model · gate · cost · avg',
-  policy: 'Policy chips — retry · timeout · finally · permits…',
-  contract: 'Contract rows — a child workflow\u2019s inputs',
+  body: 'Body · the prompt · command · essence line',
+  io: 'IO rows · alias ← producer wires',
+  params: 'Params · model · gate · cost · avg',
+  policy: 'Policy chips · retry · timeout · finally · permits…',
+  contract: 'Contract rows · a child workflow\u2019s inputs',
 };
 
 function persistDisplayProps(): void {
@@ -851,7 +851,7 @@ function toggleDisplayPanel(): void {
     return row;
   };
   const rows: HTMLElement[] = [
-    mkRow('Card mode — every card\u2019s density (dblclick / E per card)', 'menuitem'),
+    mkRow('Card mode · every card\u2019s density (dblclick / E per card)', 'menuitem'),
     ...keys.map((k) => mkRow(DISPLAY_LABELS[k], 'menuitemcheckbox')),
   ];
   rows[0].classList.add('active');
@@ -1260,12 +1260,12 @@ function cardFactsOf(node: DagNode): CardFact[] {
   }
   if (node.cached) {
     const proof = node.defHash !== undefined && node.inputHash !== undefined
-      ? ` — same definition (${node.defHash.slice(0, 8)}…) and inputs (${node.inputHash.slice(0, 8)}…) as the recorded run`
+      ? ` · same definition (${node.defHash.slice(0, 8)}…) and inputs (${node.inputHash.slice(0, 8)}…) as the recorded run`
       : '';
-    facts.push({ k: 'resume', v: `${STATUS_CHAR.cached} cache hit — recorded output reused, not re-executed${proof}` });
+    facts.push({ k: 'resume', v: `${STATUS_CHAR.cached} cache hit · recorded output reused, not re-executed${proof}` });
   }
   if (node.recoveredFrom) {
-    facts.push({ k: 'repaired', v: `✚ recovered from ${node.recoveredFrom} — on_error.recover absorbed the failure` });
+    facts.push({ k: 'repaired', v: `✚ recovered from ${node.recoveredFrom} · on_error.recover absorbed the failure` });
   }
   if (node.outputPreview
     && !(node.status === 'success' && bodyTextOf(node, 'grand') !== undefined)) {
@@ -1294,12 +1294,12 @@ function cardFactsOf(node: DagNode): CardFact[] {
         : `${af.budget.totalTokens} tokens so far` });
     }
     if (af.nudges !== undefined && af.nudges > 0) {
-      facts.push({ k: 'nudged', v: `${af.nudges}× — ${af.lastNudgeReason === 'error_streak'
+      facts.push({ k: 'nudged', v: `${af.nudges}× · ${af.lastNudgeReason === 'error_streak'
         ? 'an error streak drew a corrective reflection'
         : 'repeated actions drew a corrective reflection'}` });
     }
     if (af.stalled !== undefined) {
-      facts.push({ k: 'stalled', v: `no-progress cycle (period ${af.stalled.period} · ×${af.stalled.repeats}) — the loop stopped itself` });
+      facts.push({ k: 'stalled', v: `no-progress cycle (period ${af.stalled.period} · ×${af.stalled.repeats}) · the loop stopped itself` });
     }
     if (af.compose !== undefined) {
       facts.push({ k: 'compose', v: `${af.compose.valid}/${af.compose.checked} self-drafted workflow${af.compose.checked === 1 ? '' : 's'} passed check` });
@@ -1312,16 +1312,16 @@ function cardFactsOf(node: DagNode): CardFact[] {
       + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '') });
   }
   if (node.secretLiterals !== undefined && node.secretLiterals > 0) {
-    facts.push({ k: 'secret', v: `⚿ ${node.secretLiterals} literal credential${node.secretLiterals === 1 ? '' : 's'} pasted in this task — use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)` });
+    facts.push({ k: 'secret', v: `⚿ ${node.secretLiterals} literal credential${node.secretLiterals === 1 ? '' : 's'} pasted in this task · use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)` });
   }
   if (node.deadGate === true) {
-    facts.push({ k: 'gate', v: 'statically FALSE — no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written' });
+    facts.push({ k: 'gate', v: 'statically FALSE · no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written' });
   }
   if (node.liveUsd !== undefined && node.status === 'running') {
-    facts.push({ k: 'spending', v: `~${usd(node.liveUsd)} so far — still moving`, live: 'spending' });
+    facts.push({ k: 'spending', v: `~${usd(node.liveUsd)} so far · still moving`, live: 'spending' });
   }
   if (node.chunks !== undefined && node.chunks > 0 && node.status === 'running') {
-    facts.push({ k: 'stream', v: `${node.chunks} deltas received — the model is talking`, live: 'stream' });
+    facts.push({ k: 'stream', v: `${node.chunks} deltas received · the model is talking`, live: 'stream' });
   }
   const ctx = cardCtx;
   if (ctx) {
@@ -2075,7 +2075,7 @@ class DagRenderer {
     this.tlGeom = { startMs: data.startMs, spanMs: data.spanMs, gutter: GUTTER, w: W, height: data.rows.length * ROW_H };
     if (data.rows.length === 0) {
       g.append('text').attr('class', 'tl-empty').attr('x', 0).attr('y', 20)
-        .text('no recorded run yet — the timeline reads recorded truth (▶ run first)');
+        .text('no recorded run yet · the timeline reads recorded truth (▶ run first)');
       this.fitTimeline();
       return;
     }
@@ -2114,7 +2114,7 @@ class DagRenderer {
         const actual = (row.bar.endMs - row.bar.startMs) / row.estMs;
         ghost.append('title').text(
           `usually ~${row.estMs >= 1000 ? `${(row.estMs / 1000).toFixed(1)}s` : `${Math.round(row.estMs)}ms`} across recorded runs`
-          + (actual > 1.15 ? ` — this run took ${actual.toFixed(1)}× that` : ''),
+          + (actual > 1.15 ? ` · this run took ${actual.toFixed(1)}× that` : ''),
         );
       }
       if (row.bar) {
@@ -2766,7 +2766,7 @@ class DagRenderer {
     if (titleEl) titleEl.textContent = graph.workflowName;
     // The graph's accessible name — what a reader hears on landing.
     const taskCount = graph.nodes.length;
-    const graphName = `${graph.workflowName || 'workflow'} — ${taskCount} task${taskCount === 1 ? '' : 's'}`;
+    const graphName = `${graph.workflowName || 'workflow'} · ${taskCount} task${taskCount === 1 ? '' : 's'}`;
     this.svg.attr('aria-label', graphName);
     this.container.setAttribute('aria-label', `Workflow canvas · ${graphName}`);
 
@@ -2968,7 +2968,7 @@ class DagRenderer {
       const label = band.append('text')
         .attr('class', 'wave-label')
         .attr('x', -PADDING / 2 + 8)
-        .attr('y', ext.top - 7); // above the band — the site's dv-cap position
+        .attr('y', ext.top - 7); // above the band · the site's dv-cap position
       label.append('tspan')
         .attr('class', 'wave-label-n')
         .text(`[ ${String(wave + 1).padStart(2, '0')} ]`);
@@ -3006,7 +3006,7 @@ class DagRenderer {
       cap.textContent = ext.count > 1 ? `×${ext.count}` : w === 0 ? 'start' : 'then';
       row.append(n, cap);
       row.title = ext.count > 1
-        ? `wave ${w + 1} — ${ext.count} tasks run together · click to center`
+        ? `wave ${w + 1} · ${ext.count} tasks run together · click to center`
         : `wave ${w + 1} · click to center`;
       row.addEventListener('click', () => this.centerWave(w));
       rail.appendChild(row);
@@ -4599,12 +4599,12 @@ class DagRenderer {
       const deps = d.producers.length;
       const flow = inFlow(d) === ' nc-port-media' ? 'media ' : '';
       if (wires > 0) {
-        return `${wires} named ${flow}wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer — the card's io row)`;
+        return `${wires} named ${flow}wire${wires === 1 ? '' : 's'} arrive${wires === 1 ? 's' : ''} here (alias ← producer · the card's io row)`;
       }
       if (deps > 0) {
         return `${deps} dependenc${deps === 1 ? 'y' : 'ies'} arrive${deps === 1 ? 's' : ''} here (ordering only)`;
       }
-      return 'no inputs — a root task';
+      return 'no inputs · a root task';
     });
     const portsOut = enter
       .append('circle')
@@ -4618,9 +4618,9 @@ class DagRenderer {
         this.startConnect(d.id);
       });
     portsOut.append('title').text((d) => {
-      const flow = outFlow(d) === ' nc-port-media' ? 'this task produces media — '
-        : outFlow(d) === ' nc-port-data' ? 'this task produces data — ' : '';
-      return `${flow}drag to connect — the drop target gains an after: edge on this task (⌥drag from the card works too)`;
+      const flow = outFlow(d) === ' nc-port-media' ? 'this task produces media · '
+        : outFlow(d) === ' nc-port-data' ? 'this task produces data · ' : '';
+      return `${flow}drag to connect · the drop target gains an after: edge on this task (⌥drag from the card works too)`;
     });
 
     // Mousedown on a card: ⌥ starts a dependency edge (the n8n gesture);
@@ -5006,14 +5006,14 @@ class DagRenderer {
     if (node.artifact) {
       const a = node.artifact;
       btn('nc-x-open', '\u2913',
-        `Open ${a.name} — the recorded output (engine truth from the trace)`,
+        `Open ${a.name} · the recorded output (engine truth from the trace)`,
         () => {
           vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
         });
     }
     if (node.status === 'failed') {
       btn('nc-x-fork', '\u2442',
-        'Fork from this task — upstream rehydrates from the newest recorded run, this task and its cone re-run',
+        'Fork from this task · upstream rehydrates from the newest recorded run, this task and its cone re-run',
         () => {
           vscode.postMessage({
             kind: 'dag:forkFromTask',
@@ -5129,7 +5129,7 @@ class DagRenderer {
     if (d.method !== undefined) { fact(d.method, `declared HTTP method: ${d.method}`, 'nc-pill-method'); }
     if (node.costMin != null && node.costMax != null) {
       fact(`${usd(node.costMin)}–${usd(node.costMax)}`,
-        'Static cost interval (min path → worst case) — audited before a single token is spent');
+        'Static cost interval (min path → worst case) · audited before a single token is spent');
     }
     if (node.avgMs !== undefined && node.avgRuns) {
       fact(`⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`,
@@ -5375,7 +5375,7 @@ class DagRenderer {
       auditChip.textContent = `⚠ ${node.auditCount}`;
       // The NAME states the action; ⚠ + a number is a glyph and a digit to a reader.
       auditChip.setAttribute('aria-label',
-        `Open the pre-flight report — ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'} on this task`);
+        `Open the pre-flight report · ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'} on this task`);
       auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task · click for the pre-flight report`;
     }
     auditChip.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -5735,17 +5735,17 @@ class DagRenderer {
       }
       if (node.timeout !== undefined) {
         chip('nc-pol-timeout', `⏱ ${node.timeout}`,
-          `Hard timeout — the task is cancelled past ${node.timeout}`);
+          `Hard timeout · the task is cancelled past ${node.timeout}`);
       }
       if (node.onError === 'recover') {
         chip('nc-pol-recover', '✚ recover',
-          'on_error: recover — a failure is absorbed with the declared recovery output (the card will say « recovered »)');
+          'on_error: recover · a failure is absorbed with the declared recovery output (the card will say « recovered »)');
       } else if (node.onError === 'skip') {
         chip('nc-pol-skip', '⤼ skip',
-          'on_error: skip — a failure skips this task; the error stays readable at tasks.X.error');
+          'on_error: skip · a failure skips this task; the error stays readable at tasks.X.error');
       } else if (node.onError === 'fail_workflow') {
         chip('nc-pol-fail', '✗ fail',
-          'on_error: fail_workflow — a failure here stops the whole run');
+          'on_error: fail_workflow · a failure here stops the whole run');
       }
       if (node.thinkingBudget !== undefined) {
         const cap = node.thinkingBudget > 0
@@ -5753,49 +5753,49 @@ class DagRenderer {
           : undefined;
         chip('nc-pol-think', cap !== undefined ? `∴ thinking ${cap}` : '∴ thinking',
           cap !== undefined
-            ? `Extended thinking — the model reasons in a scratch budget of ${node.thinkingBudget} tokens before answering (the spend is real and counted)`
-            : 'Extended thinking enabled — no explicit budget_tokens cap declared');
+            ? `Extended thinking · the model reasons in a scratch budget of ${node.thinkingBudget} tokens before answering (the spend is real and counted)`
+            : 'Extended thinking enabled · no explicit budget_tokens cap declared');
       }
       if (node.visionCount !== undefined) {
         chip('nc-pol-vision', `▣ vision ×${node.visionCount}`,
-          `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources — spec 02 vision:)`);
+          `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources · spec 02 vision:)`);
       }
       if (node.typedShape !== undefined) {
         chip('nc-pol-typed', '⊨ typed',
-          `Declared output shape — ${node.typedShape}\nThe engine PROVES it at check time (schema:/returns:); downstream reads are typed against it.`);
+          `Declared output shape · ${node.typedShape}\nThe engine PROVES it at check time (schema:/returns:); downstream reads are typed against it.`);
       }
       if (node.maxParallel !== undefined) {
         chip('nc-pol-parallel', `∥ max ${node.maxParallel}`,
-          `Fan-out concurrency cap — at most ${node.maxParallel} iteration${node.maxParallel === 1 ? '' : 's'} run at once. retry/on_error/timeout apply PER ITERATION (there is no whole-fan-out timer): this cap bounds total work.`);
+          `Fan-out concurrency cap · at most ${node.maxParallel} iteration${node.maxParallel === 1 ? '' : 's'} run at once. retry/on_error/timeout apply PER ITERATION (there is no whole-fan-out timer): this cap bounds total work.`);
       }
       if (node.failFast === false) {
         chip('nc-pol-peritem', '⤼ per-item',
-          'fail_fast: false — one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).');
+          'fail_fast: false · one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).');
       } else if (node.failFast === true) {
         chip('nc-pol-failfast', '⊗ fail-fast',
-          'fail_fast: true — the first iteration error fails the whole task; its output settles null, never a partial array.');
+          'fail_fast: true · the first iteration error fails the whole task; its output settles null, never a partial array.');
       }
       if (node.finallyCount !== undefined) {
         chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
-          `on_finally — ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
+          `on_finally · ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
       }
       const outs = node.outputNames ?? [];
       if (outs.length > 0) {
         chip('nc-pol-outs',
           outs.length === 1 ? `⤳ ${outs[0]}` : `⤳ ${outs.length} outs`,
-          `Produces named outputs: ${outs.join(' · ')} (output: jq bindings — \${{ tasks.${node.id}.<name> }})`);
+          `Produces named outputs: ${outs.join(' · ')} (output: jq bindings · \${{ tasks.${node.id}.<name> }})`);
       }
       const grants = node.permits ?? [];
       if (grants.length > 0) {
         chip('nc-pol-permits', `▦ ${grants.length}`,
-          `Capability effects this task pins (engine-attributed — the same walk --infer-permits aggregates):\n${grants.join('\n')}`);
+          `Capability effects this task pins (engine-attributed · the same walk --infer-permits aggregates):\n${grants.join('\n')}`);
       }
       // The agent register (spec: default-deny) — the card says what
       // this agent MAY call; absent register paints nothing (no tools
       // is the default, not a fact worth ink).
       if (node.verb === 'agent' && node.toolsCount !== undefined) {
         chip('nc-pol-tools', `⚒ ${node.toolsCount}`,
-          `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny — an agent without a register can call nothing)`);
+          `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny · an agent without a register can call nothing)`);
       }
       flushChips();
       host.appendChild(policy);
@@ -6107,12 +6107,12 @@ class DagRenderer {
     const items: Item[] = [
       {
         label: '▶ Run', kbd: 'R',
-        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        ...(running ? { off: 'a run is live · ■ Stop first' } : {}),
         run: () => requestRunFn(false),
       },
       {
         label: '▷ Run mock · zero keys, zero network', kbd: 'M',
-        ...(running ? { off: 'a run is live — ■ Stop first' } : {}),
+        ...(running ? { off: 'a run is live · ■ Stop first' } : {}),
         run: () => requestRunFn(true),
       },
       { label: '', sep: true },
@@ -6444,16 +6444,16 @@ class DagRenderer {
           const admits = isAfterPredicate(pred)
             ? `{${PREDICATE_ADMITS[pred].join(' · ')}}`
             : `{${pred}}`;
-          return `${ends.source} → ${ends.target}\ncontrol — runs when ${ends.source} settles ${pred} (after:)\nadmits ${admits}\n⌥click to remove the entry`;
+          return `${ends.source} → ${ends.target}\ncontrol · runs when ${ends.source} settles ${pred} (after:)\nadmits ${admits}\n⌥click to remove the entry`;
         }
         case 'recovery':
-          return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery — a parking read at recovery time, never an ordering edge\nadmits — (parked · outside the precedence graph)`;
+          return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery · a parking read at recovery time, never an ordering edge\nadmits · (parked · outside the precedence graph)`;
         case 'terminal-observation':
-          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation — the binding reads the settled record\nadmits {success · failure · skipped · cancelled}`;
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation · the binding reads the settled record\nadmits {success · failure · skipped · cancelled}`;
         case 'failure-observation':
-          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nfailure observation — the .error read\nadmits {failure · skipped}`;
+          return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nfailure observation · the .error read\nadmits {failure · skipped}`;
         default:
-          return `${ends.source} ── ${meta?.label ?? ''} ──▶ ${ends.target}\nvalue — data travels here (the with: binding IS the edge)\nadmits {success · skipped}`;
+          return `${ends.source} ── ${meta?.label ?? ''} ──▶ ${ends.target}\nvalue · data travels here (the with: binding IS the edge)\nadmits {success · skipped}`;
       }
     };
     enter.append('title').text(titleOf);
@@ -7869,27 +7869,27 @@ function buildExplainer(): void {
   card.appendChild(metrics);
 
   const rows: Array<[string, string, string]> = [
-    ['ex-glyph-wave', 'Wave bands', 'topological levels — every task in a band can run in parallel; a band starts when the one above completed'],
-    ['ex-glyph-critical', 'Critical path', 'the longest chain (real durations when known) — it alone decides the wall-clock'],
-    ['ex-glyph-flow', 'Flowing edges', 'the source task finished — its output is travelling to the next ones'],
+    ['ex-glyph-wave', 'Wave bands', 'topological levels · every task in a band can run in parallel; a band starts when the one above completed'],
+    ['ex-glyph-critical', 'Critical path', 'the longest chain (real durations when known) · it alone decides the wall-clock'],
+    ['ex-glyph-flow', 'Flowing edges', 'the source task finished · its output is travelling to the next ones'],
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
-    ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand — the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · ❏ duplicate · Space peeks the focused card · Shift+V sets every card'],
-    ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) — the deck IS the parallel copies; the badge counts them'],
-    ['ex-glyph-policy', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy — ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
-    ['ex-glyph-gate', '⌁ gate chip', 'a when: condition — this task runs only if it holds (skipped is a decision, never a failure)'],
-    ['ex-glyph-rail', 'The left rail', 'the plan itself — every wave, clickable; your viewport\'s wave stays lit'],
-    ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way — snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
-    ['ex-glyph-connect', '⌥ drag node → node', 'order on state — the YAML gets `after: { from: success }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
-    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge — pick a verb or a tool, the wire reroutes through it (control wires only; a binding is authored, never rerouted)'],
-    ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original — fresh id, inbound wiring kept'],
+    ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand · the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · ❏ duplicate · Space peeks the focused card · Shift+V sets every card'],
+    ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) · the deck IS the parallel copies; the badge counts them'],
+    ['ex-glyph-policy', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy · ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
+    ['ex-glyph-gate', '⌁ gate chip', 'a when: condition · this task runs only if it holds (skipped is a decision, never a failure)'],
+    ['ex-glyph-rail', 'The left rail', 'the plan itself · every wave, clickable; your viewport\'s wave stays lit'],
+    ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way · snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
+    ['ex-glyph-connect', '⌥ drag node → node', 'order on state · the YAML gets `after: { from: success }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
+    ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge · pick a verb or a tool, the wire reroutes through it (control wires only; a binding is authored, never rerouted)'],
+    ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original · fresh id, inbound wiring kept'],
     ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
-    ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here — the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
-    ['ex-glyph-lineage', 'Lineage — follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades — Esc clears'],
-    ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance — ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
-    ['ex-glyph-dep', 'Gray dashed edges', 'control — after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
-    ['ex-glyph-zoom', 'Zoom far out', 'the map read — cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
-    ['ex-glyph-focus', '⚡ what if? (X)', 'replay admission with a task failed — dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
-    ['ex-glyph-stack', '⎘ workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs — supplied · default · ⚠ required · the breadcrumb climbs back'],
+    ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here · the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
+    ['ex-glyph-lineage', 'Lineage · follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades · Esc clears'],
+    ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance · ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
+    ['ex-glyph-dep', 'Gray dashed edges', 'control · after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
+    ['ex-glyph-zoom', 'Zoom far out', 'the map read · cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
+    ['ex-glyph-focus', '⚡ what if? (X)', 'replay admission with a task failed · dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
+    ['ex-glyph-stack', '⎘ workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs · supplied · default · ⚠ required · the breadcrumb climbs back'],
     ['ex-glyph-rail', 'One graph · five lenses', 'T timeline (ghost ceiling = your recorded mean) · P audit (what this file CAN DO) · D dataflow (where data goes) · H heatmap · same map, one key each'],
   ];
   for (const [glyphClass, head, body] of rows) {
@@ -7900,7 +7900,7 @@ function buildExplainer(): void {
     const text = document.createElement('span');
     const strong = document.createElement('strong');
     strong.textContent = head;
-    text.append(strong, document.createTextNode(` — ${body}`));
+    text.append(strong, document.createTextNode(` · ${body}`));
     row.append(glyph, text);
     card.appendChild(row);
   }
@@ -7970,7 +7970,7 @@ function renderExplainerInsights(): void {
     `work ${fmt(ins.work)} / longest path ${fmt(ins.span)}${ins.weighted ? ' (measured)' : ''}`,
   );
   if (ins.pinchPoints.length > 0 && ins.nodeCount > 1) {
-    line('pinch points', ins.pinchPoints.join(' · '), 'the DAG narrows to width 1 there — nothing else runs');
+    line('pinch points', ins.pinchPoints.join(' · '), 'the DAG narrows to width 1 there · nothing else runs');
   }
   if (ins.makespans.length > 1) {
     line(
@@ -8553,7 +8553,7 @@ function applyCostChip(forecast: { label: string; tooltip: string; unbounded: bo
     : '';
   chip.textContent = (forecast.delta ? `${forecast.label} · ${forecast.delta.label}` : forecast.label) + eta;
   chip.title = (forecast.delta ? `${forecast.tooltip}\n${forecast.delta.tooltip}` : forecast.tooltip)
-    + (eta !== '' ? `\n~ recorded pace: the weighted critical path over your recorded means — the time floor no parallelism can beat.` : '');
+    + (eta !== '' ? `\n~ recorded pace: the weighted critical path over your recorded means · the time floor no parallelism can beat.` : '');
   chip.classList.toggle('unbounded', forecast.unbounded);
   chip.classList.toggle('cost-up', forecast.delta?.up === true);
   chip.removeAttribute('hidden');
