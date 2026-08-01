@@ -16,7 +16,7 @@ import ELK, {
 } from 'elkjs';
 
 import { select, type Selection } from 'd3-selection';
-import { zoom, zoomIdentity, type ZoomBehavior, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
+import { zoom, zoomIdentity, zoomTransform, type ZoomBehavior, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
 import { line, curveMonotoneY, type Line } from 'd3-shape';
 import { easeCubicOut } from 'd3-ease';
 // Side-effect import: patches Selection.prototype with .transition()
@@ -2037,10 +2037,15 @@ class DagRenderer {
     document.body.appendChild(banner);
   }
 
+  /** The camera the map held when the lens opened — the exit restores
+   *  it exactly (the gauntlet: « dumped at 160% staring at a corner »). */
+  private tlSavedCamera: ZoomTransform | undefined;
+
   toggleTimeline(): void {
     this.timelineOn = !this.timelineOn;
     document.body.classList.toggle('timeline', this.timelineOn);
     if (this.timelineOn) {
+      this.tlSavedCamera = zoomTransform(this.svg.node() as SVGSVGElement);
       // Words FIRST, data second: the lens paints its waiting line in the
       // toggle's own frame — a host that answers slowly (or never: the
       // request rides one message) must never leave a nude canvas with
@@ -2056,6 +2061,11 @@ class DagRenderer {
     } else {
       this.timelineGroup?.remove();
       this.timelineGroup = undefined;
+      if (this.tlSavedCamera) {
+        this.svg.interrupt();
+        this.svg.call(this.zoomBehavior.transform as D3ZoomCall, this.tlSavedCamera);
+        this.tlSavedCamera = undefined;
+      }
     }
   }
 
@@ -4251,6 +4261,16 @@ class DagRenderer {
    *  to native traversal there or keyboard users can reach NOTHING. */
   get hasGraph(): boolean { return this.currentGraph !== undefined; }
 
+  /** True when the walk would wrap past its end in `dir` — the Tab
+   *  boundary (the trap-escape seam · arrows still wrap freely). */
+  atWalkBoundary(dir: 'prev' | 'next'): boolean {
+    if (!this.currentGraph || this.focusedId === null) { return false; }
+    const order = this.currentGraph.nodes.map((n) => n.id);
+    if (order.length === 0) { return false; }
+    const at = order.indexOf(this.focusedId);
+    return dir === 'next' ? at === order.length - 1 : at === 0;
+  }
+
   /** Keyboard nav: move focus by direction over the DAG structure.
    *  Keyboard-initiated → the camera JUMPS (motion charter law 7). */
   navFocus(dir: NavDir): void {
@@ -5377,6 +5397,12 @@ class DagRenderer {
       auditChip.setAttribute('aria-label',
         `Open the pre-flight report · ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'} on this task`);
       auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task · click for the pre-flight report`;
+    }
+    if (!node.auditCount) {
+      // No findings → not a control: out of the tree, out of the walk.
+      auditChip.setAttribute('aria-hidden', 'true');
+      auditChip.tabIndex = -1;
+      auditChip.disabled = true;
     }
     auditChip.addEventListener('mousedown', (e) => e.stopPropagation());
     auditChip.addEventListener('click', (e) => {
@@ -8206,6 +8232,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
   const msg = event.data;
   switch (msg.kind) {
     case 'dag:load':
+      releaseDescribe();
       // The skeleton is spent — the graph replaces the breathing ghost.
       clearLoadingSkeleton();
       // A new graph invalidates any loaded timeline; transport:load (if
@@ -8447,15 +8474,25 @@ function setRunUiState(running: boolean): void {
   stop?.toggleAttribute('hidden', !running);
   if (running) {
     // A fresh run resets the heartbeat label and claims the verdict spot.
-    if (stop) { stop.textContent = '■ Stop'; }
+    if (stop) { stop.replaceChildren(stopSquare(), ' Stop'); }
     hideRunVerdict();
   }
 }
 
 /** `■ 3/7` — settled over scheduled, the run's glanceable heartbeat. */
+/** The stop SQUARE alone carries the red — the count beside it is
+ *  progress, not failure (the gauntlet: « ■ 2/7 read as 2 of 7
+ *  failed » to CI-trained eyes). */
+function stopSquare(): HTMLElement {
+  const sq = document.createElement('span');
+  sq.className = 'rc-stop-sq';
+  sq.textContent = '■';
+  return sq;
+}
+
 function applyRunProgress(done: number, total: number): void {
   const stop = document.getElementById('btn-stop');
-  if (stop && total > 0) { stop.textContent = `■ ${done}/${total}`; }
+  if (stop && total > 0) { stop.replaceChildren(stopSquare(), ` ${done}/${total}`); }
 }
 
 // ─── Verdict banner · the run's close, visible without the feed ─────────────
@@ -8708,6 +8745,7 @@ document.getElementById('omni-go')?.addEventListener('click', () => runOmni());
 const dataflowBtn = document.getElementById('btn-dataflow');
 const syncDataflowBtn = (): void => { dataflowBtn?.classList.toggle('active', renderer.dataflowOn); dataflowBtn?.setAttribute('aria-pressed', String(renderer.dataflowOn)); };
 dataflowBtn?.addEventListener('click', () => {
+  if (renderer.timelineOn) { return; } // map overlays sleep under the lens
   renderer.toggleDataflow();
   syncDataflowBtn();
   announce(`Dataflow ${renderer.dataflowOn ? 'on' : 'off'}`);
@@ -8716,6 +8754,7 @@ dataflowBtn?.addEventListener('click', () => {
 const auditBtn = document.getElementById('btn-audit');
 const syncAuditBtn = (): void => { auditBtn?.classList.toggle('active', renderer.auditOn); auditBtn?.setAttribute('aria-pressed', String(renderer.auditOn)); };
 auditBtn?.addEventListener('click', () => {
+  if (renderer.timelineOn) { return; }
   renderer.toggleAudit();
   syncAuditBtn();
   announce(`Audit lens ${renderer.auditOn ? 'on' : 'off'}`);
@@ -8732,6 +8771,7 @@ timelineBtn?.addEventListener('click', () => {
 const wavesBtn = document.getElementById('btn-waves');
 const syncWavesBtn = (): void => { wavesBtn?.classList.toggle('active', renderer.showWaves); wavesBtn?.setAttribute('aria-pressed', String(renderer.showWaves)); };
 wavesBtn?.addEventListener('click', () => {
+  if (renderer.timelineOn) { return; }
   renderer.showWaves = !renderer.showWaves;
   syncWavesBtn();
   announce(`Waves ${renderer.showWaves ? 'on' : 'off'}`);
@@ -8888,6 +8928,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     || (ae instanceof Element && (ae.classList.contains('dag-svg') || ae.classList.contains('dag-node'))));
   if (e.key === 'Tab') {
     if (!inCanvasLand) { return; }
+    // The boundary exit (WCAG no-trap): at the walk's end the press
+    // falls through to native order — the canvas is enterable AND
+    // leavable by keyboard alone; the walk survives in between.
+    if (renderer.atWalkBoundary(e.shiftKey ? 'prev' : 'next')) {
+      renderer.clearFocus();
+      return; // native Tab proceeds
+    }
     e.preventDefault();
     renderer.navFocus(e.shiftKey ? 'prev' : 'next');
     return;
@@ -8901,6 +8948,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (renderer.unpinPeek()) { return; }
     if (renderer.clearSimulation()) { return; }
     if (renderer.cancelConnect()) { return; }
+    // The lens said « T or Esc returns to the map » — Esc must mean it.
+    if (renderer.timelineOn) { timelineBtn?.dispatchEvent(new Event('click')); return; }
     const ex = document.getElementById('explainer');
     if (ex && !ex.hasAttribute('hidden')) {
       ex.setAttribute('hidden', '');
@@ -9070,13 +9119,31 @@ function clearLoadingSkeleton(): void {
 
 // ─── The welcome · describe → generate · actions → whitelisted commands ─────
 
+let describeBusyTimer: ReturnType<typeof setTimeout> | undefined;
+/** The bar ACKs (the gauntlet: « my words just evaporated ») — the
+ *  words STAY, the form goes busy, the sparkle spins; dag:load /
+ *  welcome:data or a 20s ceiling releases. */
+function releaseDescribe(): void {
+  const form = document.getElementById('es-describe');
+  const input = document.getElementById('es-describe-input') as HTMLInputElement | null;
+  if (form?.classList.contains('es-busy')) {
+    form.classList.remove('es-busy');
+    if (input) { input.disabled = false; input.value = ''; }
+  }
+  if (describeBusyTimer) { clearTimeout(describeBusyTimer); describeBusyTimer = undefined; }
+}
 document.getElementById('es-describe')?.addEventListener('submit', (e: Event) => {
   e.preventDefault();
+  const form = document.getElementById('es-describe');
   const input = document.getElementById('es-describe-input') as HTMLInputElement | null;
   const text = input?.value.trim();
   if (!text) { input?.focus(); return; }
+  if (form?.classList.contains('es-busy')) { return; }
   vscode.postMessage({ kind: 'welcome:describe', text });
-  if (input) { input.value = ''; }
+  form?.classList.add('es-busy');
+  if (input) { input.disabled = true; }
+  announce('Drafting the workflow · the oracle checks it before it lands');
+  describeBusyTimer = setTimeout(releaseDescribe, 20000);
 });
 
 for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>('.es-cmd'))) {
