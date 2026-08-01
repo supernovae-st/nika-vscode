@@ -4,6 +4,27 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.7] · 2026-08-01
+
+The chrome wave (the Krea read, held against the screenshot): a menu
+is CHROME, not code · the mono wall falls where it was noise and holds
+where it is data.
+
+- **Menus speak the UI sans at 13px in 34px rows**: the + palette, the
+  K family, the run menu, the ⋯ shed, the search and the menu inputs
+  drop Martian Mono for the Grotesk (Gilroy local-first) · the panels
+  sit on the new ELEVATED ground (--nk-menu · a step lighter than the
+  card, the Krea elevation) at radius 12 with generous padding · the
+  + palette widens to 340.
+- **The card title speaks chrome**: nc-id flips to the UI sans
+  semibold (the Krea node-title read) · the mechanism line, the body
+  and every count stay mono · code is code, data is data.
+- **The bottom bar labels join** (Run · changed · Stop · the
+  placeholder) with tabular counts.
+
+Proven: 1441/1441 · tokens-parity green (radii on the ladder) ·
+a11y-probes 45/45 · GIFs regenerated.
+
 ## [0.107.6] · 2026-08-01
 
 The apple wave: seven per-element design scouts (screenshot-grounded)

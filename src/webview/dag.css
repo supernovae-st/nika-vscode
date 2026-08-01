@@ -126,6 +126,9 @@ body {
    * breathe the canvas through; overlays read as a LENS — deeper blur,
    * saturation bleed, a specular top edge. Consumers pair the filter
    * with --nk-specular inside their box-shadow list. */
+  /* The elevated menu ground (the Krea read): overlays sit a step
+   * LIGHTER than the card — elevation speaks through lightness. */
+  --nk-menu: color-mix(in srgb, var(--nk-ink) 5%, var(--nk-surface));
   --nk-glass-raised: blur(14px) saturate(1.22);
   --nk-glass-overlay: blur(22px) saturate(1.35);
   --nk-specular: inset 0 1px 0 rgb(255 255 255 / 0.10);
@@ -2685,7 +2688,7 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
   width: min(360px, calc(100vw - 24px));
   padding: 5px 10px;
   font-size: var(--nk-fs-ui);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
   backdrop-filter: blur(10px);
@@ -3197,6 +3200,7 @@ body.running .dag-node.status-success .nc::after {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--nk-ui-font); /* the node TITLE speaks chrome (Krea) · the mechanism/body stay code */
   font-size: var(--nk-fs-heading);
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -4637,7 +4641,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   min-width: 0;
   padding: 4px 2px;
   font-size: var(--nk-fs-title);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   color: var(--nk-ink);
   background: transparent;
   border: none;
@@ -4724,7 +4728,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   border: none;
   border-radius: var(--nk-r-tile);
   color: var(--nk-ink);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-title);
   text-align: left;
   cursor: pointer;
@@ -4879,8 +4883,9 @@ body.running #run-controls .rc-more:disabled { opacity: 1; }
   gap: 4px;
   height: 30px;
   padding: 0 10px;
-  font-size: var(--nk-fs-label);
-  font-family: var(--nk-mono);
+  font-size: var(--nk-fs-ui);
+  font-family: var(--nk-ui-font);
+  font-variant-numeric: tabular-nums;
   border-radius: var(--nk-radius);
   cursor: pointer;
   transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), opacity var(--nk-dur-base) var(--nk-ease-effects);
@@ -5251,13 +5256,13 @@ body.lod-far .region-label { display: none; }
 #connect-cmdk {
   position: fixed;
   z-index: 52;
-  width: 280px;
-  padding: 6px;
-  background: color-mix(in srgb, var(--nk-surface) 94%, transparent);
+  width: 340px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--nk-menu) 94%, transparent);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: var(--nk-glass-overlay);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
+  border-radius: 12px;
   box-shadow: var(--nk-shadow-2), var(--nk-bevel);
   /* Modern entrance (V0.d): the palette fades + drops in from display:none
    * via @starting-style + allow-discrete — it arrives, it never snaps. The
@@ -5321,10 +5326,10 @@ body.lod-far .region-label { display: none; }
 #cmdk-input,
 #connect-input {
   width: 100%;
-  padding: 6px 8px 8px;
+  padding: 8px 10px 10px;
   margin-bottom: 4px;
-  font-size: var(--nk-fs-title);
-  font-family: var(--nk-mono);
+  font-size: 13px;
+  font-family: var(--nk-ui-font);
   color: var(--nk-ink);
   background: transparent;
   border: 0;
@@ -5344,15 +5349,16 @@ body.lod-far .region-label { display: none; }
 
 .cmdk-row {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 6px 8px;
-  font-family: var(--nk-mono);
+  min-height: 34px;
+  padding: 6px 10px;
+  font-family: var(--nk-ui-font);
   color: var(--nk-ink);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: calc(var(--nk-radius) - 2px);
+  border-radius: var(--nk-r-panel);
   cursor: pointer;
   text-align: left;
 }
@@ -5368,14 +5374,16 @@ body.lod-far .region-label { display: none; }
 .cmdk-row.verb-agent { --dv-hue: var(--nk-verb-agent); }
 
 .cmdk-glyph {
-  flex: 0 0 auto;
+  flex: 0 0 20px;
+  display: inline-flex;
+  justify-content: center;
   color: var(--dv-hue, var(--nk-ink-dim));
-  font-size: var(--nk-fs-ui);
+  font-size: 13px;
 }
 
 .cmdk-name {
   flex: 0 0 auto;
-  font-size: var(--nk-fs-ui);
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -5384,7 +5392,7 @@ body.lod-far .region-label { display: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--nk-fs-meta);
+  font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
   text-align: right;
 }
@@ -7376,10 +7384,10 @@ body.dataflow .nc-io {
 :is(#nk-actions, #nk-run-menu, #nk-display) {
   position: fixed;
   z-index: 70;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
-  border-radius: var(--nk-r-pop);
-  background: color-mix(in srgb, var(--nk-page) 84%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--nk-menu) 88%, transparent);
   backdrop-filter: var(--nk-glass-overlay);
   box-shadow: var(--nk-specular), var(--nk-shadow-2);
 }
@@ -7399,7 +7407,7 @@ body.dataflow .nc-io {
 #nk-display { min-width: 340px; }
 .nk-act-title {
   padding: 4px 10px 6px;
-  font-family: var(--nk-mono, monospace);
+  font-family: var(--nk-ui-font);
   font-weight: 700;
   font-size: var(--nk-fs-label);
   color: color-mix(in srgb, var(--nk-ink) 60%, transparent);
@@ -7412,14 +7420,15 @@ body.dataflow .nc-io {
   justify-content: space-between;
   gap: 18px;
   width: 100%;
+  min-height: 34px;
   padding: 6px 10px;
   border: 1px solid transparent; /* the ring slot — no shift on select */
-  border-radius: var(--nk-r-tile);
+  border-radius: var(--nk-r-panel);
   background: none;
   color: var(--nk-ink);
-  font-family: var(--nk-mono, monospace);
+  font-family: var(--nk-ui-font);
   font-weight: 500;
-  font-size: var(--nk-fs-ui);
+  font-size: 13px;
   text-align: left;
   cursor: pointer;
 }
