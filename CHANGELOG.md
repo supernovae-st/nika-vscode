@@ -4,6 +4,88 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.3] · 2026-08-01
+
+The wow wave: five design lenses (Raycast rows · Vercel restraint ·
+Linear motion) swept the canvas with grounded findings; fifty
+survived verification, all applied. Two real P1 bugs died with it.
+
+### The two bugs the lenses caught
+
+- **The phantom token dialect**: --nk-bg/--nk-fg (and three cousins)
+  were consumed 32 times and defined NOWHERE · the run-verdict banner
+  painted its background TRANSPARENT, the K panels hardcoded
+  near-black on the light skin, diff badges wore foreign greens over
+  the status hues. Renamed to the real tokens, fallbacks deleted ·
+  the banner gets its pane back, every skin re-voices every panel.
+- **The vendor-colored toolbar**: a late duplicate .active rule
+  painted pressed lens toggles with the USER'S theme button color ·
+  a purple theme leaked purple pills into the brand-locked one-blue
+  skin. The designed accent tint rules again.
+
+### Less but better (the subtraction)
+
+- The K family (K panel · run menu · display) declared ONCE · ~90
+  duplicate lines gone · overlays ride the deep shadow tier · kbd
+  joins the keycap construction · type reads the ladder tokens.
+- ~90 lines of dead welcome-v1 CSS die · ONE blue structural again
+  (the hardcoded CTA override died, the color-mix derivation lives) ·
+  14 motion literals sweep to the token scale · the progress sweep
+  breathes (dead-time keyframes) instead of restart-snapping.
+- The calm dial turns FULLY: eleven loop families the OS gate paused
+  and the setting missed join the pause list · the aurora yields too.
+- One voice sweeps: 63 user-facing strings drop the em-dash for « · »
+  · the wall dismiss joins the registered ✕ · the ? button stops
+  printing its own key.
+
+### Composition (Vercel discipline)
+
+- ONE section-header voice (uppercase · 0.08em · dim) · chrome
+  spacing quantizes to the even scale (the card's 7s stay: material
+  SSOT) · ONE focus ring (--nk-ring 2px accent) everywhere focus
+  lands · the ⋯ shed rows get a real ring.
+- The front door holds ONE resting primary: the describe sparkle
+  sleeps until the bar engages · « ⧈ Try » becomes « ⧈ Examples »
+  (two adjacent buttons stop fighting for one verb).
+
+### Buttons (five states, one press clock)
+
+- Every press answers at the fast token (toolbar presses snapped at
+  0ms · the palette dragged 160ms) · the flat secondaries press 1px ·
+  a disabled run cluster explains itself (« A run is live · ■ Stop
+  first ») · #btn-feed joins the aria-pressed law · the zoom readout
+  earns its own verb (click = 100%, Fit keeps F).
+
+### Interactions (Linear motion)
+
+- The card UNFOLDS: expand · peek · the failure promote glide their
+  frame geometry on the spatial voice · the canvas's central gesture
+  snapped 0ms while its neighbors glided.
+- Exits FASTER than entrances (all ten overlays: enter 160 · exit 80)
+  · the verdict banner LANDS on the spring and leaves fast · every
+  stagger clamps at 8 beats (a 30-wave chain no longer waits 2.1s) ·
+  card hover stops shearing off its jacks (light, not motion) · the
+  pointer menus arrive on the cmdk recipe · the scrubber thumb swells
+  under the hand.
+
+### The wow moments
+
+- IGNITION is one beat: the Run key holds its press through the spawn
+  gap · the bench fades instead of popping · one pulse cadence.
+- The room DIMS on ignition (typed @property vignette · eased over
+  the deliberate token) instead of jump-cutting.
+- LOADING shows the destination's skeleton, not the marketing door.
+- FIRST-OPEN composes (hero → primary → quiet rows on token beats).
+
+### Proven
+
+- a11y-probes 45/45 · chrome-probes 0 findings across all three
+  skins · 1441/1441 at the released binary · every repo gate green.
+- All three README GIFs regenerated from THIS bundle (the owed
+  media debt paid · the capture rig drives the real webview).
+- The stranded card actions joined the K panel (model · pre-flight
+  report), rows present only where the fact is.
+
 ## [0.107.2] · 2026-08-01
 
 The holes wave: a second swarm walked what the first two missed ·

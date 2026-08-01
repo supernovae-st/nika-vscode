@@ -1,6 +1,6 @@
 # See the DAG
 
-![the live canvas: the plan as a graph, run state on every card](./assets/canvas-poster.png)
+![the live canvas: the plan as a graph, run state on every card](./assets/canvas-poster.svg)
 
 The model, in two lines: `tasks` form a graph of TYPED edges · a `with:`
 binding is a data edge (the binding IS the edge) · an `after:` entry is

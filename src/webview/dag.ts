@@ -262,7 +262,7 @@ class VerbCmdk {
         } else { glyph.textContent = CATEGORY_GLYPH[entry.cat] ?? '◆'; }
         name.textContent = entry.bare;
         blurb.textContent = toolDescOf(entry.bare) ?? `invoke · nika:${entry.bare}`;
-        row.title = `invoke · nika:${entry.bare}${toolDescOf(entry.bare) ? ` — ${toolDescOf(entry.bare)}` : ''}`;
+        row.title = `invoke · nika:${entry.bare}${toolDescOf(entry.bare) ? ` · ${toolDescOf(entry.bare)}` : ''}`;
       }
       row.append(glyph, name, blurb);
       row.addEventListener('mouseenter', () => { this.active = i; this.paintActive(); });
@@ -941,14 +941,14 @@ const showWall = (message: string): void => {
     wall.appendChild(text);
     const close = document.createElement('button');
     close.className = 'nk-wall-close';
-    close.textContent = '×';
+    close.textContent = '✕';
     close.title = 'Dismiss';
     close.addEventListener('click', () => document.getElementById('nk-wall')?.remove());
     wall.appendChild(close);
     document.body.appendChild(wall);
   }
   const text = wall.querySelector('.nk-wall-text');
-  if (text) { text.textContent = `the canvas hit a wall — ${line}`; }
+  if (text) { text.textContent = `the canvas hit a wall · ${line}`; }
   if (!wallSeen) {
     wallSeen = true; // first wall speaks to the extension; repeats only repaint
     vscode.postMessage({ kind: 'dag:wall', message: line });
@@ -2031,7 +2031,7 @@ class DagRenderer {
     if (secretTotal > 0) {
       const warn = document.createElement('span');
       warn.className = 'audit-banner-secret';
-      warn.textContent = ` — ⚿ ${secretTotal} literal credential${secretTotal === 1 ? '' : 's'} pasted (use \u0024{{ env.VAR }})`;
+      warn.textContent = ` · ⚿ ${secretTotal} literal credential${secretTotal === 1 ? '' : 's'} pasted (use \u0024{{ env.VAR }})`;
       banner.appendChild(warn);
     }
     document.body.appendChild(banner);
@@ -2097,7 +2097,7 @@ class DagRenderer {
       // « t3 » in the loop's own quiet mark (the pulse vocabulary).
       if (row.agentTurns !== undefined) {
         idText.append('tspan').attr('class', 'tl-agent-turns').text(` t${row.agentTurns}`);
-        idText.append('title').text(`agent loop — ${row.agentTurns} turn${row.agentTurns === 1 ? '' : 's'}`);
+        idText.append('title').text(`agent loop · ${row.agentTurns} turn${row.agentTurns === 1 ? '' : 's'}`);
       }
       // The ghost ceiling — the recorded mean across prior runs,
       // painted UNDER the actual bar: est-vs-actual at a glance (a
@@ -2319,7 +2319,7 @@ class DagRenderer {
       // ONE tab stop: the svg holds it until a node takes focus, then
       // the roving tabindex hands it to the focused card (applyFocus).
       .attr('role', 'graphics-document')
-      .attr('aria-label', 'Workflow canvas — no workflow loaded')
+      .attr('aria-label', 'Workflow canvas · no workflow loaded')
       .attr('tabindex', 0);
 
     // SVG defs: arrowhead markers
@@ -2768,7 +2768,7 @@ class DagRenderer {
     const taskCount = graph.nodes.length;
     const graphName = `${graph.workflowName || 'workflow'} — ${taskCount} task${taskCount === 1 ? '' : 's'}`;
     this.svg.attr('aria-label', graphName);
-    this.container.setAttribute('aria-label', `Workflow canvas — ${graphName}`);
+    this.container.setAttribute('aria-label', `Workflow canvas · ${graphName}`);
 
     // Loaded → the empty state yields to the canvas, chrome comes back.
     document.getElementById('empty-state')?.setAttribute('hidden', '');
@@ -3364,7 +3364,7 @@ class DagRenderer {
     if (!box) { return; }
     const hint = document.createElement('div');
     hint.id = 'nk-red-teach';
-    hint.textContent = 'the red teaches — click the code to explain · ⑂ fork rides the card';
+    hint.textContent = 'the red teaches · click the code to explain · ⑂ fork rides the card';
     document.body.appendChild(hint);
     // Park it under the toolbar (fixed) — the card itself may sit
     // anywhere in the viewport; the activity line placement is stable.
@@ -3395,9 +3395,9 @@ class DagRenderer {
       );
       const nc = el?.querySelector<HTMLElement>('.nc');
       if (!el || !nc) { continue; }
-      nc.style.setProperty('--shock-delay', `${d * 70}ms`);
+      nc.style.setProperty('--shock-delay', `${Math.min(d, 8) * 70}ms`);
       el.classList.add('shock');
-      setTimeout(() => el.classList.remove('shock'), d * 70 + 700);
+      setTimeout(() => el.classList.remove('shock'), Math.min(d, 8) * 70 + 700);
     }
   }
 
@@ -3637,7 +3637,7 @@ class DagRenderer {
     g.append('path')
       .attr('class', 'edge-plus-glyph')
       .attr('d', 'M -4.5 0 H 4.5 M 0 -4.5 V 4.5');
-    g.append('title').text('Insert a task INTO this edge — the wire reroutes through it');
+    g.append('title').text('Insert a task INTO this edge · the wire reroutes through it');
     g.on('mouseenter', () => { window.clearTimeout(this.edgePlusHideTimer); });
     g.on('mouseleave', () => this.hideEdgePlus());
     g.on('mousedown', (e: MouseEvent) => e.stopPropagation());
@@ -3750,7 +3750,7 @@ class DagRenderer {
           to: id,
           workflowUri: this.currentGraph?.workflowUri,
         });
-        announce(`Connected — ${id} now depends on ${from}.`);
+        announce(`Connected · ${id} now depends on ${from}.`);
       },
       onClose: () => this.kbConnectCleanup(),
     });
@@ -4560,7 +4560,7 @@ class DagRenderer {
       .attr('class', 'nc nc-enter')
       // Entrance choreography: the card rises in, staggered by wave —
       // the DAG performs its own execution order (reduced-motion: none).
-      .style('animation-delay', (d) => `${(this.waveOf.get(d.id) ?? 0) * 70}ms`)
+      .style('animation-delay', (d) => `${Math.min(this.waveOf.get(d.id) ?? 0, 8) * 70}ms`)
       .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
     // (The old SVG spinner ring that orbited the dot died here — the
@@ -4703,7 +4703,7 @@ class DagRenderer {
     merged
       .transition()
       .duration(REDUCED_MOTION ? 0 : 300)
-      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : (this.waveOf.get(d.id) ?? 0) * 70)
+      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : Math.min(this.waveOf.get(d.id) ?? 0, 8) * 70)
       .attr('opacity', 1)
       .attr('transform', (d) => {
         const elk = elkMap.get(d.id);
@@ -4811,7 +4811,7 @@ class DagRenderer {
       el.classList.add('nc-body-live');
     } else if (node.status === 'failed' && node.failPreview) {
       el.textContent = `\u2717 ${node.failPreview}`;
-      el.title = `${node.failPreview}\n\nclick — explain the code`;
+      el.title = `${node.failPreview}\n\nclick · explain the code`;
       el.classList.add('nc-body-live', 'nc-body-err');
     }
     host.appendChild(el);
@@ -4963,7 +4963,7 @@ class DagRenderer {
         const chip = document.createElement('button');
         chip.className = 'nc-xc-chip';
         chip.textContent = nid;
-        chip.title = `${nid} — click to focus it`;
+        chip.title = `${nid} · click to focus it`;
         chip.addEventListener('mousedown', (e) => e.stopPropagation());
         chip.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -5073,7 +5073,7 @@ class DagRenderer {
       chip.textContent = node.model;
       chip.title = 'Change this task\'s model (edits the YAML · ⌘Z undoes)';
       // The name states the ACTION and carries the value; the title adds the how.
-      chip.setAttribute('aria-label', `Change the model — currently ${node.model}`);
+      chip.setAttribute('aria-label', `Change the model · currently ${node.model}`);
       chip.addEventListener('mousedown', (e) => e.stopPropagation());
       chip.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -5094,7 +5094,7 @@ class DagRenderer {
       const tag = document.createElement('span');
       tag.className = 'nc-engine';
       tag.textContent = declared.provider;
-      tag.title = `provider: ${declared.provider} — the declared engine for this generation`;
+      tag.title = `provider: ${declared.provider} · the declared engine for this generation`;
       return tag;
     }
     return null;
@@ -5169,7 +5169,7 @@ class DagRenderer {
       // The split declares the recipe: A = source + ops chain · B = the
       // coming AFTER (the real input thumb is a host-side v2).
       frame.classList.add('nc-fx');
-      frame.title = 'this task restyles an image — the result lands here';
+      frame.title = 'this task restyles an image · the result lands here';
       const b = document.createElement('span');
       b.className = 'nc-fx-b';
       const ghost = document.createElement('span');
@@ -5183,7 +5183,7 @@ class DagRenderer {
     const ghost = document.createElement('span');
     ghost.className = 'nc-ghost';
     if (identity.builtin === 'chart') {
-      frame.title = 'this task renders a chart — the SVG lands here';
+      frame.title = 'this task renders a chart · the SVG lands here';
       const sketch = d.chartType ? makeChartShapeGlyph(d.chartType, 24) : null;
       if (sketch) {
         ghost.appendChild(sketch);
@@ -5201,7 +5201,7 @@ class DagRenderer {
         frame.appendChild(cap);
       }
     } else {
-      frame.title = 'this task produces an image — the recorded output lands here';
+      frame.title = 'this task produces an image · the recorded output lands here';
       // The ghost-ratio letterbox: a declared literal ratio sizes the
       // dashed frame INSIDE the constant slot; an interpolated or
       // absent ratio keeps the generic frame (the gap, stated).
@@ -5280,7 +5280,7 @@ class DagRenderer {
     const row = document.createElement('div');
     row.className = 'nc-preview-audio nc-audio-ghost nc-dev-sweep';
     row.setAttribute('aria-hidden', 'true');
-    row.title = 'this task synthesizes speech — the recorded audio lands here';
+    row.title = 'this task synthesizes speech · the recorded audio lands here';
     const play = document.createElement('span');
     play.className = 'nc-audio-play nc-play-ghost';
     play.textContent = '▶';
@@ -5329,7 +5329,7 @@ class DagRenderer {
     const row = document.createElement('div');
     row.className = 'nc-preview-check nc-dev-sweep';
     row.setAttribute('aria-hidden', 'true');
-    row.title = 'compose statically checks the drafted workflow (never runs it) — the verdict lands here';
+    row.title = 'compose statically checks the drafted workflow (never runs it) · the verdict lands here';
     const glyph = document.createElement('span');
     glyph.className = 'nc-check-glyph';
     glyph.textContent = '⎙';
@@ -5366,7 +5366,7 @@ class DagRenderer {
     const staleChip = document.createElement('span');
     staleChip.className = 'nc-stale';
     staleChip.textContent = '△ stale';
-    staleChip.title = 'Edited since its last successful run (or downstream of such an edit) — a run will re-execute this.';
+    staleChip.title = 'Edited since its last successful run (or downstream of such an edit) · a run will re-execute this.';
     // Audit chip — the static-check moat on the card (⚠N · worst
     // severity via the group class · click → the pre-flight report).
     const auditChip = document.createElement('button');
@@ -5376,8 +5376,7 @@ class DagRenderer {
       // The NAME states the action; ⚠ + a number is a glyph and a digit to a reader.
       auditChip.setAttribute('aria-label',
         `Open the pre-flight report — ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'} on this task`);
-      auditChip.dataset.worst = node.auditWorst ?? 'error';
-      auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task — click for the pre-flight report`;
+      auditChip.title = `${node.auditCount} static-check finding${node.auditCount === 1 ? '' : 's'} on this task · click for the pre-flight report`;
     }
     auditChip.addEventListener('mousedown', (e) => e.stopPropagation());
     auditChip.addEventListener('click', (e) => {
@@ -5457,7 +5456,7 @@ class DagRenderer {
         const zone = document.createElement('button');
         const fx = identity.builtin === 'image_fx';
         zone.className = fx ? 'nc-preview nc-fx' : 'nc-preview';
-        zone.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · recorded output (click to open)`;
+        zone.title = `${a.name}${a.tip ? ` · ${a.tip}` : ''} · recorded output (click to open)`;
         const img = document.createElement('img');
         img.src = a.src;
         img.alt = a.name;
@@ -5499,7 +5498,7 @@ class DagRenderer {
         // artifacts.ts; no bytes preview to fake).
         const row = document.createElement('button');
         row.className = 'nc-preview-file';
-        row.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · written by this run (click to open)`;
+        row.title = `${a.name}${a.tip ? ` · ${a.tip}` : ''} · written by this run (click to open)`;
         const glyph = document.createElement('span');
         glyph.className = 'nc-file-glyph';
         glyph.textContent = '▤';
@@ -5531,7 +5530,7 @@ class DagRenderer {
         const name = document.createElement('button');
         name.className = 'nc-audio-name';
         name.textContent = a.name;
-        name.title = `${a.name}${a.tip ? ` — ${a.tip}` : ''} · click to open the file`;
+        name.title = `${a.name}${a.tip ? ` · ${a.tip}` : ''} · click to open the file`;
         name.addEventListener('mousedown', (e) => e.stopPropagation());
         name.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -5585,7 +5584,7 @@ class DagRenderer {
           : row.state === 'required-unset' ? '⚠ required'
           : 'optional';
         el.append(name, state);
-        el.title = `${row.name}${row.type !== undefined ? `: ${row.type}` : ''} — `
+        el.title = `${row.name}${row.type !== undefined ? `: ${row.type}` : ''} · `
           + (row.state === 'supplied' ? 'supplied by this task\u2019s args'
             : row.state === 'default' ? 'falls back to the child\u2019s declared default'
             : row.state === 'required-unset' ? 'the child requires it and nothing supplies it (check names the finding)'
@@ -5610,7 +5609,7 @@ class DagRenderer {
       for (const b of wires.slice(0, IO_MAX_WIRES)) {
         const wire = document.createElement('button');
         wire.className = 'nc-io-wire';
-        wire.title = `${b.alias || b.path} ← ${b.from}.${b.path} — click to focus the producer`;
+        wire.title = `${b.alias || b.path} ← ${b.from}.${b.path} · click to focus the producer`;
         const alias = document.createElement('span');
         alias.className = 'nc-io-alias';
         alias.textContent = b.alias || b.path;
@@ -5660,7 +5659,7 @@ class DagRenderer {
       from.className = 'nc-io-from';
       from.textContent = forEachSourceLabel(node.forEachSource!);
       wire.append(alias, arr, from);
-      wire.title = `for_each: ${node.forEachSource} — the collection this task fans out over (one iteration per item)`;
+      wire.title = `for_each: ${node.forEachSource} · the collection this task fans out over (one iteration per item)`;
       fe.appendChild(wire);
       host.appendChild(fe);
     }
@@ -5726,7 +5725,7 @@ class DagRenderer {
           const more = document.createElement('span');
           more.className = 'nc-pol nc-pol-more';
           more.textContent = `+${rest.length}`;
-          more.title = rest.map((c) => `${c.text} — ${c.title.split('\n')[0]}`).join('\n');
+          more.title = rest.map((c) => `${c.text} · ${c.title.split('\n')[0]}`).join('\n');
           policy.appendChild(more);
         }
       };
@@ -6410,7 +6409,7 @@ class DagRenderer {
     const edgeDelay = (d: ElkExtendedEdge): number => {
       if (REDUCED_MOTION || !enteringEdgeIds.has(d.id)) { return 0; }
       const src = this.edgeEnds.get(d.id)?.source;
-      return (src ? (this.waveOf.get(src) ?? 0) : 0) * 70 + 160;
+      return Math.min(src ? (this.waveOf.get(src) ?? 0) : 0, 8) * 70 + 160;
     };
 
     // Edge clicks: ⌥click removes a CONTROL entry (after: {from: pred}).
@@ -6982,7 +6981,7 @@ class DagRenderer {
         // was — and CLICKING it opens the code's explain doc (the
         // same pedagogy the editor's quick fix carries).
         bodyNode.textContent = `\u2717 ${extra.failPreview}`;
-        bodyNode.title = `${extra.failPreview}\n\nclick — explain the code`;
+        bodyNode.title = `${extra.failPreview}\n\nclick · explain the code`;
         bodyNode.classList.add('nc-body-live', 'nc-body-err');
       } else if (bodyNode.classList.contains('nc-body-live')) {
         // Restore the STYLED rest (the essence spans) — dataset.base
@@ -7142,6 +7141,19 @@ class DagRenderer {
 
   zoomOut(instant = false): void {
     this.zoomStep(0.7, instant);
+  }
+
+  /** Actual size — the zoom readout's own verb (the design-tool
+   *  convention: the percentage click means 100%, fit lives on F). */
+  zoomActual(): void {
+    if (REDUCED_MOTION) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.scaleTo as D3ZoomCall, 1);
+      return;
+    }
+    this.svg
+      .transition().duration(300)
+      .call(this.zoomBehavior.scaleTo as D3ZoomCall, 1);
   }
 
   /** One zoom step. Instant (keyboard ±) applies synchronously — the
@@ -7552,7 +7564,7 @@ class DagRenderer {
       // one-shots from re-triggering each other (removing nk-settle
       // later must never replay the rise).
       nc.classList.remove('nc-enter');
-      nc.style.animationDelay = `${(this.waveOf.get(d.id) ?? 0) * 50}ms`;
+      nc.style.animationDelay = `${Math.min(this.waveOf.get(d.id) ?? 0, 8) * 50}ms`;
       nc.classList.add('nk-settle');
       const done = (e: AnimationEvent): void => {
         // Child animations bubble (the sub-line verdict pop can end
@@ -7825,6 +7837,8 @@ function toggleActivity(): void {
     panel.setAttribute('hidden', '');
     btn?.classList.remove('active');
   }
+  // The eighth toggle speaks its state like its seven siblings.
+  btn?.setAttribute('aria-pressed', String(opening));
   vscode.setState({ ...(vscode.getState() ?? {}), showFeed: opening });
 }
 
@@ -7838,7 +7852,7 @@ function buildExplainer(): void {
   // Help pattern): a real dialog a reader can land in — alt+F1 or `?`
   // opens it focused, Esc closes and hands focus back to the canvas.
   el.setAttribute('role', 'dialog');
-  el.setAttribute('aria-label', 'Canvas help — every gesture and key');
+  el.setAttribute('aria-label', 'Canvas help · every gesture and key');
   el.setAttribute('tabindex', '-1');
 
   const card = document.createElement('div');
@@ -8409,10 +8423,24 @@ function setRunUiState(running: boolean): void {
   const run = document.getElementById('btn-run') as HTMLButtonElement | null;
   const mock = document.getElementById('btn-run-mock') as HTMLButtonElement | null;
   const stop = document.getElementById('btn-stop');
+  // A disabled key explains itself at the pointer (the greyed-row law
+  // the run menu already speaks) — the resting title returns on enable.
+  const LIVE_REASON = 'A run is live · ■ Stop first';
+  const explain = (b: HTMLButtonElement | null): void => {
+    if (!b) { return; }
+    if (running) {
+      if (!b.dataset.restTitle) { b.dataset.restTitle = b.title; }
+      b.title = LIVE_REASON;
+    } else if (b.dataset.restTitle) {
+      b.title = b.dataset.restTitle;
+      delete b.dataset.restTitle;
+    }
+  };
   if (run) { run.disabled = running; }
   if (mock) { mock.disabled = running; }
   const resumeBtn = document.getElementById('btn-run-resume') as HTMLButtonElement | null;
   if (resumeBtn) { resumeBtn.disabled = running; }
+  explain(run); explain(mock); explain(resumeBtn);
   stop?.toggleAttribute('hidden', !running);
   if (running) {
     // A fresh run resets the heartbeat label and claims the verdict spot.
@@ -8465,7 +8493,7 @@ function showRunVerdict(icon: string, text: string, cls: string, failedTask?: st
       const explain = document.createElement('button');
       explain.className = 'rv-act';
       explain.textContent = `¶ ${failedCode}`;
-      explain.title = `Explain ${failedCode} — cause · category · fix form`;
+      explain.title = `Explain ${failedCode} · cause · category · fix form`;
       explain.addEventListener('click', (e) => {
         e.stopPropagation();
         vscode.postMessage({ kind: 'dag:explainCode', code: failedCode });
@@ -8476,7 +8504,7 @@ function showRunVerdict(icon: string, text: string, cls: string, failedTask?: st
       const fork = document.createElement('button');
       fork.className = 'rv-act';
       fork.textContent = '⑂ fork';
-      fork.title = `Fork from \`${failedTask}\` — upstream rehydrates from the trace`;
+      fork.title = `Fork from \`${failedTask}\` · upstream rehydrates from the trace`;
       fork.addEventListener('click', (e) => {
         e.stopPropagation();
         vscode.postMessage({
@@ -8607,7 +8635,7 @@ document.getElementById('btn-stop')?.addEventListener('click', () => {
 document.getElementById('btn-fit')?.addEventListener('click', () => renderer.fitToView());
 document.getElementById('btn-zoom-in')?.addEventListener('click', () => renderer.zoomIn());
 document.getElementById('btn-zoom-out')?.addEventListener('click', () => renderer.zoomOut());
-document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
+document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.zoomActual());
 
 /** Auto-layout: drop the drag pins, re-run ELK, re-fit (⌗ · key A). */
 async function resetLayout(instant = false): Promise<void> {
@@ -9439,7 +9467,7 @@ if (!vscode.getState()?.seenBreatheHint) {
       }
       const hint = document.createElement('button');
       hint.id = 'breathe-hint';
-      hint.textContent = '◫ this canvas breathes wider — tap to maximize the group';
+      hint.textContent = '◫ this canvas breathes wider · tap to maximize the group';
       hint.addEventListener('click', () => {
         vscode.postMessage({ kind: 'dag:maximize' });
         hint.remove();

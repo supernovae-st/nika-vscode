@@ -1,6 +1,6 @@
 # Run it · no API key needed
 
-![the run executing through the DAG, chips landing green](./assets/dag-execution-poster.png)
+![the run executing through the DAG, chips landing green](./assets/dag-execution-poster.svg)
 
 The starter workflow uses `model: mock/echo`, a deterministic test provider:
 install → run in 60 seconds, zero keys.
