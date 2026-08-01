@@ -360,23 +360,47 @@ sense; `$(...)` codicons are VS Code's own vocabulary, a separate
 register. Color emoji never enter the mono registry (law 1's floor ·
 the belt bans the ranges).
 
-### 2b-bis · The two icon layers (chrome SVG · prose glyph)
+### 2b-bis · The THREE icon layers (v14 · the master set landed)
 
-The registry above governs SENSE MARKS IN TEXT (menus · legend · feed ·
-badges · titles) · those stay unicode, one glyph one sense. The CHROME
-FACES (toolbar buttons · welcome capability grid · action ghosts) ride
-the **vendored SuperNovae icon ontology** instead: the site's
-`design/icons.yaml` library baked at `public/brand/icons/` and synced
-into `src/icons.generated.ts` by `scripts/sync-icons.mjs` (grid 24 ·
-stroke 2 · round caps · currentColor · SSOT.md Lane B row). The
-correlation with nika.sh is the same bytes, never a resemblance.
+1. **CHROME marks** · the docks, the lens deck, the run cluster, the
+   menu rows: the SuperNovae **master library** (the studio identity
+   pole's ~2000 marks · 24 grid · stroke 2 · round caps ·
+   currentColor), vendored by `scripts/sync-house-icons.mjs` into
+   `src/house-icons.generated.ts` (SSOT Lane B). **Nothing is authored
+   by hand** · if a chrome verb has no mark, pick one from the library
+   or argue a new library entry upstream.
+2. **DOMAIN marks** · the four verbs, the builtins, the feature doors
+   (welcome capability grid): the site's icon **ontology**
+   (`nika.sh design/icons.yaml` → `public/brand/icons/`), vendored by
+   `scripts/sync-icons.mjs` into `src/icons.generated.ts`. Same bytes
+   the site's rooms render · the correlation is identity, not
+   resemblance.
+3. **PROSE marks** · unicode, and only inside TEXT: the glyph registry
+   (§2b) governs these (status verdicts in the feed, policy chips,
+   legend keys, the `[ 01 ]` wave notation). One glyph, one sense.
 
-Chrome verbs the domain set does not carry (plus · fit · layout-grid)
-are authored in the same hand inside `dagPanel.TB_IC`. The LENS DECK is
-the deliberate exception to both layers: keyboard-first lenses wear
-their KEY as the face (a real keycap · W T P D B H G L) · the letter is
-the identity, and the unicode lens marks (≋ ▧ ▦ ⇉ ∿ ▥ ⌖ ≣) keep
-speaking in the lens-door TITLES and the ? keymap where they are prose.
+The line between 1 and 3: **if it sits on a button, it is a mark from
+layer 1 or 2**; if it sits in a sentence, it is layer 3. A 11px
+unicode blob on a button reads as noise at every zoom · the six-persona
+gauntlet called the old lens deck « eight unlabeled mystery letters ».
+
+### 2b-ter · Every icon-only chrome button STATES ITS INTENT (v15-v18)
+
+An icon alone is a riddle. Every icon-only button in the chrome
+carries a `.tb-name` span that **unfurls on hover or focus** · a width
+morph on `--nk-ease-spatial`, the mark and the key never move, the
+label earns its pixels only while you are asking:
+
+```
+rest      [ <mark> P ]
+hover     [ <mark> Audit P ]
+```
+
+Consumers: the lens deck (`W T P D B H G L`), the camera dock (Fit ·
+Layout · zoom In/Out), the ⋯ door, Help, the make key (`+ Task`) and
+the four verb tiles (`◇ infer`). The KEY beside a mark is a **hint,
+not a button**: flat, at the mark's own optical size, never a boxed
+cap that out-shouts the icon it follows.
 
 ## 2c · The connected grammar · every flow construct has its surface
 
@@ -698,6 +722,28 @@ affordance. Never an invented rollup: each file's manifest is ITS
 engine projection.
 
 ## 7 · Rules that keep it SOTA
+
+**The Martian diet (v17)** · `--nk-mono` is the DATA voice: filenames,
+costs, durations, counts, wave notation, keycaps, every card internal
+(code is code). Chrome · menus, buttons, section labels, prose, the
+run verdict, empty states · speaks `--nk-ui-font`. A census that finds
+mono on a sentence has found a defect.
+
+**The paint-only law (v8-v12)** · the card's boxes are TS-measured
+(`nodeHeightOf` · `syncFrameHeights`). CSS may only PAINT there:
+`::before`/`::after` layers, backgrounds, shadows, opacity. A rule
+that changes a card's box moves layout the renderer already committed
+· the head band clipped every body the first time it was a real box.
+The same law explains why a transform on a foreignObject's container
+is forbidden: it forces a compositing layer and frames arrive with the
+wires painted and the cards missing.
+
+**Measure, then judge (v10-v16)** · a compositional claim is settled by
+`getBoundingClientRect`, not by eye: the omnibar sat at 44px while
+looking right, a 13-unit label lift resolved nothing because the
+zoom-compensated font makes the box elastic, and a morph that looked
+broken was a base rule LOWER in the file winning on order. Shoot the
+surface, measure the box, then decide.
 
 1. Tokens or nothing · a rule reading a raw color is a bug.
 2. One DOM, two skins. A skin is a CSS scope, never a TS branch.
