@@ -5922,6 +5922,16 @@ class DagRenderer {
     }
     const storyActs: Act[] = [
       { id: 'peek', label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
+      // The stranded card buttons (a11y wave): the chip work was mouse-
+      // only — K reaches them now. Rows exist only where the fact does.
+      ...(node.model !== undefined ? [{
+        id: 'edit-model', label: `Change the model · ${node.model}`,
+        run: () => vscode.postMessage({ kind: 'dag:editModel', taskId: node.id, workflowUri: uri }),
+      }] : []),
+      ...(node.auditCount ? [{
+        id: 'audit-report', label: `⚠ Pre-flight report · ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'}`, kbd: 'P',
+        run: () => vscode.postMessage({ kind: 'dag:openReport' }),
+      }] : []),
       { id: 'card-mode', label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
       { id: 'open-yaml', label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
       { id: 'duplicate', label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
