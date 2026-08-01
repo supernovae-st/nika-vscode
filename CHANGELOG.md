@@ -4,6 +4,62 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.6] · 2026-08-01
+
+The apple wave: seven per-element design scouts (screenshot-grounded)
+plus a six-persona naive gauntlet walked the RENDERED canvas · then
+every convergent wound closed. Liquid glass, real materials, and the
+lens that keeps its promises.
+
+### The gauntlet's convergent wounds (six blind testers)
+
+- **The lens keeps its promises** (5/6 hit it): Esc actually returns
+  from the timeline · the camera is saved on entry and restored on
+  exit (the return landed at 160% in a corner) · the map overlays
+  sleep under the lens instead of piling « active » chips on a void.
+- **The deck names itself** (4/6): a dim LENS label opens the keycap
+  row · eight unlabeled letters no more.
+- **The counter stops crying wolf** (3/6): only the stop square is
+  red · « ■ 2/7 » read as failures to CI-trained eyes.
+- **The describe bar ACKs**: the words stay, the sparkle spins, a
+  host answer or 20s releases · they no longer evaporate.
+- **The Tab trap dies** (a11y): the walk exits at its boundary to
+  native order · the double focus ring stops impersonating the
+  running band · the lineage dim floor lifts to reading level · the
+  empty audit chip leaves the a11y tree.
+
+### The materials (Apple north)
+
+- **Liquid glass, one recipe two tiers**: --nk-glass-raised /
+  --nk-glass-overlay / --nk-specular at the seam · every dock breathes
+  the canvas through; the K family becomes an actual lens (it was
+  solid) with the deep shadow tier.
+- **The card is a machined surface**: top light catch in the 8-14%
+  band + a bottom seat on all three skins · and the material now
+  survives every state (running/failed made it FLATTER before) ·
+  hover composes with the status voice · a 1px press seat · the Krea
+  head band (paint-only: the heights are TS-measured law).
+- **The bottom bar recomposes at 48px**: one height, one radius, one
+  hairline at the split · a live run retires Run to ghost · mock
+  retires behind ⌄ · verb tiles wear their hue whisper · the submit
+  sparkle appears only with something to submit.
+- **The door floats**: glass + machine-key primary (full-width) +
+  ghosts in a 2×2 grid + ONE-primary law (describe focus dims the
+  demo key) + Clash 26 hero.
+- **The ground reads**: edge labels zoom-compensate (the map's one
+  illegible voice) · the errors label wears its failure tint · the
+  activity feed earns its empty state.
+
+### The grammar unifies
+
+- The site's bracket voice reaches the cmdk sections and the welcome
+  ([ VERBS ] · [ WHAT NIKA DOES HERE ]) · one status word everywhere
+  (the legend says « done » like the pill) · 74 em-dash joiners die
+  in canvas strings · presses land on the device grid (1px).
+
+Proven: 1441/1441 across five consecutive gates · a11y-probes 45/45 ·
+chrome-probes 0 across three skins · GIFs regenerated on this canvas.
+
 ## [0.107.5] · 2026-08-01
 
 The composition wave (the Krea/Figma read): typography, docks and the
