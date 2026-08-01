@@ -90,7 +90,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // ships it (a binary without `check` is not a Nika binary).
     // `graph` retired on main (the ONE projector lives on `inspect
     // --format`) — the floor names the living verbs only.
-    for (const cmd of ['check', 'inspect', 'explain', 'spec', 'examples', 'new', 'trace', 'completions']) {
+    for (const cmd of ['check', 'inspect', 'explain', 'spec', 'try', 'new', 'trace', 'completions']) {
       expect(caps.commands.has(cmd), `--help must list ${cmd}`).toBe(true);
     }
     // The CONTRACT under test is the probe LOGIC, not a fixed feature
@@ -275,16 +275,15 @@ tasks:
   });
 
   it('template set parses and every template passes its own check (own-corpus law)', () => {
-    const probe = path.join(os.tmpdir(), `nika-contract-probe-${process.pid}.nika.yaml`);
-    const listing = run(['new', '--from', '?', probe]);
+    const listing = run(['new', '?']);
     const templates = parseTemplateSet(`${listing.stdout}\n${listing.stderr}`);
     expect(templates.length).toBeGreaterThan(0);
 
     for (const slug of templates) {
       const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-${slug}.nika.yaml`);
       try {
-        const created = run(['new', '--from', slug, dest, '--force']);
-        expect(created.code, `new --from ${slug}`).toBe(EXIT.OK);
+        const created = run(['new', slug, dest, '--force']);
+        expect(created.code, `new ${slug}`).toBe(EXIT.OK);
         const checked = run(['check', dest, '--json']);
         const report = parseCheckReport(checked.stdout)!;
         expect(report.conformance, `template ${slug} must be conformant`).toHaveLength(0);
@@ -657,7 +656,7 @@ describe.skipIf(!BIN)('new intent routing (real binary)', () => {
   it('routes a parallel intent or honestly declines (two generations)', () => {
     const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika.yaml`);
     try {
-      const res = run(['new', '--from', 'summarize every item in parallel', dest, '--force']);
+      const res = run(['new', 'summarize every item in parallel', dest, '--force']);
       if (res.code === EXIT.OK) {
         expect(res.stdout).toContain('routed intent');
         // Own-corpus: whatever it routed to passes the oracle.

@@ -210,7 +210,7 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         const sumsRes = await httpGet(`${GITHUB_DOWNLOAD_BASE}/v${version}/SHA256SUMS`);
         if (sumsRes.statusCode !== 200) {
           sumsRes.resume();
-          throw new Error(`SHA256SUMS unavailable (HTTP ${sumsRes.statusCode}) — refusing an unverified binary`);
+          throw new Error(`SHA256SUMS unavailable (HTTP ${sumsRes.statusCode}): refusing an unverified binary`);
         }
         const sums = await readBody(sumsRes);
         const line = sums.split('\n').find((l) => l.trim().endsWith(archiveName));

@@ -61,7 +61,7 @@ export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscod
     if (!vscode.workspace.getConfiguration('nika').get<boolean>('inlayHints.enabled', true)) {
       return undefined;
     }
-    // Providers re-fire on EVERY edit; spawning `nika graph` per keystroke
+    // Providers re-fire on EVERY edit; spawning `nika inspect` per keystroke
     // would be brutal. Dirty buffer → cheap peek (last projection, possibly
     // stale). Clean buffer → authoritative (version-cached) call.
     const doc = document.isDirty

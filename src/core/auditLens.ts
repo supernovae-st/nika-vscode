@@ -86,7 +86,7 @@ export function deriveAuditFacts(
     domains,
     hosts: [...hosts],
     programs: [...programs],
-    banner: parts.join(' — '),
+    banner: parts.join(' · '),
   };
 }
 

@@ -394,7 +394,7 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
     nowChildren.push({
       kind: 'section',
       id: 'wired',
-      label: `Agents — ${wiredCount}/${clients.length} wired`,
+      label: `Agents · ${wiredCount}/${clients.length} wired`,
       icon: 'plug',
       children: clients.map((c) => ({
         kind: 'client' as const,

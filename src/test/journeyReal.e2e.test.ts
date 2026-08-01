@@ -164,7 +164,12 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
         '      args:',
         '        message: "Ship it?"',
         '  ship:',
-        '    after: { approve: success }',
+        // SEC-014 (0.107): a consent gate fires effects only on the
+        // AFFIRMATIVE VALUE — task-success regardless of the answer is
+        // the class the law refuses at check.
+        '    with:',
+        '      ok: ${{ tasks.approve.output }}',
+        '    when: ${{ with.ok == true }}',
         '    exec:',
         '      command: ["echo", "shipped"]',
       ].join('\n'));

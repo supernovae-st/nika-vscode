@@ -277,7 +277,7 @@ static cost · recorded clocks, and each lens renders one question:
   capability hulls (egress · programs · files · tools) painted under
   the wires, and the banner says it in one line:
   <!-- voice-ok: quotes the canvas banner verbatim, em dash separator included -->
-  "this file can: reaches example.com — runs git — est ≥$0.0010"
+  "this file can: reaches example.com · runs git · est ≥$0.0010"
 - **D · dataflow** · where the data comes from and goes: the control
   scaffolding sleeps, the typed data wires and their bindings carry
   the whole story
@@ -496,7 +496,7 @@ network: every green close settles a ✓ wave through the cards.*
   every recorded run in the flight recorder doubles as that checkpoint ·
   `nika trace show <run>` re-renders any of them in the terminal ·
   scaffold from the same embedded corpus the snippets are tested against
-  (`nika examples` · `nika new --from <template>`) · any code explained:
+  (`nika try` · `nika new <template> <file>`) · any code explained:
   `nika explain NIKA-XXXX`
 
 ### Agent-native
@@ -536,7 +536,7 @@ network: every green close settles a ✓ wave through the cards.*
 - **One tree for the machinery** · the engine row (version · a
   too-old grammar names itself), the doctor's verdict with each fix
   one click away, the agent clients with their wire state
-  (`Agents — 3/6 wired`), and the providers: local runtimes detected,
+  (`Agents · 3/6 wired`), and the providers: local runtimes detected,
   cloud keys counted (`3/11 present`)
 - **Local models, the whole lifecycle** · one row per pulled GGUF
   (`owner/repo:QUANT` · size · the engine's own remark), read live
@@ -555,7 +555,7 @@ network: every green close settles a ✓ wave through the cards.*
   `mcp` light up the same way the day they climb
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
   are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
-  `nika examples` · `nika new`) · nothing duplicated, nothing drifts
+  `nika try` · `nika new`) · nothing duplicated, nothing drifts
 - **Binary auto-download** · optional (`nika.server.autoDownload`) · SHA256
   verified · zero telemetry anywhere
 

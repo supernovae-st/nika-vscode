@@ -113,7 +113,7 @@ export function checkVersionMismatch(context: ExtensionContext, log: LogFn, reso
       // Only warn if extension is BEHIND the server (not ahead, which is dev)
       if (extParts[0] < srvParts[0] || (extParts[0] === srvParts[0] && extParts[1] < srvParts[1])) {
         window.showWarningMessage(
-          `Nika: extension v${extVersion} is behind the engine (v${serverMajorMinor}.x) — update to match.`,
+          `Nika: extension v${extVersion} is behind the engine (v${serverMajorMinor}.x) → update to match.`,
           'Update Extension',
         ).then((choice) => {
           if (choice === 'Update Extension') {
@@ -140,7 +140,7 @@ export function checkVersionMismatch(context: ExtensionContext, log: LogFn, reso
         && (extParts[0] > srvParts[0] || (extParts[0] === srvParts[0] && extParts[1] > srvParts[1]))
       ) {
         window.showWarningMessage(
-          `Nika: the downloaded engine (v${serverMajorMinor}.x) is behind this extension (v${extVersion}) — refresh it?`,
+          `Nika: the downloaded engine (v${serverMajorMinor}.x) is behind this extension (v${extVersion}) · refresh it?`,
           'Update engine',
         ).then((choice) => {
           if (choice === 'Update engine') {
@@ -322,7 +322,7 @@ export function startClient(
     state.statusSink?.('failed');
     void window
       .showErrorMessage(
-        `Nika: the language server failed to start — ${err.message}`,
+        `Nika: the language server failed to start: ${err.message}`,
         'Retry', 'Set server path', 'Show log',
       )
       .then((pick) => {

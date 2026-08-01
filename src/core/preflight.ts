@@ -262,7 +262,7 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
       name: s.name,
       source: s.source,
       status: 'declared',
-      detail: `${s.source} — presence not statically verifiable`,
+      detail: `${s.source} · presence not statically verifiable`,
     };
   });
 
@@ -297,14 +297,14 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
   const modelRows: ModelRow[] = [...facts.models.entries()].map(([model, tasks]) => {
     const provider = model.includes('/') ? model.slice(0, model.indexOf('/')) : model;
     if (provider === 'mock') {
-      return { model, tasks, status: 'local', detail: 'mock — zero keys, zero spend' };
+      return { model, tasks, status: 'local', detail: 'mock · zero keys, zero spend' };
     }
     const info = catalog?.[provider];
     if (!info) {
-      return { model, tasks, status: 'unknown', detail: withRate(model, 'provider not in catalog (older binary or custom) — key not checked') };
+      return { model, tasks, status: 'unknown', detail: withRate(model, 'provider not in catalog (older binary or custom) · key not checked') };
     }
     if (info.local || !info.requiresKey) {
-      return { model, tasks, status: 'local', detail: withRate(model, 'local · sovereign — no key needed') };
+      return { model, tasks, status: 'local', detail: withRate(model, 'local · sovereign · no key needed') };
     }
     const present = info.envVar !== undefined && envPresent(info.envVar);
     if (!present) {
@@ -325,11 +325,11 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     const min = cost.min_path_total_usd;
     const max = cost.bounded_total_usd;
     if (unbounded) {
-      costLabel = `≥ ${usd(min ?? max ?? 0)} — UNBOUNDED (a priced task has no max_tokens)`;
+      costLabel = `≥ ${usd(min ?? max ?? 0)}: UNBOUNDED (a priced task has no max_tokens)`;
     } else if (max !== undefined) {
       costLabel = min !== undefined && min !== max ? `${usd(min)} – ${usd(max)}` : usd(max);
     } else if ((cost.tasks ?? []).every((t) => !t.usd)) {
-      costLabel = '$0 — no priced task (mock/local)';
+      costLabel = '$0 · no priced task (mock/local)';
     }
   }
   const topTasks = (cost?.tasks ?? [])
@@ -384,7 +384,7 @@ export function preflightChipModel(m: PreflightModel): PreflightChip {
     return {
       text: '⚠ flows',
       cls: 'warn',
-      tip: `${bits.join(' · ')} — review before running.\n\nClick for the flight plan.`,
+      tip: `${bits.join(' · ')} → review before running.\n\nClick for the flight plan.`,
     };
   }
   // A ✓ that verified nothing is a soft lie: unknown-provider models
@@ -425,21 +425,21 @@ function snapshotLine(
 
 export function renderPreflight(m: PreflightModel): string {
   const out: string[] = [];
-  out.push(`# Preflight — ${m.workflowName}`);
+  out.push(`# Preflight · ${m.workflowName}`);
   out.push('');
-  out.push('> Understandable before it runs: every line below is DERIVED — from `nika check --json`, `nika catalog --json`, the YAML, and your environment. Nothing was executed; no token was spent.');
+  out.push('> Understandable before it runs: every line below is DERIVED from `nika check --json`, `nika catalog --json`, the YAML, and your environment. Nothing was executed; no token was spent.');
   out.push('');
 
   out.push('## Verdict');
   out.push('');
   if (m.blockers.length === 0) {
-    out.push('**READY** — no missing secret, no missing model key.');
+    out.push('**READY** · no missing secret, no missing model key.');
   } else {
-    out.push(`**BLOCKED — ${m.blockers.length} missing requirement${m.blockers.length > 1 ? 's' : ''}:**`);
+    out.push(`**BLOCKED · ${m.blockers.length} missing requirement${m.blockers.length > 1 ? 's' : ''}:**`);
     for (const b of m.blockers) { out.push(`- ${b}`); }
   }
   out.push('');
-  out.push(`- Conformance: ${m.clean === true ? 'clean ✓' : m.findings > 0 ? `${m.findings} finding${m.findings > 1 ? 's' : ''} — fix before running` : m.clean === false ? 'not clean' : 'not checked'}`);
+  out.push(`- Conformance: ${m.clean === true ? 'clean ✓' : m.findings > 0 ? `${m.findings} finding${m.findings > 1 ? 's' : ''} → fix before running` : m.clean === false ? 'not clean' : 'not checked'}`);
   out.push(`- Estimated cost: ${m.cost.label}`);
   if (m.pricingSnapshot) { out.push(`- Prices: ${m.pricingSnapshot}`); }
   if (m.lastRun && (m.lastRun.durationMs !== undefined || m.lastRun.costUsd !== undefined)) {
@@ -456,7 +456,7 @@ export function renderPreflight(m: PreflightModel): string {
     out.push('## The plan');
     out.push('');
     m.waves.forEach((wave, i) => {
-      out.push(`- Wave ${i + 1} — ${wave.map((id) => `\`${id}\``).join(' · ')}${wave.length > 1 ? ' (run together)' : ''}`);
+      out.push(`- Wave ${i + 1} · ${wave.map((id) => `\`${id}\``).join(' · ')}${wave.length > 1 ? ' (run together)' : ''}`);
     });
     out.push('');
   }
@@ -464,11 +464,11 @@ export function renderPreflight(m: PreflightModel): string {
   out.push('## Models & keys');
   out.push('');
   if (m.modelRows.length === 0) {
-    out.push('No model-bearing task (no infer/agent) — this workflow spends nothing on inference.');
+    out.push('No model-bearing task (no infer/agent): this workflow spends nothing on inference.');
   } else {
     for (const r of m.modelRows) {
       const icon = r.status === 'key-missing' ? '✗' : r.status === 'unknown' ? '·' : '✓';
-      out.push(`- ${icon} \`${r.model}\` — ${r.detail} · used by ${r.tasks.map((t) => `\`${t}\``).join(', ')}`);
+      out.push(`- ${icon} \`${r.model}\` · ${r.detail} · used by ${r.tasks.map((t) => `\`${t}\``).join(', ')}`);
     }
   }
   out.push('');
@@ -480,14 +480,14 @@ export function renderPreflight(m: PreflightModel): string {
   } else {
     for (const s of m.secretRows) {
       const icon = s.status === 'present' ? '✓' : s.status === 'missing' ? '✗' : '·';
-      out.push(`- ${icon} secret \`${s.name}\` (${s.source}) — ${s.detail}`);
+      out.push(`- ${icon} secret \`${s.name}\` (${s.source}) · ${s.detail}`);
     }
     for (const e of m.envRows) {
       const icon = e.status === 'missing' ? '✗' : '✓';
       const detail = e.status === 'defined'
         ? 'declared in the workflow `config:` block'
-        : 'read but NEVER declared — `config:` has no ambient fallback';
-      out.push(`- ${icon} config \`${e.name}\` — ${detail}`);
+        : 'read but NEVER declared: `config:` has no ambient fallback';
+      out.push(`- ${icon} config \`${e.name}\` · ${detail}`);
     }
   }
   out.push('');
@@ -496,7 +496,7 @@ export function renderPreflight(m: PreflightModel): string {
   out.push('');
   out.push(m.permits.declared
     ? `- Boundary declared: ${m.permits.categories.map((c) => `\`${c}\``).join(' · ') || '(empty = pure compute)'}`
-    : '- No `permits:` boundary — the engine floor applies (default-deny; consider `Nika: Insert Inferred Permits Boundary`)');
+    : '- No `permits:` boundary: the engine floor applies (default-deny; consider `Nika: Insert Inferred Permits Boundary`)');
   out.push(`- Capability escapes: ${m.permits.escapes === 0 ? 'none ✓' : `${m.permits.escapes} — effects outside the boundary (see the check report)`}`);
   out.push(`- Secret flow: ${m.permits.leaks === 0 && m.permits.egresses === 0 ? 'no leak · no egress ✓' : `${m.permits.leaks} leak(s) · ${m.permits.egresses} egress(es) — review before running`}`);
   out.push('');

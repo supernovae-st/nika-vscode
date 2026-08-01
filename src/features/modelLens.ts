@@ -52,7 +52,7 @@ export async function showCatalogPicker(service: NikaService): Promise<string | 
   const models = service.catalogModels;
   if (!models || Object.keys(models).length === 0) {
     void vscode.window.showInformationMessage(
-      'nika: the model catalog is not loaded yet — is the binary wired? (nika doctor)',
+      'nika: the model catalog is not loaded yet → run `nika doctor` to check the wiring',
     );
     return undefined;
   }

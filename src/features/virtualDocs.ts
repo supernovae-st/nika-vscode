@@ -40,7 +40,7 @@ export class NikaDocProvider implements vscode.TextDocumentContentProvider {
       case 'schema':
         return (await this.service.schemaText()) ?? this.missing('schema');
       case 'example':
-        return (await this.service.exampleShow(arg)) ?? this.missing(`examples show ${arg}`);
+        return (await this.service.exampleShow(arg)) ?? this.missing(`new ${arg} <file>`);
       case 'explain':
         return (await this.service.explain(arg)) ?? this.missing(`explain ${arg}`);
       case 'report': {

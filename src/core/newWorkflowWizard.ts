@@ -5,7 +5,7 @@
 // engine's embedded templates, the blank page · (3) model — mock/echo
 // leads (deterministic · zero keys), locals before cloud per the
 // NIKA_PROVIDERS_ORDER presentation lock. Engine templates skip step 3
-// (`nika new --from` writes the file, its models live inside), so the
+// (positional `nika new <template>` writes the file, its models live inside), so the
 // wizard's total honestly reads 2 there.
 //
 // Everything decidable is decided HERE (rows · scaffold text · step
@@ -63,7 +63,7 @@ export function starterRows(templates: readonly string[]): StarterRow[] {
       rows.push({
         label: slug,
         description: 'embedded engine template',
-        detail: 'nika new --from — the engine writes the whole file',
+        detail: 'nika new <template> — the engine writes the whole file',
         pick: { kind: 'template', slug },
       });
     }

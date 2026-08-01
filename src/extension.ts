@@ -643,7 +643,7 @@ export function activate(context: ExtensionContext): void {
       // Diet: a completed setup is visible in every surface it lit —
       // the recap flashes, no toast survives it.
       flashStatus(
-        `$(check) Nika setup complete — engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
+        `$(check) Nika setup complete · engine ${service.caps.version || 'ready'} · MCP ${wired ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
         6000,
       );
     }),
@@ -676,7 +676,7 @@ export function activate(context: ExtensionContext): void {
       // command line, and the terminal spawned with cwd
       // « run 01-hello --model mock » — the operator's exact toast,
       // 2026-07-28: the 10-second proof failed in its first second.
-      runNikaCommand(state.resolvedServerPath, 'examples run 01-hello --model mock/echo', '');
+      runNikaCommand(state.resolvedServerPath, 'try 01-hello', '');
     }),
   );
 
@@ -2982,7 +2982,7 @@ export function activate(context: ExtensionContext): void {
           ),
           {
             title: after ? `Nika: new task after \`${after}\`` : 'Nika: new task',
-            placeHolder: 'a verb — or type a builtin (jq · fetch · write …) for a pre-wired invoke',
+            placeHolder: 'a verb · or type a builtin (jq · fetch · write …) for a pre-wired invoke',
             matchOnDescription: true,
           },
         ) as { pick?: import('./core/addTaskPicks').AddTaskPick } | undefined;
@@ -3096,7 +3096,7 @@ export function activate(context: ExtensionContext): void {
       await configureMcpForHost(state.resolvedServerPath, service.intel?.providers, false);
       void refreshJourney();
       void window.showInformationMessage(
-        `Nika: project equipped — ${created} file(s) scaffolded${skipped ? `, ${skipped} kept` : ''}, MCP + agent rules wired.`,
+        `Nika: project equipped · ${created} file(s) scaffolded${skipped ? `, ${skipped} kept` : ''}, MCP + agent rules wired.`,
         'Open walkthrough',
       ).then((choice) => {
         if (choice === 'Open walkthrough') {
@@ -3750,10 +3750,10 @@ export function activate(context: ExtensionContext): void {
     commands.registerCommand('nika.browseExamples', async () => {
       const slugs = await service.examplesList();
       if (slugs.length === 0) {
-        void window.showInformationMessage('Nika: no embedded examples available from this binary.');
+        void window.showInformationMessage('Nika: this binary has no `try` showroom — update Nika (brew upgrade nika) to browse the embedded catalog.');
         return;
       }
-      const picked = await window.showQuickPick(slugs, { title: 'Nika: embedded examples' });
+      const picked = await window.showQuickPick(slugs, { title: 'Nika: try an example (offline showroom)' });
       if (picked) { await openNikaDoc('example', picked, 'yaml'); }
     }),
   );
@@ -4135,10 +4135,10 @@ async function equipHost(silent = false): Promise<boolean> {
       void extContext.globalState.update('nika.cursorPluginNudgeShown', true);
       // Diet exception (reason): the Cursor plugin pointer names a move
       // this extension cannot make itself — worth one toast, once ever.
-      void informSoftly('cursor-live-plugin', `Nika is live — MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`);
+      void informSoftly('cursor-live-plugin', `Nika is live · MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).${cursorTail}`);
     } else {
       // Diet: the pill + views already show the lit state — flash only.
-      flashStatus('$(check) Nika is live — MCP wired · language server on · diagnostics running', 6000);
+      flashStatus('$(check) Nika is live · MCP wired · language server on · diagnostics running', 6000);
     }
   }
   return wired;

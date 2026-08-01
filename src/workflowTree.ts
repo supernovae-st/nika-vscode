@@ -64,7 +64,7 @@ class UnparseableWorkflowItem extends TreeItem {
     const md = new MarkdownString(undefined, true);
     md.appendMarkdown(`**${uri.path.split('/').pop()}**\n\n`);
     md.appendMarkdown(`${message}\n\n`);
-    md.appendMarkdown('→ Fix: open the file — the check squiggles mark the line');
+    md.appendMarkdown('→ Fix: open the file · the check squiggles mark the line');
     this.tooltip = md;
     this.command = {
       command: 'vscode.open',
@@ -114,7 +114,7 @@ class WorkflowFileItem extends TreeItem {
     }
     md.appendMarkdown('\n\n');
     if (badge?.kind === 'clean') {
-      md.appendMarkdown('$(pass-filled) `nika check` — clean\n\n');
+      md.appendMarkdown('$(pass-filled) `nika check` · clean\n\n');
     } else if (badge?.kind === 'findings') {
       md.appendMarkdown(`$(warning) \`nika check\` — ${badge.count} finding${badge.count !== 1 ? 's' : ''}\n\n`);
     }
@@ -139,7 +139,7 @@ class WorkflowTaskItem extends TreeItem {
     this.iconPath = WorkflowTaskItem.verbIcon(verb);
     this.contextValue = 'workflowTask';
     this.description = verb;
-    this.tooltip = `${taskId} (${verb}) — line ${line + 1}`;
+    this.tooltip = `${taskId} (${verb}) · line ${line + 1}`;
     this.command = {
       command: 'nika.openTaskLocation',
       title: 'Go to Task',

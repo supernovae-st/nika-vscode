@@ -79,7 +79,7 @@ export const SURFACE_GLYPH = {
   feed: { glyph: '≣', sense: 'activity feed — every transition, live' },
   relayout: { glyph: '⌗', sense: 'auto-layout — back to the grid' },
   newFile: { glyph: '⧇', sense: 'new workflow — a fresh page' },
-  examples: { glyph: '⧈', sense: 'embedded examples — a framed specimen' },
+  examples: { glyph: '⧈', sense: 'the try showroom — a framed specimen' },
   runHistory: { glyph: '⊞', sense: 'run history — the cross-run grid' },
   preflight: { glyph: '▩', sense: 'preflight — cost · secrets · keys (the audit family, denser weave)' },
   report: { glyph: '⎙', sense: 'pre-flight report — the printable document' },

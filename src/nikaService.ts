@@ -7,6 +7,7 @@
 // pre-dash fallback. Vocabulary lives in the binary (spec · schema ·
 // templates · examples) — the extension projects, never duplicates.
 
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { EventEmitter, type Event, type TextDocument } from 'vscode';
@@ -577,7 +578,7 @@ export class NikaService {
       '',
       `  ${row.failure}`,
       '',
-      'Spec conformance code — projected from the embedded canon',
+      'Spec conformance code · projected from the embedded canon',
       '(`nika spec --canon` · error_codes). Prose home: spec/05-errors.md.',
     ].join('\n');
   }
@@ -600,7 +601,9 @@ export class NikaService {
 
   async examplesList(): Promise<string[]> {
     if (!this.caps.examples) { return []; }
-    const res = await this.runCli(['examples', 'list']);
+    // V5: bare `nika try` IS the showroom listing (same renderer the old
+    // `examples list` used — the slug lines parse identically).
+    const res = await this.runCli(['try']);
     if (res.code !== EXIT.OK) { return []; }
     return res.stdout
       .split('\n')
@@ -613,19 +616,33 @@ export class NikaService {
 
   async exampleShow(slug: string): Promise<string | undefined> {
     if (!this.caps.examples) { return undefined; }
-    const res = await this.runCli(['examples', 'show', slug]);
-    return res.code === EXIT.OK ? res.stdout : undefined;
+    // V5: the read IS the take — materialize into a scratch dir via the
+    // positional `nika new <slug> <dest>` (verbatim body · ingredients
+    // land beside it), read the body, remove the scratch whole.
+    const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'nika-ext-example-'));
+    try {
+      const dest = path.join(dir, `${slug.replace(/\//g, '-')}.nika.yaml`);
+      const res = await this.runCli(['new', slug, dest, '--force']);
+      if (res.code !== EXIT.OK) { return undefined; }
+      return await fs.promises.readFile(dest, 'utf8');
+    } catch {
+      return undefined;
+    } finally {
+      void fs.promises.rm(dir, { recursive: true, force: true });
+    }
   }
 
-  /** Embedded template slugs — `nika new --from '?'` answers with the set. */
+  /** Embedded template slugs — `nika new '?'` answers with the set
+   * (the V5 positional discovery query · the `embedded set:` line is
+   * the wire contract and survived the `--from` death). */
   async templatesList(): Promise<string[]> {
     if (!this.caps.newTemplate) { return []; }
-    const probe = path.join(os.tmpdir(), 'nika-ext-templates-probe.nika.yaml');
-    const res = await this.runCli(['new', '--from', '?', probe]);
+    const res = await this.runCli(['new', '?']);
     return parseTemplateSet(`${res.stdout}\n${res.stderr}`);
   }
 
   async newFromTemplate(slug: string, destFsPath: string): Promise<CliResult> {
-    return this.runCli(['new', '--from', slug, destFsPath]);
+    // V5: `nika new` takes a POSITIONAL template/slug/intent.
+    return this.runCli(['new', slug, destFsPath]);
   }
 }

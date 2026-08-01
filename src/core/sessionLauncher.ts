@@ -67,7 +67,7 @@ export function buildSessionPicks(s: SessionState): SessionPick[] {
   if (s.capExamples) {
     picks.push({
       label: '$(book) Learn by example',
-      description: 'runnable embedded examples, zero keys',
+      description: 'the try showroom — runnable examples, zero keys',
       command: 'nika.browseExamples',
     });
   }

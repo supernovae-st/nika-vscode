@@ -350,9 +350,9 @@ export function buildRestingHead(
     add(true, 'nika.finishSetup', '$(zap) Finish setup — install engine + wire everything', 'verified download · MCP · LSP · one gesture');
   } else if (deps.stage === 'unequipped') {
     add(true, 'nika.initProject', '$(rocket) Init this project', 'scaffold + agent rules + MCP — one gesture, skip-if-exists');
-    add(deps.caps.examples, 'nika.runProof', '$(play) Run the 10-second proof', '01-hello · mock/echo · offline · zero keys');
+    add(deps.caps.examples, 'nika.runProof', '$(play) Run the 10-second proof', 'nika try 01-hello · offline by default · zero keys');
   } else if (deps.stage === 'empty') {
-    add(deps.caps.examples, 'nika.runProof', '$(play) Run the 10-second proof', '01-hello · mock/echo · offline · zero keys');
+    add(deps.caps.examples, 'nika.runProof', '$(play) Run the 10-second proof', 'nika try 01-hello · offline by default · zero keys');
     add(true, 'nika.newSession', '$(comment-discussion) New session', 'wizard · describe · templates — the guided first workflow');
   } else if (deps.active !== undefined) {
     add(deps.caps.run, 'nika.runWorkflow', '$(play) Run', deps.active);

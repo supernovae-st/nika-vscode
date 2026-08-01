@@ -130,7 +130,9 @@ export function buildCapabilities(
     spec: commands.has('spec'),
     schema: commands.has('schema'),
     model: commands.has('model'),
-    examples: commands.has('examples'),
+    // V5: the showroom door is `try` (the examples verb tree died
+    // in 0.107) — the cap keeps its name, its source is the living door.
+    examples: commands.has('try'),
     newTemplate: commands.has('new'),
     trace: commands.has('trace'),
     run: commands.has('run'),

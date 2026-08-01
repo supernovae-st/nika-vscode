@@ -45,7 +45,7 @@ in `src/nikaService.ts`).
    rig lies. Webview↔host messages are typed unions; extend kinds with
    optional fields to keep protocol parity.
 4. Grammar/snippet changes must round-trip against real spec examples
-   (`nika examples list`) · `npm run parity` checks exactly this.
+   (bare `nika try` lists it) · `npm run parity` checks exactly this.
 5. Every inline tree action needs its `⌘K ⌘.` panel row · the
    reachability belt in `src/test/treeActions.test.ts` enforces it.
 6. Commit style: `type(scope): lowercase description` · trailer

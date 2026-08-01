@@ -154,7 +154,7 @@ describe('buildPreflight + renderPreflight', () => {
     expect(m.secretRows[0].status).toBe('missing');
     expect(m.secretRows[1].status).toBe('declared'); // vault: never fake-verified
     const md = renderPreflight(m);
-    expect(md).toContain('**BLOCKED — 2 missing requirements:**');
+    expect(md).toContain('**BLOCKED · 2 missing requirements:**');
     expect(md).toContain('GITHUB_TOKEN');
     expect(md).toContain('not statically verifiable');
   });

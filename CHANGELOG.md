@@ -4,6 +4,38 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.107.1] · 2026-08-01
+
+The extension speaks the engine it just lockstepped to. A swarm audit
+against the released 0.107.0 binary found the wound class: five
+runtime doors still shelled verbs the engine killed (the V5 wave), so
+core gestures broke silently.
+
+- **The 10-second proof runs again**: `nika try 01-hello` (offline by
+  default) replaces the dead `examples run … --model mock/echo`.
+- **The showroom is back**: browse rides bare `nika try` (same listing,
+  living door); reading an example materializes it via positional
+  `nika new <slug>` into scratch: verbatim body, ingredients cleaned.
+- **The wizard scaffolds again**: positional `nika new <template>
+  <file>`; template discovery via `nika new '?'` (the `embedded set:`
+  wire line survived the flag's death).
+- **The capability probe watches the living door** (`try`), so the
+  proof, browse and session rows light up instead of darkening.
+- **The copyable AI authoring prompt teaches the three doors** instead
+  of four dead ones: route by name or plain words, ground on bare
+  `nika try`, read whole files with `nika new <slug> <file>`.
+- The pause e2e fixture turns affirmative (SEC-014: a consent gate
+  fires effects only on the affirmative VALUE) · proven 4→0 at the
+  released binary.
+- Labels, welcome views, README and the contributor doc stop naming
+  dead forms; the flight-recorder empty state teaches `nika try`.
+- **The separator law sweeps the rendered surfaces** (the anti-slop
+  audit): ~35 user-facing strings across toasts, hovers, tree labels,
+  the audit banner, the preflight report and the station drop their
+  spaced em-dashes for the house « · » (or a colon where the tail is a
+  consequence, an arrow where it is the fix step) · the README quotes
+  and test pins re-synced in the same pass.
+
 ## [0.107.0] · 2026-08-01
 
 Lockstep on the engine's trust wave (v0.107.0 · the three doors ·

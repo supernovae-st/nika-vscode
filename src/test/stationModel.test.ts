@@ -168,7 +168,7 @@ describe('buildStationRows — pure derivation (now · next · recent)', () => {
 
   it('unwired clients repair through the wrench; wired ones rest', () => {
     const wired = buildStationRows(snap)[0].children?.find((r) => r.id === 'wired');
-    expect(wired?.label).toBe('Agents — 1/3 wired');
+    expect(wired?.label).toBe('Agents · 1/3 wired');
     const zed = wired?.children?.find((c) => c.id === 'client.zed');
     expect(zed?.fix).toEqual({ id: 'nika.station.wire', args: ['zed'] });
     expect(zed?.command).toBeUndefined();

@@ -117,7 +117,7 @@ describe('F2 · the add-task vocabulary', () => {
 });
 
 describe('the resting screen', () => {
-  const caps = { run: true, check: true, inspect: true, trace: true, examples: true };
+  const caps = { run: true, check: true, inspect: true, trace: true, examples: true }; // examples = the try-door cap (V5)
   const ok: RestingDeps['truth'] = { severity: 'ok' };
 
   it('a working stage with an active file leads with its rows', () => {

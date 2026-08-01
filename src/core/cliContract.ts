@@ -955,7 +955,7 @@ export function criticalPath(
   return path;
 }
 
-// ─── Template set (`nika new --from '?'`) ───────────────────────────────────
+// ─── Template set (`nika new '?'` · the V5 positional discovery) ───────────────────────────────────
 // The binary answers with one line:
 //   unknown template `?` — embedded set: agent-loop · chain · etl-state · …
 

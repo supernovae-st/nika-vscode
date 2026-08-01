@@ -2,7 +2,7 @@
   "name": "nika-lang",
   "displayName": "Nika Workflow Language",
   "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.107.0",
+  "version": "0.107.1",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -567,7 +567,7 @@
       },
       {
         "command": "nika.browseExamples",
-        "title": "Browse Embedded Examples",
+        "title": "Try an Example (offline showroom)",
         "category": "Nika"
       },
       {
@@ -1731,7 +1731,7 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'empty' && workspaceFolderCount == 0",
-        "contents": "No folder is open: workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The embedded examples read without one: [browse examples](command:nika.browseExamples)."
+        "contents": "No folder is open: workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The try showroom reads without one: [try an example](command:nika.browseExamples)."
       },
       {
         "view": "nikaWorkflows",
@@ -1741,11 +1741,11 @@
       {
         "view": "nikaWorkflows",
         "when": "nika.journey == 'working'",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Browse embedded examples](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Try an example (offline)](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
-        "contents": "No recorded runs yet: this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\nMock needs no key: run with `mock/echo` for an offline, zero-spend rehearsal.\n[⧈ Try an embedded example](command:nika.browseExamples)"
+        "contents": "No recorded runs yet: this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\n`nika try <slug>` is offline by default: a zero-spend rehearsal, no keys.\n[⧈ Try an example · offline, zero keys](command:nika.browseExamples)"
       },
       {
         "view": "nikaStation",
