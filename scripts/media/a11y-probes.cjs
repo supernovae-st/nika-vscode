@@ -412,9 +412,9 @@ function probe(name, ok, note = '') {
       const rowsAll = kids.filter((el) => el.classList.contains('nk-act-row'));
       return {
         sepFound: sepIdx !== -1,
-        groupHead: afterSep[0]?.querySelector('span')?.textContent ?? '',
-        first: rowsAll[0]?.querySelector('span')?.textContent ?? '',
-        second: rowsAll[1]?.querySelector('span')?.textContent ?? '',
+        groupHead: afterSep[0]?.querySelector('span:not(.nk-act-ic):not(.nk-act-alt)')?.textContent ?? '',
+        first: rowsAll[0]?.querySelector('span:not(.nk-act-ic):not(.nk-act-alt)')?.textContent ?? '',
+        second: rowsAll[1]?.querySelector('span:not(.nk-act-ic):not(.nk-act-alt)')?.textContent ?? '',
       };
     });
     probe('a habit lifts the row to its GROUP head (never across)', order.sepFound && /Peek/.test(order.groupHead), order.groupHead);

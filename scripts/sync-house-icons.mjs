@@ -35,6 +35,13 @@ const PICK = {
   lensHeat: 'statistics-charts/analytics',
   lensFollow: 'interface-general/target-1',
   lensFeed: 'interface-general/bars-three',
+  // the K panel rows (a menu row's mark leads it · Raycast)
+  eye: 'accessibility/eye-open',
+  pencil: 'edit/pencil-2',
+  duplicate: 'interface-general/square-behind-square-1',
+  fork: 'code/fork-simple',
+  bolt: 'weather/lightning-bolt',
+  expandCard: 'arrows/expand-simple',
   help: 'interface-general/circle-questionmark',
   more: 'interface-general/circle-dots-center-1',
 };

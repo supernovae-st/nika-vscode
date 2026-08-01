@@ -349,6 +349,13 @@ body[data-nk-theme] {
   transition: border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
+/* The title IS a filename: the stem carries the weight, the suffix
+ * recedes (the operator: « affiche-le plus en mode nom de fichier »). */
+#dag-title .tt-ext {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
 #dag-title:hover {
   border-color: color-mix(in srgb, var(--nk-accent) 26%, var(--nk-border));
 }
@@ -510,7 +517,7 @@ body[data-nk-calm] .nc-tile.nk-tile-flip { animation: none !important; }
 .tb-lenses::before {
   content: 'LENS';
   padding: 0 2px 0 6px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-foot);
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -529,22 +536,56 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
 }
 
 .tb-lenses button {
-  gap: 3px;
+  gap: 4px;
   padding: 0 6px;
-}
-/* The mark leads, the key subscripts it: the lens is recognizable
- * (the icon) AND teachable (the key) — the gauntlet killed the blobs,
- * the keycaps taught the chords; the master set gives both. */
-.tb-lenses button > kbd {
-  min-width: 13px;
-  height: 13px;
-  padding: 0 2px;
-  font-size: var(--nk-fs-foot);
-  border-bottom-width: 1px;
-  opacity: 0.75;
+  overflow: hidden;
 }
 .tb-lenses button .tb-ic { width: 15px; height: 15px; }
 #dag-toolbar button.active .tb-ic { color: var(--nk-accent); }
+
+/* The KEY is a hint, not a button: same optical size as the mark it
+ * follows (the operator: « fais les keyboards de la même taille que
+ * les icônes »), flat, no cap — a whisper beside the glyph. */
+#dag-toolbar .tb-lenses button > kbd {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--nk-fs-foot);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--nk-ink-dim);
+  opacity: 0.65;
+}
+#dag-toolbar .tb-lenses button.active > kbd { color: var(--nk-accent); opacity: 0.9; }
+
+/* THE BUTTON WRITES WHAT IT DOES: the name unfurls on hover/focus —
+ * a width morph on the spatial voice, the mark and key never move.
+ * (Rams: the label earns its pixels only while you are asking.) */
+.tb-lenses button .tb-name {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font-size: var(--nk-fs-label);
+  color: var(--nk-ink);
+  transition:
+    max-width var(--nk-dur-base) var(--nk-ease-spatial),
+    opacity var(--nk-dur-fast) var(--nk-ease-effects),
+    margin var(--nk-dur-base) var(--nk-ease-spatial);
+}
+.tb-lenses button:hover .tb-name,
+.tb-lenses button:focus-visible .tb-name {
+  max-width: 84px;
+  opacity: 1;
+  margin: 0 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tb-lenses button .tb-name { transition: none; }
+}
+body[data-nk-calm] .tb-lenses button .tb-name { transition: none; }
 #dag-toolbar button.active > kbd {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
@@ -6555,7 +6596,7 @@ body[data-nk-theme='editor'].vscode-dark {
 #plan-rail::before {
   content: 'WAVES';
   padding: 0 4px 3px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-foot);
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -7647,6 +7688,27 @@ body.dataflow .nc-io {
 .nk-act-row:active:not(.nk-act-off) {
   background: color-mix(in srgb, var(--nk-data) 22%, transparent);
 }
+/* The row's mark leads it (the Raycast anatomy: glyph · label · kbd) —
+ * a fixed 16px column so every label starts on the same rail. */
+.nk-act-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-right: -4px;
+  color: var(--nk-ink-dim);
+}
+.nk-act-ic svg { width: 100%; height: 100%; }
+/* With a mark in the row, space-between would center the label (three
+ * children) — the label takes the free space and stays left-rail. */
+.nk-act-row > span:not(.nk-act-ic):not(.nk-act-alt) {
+  flex: 1 1 auto;
+  text-align: left;
+}
+.nk-act-row.active .nk-act-ic { color: var(--nk-ink); }
+
 /* The keycap construction (§1e batch 3): cap + wash, the chip radius. */
 .nk-act-row kbd {
   padding: 0 5px;

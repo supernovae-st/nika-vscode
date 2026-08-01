@@ -1180,14 +1180,14 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
-      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic">${HI.lensWaves}</span><kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><span class="tb-ic">${HI.lensTimeline}</span><kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><span class="tb-ic">${HI.lensAudit}</span><kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><span class="tb-ic">${HI.lensDataflow}</span><kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><span class="tb-ic">${HI.lensCurve}</span><kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><span class="tb-ic">${HI.lensHeat}</span><kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><span class="tb-ic">${HI.lensFollow}</span><kbd>G</kbd></button>
-      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><span class="tb-ic">${HI.lensFeed}</span><kbd>L</kbd></button>
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic">${HI.lensWaves}</span><span class="tb-name">Waves</span><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><span class="tb-ic">${HI.lensTimeline}</span><span class="tb-name">Timeline</span><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><span class="tb-ic">${HI.lensAudit}</span><span class="tb-name">Audit</span><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><span class="tb-ic">${HI.lensDataflow}</span><span class="tb-name">Dataflow</span><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><span class="tb-ic">${HI.lensCurve}</span><span class="tb-name">Curves</span><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><span class="tb-ic">${HI.lensHeat}</span><span class="tb-name">Heatmap</span><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><span class="tb-ic">${HI.lensFollow}</span><span class="tb-name">Follow</span><kbd>G</kbd></button>
+      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><span class="tb-ic">${HI.lensFeed}</span><span class="tb-name">Feed</span><kbd>L</kbd></button>
       <button id="btn-help" title="What am I looking at? (?)"><span class="tb-ic">${HI.help}</span></button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>

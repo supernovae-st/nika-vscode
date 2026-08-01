@@ -32,6 +32,7 @@ import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
+import { HOUSE_ICON } from '../house-icons.generated';
 import { NO_MATCH_HINT, connectTargets, nextFocus, nudgedPosition, searchCountLabel, type NavDir, type NudgeDir } from '../core/canvasNav';
 import { CANVAS_KEYMAP } from '../core/canvasKeymap';
 import { kRowMatches, orderKRows } from '../core/kPanel';
@@ -2771,9 +2772,11 @@ class DagRenderer {
       if (m) { child.x = m.x; child.y = m.y; }
     }
 
-    // Update toolbar
+    // Update toolbar — the title IS a filename: the stem carries the
+    // weight, the .nika.yaml suffix recedes (the file it opens, named
+    // the way the disk names it).
     const titleEl = document.getElementById('dag-title');
-    if (titleEl) titleEl.textContent = graph.workflowName;
+    if (titleEl) { paintTitleAsFilename(titleEl, graph.workflowName, graph.workflowUri); }
     // The graph's accessible name — what a reader hears on landing.
     const taskCount = graph.nodes.length;
     const graphName = `${graph.workflowName || 'workflow'} · ${taskCount} task${taskCount === 1 ? '' : 's'}`;
@@ -5922,7 +5925,7 @@ class DagRenderer {
     queryLine.hidden = true;
     panel.appendChild(queryLine);
     interface Act {
-      id: string; label: string; kbd?: string;
+      id: string; label: string; kbd?: string; icon?: string;
       /** The row's ⌘⏎ variant — declared only where one HONESTLY exists. */
       alt?: { hint: string; run: () => void };
       run: () => void;
@@ -5937,17 +5940,17 @@ class DagRenderer {
     // so those rows carry none.
     const runActs: Act[] = [
       {
-        id: 'run-from-here', label: '▶ Run from here',
+        id: 'run-from-here', label: 'Run from here', icon: HOUSE_ICON.play,
         alt: { hint: '⌘⏎ run all', run: () => { this.onRunAll?.(); } },
         run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }),
       },
-      { id: 'what-if', label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+      { id: 'what-if', label: 'What if it fails', icon: HOUSE_ICON.bolt, kbd: 'X', run: () => this.toggleSimulate(node.id) },
     ];
     if (node.status === 'failed') {
-      runActs.push({ id: 'fork-failure', label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+      runActs.push({ id: 'fork-failure', label: 'Fork from this failure', icon: HOUSE_ICON.fork, run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
     }
     const storyActs: Act[] = [
-      { id: 'peek', label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
+      { id: 'peek', label: 'Peek the run story', icon: HOUSE_ICON.eye, kbd: 'Space', run: () => { this.togglePeek(); } },
       // The stranded card buttons (a11y wave): the chip work was mouse-
       // only — K reaches them now. Rows exist only where the fact does.
       ...(node.model !== undefined ? [{
@@ -5958,9 +5961,9 @@ class DagRenderer {
         id: 'audit-report', label: `⚠ Pre-flight report · ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'}`, kbd: 'P',
         run: () => vscode.postMessage({ kind: 'dag:openReport' }),
       }] : []),
-      { id: 'card-mode', label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
-      { id: 'open-yaml', label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
-      { id: 'duplicate', label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
+      { id: 'card-mode', label: 'Expand / fold the card', icon: HOUSE_ICON.expandCard, kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
+      { id: 'open-yaml', label: 'Open in the YAML', icon: HOUSE_ICON.pencil, kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
+      { id: 'duplicate', label: 'Duplicate', icon: HOUSE_ICON.duplicate, kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.tool?.startsWith('workflow:') === true) {
       storyActs.push({ id: 'open-sub', label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
@@ -5996,6 +5999,12 @@ class DagRenderer {
       row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
       row.id = `nk-act-row-${i}`;
       row.setAttribute('role', 'menuitem');
+      if (a.icon !== undefined) {
+        const mark = document.createElement('span');
+        mark.className = 'nk-act-ic';
+        mark.innerHTML = a.icon;
+        row.appendChild(mark);
+      }
       const label = document.createElement('span');
       label.textContent = a.label;
       row.appendChild(label);
@@ -9096,6 +9105,22 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
 // The title is the reverse door — one visible mouse path back to the
 // YAML (Enter on a card and Esc-at-rest are its keyboard twins).
+/** The title as a FILENAME: `<stem>` bright, `.nika.yaml` quiet. The
+ *  uri (when present) carries the true basename; the workflow name is
+ *  the fallback (an untitled buffer has no path). */
+function paintTitleAsFilename(el: HTMLElement, name: string, uri?: string): void {
+  const base = uri ? decodeURIComponent(uri.split('/').pop() ?? '') : '';
+  const shown = base || (name.endsWith('.nika.yaml') ? name : `${name}.nika.yaml`);
+  const at = shown.indexOf('.nika.y');
+  el.replaceChildren();
+  if (at <= 0) { el.textContent = shown; return; }
+  el.append(shown.slice(0, at));
+  const ext = document.createElement('span');
+  ext.className = 'tt-ext';
+  ext.textContent = shown.slice(at);
+  el.appendChild(ext);
+}
+
 const titleDoor = document.getElementById('dag-title');
 titleDoor?.setAttribute('title', 'Open the workflow YAML');
 titleDoor?.addEventListener('click', () => {
