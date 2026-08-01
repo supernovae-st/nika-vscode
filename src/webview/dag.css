@@ -4680,7 +4680,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   /* Clears the minimap card on BOTH sides while centered (172px each);
    * under 820px the dock un-stacks instead (see the media block). */
   width: min(620px, calc(100vw - 344px));
-  padding: 6px 8px;
+  padding: 8px 10px; /* the 48px Krea bar */
   background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
