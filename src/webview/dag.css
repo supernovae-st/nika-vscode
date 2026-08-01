@@ -125,6 +125,20 @@ body {
   /* THE GRADIENT BORDER (the QRcodeAI liquid-glass seam): light has a
    * DIRECTION — the border reads brighter at the top-left, quieter at
    * the bottom. Token-derived (--nk-ink), every skin re-voices it. */
+  /* THE DIAGONAL GROUND (BGDarkSmooth · QRcodeAI): a panel is never
+   * flat — the surface falls 145deg from lit to deep. Token-derived. */
+  --nk-surface-grad: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--nk-ink) 6%, var(--nk-surface)),
+    color-mix(in srgb, #000 22%, var(--nk-surface))
+  );
+  --nk-menu-grad: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--nk-ink) 8%, var(--nk-menu)),
+    color-mix(in srgb, #000 18%, var(--nk-menu))
+  );
+  /* THE HOTSPOT (surface_color · light has a SOURCE) — overlay only. */
+  --nk-hotspot: radial-gradient(circle at 32% 20%, color-mix(in srgb, var(--nk-ink) 9%, transparent), transparent 34%);
   --nk-border-grad: linear-gradient(
     135deg,
     color-mix(in srgb, var(--nk-ink) 20%, transparent) 0%,
@@ -1501,7 +1515,7 @@ body.vscode-light .logo-dark { display: none; }
   align-items: center;
   gap: 2px;
   padding: 3px 4px;
-  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
@@ -4658,7 +4672,7 @@ body.lod-far .edge-hit { pointer-events: none; }
    * under 820px the dock un-stacks instead (see the media block). */
   width: min(620px, calc(100vw - 344px));
   padding: 6px 8px;
-  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
@@ -5345,7 +5359,9 @@ body.lod-far .region-label { display: none; }
   z-index: 52;
   width: 340px;
   padding: 8px;
-  background: color-mix(in srgb, var(--nk-menu) 94%, transparent);
+  background:
+    var(--nk-hotspot),
+    var(--nk-menu-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-overlay);
   border: 1px solid var(--nk-border);
@@ -7474,7 +7490,9 @@ body.dataflow .nc-io {
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--nk-menu) 88%, transparent);
+  background:
+    var(--nk-hotspot),
+    var(--nk-menu-grad);
   backdrop-filter: var(--nk-glass-overlay);
   box-shadow: var(--nk-specular), var(--nk-shadow-2);
 }
