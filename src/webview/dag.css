@@ -372,6 +372,46 @@ body[data-nk-theme] {
   transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
+/* The chrome icon slot — one optical size, ink follows the button. */
+.tb-ic {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.tb-ic svg { width: 100%; height: 100%; }
+
+/* The ontology icon slot (welcome caps · action ghosts) — the SAME
+ * bytes the site's rooms wear (icons.generated.ts · the vendored
+ * SuperNovae set): 15px optical, ink follows the row. */
+.es-cap-ic {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.es-cap-ic svg { width: 100%; height: 100%; }
+
+/* The lens deck — keyboard-first lenses wear their KEY as the face
+ * (the letter IS the identity · the old unicode blobs all rendered as
+ * the same dark square at 11px). The keycap look rides the house
+ * construction below; active keeps the accent voice. */
+.tb-lenses button { padding: 0 5px; }
+.tb-lenses button > kbd:only-child {
+  min-width: 17px;
+  height: 17px;
+  font-size: var(--nk-fs-label);
+}
+#dag-toolbar button.active > kbd {
+  color: var(--nk-accent);
+  border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
+}
+
+/* Exports are real but not FRONT-ROW: they live behind the ⋯ door
+ * permanently (the shed lists any hidden button with its title). */
+#dag-toolbar #btn-export-svg,
+#dag-toolbar #btn-export-png { display: none; }
+
 #dag-toolbar button:hover {
   background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.14));
 }
@@ -1439,6 +1479,9 @@ body.vscode-light .logo-dark { display: none; }
 }
 
 .es-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 12px;
   padding: 5px 14px;
   font-size: var(--nk-fs-ui);
