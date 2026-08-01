@@ -118,11 +118,14 @@ async function inlineFontDataUri(): Promise<string | null> {
 // a tool posts an `invoke` task pinned to that tool.
 
 /** What the palette hands back: a verb, optionally with a pinned tool. */
-interface PalettePick { verb: string; tool?: string }
+interface PalettePick { verb: string; tool?: string; model?: string }
 
 type PaletteEntry =
   | { kind: 'verb'; verb: string; glyph: string; blurb: string }
-  | { kind: 'tool'; tool: string; bare: string; cat: string };
+  | { kind: 'tool'; tool: string; bare: string; cat: string }
+  /** A brain, picked straight (the Krea gesture): the infer task lands
+   *  with this model already wired. */
+  | { kind: 'model'; ref: string; desc: string };
 
 class VerbCmdk {
   private readonly el = document.getElementById('verb-cmdk');
@@ -201,6 +204,7 @@ class VerbCmdk {
     const cb = this.onPick;
     this.close();
     if (entry.kind === 'verb') { cb?.({ verb: entry.verb }); }
+    else if (entry.kind === 'model') { cb?.({ verb: 'infer', model: entry.ref }); }
     else { cb?.({ verb: 'invoke', tool: entry.tool }); }
   }
 
@@ -218,9 +222,12 @@ class VerbCmdk {
     const q = this.input?.value ?? '';
     const verbs = filterVerbs(q);
     const tools = filterTools(q, paletteTools());
+    const ql = q.trim().toLowerCase();
+    const models = paletteModelRows.filter((m) => ql === '' || m.ref.toLowerCase().includes(ql));
     this.items = [
       ...verbs.map((v): PaletteEntry => ({ kind: 'verb', verb: v.verb, glyph: v.glyph, blurb: v.blurb })),
       ...tools.map((t): PaletteEntry => ({ kind: 'tool', ...t })),
+      ...models.map((m): PaletteEntry => ({ kind: 'model', ref: m.ref, desc: m.desc })),
     ];
     this.active = Math.min(this.active, Math.max(this.items.length - 1, 0));
     this.list.replaceChildren();
@@ -228,7 +235,7 @@ class VerbCmdk {
     // Group headers ride the flow: `verbs`, then each tool category.
     let lastHeader = '';
     this.items.forEach((entry, i) => {
-      const wanted = entry.kind === 'verb' ? 'verbs' : entry.cat;
+      const wanted = entry.kind === 'verb' ? 'verbs' : entry.kind === 'model' ? 'models' : entry.cat;
       if (wanted !== lastHeader) {
         this.list!.appendChild(this.header(wanted));
         lastHeader = wanted;
@@ -250,6 +257,15 @@ class VerbCmdk {
         else { glyph.textContent = entry.glyph; }
         name.textContent = entry.verb;
         blurb.textContent = entry.blurb;
+      } else if (entry.kind === 'model') {
+        // A BRAIN, picked straight (the Krea gesture): the infer task
+        // lands with this model already wired · the facts ride the tail.
+        row.className = 'cmdk-row cmdk-model verb-infer';
+        const rowSvg = makeVerbGlyph('infer', 13);
+        if (rowSvg) { glyph.appendChild(rowSvg); }
+        name.textContent = entry.ref;
+        blurb.textContent = entry.desc;
+        row.title = `infer · ${entry.ref}${entry.desc ? ` · ${entry.desc}` : ''}`;
       } else {
         row.className = 'cmdk-row cmdk-tool verb-invoke';
         // The category's house icon — the binary's description as the
@@ -700,7 +716,7 @@ interface DagGraph {
 }
 
 type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }>; models?: Array<{ ref: string; desc: string }> }
   | { kind: 'dag:artifacts'; artifacts: CardArtifactMsg[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
   | { kind: 'dag:timeline'; data: TimelineData }
@@ -1553,6 +1569,9 @@ const BUILTIN_GLYPH: Record<string, string> = {
 
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
 let toolCatsMap: Record<string, { cat: string; desc?: string }> | undefined;
+/** The palette's model shortlist (extension-built · presentation order
+ *  · only what this machine can actually run). */
+let paletteModelRows: Array<{ ref: string; desc: string }> = [];
 
 /** Category of a bare builtin — binary vocabulary first, fallback map. */
 function toolCatOf(bare: string): string | undefined {
@@ -8313,6 +8332,7 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // race two async ELK layouts and double every entrance transition.
       if (replayer.active) { replayer.close(); }
       if (msg.toolCats) { toolCatsMap = msg.toolCats; }
+      if (msg.models) { paletteModelRows = msg.models; }
       // Lenses are per-QUESTION, not per-panel: audit/dataflow answered
       // a question about the PREVIOUS file — a different workflow starts
       // on the map (heatmap keeps its global dial by design).

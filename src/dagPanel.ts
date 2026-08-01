@@ -25,7 +25,7 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 
 // Extension -> Webview
 export type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, ToolMeta> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, ToolMeta>; models?: Array<{ ref: string; desc: string }> }
   // Recorded media artifacts landing ON the cards (run close · replay) —
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
@@ -106,7 +106,7 @@ export type WebviewToExtMessage =
   | { kind: 'transport:tick'; running: string[] }
   | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
-  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string; tool?: string }
+  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string; tool?: string; model?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
@@ -493,7 +493,7 @@ export class DagPanel implements vscode.Disposable {
         // open replay) alive while backgrounded — re-sending dag:load
         // would close the replay and blank to the stale seed graph.
         if (hasBeenHidden && this.currentGraph && !this.replayActive) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         }
       }),
     );
@@ -569,9 +569,16 @@ export class DagPanel implements vscode.Disposable {
   /** BARE builtin → category from `nika tools --json` — rides every
    *  dag:load so the canvas glyphs speak the binary's vocabulary. */
   private toolCats: Record<string, ToolMeta> | undefined;
+  /** The palette's model shortlist (the Krea gesture · built by the
+   *  extension from the catalog + the presentation order). */
+  private models: Array<{ ref: string; desc: string }> | undefined;
 
   public setToolCats(cats: Record<string, ToolMeta> | undefined): void {
     this.toolCats = cats;
+  }
+
+  public setPaletteModels(rows: Array<{ ref: string; desc: string }> | undefined): void {
+    this.models = rows;
   }
 
   /** Everything the webview may read: our bundles + the workspace (the
@@ -645,7 +652,7 @@ export class DagPanel implements vscode.Disposable {
     // closes the Replayer); keep the extension-side guard in step.
     this.replayActive = false;
     if (this.panel?.visible) {
-      this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(graph), toolCats: this.toolCats });
+      this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(graph), toolCats: this.toolCats, models: this.models });
     }
   }
 
@@ -832,7 +839,7 @@ export class DagPanel implements vscode.Disposable {
         }
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         } else {
           // Empty canvas → the welcome wants its resume list.
           this.onWelcomeReady?.();
@@ -915,7 +922,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:requestRefresh':
         // Extension can re-parse workflow and send updated graph
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         }
         break;
 
@@ -1296,7 +1303,7 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden>
-    <input id="cmdk-input" type="text" placeholder="add a task · verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <input id="cmdk-input" type="text" placeholder="add a task · verb · tool · model…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
   <div id="connect-cmdk" hidden>

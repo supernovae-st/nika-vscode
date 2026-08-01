@@ -183,7 +183,7 @@
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden>
-    <input id="cmdk-input" type="text" placeholder="add a task · verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <input id="cmdk-input" type="text" placeholder="add a task · verb · tool · model…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
   <div id="connect-cmdk" hidden>
@@ -619,6 +619,17 @@
       }
       post({
         kind: 'dag:load', graph: GRAPH,
+        // The palette's model shortlist (the extension builds it from
+        // `nika catalog --json` + the presentation order; the harness
+        // pins a representative slice so the surface can be judged).
+        models: [
+          { ref: 'ollama/llama3.2:3b', desc: '128k ctx · local · zero key' },
+          { ref: 'ollama/qwen2.5-coder', desc: '32k ctx · local · code' },
+          { ref: 'lmstudio/mistral-small', desc: '32k ctx · local' },
+          { ref: 'mistral/mistral-large-latest', desc: '128k ctx · reasoning · json' },
+          { ref: 'openai/gpt-4o-mini', desc: '128k ctx · vision · json:schema' },
+          { ref: 'mock/echo', desc: 'deterministic · zero keys · zero network' },
+        ],
         toolCats: {
           chart: { cat: 'media', desc: 'data → chart image (5 renderers)' },
           write: { cat: 'file', desc: 'Write a file' },
