@@ -2908,6 +2908,23 @@ body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
   gap: 7px;
   height: 22px;
   flex: none;
+  /* The Krea band rides a PAINT-ONLY layer (the card's heights are
+   * measured in TS — the box must never move): an isolated ::before
+   * bleeds into the card padding, closed by a hairline. The verb
+   * head-auras compose above it. */
+  position: relative;
+  isolation: isolate;
+}
+
+.nc-head::before {
+  content: '';
+  position: absolute;
+  inset: -10px -12px -5px;
+  z-index: -1;
+  background: color-mix(in srgb, var(--nk-ink) 3.5%, transparent);
+  border-bottom: 1px solid var(--nk-border-soft);
+  border-radius: var(--nk-radius-card) var(--nk-radius-card) 0 0;
+  pointer-events: none;
 }
 
 /* The house verb glyphs (icon ontology) render as inline SVG inside the
