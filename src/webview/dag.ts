@@ -6473,7 +6473,9 @@ class DagRenderer {
       .append('text')
       .attr('class', (d) => {
         const meta = dagEdgeMap.get(d.id);
-        if (meta?.kind !== 'control') { return 'edge-label'; }
+        if (meta?.kind !== 'control') {
+          return meta?.kind === 'failure-observation' ? 'edge-label edge-label-obs-fail' : 'edge-label';
+        }
         // The predicate TINT (§S.4): the outcome class rides its label
         // hue — the raw spelling becomes the class (closed-set shaped,
         // so the R5 succeeded→success flip lands with zero hunt here).

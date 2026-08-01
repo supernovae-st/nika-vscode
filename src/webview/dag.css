@@ -291,7 +291,7 @@ body[data-nk-theme] {
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
 }
 
 #dag-title {
@@ -300,7 +300,7 @@ body[data-nk-theme] {
   line-height: 32px;
   padding: 0 12px;
   font-family: var(--nk-mono); /* a filename is code */
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--nk-fs-heading);
   letter-spacing: 0.01em;
   /* The reverse door — click opens the YAML (dag.ts wires it). */
@@ -311,7 +311,7 @@ body[data-nk-theme] {
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
   min-width: 36px;
@@ -319,6 +319,11 @@ body[data-nk-theme] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: border-color var(--nk-dur-base) var(--nk-ease-effects);
+}
+
+#dag-title:hover {
+  border-color: color-mix(in srgb, var(--nk-accent) 26%, var(--nk-border));
 }
 
 #dag-title:empty {
@@ -329,12 +334,8 @@ body[data-nk-theme] {
   flex: 0 0 auto;
 }
 
-.tb-sep {
-  width: 1px;
-  height: 16px;
-  background: var(--nk-border);
-  margin: 0 2px;
-}
+.tb-sep { display: none; }
+
 
 .tb-group {
   display: inline-flex;
@@ -347,7 +348,7 @@ body[data-nk-theme] {
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
   overflow: hidden;
 }
 
@@ -414,19 +415,23 @@ body[data-nk-theme] {
 #dag-toolbar button.active > kbd {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
+  border-bottom-width: 1px;
+  transform: translateY(0.5px);
 }
 
 /* Exports are real but not FRONT-ROW: they live behind the ⋯ door
  * permanently (the shed lists any hidden button with its title). */
 #dag-toolbar #btn-export-svg,
 #dag-toolbar #btn-export-png { display: none; }
+/* Its front-row group must not survive as an empty 6px pill. */
+#dag-toolbar .tb-group:has(> #btn-export-svg) { display: none; }
 
 #dag-toolbar button:hover {
   background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.14));
 }
 
 #dag-toolbar button:active {
-  transform: translateY(0.5px);
+  transform: translateY(1px); /* legible on the 1x device grid */
 }
 
 /* Keyboard users see where they are — everywhere a pointer can click. */
@@ -440,6 +445,9 @@ body[data-nk-theme] {
 .nc-x-act:focus-visible,
 #scrub-play:focus-visible,
 #scrub-close:focus-visible,
+.tbm-row:active {
+  background: color-mix(in srgb, var(--nk-ink) 12%, transparent);
+}
 .tbm-row:focus-visible {
   outline: var(--nk-ring);
   outline-offset: var(--nk-ring-offset);
@@ -1157,8 +1165,8 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   gap: 5px;
   padding: 2px 8px;
   border-radius: var(--nk-r-pop);
-  background: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
+  background: var(--nk-surface);
+  border: 1px solid transparent; /* readout voice · never pressable-looking */
   font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
   font-family: var(--nk-mono);
@@ -1396,7 +1404,7 @@ body.vscode-light .logo-dark { display: none; }
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: calc(var(--nk-radius) + 4px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
 }
 #zoom-dock button {
   display: inline-flex;
@@ -1418,12 +1426,17 @@ body.vscode-light .logo-dark { display: none; }
   background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.14));
   color: var(--nk-ink);
 }
-#zoom-dock button:active { transform: translateY(0.5px); }
+#zoom-dock button:active { transform: translateY(1px); }
 #zoom-dock button:focus-visible {
   outline: var(--nk-ring);
   outline-offset: var(--nk-ring-offset);
 }
 #zoom-dock kbd { display: none; }
+#zoom-dock #zoom-pct {
+  min-width: 44px; /* holds « 400% » — the −/+ seats never move */
+  font-family: var(--nk-mono);
+  font-variant-numeric: tabular-nums;
+}
 .zd-sep {
   width: 1px;
   height: 16px;
@@ -1448,7 +1461,7 @@ body.dag-loading #zoom-dock { display: none; }
   background: color-mix(in srgb, var(--nk-surface) 82%, transparent);
   background-image: var(--nk-grain);
   backdrop-filter: blur(10px);
-  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
+  box-shadow: var(--nk-card-shadow), var(--nk-bevel);
   overflow: hidden;
   cursor: pointer;
   transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
@@ -1509,11 +1522,12 @@ body.dag-loading #zoom-dock { display: none; }
 .es-card {
   text-align: center;
   padding: 28px 36px;
-  background: color-mix(in srgb, var(--nk-surface) 70%, transparent);
+  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
   background-image: var(--nk-grain);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: 12px;
-  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
+  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
@@ -1562,7 +1576,7 @@ body.dag-loading #zoom-dock { display: none; }
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
   box-shadow: var(--nk-bevel);
-  transition: background var(--nk-dur-base) var(--nk-ease-effects);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial), box-shadow var(--nk-dur-fast) var(--nk-ease-effects), filter var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .es-button:hover {
@@ -1829,7 +1843,7 @@ body.dag-loading #zoom-dock { display: none; }
  * a long-dash cadence keeps it apart from the solid value wire. */
 .dag-edge.edge-data.edge-obs {
   stroke-dasharray: 7 4;
-  opacity: 0.85;
+  opacity: 0.62;
 }
 
 /* Failure observation — admits on {failure, skipped} (gate algebra
@@ -1866,16 +1880,22 @@ body.dag-loading #zoom-dock { display: none; }
    a control edge ────────────────────────────────────────────────────── */
 
 .edge-label {
-  font-size: var(--nk-fs-note);
+  font-size: calc(var(--nk-fs-note) * min(var(--zoom-comp, 1), 2.2));
   font-family: var(--nk-mono);
   letter-spacing: 0.03em;
   fill: var(--nk-data);
   paint-order: stroke;
   stroke: var(--nk-page);
-  stroke-width: 3.5px;
+  stroke-width: 0.45em;
   stroke-linejoin: round;
   pointer-events: none;
   opacity: 0.9;
+}
+
+/* The errors-wire label speaks its failure hue (the ONE label class
+ * painted data-blue regardless of what the wire carries). */
+.edge-label.edge-label-obs-fail {
+  fill: color-mix(in srgb, var(--nk-st-failed-text) 80%, var(--nk-data));
 }
 
 /* The control predicate (succeeded · failed · skipped · terminal) —
@@ -1912,7 +1932,7 @@ body.dag-loading #zoom-dock { display: none; }
   position: fixed;
   left: 12px;
   bottom: 34px;
-  width: 230px;
+  width: 272px;
   max-height: 168px;
   display: flex;
   flex-direction: column;
@@ -1921,7 +1941,7 @@ body.dag-loading #zoom-dock { display: none; }
   background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
   background-image: var(--nk-grain);
   backdrop-filter: blur(10px);
-  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
+  box-shadow: var(--nk-card-shadow), var(--nk-bevel);
   overflow: hidden;
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
@@ -1977,6 +1997,28 @@ body.dag-loading #zoom-dock { display: none; }
   text-align: left;
   cursor: pointer;
   animation: act-in var(--nk-dur-base) var(--nk-ease-effects);
+}
+
+.act-entry {
+  transition: background var(--nk-dur-fast) var(--nk-ease-effects);
+}
+.act-entry:focus-visible {
+  outline: var(--nk-ring);
+  outline-offset: -2px;
+  border-radius: var(--nk-r-chip);
+}
+.act-entry:not(:disabled):active {
+  background: color-mix(in srgb, var(--nk-accent) 16%, transparent);
+}
+/* The panel earns its space even before the first event. */
+#activity-list:not(:has(.act-entry))::after {
+  content: 'quiet · a run narrates here';
+  display: block;
+  padding: 8px 10px;
+  font-family: var(--nk-mono);
+  font-size: var(--nk-fs-sub);
+  color: var(--nk-ink-dim);
+  opacity: 0.7;
 }
 
 @keyframes act-in {
@@ -4582,13 +4624,15 @@ body.lod-far .edge-hit { pointer-events: none; }
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-radius);
   cursor: pointer;
-  transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects);
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), opacity var(--nk-dur-fast) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
 #omni-go:hover {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 50%, var(--nk-border));
 }
+
+#omni-go:active { transform: translateY(1px); }
 
 @media (max-width: 820px) {
   #omnibar { width: calc(100vw - 24px); }
@@ -4637,6 +4681,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   font-size: var(--nk-fs-title);
   text-align: left;
   cursor: pointer;
+  transition: background var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 .tbm-row:hover,
@@ -5589,7 +5634,7 @@ body.lod-far .nc-audit { display: none !important; }
 
 .es-word {
   font-family: var(--nk-display);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--nk-ink);
@@ -5687,12 +5732,13 @@ body.lod-far .nc-audit { display: none !important; }
 }
 
 .es-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  justify-content: center;
-  margin-top: 2px;
+  margin-top: 14px;
 }
+.es-actions .es-button { margin-top: 0; justify-content: center; }
+.es-actions .es-button:not(.es-button-ghost) { grid-column: 1 / -1; }
 
 /* Section labels + the resume list (the sidebar-sessions read). */
 .es-sec {
@@ -5849,6 +5895,34 @@ body.welcome #dag-status {
   color: var(--nk-ink);
   background: color-mix(in srgb, var(--nk-ink) 6%, transparent);
   border-color: var(--nk-border);
+}
+
+/* The primary is a MACHINE KEY (the sparkle's own material): lit
+ * gradient + extruded shadow · 1.5px press travel. */
+.es-actions .es-button:not(.es-button-ghost) {
+  border-color: color-mix(in srgb, var(--nk-cta) 40%, var(--nk-border));
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 48%),
+    var(--nk-cta);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 2px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
+}
+.es-actions .es-button:not(.es-button-ghost):hover {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 48%),
+    var(--nk-cta-hover);
+}
+.es-actions .es-button:not(.es-button-ghost):active {
+  transform: translateY(1.5px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0.5px 0 color-mix(in srgb, var(--nk-cta) 40%, #000);
+}
+/* ONE primary: while the describe bar holds focus, the demo key dims —
+ * the accent is spent at the moment of commitment. */
+.es-card:has(#es-describe-input:focus) .es-actions .es-button:not(.es-button-ghost) {
+  filter: saturate(0.55) brightness(0.82);
+}
+.es-cap:active,
+.es-row:active {
+  background: color-mix(in srgb, var(--nk-ink) 10%, transparent);
 }
 
 .es-button-ghost:hover {

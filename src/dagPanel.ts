@@ -1170,7 +1170,6 @@ export class DagPanel implements vscode.Disposable {
       <img class="logo-light" src="${logoLight}" alt="" width="16" height="16">
     </span>
     <span id="dag-title"></span>
-    <span class="tb-sep"></span>
     <div class="tb-group">
       <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
