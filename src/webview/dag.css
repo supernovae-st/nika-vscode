@@ -3243,6 +3243,16 @@ body[data-nk-calm][data-aurora] #aurora::before {
   animation: none !important;
 }
 
+/* The status signal holds ONE optical size (the ids' own law · §6c):
+ * at fit zoom the resting dot measured 2px — the card's one signal,
+ * invisible. Paint-only inside the fixed 18px slot; the near read is
+ * untouched (comp = 1). */
+body.lod-mid .nc-dot,
+body.lod-far .nc-dot {
+  transform: scale(min(var(--zoom-comp, 1), 1.9));
+  transform-origin: center;
+}
+
 /* The far read is the map — glyph strips are sub-pixel there; the dot
  * (already zoom-scaled) takes the live voice back. */
 body.lod-far .nc-spin { display: none; }
