@@ -6464,12 +6464,27 @@ body[data-nk-theme='editor'].vscode-dark {
   overflow-y: auto;
   scrollbar-width: none;
   padding: 6px;
-  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
-  box-shadow: var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+}
+
+/* The rail names itself (the gauntlet: « a mystery box of bracket
+ * mono ») — the LENS deck's own dim-label voice. */
+#plan-rail::before {
+  content: 'WAVES';
+  padding: 0 4px 3px;
+  font-family: var(--nk-mono);
+  font-size: var(--nk-fs-foot);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--nk-ink-dim);
+  opacity: 0.7;
+  user-select: none;
+  pointer-events: none;
 }
 
 #plan-rail[hidden] { display: none; }
