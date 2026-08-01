@@ -1136,7 +1136,7 @@ export class DagPanel implements vscode.Disposable {
     </div>
     <div class="tb-group">
       <button id="btn-zoom-out" title="Zoom out (−)">−</button>
-      <button id="zoom-pct" title="Current zoom · click to fit">100%</button>
+      <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
       <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
       <span class="tb-inner-sep"></span>
       <button id="btn-fit" title="Fit to view">Fit<kbd>F</kbd></button>
@@ -1150,7 +1150,7 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square)">∿<kbd>B</kbd></button>
       <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run)">▥<kbd>H</kbd></button>
       <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it)">⌖<kbd>G</kbd></button>
-      <button id="btn-feed" title="Activity feed · every status transition, live">≣<kbd>L</kbd></button>
+      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live">≣<kbd>L</kbd></button>
       <button id="btn-help" title="What am I looking at?">?</button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
@@ -1264,7 +1264,7 @@ export class DagPanel implements vscode.Disposable {
   <div id="omnibar">
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live">▶ Run</button>
-      <button id="btn-run-more" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>
+      <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>

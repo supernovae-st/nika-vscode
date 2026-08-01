@@ -7143,6 +7143,19 @@ class DagRenderer {
     this.zoomStep(0.7, instant);
   }
 
+  /** Actual size — the zoom readout's own verb (the design-tool
+   *  convention: the percentage click means 100%, fit lives on F). */
+  zoomActual(): void {
+    if (REDUCED_MOTION) {
+      this.svg.interrupt();
+      this.svg.call(this.zoomBehavior.scaleTo as D3ZoomCall, 1);
+      return;
+    }
+    this.svg
+      .transition().duration(300)
+      .call(this.zoomBehavior.scaleTo as D3ZoomCall, 1);
+  }
+
   /** One zoom step. Instant (keyboard ±) applies synchronously — the
    *  duration-0 transition it replaces could be interrupted by the NEXT
    *  rapid press before its timer tick applied anything (probed in the
@@ -7824,6 +7837,8 @@ function toggleActivity(): void {
     panel.setAttribute('hidden', '');
     btn?.classList.remove('active');
   }
+  // The eighth toggle speaks its state like its seven siblings.
+  btn?.setAttribute('aria-pressed', String(opening));
   vscode.setState({ ...(vscode.getState() ?? {}), showFeed: opening });
 }
 
@@ -8408,10 +8423,24 @@ function setRunUiState(running: boolean): void {
   const run = document.getElementById('btn-run') as HTMLButtonElement | null;
   const mock = document.getElementById('btn-run-mock') as HTMLButtonElement | null;
   const stop = document.getElementById('btn-stop');
+  // A disabled key explains itself at the pointer (the greyed-row law
+  // the run menu already speaks) — the resting title returns on enable.
+  const LIVE_REASON = 'A run is live · ■ Stop first';
+  const explain = (b: HTMLButtonElement | null): void => {
+    if (!b) { return; }
+    if (running) {
+      if (!b.dataset.restTitle) { b.dataset.restTitle = b.title; }
+      b.title = LIVE_REASON;
+    } else if (b.dataset.restTitle) {
+      b.title = b.dataset.restTitle;
+      delete b.dataset.restTitle;
+    }
+  };
   if (run) { run.disabled = running; }
   if (mock) { mock.disabled = running; }
   const resumeBtn = document.getElementById('btn-run-resume') as HTMLButtonElement | null;
   if (resumeBtn) { resumeBtn.disabled = running; }
+  explain(run); explain(mock); explain(resumeBtn);
   stop?.toggleAttribute('hidden', !running);
   if (running) {
     // A fresh run resets the heartbeat label and claims the verdict spot.
@@ -8606,7 +8635,7 @@ document.getElementById('btn-stop')?.addEventListener('click', () => {
 document.getElementById('btn-fit')?.addEventListener('click', () => renderer.fitToView());
 document.getElementById('btn-zoom-in')?.addEventListener('click', () => renderer.zoomIn());
 document.getElementById('btn-zoom-out')?.addEventListener('click', () => renderer.zoomOut());
-document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.fitToView());
+document.getElementById('zoom-pct')?.addEventListener('click', () => renderer.zoomActual());
 
 /** Auto-layout: drop the drag pins, re-run ELK, re-fit (⌗ · key A). */
 async function resetLayout(instant = false): Promise<void> {

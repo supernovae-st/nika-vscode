@@ -369,7 +369,7 @@ body[data-nk-theme] {
   font-size: var(--nk-fs-ui);
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
 #dag-toolbar button:hover {
@@ -4301,7 +4301,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   border: 1px solid transparent;
   border-radius: var(--nk-radius);
   cursor: pointer;
-  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-base) var(--nk-ease-spatial);
+  transition: background var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
 .vp-btn:active {
@@ -4592,6 +4592,17 @@ body.running #run-controls .rc-resume {
 .rc-mock:hover:not(:disabled) {
   color: var(--nk-ink);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
+}
+
+/* The flat-key press: 1px travel, under the machine keys' 1.5 (§4b). */
+.rc-mock,
+.rc-resume {
+  transition: color var(--nk-dur-base) var(--nk-ease-effects), border-color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+
+.rc-mock:active:not(:disabled),
+.rc-resume:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .rc-stop {
