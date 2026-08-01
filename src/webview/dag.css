@@ -2607,13 +2607,29 @@ body[data-nk-theme='nika'][data-aurora='danger'] #aurora::before {
 .dag-node:hover .nc {
   border-color: var(--nk-border-strong);
   box-shadow: var(--nk-card-shadow-hover);
-  transform: translateY(-1px);
 }
 
-.dag-node.dragging .nc,
-body.lod-far .dag-node:hover .nc {
-  transform: none;
+/* Expand/peek/promote unfold instead of snapping: the frame's geometry
+ * glides on the spatial voice (the SVG2 geometry-property transition ·
+ * the rebuilt rows progressively unclip under the growing fo). */
+.dag-node rect.node-bg,
+.dag-node rect.node-stack,
+.dag-node foreignObject.node-fo {
+  transition: height var(--nk-dur-slow) var(--nk-ease-spatial), y var(--nk-dur-slow) var(--nk-ease-spatial);
 }
+.dag-node .nc-port-out {
+  transition: cy var(--nk-dur-slow) var(--nk-ease-spatial);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dag-node rect.node-bg,
+  .dag-node rect.node-stack,
+  .dag-node foreignObject.node-fo,
+  .dag-node .nc-port-out { transition: none; }
+}
+body[data-nk-calm] .dag-node rect.node-bg,
+body[data-nk-calm] .dag-node rect.node-stack,
+body[data-nk-calm] .dag-node foreignObject.node-fo,
+body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
 
 /* Selection: accent halo, ZOOM-COMPENSATED (n8n) — the ring stays the
  * same optical weight at every zoom instead of vanishing when far out. */
@@ -4779,6 +4795,18 @@ body.lod-far .nc-stale {
   pointer-events: none;
 }
 
+#scrub-handle {
+  transition: transform var(--nk-dur-fast) var(--nk-ease-spatial), filter var(--nk-dur-fast) var(--nk-ease-effects);
+}
+#scrub-track:hover #scrub-handle { transform: translate(-50%, -50%) scale(1.15); }
+#scrub-track:active #scrub-handle { transform: translate(-50%, -50%) scale(1.3); }
+@media (prefers-reduced-motion: reduce) {
+  #scrub-track:hover #scrub-handle,
+  #scrub-track:active #scrub-handle { transform: translate(-50%, -50%); filter: brightness(1.3); }
+}
+body[data-nk-calm] #scrub-track:hover #scrub-handle,
+body[data-nk-calm] #scrub-track:active #scrub-handle { transform: translate(-50%, -50%); filter: brightness(1.3); }
+
 #scrub-time {
   flex: 0 0 auto;
   min-width: 42px;
@@ -4895,6 +4923,7 @@ body.lod-far .region-label { display: none; }
   display: none;
   opacity: 0;
   transform: translateY(-4px);
+  transition-duration: var(--nk-dur-fast), var(--nk-dur-fast), var(--nk-dur-fast);
 }
 
 /* Reduced motion: the palette is simply there or gone — no fade, no drop
@@ -5711,7 +5740,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   opacity: 0;
   transition:
     opacity var(--nk-dur-base) var(--nk-ease-effects),
-    transform var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-base) var(--nk-ease-spatial),
     display var(--nk-dur-base) allow-discrete;
   pointer-events: auto;
 }
@@ -5728,6 +5757,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   display: none;
   opacity: 0;
   transform: translate(-50%, -8px);
+  transition-duration: var(--nk-dur-fast), var(--nk-dur-fast), var(--nk-dur-fast);
 }
 
 /* The banner is a flex ROW: the summary text ellipsizes in its own
@@ -6987,6 +7017,20 @@ body.dataflow .nc-io {
 }
 .nk-act-row.active .nk-act-alt { display: inline; }
 
+/* The two POINTER-opened panels arrive (the cmdk recipe): fade + 4px
+   rise from the invoker below. #nk-actions stays instant — keyboard
+   surfaces render, never animate (the Kowalski law). */
+:is(#nk-run-menu, #nk-display) {
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-base) var(--nk-ease-spatial);
+}
+@starting-style {
+  #nk-run-menu { opacity: 0; transform: translateY(4px); }
+  #nk-display { opacity: 0; transform: translate(-50%, calc(-50% + 4px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#nk-run-menu, #nk-display) { transition: none; }
+}
+
 /* Greyed = readable, never landable (arrow nav skips; the title says
    why) — the ElevenLabs disabled-row read. */
 .nk-act-row.nk-act-off {
@@ -7066,6 +7110,8 @@ body.dataflow .nc-io {
 #canvas-describe[hidden] {
   display: none;
   opacity: 0;
+  /* dismissal gets out of the way: exit at the fast token (enter 160 · exit 80) */
+  transition-duration: var(--nk-dur-fast), var(--nk-dur-fast);
 }
 
 /* Reduced motion: there or gone, instantly — never a phantom fade. */

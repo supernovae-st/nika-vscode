@@ -3395,9 +3395,9 @@ class DagRenderer {
       );
       const nc = el?.querySelector<HTMLElement>('.nc');
       if (!el || !nc) { continue; }
-      nc.style.setProperty('--shock-delay', `${d * 70}ms`);
+      nc.style.setProperty('--shock-delay', `${Math.min(d, 8) * 70}ms`);
       el.classList.add('shock');
-      setTimeout(() => el.classList.remove('shock'), d * 70 + 700);
+      setTimeout(() => el.classList.remove('shock'), Math.min(d, 8) * 70 + 700);
     }
   }
 
@@ -4560,7 +4560,7 @@ class DagRenderer {
       .attr('class', 'nc nc-enter')
       // Entrance choreography: the card rises in, staggered by wave —
       // the DAG performs its own execution order (reduced-motion: none).
-      .style('animation-delay', (d) => `${(this.waveOf.get(d.id) ?? 0) * 70}ms`)
+      .style('animation-delay', (d) => `${Math.min(this.waveOf.get(d.id) ?? 0, 8) * 70}ms`)
       .each((d, i, els) => this.buildCardHtml(els[i] as HTMLElement, d));
 
     // (The old SVG spinner ring that orbited the dot died here — the
@@ -4703,7 +4703,7 @@ class DagRenderer {
     merged
       .transition()
       .duration(REDUCED_MOTION ? 0 : 300)
-      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : (this.waveOf.get(d.id) ?? 0) * 70)
+      .delay((d) => (REDUCED_MOTION || !enteringIds.has(d.id)) ? 0 : Math.min(this.waveOf.get(d.id) ?? 0, 8) * 70)
       .attr('opacity', 1)
       .attr('transform', (d) => {
         const elk = elkMap.get(d.id);
@@ -6409,7 +6409,7 @@ class DagRenderer {
     const edgeDelay = (d: ElkExtendedEdge): number => {
       if (REDUCED_MOTION || !enteringEdgeIds.has(d.id)) { return 0; }
       const src = this.edgeEnds.get(d.id)?.source;
-      return (src ? (this.waveOf.get(src) ?? 0) : 0) * 70 + 160;
+      return Math.min(src ? (this.waveOf.get(src) ?? 0) : 0, 8) * 70 + 160;
     };
 
     // Edge clicks: ⌥click removes a CONTROL entry (after: {from: pred}).
@@ -7564,7 +7564,7 @@ class DagRenderer {
       // one-shots from re-triggering each other (removing nk-settle
       // later must never replay the rise).
       nc.classList.remove('nc-enter');
-      nc.style.animationDelay = `${(this.waveOf.get(d.id) ?? 0) * 50}ms`;
+      nc.style.animationDelay = `${Math.min(this.waveOf.get(d.id) ?? 0, 8) * 50}ms`;
       nc.classList.add('nk-settle');
       const done = (e: AnimationEvent): void => {
         // Child animations bubble (the sub-line verdict pop can end
