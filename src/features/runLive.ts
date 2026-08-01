@@ -343,9 +343,21 @@ export function runWorkflowLive(
         ? [...model.tasks.values()].find((t) => t.status === 'failed')
         : undefined;
       const failedCode = firstFailed?.preview?.match(/NIKA-[A-Z]+-\d+/)?.[0];
+      // The HUMAN verdict (the hero speaks a sentence · the provable
+      // facts trail quiet): « every task landed » beats « run
+      // completed » — and a failure NAMES its task before the facts.
+      const total = model.tasks.size;
+      const settled = [...model.tasks.values()].filter((t) => t.status === 'success').length;
+      const human = verdict === 'completed'
+        ? (settled === total ? 'every task landed' : `${settled} of ${total} landed`)
+        : verdict === 'cancelled'
+        ? 'stopped by hand · nothing half-written'
+        : firstFailed
+        ? `${firstFailed.id} broke the run · ${settled} landed before it`
+        : 'the run broke before its first task';
       dagPanel.runVerdict(
         icon,
-        `run ${verdict} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`,
+        `${human} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`,
         cls,
         firstFailed?.id,
         failedCode,
