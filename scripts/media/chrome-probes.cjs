@@ -321,7 +321,13 @@ const PROBE = () => {
   // wrong » without anyone being able to name it.
   {
     const num = (v) => parseFloat(v) || 0;
-    const FLOATS = ['dag-mark', 'dag-title', 'dag-status', 'omnibar', 'zoom-dock', 'minimap', 'plan-rail'];
+    // Every FLOATING surface, including the ones that only appear in a
+    // state (the feed, the scrubber, the transport, the first-run hint).
+    // Those four had drifted furthest precisely because they are rarely
+    // on screen: five radii and four glass recipes between them, one
+    // with no glass at all.
+    const FLOATS = ['dag-mark', 'dag-title', 'dag-status', 'omnibar', 'zoom-dock',
+      'minimap', 'plan-rail', 'activity', 'scrubber', 'transport', 'first-hint'];
     const mat = new Map();
     const depth = new Map();
     for (const id of FLOATS) {
@@ -467,8 +473,23 @@ const PROBE = () => {
 
 (async () => {
   let total = 0;
-  const b = await chromium.launch({ headless: process.env.HEADLESS === '1', channel: 'chrome' });
-  for (const skin of SKINS) for (const vp of SIZES) {
+  // ONE BROWSER PER SKIN, not one for the whole matrix (v32). A single
+  // instance driving twelve sequential pages died partway through on a
+  // loaded machine, and a gate that flakes is a gate people learn to
+  // ignore. Four short-lived browsers bound the growth and keep a
+  // failure local to the skin that caused it.
+  let b = null;
+  const launch = async () => chromium.launch({ headless: process.env.HEADLESS === '1', channel: 'chrome' });
+  for (const skin of SKINS) {
+  if (b !== null) { await b.close().catch(() => {}); }
+  b = await launch();
+  for (const vp of SIZES) {
+   // ONE retry, and it SAYS SO. A browser occasionally dies mid-matrix
+   // on a loaded machine; retrying silently would turn a gate into a
+   // coin flip nobody can audit, and not retrying at all turns a real
+   // finding into « probably a flake » every time it fires.
+   for (let attempt = 0; attempt < 2; attempt++) {
+    try {
     const p = await b.newPage({
       viewport: vp,
       forcedColors: FORCED ? 'active' : 'none',
@@ -550,8 +571,17 @@ const PROBE = () => {
       total += rows.length;
     }
     await p.close();
+    break;
+    } catch (err) {
+      if (attempt === 1) { throw err; }
+      console.log(`   … ${skin} @ ${vp.width}x${vp.height} · the browser died mid-page, relaunching once (${String(err).slice(0, 60)})`);
+      await b.close().catch(() => {});
+      b = await launch();
+    }
+   }
   }
-  await b.close();
+  }
+  if (b !== null) { await b.close().catch(() => {}); }
   // A probe that only PRINTS is a report, not a gate. Nine lenses ran
   // across every skin and width this sweep was given; if any of them
   // has something to say, the build hears it.

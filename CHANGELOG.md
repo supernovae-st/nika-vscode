@@ -18,6 +18,42 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The minimap becomes a map (v32)
+
+It drew one rect per task, coloured by status, pinned to the top-left of
+its card with more than half the card empty. It could say how much was
+done and never how the run is ordered or which chain owns the clock.
+
+- **Three layers** · wave bands (the plan's rhythm), the topology
+  (without edges an overview is a scatter plot), and the tasks on top
+  with the **critical path in the canvas's own amber**.
+- **Framed on its content**, centred to the pixel · it was framing the
+  layout extent, so a graph starting at x=20 baked that dead space into
+  every frame.
+- **« You are here » has a here** · at fit zoom the viewport frame
+  measured 170x106 in a 148x96 card, spilled past every edge and clipped
+  to nothing. It clamps now, and fades when it covers the map because
+  the card's own edge already says « all of it ».
+- **The drag became a grab** · it restarted a 240ms eased transition on
+  every mousemove, so the camera chased the pointer: 35px of map lag,
+  measured, now zero.
+- **The map answers the pointer** · a rect names its task, brightens,
+  and lights the same card on the canvas.
+
+### The forgotten floating components (v32)
+
+The feed, the scrubber, the transport and the first-run hint had drifted
+furthest precisely because they are rarely on screen: five radii and
+four glass recipes between them, one with no glass at all. All eleven
+floating surfaces are one family now, and the `harmony` lens covers
+every one.
+
+### The probe stops flaking (v32)
+
+One browser driving twelve sequential pages died partway through on a
+loaded machine. One browser per skin, plus a single retry that PRINTS
+when it fires.
+
 ### The floating chrome becomes one family (v31)
 
 Measured, the seven floating surfaces carried FOUR grounds, THREE glass
