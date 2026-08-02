@@ -738,6 +738,42 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**Concentric corners, or the bar reads wrong and nobody can say why
+(v31)** · a rounded control inside a rounded surface keeps its curve
+parallel only if `outer = inner + inset`. Break it and the gap between
+the two curves narrows through the corner. Measured, the omnibar sat at
+11 where its own geometry asked for 15, while the zoom dock was already
+correct at 7+4 · the house followed the law and one surface did not.
+The relationship is a token now (`--nk-float-r` derives from
+`--nk-float-pad`), so a padding change carries its radius. A corner
+also cannot be concentric on two different insets: the padding is
+uniform.
+
+**One material for the floating tier · two depths at most (v31)** ·
+measured, the raised surfaces carried FOUR grounds (88% · 92% · 82% ·
+a gradient), THREE glass recipes where a token already existed, and
+five shadow stacks. They read as one family and were built as four. One
+recipe now, retuned by SKIN and never re-declared per surface · a skin
+that writes `#omnibar { background: … }` silently leaves the family.
+The gradient token was opaque, so every surface carrying it had a
+backdrop-filter doing nothing: glass with nothing behind it. The
+floating fill keeps the diagonal AND lets the canvas through.
+
+**A flex gap is spent whether or not the item has width (v31)** · the
+collapsed hover-name still charged its 3px and pushed every icon 1.5px
+left of centre, across all five tiles of the make cluster. The space
+belongs to the name and travels with it, as a margin. And the tile is
+square at rest by derivation: padding = (control height − icon − border)
+/ 2, because the two halves of that cluster used 7 and rested at 30 and
+32 · the kind of 2px that only shows when five of them sit in a row.
+
+**One rhythm inside a bar, one break between groups (v31)** · the
+omnibar ran three (8 outer · 2 in the verbs · 4 in the run cluster),
+which put the WIDEST gap between the `+` and the four verb tiles: the
+two halves of a single gesture, split by the spacing meant to separate
+groups. The groups are marked by their own rule and its padding; the
+gap does not need to say it twice.
+
 **The name the operator types never yields (v29)** · a binding alias and
 its producer shared a row, both with `flex-shrink: 1`, so an overflow
 shrank them IN PROPORTION TO THEIR OWN LENGTH and each got the same
