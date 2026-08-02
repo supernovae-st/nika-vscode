@@ -18,6 +18,18 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The host stops shadowing the spec (v36)
+
+`node.generated.css` is projected with zero specificity so the host can
+layer on top. The host re-declares 126 of those properties: 60 are
+deliberate overrides, and 66 are byte-identical copies that add nothing
+today and pin the old value the day the spec moves. A
+`projection-shadow` ratchet makes the debt visible and fails on growth.
+
+It reports rather than rewrites on purpose: stripping the 66
+automatically moved 282 computed values on the cards, which a
+before/after snapshot caught before it could ship as "cleanup".
+
 ### The card is read in the right order (v35)
 
 Its type ladder runs 12.5 / 10.5 / 10, and at that scale the second step
