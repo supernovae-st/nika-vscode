@@ -73,8 +73,23 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [], harmony: [], ladder: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [], harmony: [], ladder: [], semantic: [] };
   const vw = innerWidth, vh = innerHeight;
+
+  // Screen-reader-only text is never painted, so no lens that judges
+  // RENDERING may judge it: the glyph lens flagged a ✗ in the live
+  // region for falling back to a face that has no ✗, which is true and
+  // irrelevant — nothing there ever reaches a screen. The clip-inset
+  // 1x1 offscreen box is the standard shape.
+  const paints = (el) => {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) { return false; }
+    if (/inset\(\s*50%/.test(cs.clipPath)) { return false; }
+    const r = el.getBoundingClientRect();
+    if (r.width <= 1 && r.height <= 1) { return false; }
+    if (r.right <= 0 || r.bottom <= 0 || r.left >= innerWidth || r.top >= innerHeight) { return false; }
+    return true;
+  };
 
   const sel = (el) => {
     const id = el.id ? '#' + el.id : '';
@@ -284,9 +299,8 @@ const PROBE = () => {
     const LOAD_BEARING = '.nc-io-alias, .pr-n, .legend-chip, .nc-pol, .nc-id';
     for (const el of document.querySelectorAll(LOAD_BEARING)) {
       const r = el.getBoundingClientRect();
-      if (r.width < 1 || el.offsetWidth === 0) { continue; }
+      if (r.width < 1 || el.offsetWidth === 0 || !paints(el)) { continue; }
       const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none') { continue; }
       const text = (el.textContent || '').trim();
       if (text === '') { continue; }
       const zoom = r.width / el.offsetWidth;
@@ -307,6 +321,36 @@ const PROBE = () => {
         has: +cssW.toFixed(1), needs: +need.toFixed(1),
         recoverable: false,
       });
+    }
+  }
+
+  // ── SEMANTIC COLOUR ──────────────────────────────────────────────────
+  // A failure must never paint in the success hue. Found empirically:
+  // a settled body wears .nc-body-live whether it landed OR broke, and
+  // the failure adds .nc-body-err on top. Both rules were (0,2,0), so
+  // SOURCE ORDER decided, and « NIKA-INFER-003 · provider refused »
+  // rendered in the success green — the colour of the one thing a user
+  // must not misread, saying the opposite of what happened.
+  {
+    const root = getComputedStyle(document.documentElement);
+    const tok = (n) => parse(root.getPropertyValue(n).trim());
+    const ok = tok('--nk-st-success'), bad = tok('--nk-st-failed');
+    const dist = (a, b2) => (a && b2)
+      ? Math.hypot(a.r - b2.r, a.g - b2.g, a.b - b2.b) : Infinity;
+    if (ok && bad) {
+      for (const el of document.querySelectorAll('[class*="err"], [class*="fail"], .status-failed .nc-sub-v')) {
+        const cs = getComputedStyle(el);
+        if (!paints(el) || (el.textContent || '').trim() === '') { continue; }
+        const c = parse(cs.color);
+        if (!c) { continue; }
+        // Closer to the success hue than to the failure hue is the bug.
+        if (dist(c, ok) < dist(c, bad)) {
+          out.semantic.push({
+            sel: sel(el), law: 'a failure may not wear the success hue',
+            color: cs.color, text: (el.textContent || '').trim().slice(0, 34),
+          });
+        }
+      }
     }
   }
 
@@ -497,7 +541,7 @@ const PROBE = () => {
       const r = el.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) { continue; }
       const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none') { continue; }
+      if (!paints(el)) { continue; }
       for (const ch of new Set(n.nodeValue)) {
         const cp = ch.codePointAt(0);
         if (cp < 128 || /\s/.test(ch)) { continue; }
@@ -614,7 +658,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated', 'harmony', 'ladder']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated', 'harmony', 'ladder', 'semantic']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));

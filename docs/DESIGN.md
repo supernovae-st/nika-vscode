@@ -738,6 +738,30 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A failure may not wear the success hue (v37)** · a settled body wears
+`.nc-body-live` whether it landed or broke, and a failure adds
+`.nc-body-err` on top. Both rules were (0,2,0) and `live` sits later in
+the file, so SOURCE ORDER decided: « NIKA-INFER-003 · provider refused »
+rendered in the success green, on the one line a user must not
+misread. The selector names the combination that actually occurs. A
+`semantic` lens holds the law: nothing carrying a failure class may
+paint closer to the success token than to the failure one.
+
+**A readout is data, a banner is not automatically prose (v37)** · the
+verdict line is « 3 tasks · 2 cached · 1 recovered · 8.3s · $0.0104+ » ·
+counts, glyphs and durations. Rendered in the sans it carried marks
+that face does not own (the ✗ of a failed run, the ✚ of a recovered
+one) and fell back per machine, on the banner a user reads precisely
+when something broke.
+
+**A lens may not judge what is never painted (v37)** · the glyph lens
+flagged a ✗ in the screen-reader live region for falling back to a face
+with no ✗ · true, and irrelevant: that node is a clipped 1x1 offscreen
+box nothing ever renders. A shared `paints()` guard now gates every
+lens that judges rendering. Third time a law needed to learn where it
+stops, after the script it will never own and the forced-colors palette
+it must not fight.
+
 **The host may EXTEND the projection · never silently re-state it
 (v36)** · `node.generated.css` is projected with `:where(...)`, zero
 specificity, precisely so the host can layer on top. Measured, the host

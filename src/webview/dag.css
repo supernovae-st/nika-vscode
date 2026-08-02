@@ -3853,7 +3853,16 @@ body.running .dag-node.status-success .nc::after {
 
 /* The red teaches — the failure story where the prompt was: the
  * card's own body becomes the error line, clickable (explain). */
-.nc-body.nc-body-err {
+/* A FAILURE OUTRANKS THE SWAP (v37) · a settled body wears .nc-body-live
+ * whether it landed or broke, and the failure adds .nc-body-err on top.
+ * Both rules were (0,2,0) and `live` sits later in the file, so it won
+ * on ORDER alone: the error line « NIKA-INFER-003 · provider refused »
+ * rendered in the SUCCESS green. The colour of the one thing a user
+ * must not misread, saying the opposite of what happened. The selector
+ * names the combination that actually occurs, so source order stops
+ * deciding it. */
+.nc-body.nc-body-err,
+.nc-body.nc-body-live.nc-body-err {
   color: var(--nk-st-failed);
   cursor: pointer;
 }
@@ -6802,11 +6811,19 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 /* The banner is a flex ROW: the summary text ellipsizes in its own
  * span, so the failure doors on the right stay visible at every width
  * (the container-level ellipsis clipped the buttons off-screen). */
+/* The verdict's line is a READOUT, not prose · « 3 tasks · 2 cached ·
+ * 1 recovered · 8.3s · $0.0104+ » is counts, glyphs and durations, and
+ * the diet law puts data in the mono. In the sans it carried marks that
+ * face does not own (the ✗ of a failed run, the ✚ of a recovered one)
+ * and fell back per machine on the one banner a user reads when
+ * something broke. */
 #run-verdict > span:not(.rv-icon):not(.rv-acts) {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--nk-mono);
+  font-size: var(--nk-fs-meta);
 }
 
 /* The failure banner's own doors — Explain the code · fork from the
@@ -6841,6 +6858,10 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
 
 #run-verdict .rv-icon {
   font-size: var(--nk-fs-ui);
+  /* The verdict's mark is a SYMBOL, and the sans carries letters: the
+   * ✗ fell back to whatever the OS lent us on the one line that says
+   * the run broke. The mono owns this vocabulary (v24). */
+  font-family: var(--nk-mono);
 }
 
 /* One tint per §3.1 verdict — the icon carries the color, the border a
