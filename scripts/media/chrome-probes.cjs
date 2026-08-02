@@ -73,7 +73,7 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [], harmony: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [], harmony: [], ladder: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -307,6 +307,56 @@ const PROBE = () => {
         has: +cssW.toFixed(1), needs: +need.toFixed(1),
         recoverable: false,
       });
+    }
+  }
+
+  // ── THE CARD'S INK LADDER ────────────────────────────────────────────
+  // A card is read in one order: the name, then what runs, then a
+  // preview of the content. The SIZE ladder is nearly exhausted at
+  // these dimensions (12.5 / 10.5 / 10), so the hierarchy lives in the
+  // ink · and it was inverted: measured, the name at 15.4, the
+  // mechanism at 5.2 and the truncated preview at 12.7, the least
+  // important row shouting more than twice as loud as the one that
+  // says what actually runs.
+  {
+    // Same primitives the contrast lens uses · a second implementation
+    // of « how bright is this » is a second chance to be wrong, and the
+    // first attempt here was: it rebuilt the composite by hand and the
+    // gate stayed green through a mutation that made the preview shout
+    // as loud as the name.
+    const ratio = (el) => {
+      const cs = getComputedStyle(el);
+      const fg0 = parse(cs.color), bg = bgOf(el);
+      if (!fg0 || !bg) { return null; }
+      let op = 1;
+      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+        op *= Number(getComputedStyle(n).opacity || 1);
+      }
+      const fg = { ...fg0, a: fg0.a * op };
+      const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
+      return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+    };
+    // The ladder is a COLOUR hierarchy, and forced-colors exists to
+    // abolish exactly that: the system paints every row in one ink, all
+    // three measured 21, and the lens read the user's own setting as a
+    // defect. A law has to know where it stops — the same lesson the
+    // glyph lens learned about scripts it will never own.
+    const forced = matchMedia('(forced-colors: active)').matches;
+    for (const nc of forced ? [] : document.querySelectorAll('.nc')) {
+      const name = nc.querySelector('.nc-id');
+      const mech = nc.querySelector('.nc-sub-k');
+      const body = nc.querySelector('.nc-body');
+      if (!name || !mech || !body) { continue; }
+      const [n, m, b2] = [ratio(name), ratio(mech), ratio(body)];
+      if (n === null || m === null || b2 === null) { continue; }
+      // Strictly descending: each row quieter than the one it follows.
+      if (!(n > m + 0.3 && m > b2 + 0.3)) {
+        out.ladder.push({
+          card: (name.textContent || '').trim().slice(0, 18),
+          name: +n.toFixed(1), mechanism: +m.toFixed(1), preview: +b2.toFixed(1),
+        });
+      }
+      break; // one card proves the ladder · they share the tokens
     }
   }
 
@@ -564,7 +614,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated', 'harmony']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated', 'harmony', 'ladder']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));
