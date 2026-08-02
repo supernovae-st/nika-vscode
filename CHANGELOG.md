@@ -4,10 +4,11 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased] · feat/design-v8 · the QRcodeAI-grade arc (23 commits)
+## [0.107.8] · 2026-08-02 · the QRcodeAI-grade arc, then the measurement
 
-Twelve waves on one branch, none published: the operator reviews
-first. Every wave is one revertable commit.
+Twenty-one waves. The first half answered a brief about materials and
+composition; the second half asked what the gates could not see, and
+found four whole registers of reality outside them.
 
 ### The materials (v8 · the QRcodeAI recipes, token-first)
 
@@ -49,13 +50,53 @@ liquid glass in two tiers.
   the doctrine's presentation order, and a provider this machine
   cannot run is never offered.
 
+### The card's own vocabulary (v27)
+
+- **The policy chips lead with marks.** Six of their glyphs were in no
+  shipped face, and one carried TWO senses at once (skip AND
+  per-item). The row is 218px and spills at three chips, so a word
+  costs a fact and a mark costs 13px: measured before and after, no
+  chip moved behind the +N door.
+- Where the row is not the constraint, **the word won**: a `when:` is
+  an « if », an event is an « on », the average is « avg ».
+- The **credentials warning**, the gate chip and the pill's open/fork
+  took house marks. The ellipsis stayed a character: Martian Mono
+  carries it, and a ring inside a ring read worse.
+
+### High contrast is a register, not a fallback (v28)
+
+- The status **rings got their empty centre back**. The spec projects
+  one geometry per status (« a hue dies under forced-colors and under a
+  colour-blind eye »); the standing high-contrast rule filled every dot,
+  which restored the solid states and destroyed the hollow ones.
+- **The legend now wears the code the cards wear** · it showed four
+  identical round dots in every mode while the canvas wore six distinct
+  geometries.
+
+### What the measurement found (v19-v26)
+
+- **The light editor theme was never renderable in the harness**, so
+  eleven waves of dark-tuned design shipped over it unmeasured. Fixing
+  that surfaced a verb ink ramp calibrated for dark cards measuring
+  1.81:1 on white; it has a light twin now.
+- **The contrast lens never folded an element's opacity**, so every ink
+  behind a veil measured at full strength and could not fail. Repaired,
+  it found eleven real violations.
+- **No gate ever asked the font whether it had the glyph.** The braille
+  spinner was in neither shipped face.
+- **The harness had drifted from the panel**, so every probe judged a
+  bottom bar no user has ever seen. And everything was rendered at
+  1440px, the width a webview least often has: the first sweep at real
+  widths found two chrome clusters painting over each other, both from
+  a derived position that had been copied by hand.
+
 ### Held to the doctrine
 
-DESIGN.md now carries the three icon layers, the intent law, the
-Martian diet, the paint-only law and « measure, then judge ». Gates:
-1441/1441 across twenty-one consecutive runs · a11y-probes 45/45 ·
-chrome-probes 0 on all three skins · the three GIFs regenerated on
-this canvas.
+Six new gates, each proven by mutation: the fourth skin, the opacity
+fold, the glyph-coverage lens, harness-parity, the collide lens and the
+size ladder · plus legend-parity. DESIGN.md carries the laws they came
+from. Gates: 1441/1441 · a11y-probes 45/45 · chrome-probes 0 across
+four skins by three widths, normal and forced-colors.
 
 ## [0.107.7] · 2026-08-01
 
