@@ -738,6 +738,38 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A minimap that draws only WHERE is a scatter plot (v32)** · it could
+say how much was done and never how the run is ordered or which chain
+owns the clock. Three layers now, each quieter than the one above:
+wave bands (the plan's rhythm, the same read as the rail), the topology
+(without edges an overview is dots), and the tasks on top with the
+critical path in the canvas's own amber. And it was framing the layout
+EXTENT rather than its content, so a graph starting at x=20 baked that
+dead space into every frame · measured, 9px of margin on one side and
+78 on the other, in a 146px card.
+
+**« You are here » must have a HERE (v32)** · at fit zoom the viewport
+frame measured 170x106 inside a 148x96 card: it spilled past every edge,
+clipped to nothing, and the one element whose whole job is to say where
+you are said it invisibly. It clamps now, so a frame running off one
+side keeps its other three edges readable · and when it covers the map
+the answer is « all of it », which the card's own edge already says, so
+it fades rather than drawing a second border on the first.
+
+**A drag is direct manipulation and must be instant (v32)** · the map's
+drag restarted a 240ms eased transition on every mousemove, so the
+camera chased the pointer instead of following it: measured at 35px of
+map lag on a fast sweep, which is the difference between a grab and a
+rubber band. A click still eases · a jump wants a bridge.
+
+**A gate that flakes is a gate people learn to ignore (v32)** · one
+browser driving twelve sequential pages died partway through on a
+loaded machine. One browser per skin bounds the growth and keeps a
+failure local; one retry survives a genuine hiccup, and it PRINTS,
+because retrying silently turns a gate into a coin flip nobody can
+audit while never retrying turns every real finding into « probably a
+flake ».
+
 **Concentric corners, or the bar reads wrong and nobody can say why
 (v31)** · a rounded control inside a rounded surface keeps its curve
 parallel only if `outer = inner + inset`. Break it and the gap between

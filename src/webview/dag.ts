@@ -3901,29 +3901,123 @@ class DagRenderer {
 
     let maxX = 1;
     let maxY = 1;
+    let minX = Infinity;
+    let minY = Infinity;
     for (const b of this.layoutBox.values()) {
       maxX = Math.max(maxX, b.x + b.w);
       maxY = Math.max(maxY, b.y + b.h);
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
     }
     this.graphW = maxX;
     this.graphH = maxY;
-    const s = Math.min((W - PAD * 2) / maxX, (H - PAD * 2) / maxY);
+    // The map frames the CONTENT, not the layout extent: a graph that
+    // starts at x=20 baked 20 units of dead space into every frame.
+    if (!Number.isFinite(minX)) { minX = 0; minY = 0; }
+    const spanX = Math.max(maxX - minX, 1);
+    const spanY = Math.max(maxY - minY, 1);
+    const s = Math.min((W - PAD * 2) / spanX, (H - PAD * 2) / spanY);
+    // CENTRED (v32) · one scale fits the graph, and the leftover space
+    // was all dumped on the right and bottom: a tall graph in a wide
+    // card sat hard against the top-left with 78 of 146px empty. The
+    // map is the card's subject, so it takes the card's centre.
+    const offX = (W - spanX * s) / 2 - minX * s;
+    const offY = (H - spanY * s) / 2 - minY * s;
+    const px = (v: number): number => Math.round(v * 10) / 10;
 
     const ns = 'http://www.w3.org/2000/svg';
+    const put = (tag: string, attrs: Record<string, string>, cls?: string): SVGElement => {
+      const el = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) { el.setAttribute(k, v); }
+      if (cls !== undefined) { el.setAttribute('class', cls); }
+      mm.appendChild(el);
+      return el;
+    };
+
+    // ① THE WAVES · the plan's rhythm as bands behind everything. A map
+    //    that shows only WHERE tasks are cannot say HOW the run is
+    //    ordered; the bands are the same read as the canvas rail.
+    if (this.waveOf.size > 0) {
+      const rows = new Map<number, { t: number; b: number }>();
+      for (const [id, wave] of this.waveOf) {
+        const box = this.layoutBox.get(id);
+        if (box === undefined) { continue; }
+        const row = rows.get(wave);
+        if (row === undefined) { rows.set(wave, { t: box.y, b: box.y + box.h }); }
+        else { row.t = Math.min(row.t, box.y); row.b = Math.max(row.b, box.y + box.h); }
+      }
+      for (const [wave, row] of rows) {
+        if (wave % 2 !== 0) { continue; } // every other band · a rhythm, not a grid
+        put('rect', {
+          x: String(px(offX + minX * s)), y: String(px(offY + row.t * s)),
+          width: String(px(spanX * s)), height: String(px((row.b - row.t) * s)),
+        }, 'mm-wave');
+      }
+    }
+
+    // ② THE TOPOLOGY · without edges a minimap is a scatter plot. The
+    //    critical path is drawn last and brighter: the chain that owns
+    //    the wall-clock is the one thing an overview must not bury.
+    const centre = (id: string): { x: number; y: number } | undefined => {
+      const box = this.layoutBox.get(id);
+      if (box === undefined) { return undefined; }
+      return { x: offX + (box.x + box.w / 2) * s, y: offY + (box.y + box.h / 2) * s };
+    };
+    const wires: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; crit: boolean }> = [];
+    for (const e of this.currentGraph.edges) {
+      const a = centre(e.source), b = centre(e.target);
+      if (a === undefined || b === undefined) { continue; }
+      wires.push({ a, b, crit: this.criticalEdges.has(`${e.source}->${e.target}`) });
+    }
+    for (const w of wires) {
+      if (w.crit) { continue; }
+      put('line', {
+        x1: String(px(w.a.x)), y1: String(px(w.a.y)),
+        x2: String(px(w.b.x)), y2: String(px(w.b.y)),
+      }, 'mm-wire');
+    }
+    for (const w of wires) {
+      if (!w.crit) { continue; }
+      put('line', {
+        x1: String(px(w.a.x)), y1: String(px(w.a.y)),
+        x2: String(px(w.b.x)), y2: String(px(w.b.y)),
+      }, 'mm-wire mm-crit');
+    }
+
+    // ③ THE TASKS · status on top of the structure.
     for (const [id, b] of this.layoutBox) {
-      const r = document.createElementNS(ns, 'rect');
-      r.setAttribute('x', String(PAD + b.x * s));
-      r.setAttribute('y', String(PAD + b.y * s));
-      r.setAttribute('width', String(Math.max(b.w * s, 2)));
-      r.setAttribute('height', String(Math.max(b.h * s, 2)));
-      r.setAttribute('rx', '1');
-      r.setAttribute('data-id', id);
+      const r = put('rect', {
+        x: String(px(offX + b.x * s)),
+        y: String(px(offY + b.y * s)),
+        width: String(px(Math.max(b.w * s, 2))),
+        height: String(px(Math.max(b.h * s, 2))),
+        rx: '1',
+        'data-id': id,
+      });
       const status = this.nodeMap.get(id)?.status ?? 'pending';
       r.setAttribute('class', `mm-node st-${status}`);
-      mm.appendChild(r);
+      // The map answers the pointer (v32) · a rect names its task and
+      // lights the same card on the canvas, so the overview and the
+      // graph are one surface instead of two pictures of one thing.
+      const node = this.nodeMap.get(id);
+      const t = document.createElementNS(ns, 'title');
+      t.textContent = node === undefined ? id
+        : `${node.label ?? id} · ${node.verb ?? ''}${node.status === undefined ? '' : ' · ' + node.status}`.replace(/ · $/, '');
+      r.appendChild(t);
+      r.addEventListener('mouseenter', () => {
+        r.classList.add('mm-lit');
+        this.cursorHint(id);
+      });
+      r.addEventListener('mouseleave', () => {
+        r.classList.remove('mm-lit');
+        if (this.cursorHintedId === id) { this.cursorHint(null); }
+      });
     }
-    (mm.dataset as { scale?: string; pad?: string }).scale = String(s);
-    mm.dataset.pad = String(PAD);
+    const ds = mm.dataset as { scale?: string; pad?: string; offx?: string; offy?: string };
+    ds.scale = String(s);
+    ds.pad = String(PAD);
+    ds.offx = String(offX);
+    ds.offy = String(offY);
     this.updateMinimapViewport();
   }
 
@@ -3942,10 +4036,32 @@ class DagRenderer {
     const y0 = (-this.currentTy) / this.currentZoom;
     const w = svgW / this.currentZoom;
     const h = svgH / this.currentZoom;
-    vp.style.left = `${pad + x0 * s}px`;
-    vp.style.top = `${pad + y0 * s}px`;
-    vp.style.width = `${Math.max(w * s, 8)}px`;
-    vp.style.height = `${Math.max(h * s, 8)}px`;
+    const offX = Number(mm.dataset.offx ?? pad);
+    const offY = Number(mm.dataset.offy ?? pad);
+    const W = Number(mm.getAttribute('width') ?? 0);
+    const H = Number(mm.getAttribute('height') ?? 0);
+    let l = offX + x0 * s;
+    let t = offY + y0 * s;
+    let vw = Math.max(w * s, 8);
+    let vh = Math.max(h * s, 8);
+    // « You are here » only speaks when there is a HERE (v32). At fit
+    // zoom the frame measured 170x106 inside a 148x96 card: it spilled
+    // past every edge and was clipped to nothing, so the one element
+    // whose whole job is to say where you are said it invisibly.
+    // Covering the map means the answer is « all of it » — the card's
+    // own edge already says that, so the frame yields.
+    const covers = l <= 1 && t <= 1 && l + vw >= W - 1 && t + vh >= H - 1;
+    vp.classList.toggle('mm-vp-all', covers);
+    // Clamped, so a frame that runs off one side keeps the other three
+    // edges readable instead of leaving the card with no indicator.
+    if (l < 0) { vw += l; l = 0; }
+    if (t < 0) { vh += t; t = 0; }
+    vw = Math.min(vw, W - l);
+    vh = Math.min(vh, H - t);
+    vp.style.left = `${l}px`;
+    vp.style.top = `${t}px`;
+    vp.style.width = `${Math.max(vw, 8)}px`;
+    vp.style.height = `${Math.max(vh, 8)}px`;
   }
 
   /**
@@ -4270,8 +4386,14 @@ class DagRenderer {
     vscode.postMessage({ kind: 'dag:export', format, data, name: `${name}.png` });
   }
 
-  /** Click the minimap → center the main view on that point. */
-  minimapNavigate(clientX: number, clientY: number): void {
+  /** Click the minimap → center the main view on that point.
+   *  `animate` is FALSE while dragging: the old code started a fresh
+   *  240ms transition on every mousemove, so the camera chased the
+   *  pointer instead of following it — measured at 35px of map lag on a
+   *  fast sweep, which is the difference between a grab and a rubber
+   *  band. A click still eases (it is a jump, and a jump wants a
+   *  bridge); a drag is direct manipulation and must be instant. */
+  minimapNavigate(clientX: number, clientY: number, animate = true): void {
     const mm = document.getElementById('minimap-svg');
     const svgEl = this.svg.node();
     if (!mm || !svgEl) { return; }
@@ -4279,13 +4401,17 @@ class DagRenderer {
     const pad = Number(mm.dataset.pad ?? 0);
     if (s <= 0) { return; }
     const rect = mm.getBoundingClientRect();
-    const rootX = (clientX - rect.left - pad) / s;
-    const rootY = (clientY - rect.top - pad) / s;
+    const rootX = (clientX - rect.left - Number(mm.dataset.offx ?? pad)) / s;
+    const rootY = (clientY - rect.top - Number(mm.dataset.offy ?? pad)) / s;
     const { width: svgW, height: svgH } = svgEl.getBoundingClientRect();
     const k = this.currentZoom;
     const t = zoomIdentity.translate(svgW / 2 - rootX * k, svgH / 2 - rootY * k).scale(k);
+    if (!animate || REDUCED_MOTION) {
+      this.svg.call(this.zoomBehavior.transform as D3ZoomCall, t);
+      return;
+    }
     this.svg
-      .transition().duration(REDUCED_MOTION ? 0 : 240)
+      .transition().duration(240)
       .ease(easeCubicOut)
       .call(this.zoomBehavior.transform as D3ZoomCall, t);
   }
@@ -9265,7 +9391,7 @@ minimapEl?.addEventListener('mousedown', (e: MouseEvent) => {
   e.preventDefault();
 });
 window.addEventListener('mousemove', (e: MouseEvent) => {
-  if (minimapDragging) { renderer.minimapNavigate(e.clientX, e.clientY); }
+  if (minimapDragging) { renderer.minimapNavigate(e.clientX, e.clientY, false); }
 });
 window.addEventListener('mouseup', () => { minimapDragging = false; });
 

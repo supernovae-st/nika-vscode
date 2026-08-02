@@ -369,6 +369,7 @@ body[data-nk-theme] {
 }
 
 #dag-mark {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -380,10 +381,10 @@ body[data-nk-theme] {
   flex: none;
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-dock-r);
-  box-shadow: var(--nk-float-shadow);
 }
 
 #dag-title {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -400,7 +401,6 @@ body[data-nk-theme] {
   color: var(--nk-ink);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-dock-r);
-  box-shadow: var(--nk-float-shadow);
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
   min-width: 36px;
@@ -807,6 +807,7 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 }
 
 #dag-status {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -825,7 +826,6 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
   text-overflow: ellipsis;
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-dock-r);
-  box-shadow: var(--nk-float-shadow);
   font-family: var(--nk-mono);
 }
 
@@ -1618,6 +1618,11 @@ body.running #progress-fill::after {
    touches layout). */
 
 #transport {
+  box-shadow: var(--nk-float-shadow);
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
+  border-radius: var(--nk-dock-r);
   position: fixed;
   left: 12px;
   right: 172px; /* clears the minimap card (148px + gutter) */
@@ -1627,9 +1632,6 @@ body.running #progress-fill::after {
   gap: 10px;
   padding: 5px 10px;
   border: 1px solid var(--nk-border);
-  border-radius: var(--nk-radius);
-  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
-  box-shadow: var(--nk-shadow-1);
   z-index: 6;
 }
 
@@ -1780,6 +1782,7 @@ body.vscode-light .logo-dark { display: none; }
  * overlap at 620px wide, the width half a split editor gives you).
  * The derivation is now a calc, so a floor change cascades. */
 #zoom-dock {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -1793,7 +1796,6 @@ body.vscode-light .logo-dark { display: none; }
   padding: var(--nk-dock-pad);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-dock-r);
-  box-shadow: var(--nk-float-shadow);
 }
 #zoom-dock button {
   display: inline-flex;
@@ -1839,6 +1841,7 @@ body.welcome #zoom-dock,
 body.dag-loading #zoom-dock { display: none; }
 
 #minimap {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -1849,7 +1852,6 @@ body.dag-loading #zoom-dock { display: none; }
   height: var(--nk-minimap-h);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
-  box-shadow: var(--nk-float-shadow);
   overflow: hidden;
   cursor: pointer;
   transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
@@ -1866,6 +1868,34 @@ body.dag-loading #zoom-dock { display: none; }
   pointer-events: none;
 }
 
+/* THE MAP'S THREE LAYERS (v32) · bands, then topology, then tasks.
+ * A minimap that draws only WHERE tasks sit is a scatter plot: it can
+ * say how much is done, never how the run is ordered or which chain
+ * owns the clock. Each layer is quieter than the one above it. */
+.mm-wave {
+  fill: color-mix(in srgb, var(--nk-ink) 4%, transparent);
+}
+
+.mm-wire {
+  stroke: color-mix(in srgb, var(--nk-ink) 22%, transparent);
+  stroke-width: 0.75;
+  stroke-linecap: round;
+  fill: none;
+}
+
+/* The chain that owns the wall-clock reads at a glance · same amber the
+ * canvas gives it, so the two surfaces teach one vocabulary. */
+.mm-wire.mm-crit {
+  stroke: color-mix(in srgb, var(--nk-critical) 70%, transparent);
+  stroke-width: 1.1;
+}
+
+@media (forced-colors: active) {
+  .mm-wave { fill: Canvas; }
+  .mm-wire { stroke: GrayText; }
+  .mm-wire.mm-crit { stroke: CanvasText; stroke-width: 1.4; }
+}
+
 .mm-node {
   fill: var(--nk-ink-dim);
   opacity: 0.55;
@@ -1876,6 +1906,21 @@ body.dag-loading #zoom-dock { display: none; }
 .mm-node.st-failed { fill: var(--nk-st-failed); opacity: 0.95; }
 .mm-node.st-skipped { opacity: 0.3; }
 
+/* The pointer's answer (v32) · a hovered rect brightens and gains a ring
+ * so the map reads as a control, not a picture. Its twin on the canvas
+ * takes the same soft halo through cursorHint. */
+.mm-node {
+  transition: opacity var(--nk-dur-fast) var(--nk-ease-effects);
+}
+.mm-node.mm-lit {
+  opacity: 1;
+  stroke: var(--nk-accent);
+  stroke-width: 0.9;
+  paint-order: stroke;
+}
+#minimap:hover .mm-node:not(.mm-lit) { opacity: 0.4; }
+#minimap:hover .mm-wire { opacity: 0.5; }
+
 #minimap-viewport {
   position: absolute;
   border: 1px solid color-mix(in srgb, var(--nk-accent) 55%, transparent);
@@ -1883,6 +1928,16 @@ body.dag-loading #zoom-dock { display: none; }
   background: color-mix(in srgb, var(--nk-accent) 6%, transparent);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
   pointer-events: none;
+}
+
+/* The frame covers the whole map · the answer is « all of it », which
+ * the card's own edge already says. It fades rather than drawing a
+ * second border on top of the first (v32). */
+#minimap-viewport.mm-vp-all {
+  opacity: 0;
+}
+#minimap-viewport {
+  transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
 }
 
 /* ─── Cursor hint · « you are here » (editor caret → node halo) ─────────── */
@@ -1978,6 +2033,11 @@ body.dag-loading #zoom-dock { display: none; }
 /* ─── First-contact hint · one line, once ever ──────────────────────────── */
 
 #first-hint {
+  box-shadow: var(--nk-float-shadow);
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
+  border-radius: var(--nk-dock-r);
   position: fixed;
   bottom: 96px; /* one floor above the omnibar — never over the cards' dock */
   left: 50%;
@@ -1988,11 +2048,7 @@ body.dag-loading #zoom-dock { display: none; }
   padding: 6px 14px;
   font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
-  background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
   border: 1px solid var(--nk-border);
-  border-radius: 16px;
-  box-shadow: var(--nk-shadow-1), var(--nk-bevel);
-  backdrop-filter: blur(8px);
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
   pointer-events: none;
   transition: opacity var(--nk-dur-deliberate) var(--nk-ease-effects);
@@ -2324,6 +2380,11 @@ body.dag-loading #zoom-dock { display: none; }
 /* ─── Activity feed · the run, narrated ─────────────────────────────────── */
 
 #activity {
+  box-shadow: var(--nk-float-shadow);
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
+  border-radius: var(--nk-r-pop);
   position: fixed;
   left: 12px;
   bottom: 34px;
@@ -2332,11 +2393,6 @@ body.dag-loading #zoom-dock { display: none; }
   display: flex;
   flex-direction: column;
   border: 1px solid var(--nk-border);
-  border-radius: var(--nk-r-panel);
-  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--nk-card-shadow), var(--nk-bevel);
   overflow: hidden;
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
@@ -5054,6 +5110,7 @@ body.lod-far .edge-hit { pointer-events: none; }
 /* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
 
 #omnibar {
+  box-shadow: var(--nk-float-shadow-lift);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -5072,7 +5129,6 @@ body.lod-far .edge-hit { pointer-events: none; }
   padding: var(--nk-float-pad);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-float-r);
-  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
 }
 
 #verb-palette {
@@ -5599,6 +5655,11 @@ body.lod-far .nc-stale {
 /* ─── Replay scrubber · time-travel over a recorded run ─────────────────── */
 
 #scrubber {
+  box-shadow: var(--nk-float-shadow);
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
+  border-radius: var(--nk-dock-r);
   position: fixed;
   left: 12px;
   right: 12px;
@@ -5608,12 +5669,7 @@ body.lod-far .nc-stale {
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.15);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-shadow-2), var(--nk-bevel);
 }
 
 #scrubber[hidden] {
@@ -6898,6 +6954,7 @@ body[data-nk-theme='editor'].vscode-dark {
 /* ─── The plan rail · the left column IS the execution plan (§3) ────────── */
 
 #plan-rail {
+  box-shadow: var(--nk-float-shadow);
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
@@ -6915,7 +6972,6 @@ body[data-nk-theme='editor'].vscode-dark {
   padding: 6px;
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
-  box-shadow: var(--nk-float-shadow);
 }
 
 /* The rail names itself (the gauntlet: « a mystery box of bracket
