@@ -4,6 +4,29 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [Unreleased]
+
+### The name the operator types survives, in any script (v29)
+
+The probe harness had carried a shape corpus since before the design
+arc (a 74-character task id · CJK · Arabic · diacritics · a single
+char) and nobody had run it. It surfaced a defect with nothing to do
+with language: an IO row shrank the binding alias and its producer in
+proportion to their own length, so `commits` took 13px of the 47 it
+needed and rendered « c… » while the producer kept 27 characters. The
+alias is the token you write in `${{ tasks.X.commits }}`; it no longer
+shrinks, and the row packs by MEASURE rather than by count (two long
+wires used to overflow and mush each other).
+
+### The proofs became gates (v30)
+
+Nine lenses had proved every visual claim in DESIGN.md for months while
+running nowhere but a laptop. `npm run probes` is now one command for
+the whole sweep · four skins × three widths × nine lenses, plus the
+i18n shape corpus, plus forced-colors, plus 45 a11y journeys · it exits
+non-zero on any finding, and CI runs it on every push. Headless was
+qualified against the headed reference by mutation, not assumed.
+
 ## [0.107.8] · 2026-08-02 · the QRcodeAI-grade arc, then the measurement
 
 Twenty-one waves. The first half answered a brief about materials and

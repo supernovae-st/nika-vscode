@@ -948,6 +948,16 @@ surface, measure the box, then decide.
    `nika.canvasAccessibilityHelp` QuickPick. Proven end-to-end by
    `scripts/media/a11y-probes.cjs` (same toolchain as the journeys).
 
+   **Run them with `npm run probes`** · the whole sweep in one command
+   (four skins × three widths × nine lenses · the i18n shape corpus ·
+   forced-colors · the 45 a11y journeys). It exits non-zero on any
+   finding and CI runs it on every push. A proof nobody re-runs is a
+   memory, not a gate · these ran nowhere but a laptop for months.
+   Headless was qualified against the headed reference BY MUTATION
+   (both must catch the same injected defect), never assumed: two
+   instruments agreeing on zero is not evidence when they can share a
+   fault.
+
 ## 7b · The editor chord family (contributes.keybindings)
 
 Every gesture lives on the `⌘K` chord prefix (`Ctrl+K` on

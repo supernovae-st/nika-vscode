@@ -25,7 +25,7 @@ function probe(name, ok, note = '') {
 }
 
 (async () => {
-  const b = await chromium.launch({ headless: false, channel: 'chrome' });
+  const b = await chromium.launch({ headless: process.env.HEADLESS === '1', channel: 'chrome' });
   const p = await b.newPage({ viewport: { width: 1360, height: 860 } });
   await p.goto('file://' + path.join(process.cwd(), 'scripts/media/harness.html?still'));
   await p.waitForSelector('.dag-node .nc', { timeout: 8000 });

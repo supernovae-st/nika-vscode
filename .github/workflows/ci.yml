@@ -15,6 +15,31 @@ permissions:
   contents: read
 
 jobs:
+  # The rendered surface, judged by machine. Nine lenses (clip · target ·
+  # contrast · spill · motion · occluded · glyph · collide · truncated)
+  # across four skins and three widths, plus the i18n shape corpus and
+  # forced-colors, plus 45 a11y journeys. These proved every visual
+  # claim in DESIGN.md for months while running nowhere but a laptop:
+  # a proof nobody re-runs is a memory, not a gate. Headless was
+  # qualified by mutation against the headed reference, not assumed.
+  probes:
+    name: probes · 9 lenses × 4 skins × 3 widths + shape + forced + a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Chrome for the probes (they drive the REAL webview bundle)
+        run: npx playwright install --with-deps chromium chrome
+      - name: Compile (the probes load out/webview/*)
+        run: npm run compile
+      - name: The full sweep
+        run: npm run probes
+
   gate:
     name: typecheck · tests · parity · lint
     runs-on: ubuntu-latest

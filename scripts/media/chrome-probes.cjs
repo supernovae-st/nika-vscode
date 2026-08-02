@@ -398,7 +398,8 @@ const PROBE = () => {
 };
 
 (async () => {
-  const b = await chromium.launch({ headless: false, channel: 'chrome' });
+  let total = 0;
+  const b = await chromium.launch({ headless: process.env.HEADLESS === '1', channel: 'chrome' });
   for (const skin of SKINS) for (const vp of SIZES) {
     const p = await b.newPage({
       viewport: vp,
@@ -478,8 +479,14 @@ const PROBE = () => {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));
+      total += rows.length;
     }
     await p.close();
   }
   await b.close();
-})();
+  // A probe that only PRINTS is a report, not a gate. Nine lenses ran
+  // across every skin and width this sweep was given; if any of them
+  // has something to say, the build hears it.
+  console.log(`\nchrome-probes: ${total === 0 ? 'clean' : total + ' finding' + (total === 1 ? '' : 's')} · ${SKINS.length} skin(s) x ${SIZES.length} size(s)${FORCED ? ' · forced-colors' : ''}${SHAPE ? ' · shape corpus' : ''}`);
+  process.exit(total === 0 ? 0 : 1);
+})().catch((e) => { console.error(e); process.exit(1); });
