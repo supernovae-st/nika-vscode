@@ -73,7 +73,7 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [], harmony: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -310,6 +310,74 @@ const PROBE = () => {
     }
   }
 
+  // ── FLOATING HARMONY ─────────────────────────────────────────────────
+  // The floating surfaces read as one family and were built as four:
+  // measured, FOUR grounds (88% · 92% · 82% · a gradient), THREE glass
+  // recipes where a token already existed, three shadow stacks, and a
+  // radius per surface. Plus the CONCENTRIC law — a rounded control
+  // inside a rounded surface keeps its curve parallel only if
+  // outer = inner + inset; the omnibar was 11 where its own geometry
+  // asked for 15, and that is the tell that makes a bar read « slightly
+  // wrong » without anyone being able to name it.
+  {
+    const num = (v) => parseFloat(v) || 0;
+    const FLOATS = ['dag-mark', 'dag-title', 'dag-status', 'omnibar', 'zoom-dock', 'minimap', 'plan-rail'];
+    const mat = new Map();
+    const depth = new Map();
+    for (const id of FLOATS) {
+      const e = document.getElementById(id);
+      if (!e) { continue; }
+      const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden') { continue; }
+      // The MATERIAL is the fill and the glass · one recipe, no
+      // exceptions. Depth is separate and may have two steps (the tier,
+      // and the primary bar one above it), so it is counted apart.
+      const key = `${cs.backgroundImage}|${cs.backdropFilter}`;
+      if (!mat.has(key)) { mat.set(key, []); }
+      mat.get(key).push(id);
+      const dk = cs.boxShadow;
+      if (!depth.has(dk)) { depth.set(dk, []); }
+      depth.get(dk).push(id);
+
+      // concentric: the child seated in the inner corner
+      const r = e.getBoundingClientRect();
+      const padT = num(cs.paddingTop), padL = num(cs.paddingLeft);
+      let seat = null, best = 1e9;
+      // Only a seated CONTROL binds the concentric law · a panel that
+      // holds content (a map, a list) is not a bar holding buttons, and
+      // reading its first rounded child as the seat made the minimap
+      // demand the radius of a map node.
+      for (const c of e.querySelectorAll('button, input, .vp-btn')) {
+        const ccs = getComputedStyle(c);
+        if (num(ccs.borderTopLeftRadius) === 0) { continue; }
+        const cr = c.getBoundingClientRect();
+        if (cr.width < 4 || cr.height < 4) { continue; }
+        const d = Math.abs(cr.left - (r.left + padL)) + Math.abs(cr.top - (r.top + padT));
+        if (d < best) { best = d; seat = ccs; }
+      }
+      if (seat === null || best > 6) { continue; }
+      const want = num(seat.borderTopLeftRadius) + Math.max(padT, padL);
+      const got = num(cs.borderTopLeftRadius);
+      if (Math.abs(got - want) > 0.6) {
+        out.harmony.push({ sel: '#' + id, law: 'concentric', outer: got, expected: want });
+      }
+    }
+    // The material is a FAMILY, so more than two recipes is drift. Two is
+    // the deliberate split: the tier, and the primary bar one step up.
+    if (mat.size > 1) {
+      out.harmony.push({
+        law: 'one material', recipes: mat.size,
+        groups: [...mat.values()].map((g) => g.join('+')),
+      });
+    }
+    if (depth.size > 2) {
+      out.harmony.push({
+        law: 'two depths at most', depths: depth.size,
+        groups: [...depth.values()].map((g) => g.join('+')),
+      });
+    }
+  }
+
   // ── CHROME COLLISION ──────────────────────────────────────────────────
   // Two chrome clusters may touch, never overlap. Every offset in the
   // corner stack is DERIVED from a neighbour's geometry, and for eleven
@@ -475,7 +543,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated', 'harmony']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));

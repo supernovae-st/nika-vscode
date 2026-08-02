@@ -18,6 +18,31 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The floating chrome becomes one family (v31)
+
+Measured, the seven floating surfaces carried FOUR grounds, THREE glass
+recipes where a token already existed, and five shadow stacks: they
+read as one family and were built as four. One material now, retuned by
+skin and never re-declared per surface.
+
+- **Concentric corners** · a rounded control inside a rounded surface
+  keeps its curve parallel only if outer = inner + inset. The omnibar
+  sat at 11 where its geometry asked for 15 (the zoom dock was already
+  right) · the relationship is a token, so a padding change carries its
+  radius.
+- **The make cluster is five equal squares** · the collapsed hover-name
+  still charged its flex gap and pushed every icon 1.5px off centre,
+  and the two halves of the cluster rested at 30 and 32.
+- **One rhythm** · the bar ran three gaps, putting the widest one
+  between the + and the verb tiles, which are one gesture.
+- **Two control tiers, stated** · the primary bar seats a taller
+  control than the quiet chrome; three heights was an accident.
+- Every floating control answers hover with bg AND border, the pair the
+  rest of the canvas already used.
+
+A `harmony` lens holds all of it: one material, two depths at most,
+and the concentric law wherever a bar seats a control.
+
 ### The proofs became gates (v30)
 
 Nine lenses had proved every visual claim in DESIGN.md for months while

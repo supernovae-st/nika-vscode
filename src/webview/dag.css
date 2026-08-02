@@ -111,6 +111,56 @@ body {
   --nk-r-tile: 6px;
   --nk-r-panel: 8px;
   --nk-r-pop: 10px;
+  /* THE CONCENTRIC LAW (v31) · when a rounded control sits inside a
+   * rounded surface, the two curves stay parallel only if
+   * outer = inner + inset. Break it and the gap between the curves
+   * narrows through the corner: the tell that makes a bar read
+   * « slightly wrong » without anyone being able to name it. The
+   * omnibar was 11 where its own geometry asked for 15. Derived here
+   * once, so a padding change carries the radius with it. */
+  /* the control height every floating bar seats its buttons on */
+  --nk-ctl-h: 30px;
+  /* TWO control tiers, stated · the primary bar seats a taller control
+   * than the quiet chrome, and that difference is hierarchy. Three was
+   * an accident: 28 top · 26 dock · 30 omnibar, with the two BOTTOM
+   * bars (the pair the eye compares) disagreeing by 4px. */
+  --nk-ctl-h-sm: 28px;
+  /* ONE rhythm inside a bar, ONE break between groups (v31). The
+   * omnibar ran three (8 outer · 2 in the verbs · 4 in the run
+   * cluster), which put the WIDEST gap between the + and the four verb
+   * tiles — the two halves of a single gesture, split by the spacing
+   * meant to separate groups. The groups are marked by their own rule
+   * and its padding; the gap does not need to say it twice. */
+  --nk-bar-gap: 4px;
+  --nk-bar-group: 8px;
+  --nk-float-pad: 8px;
+  --nk-float-r: calc(var(--nk-radius) + var(--nk-float-pad));
+  --nk-dock-pad: 4px;
+  --nk-dock-r: calc(var(--nk-radius) + var(--nk-dock-pad));
+  /* ONE MATERIAL FOR THE FLOATING TIER (v31) · measured, the raised
+   * surfaces carried FOUR grounds (88% · 92% · 82% · the gradient),
+   * THREE glass recipes where a token already existed (14 · 12 · 10),
+   * and three shadow stacks. They read as one family and were built as
+   * four. The gradient is the house material by doctrine (« the light
+   * has a SOURCE »); the rest now derive from it. */
+  /* TRANSLUCENT · the gradient token is opaque, so the surfaces that
+   * carried it had a backdrop-filter doing nothing at all: glass with
+   * nothing behind it. The floating fill keeps the diagonal (the light
+   * has a source) AND lets the canvas through (the glass is real). */
+  --nk-float-fill: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  --nk-float-bg: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--nk-ink) 6%, var(--nk-float-fill)),
+    color-mix(in srgb, #000 22%, var(--nk-float-fill))
+  );
+  --nk-float-glass: var(--nk-glass-raised);
+  --nk-float-border: 1px solid var(--nk-border);
+  /* TWO depths, not six recipes · the tier sits at shadow-1, and the
+   * PRIMARY bar sits one step higher because it is the primary bar.
+   * Measured before: specular+1+bevel · shadow-1 alone · card-shadow+
+   * bevel · specular+1 · specular+2+bevel. Five ways to say « raised ». */
+  --nk-float-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
+  --nk-float-shadow-lift: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
   /* THE CORNER GEOMETRY (v26) · declared once, computed everywhere.
    * The bottom-right stack (minimap · zoom dock · activity · transport)
    * and the bottom strip (omnibar · legend) each derive their offsets
@@ -319,21 +369,24 @@ body[data-nk-theme] {
 }
 
 #dag-mark {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
   flex: none;
-  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
+  border-radius: var(--nk-dock-r);
+  box-shadow: var(--nk-float-shadow);
 }
 
 #dag-title {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   display: inline-block;
   height: 34px;
   line-height: 32px;
@@ -345,12 +398,9 @@ body[data-nk-theme] {
   /* The reverse door — click opens the YAML (dag.ts wires it). */
   cursor: pointer;
   color: var(--nk-ink);
-  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
+  border-radius: var(--nk-dock-r);
+  box-shadow: var(--nk-float-shadow);
   /* The title yields FIRST on narrow panels — buttons never clip. */
   flex: 0 1 auto;
   min-width: 36px;
@@ -395,8 +445,8 @@ body[data-nk-theme] {
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
+  border-radius: var(--nk-dock-r);
+  box-shadow: var(--nk-float-shadow);
   overflow: hidden;
 }
 
@@ -635,9 +685,19 @@ body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
 #omnibar > #btn-add-task {
   overflow: hidden;
   width: auto;
-  min-width: 30px;
-  gap: 3px;
-  padding: 0 7px;
+  min-width: var(--nk-ctl-h);
+  height: var(--nk-ctl-h);
+  /* NO gap (v31) · a flex gap is spent whether or not the item it
+   * separates has width, so the collapsed name still charged 3px and
+   * pushed every icon 1.5px left of centre — measured across all five
+   * tiles of the make cluster. The space belongs to the NAME, and
+   * travels with it: margin-left, animated with the same curve. */
+  gap: 0;
+  /* SQUARE at rest · the tile is the control height (30) and its
+   * padding DERIVES from that: (30 - 16 icon - 2 border) / 2 = 6. The
+   * two halves of this cluster used 7 and rested at 30 and 32, which
+   * is the kind of 2px that only shows when five of them sit in a row. */
+  padding: 0 calc((var(--nk-ctl-h) - 16px - 2px) / 2);
   transition:
     background var(--nk-dur-base) var(--nk-ease-effects),
     border-color var(--nk-dur-base) var(--nk-ease-effects),
@@ -647,6 +707,7 @@ body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
 #omnibar > #btn-add-task .tb-name {
   display: inline-block;
   max-width: 0;
+  margin-left: 0;
   overflow: hidden;
   white-space: nowrap;
   opacity: 0;
@@ -666,6 +727,7 @@ body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
 #omnibar > #btn-add-task:focus-visible .tb-name {
   max-width: 62px;
   opacity: 1;
+  margin-left: 4px;
   margin-right: 1px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -689,6 +751,9 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 #dag-toolbar .tb-group:has(> #btn-export-svg) { display: none; }
 
 #dag-toolbar button:hover {
+  /* bg AND border · every other floating control answers with both, and
+   * a hover that moves one of the two reads as a weaker response. */
+  border-color: color-mix(in srgb, var(--nk-ink) 22%, transparent);
   background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.14));
 }
 
@@ -742,6 +807,9 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 }
 
 #dag-status {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   margin-left: auto;
   display: inline-block;
   height: 34px;
@@ -755,11 +823,9 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: color-mix(in srgb, var(--nk-surface) 92%, transparent);
-  backdrop-filter: blur(12px) saturate(1.1);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 2px);
-  box-shadow: var(--nk-shadow-1);
+  border-radius: var(--nk-dock-r);
+  box-shadow: var(--nk-float-shadow);
   font-family: var(--nk-mono);
 }
 
@@ -1714,6 +1780,9 @@ body.vscode-light .logo-dark { display: none; }
  * overlap at 620px wide, the width half a split editor gives you).
  * The derivation is now a calc, so a floor change cascades. */
 #zoom-dock {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   right: 12px;
   bottom: calc(var(--nk-corner-floor) + var(--nk-minimap-h) + var(--nk-corner-gap));
@@ -1721,20 +1790,17 @@ body.vscode-light .logo-dark { display: none; }
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 3px 4px;
-  background: var(--nk-surface-grad);
-  background-image: var(--nk-grain);
-  backdrop-filter: var(--nk-glass-raised);
+  padding: var(--nk-dock-pad);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 4px);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1), var(--nk-bevel);
+  border-radius: var(--nk-dock-r);
+  box-shadow: var(--nk-float-shadow);
 }
 #zoom-dock button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
-  height: 26px;
+  min-width: var(--nk-ctl-h-sm);
+  height: var(--nk-ctl-h-sm);
   padding: 0 6px;
   background: transparent;
   color: var(--nk-ink-dim);
@@ -1767,24 +1833,23 @@ body.vscode-light .logo-dark { display: none; }
   background: var(--nk-border);
 }
 body[data-nk-theme='nika'] #zoom-dock {
-  background: color-mix(in srgb, var(--nk-chrome) 92%, transparent);
   border-color: var(--nk-hairline-accent);
 }
 body.welcome #zoom-dock,
 body.dag-loading #zoom-dock { display: none; }
 
 #minimap {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   right: 12px;
   bottom: var(--nk-corner-floor);
   width: var(--nk-minimap-w);
   height: var(--nk-minimap-h);
   border: 1px solid var(--nk-border);
-  border-radius: var(--nk-r-panel);
-  background: color-mix(in srgb, var(--nk-surface) 82%, transparent);
-  background-image: var(--nk-grain);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--nk-card-shadow), var(--nk-bevel);
+  border-radius: var(--nk-r-pop);
+  box-shadow: var(--nk-float-shadow);
   overflow: hidden;
   cursor: pointer;
   transition: opacity var(--nk-dur-base) var(--nk-ease-effects);
@@ -1850,7 +1915,7 @@ body.dag-loading #zoom-dock { display: none; }
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: 12px;
-  box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
+  box-shadow: var(--nk-float-shadow-lift);
   animation: es-rise var(--nk-dur-slow) var(--nk-ease-spatial);
 }
 
@@ -4989,6 +5054,9 @@ body.lod-far .edge-hit { pointer-events: none; }
 /* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
 
 #omnibar {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   left: 50%;
   bottom: var(--nk-omnibar-floor);
@@ -4996,23 +5064,21 @@ body.lod-far .edge-hit { pointer-events: none; }
   z-index: 44;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--nk-bar-gap);
   /* Clears the minimap card on BOTH sides while centered (172px each);
    * under 820px the dock un-stacks instead (see the media block). */
   width: min(620px, calc(100vw - 344px));
-  padding: 8px 10px; /* the 48px Krea bar */
-  background: var(--nk-surface-grad);
-  background-image: var(--nk-grain);
-  backdrop-filter: var(--nk-glass-raised);
+  /* uniform · a corner cannot be concentric on two different insets */
+  padding: var(--nk-float-pad);
   border: 1px solid var(--nk-border);
-  border-radius: calc(var(--nk-radius) + 4px);
+  border-radius: var(--nk-float-r);
   box-shadow: var(--nk-specular), var(--nk-shadow-2), var(--nk-bevel);
 }
 
 #verb-palette {
   display: inline-flex;
-  gap: 2px;
-  padding-right: 8px;
+  gap: var(--nk-bar-gap);
+  padding-right: var(--nk-bar-group);
   border-right: 1px solid var(--nk-border);
 }
 
@@ -5227,8 +5293,14 @@ body[data-nk-theme='nika'] .nc-port {
   stroke: color-mix(in srgb, var(--nk-accent-bright) 35%, transparent);
 }
 
+/* A skin retunes the TIER's fill; it does not re-declare a surface.
+ * These two carried their own flat colour and so fell out of the
+ * floating family the moment the family got a material (v31). */
+body[data-nk-theme='nika'] {
+  --nk-float-fill: color-mix(in srgb, var(--nk-chrome) 92%, transparent);
+}
+
 body[data-nk-theme='nika'] #omnibar {
-  background: color-mix(in srgb, var(--nk-chrome) 92%, transparent);
   border-color: var(--nk-hairline-accent);
 }
 
@@ -5302,8 +5374,8 @@ body.running #run-controls .rc-more:disabled { opacity: 1; }
 
 #run-controls {
   display: inline-flex;
-  gap: 4px;
-  padding-right: 8px;
+  gap: var(--nk-bar-gap);
+  padding-right: var(--nk-bar-group);
   border-right: 1px solid var(--nk-border);
 }
 
@@ -5385,7 +5457,10 @@ body.run-starting .rc-run {
     var(--nk-cta-hover);
 }
 
-/* The key PRESSES — travel + the lip compresses (the machine read). */
+/* The key PRESSES — travel + the lip compresses (the machine read).
+ * The split chevron carries .rc-run too, so both halves travel 1.5px:
+ * verified by forcing :active, after a mouse-driven probe reported the
+ * chevron dead — the menu opens on mousedown and takes the state with it. */
 .rc-run:active:not(:disabled) {
   transform: translateY(1.5px);
   box-shadow:
@@ -6759,8 +6834,13 @@ body[data-nk-theme='editor'].vscode-light #dag-toolbar button:hover {
   background: rgb(0 0 0 / 0.05);
 }
 
-body[data-nk-theme='editor'].vscode-light #omnibar,
-body[data-nk-theme='editor'].vscode-light #minimap,
+/* The light skin retunes the TIER's fill, like every other skin · it
+ * used to re-declare two floating surfaces and so split the family in
+ * two on light themes only (v31). */
+body[data-nk-theme='editor'].vscode-light {
+  --nk-float-fill: var(--nk-card);
+}
+
 body[data-nk-theme='editor'].vscode-light #activity,
 body[data-nk-theme='editor'].vscode-light #scrubber,
 body[data-nk-theme='editor'].vscode-light #transport {
@@ -6818,6 +6898,9 @@ body[data-nk-theme='editor'].vscode-dark {
 /* ─── The plan rail · the left column IS the execution plan (§3) ────────── */
 
 #plan-rail {
+  background-color: transparent;
+  background-image: var(--nk-grain), var(--nk-float-bg);
+  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   left: 12px;
   top: 50%;
@@ -6830,12 +6913,9 @@ body[data-nk-theme='editor'].vscode-dark {
   overflow-y: auto;
   scrollbar-width: none;
   padding: 6px;
-  background: var(--nk-surface-grad);
-  background-image: var(--nk-grain);
-  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
-  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+  box-shadow: var(--nk-float-shadow);
 }
 
 /* The rail names itself (the gauntlet: « a mystery box of bracket
