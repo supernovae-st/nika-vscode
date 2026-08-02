@@ -748,8 +748,8 @@ that redefines the background redefines the ink with it (phosphor set
 its green and inherited an ink it never chose).
 
 **The first screen was in no sweep (v41)** · the welcome surface had a
-32x16 pointer target — the submit for the first thing a user ever types,
-under the WCAG 2.2 minimum of 24x24 — and it was invisible for the same
+32x16 pointer target · the submit for the first thing a user ever types,
+under the WCAG 2.2 minimum of 24x24 · and it was invisible for the same
 reason as the run states before it: `SCENE=empty` existed and nothing
 ran it. A scene that exists and is never swept is a scene that has no
 gates.
