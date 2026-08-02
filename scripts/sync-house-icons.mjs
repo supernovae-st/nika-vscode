@@ -42,6 +42,8 @@ const PICK = {
   fork: 'code/fork-simple',
   bolt: 'weather/lightning-bolt',
   expandCard: 'arrows/expand-simple',
+  chevronDown: 'arrows/chevron-down-small',
+  command: 'keyboard/cmd',
   help: 'interface-general/circle-questionmark',
   more: 'interface-general/circle-dots-center-1',
 };

@@ -992,6 +992,12 @@ const TOP_INSET = 54;
 // full-bleed / 30 audio·check row (+6 gap) · sub 15 · body 15/line
 // (+4 gap) · io 15 (+5 gap) · params 24 (+6 gap) · policy 20 (+6 gap)).
 const CARD_PAD_Y = 10;
+// The card is box-sizing: border-box with a 1px hairline top and bottom,
+// so the height we hand the frame is a BORDER box while every term below
+// measures the padding box. Without this the last row loses 2px to
+// overflow: hidden — measured 88 asked, 86 offered, and the essence
+// line's descenders paid for it on every card that carries one.
+const CARD_BORDER_Y = 2;
 const HEAD_H = 22;
 const DIVIDER_H = 12;
 const SUB_H = 15;
@@ -1402,7 +1408,7 @@ function chipRowsOf(label: string, ids: string[]): number {
 
 /** Card height from content — the layout must know the TRUE box. */
 function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): number {
-  let h = CARD_PAD_Y * 2 + SUB_H;
+  let h = CARD_PAD_Y * 2 + CARD_BORDER_Y + SUB_H;
   if (mode === 'min') {
     // min = head · verdict · one essence line. Nothing else — the head
     // and its divider stay IN the frame (the dense line, unchanged).
@@ -1525,10 +1531,20 @@ function nodeClassOf(node: DagNode): string {
 // MOTION, never sense glyphs (the annexe G registry law is untouched).
 // Each family is a vertical filmstrip (one frame per line) that dag.css
 // windows to a single line and advances with steps() — sketch A.
+// COVERAGE LAW (v24): every frame below is a character Martian Mono
+// actually carries. The braille filmstrips these replaced were in no
+// house face — each frame fell back to whatever the OS supplied, with
+// foreign metrics and weight, which is why a running card's head read
+// as two stray carets. A glyph the house does not own is not ours to
+// animate.
 const SPIN_STRIPS = {
-  dots: '⣾\n⣽\n⣻\n⢿\n⡿\n⣟\n⣯\n⣷',
-  think: '⢎ \n⠎⠁\n⠊⠑\n⠈⠱\n ⡱\n⢀⡰\n⢄⡠\n⢆⡀',
-  stream: '∙∙∙\n●∙∙\n∙●∙\n∙∙●\n∙∙∙',
+  // 8 frames on the 80ms quantum — a continuous rotation.
+  dots: '|\n/\n-\n\\\n|\n/\n-\n\\',
+  // 8 frames — a scan out and back, with a rest at each end: the shape
+  // of deliberation, not of travel.
+  think: '•··\n·•·\n··•\n···\n··•\n·•·\n•··\n···',
+  // 5 frames at 125ms — a token walking the stream (shape unchanged).
+  stream: '···\n•··\n·•·\n··•\n···',
 } as const;
 type SpinFamily = keyof typeof SPIN_STRIPS;
 
@@ -1618,7 +1634,9 @@ function toolWithGlyph(tool: string): string {
   // full prefixed path (« invoke · ⎘ sub.nika.yaml »).
   if (tool.startsWith('workflow:')) {
     const base = tool.slice('workflow:'.length).split('/').pop() || tool;
-    return `⎘ ${base}`;
+    // The composition ref uses an arrow the house owns: ⎘ is in neither
+    // shipped face and fell back per machine.
+    return `→ ${base}`;
   }
   const bare = tool.replace(/^nika:/, '');
   const cat = toolCatOf(bare);
@@ -7381,8 +7399,9 @@ class DagRenderer {
   /** Right half — the LIVE verdict (Well's value column · DESIGN.md §1). */
   private subValue(node: DagNode): string {
     // A LIVE task counts its OBSERVED elapsed (our clock from the start
-    // event — real wall time; the ⋯ marks it live, the engine's measured
-    // duration replaces it at settle). No start observed → no number.
+    // event — real wall time; the ticking number IS the live signal, and
+    // the engine's measured duration replaces it at settle). No start
+    // observed → no number.
     if (node.status === 'running' || node.status === 'retrying') {
       // A parked question outranks the clock: the run is WAITING on a
       // human, not spending time — the card says so until the answer.
@@ -7405,7 +7424,12 @@ class DagRenderer {
         // The ~$ curve while it moves (contract §3.3) — approx-marked:
         // ~$ is in-flight, plain $ stays the recorded verdict.
         const spend = node.liveUsd !== undefined ? ` · ~${usd(node.liveUsd)}` : '';
-        return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)} ⋯${spend}`;
+        // No live marker after the clock. The ⋯ that used to sit here
+        // read as a broken dash at 10px mono, said what three louder
+        // signals already say (the ticking number, the head spinner,
+        // the running hue), and collided with the ⋯ door — the same
+        // glyph meaning "a menu lives here" everywhere else.
+        return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)}${spend}`;
       }
       return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
     }

@@ -67,7 +67,7 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -255,6 +255,51 @@ const PROBE = () => {
   out.clip = uniq(out.clip, 'sel'); out.target = uniq(out.target, 'sel');
   out.contrast = uniq(out.contrast, 'sel'); out.spill = uniq(out.spill, 'sel');
   out.motion = uniq(out.motion, 'sel'); out.occluded = uniq(out.occluded, 'sel');
+
+  // ── GLYPH COVERAGE ────────────────────────────────────────────────────
+  // A character the house font does not carry renders in whatever the OS
+  // supplies: foreign metrics, foreign weight, different per machine. The
+  // house shipped a braille spinner in neither face for eleven waves and
+  // every gate stayed green, because no gate ever asked the font.
+  // Exact test: paint the glyph in the element's own family, then in a
+  // family that cannot exist. Identical pixels means the fallback drew
+  // both, so the house never supplied it.
+  {
+    const cv = document.createElement('canvas'); cv.width = 72; cv.height = 72;
+    const g2 = cv.getContext('2d', { willReadFrequently: true });
+    const paint = (ch, fam) => {
+      g2.clearRect(0, 0, 72, 72); g2.fillStyle = '#000';
+      g2.font = '44px ' + fam; g2.fillText(ch, 5, 54);
+      return g2.getImageData(0, 0, 72, 72).data.join(',');
+    };
+    const cache = new Map();
+    const covered = (ch, fam) => {
+      const k = ch + '|' + fam;
+      if (!cache.has(k)) { cache.set(k, paint(ch, fam) !== paint(ch, '"__nk_no_font__"')); }
+      return cache.get(k);
+    };
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const hits = new Map();
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const el = n.parentElement; if (!el) { continue; }
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) { continue; }
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none') { continue; }
+      for (const ch of new Set(n.nodeValue)) {
+        const cp = ch.codePointAt(0);
+        if (cp < 128 || /\s/.test(ch)) { continue; }
+        if (covered(ch, cs.fontFamily)) { continue; }
+        const key = ch + '|' + cs.fontFamily;
+        if (!hits.has(key)) {
+          hits.set(key, { glyph: ch, cp: 'U+' + cp.toString(16).toUpperCase(),
+            font: cs.fontFamily.split(',')[0].replace(/"/g, ''),
+            sel: sel(el) });
+        }
+      }
+    }
+    out.glyph = [...hits.values()];
+  }
   return out;
 };
 
@@ -328,7 +373,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));

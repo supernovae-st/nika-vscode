@@ -1275,11 +1275,11 @@ export class DagPanel implements vscode.Disposable {
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
-        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up">▶ Try the demo · offline, zero keys</button>
+        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up"><span class="es-cap-ic">${HI.play}</span>Try the demo · offline, zero keys</button>
         <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic">${OI['feature/examples']}</span>Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic">${OI['feature/replay']}</span>Replay a trace</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu"><span class="es-cap-ic">${HI.command}</span>All commands</button>
       </div>
       <div id="es-recent" hidden>
         <div class="es-sec">Recent in this workspace</div>
@@ -1323,7 +1323,7 @@ export class DagPanel implements vscode.Disposable {
     </div>
     <div id="run-controls" role="toolbar" aria-label="Run controls">
       <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live"><span class="rc-ic">${HI.play}</span>Run</button>
-      <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>
+      <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu"><span class="rc-ic rc-caret">${HI.chevronDown}</span></button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>

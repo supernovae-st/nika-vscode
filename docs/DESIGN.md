@@ -738,6 +738,28 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**The house does not animate what it does not own (v24)** · a character
+absent from the shipped face renders in whatever the OS supplies:
+foreign metrics, foreign weight, different on every machine. Measured
+exactly (paint the glyph in the element's family, then in a family that
+cannot exist; identical pixels mean the fallback drew both), the house
+carried a braille spinner in NEITHER shipped face for eleven waves, and
+a running card's head read as two stray carets. The law that came out
+of it: the sans carries letters, the mono carries the symbol
+vocabulary, and what the mono lacks becomes an SVG mark from the master
+library. The `glyph` lens in `scripts/media/chrome-probes.cjs` holds
+the line.
+
+**The judge may not drift from what it judges (v24)** ·
+`scripts/media/harness.html` drives the real bundle and proves every
+visual claim, which holds only while its chrome IS the panel's chrome.
+It drifted silently: four verb tiles kept text glyphs long after
+`dagPanel.ts` moved them to SVG, so every probe and every screenshot
+judged a bottom bar no user has ever seen. `scripts/harness-parity.mjs`
+(in `npm test`) resolves the panel's icon holes and diffs both files
+button by button, keyed by class AND occurrence, because three buttons
+in the door share one class.
+
 **The fourth skin is a skin (v21)** · `editor` on a LIGHT VS Code theme
 is a fourth register, not a variant · the same tokens land on a white
 ground and every dark-tuned ink inverts its meaning there. It was
