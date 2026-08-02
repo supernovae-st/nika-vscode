@@ -6,6 +6,21 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### The first screen gets its gates (v41)
+
+The welcome surface was in no sweep, so nothing held it. Two real
+defects on the screen a new user sees first:
+
+- **A 32x16 pointer target** · the submit for the first thing anyone
+  types, under the WCAG 2.2 minimum of 24x24.
+- **The primary CTA at 3.24:1** on three skins · it read the host's
+  button FOREGROUND while the background beside it came from our own
+  token, so a theme that sets one and not the other paired #cccccc with
+  our blue. The button names one pair now, and phosphor got the ink it
+  had been inheriting without choosing.
+
+`npm run probes` sweeps the welcome scene from here.
+
 ### Nothing developer-local rides the VSIX (v40)
 
 The published 0.107.9 artifact was downloaded and diffed against a local

@@ -738,6 +738,22 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A colour pair travels together, or a theme splits it (v41)** · the
+welcome CTA read the host's button FOREGROUND while the background
+beside it came from our own `--nk-cta`. A theme that sets
+`button.foreground` and leaves `button.background` to the default put a
+#cccccc on our blue · 3.24:1, on the primary call to action of the
+first screen a new user sees. The button names ONE pair now, and a skin
+that redefines the background redefines the ink with it (phosphor set
+its green and inherited an ink it never chose).
+
+**The first screen was in no sweep (v41)** · the welcome surface had a
+32x16 pointer target — the submit for the first thing a user ever types,
+under the WCAG 2.2 minimum of 24x24 — and it was invisible for the same
+reason as the run states before it: `SCENE=empty` existed and nothing
+ran it. A scene that exists and is never swept is a scene that has no
+gates.
+
 **Verify the artifact that REACHED users, not the number the registry
 shows (v40)** · after publishing, the published VSIX was downloaded and
 diffed against a local rebuild. Every shared file was byte-identical ·
