@@ -5006,6 +5006,15 @@ class DagRenderer {
       el.textContent = `\u2717 ${node.failPreview}`;
       el.title = `${node.failPreview}\n\nclick · explain the code`;
       el.classList.add('nc-body-live', 'nc-body-err');
+    } else if (node.pausedQuestion !== undefined && node.pausedQuestion !== '') {
+      // A PAUSE IS THE ONE STATE WAITING ON THE READER (v38). The body
+      // already swaps for a landed output and for an error; the one
+      // state that has STOPPED and needs a human never swapped, so a
+      // blocked card said « asks… » and hid what it asks. When a task
+      // is asking, the question IS the content.
+      el.textContent = node.pausedQuestion;
+      el.title = `${node.pausedQuestion}\n\nthe run is paused on this · answer it to continue`;
+      el.classList.add('nc-body-live', 'nc-body-ask');
     }
     host.appendChild(el);
   }
@@ -7278,9 +7287,21 @@ class DagRenderer {
         bodyNode.textContent = `\u2717 ${extra.failPreview}`;
         bodyNode.title = `${extra.failPreview}\n\nclick · explain the code`;
         bodyNode.classList.add('nc-body-live', 'nc-body-err');
+        bodyNode.classList.remove('nc-body-ask');
+      } else if (extra?.pausedQuestion !== undefined && extra.pausedQuestion !== '') {
+        // A PAUSE IS THE ONE STATE WAITING ON THE READER (v38). The
+        // body already swaps for a landed output and for an error; the
+        // one state that has STOPPED and needs a human never swapped,
+        // so a blocked card said « asks… » and hid what it asks. When a
+        // task is asking, the question IS the content.
+        bodyNode.textContent = extra.pausedQuestion;
+        bodyNode.title = `${extra.pausedQuestion}\n\nthe run is paused on this · answer it to continue`;
+        bodyNode.classList.add('nc-body-live', 'nc-body-ask');
+        bodyNode.classList.remove('nc-body-err');
       } else if (bodyNode.classList.contains('nc-body-live')) {
         // Restore the STYLED rest (the essence spans) — dataset.base
         // alone would flatten an invoke card back to a plain dump.
+        bodyNode.classList.remove('nc-body-ask');
         const base = bodyTextOf(node);
         if (base) { paintBodyRest(bodyNode, node, base.kind, base.text); }
         else {
