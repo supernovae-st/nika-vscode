@@ -738,6 +738,15 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A developer machine cannot see a font it has (v39)** · the glyph lens
+ran clean locally and CI failed on the same commit: the run's stop
+square is a `■`, the sans does not carry it, and my own font stack
+happens to cover the gap a user's does not. The lens was right both
+times · only one of the two machines was a user's. Chasing it with a
+`font-family` rule meant a specificity war against the run cluster's
+chrome; the house owns a stop mark, and a mark has no font question at
+all.
+
 **When a task is asking, the question IS the content (v38)** · the card
 body already swaps for a landed output and for an error. The one state
 that has STOPPED and is waiting on a human never swapped, so a blocked

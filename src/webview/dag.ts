@@ -8797,7 +8797,13 @@ function setRunUiState(running: boolean): void {
 function stopSquare(): HTMLElement {
   const sq = document.createElement('span');
   sq.className = 'rc-stop-sq';
-  sq.textContent = '■';
+  // A MARK, not a character (v39). The square is a symbol and the sans
+  // carries letters: CI's clean font environment caught it falling back
+  // to -apple-system, which a developer machine cannot see because its
+  // own stack happens to cover ■. Chasing it with a font-family rule
+  // meant a specificity war against the run cluster's own chrome; the
+  // house owns a stop mark, and a mark has no font question at all.
+  sq.innerHTML = HOUSE_ICON.stop;
   return sq;
 }
 

@@ -24,6 +24,13 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The stop square becomes a mark (v39)
+
+The glyph lens ran clean locally and CI failed on the same commit: the
+run's stop square is a `■`, the sans does not carry it, and a developer
+machine's font stack happens to cover the gap a user's does not. It is a
+vendored mark now, which has no font question at all.
+
 ### The feed clears the legend (v39)
 
 At the narrow rung the legend is itself lifted above the full-width

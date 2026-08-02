@@ -1274,8 +1274,21 @@ body:not(.lod-far) .dag-edge {
     text-shadow: none !important;
   }
 
+/* The progress square is a vendored mark now (v39) · it takes the ink
+ * of the state it counts and the size of the text beside it. */
+.rc-stop-sq > svg {
+  width: 9px;
+  height: 9px;
+  display: block;
+}
+
 .rc-stop .rc-stop-sq {
   color: color-mix(in srgb, var(--nk-st-failed) 75%, var(--nk-ink));
+  /* The square is a SYMBOL and the sans carries letters (v39). CI's
+   * clean font environment caught what a developer machine cannot: my
+   * stack happens to cover ■, a user's does not, and it fell back per
+   * machine on the run's stop key. */
+  font-family: var(--nk-mono);
 }
 
   .nc-div {
