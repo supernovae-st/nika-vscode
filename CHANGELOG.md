@@ -18,6 +18,16 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The card gets one content rail (v34)
+
+The min card's body is a well that bleeds past the content rail so its
+padding puts the ink back on it. The bleed was a hand-copied 5px while
+the verb rail spends 2 + 6, so on every min card carrying a prompt or a
+command the body's first character sat 3px right of the line above it.
+It derives from the rail now, and the compensation carries exactly the
+condition of the thing it compensates. Four body kinds, seven cards,
+one rail.
+
 ### Review, refactor, and the things left alone (v33)
 
 - **The bar has ONE rhythm** · a 2px nudge from an older wave still

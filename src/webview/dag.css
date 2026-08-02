@@ -123,6 +123,15 @@ body {
    * and it is read by the frame ladder in TS. An unread declaration is
    * not automatically dead. */
   --nk-frame-interval: var(--nk-dur-fast);
+  /* THE BODY RAIL · a verb's quote/terminal stripe. The MIN well bleeds
+   * past the text rail so its own padding puts the ink back on it, and
+   * that bleed has to equal whatever the rail costs — copied by hand,
+   * the two drifted: the well was calibrated for a 5px padding while
+   * the rail spends 2 + 6, so the body's ink sat 3px right of the sub's
+   * on every min card that carries a prompt or a command. */
+  --nk-rail-w: 2px;
+  --nk-rail-gap: 6px;
+  --nk-rail-total: calc(var(--nk-rail-w) + var(--nk-rail-gap));
   --nk-ctl-h: 30px;
   /* TWO control tiers, stated · the primary bar seats a taller control
    * than the quiet chrome, and that difference is hierarchy. Three was
@@ -3755,6 +3764,20 @@ body.running .dag-node.status-success .nc::after {
   padding: 2px 5px;
   margin-left: -5px;
   margin-right: -5px;
+}
+
+/* A body that carries a verb rail bleeds by the RAIL, not by the well's
+ * own padding · so its first character lands on the same rail as the
+ * line above it whatever the rail costs. The condition MIRRORS the two
+ * rules that spend it: a prompt on a non-infer verb has no rail, and
+ * compensating for a cost it never paid moved its ink 3px the other
+ * way. A compensation must carry exactly the condition of the thing it
+ * compensates. */
+:is(.nc-mode-min, .nc:not([class*="nc-mode-"])) :is(
+  .dag-node.verb-infer .nc-body-prompt:not(.nc-body-live),
+  .dag-node.verb-exec .nc-body-cmd
+) {
+  margin-left: calc(-1 * var(--nk-rail-total));
   background: color-mix(in srgb, #000 14%, transparent);
   box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.18);
 }
@@ -3779,8 +3802,8 @@ body.running .dag-node.status-success .nc::after {
  * marks when the recorded output swaps in (data is not a quotation).
  * exec's terminal frame HOLDS by contrast: a place, not a speech-act. */
 .dag-node.verb-infer .nc-body-prompt:not(.nc-body-live) {
-  border-left: 2px solid color-mix(in srgb, var(--nk-verb-infer-canon) 30%, transparent);
-  padding-left: 6px;
+  border-left: var(--nk-rail-w) solid color-mix(in srgb, var(--nk-verb-infer-canon) 30%, transparent);
+  padding-left: var(--nk-rail-gap);
 }
 
 .nc-body-cmd {
@@ -3795,7 +3818,7 @@ body.running .dag-node.status-success .nc::after {
  * (`→ stdout` keeps talking in the same window): the swap only ADDS
  * .nc-body-live — the cmd kind class never leaves the element. */
 .dag-node.verb-exec .nc-body-cmd {
-  border-left: 2px solid color-mix(in srgb, var(--nk-verb-exec-canon) 30%, transparent);
+  border-left: var(--nk-rail-w) solid color-mix(in srgb, var(--nk-verb-exec-canon) 30%, transparent);
   background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
   font-family: var(--nk-mono);
   padding: 0 4px 0 6px;
