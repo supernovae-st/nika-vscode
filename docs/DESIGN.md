@@ -738,6 +738,17 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**Verify the artifact that REACHED users, not the number the registry
+shows (v40)** · after publishing, the published VSIX was downloaded and
+diffed against a local rebuild. Every shared file was byte-identical ·
+the registry got exactly what CI built. The one difference was a file
+the LOCAL package had and the published one did not:
+`.claude/scheduled_tasks.lock`, this machine's own agent state.
+`.vscodeignore` simply never mentioned those paths, so it reached no
+user only because CI has no such file. `scripts/package-hygiene.mjs`
+asserts the exclusion rules cover the classes of developer-local state,
+because the packager ships what IT sees, not what CI happens to have.
+
 **A developer machine cannot see a font it has (v39)** · the glyph lens
 ran clean locally and CI failed on the same commit: the run's stop
 square is a `■`, the sans does not carry it, and my own font stack

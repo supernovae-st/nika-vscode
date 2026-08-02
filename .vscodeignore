@@ -23,3 +23,12 @@ AGENTS.md
 docs/**
 icons/README.md
 .nika/**
+
+# Developer-local agent state · never a user's business (v40). Found by
+# diffing the PUBLISHED vsix against a local rebuild: every shared file
+# was byte-identical, and the one extra was .claude/scheduled_tasks.lock
+# from this machine's own tooling. It did not reach the registry because
+# CI has no such file — but nothing was stopping it.
+.claude/**
+.mcp.json
+*.code-workspace
