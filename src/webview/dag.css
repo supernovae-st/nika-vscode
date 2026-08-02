@@ -4552,11 +4552,27 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   transition: color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
+/* THE BINDING NAME SURVIVES (v29) · alias and producer both carried
+ * flex-shrink: 1, so an overflowing row shrank them IN PROPORTION TO
+ * THEIR OWN LENGTH: each got the same fraction of what it needed.
+ * Measured, `commits ← a-task-name-that-refuses-to-end` gave the alias
+ * 13px of the 47 it wanted and rendered « c… », while the producer kept
+ * 27 characters. That is backwards. The alias is the token you type
+ * (`${{ tasks.X.commits }}`); the producer is context you can also read
+ * off the wire on the canvas. So the producer yields FIRST — a heavy
+ * shrink weight says exactly that — and the alias is capped rather than
+ * starved, so a pathological alias cannot eat the whole row either. */
 .nc-io-alias {
   color: var(--nk-data);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* never shrinks · the cap is what bounds a pathological alias, not
+   * starvation (a shrink weight of 1 still took half a pixel, and half
+   * a pixel is the difference between « commits » and « commi… »). */
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 70%;
   transition: color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
@@ -4570,6 +4586,9 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* yields first · the weight IS the priority (v29) */
+  flex: 0 200 auto;
+  min-width: 3ch;
 }
 
 .nc-io-wire:hover,

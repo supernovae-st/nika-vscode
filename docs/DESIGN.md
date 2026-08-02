@@ -738,6 +738,41 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**The name the operator types never yields (v29)** · a binding alias and
+its producer shared a row, both with `flex-shrink: 1`, so an overflow
+shrank them IN PROPORTION TO THEIR OWN LENGTH and each got the same
+fraction of what it needed. Measured, `commits` took 13px of the 47 it
+wanted and rendered « c… » while the producer beside it kept 27
+characters. The alias is the token you write in
+`${{ tasks.X.commits }}`; the producer is context the canvas also draws
+as a wire. So the alias never shrinks and is bounded by a cap, the
+producer yields, and the row packs by MEASURE · whole or behind the
+`+N` door, the same law the policy chips already follow. A cap by COUNT
+is not a cap: two long wires still overflowed and mushed each other.
+
+**Truncation is allowed · silence is not (v29)** · a 74-character task
+id will never fit a 176px card and an ellipsis is the honest answer.
+What a name may not do is disappear: the full string stays one hover or
+one screen-reader stop away. The `truncated` lens measures every
+load-bearing identifier against its own font and reports only the ones
+with no way back.
+
+**One coordinate space, or every element lies (v29)** · the card lives
+in a zoomed `foreignObject`, so `getBoundingClientRect` returns screen
+pixels while `measureText` returns CSS pixels: my first truncation
+sweep reported EVERY element truncated by exactly 0.709, which was the
+zoom, not a defect. `offsetWidth / rect.width` gives the scale back
+whatever ancestor applies it. And `scrollWidth > clientWidth` is not a
+substitute · it reported « fits » on a box the screen showed
+ellipsised; the pixels settled it.
+
+**A script is not a defect · a symbol is (v29)** · the glyph lens fired
+on every Arabic letter in a task name. We ship two Latin faces and will
+never vendor a mark per script, so a fallback there is correct
+behaviour. What the lens holds is the SYMBOL vocabulary, the marks the
+house chose and must therefore own; letters, marks and digits of any
+script are the system's job.
+
 **Look for the second signal before inventing one (v28)** · high
 contrast strips colour, so a colour-only status channel dies there. The
 spec already knew: it projects one GEOMETRY per status into
