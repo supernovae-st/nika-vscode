@@ -5687,7 +5687,24 @@ class DagRenderer {
       const io = document.createElement('div');
       io.className = 'nc-io';
       const wires = node.bindingsIn ?? [];
-      for (const b of wires.slice(0, IO_MAX_WIRES)) {
+      // MEASURED packing, like the policy chips (W-D12). The cap used
+      // to be a COUNT — two wires, whatever their length — so two long
+      // ones overflowed and flex shrank BOTH into stumps: measured,
+      // `body ← x` got 5px for a 27px alias because the wire beside it
+      // was long. A wire is whole or it is behind the door.
+      const wireW = (b: { alias?: string; path: string; from: string }): number =>
+        measureMono(b.alias || b.path, 9) + measureMono(b.from, 9) + 19; // arrow 7 + gaps 8 + pad 4
+      const moreW = (n: number): number => measureMono(`+${n}`, 9) + 10;
+      let shown = Math.min(wires.length, IO_MAX_WIRES);
+      const fits = (n: number, withMore: boolean): boolean => {
+        let w = withMore ? 6 + moreW(wires.length - n) : 0;
+        for (let i = 0; i < n; i++) { w += wireW(wires[i]) + (i > 0 ? 6 : 0); }
+        return w <= CONTENT_W;
+      };
+      if (shown !== wires.length || !fits(shown, false)) {
+        while (shown > 1 && !fits(shown, true)) { shown--; }
+      }
+      for (const b of wires.slice(0, shown)) {
         const wire = document.createElement('button');
         wire.className = 'nc-io-wire';
         wire.title = `${b.alias || b.path} ← ${b.from}.${b.path} · click to focus the producer`;
@@ -5710,11 +5727,11 @@ class DagRenderer {
         });
         io.appendChild(wire);
       }
-      if (wires.length > IO_MAX_WIRES) {
+      if (wires.length > shown) {
         const more = document.createElement('span');
         more.className = 'nc-io-more';
-        more.textContent = `+${wires.length - IO_MAX_WIRES}`;
-        more.title = wires.slice(IO_MAX_WIRES)
+        more.textContent = `+${wires.length - shown}`;
+        more.title = wires.slice(shown)
           .map((b) => `${b.alias || b.path} ← ${b.from}.${b.path}`)
           .join('\n');
         io.appendChild(more);

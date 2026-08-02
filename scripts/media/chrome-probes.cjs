@@ -73,7 +73,7 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [], truncated: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -262,6 +262,54 @@ const PROBE = () => {
   out.contrast = uniq(out.contrast, 'sel'); out.spill = uniq(out.spill, 'sel');
   out.motion = uniq(out.motion, 'sel'); out.occluded = uniq(out.occluded, 'sel');
 
+  // ── TRUNCATED IDENTIFIERS ─────────────────────────────────────────────
+  // A name the operator TYPES must render whole. The binding alias is
+  // the token in `${{ tasks.X.commits }}`; a wave label, a chip fact and
+  // a legend word are read the same way. They shared a row with context
+  // that can be read elsewhere, and flex shrank both IN PROPORTION TO
+  // THEIR OWN LENGTH — so the short, load-bearing one died first:
+  // measured, `commits` got 13px of the 47 it needed and rendered « c… »
+  // while the producer beside it kept 27 characters.
+  //
+  // The measurement only works in ONE coordinate space: the card lives
+  // in a zoomed foreignObject, so getBoundingClientRect is screen px
+  // while measureText is CSS px, and every element reads truncated by
+  // exactly the zoom factor. offsetWidth/rect gives the scale back
+  // whatever ancestor applies it. `scrollWidth > clientWidth` is NOT a
+  // substitute: it reported « fits » on a box the screen showed
+  // ellipsised.
+  {
+    const cv = document.createElement('canvas');
+    const g2 = cv.getContext('2d');
+    const LOAD_BEARING = '.nc-io-alias, .pr-n, .legend-chip, .nc-pol, .nc-id';
+    for (const el of document.querySelectorAll(LOAD_BEARING)) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || el.offsetWidth === 0) { continue; }
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none') { continue; }
+      const text = (el.textContent || '').trim();
+      if (text === '') { continue; }
+      const zoom = r.width / el.offsetWidth;
+      const cssW = r.width / (zoom || 1);
+      g2.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const need = g2.measureText(text).width;
+      // Half a pixel is the difference between « commits » and « commi… ».
+      if (need <= cssW + 0.5) { continue; }
+      // A long name CAN truncate — a 74-character task id will never fit
+      // a 176px card and an ellipsis is the honest answer. What it may
+      // not do is truncate SILENTLY: the full string has to stay one
+      // hover (or one screen-reader stop) away.
+      const full = el.getAttribute('title') ?? el.closest('[title]')?.getAttribute('title')
+        ?? el.getAttribute('aria-label') ?? el.closest('[aria-label]')?.getAttribute('aria-label') ?? '';
+      if (full.includes(text)) { continue; }
+      out.truncated.push({
+        sel: sel(el), text: text.slice(0, 28),
+        has: +cssW.toFixed(1), needs: +need.toFixed(1),
+        recoverable: false,
+      });
+    }
+  }
+
   // ── CHROME COLLISION ──────────────────────────────────────────────────
   // Two chrome clusters may touch, never overlap. Every offset in the
   // corner stack is DERIVED from a neighbour's geometry, and for eleven
@@ -330,6 +378,12 @@ const PROBE = () => {
         const cp = ch.codePointAt(0);
         if (cp < 128 || /\s/.test(ch)) { continue; }
         if (covered(ch, cs.fontFamily)) { continue; }
+        // A SCRIPT no Latin face carries (Arabic · CJK · Devanagari) is
+        // a correct fallback, not a defect: we ship two Latin faces and
+        // will never vendor a mark per script. What this lens holds is
+        // the SYMBOL vocabulary — the marks the house chose and must
+        // therefore own. Letters and ideographs are the system's job.
+        if (/\p{L}|\p{M}|\p{N}/u.test(ch)) { continue; }
         const key = ch + '|' + cs.fontFamily;
         if (!hits.has(key)) {
           hits.set(key, { glyph: ch, cp: 'U+' + cp.toString(16).toUpperCase(),
@@ -420,7 +474,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide', 'truncated']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));
