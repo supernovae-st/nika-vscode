@@ -4,6 +4,18 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [Unreleased]
+
+### Nothing developer-local rides the VSIX (v40)
+
+The published 0.107.9 artifact was downloaded and diffed against a local
+rebuild: every shared file byte-identical, so the registry got exactly
+what CI built. The one difference was a file the LOCAL package had and
+the published one did not · `.claude/scheduled_tasks.lock`, a
+developer's own agent state. `.vscodeignore` never mentioned those
+paths, so it reached no user only because CI has no such file. Excluded
+now, and a `package-hygiene` gate asserts the rules cover the classes.
+
 ## [0.107.9] · 2026-08-02 · the measured arc · nine waves
 
 Nine waves of measurement over the canvas: the floating chrome became
