@@ -738,6 +738,14 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A fullwidth look-alike is a symbol wearing ASCII's face (v41)** · the
+welcome's « New workflow » led with U+FF0B, the FULLWIDTH plus. It
+reads as `+` in a source file and behaves like a CJK glyph: no Latin
+sans carries it, so it fell back per machine on the second button of
+the first screen. Six more sat in user-facing strings across the
+extension. The ASCII `+` is in every font on every surface; the
+button's mark comes from the house library like every other.
+
 **A colour pair travels together, or a theme splits it (v41)** · the
 welcome CTA read the host's button FOREGROUND while the background
 beside it came from our own `--nk-cta`. A theme that sets

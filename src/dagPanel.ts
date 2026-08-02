@@ -1276,7 +1276,7 @@ export class DagPanel implements vscode.Disposable {
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
         <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up"><span class="es-cap-ic">${HI.play}</span>Try the demo · offline, zero keys</button>
-        <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
+        <button id="es-new" class="es-button es-button-ghost"><span class="es-cap-ic">${HI.plus}</span>New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic">${OI['feature/examples']}</span>Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic">${OI['feature/replay']}</span>Replay a trace</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu"><span class="es-cap-ic">${HI.command}</span>All commands</button>

@@ -1695,7 +1695,7 @@ export function activate(context: ExtensionContext): void {
     // Narrate the edit (the feed tells the session's story).
     switch (request.kind) {
       case 'dag:addTask':
-        dagPanel.note('＋', `task added${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
+        dagPanel.note('+', `task added${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
         break;
       case 'dag:connect':
         dagPanel.note('⌥', `${request.to} now depends on ${request.from}`, request.to, 'st-note');
@@ -1710,7 +1710,7 @@ export function activate(context: ExtensionContext): void {
         dagPanel.note('❏', `task duplicated · ${request.taskId} → ${revealTask ?? '?'}`, revealTask, 'st-note');
         break;
       case 'dag:insertOnEdge':
-        dagPanel.note('＋', `${revealTask ?? '?'} spliced into ${request.from} → ${request.to}`, revealTask, 'st-note');
+        dagPanel.note('+', `${revealTask ?? '?'} spliced into ${request.from} → ${request.to}`, revealTask, 'st-note');
         break;
       case 'dag:editModel':
         // Δ = the what-changed family (glyphRegistry) — ⌁ stays the
@@ -1718,7 +1718,7 @@ export function activate(context: ExtensionContext): void {
         dagPanel.note('Δ', `model changed · ${request.taskId}`, request.taskId, 'st-note');
         break;
       case 'dag:omni':
-        dagPanel.note('＋', `task added from the bar${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
+        dagPanel.note('+', `task added from the bar${revealTask ? ` · ${revealTask}` : ''}`, revealTask, 'st-note');
         break;
     }
   };
@@ -3349,7 +3349,7 @@ export function activate(context: ExtensionContext): void {
       await window.showTextDocument(doc);
       // The taught moment — in the canvas feed when it is open (our
       // surface, never a toast): the scaffold's next moves, one line.
-      dagPanel.note('＋', 'workflow created — N adds a task · ▶ runs (mock, zero keys) · the commented break_me teaches failure', undefined, 'st-note');
+      dagPanel.note('+', 'workflow created — N adds a task · ▶ runs (mock, zero keys) · the commented break_me teaches failure', undefined, 'st-note');
     }),
   );
 

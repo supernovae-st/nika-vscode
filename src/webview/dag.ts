@@ -175,7 +175,7 @@ class VerbCmdk {
     this.input.focus();
   }
 
-  /** Open centered over the canvas (N · ＋ Task) — no cursor to anchor. */
+  /** Open centered over the canvas (N · + Task) — no cursor to anchor. */
   openCentered(onPick: (pick: PalettePick) => void): void {
     const rect = document.getElementById('dag-container')?.getBoundingClientRect();
     const W = 280, H = 400;
@@ -8225,7 +8225,7 @@ function buildExplainer(): void {
     ['ex-glyph-connect', '⌥ drag node → node', 'order on state · the YAML gets `after: { from: success }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
     ['ex-glyph-splice', '+ on a dashed wire', 'insert a task INTO the edge · pick a verb or a tool, the wire reroutes through it (control wires only; a binding is authored, never rerouted)'],
     ['ex-glyph-dup', '\u2318D duplicate', 'copy the focused task under the original · fresh id, inbound wiring kept'],
-    ['ex-glyph-add', '＋ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
+    ['ex-glyph-add', '+ Task · Delete · Enter', 'add a task after the focused one · Delete removes it (refused while referenced) · Enter opens its YAML'],
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here · the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
     ['ex-glyph-lineage', 'Lineage · follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades · Esc clears'],
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance · ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
