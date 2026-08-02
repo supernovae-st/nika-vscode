@@ -18,6 +18,22 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The card is read in the right order (v35)
+
+Its type ladder runs 12.5 / 10.5 / 10, and at that scale the second step
+says almost nothing · so the reading order lives in the ink. It was
+inverted: the name at 15.4 contrast, the mechanism at 5.2, and the
+truncated preview at 12.7. The least important row shouted more than
+twice as loud as the one that says what actually runs.
+
+Three declared ink steps now, in reading order, with headroom over the
+4.5 floor. A verb tint says WHAT a body is and the ladder says how loud:
+the exec and invoke bodies mixed toward full ink and climbed past the
+mechanism line, so they mix toward their ladder step instead.
+
+A `ladder` lens holds it, and knows to stand down under forced-colors
+where the system paints one ink on purpose.
+
 ### The card gets one content rail (v34)
 
 The min card's body is a well that bleeds past the content rail so its

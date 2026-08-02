@@ -129,6 +129,15 @@ body {
    * the two drifted: the well was calibrated for a 5px padding while
    * the rail spends 2 + 6, so the body's ink sat 3px right of the sub's
    * on every min card that carries a prompt or a command. */
+  /* THE CARD'S INK LADDER (v35) · the size ladder is nearly exhausted at
+   * these dimensions (12.5 / 10.5 / 10), so the HIERARCHY lives in the
+   * ink. Measured before: the name 15.4, the mechanism 5.2, and the
+   * truncated preview 12.7 — the least important row shouting more than
+   * twice as loud as the one that says what actually runs. Three steps,
+   * declared, in the order the card is read. */
+  --nk-card-ink-1: var(--nk-ink);                                       /* the name */
+  --nk-card-ink-2: color-mix(in srgb, var(--nk-ink) 84%, transparent);  /* the mechanism */
+  --nk-card-ink-3: color-mix(in srgb, var(--nk-ink) 66%, transparent);  /* the preview */
   --nk-rail-w: 2px;
   --nk-rail-gap: 6px;
   --nk-rail-total: calc(var(--nk-rail-w) + var(--nk-rail-gap));
@@ -3703,7 +3712,7 @@ body.running .dag-node.status-success .nc::after {
   gap: 10px;
   height: 15px;
   font-size: var(--nk-fs-sub);
-  color: var(--nk-ink-dim);
+  color: var(--nk-card-ink-2);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -3746,7 +3755,7 @@ body.running .dag-node.status-success .nc::after {
   margin-top: 4px;
   font-size: var(--nk-fs-body);
   line-height: 15px;
-  color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
+  color: var(--nk-card-ink-3);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -3806,8 +3815,13 @@ body.running .dag-node.status-success .nc::after {
   padding-left: var(--nk-rail-gap);
 }
 
+/* A verb tint says WHAT the body is; the ladder says how LOUD it is.
+ * Mixed toward full ink these two bodies climbed straight past the
+ * mechanism line above them — the ladder lens caught it on the very
+ * first clean run. They mix toward their ladder step instead, so a
+ * command still reads as exec's and still sits third. */
 .nc-body-cmd {
-  color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-ink));
+  color: color-mix(in srgb, var(--nk-verb-exec) 55%, var(--nk-card-ink-3));
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;
@@ -3826,7 +3840,7 @@ body.running .dag-node.status-success .nc::after {
 }
 
 .nc-body-args {
-  color: color-mix(in srgb, var(--nk-verb-invoke) 45%, var(--nk-ink));
+  color: color-mix(in srgb, var(--nk-verb-invoke) 45%, var(--nk-card-ink-3));
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;

@@ -738,6 +738,32 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**When the size ladder is exhausted, the ink IS the hierarchy (v35)** ·
+a card's type ladder runs 12.5 / 10.5 / 10 and the second step says
+almost nothing at that scale, so the reading order has to live
+somewhere else. It lived in the ink, INVERTED: the name at 15.4, the
+mechanism at 5.2, and the truncated preview at 12.7 · the least
+important row shouting more than twice as loud as the one that says
+what actually runs. Three declared steps now, in reading order, with
+headroom over the 4.5 floor. And a verb tint says WHAT a body is while
+the ladder says how LOUD: mixed toward full ink, the exec and invoke
+bodies climbed straight past the mechanism line, so they mix toward
+their ladder step instead.
+
+**A law has to know where it stops (v35)** · the ladder lens fired on
+every card under forced-colors, where all three rows measure the same
+21 because the system paints one ink · which is precisely what that
+mode exists to do. The lens read the user's own setting as a defect.
+Same shape as the glyph lens learning that a script it will never own
+is not a defect: scope the law, or it accuses the thing it should
+protect.
+
+**One implementation of « how bright is this » (v35)** · the ladder lens
+first rebuilt the contrast composite by hand and stayed green through a
+mutation that made the preview shout as loud as the name. It uses the
+same primitives as the contrast lens now. A second implementation of a
+measurement is a second chance to be wrong.
+
 **A compensation carries the condition of what it compensates (v34)** ·
 the min card's body is a WELL that bleeds past the content rail so its
 own padding puts the ink back on it. That bleed has to equal whatever
