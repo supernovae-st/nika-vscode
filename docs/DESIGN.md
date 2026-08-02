@@ -738,6 +738,21 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A gate that reports nothing may be broken, not clean (v42)** ·
+extracting one shared « how bright is this » out of the contrast and
+ladder lenses left a dangling reference in the contrast lens's REPORTING
+branch. Every sweep after the refactor came back clean · because
+nothing was ever reported, not because the lens worked. It only
+surfaced when a mutation LANDED and the lens crashed instead of
+speaking. A refactor of an instrument has to be proven by making it
+fire, never by watching it stay quiet.
+
+**An accessibility floor is a minimum, not a target (v42)** · the
+welcome's submit was raised to the WCAG 24x24 minimum and then sat 3px
+shorter than the 27px field it submits, which reads as a loose part. It
+stretches to the field now, so it follows whatever the field becomes
+instead of copying a number that will drift.
+
 **A fullwidth look-alike is a symbol wearing ASCII's face (v41)** · the
 welcome's « New workflow » led with U+FF0B, the FULLWIDTH plus. It
 reads as `+` in a source file and behaves like a CJK glyph: no Latin
