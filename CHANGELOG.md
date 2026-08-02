@@ -4,7 +4,13 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased]
+## [0.107.9] · 2026-08-02 · the measured arc · nine waves
+
+Nine waves of measurement over the canvas: the floating chrome became
+one family, the minimap became a map, the cards learned their reading
+order, and the failure path stopped saying the opposite of what
+happened. Six new gates hold each of those laws, every one proven by
+mutation.
 
 ### The name the operator types survives, in any script (v29)
 
