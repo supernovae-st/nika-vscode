@@ -26,6 +26,7 @@ const PICK = {
   // the run cluster
   play: 'sound-music/play',
   stop: 'sound-music/stop',
+  pause: 'sound-music/pause',
   // the lens deck (one mark per lens · the key stays printed)
   lensWaves: 'layout/layers-three',
   lensTimeline: 'filter-settings/filter-timeline',

@@ -1660,7 +1660,7 @@ function stopCardAudio(): void {
   cardAudio?.pause();
   cardAudio = null;
   if (cardAudioBtn) {
-    cardAudioBtn.textContent = '▶';
+    cardAudioBtn.innerHTML = HOUSE_ICON.play;
     cardAudioBtn.classList.remove('playing');
     cardAudioBtn = null;
   }
@@ -1672,7 +1672,7 @@ function toggleCardAudio(taskId: string, src: string, btn: HTMLButtonElement): v
   const audio = new Audio(src);
   cardAudio = audio;
   cardAudioBtn = btn;
-  btn.textContent = '⏸';
+  btn.innerHTML = HOUSE_ICON.pause;
   btn.classList.add('playing');
   audio.addEventListener('ended', () => { if (cardAudio === audio) { stopCardAudio(); } });
   audio.play().catch(() => { if (cardAudio === audio) { stopCardAudio(); } });
@@ -5344,7 +5344,7 @@ class DagRenderer {
     row.title = 'this task synthesizes speech · the recorded audio lands here';
     const play = document.createElement('span');
     play.className = 'nc-audio-play nc-play-ghost';
-    play.textContent = '▶';
+    play.innerHTML = HOUSE_ICON.play;
     const ns = 'http://www.w3.org/2000/svg';
     const strip = document.createElementNS(ns, 'svg');
     strip.setAttribute('class', 'nc-audio-strip');
@@ -5393,7 +5393,7 @@ class DagRenderer {
     row.title = 'compose statically checks the drafted workflow (never runs it) · the verdict lands here';
     const glyph = document.createElement('span');
     glyph.className = 'nc-check-glyph';
-    glyph.textContent = '⎙';
+    glyph.innerHTML = HOUSE_ICON.eye;   // static read, never a run
     const flow = document.createElement('span');
     flow.className = 'nc-check-flow';
     flow.textContent = node.status === 'success' ? 'draft → check → verdict' : 'draft → check';
@@ -5584,7 +5584,7 @@ class DagRenderer {
         row.className = 'nc-preview-audio';
         const play = document.createElement('button');
         play.className = 'nc-audio-play';
-        play.textContent = '▶';
+        play.innerHTML = HOUSE_ICON.play;
         // ICON-ONLY · « ▶ » is a triangle to a reader. The name says what
         // activating it does, and to what.
         play.setAttribute('aria-label', `Play ${a.name}`);
@@ -8218,7 +8218,7 @@ class Replayer {
     this.el?.removeAttribute('hidden');
     document.body.classList.add('replaying');
     const title = document.getElementById('dag-title');
-    if (title) { title.textContent = `⟲ ${label}`; }
+    if (title) { title.textContent = `replay · ${label}`; }
     // Land on the FINAL state (the outcome), ready to scrub back or replay.
     this.setPos(1);
   }
@@ -8265,7 +8265,7 @@ class Replayer {
     // Restart from the top when parked at the end.
     if (this.pos >= 1) { this.setPos(0); }
     this.playing = true;
-    if (this.playBtn) { this.playBtn.textContent = '⏸'; }
+    if (this.playBtn) { this.playBtn.innerHTML = HOUSE_ICON.pause; }
     // Whole run in a watchable window (compressed by replay.speed-ish;
     // clamp so a long run stays ≤ ~8s and a short one isn't a blink).
     const budgetMs = Math.min(Math.max(this.spanMs / this.speed, 2500), 8000);
@@ -8286,7 +8286,7 @@ class Replayer {
   private pause(): void {
     this.playing = false;
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
-    if (this.playBtn) { this.playBtn.textContent = '▶'; }
+    if (this.playBtn) { this.playBtn.innerHTML = HOUSE_ICON.play; }
   }
 }
 
@@ -9681,7 +9681,7 @@ if (!vscode.getState()?.seenBreatheHint) {
       }
       const hint = document.createElement('button');
       hint.id = 'breathe-hint';
-      hint.textContent = '◫ this canvas breathes wider · tap to maximize the group';
+      hint.textContent = 'this canvas breathes wider · tap to maximize the group';
       hint.addEventListener('click', () => {
         vscode.postMessage({ kind: 'dag:maximize' });
         hint.remove();
