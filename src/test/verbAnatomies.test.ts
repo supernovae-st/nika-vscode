@@ -134,12 +134,17 @@ describe('the for_each source row · io grammar, both consumers', () => {
 
 describe('the four voices · CSS (dag.css)', () => {
   it('infer wears the quote-rail — canon hue at 30%, gone when the output swaps in', () => {
-    const rule = css.slice(
-      css.indexOf('.dag-node.verb-infer .nc-body-prompt:not(.nc-body-live)'),
-    );
-    expect(rule.slice(0, 300)).toContain(
-      'border-left: 2px solid color-mix(in srgb, var(--nk-verb-infer-canon) 30%, transparent);',
-    );
+    // Anchored on the RULE, not the first mention of the selector: the
+    // min well's bleed compensation names the same selector inside an
+    // :is(), and a plain indexOf found that instead.
+    const at = css.indexOf('.dag-node.verb-infer .nc-body-prompt:not(.nc-body-live) {');
+    expect(at).toBeGreaterThan(-1);
+    const rule = css.slice(at, css.indexOf('}', at));
+    // What this pins is the RAIL and its hue, not the literal width: the
+    // width is a token so the min well can compensate for exactly what
+    // the rail spends (they drifted 3px apart when it was two copies).
+    expect(rule).toContain('border-left: var(--nk-rail-w) solid');
+    expect(rule).toContain('color-mix(in srgb, var(--nk-verb-infer-canon) 30%, transparent)');
   });
 
   it('exec wears the terminal frame — rail + ink wash + strict mono, NOT gated on live', () => {

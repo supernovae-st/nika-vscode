@@ -738,6 +738,24 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A compensation carries the condition of what it compensates (v34)** ·
+the min card's body is a WELL that bleeds past the content rail so its
+own padding puts the ink back on it. That bleed has to equal whatever
+the body costs on its left, and it was written as a hand-copied 5px
+while the verb rail spends 2 + 6 · so on every min card carrying a
+prompt or a command the body's first character sat 3px right of the
+line above it. The bleed derives from the rail now (`--nk-rail-w` +
+`--nk-rail-gap`), and the compensation is scoped to EXACTLY the two
+selectors that spend it: applied to every prompt, it moved a
+railless one 3px the other way. Measured across four body kinds and
+seven cards: one rail.
+
+**Hanging punctuation is not raggedness** · the quote mark sits in the
+well's bleed, left of the text, which is what a typographer does. The
+title sits after its tile mark for the same reason a list row does. A
+rail check has to know the difference between an alignment and a
+deliberate exception.
+
 **A recipe repeated N times is N chances to diverge (v33)** · the
 floating family was normalised surface by surface, so eleven blocks
 each carried the same four declarations · which is exactly how it had
