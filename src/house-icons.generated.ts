@@ -3,7 +3,6 @@
 // library (24 grid · stroke 2 · round caps · currentColor). The chrome
 // picks only — domain marks live in icons.generated.ts (the site
 // ontology). Do not edit by hand; rerun the script.
-/* eslint-disable */
 export const HOUSE_ICON = {
   plus: '<svg aria-hidden="true" fill="none" viewBox="4.5 4.5 15 15"><path d="M12 5.5V12M12 12V18.5M12 12H5.5M12 12H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   minus: '<svg aria-hidden="true" fill="none" viewBox="4.5 11 15 2"><path d="M5.5 12H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',

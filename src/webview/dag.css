@@ -119,6 +119,10 @@ body {
    * omnibar was 11 where its own geometry asked for 15. Derived here
    * once, so a padding change carries the radius with it. */
   /* the control height every floating bar seats its buttons on */
+  /* Contractual, not consumed here: the tokens-parity roster pins it,
+   * and it is read by the frame ladder in TS. An unread declaration is
+   * not automatically dead. */
+  --nk-frame-interval: var(--nk-dur-fast);
   --nk-ctl-h: 30px;
   /* TWO control tiers, stated · the primary bar seats a taller control
    * than the quiet chrome, and that difference is hierarchy. Three was
@@ -154,7 +158,6 @@ body {
     color-mix(in srgb, #000 22%, var(--nk-float-fill))
   );
   --nk-float-glass: var(--nk-glass-raised);
-  --nk-float-border: 1px solid var(--nk-border);
   /* TWO depths, not six recipes · the tier sits at shadow-1, and the
    * PRIMARY bar sits one step higher because it is the primary bar.
    * Measured before: specular+1+bevel · shadow-1 alone · card-shadow+
@@ -189,11 +192,6 @@ body {
    * the bottom. Token-derived (--nk-ink), every skin re-voices it. */
   /* THE DIAGONAL GROUND (BGDarkSmooth · QRcodeAI): a panel is never
    * flat — the surface falls 145deg from lit to deep. Token-derived. */
-  --nk-surface-grad: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--nk-ink) 6%, var(--nk-surface)),
-    color-mix(in srgb, #000 22%, var(--nk-surface))
-  );
   --nk-menu-grad: linear-gradient(
     145deg,
     color-mix(in srgb, var(--nk-ink) 8%, var(--nk-menu)),
@@ -227,8 +225,6 @@ body {
   --nk-dur-base: 160ms;
   --nk-dur-slow: 240ms;
   --nk-dur-deliberate: 400ms;
-  --nk-dur: var(--nk-dur-base);
-  --nk-frame-interval: var(--nk-dur-fast);
   /* The SPRING — a gentle ~4% overshoot for arrivals (entrances · pops ·
    * the settle). A canonical linear() spring curve (Open Props family);
    * browsers without linear() fall back to --nk-ease via @supports. */
@@ -368,11 +364,36 @@ body[data-nk-theme] {
   }
 }
 
-#dag-mark {
-  box-shadow: var(--nk-float-shadow);
+/* ─── THE FLOATING FAMILY ─────────────────────────────────────────────
+ * Eleven surfaces, ONE material, declared once. Each used to carry its
+ * own copy of these four lines, which is how the family drifted into
+ * four grounds and three glass recipes in the first place: a recipe
+ * repeated eleven times is eleven chances to diverge. A skin retunes
+ * --nk-float-fill; it never re-declares a surface. Depth has exactly
+ * two steps, and the primary bar takes the upper one below. */
+#dag-mark,
+#dag-title,
+#dag-status,
+#omnibar,
+#zoom-dock,
+#minimap,
+#plan-rail,
+#activity,
+#scrubber,
+#transport,
+#first-hint {
   background-color: transparent;
   background-image: var(--nk-grain), var(--nk-float-bg);
   backdrop-filter: var(--nk-float-glass);
+  box-shadow: var(--nk-float-shadow);
+}
+
+/* The primary bar sits one step higher · that difference is hierarchy. */
+#omnibar {
+  box-shadow: var(--nk-float-shadow-lift);
+}
+
+#dag-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -384,10 +405,6 @@ body[data-nk-theme] {
 }
 
 #dag-title {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   display: inline-block;
   height: 34px;
   line-height: 32px;
@@ -807,10 +824,6 @@ body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 }
 
 #dag-status {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   margin-left: auto;
   display: inline-block;
   height: 34px;
@@ -1618,10 +1631,6 @@ body.running #progress-fill::after {
    touches layout). */
 
 #transport {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   border-radius: var(--nk-dock-r);
   position: fixed;
   left: 12px;
@@ -1782,10 +1791,6 @@ body.vscode-light .logo-dark { display: none; }
  * overlap at 620px wide, the width half a split editor gives you).
  * The derivation is now a calc, so a floor change cascades. */
 #zoom-dock {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   right: 12px;
   bottom: calc(var(--nk-corner-floor) + var(--nk-minimap-h) + var(--nk-corner-gap));
@@ -1841,10 +1846,6 @@ body.welcome #zoom-dock,
 body.dag-loading #zoom-dock { display: none; }
 
 #minimap {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   right: 12px;
   bottom: var(--nk-corner-floor);
@@ -2033,10 +2034,6 @@ body.dag-loading #zoom-dock { display: none; }
 /* ─── First-contact hint · one line, once ever ──────────────────────────── */
 
 #first-hint {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   border-radius: var(--nk-dock-r);
   position: fixed;
   bottom: 96px; /* one floor above the omnibar — never over the cards' dock */
@@ -2380,10 +2377,6 @@ body.dag-loading #zoom-dock { display: none; }
 /* ─── Activity feed · the run, narrated ─────────────────────────────────── */
 
 #activity {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   border-radius: var(--nk-r-pop);
   position: fixed;
   left: 12px;
@@ -5110,10 +5103,6 @@ body.lod-far .edge-hit { pointer-events: none; }
 /* ─── Omnibar + verb palette · the Flows bottom bar ─────────────────────── */
 
 #omnibar {
-  box-shadow: var(--nk-float-shadow-lift);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   left: 50%;
   bottom: var(--nk-omnibar-floor);
@@ -5437,16 +5426,23 @@ body.running #run-controls .rc-more:disabled { opacity: 1; }
 
 /* The MAKE cluster (+ · the four verbs) sits as one segment: the two
  * speeds of the same gesture, side by side — the run cluster follows,
- * then the line. One job, one place. */
-#omnibar > #btn-add-task { margin-right: 2px; }
+ * then the line. One job, one place.
+ *
+ * The 2px nudge that used to live here is gone: it aligned the + to a
+ * verb rhythm of 2, and when that rhythm became a token at 4 the nudge
+ * stayed and made this ONE gap 6 where every other in the bar is 4. A
+ * hand-tuned offset against a value that later became derived is the
+ * same class of bug as a copied position — it is right until the thing
+ * it was tuned against moves. */
+/* The make cluster's right edge · identical to the run cluster's, which
+ * it was not: it carried a stray 8px margin ON TOP of the shared
+ * padding, so the break after the verbs measured 12px and the one after
+ * the run cluster 4px. It also set padding-right and border-right to 0
+ * and then re-set them two lines down, which is two dead declarations
+ * reading as intent. The base rule already says all of this. */
 #omnibar #verb-palette {
-  padding-right: 0;
   padding-left: 0;
-  border-right: 0;
   border-left: 0;
-  margin-right: 8px;
-  padding-right: 8px;
-  border-right: 1px solid var(--nk-border);
 }
 
 #run-controls button {
@@ -5655,10 +5651,6 @@ body.lod-far .nc-stale {
 /* ─── Replay scrubber · time-travel over a recorded run ─────────────────── */
 
 #scrubber {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   border-radius: var(--nk-dock-r);
   position: fixed;
   left: 12px;
@@ -6954,10 +6946,6 @@ body[data-nk-theme='editor'].vscode-dark {
 /* ─── The plan rail · the left column IS the execution plan (§3) ────────── */
 
 #plan-rail {
-  box-shadow: var(--nk-float-shadow);
-  background-color: transparent;
-  background-image: var(--nk-grain), var(--nk-float-bg);
-  backdrop-filter: var(--nk-float-glass);
   position: fixed;
   left: 12px;
   top: 50%;
