@@ -360,23 +360,47 @@ sense; `$(...)` codicons are VS Code's own vocabulary, a separate
 register. Color emoji never enter the mono registry (law 1's floor ·
 the belt bans the ranges).
 
-### 2b-bis · The two icon layers (chrome SVG · prose glyph)
+### 2b-bis · The THREE icon layers (v14 · the master set landed)
 
-The registry above governs SENSE MARKS IN TEXT (menus · legend · feed ·
-badges · titles) · those stay unicode, one glyph one sense. The CHROME
-FACES (toolbar buttons · welcome capability grid · action ghosts) ride
-the **vendored SuperNovae icon ontology** instead: the site's
-`design/icons.yaml` library baked at `public/brand/icons/` and synced
-into `src/icons.generated.ts` by `scripts/sync-icons.mjs` (grid 24 ·
-stroke 2 · round caps · currentColor · SSOT.md Lane B row). The
-correlation with nika.sh is the same bytes, never a resemblance.
+1. **CHROME marks** · the docks, the lens deck, the run cluster, the
+   menu rows: the SuperNovae **master library** (the studio identity
+   pole's ~2000 marks · 24 grid · stroke 2 · round caps ·
+   currentColor), vendored by `scripts/sync-house-icons.mjs` into
+   `src/house-icons.generated.ts` (SSOT Lane B). **Nothing is authored
+   by hand** · if a chrome verb has no mark, pick one from the library
+   or argue a new library entry upstream.
+2. **DOMAIN marks** · the four verbs, the builtins, the feature doors
+   (welcome capability grid): the site's icon **ontology**
+   (`nika.sh design/icons.yaml` → `public/brand/icons/`), vendored by
+   `scripts/sync-icons.mjs` into `src/icons.generated.ts`. Same bytes
+   the site's rooms render · the correlation is identity, not
+   resemblance.
+3. **PROSE marks** · unicode, and only inside TEXT: the glyph registry
+   (§2b) governs these (status verdicts in the feed, policy chips,
+   legend keys, the `[ 01 ]` wave notation). One glyph, one sense.
 
-Chrome verbs the domain set does not carry (plus · fit · layout-grid)
-are authored in the same hand inside `dagPanel.TB_IC`. The LENS DECK is
-the deliberate exception to both layers: keyboard-first lenses wear
-their KEY as the face (a real keycap · W T P D B H G L) · the letter is
-the identity, and the unicode lens marks (≋ ▧ ▦ ⇉ ∿ ▥ ⌖ ≣) keep
-speaking in the lens-door TITLES and the ? keymap where they are prose.
+The line between 1 and 3: **if it sits on a button, it is a mark from
+layer 1 or 2**; if it sits in a sentence, it is layer 3. A 11px
+unicode blob on a button reads as noise at every zoom · the six-persona
+gauntlet called the old lens deck « eight unlabeled mystery letters ».
+
+### 2b-ter · Every icon-only chrome button STATES ITS INTENT (v15-v18)
+
+An icon alone is a riddle. Every icon-only button in the chrome
+carries a `.tb-name` span that **unfurls on hover or focus** · a width
+morph on `--nk-ease-spatial`, the mark and the key never move, the
+label earns its pixels only while you are asking:
+
+```
+rest      [ <mark> P ]
+hover     [ <mark> Audit P ]
+```
+
+Consumers: the lens deck (`W T P D B H G L`), the camera dock (Fit ·
+Layout · zoom In/Out), the ⋯ door, Help, the make key (`+ Task`) and
+the four verb tiles (`◇ infer`). The KEY beside a mark is a **hint,
+not a button**: flat, at the mark's own optical size, never a boxed
+cap that out-shouts the icon it follows.
 
 ## 2c · The connected grammar · every flow construct has its surface
 
@@ -698,6 +722,94 @@ affordance. Never an invented rollup: each file's manifest is ITS
 engine projection.
 
 ## 7 · Rules that keep it SOTA
+
+**The Martian diet (v17)** · `--nk-mono` is the DATA voice: filenames,
+costs, durations, counts, wave notation, keycaps, every card internal
+(code is code). Chrome · menus, buttons, section labels, prose, the
+run verdict, empty states · speaks `--nk-ui-font`. A census that finds
+mono on a sentence has found a defect.
+
+**The paint-only law (v8-v12)** · the card's boxes are TS-measured
+(`nodeHeightOf` · `syncFrameHeights`). CSS may only PAINT there:
+`::before`/`::after` layers, backgrounds, shadows, opacity. A rule
+that changes a card's box moves layout the renderer already committed
+· the head band clipped every body the first time it was a real box.
+The same law explains why a transform on a foreignObject's container
+is forbidden: it forces a compositing layer and frames arrive with the
+wires painted and the cards missing.
+
+**A derived position computes; it never copies (v26)** · the zoom dock
+carried `bottom: 140px` under the comment « minimap 96 + its 34 + 10
+breathing » · the arithmetic was right the day it was written · and a lie
+the day the minimap stepped up a floor. Same disease in the legend,
+lifted to 60px to clear an omnibar that occupies 34 to 82. Both were
+invisible until something else moved. The corner geometry is tokens
+now (`--nk-corner-floor` · `--nk-corner-gap` · `--nk-minimap-h/w` ·
+`--nk-omnibar-floor/h`) and every tenant derives from them with
+`calc()`, so a floor moves in one place and the stack follows.
+
+**One width is not a proof (v26)** · every probe and every screenshot in
+this arc was rendered at 1440x900, and a VS Code webview almost never
+gets that: it lives in an editor group, half a split, a column beside a
+terminal. The ladder is `1440x900,860x720,620x820` now, and the first
+sweep at real widths found two chrome clusters painting over each other
+at 620 · a `collide` lens holds the line (chrome may touch, never
+overlap; containment excluded).
+
+**An instrument reports the world you set, or it reports nothing (v26)**
+· three measurements agreed with each other because all three had
+silently fallen back to the default viewport: `newPage({ viewportSize })`
+is not an option Playwright reads. The probe now asserts
+`innerWidth x innerHeight` against what it asked for and throws
+otherwise. Agreement between instruments is not evidence when they
+share a fault.
+
+**The house does not animate what it does not own (v24)** · a character
+absent from the shipped face renders in whatever the OS supplies:
+foreign metrics, foreign weight, different on every machine. Measured
+exactly (paint the glyph in the element's family, then in a family that
+cannot exist; identical pixels mean the fallback drew both), the house
+carried a braille spinner in NEITHER shipped face for eleven waves, and
+a running card's head read as two stray carets. The law that came out
+of it: the sans carries letters, the mono carries the symbol
+vocabulary, and what the mono lacks becomes an SVG mark from the master
+library. The `glyph` lens in `scripts/media/chrome-probes.cjs` holds
+the line.
+
+**The judge may not drift from what it judges (v24)** ·
+`scripts/media/harness.html` drives the real bundle and proves every
+visual claim, which holds only while its chrome IS the panel's chrome.
+It drifted silently: four verb tiles kept text glyphs long after
+`dagPanel.ts` moved them to SVG, so every probe and every screenshot
+judged a bottom bar no user has ever seen. `scripts/harness-parity.mjs`
+(in `npm test`) resolves the panel's icon holes and diffs both files
+button by button, keyed by class AND occurrence, because three buttons
+in the door share one class.
+
+**The fourth skin is a skin (v21)** · `editor` on a LIGHT VS Code theme
+is a fourth register, not a variant · the same tokens land on a white
+ground and every dark-tuned ink inverts its meaning there. It was
+unrenderable in the harness and therefore unprobed for eleven waves.
+It is now a scene (`?light`) and a probe skin, and the sweep found the
+truth: the `--nk-verb-*-text` ramp is calibrated APCA ≥Lc60 on a DARK
+card and measured 1.81-2.08:1 on white. The light twin darkens the
+full-chroma hue instead of lifting it · same identity, the other
+direction.
+
+**A veil is ink too (v21)** · the contrast probe read `color` and its
+alpha but never the element's `opacity`, so every ink dimmed by a veil
+(0.45 the filename suffix · 0.62 the keycaps · 0.7 the labels)
+measured at full strength and could never fail. The probe now folds the
+cumulative opacity of the whole ancestor chain into the foreground
+alpha. That single repair turned a green gate into eleven real
+violations · a gate that cannot see a veil is not a gate.
+
+**Measure, then judge (v10-v16)** · a compositional claim is settled by
+`getBoundingClientRect`, not by eye: the omnibar sat at 44px while
+looking right, a 13-unit label lift resolved nothing because the
+zoom-compensated font makes the box elastic, and a morph that looked
+broken was a base rule LOWER in the file winning on order. Shoot the
+surface, measure the box, then decide.
 
 1. Tokens or nothing · a rule reading a raw color is a bug.
 2. One DOM, two skins. A skin is a CSS scope, never a TS branch.

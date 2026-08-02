@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import { ONTOLOGY_ICON } from './icons.generated';
+import { HOUSE_ICON } from './house-icons.generated';
 import * as crypto from 'crypto';
 
 // ─── Typed Message Protocol ──────────────────────────────────────────────────
@@ -24,7 +25,7 @@ export type { DagEdge, DagGraph, DagNode, TaskStatus } from './core/cliContract'
 
 // Extension -> Webview
 export type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, ToolMeta> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, ToolMeta>; models?: Array<{ ref: string; desc: string }> }
   // Recorded media artifacts landing ON the cards (run close · replay) —
   // `src` is webview-safe, `path` host-absolute for the open jump.
   | { kind: 'dag:artifacts'; artifacts: CardArtifact[] }
@@ -105,7 +106,7 @@ export type WebviewToExtMessage =
   | { kind: 'transport:tick'; running: string[] }
   | { kind: 'dag:openPreflight' }
   // Graph editing (the n8n loop) — every edit lands in the YAML source.
-  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string; tool?: string }
+  | { kind: 'dag:addTask'; afterTaskId: string | null; workflowUri?: string; verb?: string; tool?: string; model?: string }
   | { kind: 'dag:connect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:disconnect'; from: string; to: string; workflowUri?: string }
   | { kind: 'dag:deleteTask'; taskId: string; workflowUri?: string }
@@ -492,7 +493,7 @@ export class DagPanel implements vscode.Disposable {
         // open replay) alive while backgrounded — re-sending dag:load
         // would close the replay and blank to the stale seed graph.
         if (hasBeenHidden && this.currentGraph && !this.replayActive) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         }
       }),
     );
@@ -568,9 +569,16 @@ export class DagPanel implements vscode.Disposable {
   /** BARE builtin → category from `nika tools --json` — rides every
    *  dag:load so the canvas glyphs speak the binary's vocabulary. */
   private toolCats: Record<string, ToolMeta> | undefined;
+  /** The palette's model shortlist (the Krea gesture · built by the
+   *  extension from the catalog + the presentation order). */
+  private models: Array<{ ref: string; desc: string }> | undefined;
 
   public setToolCats(cats: Record<string, ToolMeta> | undefined): void {
     this.toolCats = cats;
+  }
+
+  public setPaletteModels(rows: Array<{ ref: string; desc: string }> | undefined): void {
+    this.models = rows;
   }
 
   /** Everything the webview may read: our bundles + the workspace (the
@@ -644,7 +652,7 @@ export class DagPanel implements vscode.Disposable {
     // closes the Replayer); keep the extension-side guard in step.
     this.replayActive = false;
     if (this.panel?.visible) {
-      this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(graph), toolCats: this.toolCats });
+      this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(graph), toolCats: this.toolCats, models: this.models });
     }
   }
 
@@ -831,7 +839,7 @@ export class DagPanel implements vscode.Disposable {
         }
         // Webview has initialized — send the graph if we have one
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         } else {
           // Empty canvas → the welcome wants its resume list.
           this.onWelcomeReady?.();
@@ -914,7 +922,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:requestRefresh':
         // Extension can re-parse workflow and send updated graph
         if (this.currentGraph) {
-          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats });
+          this.postMessage({ kind: 'dag:load', graph: this.mapArtifacts(this.currentGraph), toolCats: this.toolCats, models: this.models });
         }
         break;
 
@@ -1055,17 +1063,22 @@ export class DagPanel implements vscode.Disposable {
    *  authored in the same hand where the domain set has no chrome verb.
    *  The unicode SENSE marks stay canonical in menus/legend/feed — the
    *  toolbar face stops pretending text glyphs are icons. */
+  /** Chrome icons — the SuperNovae MASTER set (house-icons.generated
+   *  · 24 grid · stroke 2 · round caps · currentColor · rendered
+   *  16px). page-add rides the site ontology. Nothing is authored
+   *  here anymore: the library speaks for the chrome. */
   private static readonly TB_IC = {
-    plus: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    plus: HOUSE_ICON.plus,
     pageAdd: '<svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    fit: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    layout: '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>',
+    fit: HOUSE_ICON.fit,
+    layout: HOUSE_ICON.layout,
   } as const;
 
   private getHtml(webview: vscode.Webview): string {
     const nonce = getNonce();
     const SPARKLE_SVG = DagPanel.SPARKLE_SVG;
     const IC = DagPanel.TB_IC;
+    const HI = HOUSE_ICON;
     const OI = ONTOLOGY_ICON;
 
     // Resolve webview-safe URIs for our bundled assets
@@ -1174,18 +1187,18 @@ export class DagPanel implements vscode.Disposable {
       <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
-      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><kbd>G</kbd></button>
-      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><kbd>L</kbd></button>
-      <button id="btn-help" title="What am I looking at?">?</button>
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic">${HI.lensWaves}</span><span class="tb-name">Waves</span><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (recorded clocks · retries · cost) (T)"><span class="tb-ic">${HI.lensTimeline}</span><span class="tb-name">Timeline</span><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (permits hulls · egress · cost ceiling) (P)"><span class="tb-ic">${HI.lensAudit}</span><span class="tb-name">Audit</span><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (bindings only; control scaffolding sleeps) (D)"><span class="tb-ic">${HI.lensDataflow}</span><span class="tb-name">Dataflow</span><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><span class="tb-ic">${HI.lensCurve}</span><span class="tb-name">Curves</span><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (or static cost before a run) (H)"><span class="tb-ic">${HI.lensHeat}</span><span class="tb-name">Heatmap</span><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (your pan pauses it) (G)"><span class="tb-ic">${HI.lensFollow}</span><span class="tb-name">Follow</span><kbd>G</kbd></button>
+      <button id="btn-feed" aria-pressed="false" title="Activity feed · every status transition, live (L)"><span class="tb-ic">${HI.lensFeed}</span><span class="tb-name">Feed</span><kbd>L</kbd></button>
+      <button id="btn-help" title="What am I looking at? (?)"><span class="tb-ic">${HI.help}</span><span class="tb-name">Help</span></button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
-      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false"><span class="tb-ic">${HI.more}</span><span class="tb-name">More</span></button>
     </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG (styles embedded)">⤓ svg</button>
@@ -1195,12 +1208,12 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="zoom-dock" role="toolbar" aria-label="Camera">
-    <button id="btn-zoom-out" title="Zoom out (−)">−</button>
+    <button id="btn-zoom-out" title="Zoom out (−)"><span class="tb-ic">${HI.minus}</span><span class="tb-name">Out</span></button>
     <button id="zoom-pct" title="Zoom · click for 100%">100%</button>
-    <button id="btn-zoom-in" title="Zoom in (+)">＋</button>
+    <button id="btn-zoom-in" title="Zoom in (+)"><span class="tb-ic">${HI.plus}</span><span class="tb-name">In</span></button>
     <span class="zd-sep"></span>
-    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span></button>
-    <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span></button>
+    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic">${IC.fit}</span><span class="tb-name">Fit</span></button>
+    <button id="btn-relayout" title="Auto-layout · drop the dragged card positions (A)"><span class="tb-ic">${IC.layout}</span><span class="tb-name">Layout</span></button>
   </div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
@@ -1262,11 +1275,11 @@ export class DagPanel implements vscode.Disposable {
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
-        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up">▶ Try the demo · offline, zero keys</button>
+        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up"><span class="es-cap-ic">${HI.play}</span>Try the demo · offline, zero keys</button>
         <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic">${OI['feature/examples']}</span>Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic">${OI['feature/replay']}</span>Replay a trace</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu"><span class="es-cap-ic">${HI.command}</span>All commands</button>
       </div>
       <div id="es-recent" hidden>
         <div class="es-sec">Recent in this workspace</div>
@@ -1290,7 +1303,7 @@ export class DagPanel implements vscode.Disposable {
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden>
-    <input id="cmdk-input" type="text" placeholder="add a task · verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <input id="cmdk-input" type="text" placeholder="add a task · verb · tool · model…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
   <div id="connect-cmdk" hidden>
@@ -1301,22 +1314,22 @@ export class DagPanel implements vscode.Disposable {
   <div id="a11y-alert" role="alert"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
-    <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired"><span class="tb-ic">${IC.plus}</span></button>
+    <button id="btn-add-task" title="Add a task · the palette (N): a verb, or a builtin tool pre-wired"><span class="tb-ic">${IC.plus}</span><span class="tb-name">Task</span></button>
+    <div id="verb-palette" role="toolbar" aria-label="Add a task">
+      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="vp-name">infer</span></button>
+      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M7.5 8L9.25 9.75L7.5 11.5M12 11.5H14M7 20H17C18.6569 20 20 18.6569 20 17V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V17C4 18.6569 5.34315 20 7 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">exec</span></button>
+      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">invoke</span></button>
+      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">agent</span></button>
+    </div>
     <div id="run-controls" role="toolbar" aria-label="Run controls">
-      <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live">▶ Run</button>
-      <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu">⌄</button>
+      <button id="btn-run" class="rc-run" title="Run this workflow · the DAG lights live"><span class="rc-ic">${HI.play}</span>Run</button>
+      <button id="btn-run-more" aria-expanded="false" class="rc-run rc-more" title="Run variants · mock · what-if · fork (chords printed in the menu)" aria-haspopup="menu"><span class="rc-ic rc-caret">${HI.chevronDown}</span></button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
       <button id="btn-run-resume" class="rc-resume" title="Re-run what changed · unchanged tasks cache-hit their recorded output (engine --resume)" hidden>Δ changed</button>
-      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo · deterministic · zero keys · zero network">▶ mock</button>
-      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden>■ Stop</button>
-    </div>
-    <div id="verb-palette" role="toolbar" aria-label="Add a task">
-      <button class="vp-btn vp-infer" data-verb="infer" title="Add an infer task (LLM call)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
-      <button class="vp-btn vp-exec" data-verb="exec" title="Add an exec task (subprocess)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M7.5 8L9.25 9.75L7.5 11.5M12 11.5H14M7 20H17C18.6569 20 20 18.6569 20 17V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V17C4 18.6569 5.34315 20 7 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button class="vp-btn vp-invoke" data-verb="invoke" title="Add an invoke task (builtin / MCP tool)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <button class="vp-btn vp-agent" data-verb="agent" title="Add an agent task (agent loop)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button id="btn-run-mock" class="rc-mock" title="Preview run with mock/echo · deterministic · zero keys · zero network"><span class="rc-ic">${HI.play}</span>mock</button>
+      <button id="btn-stop" class="rc-stop" title="Stop the live run" hidden><span class="rc-ic rc-stop-sq">${HI.stop}</span>Stop</button>
     </div>
     <input id="omni-input" type="text"
            placeholder="+ task · / filter · describe… · ↵ everything"

@@ -39,8 +39,17 @@
 const path = require('path');
 const { chromium } = require(process.env.NIKA_PLAYWRIGHT || 'playwright');
 
-const SKINS = (process.env.SKINS || 'nika,editor,phosphor').split(',');
-const SIZES = (process.env.SIZES || '1440x900').split(',').map((s) => {
+// `light` = the editor skin on a LIGHT host (the harness stamps VS
+// Code Light+'s own --vscode-* · before v21 no light pixel was ever
+// probed: the harness had no theme vars and « editor » fell back dark).
+const SKINS = (process.env.SKINS || 'nika,editor,phosphor,light').split(',');
+// A VS Code webview rarely gets the whole window. It lives in an editor
+// group: half a split, a third beside a terminal, a narrow tall pane.
+// The ladder judges the three registers that actually ship — full, a
+// 50/50 split, and a narrow column. For eleven waves this read
+// 1440x900 alone, so every proof in this arc was rendered at the one
+// width users least often have.
+const SIZES = (process.env.SIZES || '1440x900,860x720,620x820').split(',').map((s) => {
   const [w, h] = s.split('x').map(Number); return { width: w, height: h };
 });
 // SCENE joins the harness query (empty · media · celebrate · n=300); FORCED
@@ -64,7 +73,7 @@ const SHAPE_NAMES = [
 ];
 
 const PROBE = () => {
-  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [] };
+  const out = { clip: [], target: [], contrast: [], spill: [], motion: [], occluded: [], glyph: [], collide: [] };
   const vw = innerWidth, vh = innerHeight;
 
   const sel = (el) => {
@@ -185,9 +194,18 @@ const PROBE = () => {
       out.target.push({ sel: sel(el), w: +r.width.toFixed(1), h: +r.height.toFixed(1), text: (el.textContent || '').trim().slice(0, 30) });
     }
 
-    // 3 · CONTRAST — own-text elements only
+    // 3 · CONTRAST — own-text elements only.
+    // The ink is the color TIMES the cumulative opacity: an element
+    // dimmed with `opacity:` used to measure at full strength and
+    // could never fail (the flat keycap sat at 3.08:1 and this lens
+    // said green · v21). Ancestors count — opacity multiplies down.
     if (hasOwnText) {
-      const fg = parse(cs.color), bg = bgOf(el);
+      const fg0 = parse(cs.color), bg = bgOf(el);
+      let op = 1;
+      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+        op *= Number(getComputedStyle(n).opacity || 1);
+      }
+      const fg = fg0 ? { ...fg0, a: fg0.a * op } : null;
       if (fg && bg && fg.a >= 0.05) {
         const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
         const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
@@ -198,6 +216,7 @@ const PROBE = () => {
           out.contrast.push({
             sel: sel(el), text: (el.textContent || '').trim().slice(0, 40),
             ratio: +ratio.toFixed(2), floor, px: +px.toFixed(1), color: cs.color,
+            ...(op < 0.999 ? { opacity: +op.toFixed(2) } : {}),
           });
         }
       }
@@ -242,6 +261,85 @@ const PROBE = () => {
   out.clip = uniq(out.clip, 'sel'); out.target = uniq(out.target, 'sel');
   out.contrast = uniq(out.contrast, 'sel'); out.spill = uniq(out.spill, 'sel');
   out.motion = uniq(out.motion, 'sel'); out.occluded = uniq(out.occluded, 'sel');
+
+  // ── CHROME COLLISION ──────────────────────────────────────────────────
+  // Two chrome clusters may touch, never overlap. Every offset in the
+  // corner stack is DERIVED from a neighbour's geometry, and for eleven
+  // waves two of those derivations were hand-copied literals that
+  // outlived the geometry they came from: the zoom dock painted 148x34
+  // straight across the minimap, and the legend was buried 596x19 under
+  // the omnibar. Neither showed at 1440 wide, which is the only width
+  // anything was ever probed at.
+  {
+    const IDS = ['dag-toolbar', 'omnibar', 'zoom-dock', 'minimap', 'activity',
+      'dag-legend', 'plan-rail', 'dag-status', 'transport', 'scrubber', 'nk-display'];
+    const live = [];
+    for (const id of IDS) {
+      const e = document.getElementById(id);
+      if (!e) { continue; }
+      const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) { continue; }
+      const r = e.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) { continue; }
+      live.push({ id, e, r });
+    }
+    for (let i = 0; i < live.length; i++) {
+      for (let j = i + 1; j < live.length; j++) {
+        const A = live[i], B = live[j];
+        if (A.e.contains(B.e) || B.e.contains(A.e)) { continue; }
+        const ox = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left);
+        const oy = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+        if (ox > 1 && oy > 1) {
+          out.collide.push({ a: A.id, b: B.id, overlap: `${Math.round(ox)}x${Math.round(oy)}` });
+        }
+      }
+    }
+  }
+
+  // ── GLYPH COVERAGE ────────────────────────────────────────────────────
+  // A character the house font does not carry renders in whatever the OS
+  // supplies: foreign metrics, foreign weight, different per machine. The
+  // house shipped a braille spinner in neither face for eleven waves and
+  // every gate stayed green, because no gate ever asked the font.
+  // Exact test: paint the glyph in the element's own family, then in a
+  // family that cannot exist. Identical pixels means the fallback drew
+  // both, so the house never supplied it.
+  {
+    const cv = document.createElement('canvas'); cv.width = 72; cv.height = 72;
+    const g2 = cv.getContext('2d', { willReadFrequently: true });
+    const paint = (ch, fam) => {
+      g2.clearRect(0, 0, 72, 72); g2.fillStyle = '#000';
+      g2.font = '44px ' + fam; g2.fillText(ch, 5, 54);
+      return g2.getImageData(0, 0, 72, 72).data.join(',');
+    };
+    const cache = new Map();
+    const covered = (ch, fam) => {
+      const k = ch + '|' + fam;
+      if (!cache.has(k)) { cache.set(k, paint(ch, fam) !== paint(ch, '"__nk_no_font__"')); }
+      return cache.get(k);
+    };
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const hits = new Map();
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const el = n.parentElement; if (!el) { continue; }
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) { continue; }
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none') { continue; }
+      for (const ch of new Set(n.nodeValue)) {
+        const cp = ch.codePointAt(0);
+        if (cp < 128 || /\s/.test(ch)) { continue; }
+        if (covered(ch, cs.fontFamily)) { continue; }
+        const key = ch + '|' + cs.fontFamily;
+        if (!hits.has(key)) {
+          hits.set(key, { glyph: ch, cp: 'U+' + cp.toString(16).toUpperCase(),
+            font: cs.fontFamily.split(',')[0].replace(/"/g, ''),
+            sel: sel(el) });
+        }
+      }
+    }
+    out.glyph = [...hits.values()];
+  }
   return out;
 };
 
@@ -253,10 +351,17 @@ const PROBE = () => {
       forcedColors: FORCED ? 'active' : 'none',
       reducedMotion: MOTION,
     });
-    let qs = '?still' + (skin === 'nika' ? '' : `&skin=${skin}`);
+    let qs = '?still' + (skin === 'nika' ? '' : skin === 'light' ? '&light' : `&skin=${skin}`);
     if (SCENE) { qs += '&' + SCENE; }
     await p.goto('file://' + path.join(process.cwd(), 'scripts/media/harness.html' + qs));
     await p.waitForTimeout(2400);
+    // An instrument that silently renders another width is worse than no
+    // instrument: three of this wave's measurements agreed with each
+    // other because all three had quietly fallen back to one viewport.
+    const seen = await p.evaluate(() => `${innerWidth}x${innerHeight}`);
+    if (seen !== `${vp.width}x${vp.height}`) {
+      throw new Error(`viewport not applied · asked ${vp.width}x${vp.height} · page reports ${seen}`);
+    }
     if (SHAPE) {
       const html = require('fs').readFileSync(
         path.join(process.cwd(), 'scripts/media/harness.html'), 'utf8');
@@ -315,7 +420,7 @@ const PROBE = () => {
     const tag = [SCENE, RUN, SHAPE ? 'shape' : '', FORCED ? 'forced-colors' : '', MOTION === 'reduce' ? 'reduced-motion' : '']
       .filter(Boolean).join(' · ');
     console.log(`\n===== ${skin.toUpperCase()} @ ${vp.width}x${vp.height}${tag ? ' · ' + tag : ''} =====`);
-    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded']) {
+    for (const lens of ['clip', 'target', 'contrast', 'spill', 'motion', 'occluded', 'glyph', 'collide']) {
       const rows = r[lens];
       console.log(`-- ${lens} (${rows.length})`);
       rows.slice(0, 14).forEach((x) => console.log('   ', JSON.stringify(x)));

@@ -32,6 +32,7 @@ import { simulateFailure } from '../core/admissionSim';
 import { DEFAULT_PREDICATE, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import { frameAt, timelineBounds, type FrameEntry } from '../core/replayFrame';
 import { runPlanSummary } from '../core/runPlan';
+import { HOUSE_ICON } from '../house-icons.generated';
 import { NO_MATCH_HINT, connectTargets, nextFocus, nudgedPosition, searchCountLabel, type NavDir, type NudgeDir } from '../core/canvasNav';
 import { CANVAS_KEYMAP } from '../core/canvasKeymap';
 import { kRowMatches, orderKRows } from '../core/kPanel';
@@ -117,11 +118,14 @@ async function inlineFontDataUri(): Promise<string | null> {
 // a tool posts an `invoke` task pinned to that tool.
 
 /** What the palette hands back: a verb, optionally with a pinned tool. */
-interface PalettePick { verb: string; tool?: string }
+interface PalettePick { verb: string; tool?: string; model?: string }
 
 type PaletteEntry =
   | { kind: 'verb'; verb: string; glyph: string; blurb: string }
-  | { kind: 'tool'; tool: string; bare: string; cat: string };
+  | { kind: 'tool'; tool: string; bare: string; cat: string }
+  /** A brain, picked straight (the Krea gesture): the infer task lands
+   *  with this model already wired. */
+  | { kind: 'model'; ref: string; desc: string };
 
 class VerbCmdk {
   private readonly el = document.getElementById('verb-cmdk');
@@ -200,6 +204,7 @@ class VerbCmdk {
     const cb = this.onPick;
     this.close();
     if (entry.kind === 'verb') { cb?.({ verb: entry.verb }); }
+    else if (entry.kind === 'model') { cb?.({ verb: 'infer', model: entry.ref }); }
     else { cb?.({ verb: 'invoke', tool: entry.tool }); }
   }
 
@@ -217,9 +222,12 @@ class VerbCmdk {
     const q = this.input?.value ?? '';
     const verbs = filterVerbs(q);
     const tools = filterTools(q, paletteTools());
+    const ql = q.trim().toLowerCase();
+    const models = paletteModelRows.filter((m) => ql === '' || m.ref.toLowerCase().includes(ql));
     this.items = [
       ...verbs.map((v): PaletteEntry => ({ kind: 'verb', verb: v.verb, glyph: v.glyph, blurb: v.blurb })),
       ...tools.map((t): PaletteEntry => ({ kind: 'tool', ...t })),
+      ...models.map((m): PaletteEntry => ({ kind: 'model', ref: m.ref, desc: m.desc })),
     ];
     this.active = Math.min(this.active, Math.max(this.items.length - 1, 0));
     this.list.replaceChildren();
@@ -227,7 +235,7 @@ class VerbCmdk {
     // Group headers ride the flow: `verbs`, then each tool category.
     let lastHeader = '';
     this.items.forEach((entry, i) => {
-      const wanted = entry.kind === 'verb' ? 'verbs' : entry.cat;
+      const wanted = entry.kind === 'verb' ? 'verbs' : entry.kind === 'model' ? 'models' : entry.cat;
       if (wanted !== lastHeader) {
         this.list!.appendChild(this.header(wanted));
         lastHeader = wanted;
@@ -249,6 +257,15 @@ class VerbCmdk {
         else { glyph.textContent = entry.glyph; }
         name.textContent = entry.verb;
         blurb.textContent = entry.blurb;
+      } else if (entry.kind === 'model') {
+        // A BRAIN, picked straight (the Krea gesture): the infer task
+        // lands with this model already wired · the facts ride the tail.
+        row.className = 'cmdk-row cmdk-model verb-infer';
+        const rowSvg = makeVerbGlyph('infer', 13);
+        if (rowSvg) { glyph.appendChild(rowSvg); }
+        name.textContent = entry.ref;
+        blurb.textContent = entry.desc;
+        row.title = `infer · ${entry.ref}${entry.desc ? ` · ${entry.desc}` : ''}`;
       } else {
         row.className = 'cmdk-row cmdk-tool verb-invoke';
         // The category's house icon — the binary's description as the
@@ -699,7 +716,7 @@ interface DagGraph {
 }
 
 type ExtToWebviewMessage =
-  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }> }
+  | { kind: 'dag:load'; graph: DagGraph; toolCats?: Record<string, { cat: string; desc?: string }>; models?: Array<{ ref: string; desc: string }> }
   | { kind: 'dag:artifacts'; artifacts: CardArtifactMsg[] }
   | { kind: 'dag:updateStatus'; taskId: string; status: TaskStatus; durationMs?: number; usd?: number; cached?: boolean; recoveredFrom?: string; outputPreview?: string }
   | { kind: 'dag:timeline'; data: TimelineData }
@@ -975,6 +992,12 @@ const TOP_INSET = 54;
 // full-bleed / 30 audio·check row (+6 gap) · sub 15 · body 15/line
 // (+4 gap) · io 15 (+5 gap) · params 24 (+6 gap) · policy 20 (+6 gap)).
 const CARD_PAD_Y = 10;
+// The card is box-sizing: border-box with a 1px hairline top and bottom,
+// so the height we hand the frame is a BORDER box while every term below
+// measures the padding box. Without this the last row loses 2px to
+// overflow: hidden — measured 88 asked, 86 offered, and the essence
+// line's descenders paid for it on every card that carries one.
+const CARD_BORDER_Y = 2;
 const HEAD_H = 22;
 const DIVIDER_H = 12;
 const SUB_H = 15;
@@ -1385,7 +1408,7 @@ function chipRowsOf(label: string, ids: string[]): number {
 
 /** Card height from content — the layout must know the TRUE box. */
 function nodeHeightOf(node: DagNode, mode: CardMode = cardModeOf(node.id)): number {
-  let h = CARD_PAD_Y * 2 + SUB_H;
+  let h = CARD_PAD_Y * 2 + CARD_BORDER_Y + SUB_H;
   if (mode === 'min') {
     // min = head · verdict · one essence line. Nothing else — the head
     // and its divider stay IN the frame (the dense line, unchanged).
@@ -1508,10 +1531,20 @@ function nodeClassOf(node: DagNode): string {
 // MOTION, never sense glyphs (the annexe G registry law is untouched).
 // Each family is a vertical filmstrip (one frame per line) that dag.css
 // windows to a single line and advances with steps() — sketch A.
+// COVERAGE LAW (v24): every frame below is a character Martian Mono
+// actually carries. The braille filmstrips these replaced were in no
+// house face — each frame fell back to whatever the OS supplied, with
+// foreign metrics and weight, which is why a running card's head read
+// as two stray carets. A glyph the house does not own is not ours to
+// animate.
 const SPIN_STRIPS = {
-  dots: '⣾\n⣽\n⣻\n⢿\n⡿\n⣟\n⣯\n⣷',
-  think: '⢎ \n⠎⠁\n⠊⠑\n⠈⠱\n ⡱\n⢀⡰\n⢄⡠\n⢆⡀',
-  stream: '∙∙∙\n●∙∙\n∙●∙\n∙∙●\n∙∙∙',
+  // 8 frames on the 80ms quantum — a continuous rotation.
+  dots: '|\n/\n-\n\\\n|\n/\n-\n\\',
+  // 8 frames — a scan out and back, with a rest at each end: the shape
+  // of deliberation, not of travel.
+  think: '•··\n·•·\n··•\n···\n··•\n·•·\n•··\n···',
+  // 5 frames at 125ms — a token walking the stream (shape unchanged).
+  stream: '···\n•··\n·•·\n··•\n···',
 } as const;
 type SpinFamily = keyof typeof SPIN_STRIPS;
 
@@ -1552,6 +1585,9 @@ const BUILTIN_GLYPH: Record<string, string> = {
 
 /** BARE name → category, pushed by the extension (undefined pre-E1). */
 let toolCatsMap: Record<string, { cat: string; desc?: string }> | undefined;
+/** The palette's model shortlist (extension-built · presentation order
+ *  · only what this machine can actually run). */
+let paletteModelRows: Array<{ ref: string; desc: string }> = [];
 
 /** Category of a bare builtin — binary vocabulary first, fallback map. */
 function toolCatOf(bare: string): string | undefined {
@@ -1598,7 +1634,9 @@ function toolWithGlyph(tool: string): string {
   // full prefixed path (« invoke · ⎘ sub.nika.yaml »).
   if (tool.startsWith('workflow:')) {
     const base = tool.slice('workflow:'.length).split('/').pop() || tool;
-    return `⎘ ${base}`;
+    // The composition ref uses an arrow the house owns: ⎘ is in neither
+    // shipped face and fell back per machine.
+    return `→ ${base}`;
   }
   const bare = tool.replace(/^nika:/, '');
   const cat = toolCatOf(bare);
@@ -1622,7 +1660,7 @@ function stopCardAudio(): void {
   cardAudio?.pause();
   cardAudio = null;
   if (cardAudioBtn) {
-    cardAudioBtn.textContent = '▶';
+    cardAudioBtn.innerHTML = HOUSE_ICON.play;
     cardAudioBtn.classList.remove('playing');
     cardAudioBtn = null;
   }
@@ -1634,7 +1672,7 @@ function toggleCardAudio(taskId: string, src: string, btn: HTMLButtonElement): v
   const audio = new Audio(src);
   cardAudio = audio;
   cardAudioBtn = btn;
-  btn.textContent = '⏸';
+  btn.innerHTML = HOUSE_ICON.pause;
   btn.classList.add('playing');
   audio.addEventListener('ended', () => { if (cardAudio === audio) { stopCardAudio(); } });
   audio.play().catch(() => { if (cardAudio === audio) { stopCardAudio(); } });
@@ -2771,9 +2809,11 @@ class DagRenderer {
       if (m) { child.x = m.x; child.y = m.y; }
     }
 
-    // Update toolbar
+    // Update toolbar — the title IS a filename: the stem carries the
+    // weight, the .nika.yaml suffix recedes (the file it opens, named
+    // the way the disk names it).
     const titleEl = document.getElementById('dag-title');
-    if (titleEl) titleEl.textContent = graph.workflowName;
+    if (titleEl) { paintTitleAsFilename(titleEl, graph.workflowName, graph.workflowUri); }
     // The graph's accessible name — what a reader hears on landing.
     const taskCount = graph.nodes.length;
     const graphName = `${graph.workflowName || 'workflow'} · ${taskCount} task${taskCount === 1 ? '' : 's'}`;
@@ -4063,9 +4103,10 @@ class DagRenderer {
     this.applyLod(this.currentZoom);
   }
 
-  /** Semantic zoom (DESIGN.md §6c). Thresholds sit BELOW the typical
-   *  fit zoom (~0.42) — the first paint shows the FULL card; far is a
-   *  deliberate zoom-out to the map read. Each boundary is a hysteresis
+  /** Semantic zoom (DESIGN.md §6c · v8). MID catches the typical fit
+   *  zoom — the first paint shows head + mechanism CLEAN (the gauntlet
+   *  judged full text at fit « anti-aliased mush »); the full card is
+   *  one lean-in away; far is the deliberate map read. Each boundary is a hysteresis
    *  BAND (enter low · leave high) so a pinch resting on a threshold
    *  never flaps the whole canvas. */
   private applyLod(k: number): void {
@@ -4073,7 +4114,7 @@ class DagRenderer {
     const state = cls.contains('lod-far') ? 'far' : cls.contains('lod-mid') ? 'mid' : 'near';
     let next: 'far' | 'mid' | 'near';
     if (k < (state === 'far' ? 0.34 : 0.3)) { next = 'far'; }
-    else if (k < (state === 'mid' ? 0.46 : 0.42)) { next = 'mid'; }
+    else if (k < (state === 'mid' ? 0.68 : 0.62)) { next = 'mid'; }
     else { next = 'near'; }
     if (next !== state) {
       cls.remove('lod-far', 'lod-mid', 'lod-near');
@@ -5303,7 +5344,7 @@ class DagRenderer {
     row.title = 'this task synthesizes speech · the recorded audio lands here';
     const play = document.createElement('span');
     play.className = 'nc-audio-play nc-play-ghost';
-    play.textContent = '▶';
+    play.innerHTML = HOUSE_ICON.play;
     const ns = 'http://www.w3.org/2000/svg';
     const strip = document.createElementNS(ns, 'svg');
     strip.setAttribute('class', 'nc-audio-strip');
@@ -5352,7 +5393,7 @@ class DagRenderer {
     row.title = 'compose statically checks the drafted workflow (never runs it) · the verdict lands here';
     const glyph = document.createElement('span');
     glyph.className = 'nc-check-glyph';
-    glyph.textContent = '⎙';
+    glyph.innerHTML = HOUSE_ICON.eye;   // static read, never a run
     const flow = document.createElement('span');
     flow.className = 'nc-check-flow';
     flow.textContent = node.status === 'success' ? 'draft → check → verdict' : 'draft → check';
@@ -5543,7 +5584,7 @@ class DagRenderer {
         row.className = 'nc-preview-audio';
         const play = document.createElement('button');
         play.className = 'nc-audio-play';
-        play.textContent = '▶';
+        play.innerHTML = HOUSE_ICON.play;
         // ICON-ONLY · « ▶ » is a triangle to a reader. The name says what
         // activating it does, and to what.
         play.setAttribute('aria-label', `Play ${a.name}`);
@@ -5921,7 +5962,7 @@ class DagRenderer {
     queryLine.hidden = true;
     panel.appendChild(queryLine);
     interface Act {
-      id: string; label: string; kbd?: string;
+      id: string; label: string; kbd?: string; icon?: string;
       /** The row's ⌘⏎ variant — declared only where one HONESTLY exists. */
       alt?: { hint: string; run: () => void };
       run: () => void;
@@ -5936,17 +5977,17 @@ class DagRenderer {
     // so those rows carry none.
     const runActs: Act[] = [
       {
-        id: 'run-from-here', label: '▶ Run from here',
+        id: 'run-from-here', label: 'Run from here', icon: HOUSE_ICON.play,
         alt: { hint: '⌘⏎ run all', run: () => { this.onRunAll?.(); } },
         run: () => vscode.postMessage({ kind: 'dag:runTask', taskId: node.id, workflowUri: uri }),
       },
-      { id: 'what-if', label: '⚡ What if it fails', kbd: 'X', run: () => this.toggleSimulate(node.id) },
+      { id: 'what-if', label: 'What if it fails', icon: HOUSE_ICON.bolt, kbd: 'X', run: () => this.toggleSimulate(node.id) },
     ];
     if (node.status === 'failed') {
-      runActs.push({ id: 'fork-failure', label: '⑂ Fork from this failure', run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
+      runActs.push({ id: 'fork-failure', label: 'Fork from this failure', icon: HOUSE_ICON.fork, run: () => vscode.postMessage({ kind: 'dag:forkFromTask', taskId: node.id, workflowUri: uri }) });
     }
     const storyActs: Act[] = [
-      { id: 'peek', label: '◉ Peek the run story', kbd: 'Space', run: () => { this.togglePeek(); } },
+      { id: 'peek', label: 'Peek the run story', icon: HOUSE_ICON.eye, kbd: 'Space', run: () => { this.togglePeek(); } },
       // The stranded card buttons (a11y wave): the chip work was mouse-
       // only — K reaches them now. Rows exist only where the fact does.
       ...(node.model !== undefined ? [{
@@ -5957,9 +5998,9 @@ class DagRenderer {
         id: 'audit-report', label: `⚠ Pre-flight report · ${node.auditCount} finding${node.auditCount === 1 ? '' : 's'}`, kbd: 'P',
         run: () => vscode.postMessage({ kind: 'dag:openReport' }),
       }] : []),
-      { id: 'card-mode', label: 'Expand / fold the card', kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
-      { id: 'open-yaml', label: '✎ Open in the YAML', kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
-      { id: 'duplicate', label: '❏ Duplicate', kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
+      { id: 'card-mode', label: 'Expand / fold the card', icon: HOUSE_ICON.expandCard, kbd: 'E', run: () => { this.toggleCardMode(node.id); } },
+      { id: 'open-yaml', label: 'Open in the YAML', icon: HOUSE_ICON.pencil, kbd: '⏎', run: () => vscode.postMessage({ kind: 'dag:nodeClicked', taskId: node.id, workflowUri: uri }) },
+      { id: 'duplicate', label: 'Duplicate', icon: HOUSE_ICON.duplicate, kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.tool?.startsWith('workflow:') === true) {
       storyActs.push({ id: 'open-sub', label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
@@ -5995,6 +6036,12 @@ class DagRenderer {
       row.className = `nk-act-row${i === 0 ? ' active' : ''}`;
       row.id = `nk-act-row-${i}`;
       row.setAttribute('role', 'menuitem');
+      if (a.icon !== undefined) {
+        const mark = document.createElement('span');
+        mark.className = 'nk-act-ic';
+        mark.innerHTML = a.icon;
+        row.appendChild(mark);
+      }
       const label = document.createElement('span');
       label.textContent = a.label;
       row.appendChild(label);
@@ -6327,7 +6374,19 @@ class DagRenderer {
     const host = g.select<HTMLElement>('.nc').node();
     if (!host) { return; }
     const mode = this.renderModeOf(taskId);
+    // The chip flip (QRcodeAI): the tile flips Y only when the card's
+    // IDENTITY line changed (verb · model) — never on a status repaint.
+    const prevSub = host.querySelector('.nc-sub')?.textContent ?? '';
     this.buildCardHtml(host, node, mode);
+    const nextSub = host.querySelector('.nc-sub')?.textContent ?? '';
+    if (prevSub !== '' && nextSub !== prevSub) {
+      const tile = host.querySelector('.nc-tile');
+      if (tile) {
+        tile.classList.remove('nk-tile-flip');
+        void (tile as HTMLElement).offsetWidth; // restart the one-shot
+        tile.classList.add('nk-tile-flip');
+      }
+    }
     const h = nodeHeightOf(node, mode);
     this.syncFrameHeights(taskId, h);
     // Growing past the laid-out box (peek · a mid-run promote): paint
@@ -6517,6 +6576,8 @@ class DagRenderer {
         const meta = dagEdgeMap.get(d.id);
         return meta?.kind === 'control' ? meta.predicate ?? '' : meta?.label ?? '';
       });
+
+    this.destackEdgeLabels();
 
     // The WAIST is where an edge says its KIND — end arrowheads drown
     // under the target cards (the n8n 1.70 read), so the glyph rides
@@ -6844,6 +6905,38 @@ class DagRenderer {
   }
 
   /** Label anchor — port midpoint for pinned edges, ELK midpoint else. */
+  /** No wire loses its name (the gauntlet: « commits »+« success »
+   *  overprinted as one word after a card grew). Labels sitting at the
+   *  same height on neighbouring wires get a vertical stagger — the
+   *  wire is vertical there, so each label stays ON its own wire and
+   *  every binding name survives (hiding one would lose information).
+   *  Graph-space boxes, so pan and zoom never re-trigger it. */
+  private destackEdgeLabels(): void {
+    const nodes = [...this.edgeGroup.selectAll<SVGTextElement, ElkExtendedEdge>('text.edge-label').nodes()];
+    if (nodes.length < 2) { return; }
+    const boxes = nodes.map((n) => {
+      const b = n.getBBox();
+      return { n, x: b.x, y: b.y, w: b.width, h: b.height, base: Number(n.getAttribute('y') ?? 0) };
+    }).sort((a, b) => a.x - b.x);
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) {
+        const a = boxes[i];
+        const c = boxes[j];
+        if (c.x > a.x + a.w) { break; } // sorted by x: no later box can hit
+        const overlapsY = a.y < c.y + c.h && c.y < a.y + a.h;
+        if (!overlapsY) { continue; }
+        // The lift is the label's OWN measured height (graph units,
+        // which the zoom-compensated font makes elastic) plus a hair —
+        // a fixed constant was smaller than the box at fit zoom and
+        // resolved nothing (measured).
+        const lift = c.h + 3;
+        c.n.setAttribute('y', String(c.base - lift));
+        c.y -= lift;
+        c.base -= lift;
+      }
+    }
+  }
+
   private edgeLabelPoint(edge: ElkExtendedEdge): [number, number] {
     // ELK placed this label as a layout participant — its coords are
     // the collision-free truth (top-left; center it · mermaid consume
@@ -7306,8 +7399,9 @@ class DagRenderer {
   /** Right half — the LIVE verdict (Well's value column · DESIGN.md §1). */
   private subValue(node: DagNode): string {
     // A LIVE task counts its OBSERVED elapsed (our clock from the start
-    // event — real wall time; the ⋯ marks it live, the engine's measured
-    // duration replaces it at settle). No start observed → no number.
+    // event — real wall time; the ticking number IS the live signal, and
+    // the engine's measured duration replaces it at settle). No start
+    // observed → no number.
     if (node.status === 'running' || node.status === 'retrying') {
       // A parked question outranks the clock: the run is WAITING on a
       // human, not spending time — the card says so until the answer.
@@ -7330,7 +7424,12 @@ class DagRenderer {
         // The ~$ curve while it moves (contract §3.3) — approx-marked:
         // ~$ is in-flight, plain $ stays the recorded verdict.
         const spend = node.liveUsd !== undefined ? ` · ~${usd(node.liveUsd)}` : '';
-        return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)} ⋯${spend}`;
+        // No live marker after the clock. The ⋯ that used to sit here
+        // read as a broken dash at 10px mono, said what three louder
+        // signals already say (the ticking number, the head spinner,
+        // the running hue), and collided with the ⋯ door — the same
+        // glyph meaning "a menu lives here" everywhere else.
+        return `${prefix}${this.agentPulse(node)}${this.elapsedText(started)}${spend}`;
       }
       return node.status === 'running' ? 'running\u2026' : 'retry\u2026';
     }
@@ -7730,8 +7829,9 @@ class DagRenderer {
         const dot = document.createElement('span');
         dot.className = 'legend-dot';
         const label = document.createElement('span');
-        // One word per state everywhere: the pill already says « done ».
-        label.textContent = `${counts[st]} ${st === 'success' ? 'done' : st}`;
+        // A legend keys COLORS — the status pill owns the numbers
+        // (two chrome surfaces narrated the same counts · Rams).
+        label.textContent = st === 'success' ? 'done' : st;
         chip.append(dot, label);
         chips.appendChild(chip);
       }
@@ -7889,8 +7989,27 @@ function buildExplainer(): void {
 
   const title = document.createElement('div');
   title.className = 'ex-title';
-  title.textContent = 'Reading this graph';
+  title.textContent = 'The keys';
   card.appendChild(title);
+
+  // CHORDS FIRST (the power-user gauntlet: « I pressed ? expecting a
+  // keymap and got a lecture ») — the table a lost hand needs opens
+  // the dialog; the theory reads below it.
+  const keys = document.createElement('div');
+  keys.className = 'ex-keys';
+  for (const [key, label] of CANVAS_KEYMAP) {
+    const kbd = document.createElement('kbd');
+    kbd.textContent = key;
+    const span = document.createElement('span');
+    span.textContent = label;
+    keys.append(kbd, span);
+  }
+  card.appendChild(keys);
+
+  const readTitle = document.createElement('div');
+  readTitle.className = 'ex-title ex-title-section';
+  readTitle.textContent = 'Reading this graph';
+  card.appendChild(readTitle);
 
   // Dynamic per-graph engineering read — re-rendered at every open.
   const metrics = document.createElement('div');
@@ -7933,17 +8052,6 @@ function buildExplainer(): void {
     row.append(glyph, text);
     card.appendChild(row);
   }
-
-  const keys = document.createElement('div');
-  keys.className = 'ex-keys';
-  for (const [key, label] of CANVAS_KEYMAP) {
-    const kbd = document.createElement('kbd');
-    kbd.textContent = key;
-    const span = document.createElement('span');
-    span.textContent = label;
-    keys.append(kbd, span);
-  }
-  card.appendChild(keys);
 
   const foot = document.createElement('div');
   foot.className = 'ex-foot';
@@ -8110,7 +8218,7 @@ class Replayer {
     this.el?.removeAttribute('hidden');
     document.body.classList.add('replaying');
     const title = document.getElementById('dag-title');
-    if (title) { title.textContent = `⟲ ${label}`; }
+    if (title) { title.textContent = `replay · ${label}`; }
     // Land on the FINAL state (the outcome), ready to scrub back or replay.
     this.setPos(1);
   }
@@ -8157,7 +8265,7 @@ class Replayer {
     // Restart from the top when parked at the end.
     if (this.pos >= 1) { this.setPos(0); }
     this.playing = true;
-    if (this.playBtn) { this.playBtn.textContent = '⏸'; }
+    if (this.playBtn) { this.playBtn.innerHTML = HOUSE_ICON.pause; }
     // Whole run in a watchable window (compressed by replay.speed-ish;
     // clamp so a long run stays ≤ ~8s and a short one isn't a blink).
     const budgetMs = Math.min(Math.max(this.spanMs / this.speed, 2500), 8000);
@@ -8178,7 +8286,7 @@ class Replayer {
   private pause(): void {
     this.playing = false;
     if (this.raf) { cancelAnimationFrame(this.raf); this.raf = 0; }
-    if (this.playBtn) { this.playBtn.textContent = '▶'; }
+    if (this.playBtn) { this.playBtn.innerHTML = HOUSE_ICON.play; }
   }
 }
 
@@ -8248,12 +8356,20 @@ window.addEventListener('message', (event: MessageEvent<ExtToWebviewMessage>) =>
       // race two async ELK layouts and double every entrance transition.
       if (replayer.active) { replayer.close(); }
       if (msg.toolCats) { toolCatsMap = msg.toolCats; }
+      if (msg.models) { paletteModelRows = msg.models; }
       // Lenses are per-QUESTION, not per-panel: audit/dataflow answered
       // a question about the PREVIOUS file — a different workflow starts
       // on the map (heatmap keeps its global dial by design).
       if (renderer.graphUri !== undefined && msg.graph.workflowUri !== renderer.graphUri) {
         if (renderer.auditOn) { renderer.toggleAudit(); }
         if (renderer.dataflowOn) { renderer.toggleDataflow(); }
+      }
+      // The metamorphosis (QRcodeAI module-morph fallback): the SAME
+      // workflow re-forming gets a one-beat cross-fade — never the
+      // first paint, never a switch (the 10th-time law: change only).
+      if (renderer.graphUri !== undefined && msg.graph.workflowUri === renderer.graphUri) {
+        document.body.classList.add('nk-reform');
+        setTimeout(() => document.body.classList.remove('nk-reform'), 240);
       }
       void renderer.render(msg.graph).then(() => transport.resync());
       applyResumeCapable(msg.graph);
@@ -9033,6 +9149,22 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
 // The title is the reverse door — one visible mouse path back to the
 // YAML (Enter on a card and Esc-at-rest are its keyboard twins).
+/** The title as a FILENAME: `<stem>` bright, `.nika.yaml` quiet. The
+ *  uri (when present) carries the true basename; the workflow name is
+ *  the fallback (an untitled buffer has no path). */
+function paintTitleAsFilename(el: HTMLElement, name: string, uri?: string): void {
+  const base = uri ? decodeURIComponent(uri.split('/').pop() ?? '') : '';
+  const shown = base || (name.endsWith('.nika.yaml') ? name : `${name}.nika.yaml`);
+  const at = shown.indexOf('.nika.y');
+  el.replaceChildren();
+  if (at <= 0) { el.textContent = shown; return; }
+  el.append(shown.slice(0, at));
+  const ext = document.createElement('span');
+  ext.className = 'tt-ext';
+  ext.textContent = shown.slice(at);
+  el.appendChild(ext);
+}
+
 const titleDoor = document.getElementById('dag-title');
 titleDoor?.setAttribute('title', 'Open the workflow YAML');
 titleDoor?.addEventListener('click', () => {
@@ -9497,6 +9629,19 @@ if (!vscode.getState()?.seenHint) {
     document.body.appendChild(hint);
     setTimeout(() => hint.classList.add('fade'), 6000);
     setTimeout(() => hint.remove(), 7000);
+    // The first gesture retires it early — a pointer moving toward a
+    // card must never find the hint painted OVER it (the occlusion
+    // wound); wheel/pointer/key all count as « seen ».
+    const retire = (): void => {
+      hint.classList.add('fade');
+      setTimeout(() => hint.remove(), 400);
+      window.removeEventListener('wheel', retire);
+      window.removeEventListener('pointerdown', retire);
+      window.removeEventListener('keydown', retire);
+    };
+    window.addEventListener('wheel', retire, { once: true, passive: true });
+    window.addEventListener('pointerdown', retire, { once: true });
+    window.addEventListener('keydown', retire, { once: true });
     vscode.setState({ ...(vscode.getState() ?? {}), seenHint: true });
     window.removeEventListener('message', firstGraphListener);
   };
@@ -9536,7 +9681,7 @@ if (!vscode.getState()?.seenBreatheHint) {
       }
       const hint = document.createElement('button');
       hint.id = 'breathe-hint';
-      hint.textContent = '◫ this canvas breathes wider · tap to maximize the group';
+      hint.textContent = 'this canvas breathes wider · tap to maximize the group';
       hint.addEventListener('click', () => {
         vscode.postMessage({ kind: 'dag:maximize' });
         hint.remove();

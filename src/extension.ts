@@ -368,6 +368,27 @@ async function collectHistoryRuns(
  * local/open-weight FIRST per the operator presentation-order lock) then
  * the model name (current value prefilled). Returns `provider/model`.
  */
+/** The palette's MODEL rows (the Krea gesture: pick the model, the
+ *  node lands ready). Presentation order is the doctrine's — local and
+ *  open-weight first, then mistral, then the rest — and a provider the
+ *  machine cannot run today is NOT offered (what is ready is visible).
+ *  Capped: a palette is a shortlist, `nika catalog` is the catalogue. */
+function paletteModels(service: NikaService): Array<{ ref: string; desc: string }> {
+  const cat = service.catalogModels;
+  const provs = service.intel?.providers;
+  if (!cat || !provs) { return []; }
+  const local = [...provs.local].sort();
+  const cloud = [...provs.cloud].sort((a, b) => (a === 'mistral' ? -1 : b === 'mistral' ? 1 : a.localeCompare(b)));
+  const rows: Array<{ ref: string; desc: string }> = [];
+  for (const p of [...local, ...cloud, ...provs.test]) {
+    for (const m of (cat[p] ?? []).slice(0, 2)) {
+      rows.push({ ref: `${p}/${m.model}`, desc: m.desc });
+      if (rows.length >= 12) { return rows; }
+    }
+  }
+  return rows;
+}
+
 async function pickModel(
   service: NikaService,
   text: string,
@@ -1514,6 +1535,12 @@ export function activate(context: ExtensionContext): void {
         if (res) {
           newText = res.text;
           revealTask = res.taskId;
+          // A palette MODEL pick lands the task READY (the Krea
+          // gesture) — the skeleton first, its brain right after.
+          if (typeof request.model === 'string' && (picked === 'infer' || picked === 'agent')) {
+            const withModel = setTaskModel(newText, res.taskId, request.model);
+            if (withModel !== undefined) { newText = withModel; }
+          }
         }
         break;
       }
@@ -2319,6 +2346,7 @@ export function activate(context: ExtensionContext): void {
   dagPanel.setToolCats(service.toolCats);
   context.subscriptions.push(service.onDidChange(() => {
     dagPanel.setToolCats(service.toolCats);
+    dagPanel.setPaletteModels(paletteModels(service));
   }));
 
   // Recent workflows for the welcome (mtime-sorted · top 6 · rel labels).

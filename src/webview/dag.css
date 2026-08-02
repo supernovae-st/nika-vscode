@@ -111,6 +111,18 @@ body {
   --nk-r-tile: 6px;
   --nk-r-panel: 8px;
   --nk-r-pop: 10px;
+  /* THE CORNER GEOMETRY (v26) · declared once, computed everywhere.
+   * The bottom-right stack (minimap · zoom dock · activity · transport)
+   * and the bottom strip (omnibar · legend) each derive their offsets
+   * from these. A floor moves in ONE place and every tenant follows;
+   * the two collisions this replaced were both hand-copied derivations
+   * that outlived the geometry they came from. */
+  --nk-corner-floor: 34px;
+  --nk-corner-gap: 10px;
+  --nk-minimap-h: 96px;
+  --nk-minimap-w: 148px;
+  --nk-omnibar-floor: 34px;
+  --nk-omnibar-h: 48px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -122,6 +134,30 @@ body {
    * on it, micro-state rides base, panels ride slow, ceremonies ride
    * deliberate. The legacy --nk-dur now ALIASES base (V0.d remapped every
    * consumer to a named step; the name survives for any stray reader). */
+  /* THE GRADIENT BORDER (the QRcodeAI liquid-glass seam): light has a
+   * DIRECTION — the border reads brighter at the top-left, quieter at
+   * the bottom. Token-derived (--nk-ink), every skin re-voices it. */
+  /* THE DIAGONAL GROUND (BGDarkSmooth · QRcodeAI): a panel is never
+   * flat — the surface falls 145deg from lit to deep. Token-derived. */
+  --nk-surface-grad: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--nk-ink) 6%, var(--nk-surface)),
+    color-mix(in srgb, #000 22%, var(--nk-surface))
+  );
+  --nk-menu-grad: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--nk-ink) 8%, var(--nk-menu)),
+    color-mix(in srgb, #000 18%, var(--nk-menu))
+  );
+  /* THE HOTSPOT (surface_color · light has a SOURCE) — overlay only. */
+  --nk-hotspot: radial-gradient(circle at 32% 20%, color-mix(in srgb, var(--nk-ink) 9%, transparent), transparent 34%);
+  --nk-border-grad: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--nk-ink) 20%, transparent) 0%,
+    color-mix(in srgb, var(--nk-ink) 5%, transparent) 50%,
+    color-mix(in srgb, var(--nk-ink) 10%, transparent) 100%
+  );
+
   /* THE LIQUID GLASS (one recipe · two tiers · Rams): raised docks
    * breathe the canvas through; overlays read as a LENS — deeper blur,
    * saturation bleed, a specular top edge. Consumers pair the filter
@@ -325,6 +361,15 @@ body[data-nk-theme] {
   transition: border-color var(--nk-dur-base) var(--nk-ease-effects);
 }
 
+/* The title IS a filename: the stem carries the weight, the suffix
+ * recedes (the operator: « affiche-le plus en mode nom de fichier »). */
+#dag-title .tt-ext {
+  /* 0.45 measured 4.23 · 3.10 · 3.83 · 2.38 across the four skins —
+   * the suffix must recede WITHOUT falling under the floor. */
+  opacity: 0.66;
+  font-weight: 400;
+}
+
 #dag-title:hover {
   border-color: color-mix(in srgb, var(--nk-accent) 26%, var(--nk-border));
 }
@@ -385,6 +430,71 @@ body[data-nk-theme] {
   transition: background var(--nk-dur-base) var(--nk-ease-effects), color var(--nk-dur-base) var(--nk-ease-effects), transform var(--nk-dur-fast) var(--nk-ease-spatial);
 }
 
+/* ─── The metamorphosis + the chip flip (QRcodeAI · change-only) ────
+ * Both fire ONLY on change (the 10th-time law) · compositor-only ·
+ * interruptible · reduce/calm collapse them to instant. */
+body.nk-reform #dag-container {
+  animation: nk-reform var(--nk-dur-slow) var(--nk-ease-effects);
+}
+/* Opacity ONLY: a transform on this container forces a compositing
+ * layer over the foreignObject cards — a screenshot caught them
+ * missing while the wires painted. The fade carries the beat alone. */
+@keyframes nk-reform {
+  from { opacity: 0.82; }
+  to { opacity: 1; }
+}
+.nc-tile.nk-tile-flip {
+  animation: nk-tile-flip var(--nk-dur-base) var(--nk-ease-spatial);
+}
+@keyframes nk-tile-flip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(88deg); }
+  100% { transform: rotateY(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.nk-reform #dag-container,
+  .nc-tile.nk-tile-flip { animation: none; }
+}
+body[data-nk-calm] #dag-container,
+body[data-nk-calm] .nc-tile.nk-tile-flip { animation: none !important; }
+
+/* ─── The gradient border (liquid-glass seam) ────────────────────────
+ * A ::before ring in padding-box exclude: the surface keeps its own
+ * border TRANSPARENT and the ring paints the directional light. The
+ * consumers keep position:relative from their own rules (fixed counts).
+ * forced-colors: the ::before dies, the real border returns (below). */
+:is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+    #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+    .es-card, #minimap, #activity, #dag-search) {
+  position: relative;
+  border-color: transparent;
+}
+:is(#omnibar, #zoom-dock, .tb-group:not(.tb-lenses), #dag-title, #dag-mark, #dag-status,
+    #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+    .es-card, #minimap, #activity, #dag-search)::before,
+.tb-lenses::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--nk-border-grad);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  z-index: 0;
+}
+@media (forced-colors: active) {
+  :is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+      #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+      .es-card, #minimap, #activity, #dag-search) { border-color: CanvasText; }
+  :is(#omnibar, #zoom-dock, .tb-group, #dag-title, #dag-mark, #dag-status,
+      #verb-cmdk, #connect-cmdk, #nk-actions, #nk-run-menu, #nk-display,
+      .es-card, #minimap, #activity, #dag-search)::before { display: none; }
+}
+
 /* The chrome icon slot — one optical size, ink follows the button. */
 .tb-ic {
   display: inline-flex;
@@ -393,6 +503,16 @@ body[data-nk-theme] {
   flex: none;
 }
 .tb-ic svg { width: 100%; height: 100%; }
+
+/* The run cluster's marks (play · stop) — the master set, sized to
+ * the 11px label they sit beside. */
+.rc-ic {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.rc-ic svg { width: 100%; height: 100%; }
 
 /* The ontology icon slot (welcome caps · action ghosts) — the SAME
  * bytes the site's rooms wear (icons.generated.ts · the vendored
@@ -414,7 +534,7 @@ body[data-nk-theme] {
 .tb-lenses::before {
   content: 'LENS';
   padding: 0 2px 0 6px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-foot);
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -432,12 +552,128 @@ body.timeline :is(#btn-waves, #btn-audit, #btn-dataflow, #btn-heat, #btn-curve) 
   cursor: default;
 }
 
-.tb-lenses button { padding: 0 5px; }
-.tb-lenses button > kbd:only-child {
-  min-width: 17px;
-  height: 17px;
-  font-size: var(--nk-fs-label);
+.tb-lenses button {
+  gap: 4px;
+  padding: 0 6px;
+  overflow: hidden;
 }
+.tb-lenses button .tb-ic { width: 15px; height: 15px; }
+#dag-toolbar button.active .tb-ic { color: var(--nk-accent); }
+
+/* The KEY is a hint, not a button: same optical size as the mark it
+ * follows (the operator: « fais les keyboards de la même taille que
+ * les icônes »), flat, no cap — a whisper beside the glyph. */
+#dag-toolbar .tb-lenses button > kbd {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--nk-fs-foot);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  /* The key is a HINT but it is still TEXT: the dim ink at 0.65
+   * measured 3.08:1 (nika) · 3.27 (editor) · 3.55 (phosphor), under
+   * the 4.5 floor. Full ink at a veil keeps it quieter than the mark
+   * AND legible (measured after: see the contrast probe). */
+  color: var(--nk-ink);
+  opacity: 0.62;
+}
+
+/* Light needs a touch more veil lift than the dark skins. */
+body[data-nk-theme='editor'].vscode-light #dag-toolbar .tb-lenses button > kbd {
+  opacity: 0.78;
+}
+body[data-nk-theme='editor'].vscode-light #dag-toolbar .tb-lenses button.active > kbd {
+  color: color-mix(in srgb, var(--nk-accent) 82%, #000);
+}
+body[data-nk-theme='editor'].vscode-light #dag-title .tt-ext {
+  opacity: 0.78;
+}
+#dag-toolbar .tb-lenses button.active > kbd { color: var(--nk-accent); opacity: 1; }
+
+/* THE BUTTON WRITES WHAT IT DOES: the name unfurls on hover/focus —
+ * a width morph on the spatial voice, the mark and key never move.
+ * (Rams: the label earns its pixels only while you are asking.) */
+#dag-toolbar button .tb-name,
+#zoom-dock button .tb-name {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font-size: var(--nk-fs-label);
+  color: var(--nk-ink);
+  transition:
+    max-width var(--nk-dur-base) var(--nk-ease-spatial),
+    opacity var(--nk-dur-fast) var(--nk-ease-effects),
+    margin var(--nk-dur-base) var(--nk-ease-spatial);
+}
+#dag-toolbar button:hover .tb-name,
+#dag-toolbar button:focus-visible .tb-name,
+#zoom-dock button:hover .tb-name,
+#zoom-dock button:focus-visible .tb-name {
+  max-width: 84px;
+  opacity: 1;
+  margin: 0 2px;
+}
+/* The named buttons need room to grow and a clip while closed. */
+#dag-toolbar button:has(.tb-name),
+#zoom-dock button:has(.tb-name) { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  #dag-toolbar button .tb-name,
+  #zoom-dock button .tb-name { transition: none; }
+}
+body[data-nk-calm] #dag-toolbar button .tb-name,
+body[data-nk-calm] #zoom-dock button .tb-name { transition: none; }
+
+/* THE BOTTOM BAR STATES ITS INTENT TOO: a verb tile unfurls its name,
+ * the make key unfurls « Task » — the same morph, one law across the
+ * chrome (the mark never moves · the name earns its pixels only while
+ * you are asking). */
+#omnibar #verb-palette .vp-btn,
+#omnibar > #btn-add-task {
+  overflow: hidden;
+  width: auto;
+  min-width: 30px;
+  gap: 3px;
+  padding: 0 7px;
+  transition:
+    background var(--nk-dur-base) var(--nk-ease-effects),
+    border-color var(--nk-dur-base) var(--nk-ease-effects),
+    transform var(--nk-dur-fast) var(--nk-ease-spatial);
+}
+.vp-name,
+#omnibar > #btn-add-task .tb-name {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font-family: var(--nk-ui-font);
+  font-size: var(--nk-fs-label);
+  /* The MARK carries the verb hue; the NAME is text and takes ink —
+   * currentColor put a pale verb tint on white (1.81:1 measured). */
+  color: var(--nk-ink);
+  transition:
+    max-width var(--nk-dur-base) var(--nk-ease-spatial),
+    opacity var(--nk-dur-fast) var(--nk-ease-effects),
+    margin var(--nk-dur-base) var(--nk-ease-spatial);
+}
+#omnibar #verb-palette .vp-btn:hover .vp-name,
+#omnibar #verb-palette .vp-btn:focus-visible .vp-name,
+#omnibar > #btn-add-task:hover .tb-name,
+#omnibar > #btn-add-task:focus-visible .tb-name {
+  max-width: 62px;
+  opacity: 1;
+  margin-right: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vp-name,
+  #omnibar > #btn-add-task .tb-name { transition: none; }
+}
+body[data-nk-calm] .vp-name,
+body[data-nk-calm] #omnibar > #btn-add-task .tb-name { transition: none; }
 #dag-toolbar button.active > kbd {
   color: var(--nk-accent);
   border-color: color-mix(in srgb, var(--nk-accent) 45%, var(--nk-border));
@@ -1199,7 +1435,7 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
   border: 1px solid transparent; /* readout voice · never pressable-looking */
   font-size: var(--nk-fs-label);
   color: var(--nk-ink-dim);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
 }
 
 .legend-dot {
@@ -1420,16 +1656,23 @@ body.vscode-light .logo-dark { display: none; }
 /* The camera dock — bottom-right above the minimap (the Figma
  * placement): zoom · readout · fit · layout. Same ids as the old
  * toolbar seats, the handlers rebind for free. */
+/* THE CORNER STACK (v26). The dock used to carry `bottom: 140px` with
+ * the comment « minimap 96 + its 34 + 10 breathing » — a value DERIVED
+ * from the minimap's geometry and then copied by hand. The moment the
+ * minimap stepped up a floor at narrow widths, the copy stopped being
+ * true and the dock painted straight across it (measured 148x34px of
+ * overlap at 620px wide, the width half a split editor gives you).
+ * The derivation is now a calc, so a floor change cascades. */
 #zoom-dock {
   position: fixed;
   right: 12px;
-  bottom: 140px; /* minimap 96 + its 34 + 10 breathing */
+  bottom: calc(var(--nk-corner-floor) + var(--nk-minimap-h) + var(--nk-corner-gap));
   z-index: 44;
   display: inline-flex;
   align-items: center;
   gap: 2px;
   padding: 3px 4px;
-  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
@@ -1483,9 +1726,9 @@ body.dag-loading #zoom-dock { display: none; }
 #minimap {
   position: fixed;
   right: 12px;
-  bottom: 34px;
-  width: 148px;
-  height: 96px;
+  bottom: var(--nk-corner-floor);
+  width: var(--nk-minimap-w);
+  height: var(--nk-minimap-h);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-surface) 82%, transparent);
@@ -1649,7 +1892,7 @@ body.dag-loading #zoom-dock { display: none; }
   transform: translateX(-50%);
   max-width: calc(100vw - 24px);
   padding: 6px 14px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-title);
   color: var(--nk-ink-dim);
   background: color-mix(in srgb, var(--nk-surface) 90%, transparent);
@@ -1719,6 +1962,13 @@ body.dag-loading #zoom-dock { display: none; }
   font-size: var(--nk-fs-heading);
   margin-bottom: 10px;
 }
+
+/* The second section head inside the dialog (chords open it now). */
+.ex-title-section {
+  margin-top: 14px;
+}
+.ex-title-section::before { content: '[ '; opacity: 0.5; }
+.ex-title-section::after { content: ' ]'; opacity: 0.5; }
 
 .ex-row {
   display: flex;
@@ -1987,7 +2237,7 @@ body.dag-loading #zoom-dock { display: none; }
   padding: 6px 10px;
   font-size: var(--nk-fs-body);
   font-weight: 600;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--nk-ink-dim);
@@ -2045,7 +2295,7 @@ body.dag-loading #zoom-dock { display: none; }
   content: 'quiet · a run narrates here';
   display: block;
   padding: 8px 10px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-sub);
   color: var(--nk-ink-dim);
   opacity: 0.7;
@@ -2108,12 +2358,19 @@ body.dag-loading #zoom-dock { display: none; }
   #btn-curve { display: none; }
   /* The dock un-stacks: the omnibar takes the full row, the minimap and
    * the feed step up one floor — nothing overlaps at any width. */
-  #minimap { bottom: 104px; }
-  #activity { bottom: 104px; }
-  #transport { right: 12px; bottom: 104px; }
+  :root { --nk-corner-floor: 104px; }
+  #activity { bottom: var(--nk-corner-floor); }
+  #transport { right: 12px; bottom: var(--nk-corner-floor); }
   /* The legend clears the full-width omnibar: its wrapping second row
-   * used to climb INTO the bar. */
-  #dag-legend { bottom: 60px; }
+   * used to climb INTO the bar. The old 60px sat INSIDE that bar
+   * (34 floor + 48 tall = 82), so the strip was not lifted, it was
+   * buried — measured 596x19px under the bar. Computed now. */
+  #dag-legend {
+    bottom: calc(var(--nk-omnibar-floor) + var(--nk-omnibar-h) + var(--nk-corner-gap));
+    /* Lifted into the corner's band, the strip must also YIELD to it:
+     * a full-width legend ran 7px under the map. */
+    right: calc(12px + var(--nk-minimap-w) + var(--nk-corner-gap));
+  }
 }
 
 /* The MEASURED rung of the shed ladder (dag.ts · fitToolbar).
@@ -2157,7 +2414,7 @@ body.dag-loading #zoom-dock { display: none; }
 
 @media (max-width: 520px) {
   #activity { width: 180px; max-height: 120px; }
-  #minimap { width: 110px; height: 72px; }
+  :root { --nk-minimap-h: 72px; --nk-minimap-w: 110px; }
   .legend-chip { font-size: var(--nk-fs-body); padding: 1px 6px; }
   #tr-time { display: none; }
 }
@@ -2557,7 +2814,7 @@ body[data-nk-theme='nika'] .dag-edge.flowing {
 
 body[data-nk-theme='nika'] .legend-chip {
   background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
-  border-color: var(--nk-hairline-accent);
+  border-color: transparent; /* a readout is never pressable-looking */
 }
 
 body[data-nk-theme='nika'] #progress-track {
@@ -2949,7 +3206,8 @@ body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
   isolation: isolate;
 }
 
-.nc-head::before {
+.nc-mode-min .nc-head::before,
+.nc:not([class*="nc-mode-"]) .nc-head::before {
   content: '';
   position: absolute;
   inset: -10px -12px -5px;
@@ -2958,6 +3216,33 @@ body[data-nk-calm] .dag-node .nc-port-out { transition: none; }
   border-bottom: 1px solid var(--nk-border-soft);
   border-radius: var(--nk-radius-card) var(--nk-radius-card) 0 0;
   pointer-events: none;
+}
+
+/* GRAND: the head is a FLOATING title bar (hoisted -24px, outside the
+ * box) — it gets its own pill, never the in-card band (which drew a
+ * strip over the canvas · the operator's « arrondis dans les carrés »). */
+body:not(.lod-far) .nc-mode-grand .nc-head::before {
+  content: '';
+  position: absolute;
+  inset: -4px -8px -3px -6px;
+  z-index: -1;
+  background: color-mix(in srgb, var(--nk-ink) 5%, transparent);
+  border: 1px solid var(--nk-border-soft);
+  border-radius: var(--nk-r-panel);
+  pointer-events: none;
+}
+
+/* The title bar answers the card's states — focus, selection and the
+ * status hue reach it, so the two boxes read as ONE object. */
+body:not(.lod-far) .dag-node:focus-visible .nc-mode-grand .nc-head::before {
+  border-color: color-mix(in srgb, var(--nk-accent) 85%, transparent);
+  background: color-mix(in srgb, var(--nk-accent) 10%, transparent);
+}
+body:not(.lod-far) .dag-node.selected .nc-mode-grand .nc-head::before {
+  border-color: color-mix(in srgb, var(--nk-accent) 55%, transparent);
+}
+body:not(.lod-far) .dag-node:hover .nc-mode-grand .nc-head::before {
+  border-color: var(--nk-border);
 }
 
 /* The house verb glyphs (icon ontology) render as inline SVG inside the
@@ -3122,6 +3407,16 @@ body[data-nk-calm][data-aurora] #aurora::before {
   animation: none !important;
 }
 
+/* The status signal holds ONE optical size (the ids' own law · §6c):
+ * at fit zoom the resting dot measured 2px — the card's one signal,
+ * invisible. Paint-only inside the fixed 18px slot; the near read is
+ * untouched (comp = 1). */
+body.lod-mid .nc-dot,
+body.lod-far .nc-dot {
+  transform: scale(min(var(--zoom-comp, 1), 1.9));
+  transform-origin: center;
+}
+
 /* The far read is the map — glyph strips are sub-pixel there; the dot
  * (already zoom-scaled) takes the live voice back. */
 body.lod-far .nc-spin { display: none; }
@@ -3279,6 +3574,20 @@ body.running .dag-node.status-success .nc::after {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   word-break: break-word;
+}
+
+/* The Krea param-panel read (paint-only · MIN card): the content sits
+ * in a faintly recessed well — the band above, the well below, the
+ * card reads as TWO zones without moving a pixel of layout. The GRAND
+ * body already wears the quote bar, so it keeps its own voice. */
+.nc-mode-min .nc-body,
+.nc:not([class*="nc-mode-"]) .nc-body {
+  border-radius: var(--nk-r-chip);
+  padding: 2px 5px;
+  margin-left: -5px;
+  margin-right: -5px;
+  background: color-mix(in srgb, #000 14%, transparent);
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.18);
 }
 
 /* The PROMPT voice — composition reads as quotation: dim « » marks
@@ -3484,6 +3793,14 @@ body:not(.lod-far) .nc-mode-grand .nc-head .nc-id { font-size: var(--nk-fs-title
  * dial rows (visibility keeps the footprint); far kills it (the map
  * read) while the :not gates above return the head in-frame. */
 body.lod-mid .nc-pill { visibility: hidden; }
+/* MID = the readable map (the gauntlet: full text at fit zoom was
+ * anti-aliased mush): the MIN card simplifies to head + mechanism —
+ * the body and policy wait for a lean-in. visibility keeps the flow
+ * (the box heights are TS-measured · paint-only law). */
+body.lod-mid .nc-body,
+body.lod-mid .nc-policy,
+body.lod-mid .nc-preview,
+body.lod-mid .nc-badge { visibility: hidden; }
 body.lod-far .nc-pill { display: none; }
 
 @media (forced-colors: active) {
@@ -3565,7 +3882,7 @@ body.lod-far .nc-pill { display: none; }
 /* The migrated fact block — the run story (spent · resume · loop…). */
 .nc-x-facts {
   flex: none;
-  margin-top: 5px;
+  margin-top: 6px; /* the grand card's ONE section beat */
   font-size: var(--nk-fs-body);
   line-height: 15px;
   color: color-mix(in srgb, var(--nk-ink) 82%, transparent);
@@ -4561,7 +4878,7 @@ body.lod-far .edge-hit { pointer-events: none; }
 #omnibar {
   position: fixed;
   left: 50%;
-  bottom: 34px;
+  bottom: var(--nk-omnibar-floor);
   transform: translateX(-50%);
   z-index: 44;
   display: flex;
@@ -4570,8 +4887,8 @@ body.lod-far .edge-hit { pointer-events: none; }
   /* Clears the minimap card on BOTH sides while centered (172px each);
    * under 820px the dock un-stacks instead (see the media block). */
   width: min(620px, calc(100vw - 344px));
-  padding: 6px 8px;
-  background: color-mix(in srgb, var(--nk-surface) 86%, transparent);
+  padding: 8px 10px; /* the 48px Krea bar */
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
@@ -4593,7 +4910,7 @@ body.lod-far .edge-hit { pointer-events: none; }
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   background: color-mix(in srgb, currentColor 6%, transparent);
   border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   border-radius: var(--nk-radius);
@@ -4873,6 +5190,20 @@ body.running #run-controls .rc-more:disabled { opacity: 1; }
 #run-controls {
   display: inline-flex;
   gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--nk-border);
+}
+
+/* The MAKE cluster (+ · the four verbs) sits as one segment: the two
+ * speeds of the same gesture, side by side — the run cluster follows,
+ * then the line. One job, one place. */
+#omnibar > #btn-add-task { margin-right: 2px; }
+#omnibar #verb-palette {
+  padding-right: 0;
+  padding-left: 0;
+  border-right: 0;
+  border-left: 0;
+  margin-right: 8px;
   padding-right: 8px;
   border-right: 1px solid var(--nk-border);
 }
@@ -5205,7 +5536,7 @@ body.replaying #minimap { bottom: 74px; }
 
 .region-label {
   font-size: var(--nk-fs-body);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   fill: color-mix(in srgb, var(--region-hue, var(--nk-accent)) 70%, var(--nk-ink-dim));
@@ -5258,7 +5589,9 @@ body.lod-far .region-label { display: none; }
   z-index: 52;
   width: 340px;
   padding: 8px;
-  background: color-mix(in srgb, var(--nk-menu) 94%, transparent);
+  background:
+    var(--nk-hotspot),
+    var(--nk-menu-grad);
   background-image: var(--nk-grain);
   backdrop-filter: var(--nk-glass-overlay);
   border: 1px solid var(--nk-border);
@@ -6159,7 +6492,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
   height: 30px;
   padding: 0 14px;
   font-size: var(--nk-fs-label);
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -6220,7 +6553,7 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
    * probe caught 16.5px the day the refusal scene first rendered one. */
   min-height: 24px;
   padding: 0 8px;
-  font-family: var(--nk-mono);
+  font-family: var(--nk-ui-font);
   font-size: var(--nk-fs-sub);
   color: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
@@ -6286,7 +6619,24 @@ body[data-nk-theme='editor'].vscode-light {
   --nk-shadow-2: 0 2px 4px rgb(0 0 0 / 0.06), 0 16px 40px -12px rgb(0 0 0 / 0.22);
   --nk-st-muted: #9ca3af;
   --nk-grain: none;
+  /* The material law INVERTS here. On a dark card the light catches the
+   * top edge (1px white inset); on a WHITE card that catch paints white
+   * on white and says nothing — what a sheet of paper actually shows is
+   * the SEAT: its bottom edge darkens where it meets the surface. */
+  --nk-bevel: inset 0 -1px 0 rgb(0 0 0 / 0.05);
+  --nk-specular: inset 0 1px 0 rgb(255 255 255 / 0);
 }
+
+/* The fan-out deck reads by DEPTH, and depth on paper is darker, not
+ * lighter · white sheets behind a white card on a near-white ground
+ * showed only two hairlines and read as a misalignment (measured:
+ * 7x8px of stack, invisible). Paper behind paper catches shade. */
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack {
+  fill: color-mix(in srgb, var(--nk-ink) 5%, var(--nk-card));
+  stroke: color-mix(in srgb, var(--nk-ink) 15%, transparent);
+}
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack-6 { opacity: 0.9; }
+body[data-nk-theme='editor'].vscode-light .dag-node .node-stack-12 { opacity: 0.6; }
 
 body[data-nk-theme='editor'].vscode-light {
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23000000' stroke-opacity='0.055'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -6303,6 +6653,21 @@ body[data-nk-theme='editor'].vscode-light #scrubber,
 body[data-nk-theme='editor'].vscode-light #transport {
   background: var(--nk-card);
   border-color: rgb(0 0 0 / 0.1);
+}
+
+/* The light twin of the verb ink ramp: the dark ramp lifts the hue
+ * toward white for a dark card · light darkens it for a white one.
+ * Same identity, the other direction (measured to clear 4.5). */
+body[data-nk-theme='editor'].vscode-light {
+  --nk-verb-infer-text: color-mix(in srgb, var(--nk-verb-infer) 62%, #000);
+  --nk-verb-exec-text: color-mix(in srgb, var(--nk-verb-exec) 55%, #000);
+  --nk-verb-invoke-text: color-mix(in srgb, var(--nk-verb-invoke) 48%, #000);
+  --nk-verb-agent-text: color-mix(in srgb, var(--nk-verb-agent) 62%, #000);
+  --nk-st-failed-text: color-mix(in srgb, var(--nk-st-failed) 78%, #000);
+}
+
+body[data-nk-theme='editor'].vscode-light .pr-n {
+  color: color-mix(in srgb, var(--nk-ink) 78%, transparent);
 }
 
 body[data-nk-theme='editor'].vscode-light .legend-chip {
@@ -6352,12 +6717,27 @@ body[data-nk-theme='editor'].vscode-dark {
   overflow-y: auto;
   scrollbar-width: none;
   padding: 6px;
-  background: color-mix(in srgb, var(--nk-surface) 88%, transparent);
+  background: var(--nk-surface-grad);
   background-image: var(--nk-grain);
-  backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: var(--nk-glass-raised);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-pop);
-  box-shadow: var(--nk-shadow-1);
+  box-shadow: var(--nk-specular), var(--nk-shadow-1);
+}
+
+/* The rail names itself (the gauntlet: « a mystery box of bracket
+ * mono ») — the LENS deck's own dim-label voice. */
+#plan-rail::before {
+  content: 'WAVES';
+  padding: 0 4px 3px;
+  font-family: var(--nk-ui-font);
+  font-size: var(--nk-fs-foot);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--nk-ink-dim);
+  opacity: 0.7;
+  user-select: none;
+  pointer-events: none;
 }
 
 #plan-rail[hidden] { display: none; }
@@ -7387,7 +7767,9 @@ body.dataflow .nc-io {
   padding: 8px;
   border: 1px solid color-mix(in srgb, var(--nk-ink) 20%, transparent);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--nk-menu) 88%, transparent);
+  background:
+    var(--nk-hotspot),
+    var(--nk-menu-grad);
   backdrop-filter: var(--nk-glass-overlay);
   box-shadow: var(--nk-specular), var(--nk-shadow-2);
 }
@@ -7440,6 +7822,27 @@ body.dataflow .nc-io {
 .nk-act-row:active:not(.nk-act-off) {
   background: color-mix(in srgb, var(--nk-data) 22%, transparent);
 }
+/* The row's mark leads it (the Raycast anatomy: glyph · label · kbd) —
+ * a fixed 16px column so every label starts on the same rail. */
+.nk-act-ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-right: -4px;
+  color: var(--nk-ink-dim);
+}
+.nk-act-ic svg { width: 100%; height: 100%; }
+/* With a mark in the row, space-between would center the label (three
+ * children) — the label takes the free space and stays left-rail. */
+.nk-act-row > span:not(.nk-act-ic):not(.nk-act-alt) {
+  flex: 1 1 auto;
+  text-align: left;
+}
+.nk-act-row.active .nk-act-ic { color: var(--nk-ink); }
+
 /* The keycap construction (§1e batch 3): cap + wash, the chip radius. */
 .nk-act-row kbd {
   padding: 0 5px;

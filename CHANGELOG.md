@@ -4,6 +4,59 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [Unreleased] · feat/design-v8 · the QRcodeAI-grade arc (23 commits)
+
+Twelve waves on one branch, none published: the operator reviews
+first. Every wave is one revertable commit.
+
+### The materials (v8 · the QRcodeAI recipes, token-first)
+
+Gradient borders (light has a DIRECTION · mask-composite ring on every
+chrome surface) · diagonal grounds + the radial hotspot (light has a
+SOURCE) · the body well (the card reads as TWO zones) · the head band ·
+liquid glass in two tiers.
+
+### The behaviours
+
+- **Semantic zoom** · MID catches the fit: head and mechanism land
+  CLEAN at first paint, the mush is gone.
+- **The verdict speaks human** · « every task landed » · « polish
+  broke the run · 4 landed before it » · the facts trail quiet.
+- **The metamorphosis** · editing the open workflow re-forms it (a
+  fade, opacity only · a transform there costs the cards a frame).
+- **The chip flip** · the tile flips on an IDENTITY change, never a
+  status repaint.
+- **The ? opens on the keys** · the chord table first, theory after.
+- **No wire loses its name** · the label de-stack, measured to zero
+  collisions.
+
+### The chrome (v14-v19)
+
+- **The MASTER icon library** vendored (~2000 marks · nothing authored
+  by hand): the lens deck regains its identity, the docks and the run
+  cluster get real marks, the menu rows carry theirs in a 16px rail.
+- **Every icon-only button STATES ITS INTENT**: the name unfurls on
+  hover · the key becomes a hint at the mark's optical size · not a
+  single mystery glyph remains.
+- **The title is a filename** (`release-notes.nika.yaml`) · the nika
+  mark is back top-left · the rail names itself (WAVES) · the make
+  cluster reunites (+ and the four verbs, one job one place).
+- **The Martian diet**: mono is DATA (filenames · costs · durations ·
+  card internals), chrome is sans.
+- **THE CATALOGUE REACHES THE PALETTE**: a MODELS lane beside verbs
+  and tools · picking a brain lands the infer task with that model
+  already wired · the shortlist is built from the engine's catalog in
+  the doctrine's presentation order, and a provider this machine
+  cannot run is never offered.
+
+### Held to the doctrine
+
+DESIGN.md now carries the three icon layers, the intent law, the
+Martian diet, the paint-only law and « measure, then judge ». Gates:
+1441/1441 across twenty-one consecutive runs · a11y-probes 45/45 ·
+chrome-probes 0 on all three skins · the three GIFs regenerated on
+this canvas.
+
 ## [0.107.7] · 2026-08-01
 
 The chrome wave (the Krea read, held against the screenshot): a menu

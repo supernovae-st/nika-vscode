@@ -58,6 +58,34 @@
       if (skin === 'editor' || skin === 'phosphor' || skin === 'nika') {
         document.body.dataset.nkTheme = skin;
       }
+      // ?light — the LIGHT editor skin, judgeable at last. The panel
+      // gets its --vscode-* from the host; the harness had none, so the
+      // dark fallbacks fired and « editor » always rendered dark. This
+      // stamps a minimal light theme (the values VS Code's own Light+
+      // publishes) so the light craft can be SEEN and probed.
+      if (q.has('light')) {
+        document.body.dataset.nkTheme = 'editor';
+        document.body.classList.remove('vscode-dark');
+        document.body.classList.add('vscode-light');
+        const s = document.documentElement.style;
+        s.setProperty('--vscode-editor-background', '#ffffff');
+        s.setProperty('--vscode-editor-foreground', '#3b3b3b');
+        s.setProperty('--vscode-foreground', '#3b3b3b');
+        s.setProperty('--vscode-descriptionForeground', '#717171');
+        s.setProperty('--vscode-editorWidget-background', '#f8f8f8');
+        s.setProperty('--vscode-editorWidget-border', '#c8c8c8');
+        s.setProperty('--vscode-panel-border', '#e5e5e5');
+        s.setProperty('--vscode-focusBorder', '#005fb8');
+        s.setProperty('--vscode-textLink-foreground', '#005fb8');
+        s.setProperty('--vscode-button-background', '#005fb8');
+        s.setProperty('--vscode-button-foreground', '#ffffff');
+        s.setProperty('--vscode-button-hoverBackground', '#0258a8');
+        s.setProperty('--vscode-toolbar-hoverBackground', 'rgba(0,0,0,0.06)');
+        s.setProperty('--vscode-charts-blue', '#1a73e8');
+        s.setProperty('--vscode-charts-green', '#16825d');
+        s.setProperty('--vscode-charts-red', '#e51400');
+        s.setProperty('--vscode-charts-orange', '#c27d1a');
+      }
       // ?grand (and the ?media scene, whose frames ARE the show) seed
       // the persisted card dial BEFORE dag.js restores state · the
       // same host-state channel the real panel uses, stubbed.
@@ -70,22 +98,22 @@
   <input id="dag-search" type="text" placeholder="filter tasks · / to open · Esc to clear" hidden aria-label="Filter tasks" aria-describedby="dag-search-count">
   <span id="dag-search-count" role="status" aria-live="polite" hidden></span>
   <div id="dag-toolbar">
-    <span id="dag-mark" aria-hidden="true"></span>
+    <span id="dag-mark" aria-hidden="true"><img class="logo-dark" src="../../icons/nika-dark.svg" alt="" width="16" height="16"><img class="logo-light" src="../../icons/nika-light.svg" alt="" width="16" height="16"></span>
     <span id="dag-title"></span>
     <div class="tb-group"><button id="btn-new"><span class="tb-ic"><svg viewBox="2 1 20 22" fill="none" aria-hidden="true"><path d="M11 21H8C6.34315 21 5 19.6569 5 18V6C5 4.34315 6.34315 3 8 3H16C17.6569 3 19 4.34315 19 6V11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 15V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>New</button></div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
-      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><kbd>W</kbd></button>
-      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (T)"><kbd>T</kbd></button>
-      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (P)"><kbd>P</kbd></button>
-      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (D)"><kbd>D</kbd></button>
-      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><kbd>B</kbd></button>
-      <button id="btn-heat" title="Heatmap · tint cards by duration (H)"><kbd>H</kbd></button>
-      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (G)"><kbd>G</kbd></button>
-      <button id="btn-feed" title="Activity feed · every status transition, live (L)"><kbd>L</kbd></button>
-      <button id="btn-help" title="What am I looking at?">?</button>
+      <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="1.926 3.064 20.148 17.872"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.3161 3.18487C11.7576 3.02432 12.2416 3.02431 12.6831 3.18487L20.7569 6.1208C22.5123 6.75911 22.5123 9.24166 20.7569 9.87998L12.6831 12.8159C12.2416 12.9765 11.7576 12.9765 11.3161 12.8159L3.2423 9.87998C1.48695 9.24167 1.48693 6.75912 3.24229 6.1208L11.3161 3.18487ZM20.0734 8.00039L11.9996 5.06445L3.92578 8.00039L11.9996 10.9363L20.0734 8.00039Z" fill="currentColor"/><path d="M20.7569 13.88L12.6831 16.8159C12.2416 16.9765 11.7576 16.9765 11.3161 16.8159L3.2423 13.88C2.10327 13.4658 1.70334 12.2751 2.04252 11.3156L11.9996 14.9363L21.9567 11.3156C22.2959 12.2751 21.896 13.4658 20.7569 13.88Z" fill="currentColor"/><path d="M20.7569 17.88L12.6831 20.8159C12.2416 20.9765 11.7576 20.9765 11.3161 20.8159L3.2423 17.88C2.10327 17.4658 1.70334 16.2751 2.04252 15.3156L11.9996 18.9363L21.9567 15.3156C22.2959 16.2751 21.896 17.4658 20.7569 17.88Z" fill="currentColor"/></svg></span><span class="tb-name">Waves</span><kbd>W</kbd></button>
+      <button id="btn-timeline" title="Timeline · the run's truth as a Gantt (T)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="2 4 19 16"><path d="M6.0016 5V19M6.0016 19L3 16M6.0016 19L9 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Timeline</span><kbd>T</kbd></button>
+      <button id="btn-audit" title="Audit · what this file can DO before a token is spent (P)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="3 3 18 19.646"><path d="M9.5 12.25L11 13.75L14.5 10.25M7 4H17C18.6569 4 20 5.34315 20 7V16.1459C20 17.2822 19.358 18.321 18.3416 18.8292L13.3416 21.3292C12.4971 21.7515 11.5029 21.7515 10.6584 21.3292L5.65836 18.8292C4.64201 18.321 4 17.2822 4 16.1459V7C4 5.34315 5.34315 4 7 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Audit</span><kbd>P</kbd></button>
+      <button id="btn-dataflow" title="Dataflow · where the data comes from and goes (D)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="1 3 22 18"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Dataflow</span><kbd>D</kbd></button>
+      <button id="btn-curve" title="Smooth edges · bend the wires (or keep them square) (B)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="1 4 22 16"><path d="M4 7C4 7.55228 3.55228 8 3 8C2.44772 8 2 7.55228 2 7C2 6.44772 2.44772 6 3 6C3.55228 6 4 6.44772 4 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 7C22 7.55228 21.5523 8 21 8C20.4477 8 20 7.55228 20 7C20 6.44772 20.4477 6 21 6C21.5523 6 22 6.44772 22 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 17C18 15.8954 18.8954 15 20 15C21.1046 15 22 15.8954 22 17C22 18.1046 21.1046 19 20 19C18.8954 19 18 18.1046 18 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17C2 15.8954 2.89543 15 4 15C5.10457 15 6 15.8954 6 17C6 18.1046 5.10457 19 4 19C2.89543 19 2 18.1046 2 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 7C10 8.10457 10.8954 9 12 9C13.1046 9 14 8.10457 14 7C14 5.89543 13.1046 5 12 5C10.8954 5 10 5.89543 10 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 7H9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.01562 14.5001C4.22071 11.1744 6.45761 8.3985 9.50025 7.39844" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 7.39844C17.5426 8.3985 19.7795 11.1744 19.9846 14.5001" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Curves</span><kbd>B</kbd></button>
+      <button id="btn-heat" title="Heatmap · tint cards by duration (H)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="3 3 18 18"><path d="M4 12H7.38197C7.76074 12 8.107 12.214 8.27639 12.5528L10 16L14 8L15.7236 11.4472C15.893 11.786 16.2393 12 16.618 12H20M7 20H17C18.6569 20 20 18.6569 20 17V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V17C4 18.6569 5.34315 20 7 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Heatmap</span><kbd>H</kbd></button>
+      <button id="btn-follow" title="Follow the run · the camera tracks the frontier (G)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="2 2 20 20"><path d="M12 7V9.5M14.5 12H17M12 14.5V17M7 12C7 12 8.35966 12 9.5 12M12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="tb-name">Follow</span><kbd>G</kbd></button>
+      <button id="btn-feed" title="Activity feed · every status transition, live (L)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="2 5 20 14"><path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Feed</span><kbd>L</kbd></button>
+      <button id="btn-help" title="What am I looking at?"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="2 2 20 20"><path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 16V16.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 13C12 11.3608 14 11.9319 14 10C14 8.89543 13.1046 8 12 8C11.2597 8 10.6134 8.4022 10.2676 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Help</span></button>
     </div>
     <div class="tb-group" id="tb-more-group" hidden>
-      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      <button id="btn-more" title="More tools · everything this width sheds" aria-haspopup="menu" aria-expanded="false"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="2 2 20 20"><path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/><path d="M8 12H8.01M8.25 12C8.25 12.1381 8.13807 12.25 8 12.25C7.86193 12.25 7.75 12.1381 7.75 12C7.75 11.8619 7.86193 11.75 8 11.75C8.13807 11.75 8.25 11.8619 8.25 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12H12.01M12.25 12C12.25 12.1381 12.1381 12.25 12 12.25C11.8619 12.25 11.75 12.1381 11.75 12C11.75 11.8619 11.8619 11.75 12 11.75C12.1381 11.75 12.25 11.8619 12.25 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 12H16.01M16.25 12C16.25 12.1381 16.1381 12.25 16 12.25C15.8619 12.25 15.75 12.1381 15.75 12C15.75 11.8619 15.8619 11.75 16 11.75C16.1381 11.75 16.25 11.8619 16.25 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="tb-name">More</span></button>
     </div>
     <div class="tb-group">
       <button id="btn-export-svg" title="Export the graph as SVG">⤓ svg</button>
@@ -95,12 +123,12 @@
   </div>
   <div id="tb-more-pop" role="menu" aria-label="Shed toolbar actions" hidden></div>
   <div id="zoom-dock" role="toolbar" aria-label="Camera">
-    <button id="btn-zoom-out">−</button>
+    <button id="btn-zoom-out"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="4.5 11 15 2"><path d="M5.5 12H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="tb-name">Out</span></button>
     <button id="zoom-pct">100%</button>
-    <button id="btn-zoom-in">＋</button>
+    <button id="btn-zoom-in"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="4.5 4.5 15 15"><path d="M12 5.5V12M12 12V18.5M12 12H5.5M12 12H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="tb-name">In</span></button>
     <span class="zd-sep"></span>
-    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-    <button id="btn-relayout" title="Auto-layout (A)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg></span></button>
+    <button id="btn-fit" title="Fit to view (F)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.34315 4 4 5.34315 4 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 4H17C18.6569 4 20 5.34315 20 7V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 20H7C5.34315 20 4 18.6569 4 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 20H17C18.6569 20 20 18.6569 20 17V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tb-name">Fit</span></button>
+    <button id="btn-relayout" title="Auto-layout (A)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg></span><span class="tb-name">Layout</span></button>
   </div>
   <div id="dag-container"></div>
   <form id="canvas-describe" hidden autocomplete="off" aria-label="Describe this workflow">
@@ -156,11 +184,11 @@
         <button class="es-button es-cmd" data-cmd="nika.restartServer">⟳ Detect / download</button>
       </div>
       <div class="es-actions" role="toolbar" aria-label="Start">
-        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up">▶ Try the demo · offline, zero keys</button>
+        <button class="es-button es-cmd" data-cmd="nika.tryDemo" title="A four-wave sandbox on mock/echo: press ▶ to watch it light up"><span class="es-cap-ic"><svg aria-hidden="true" fill="none" viewBox="5 2.056 17.037 19.888"><path d="M19.6848 9.49288L10.6475 3.55409C8.65262 2.24315 6 3.67411 6 6.06121V17.9388C6 20.3259 8.65263 21.7568 10.6475 20.4459L19.6848 14.5071C21.4881 13.3221 21.4881 10.6779 19.6848 9.49288Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>Try the demo · offline, zero keys</button>
         <button id="es-new" class="es-button es-button-ghost">＋ New workflow</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.browseExamples"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4V20M9 4V20M14 4L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Examples</button>
         <button class="es-button es-button-ghost es-cmd" data-cmd="nika.replayTrace"><span class="es-cap-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11.1801 14.6739C10.683 15.0219 10 14.6663 10 14.0595V9.94049C10 9.33372 10.683 8.97811 11.1801 9.32607L14.1223 11.3856C14.5488 11.6842 14.5488 12.3158 14.1223 12.6144L11.1801 14.6739Z" fill="currentColor"/><path d="M4.35727 8.27096C5.73873 5.44577 8.64101 3.5 11.9977 3.5C16.6922 3.5 20.4977 7.30558 20.4977 12C20.4977 16.6944 16.6922 20.5 11.9977 20.5C7.9922 20.5 4.63378 17.7294 3.73438 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3.5 5V9H7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Replay a trace</button>
-        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu">⌘ All commands</button>
+        <button class="es-button es-button-ghost es-cmd" data-cmd="nika.showMenu"><span class="es-cap-ic"><svg aria-hidden="true" fill="none" viewBox="3 3 18 18"><path d="M9 9V6.5C9 5.11929 7.88071 4 6.5 4C5.11929 4 4 5.11929 4 6.5C4 7.88071 5.11929 9 6.5 9H9ZM9 9H15M9 9V15M15 9V6.5C15 5.11929 16.1193 4 17.5 4C18.8807 4 20 5.11929 20 6.5C20 7.88071 18.8807 9 17.5 9H15ZM15 9V15M15 15H9M15 15V17.5C15 18.8807 16.1193 20 17.5 20C18.8807 20 20 18.8807 20 17.5C20 16.1193 18.8807 15 17.5 15H15ZM9 15V17.5C9 18.8807 7.88071 20 6.5 20C5.11929 20 4 18.8807 4 17.5C4 16.1193 5.11929 15 6.5 15H9Z" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg></span>All commands</button>
       </div>
       <div id="es-recent" hidden>
         <div class="es-sec">Recent in this workspace</div>
@@ -183,7 +211,7 @@
   </div>
   <div id="explainer" hidden></div>
   <div id="verb-cmdk" hidden>
-    <input id="cmdk-input" type="text" placeholder="add a task · verb or tool…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
+    <input id="cmdk-input" type="text" placeholder="add a task · verb · tool · model…" role="combobox" aria-expanded="false" aria-controls="cmdk-list" aria-autocomplete="list" aria-label="Filter verbs and tools">
     <div id="cmdk-list" role="listbox" aria-label="Pick the new task's verb"></div>
   </div>
   <div id="connect-cmdk" hidden>
@@ -194,22 +222,22 @@
   <div id="a11y-alert" role="alert"></div>
   <div id="run-verdict" role="status" hidden></div>
   <div id="omnibar">
-    <button id="btn-add-task" title="Add a task · the palette (N)"><span class="tb-ic"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></button>
+    <button id="btn-add-task" title="Add a task · the palette (N)"><span class="tb-ic"><svg aria-hidden="true" fill="none" viewBox="4.5 4.5 15 15"><path d="M12 5.5V12M12 12V18.5M12 12H5.5M12 12H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="tb-name">Task</span></button>
+    <div id="verb-palette" role="toolbar">
+      <button class="vp-btn vp-infer" data-verb="infer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M21 12.5C14.75 12.5 12 15.4028 12 22C12 15.4028 9.25 12.5 3 12.5C9.25 12.5 12 9.59722 12 3C12 9.59722 14.75 12.5 21 12.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="vp-name">infer</span></button>
+      <button class="vp-btn vp-exec" data-verb="exec"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M7.5 8L9.25 9.75L7.5 11.5M12 11.5H14M7 20H17C18.6569 20 20 18.6569 20 17V7C20 5.34315 18.6569 4 17 4H7C5.34315 4 4 5.34315 4 7V17C4 18.6569 5.34315 20 7 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">exec</span></button>
+      <button class="vp-btn vp-invoke" data-verb="invoke"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M4 12C4 16.4183 7.58172 20 12 20C14.9611 20 17.5465 18.3912 18.9297 16M4 12C4 7.58172 7.58172 4 12 4C14.9611 4 17.5465 5.60879 18.9297 8M4 12H2M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12ZM16 12H22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">invoke</span></button>
+      <button class="vp-btn vp-agent" data-verb="agent"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="6" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="2"/><path d="M12 8.5V12M12 12H9C7.34315 12 6 13.3431 6 15V15.5M12 12H15C16.6569 12 18 13.3431 18 15V15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="vp-name">agent</span></button>
+    </div>
     <div id="run-controls" role="toolbar">
-      <button id="btn-run" class="rc-run">▶ Run</button>
-      <button id="btn-run-more" class="rc-run rc-more" aria-haspopup="menu">⌄</button>
+      <button id="btn-run" class="rc-run"><span class="rc-ic"><svg aria-hidden="true" fill="none" viewBox="5 2.056 17.037 19.888"><path d="M19.6848 9.49288L10.6475 3.55409C8.65262 2.24315 6 3.67411 6 6.06121V17.9388C6 20.3259 8.65263 21.7568 10.6475 20.4459L19.6848 14.5071C21.4881 13.3221 21.4881 10.6779 19.6848 9.49288Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>Run</button>
+      <button id="btn-run-more" class="rc-run rc-more" aria-haspopup="menu"><span class="rc-ic rc-caret"><svg aria-hidden="true" fill="none" viewBox="7 9 10 5.379"><path d="M8 10L10.9393 12.9393C11.5251 13.5251 12.4749 13.5251 13.0607 12.9393L16 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <button id="run-preflight" hidden></button>
       <span id="run-cost" hidden></span>
       <span id="run-stale" hidden></span>
       <button id="btn-run-resume" class="rc-resume" hidden>Δ changed</button>
-      <button id="btn-run-mock" class="rc-mock">▶ mock</button>
-      <button id="btn-stop" class="rc-stop" hidden>■ Stop</button>
-    </div>
-    <div id="verb-palette" role="toolbar">
-      <button class="vp-btn vp-infer" data-verb="infer">◇</button>
-      <button class="vp-btn vp-exec" data-verb="exec">▷</button>
-      <button class="vp-btn vp-invoke" data-verb="invoke">◆</button>
-      <button class="vp-btn vp-agent" data-verb="agent">✦</button>
+      <button id="btn-run-mock" class="rc-mock"><span class="rc-ic"><svg aria-hidden="true" fill="none" viewBox="5 2.056 17.037 19.888"><path d="M19.6848 9.49288L10.6475 3.55409C8.65262 2.24315 6 3.67411 6 6.06121V17.9388C6 20.3259 8.65263 21.7568 10.6475 20.4459L19.6848 14.5071C21.4881 13.3221 21.4881 10.6779 19.6848 9.49288Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>mock</button>
+      <button id="btn-stop" class="rc-stop" hidden><span class="rc-ic rc-stop-sq"><svg aria-hidden="true" fill="none" viewBox="3 3 18 18"><path d="M20 15.2V8.8C20 7.11984 20 6.27976 19.673 5.63803C19.3854 5.07354 18.9265 4.6146 18.362 4.32698C17.7202 4 16.8802 4 15.2 4H8.8C7.11984 4 6.27976 4 5.63803 4.32698C5.07354 4.6146 4.6146 5.07354 4.32698 5.63803C4 6.27976 4 7.11984 4 8.8V15.2C4 16.8802 4 17.7202 4.32698 18.362C4.6146 18.9265 5.07354 19.3854 5.63803 19.673C6.27976 20 7.11984 20 8.8 20H15.2C16.8802 20 17.7202 20 18.362 19.673C18.9265 19.3854 19.3854 18.9265 19.673 18.362C20 17.7202 20 16.8802 20 15.2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Stop</button>
     </div>
     <input id="omni-input" type="text"
            placeholder="+ task · / filter · describe… · ↵ everything"
@@ -619,6 +647,17 @@
       }
       post({
         kind: 'dag:load', graph: GRAPH,
+        // The palette's model shortlist (the extension builds it from
+        // `nika catalog --json` + the presentation order; the harness
+        // pins a representative slice so the surface can be judged).
+        models: [
+          { ref: 'ollama/llama3.2:3b', desc: '128k ctx · local · zero key' },
+          { ref: 'ollama/qwen2.5-coder', desc: '32k ctx · local · code' },
+          { ref: 'lmstudio/mistral-small', desc: '32k ctx · local' },
+          { ref: 'mistral/mistral-large-latest', desc: '128k ctx · reasoning · json' },
+          { ref: 'openai/gpt-4o-mini', desc: '128k ctx · vision · json:schema' },
+          { ref: 'mock/echo', desc: 'deterministic · zero keys · zero network' },
+        ],
         toolCats: {
           chart: { cat: 'media', desc: 'data → chart image (5 renderers)' },
           write: { cat: 'file', desc: 'Write a file' },
@@ -850,7 +889,7 @@
         { taskId: 'salvage', status: 'skipped' },
       ]);
       post({ kind: 'run:state', running: false });
-      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 37/38 · 1 skipped · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
+      post({ kind: 'run:verdict', icon: '✓', text: 'every needed task landed · 37 ran · 1 skipped by design · ≥ $0.0214 · 14.1s · chain 3c92f1de', cls: 'st-success' });
       post({ kind: 'run:progress', done: 38, total: 38 });
     }, 16200);
 
@@ -941,7 +980,7 @@
 
     sim(() => {
       post({ kind: 'run:state', running: false });
-      post({ kind: 'run:verdict', icon: '✓', text: 'run completed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
+      post({ kind: 'run:verdict', icon: '✓', text: 'every task landed · 7/7 · ≥ $0.0031 · 12.6s · chain 8f41c2aa', cls: 'st-success' });
     }, 14500);
 
     sim(() => { if (CELEBRATE) { post({ kind: 'run:celebrate' }); } }, 14900);
