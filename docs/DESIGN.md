@@ -738,6 +738,34 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A recipe repeated N times is N chances to diverge (v33)** · the
+floating family was normalised surface by surface, so eleven blocks
+each carried the same four declarations · which is exactly how it had
+drifted into four grounds and three glass recipes in the first place.
+One rule for the family, declared once, 44 lines lighter. Per-surface
+blocks still exist for what is genuinely per-surface (position, size,
+the skin's accent).
+
+**An unread declaration is not automatically dead (v33)** · a token
+scan found four never read from CSS. Three were mine to delete; the
+fourth was CONTRACTUAL, pinned by the tokens-parity roster, and the
+gate caught the removal immediately. A value can be owed to a contract
+rather than to a consumer.
+
+**Do not act on an unmatched-selector count (v33)** · 433 of 1134
+selectors matched nothing across six scenes and every overlay, and
+almost all of them are state- or skin-scoped rather than dead. The
+provable slice is different and much smaller: a class no source can
+ever produce. That count is zero. Reporting the 433 as dead CSS would
+have been a confident wrong answer with real deletions behind it.
+
+**Measure before optimising, and say when the answer is « leave it »
+(v33)** · 89% of the 1.7MB webview bundle is the ELK layout fallback,
+which looks like the obvious cut · but first paint measures 108-164ms
+and the minimap's 640 new elements rebuild ZERO times during a
+67-event zoom burst. Removing a fallback rung to save disk that costs
+nothing would be optimising the wrong thing.
+
 **A minimap that draws only WHERE is a scatter plot (v32)** · it could
 say how much was done and never how the run is ordered or which chain
 owns the clock. Three layers now, each quieter than the one above:

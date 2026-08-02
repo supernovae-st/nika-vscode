@@ -18,6 +18,30 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### Review, refactor, and the things left alone (v33)
+
+- **The bar has ONE rhythm** · a 2px nudge from an older wave still
+  aligned the `+` to a verb gap of 2, so that one gap read 6 where every
+  other in the bar reads 4. A hand-tuned offset against a value that
+  later became derived is the same class of bug as a copied position.
+- **Symmetric group edges** · the make cluster carried a stray 8px
+  margin on top of the shared padding (12px break on one side of the
+  bar, 4px on the other) plus two dead declarations that set
+  padding-right and border-right to 0 and re-set them two lines down.
+- **One rule for the floating family** · the material was normalised
+  surface by surface, so eleven blocks each carried the same four
+  declarations. 44 lines lighter, and a recipe repeated eleven times is
+  eleven chances to diverge.
+- Three dead tokens gone; a fourth was contractual and the tokens-parity
+  gate caught the removal. Zero eslint warnings (both came from the
+  icon generators' own templates).
+
+**Left alone, on purpose** · 89% of the 1.7MB webview bundle is the ELK
+layout fallback, but first paint measures 108-164ms and the minimap's
+640 new elements rebuild zero times during a 67-event zoom burst.
+Removing a fallback rung to save disk that costs nothing would be
+optimising the wrong thing.
+
 ### The minimap becomes a map (v32)
 
 It drew one rect per task, coloured by status, pinned to the top-left of

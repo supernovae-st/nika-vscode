@@ -98,7 +98,6 @@ const out = `// house-icons.generated.ts — the SuperNovae MASTER icon set, ven
 // library (24 grid · stroke 2 · round caps · currentColor). The chrome
 // picks only — domain marks live in icons.generated.ts (the site
 // ontology). Do not edit by hand; rerun the script.
-/* eslint-disable */
 export const HOUSE_ICON = {
 ${rows.join('\n')}
 } as const;
