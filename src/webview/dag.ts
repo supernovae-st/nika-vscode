@@ -1177,9 +1177,9 @@ function paintBodyRest(
     const ess = document.createElement('span');
     ess.className = `nc-essence nc-ess-${split.essence.render}`;
     ess.textContent = split.essence.render === 'condition'
-      ? `⊨ ${split.essence.value}`
+      ? `if ${split.essence.value}`
       : split.essence.render === 'event'
-      ? `⚑ ${split.essence.value}`
+      ? `on ${split.essence.value}`
       : split.essence.value;
     ess.title = `${split.essence.key}: ${split.essence.value}`;
     el.appendChild(ess);
@@ -1335,7 +1335,7 @@ function cardFactsOf(node: DagNode): CardFact[] {
       + (m.permits !== undefined ? ` · ${m.permits} permit${m.permits === 1 ? '' : 's'}` : '') });
   }
   if (node.secretLiterals !== undefined && node.secretLiterals > 0) {
-    facts.push({ k: 'secret', v: `⚿ ${node.secretLiterals} literal credential${node.secretLiterals === 1 ? '' : 's'} pasted in this task · use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)` });
+    facts.push({ k: 'secret', v: `${node.secretLiterals} literal credential${node.secretLiterals === 1 ? '' : 's'} pasted in this task · use \u0024{{ env.VAR }} (the editor squiggle carries the rewrite)` });
   }
   if (node.deadGate === true) {
     facts.push({ k: 'gate', v: 'statically FALSE · no reachable upstream combination admits this task (NIKA-DAG-006); it will never run as written' });
@@ -1373,7 +1373,7 @@ function factLinesOf(f: CardFact): number {
  *  body swap (✗ … · click → explain). */
 function cardWhyLinesOf(node: DagNode): string[] {
   const lines: string[] = [];
-  if (node.pausedQuestion) { lines.push(`⏸ asks: ${node.pausedQuestion}`); }
+  if (node.pausedQuestion) { lines.push(`paused · asks: ${node.pausedQuestion}`); }
   if (node.whyWhen) { lines.push(`gate false: ${node.whyWhen}`); }
   if (node.blockedBy) { lines.push(`blocked by ${node.blockedBy}`); }
   return lines;
@@ -1909,7 +1909,7 @@ class DagRenderer {
     document.body.classList.add('simulating');
     const dead = [...verdicts.values()].filter((v) => v === 'cancelled').length;
     const lit = [...verdicts.values()].filter((v) => v === 'lit').length;
-    pushActivityLine('\u26a1', `simulating: ${taskId} fails \u2014 ${dead} cancelled \u00b7 ${lit} recovery path${lit === 1 ? '' : 's'} light \u00b7 Esc clears`, 'st-retrying');
+    pushActivityLine('', `simulating: ${taskId} fails \u2014 ${dead} cancelled \u00b7 ${lit} recovery path${lit === 1 ? '' : 's'} light \u00b7 Esc clears`, 'st-retrying');
   }
 
   /** Keyboard lane (X): what-if on the focused card — the same
@@ -2016,7 +2016,7 @@ class DagRenderer {
     const labelAnchors = new Map<string, number>();
     const ORDER: PermitDomain[] = ['net', 'exec', 'fs', 'tool'];
     const LABEL: Record<PermitDomain, string> = {
-      net: '⇄ network egress', exec: '▶ runs programs', fs: '▤ touches files', tool: '⚒ calls tools',
+      net: 'network egress', exec: 'runs programs', fs: 'touches files', tool: 'calls tools',
     };
     for (const domain of ORDER) {
       const ids = facts.domains.get(domain);
@@ -2069,7 +2069,13 @@ class DagRenderer {
     if (secretTotal > 0) {
       const warn = document.createElement('span');
       warn.className = 'audit-banner-secret';
-      warn.textContent = ` · ⚿ ${secretTotal} literal credential${secretTotal === 1 ? '' : 's'} pasted (use \u0024{{ env.VAR }})`;
+      // The audit banner's own mark · the key glyph was an OS-font
+      // fallback on the one line that warns about pasted credentials.
+      const wIc = document.createElement('span');
+      wIc.className = 'nk-warn-ic';
+      wIc.innerHTML = HOUSE_ICON.secret;
+      warn.append(' · ', wIc,
+        `${secretTotal} literal credential${secretTotal === 1 ? '' : 's'} pasted (use \u0024{{ env.VAR }})`);
       banner.appendChild(warn);
     }
     document.body.appendChild(banner);
@@ -3414,7 +3420,7 @@ class DagRenderer {
     if (!box) { return; }
     const hint = document.createElement('div');
     hint.id = 'nk-red-teach';
-    hint.textContent = 'the red teaches · click the code to explain · ⑂ fork rides the card';
+    hint.textContent = 'the red teaches · click the code to explain · fork rides the card';
     document.body.appendChild(hint);
     // Park it under the toolbar (fixed) — the card itself may sit
     // anywhere in the viewport; the activity line placement is stable.
@@ -5051,10 +5057,14 @@ class DagRenderer {
   private appendCardActions(into: HTMLElement, node: DagNode): void {
     const rowEl = document.createElement('span');
     rowEl.className = 'nc-x-actions';
+    // `text` may be a MARK (an <svg> string) or a character: two of the
+    // three glyphs this cluster used to paint were in no shipped face,
+    // so the pill's actions rendered in whatever the OS lent us.
     const btn = (cls: string, text: string, title: string, run: () => void): HTMLButtonElement => {
       const b = document.createElement('button');
       b.className = `nc-x-act${cls ? ` ${cls}` : ''}`;
-      b.textContent = text;
+      if (text.startsWith('<svg')) { b.innerHTML = text; b.classList.add('nc-x-mark'); }
+      else { b.textContent = text; }
       b.title = title;
       b.addEventListener('mousedown', (e) => e.stopPropagation());
       b.addEventListener('click', (e) => {
@@ -5066,14 +5076,14 @@ class DagRenderer {
     };
     if (node.artifact) {
       const a = node.artifact;
-      btn('nc-x-open', '\u2913',
+      btn('nc-x-open', HOUSE_ICON.openArtifact,
         `Open ${a.name} · the recorded output (engine truth from the trace)`,
         () => {
           vscode.postMessage({ kind: 'dag:openArtifact', path: a.path });
         });
     }
     if (node.status === 'failed') {
-      btn('nc-x-fork', '\u2442',
+      btn('nc-x-fork', HOUSE_ICON.fork,
         'Fork from this task · upstream rehydrates from the newest recorded run, this task and its cone re-run',
         () => {
           vscode.postMessage({
@@ -5083,6 +5093,10 @@ class DagRenderer {
           });
         });
     }
+    // The door stays a CHARACTER: Martian Mono carries ⋯ (measured), and
+    // a circular mark inside a circular button read as a ring in a ring.
+    // The law is « what the mono lacks becomes a mark », not « every
+    // glyph becomes a mark ».
     btn('nc-x-panel', '\u22ef',
       'Every action with its shortcut (K on the focused card)',
       () => {
@@ -5108,7 +5122,7 @@ class DagRenderer {
       chip.className = 'nc-chip nc-model nc-sub-wf nc-engine';
       const m = node.subManifest;
       const base = subPath.split('/').pop() ?? subPath;
-      chip.textContent = m !== undefined ? `⎘ ${base} · ${m.tasks}` : `⎘ ${base}`;
+      chip.textContent = m !== undefined ? `→ ${base} · ${m.tasks}` : `→ ${base}`;
       const manifestLines = m !== undefined
         ? [`\ninside: ${m.tasks} task${m.tasks === 1 ? '' : 's'} · ${m.waves} wave${m.waves === 1 ? '' : 's'}`
           + (m.costMin !== undefined ? ` · est $${m.costMin.toFixed(4)}${m.costMax !== undefined ? `–$${m.costMax.toFixed(4)}` : '+'}` : '')
@@ -5193,7 +5207,7 @@ class DagRenderer {
         'Static cost interval (min path → worst case) · audited before a single token is spent');
     }
     if (node.avgMs !== undefined && node.avgRuns) {
-      fact(`⌀ ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`,
+      fact(`avg ${node.avgMs >= 1000 ? `${(node.avgMs / 1000).toFixed(1)}s` : `${node.avgMs}ms`}`,
         `Mean success duration over ${node.avgRuns} recorded run${node.avgRuns === 1 ? '' : 's'} (flight recorder)`,
         'nc-avg');
     }
@@ -5718,7 +5732,7 @@ class DagRenderer {
       wire.className = 'nc-fe';
       const alias = document.createElement('span');
       alias.className = 'nc-io-alias';
-      alias.textContent = '∥ items';
+      alias.textContent = 'items';
       const arr = document.createElement('span');
       arr.className = 'nc-io-arr';
       arr.textContent = '←';
@@ -5741,7 +5755,8 @@ class DagRenderer {
       const gate = document.createElement('span');
       gate.className = 'nc-gate';
       const expr = node.when!.length > 18 ? `${node.when!.slice(0, 17)}\u2026` : node.when!;
-      gate.textContent = `\u2301 ${expr}`;
+      gate.innerHTML = HOUSE_ICON.gate;
+      gate.appendChild(document.createTextNode(expr));
       gate.title = `Runs only when: ${node.when!}`;
       params.appendChild(gate);
       host.appendChild(params);
@@ -5757,9 +5772,14 @@ class DagRenderer {
       // policies; it never WEARS more than five — the overflow folds
       // into « +N » whose title lists everything it holds. Facts are
       // never dropped, only layered (the hover keeps the full story).
-      const pending: Array<{ cls: string; text: string; title: string }> = [];
-      const chip = (cls: string, text: string, title: string): void => {
-        pending.push({ cls, text, title });
+      const pending: Array<{ cls: string; text: string; title: string; mark?: string }> = [];
+      // A chip may lead with a MARK (v27). Six of the glyphs that used
+      // to lead these chips were in no shipped face, and ⤼ carried two
+      // senses at once (skip AND per-item). Words were measured and
+      // rejected: the row is 218 CSS px and already spills at three
+      // chips, so a word costs a fact while a mark costs 13px.
+      const chip = (cls: string, text: string, title: string, mark?: string): void => {
+        pending.push({ cls, text, title, mark });
       };
       const flushChips = (): void => {
         // Measured packing (W-D12): a chip is WHOLE or it is layered —
@@ -5768,10 +5788,14 @@ class DagRenderer {
         // overflow folds into « +N » whose title lists everything.
         const MAX = 5;
         const gap = 5;
-        const chipW = (t: string): number => measureMono(t, 9) + 14; // pad 12 + border 2
+        const MARK_W = 13; // the 10px mark + its 3px gap
+        const chipW = (t: string, marked = false): number =>
+          measureMono(t, 9) + 14 + (marked ? MARK_W : 0); // pad 12 + border 2
         const fitCount = (count: number, withMore: boolean): boolean => {
           let w = withMore ? gap + chipW(`+${pending.length - count}`) : 0;
-          for (let i = 0; i < count; i++) { w += chipW(pending[i].text) + (i > 0 ? gap : 0); }
+          for (let i = 0; i < count; i++) {
+            w += chipW(pending[i].text, pending[i].mark !== undefined) + (i > 0 ? gap : 0);
+          }
           return w <= CONTENT_W;
         };
         let n = Math.min(pending.length, MAX);
@@ -5783,7 +5807,13 @@ class DagRenderer {
         for (const c of shown) {
           const el = document.createElement('span');
           el.className = `nc-pol ${c.cls}`;
-          el.textContent = c.text;
+          if (c.mark !== undefined) {
+            const ic = document.createElement('span');
+            ic.className = 'nk-pol-ic';
+            ic.innerHTML = c.mark;
+            el.appendChild(ic);
+          }
+          el.appendChild(document.createTextNode(c.text));
           el.title = c.title;
           policy.appendChild(el);
         }
@@ -5797,19 +5827,19 @@ class DagRenderer {
         }
       };
       if (node.retryMax !== undefined) {
-        chip('nc-pol-retry', `↻×${node.retryMax}`,
-          `Retries up to ${node.retryMax} attempt${node.retryMax === 1 ? '' : 's'} on failure (retry.max_attempts)`);
+        chip('nc-pol-retry', `×${node.retryMax}`,
+          `Retries up to ${node.retryMax} attempt${node.retryMax === 1 ? '' : 's'} on failure (retry.max_attempts)`, HOUSE_ICON.polRetry);
       }
       if (node.timeout !== undefined) {
-        chip('nc-pol-timeout', `⏱ ${node.timeout}`,
-          `Hard timeout · the task is cancelled past ${node.timeout}`);
+        chip('nc-pol-timeout', `${node.timeout}`,
+          `Hard timeout · the task is cancelled past ${node.timeout}`, HOUSE_ICON.polTimeout);
       }
       if (node.onError === 'recover') {
         chip('nc-pol-recover', '✚ recover',
           'on_error: recover · a failure is absorbed with the declared recovery output (the card will say « recovered »)');
       } else if (node.onError === 'skip') {
-        chip('nc-pol-skip', '⤼ skip',
-          'on_error: skip · a failure skips this task; the error stays readable at tasks.X.error');
+        chip('nc-pol-skip', 'skip',
+          'on_error: skip · a failure skips this task; the error stays readable at tasks.X.error', HOUSE_ICON.polSkip);
       } else if (node.onError === 'fail_workflow') {
         chip('nc-pol-fail', '✗ fail',
           'on_error: fail_workflow · a failure here stops the whole run');
@@ -5828,16 +5858,16 @@ class DagRenderer {
           `${node.visionCount} image input${node.visionCount === 1 ? '' : 's'} ride this prompt (file/url sources · spec 02 vision:)`);
       }
       if (node.typedShape !== undefined) {
-        chip('nc-pol-typed', '⊨ typed',
-          `Declared output shape · ${node.typedShape}\nThe engine PROVES it at check time (schema:/returns:); downstream reads are typed against it.`);
+        chip('nc-pol-typed', 'typed',
+          `Declared output shape · ${node.typedShape}\nThe engine PROVES it at check time (schema:/returns:, HOUSE_ICON.polTyped); downstream reads are typed against it.`);
       }
       if (node.maxParallel !== undefined) {
-        chip('nc-pol-parallel', `∥ max ${node.maxParallel}`,
-          `Fan-out concurrency cap · at most ${node.maxParallel} iteration${node.maxParallel === 1 ? '' : 's'} run at once. retry/on_error/timeout apply PER ITERATION (there is no whole-fan-out timer): this cap bounds total work.`);
+        chip('nc-pol-parallel', `max ${node.maxParallel}`,
+          `Fan-out concurrency cap · at most ${node.maxParallel} iteration${node.maxParallel === 1 ? '' : 's'} run at once. retry/on_error/timeout apply PER ITERATION (there is no whole-fan-out timer): this cap bounds total work.`, HOUSE_ICON.polParallel);
       }
       if (node.failFast === false) {
-        chip('nc-pol-peritem', '⤼ per-item',
-          'fail_fast: false · one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).');
+        chip('nc-pol-peritem', 'per-item',
+          'fail_fast: false · one iteration\u2019s failure does not abort the fan-out: process N, report which failed (pairs with per-iteration on_error).', HOUSE_ICON.polPerItem);
       } else if (node.failFast === true) {
         chip('nc-pol-failfast', '⊗ fail-fast',
           'fail_fast: true · the first iteration error fails the whole task; its output settles null, never a partial array.');
@@ -5849,8 +5879,9 @@ class DagRenderer {
       const outs = node.outputNames ?? [];
       if (outs.length > 0) {
         chip('nc-pol-outs',
-          outs.length === 1 ? `⤳ ${outs[0]}` : `⤳ ${outs.length} outs`,
-          `Produces named outputs: ${outs.join(' · ')} (output: jq bindings · \${{ tasks.${node.id}.<name> }})`);
+          outs.length === 1 ? outs[0] : `${outs.length} outs`,
+          `Produces named outputs: ${outs.join(' · ')} (output: jq bindings · \${{ tasks.${node.id}.<name> }})`,
+          HOUSE_ICON.polOuts);
       }
       const grants = node.permits ?? [];
       if (grants.length > 0) {
@@ -5861,8 +5892,8 @@ class DagRenderer {
       // this agent MAY call; absent register paints nothing (no tools
       // is the default, not a fact worth ink).
       if (node.verb === 'agent' && node.toolsCount !== undefined) {
-        chip('nc-pol-tools', `⚒ ${node.toolsCount}`,
-          `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny · an agent without a register can call nothing)`);
+        chip('nc-pol-tools', `${node.toolsCount}`,
+          `Agent tool register: ${node.toolsCount} tool${node.toolsCount === 1 ? '' : 's'} whitelisted (default-deny · an agent without a register can call nothing)`, HOUSE_ICON.polTools);
       }
       flushChips();
       host.appendChild(policy);
@@ -6003,7 +6034,7 @@ class DagRenderer {
       { id: 'duplicate', label: 'Duplicate', icon: HOUSE_ICON.duplicate, kbd: '⌘D', run: () => vscode.postMessage({ kind: 'dag:duplicateTask', taskId: node.id, workflowUri: uri }) },
     ];
     if (node.tool?.startsWith('workflow:') === true) {
-      storyActs.push({ id: 'open-sub', label: '⎘ Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
+      storyActs.push({ id: 'open-sub', label: 'Open the child workflow', run: () => vscode.postMessage({ kind: 'dag:openSub', path: node.tool!.slice('workflow:'.length).trim(), workflowUri: uri }) });
     }
     // Learned order: habits rise WITHIN their group — never across the
     // separator, never onto the pinned primary — and the ⏎/⌘⏎ roles
@@ -6112,7 +6143,7 @@ class DagRenderer {
       sep?.classList.toggle('nk-act-hidden', !both);
       const count = searchCountLabel(matches, query.length > 0);
       queryLine.hidden = count === null;
-      queryLine.textContent = count === null ? '' : `⌕ ${query} · ${count}`;
+      queryLine.textContent = count === null ? '' : `${query} · ${count}`;
       if (matches > 0 && rows[active]?.classList.contains('nk-act-hidden') === true) {
         setActive(firstVisible);
       }
@@ -6190,12 +6221,12 @@ class DagRenderer {
       },
       { label: '', sep: true },
       {
-        label: '⚡ What if it fails', kbd: 'X',
+        label: 'What if it fails', kbd: 'X',
         ...(focused === undefined ? { off: 'focus a card first (Tab)' } : {}),
         run: () => { if (focusedId !== null) { this.toggleSimulate(focusedId); } },
       },
       {
-        label: '⑂ Fork from the failure',
+        label: 'Fork from the failure',
         ...(focused === undefined ? { off: 'focus a card first (Tab)' }
           : focused.status !== 'failed' ? { off: 'the focused card has not failed' } : {}),
         run: () => {
@@ -7407,7 +7438,7 @@ class DagRenderer {
       // human, not spending time — the card says so until the answer.
       if (node.pausedQuestion) { return '\u23f8 asks\u2026'; }
       const started = this.liveStart.get(node.id);
-      const prefix = node.status === 'retrying' ? '↻ ' : '';
+      const prefix = ''; // retrying speaks in amber · a second voice was noise
       if (started !== undefined) {
         // nika:wait with a DECLARED duration counts against it —
         // `12s / 30s`, the BuildKit time-as-spinner read (the tick IS
@@ -7801,7 +7832,7 @@ class DagRenderer {
       if (node.usd !== undefined) { spent += node.usd; priced = true; }
     }
     if (priced) {
-      parts.push(`≥ $${spent.toFixed(spent < 0.1 ? 4 : 2)}`);
+      parts.push(`$${spent.toFixed(spent < 0.1 ? 4 : 2)}+`);
     }
 
     const statusEl = document.getElementById('dag-status');
@@ -8023,8 +8054,8 @@ function buildExplainer(): void {
     ['ex-glyph-focus', 'Click a node', 'focus its lineage: what it needs upstream, what it unlocks downstream · Esc to clear'],
     ['ex-glyph-hover', 'Double-click a card (E)', 'min ↔ grand · the full story ON the card: run facts · blast radius · needs/unlocks · \u25B8 run from here · ❏ duplicate · Space peeks the focused card · Shift+V sets every card'],
     ['ex-glyph-stack', 'Stacked card', 'a fan-out task (map ×N) · the deck IS the parallel copies; the badge counts them'],
-    ['ex-glyph-policy', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy · ↻ retries · ⏱ timeout · on_error route · ⤳ outputs · ▦ permits'],
-    ['ex-glyph-gate', '⌁ gate chip', 'a when: condition · this task runs only if it holds (skipped is a decision, never a failure)'],
+    ['ex-glyph-policy', 'On-card wires + policy', 'alias ← producer rows are the data arriving (click one to jump); the footer chips are declared policy · each leads with its own mark · retries · timeout · on_error route · outputs · permits'],
+    ['ex-glyph-gate', 'gate chip', 'a when: condition · this task runs only if it holds (skipped is a decision, never a failure)'],
     ['ex-glyph-rail', 'The left rail', 'the plan itself · every wave, clickable; your viewport\'s wave stays lit'],
     ['ex-glyph-drag', 'Drag a card', 'arrange the canvas your way · snaps align to other cards (\u2325 bypasses) · wires follow · A returns to the auto-layout'],
     ['ex-glyph-connect', '⌥ drag node → node', 'order on state · the YAML gets `after: { from: success }` (⌘Z undoes) · ⌥click a control edge removes the entry'],
@@ -8036,8 +8067,8 @@ function buildExplainer(): void {
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance · ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
     ['ex-glyph-dep', 'Gray dashed edges', 'control · after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read · cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
-    ['ex-glyph-focus', '⚡ what if? (X)', 'replay admission with a task failed · dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
-    ['ex-glyph-stack', '⎘ workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs · supplied · default · ⚠ required · the breadcrumb climbs back'],
+    ['ex-glyph-focus', 'what if? (X)', 'replay admission with a task failed · dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
+    ['ex-glyph-stack', 'workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs · supplied · default · ⚠ required · the breadcrumb climbs back'],
     ['ex-glyph-rail', 'One graph · five lenses', 'T timeline (ghost ceiling = your recorded mean) · P audit (what this file CAN DO) · D dataflow (where data goes) · H heatmap · same map, one key each'],
   ];
   for (const [glyphClass, head, body] of rows) {
@@ -8112,7 +8143,7 @@ function renderExplainerInsights(): void {
   if (ins.makespans.length > 1) {
     line(
       'est. wall-clock',
-      ins.makespans.map((m) => `${m.workers}∥ ${fmt(m.makespan)}`).join('  ·  '),
+      ins.makespans.map((m) => `${m.workers}w ${fmt(m.makespan)}`).join('  ·  '),
       'list schedule by critical-path rank (within 2−1/k of optimal)',
     );
   }
@@ -8659,7 +8690,7 @@ function showRunVerdict(icon: string, text: string, cls: string, failedTask?: st
     if (failedTask !== undefined) {
       const fork = document.createElement('button');
       fork.className = 'rv-act';
-      fork.textContent = '⑂ fork';
+      fork.innerHTML = HOUSE_ICON.fork; fork.appendChild(document.createTextNode('fork'));
       fork.title = `Fork from \`${failedTask}\` · upstream rehydrates from the trace`;
       fork.addEventListener('click', (e) => {
         e.stopPropagation();

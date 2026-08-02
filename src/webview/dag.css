@@ -4563,6 +4563,45 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   overflow: hidden;
 }
 
+/* A policy chip may LEAD with a mark (v27): six of the glyphs that used
+ * to lead these were in no shipped face, and the row is too tight for
+ * words (218 CSS px, spilling at three chips). The mark rides the chip's
+ * own ink and its own type size. */
+/* A pill action may BE a mark (v27b) · the cluster's open and fork were
+ * OS-font fallbacks. The mark takes the button's own ink and box. */
+.audit-banner-secret .nk-warn-ic {
+  display: inline-flex;
+  width: 11px;
+  height: 11px;
+  margin-right: 3px;
+  vertical-align: -1px;
+}
+.audit-banner-secret .nk-warn-ic > svg { width: 100%; height: 100%; }
+
+.nc-x-act.nc-x-mark > svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+/* The gate chip leads with a branch mark (v27b · ⌁ was in no face). */
+.nc-gate > svg {
+  width: 10px;
+  height: 10px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  opacity: 0.82;
+}
+
+.nc-pol .nk-pol-ic {
+  display: inline-flex;
+  width: 10px;
+  height: 10px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  opacity: 0.82;
+}
+.nc-pol .nk-pol-ic > svg { width: 100%; height: 100%; }
+
 .nc-pol {
   /* No shrink: the builder packs chips by MEASURED width and folds the
    * overflow into « +N » — five flex-mushed stumps (« ↻… ⏱ … ∴ th… »)

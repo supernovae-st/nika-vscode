@@ -738,6 +738,24 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**What the mono lacks becomes a mark · not every glyph (v27)** · the
+coverage law has a second half that is easy to over-apply. Martian Mono
+carries the ellipsis, so turning the pill's door into a vendored mark
+put a ring inside a ring and read worse than the character it replaced;
+it went back. The test that pinned it was rewritten to pin what it
+actually protects, which is that the door is UNCONDITIONAL, not its
+codepoint. Measure the glyph, then decide: absent from the face is a
+defect · present in the face is a choice.
+
+**A scan that reads characters is blind to escapes (v27)** · the static
+sweep that found the uncovered glyphs read literal characters, and the
+code writes both forms: 57 `\uXXXX` literals were invisible to it,
+hiding a key glyph on the credentials warning, the gate chip, and two
+of the three buttons in the pill's action cluster. The runtime `glyph`
+lens never had this blind spot (it reads rendered text nodes), but it
+only sees paths the demo scenes reach. A static sweep must decode both
+forms before it is allowed to report zero.
+
 **A derived position computes; it never copies (v26)** · the zoom dock
 carried `bottom: 140px` under the comment « minimap 96 + its 34 + 10
 breathing » · the arithmetic was right the day it was written · and a lie

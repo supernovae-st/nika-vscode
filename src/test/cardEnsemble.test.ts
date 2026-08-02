@@ -180,8 +180,12 @@ describe('the knob moves · one home per fact (dag.ts)', () => {
   it('the action cluster keeps its .nc-x-actions identity (the journeys probe)', () => {
     const acts = src.slice(src.indexOf('private appendCardActions'), src.indexOf('private buildEngineChip'));
     expect(acts).toContain("rowEl.className = 'nc-x-actions';");
-    // the ⋯ door is unconditional — a pill always offers every action.
+    // The door is UNCONDITIONAL — a pill always offers every action.
+    // What this pins is the door, not its codepoint: the mark moved to
+    // the house library when the measurement showed two of the three
+    // cluster glyphs were OS-font fallbacks (v27b).
     expect(acts).toContain("btn('nc-x-panel', '\\u22ef'");
+    expect(acts).not.toMatch(/btn\('nc-x-panel'[^)]*\{[^)]*\}/); // never gated
   });
 
   it('the grand build ends on the pill — the ensemble is the last append', () => {

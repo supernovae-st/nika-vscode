@@ -36,6 +36,26 @@ const PICK = {
   lensHeat: 'statistics-charts/analytics',
   lensFollow: 'interface-general/target-1',
   lensFeed: 'interface-general/bars-three',
+  // the POLICY chips (v27) · the row is 218 CSS px and already spills at
+  // three chips, so a word costs a fact; a mark costs nothing. Six of
+  // its glyphs were in no shipped face, and one of them (⤼) carried TWO
+  // senses at once — skip AND per-item — which the one-glyph-one-sense
+  // law never permitted.
+  polRetry: 'arrows/arrow-rotate-clockwise',
+  polTimeout: 'time-date/stopwatch',
+  polSkip: 'sound-music/skip',
+  polParallel: 'arrows/arrow-split-right',
+  polPerItem: 'arrows/arrows-repeat-right-left',
+  polOuts: 'arrows/arrow-right-square',
+  polTools: 'edit/toolbox',
+  polTyped: 'security/shield-check-2',
+  // the CARD's own surfaces (v27b) · the pill's action cluster, the
+  // secret warning, the gate chip, the sim line. Every one of these was
+  // an OS-font fallback on a card the user reads every session — and
+  // one of them (the key) carries a SECURITY fact.
+  secret: 'security/key-1',
+  openArtifact: 'folders-files/file-arrow-right-out',
+  gate: 'code/branch-simple',
   // the K panel rows (a menu row's mark leads it · Raycast)
   eye: 'accessibility/eye-open',
   pencil: 'edit/pencil-2',

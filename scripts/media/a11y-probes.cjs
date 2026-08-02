@@ -345,7 +345,7 @@ function probe(name, ok, note = '') {
     }));
     probe('typing narrows the K rows', narrowed.visible.length > 0 && narrowed.visible.length < baseline
       && narrowed.visible.every((t) => /run/i.test(t)), `${narrowed.visible.length}/${baseline}`);
-    probe('the query line speaks the / count grammar', /^⌕ run · \d+ match/.test(narrowed.line), narrowed.line);
+    probe('the query line speaks the / count grammar', /^run · \d+ match/.test(narrowed.line), narrowed.line);
     probe('the active row is never a filtered-out row', !narrowed.activeHidden);
     await p.keyboard.type('zzz');
     await p.waitForTimeout(150);
