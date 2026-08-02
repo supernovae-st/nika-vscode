@@ -33,8 +33,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Chrome for the probes (they drive the REAL webview bundle)
-        run: npx playwright install --with-deps chromium chrome
+      # playwright is deliberately NOT a package dependency (it would ride
+      # every npm ci in every job, and the extension never needs it), so
+      # the probe job installs it for itself. --no-save keeps the
+      # manifest honest.
+      - name: Playwright + Chrome for the probes (probe-only, never a dep)
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium chrome
       - name: Compile (the probes load out/webview/*)
         run: npm run compile
       - name: The full sweep
