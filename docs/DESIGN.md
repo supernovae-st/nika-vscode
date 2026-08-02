@@ -738,6 +738,24 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**The host may EXTEND the projection · never silently re-state it
+(v36)** · `node.generated.css` is projected with `:where(...)`, zero
+specificity, precisely so the host can layer on top. Measured, the host
+re-declares 126 of those properties: 60 are deliberate OVERRIDES (the
+card's material, its transition) and 66 are byte-identical SHADOWS that
+add nothing today and pin the OLD value the day the spec moves.
+`scripts/projection-shadow.mjs` fails on GROWTH against a pinned
+baseline, so the standing debt is visible and bounded while the
+direction is one-way.
+
+**A refactor is a claim, and a claim gets measured (v36)** · stripping
+those 66 shadows automatically looked like pure cleanup. A before/after
+snapshot of every computed property on every card element reported 282
+differences · the card's padding had collapsed to zero, because the
+rewrite corrupted the sheet rather than because the cascade was subtle.
+The gate reports instead of rewriting for exactly that reason. Snapshot
+the render before believing a « no-op » refactor is one.
+
 **When the size ladder is exhausted, the ink IS the hierarchy (v35)** ·
 a card's type ladder runs 12.5 / 10.5 / 10 and the second step says
 almost nothing at that scale, so the reading order has to live
