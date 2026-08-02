@@ -18,6 +18,19 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### A paused card shows what it asks (v38)
+
+The body already swaps for a landed output and for an error. The one
+state that has STOPPED and needs a human never swapped, so a blocked
+card said « asks… » and hid the question · the most actionable thing on
+the canvas, one expand away. It takes the body now, in the amber of the
+state that is neither done nor broken.
+
+Audited alongside and left alone: retrying already speaks in amber on
+three surfaces at once (the spinner, the duration, the border), which is
+why its text prefix was dropped an earlier wave; cancelled, skipped and
+recovered each carry their own word and mark.
+
 ### The failure path says what happened (v37)
 
 Auditing the state a user remembers found a serious one: a settled body

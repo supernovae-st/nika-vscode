@@ -3861,6 +3861,14 @@ body.running .dag-node.status-success .nc::after {
  * must not misread, saying the opposite of what happened. The selector
  * names the combination that actually occurs, so source order stops
  * deciding it. */
+/* The question a paused run is waiting on · it outranks the swap for
+ * the same reason a failure does, and takes the amber of the state
+ * that is neither done nor broken but WAITING (v38). */
+.nc-body.nc-body-ask,
+.nc-body.nc-body-live.nc-body-ask {
+  color: var(--nk-st-retrying);
+}
+
 .nc-body.nc-body-err,
 .nc-body.nc-body-live.nc-body-err {
   color: var(--nk-st-failed);

@@ -738,6 +738,14 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**When a task is asking, the question IS the content (v38)** · the card
+body already swaps for a landed output and for an error. The one state
+that has STOPPED and is waiting on a human never swapped, so a blocked
+card said « ⏸ asks… » and hid what it asks · the single most actionable
+thing on the canvas, one expand away. It takes the body now, in the
+amber of the state that is neither done nor broken but WAITING, on both
+the live path and the rebuild.
+
 **A failure may not wear the success hue (v37)** · a settled body wears
 `.nc-body-live` whether it landed or broke, and a failure adds
 `.nc-body-err` on top. Both rules were (0,2,0) and `live` sits later in
