@@ -738,6 +738,44 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**Look for the second signal before inventing one (v28)** · high
+contrast strips colour, so a colour-only status channel dies there. The
+spec already knew: it projects one GEOMETRY per status into
+`node.generated.css` in its own words, « a hue dies under forced-colors
+and under a colour-blind eye » · small for pending, ring for running,
+filled for success, diamond for failed, ring_halo for retrying, bar for
+skipped. I did not find it because it is written with `:where()` and my
+greps looked for `.status-x .nc-dot`. Read the projection before adding
+a vocabulary to `dag.css`; a second vocabulary does not reinforce the
+first, it fights it.
+
+**A detector that reads one property reports defects that are not there
+(v28)** · mine compared the dot's background colour across states and
+announced that success and pending were indistinguishable in forced
+colours. They were not: it had the two boxes in hand (7px and 4px) and
+never looked. A signature must be the whole shape · size, radius,
+border, outline, transform, fill · or it will accuse the wrong thing.
+
+**Never `forced-color-adjust: none` to keep a brand hue (v28)** · it
+opts the element out of the user's palette, which is the one thing that
+mode exists to honour, and our greens and blues painted straight over
+it. System colours only in there (`Canvas` · `CanvasText` · `GrayText`);
+`!important` is the tool for beating an author rule, not
+`forced-color-adjust`.
+
+**Fill what the spec fills; leave the rings hollow (v28)** · forced
+colours repaint every background, which erases the fill that half those
+geometries are made of. The old answer was `background: CanvasText
+!important` on every dot: it restored the filled states and destroyed
+the hollow ones, because an empty centre IS the ring's shape.
+
+**The key must wear the code (v28)** · the legend showed four identical
+round dots in every mode while the cards wore six distinct geometries.
+A key that does not show the code is decoration. `scripts/
+legend-parity.mjs` (in `npm test`) reads the geometry out of the
+projection and fails the build if a legend chip declares a different
+one. Values change SPEC-FIRST, then in `dag.css`.
+
 **What the mono lacks becomes a mark · not every glyph (v27)** · the
 coverage law has a second half that is easy to over-apply. Martian Mono
 carries the ellipsis, so turning the pill's door into a vendored mark

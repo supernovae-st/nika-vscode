@@ -223,8 +223,13 @@ for (const file of ['src/webview/dag.ts', 'src/core/verbPalette.ts']) {
   // card trio (18 pill · 10 action pill · 9 agent ring) and the chrome
   // one-offs (16 hint pills · 12 welcome card · 18 aurora · 1.5
   // confetti · 999 full pills; 50% never matches the px scan).
+  //   1 · the legend keys (v28). Not a free choice: the spec projects
+  //   one geometry per status into node.generated.css, the legend must
+  //   wear the same shapes to be a key at all, and scripts/
+  //   legend-parity.mjs fails the build if the two ever differ. A
+  //   radius step here would BREAK that parity by design.
   const R_CARD_ONEOFFS = new Set(['9', '10', '18']);
-  const R_CHROME_ONEOFFS = new Set(['16', '12', '18', '1.5', '999']);
+  const R_CHROME_ONEOFFS = new Set(['16', '12', '18', '1.5', '999', '1']);
   const CARD = /(nc-|dag-node|node-fo)/;
   let sel = '';
   for (const part of css.split(/(\{[^{}]*\})/)) {

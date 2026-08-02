@@ -1134,9 +1134,38 @@ body:not(.lod-far) .dag-edge {
     border-color: ButtonText !important;
   }
 
-  .nc-dot {
+  /* THE SECOND SIGNAL SURVIVES HERE (v28) · the spec projects one
+   * GEOMETRY per status precisely because « a hue dies under
+   * forced-colors » (node.generated.css). Forced-colors then repaints
+   * every background to Canvas, which erases the FILL that half those
+   * geometries are made of — a filled dot goes white on white.
+   *
+   * This rule used to answer with `background: CanvasText !important`
+   * on every dot, which restored the filled states and destroyed the
+   * hollow ones: running's ring and retrying's ring_halo lost the empty
+   * centre that IS their shape. Fill what the spec fills; leave the
+   * rings hollow. The keys in the legend follow the same split. */
+  /* SYSTEM COLOURS ONLY here · never forced-color-adjust: none, which
+   * would paint our brand hues straight over the palette the user
+   * explicitly asked for. !important is what beats the per-status
+   * author rules; the geometry underneath is untouched. */
+  .nc-dot,
+  .legend-dot {
     background: CanvasText !important;
     box-shadow: none !important;
+    opacity: 1 !important;
+  }
+  /* the rings keep the empty centre that IS their shape */
+  .dag-node.status-running .nc-dot,
+  .dag-node.status-retrying .nc-dot,
+  .legend-chip.st-running .legend-dot,
+  .legend-chip.st-retrying .legend-dot {
+    background: Canvas !important;
+  }
+  /* a decision, not an outcome · the system's own disabled ink */
+  .dag-node.status-skipped .nc-dot,
+  .legend-chip.st-skipped .legend-dot {
+    background: GrayText !important;
   }
 
   .nc-tile,
@@ -1451,6 +1480,27 @@ body[data-nk-theme='nika'] .wave-band.odd { opacity: 0.14; }
 .legend-chip.st-skipped .legend-dot { background: var(--nk-st-muted); }
 .legend-chip.st-pending .legend-dot { opacity: 0.4; }
 .legend-chip.st-critical .legend-dot { background: var(--nk-critical); }
+
+/* THE KEY WEARS THE CODE (v28) · the cards carry one GEOMETRY per status
+ * (the spec's second signal, projected into node.generated.css: « a hue
+ * dies under forced-colors and under a colour-blind eye »). The legend
+ * is that code's key, and it wore four identical round dots in every
+ * mode — teaching a mapping the canvas does not use. These mirror the
+ * projection exactly; scripts/legend-parity.mjs fails the build if the
+ * two ever drift. Values change SPEC-FIRST, then here. */
+.legend-chip.st-pending .legend-dot { width: 4px; height: 4px; border-radius: 50%; }
+.legend-chip.st-running .legend-dot { width: 7px; height: 7px; border-radius: 50%; border: 2px solid currentColor; background: transparent; box-sizing: border-box; }
+.legend-chip.st-success .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+.legend-chip.st-failed .legend-dot { width: 7px; height: 7px; border-radius: 1px; transform: rotate(45deg); }
+.legend-chip.st-retrying .legend-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; outline: 1px solid currentColor; outline-offset: 1px; background: transparent; box-sizing: border-box; }
+.legend-chip.st-skipped .legend-dot { width: 7px; height: 2px; border-radius: 1px; }
+
+/* The running and retrying keys are RINGS: they take the status hue as
+ * their ink so the border reads, since their centre is empty. */
+.legend-chip.st-running .legend-dot { color: var(--nk-st-running); }
+.legend-chip.st-retrying .legend-dot { color: var(--nk-st-retrying); }
+
+
 
 #progress-track {
   flex: 0 1 240px;
@@ -2500,6 +2550,11 @@ body.dag-loading #zoom-dock { display: none; }
 .legend-chip.st-cancelled .legend-dot {
   background: var(--nk-st-muted);
   opacity: 0.6;
+  /* the projected geometry · a struck bar (legend-parity holds it) */
+  width: 7px;
+  height: 2px;
+  border-radius: 1px;
+  transform: rotate(-45deg);
 }
 
 .act-entry.st-retrying .act-icon { color: var(--nk-st-retrying); }
@@ -7032,7 +7087,11 @@ body.vscode-high-contrast .dag-edge.edge-data {
 @keyframes nika-motion-agent { to { transform: rotate(360deg); } }
 
 /* The recovered legend chip — the amber of the absorbed failure. */
-.legend-chip.st-recovered .legend-dot { background: var(--nk-st-retrying); }
+/* `recovered` is a MODIFIER on success (.is-recovered.status-success),
+ * not a status of its own, so the projection has no geometry for it:
+ * it wears success's filled round and the retry hue tells the story.
+ * legend-parity exempts it for exactly that reason. */
+.legend-chip.st-recovered .legend-dot { background: var(--nk-st-retrying); width: 7px; height: 7px; border-radius: 50%; }
 .legend-chip.st-recovered { color: var(--nk-st-retrying); }
 
 /* Heat mode neutralizes hue on purpose — the verb matter steps back so
