@@ -6,6 +6,20 @@ major.minor from 0.97).
 
 ## [Unreleased]
 
+### One brightness, and a key that fills its field (v42)
+
+- The welcome's submit was raised to the WCAG 24x24 minimum and then sat
+  3px shorter than the field it submits. A floor is a minimum, not a
+  target · it stretches to the field now.
+- The contrast and ladder lenses each carried their own opacity fold ·
+  the very repair that turned a green gate into eleven real violations.
+  One implementation now, shared.
+
+The extraction left a dangling reference in the contrast lens's
+reporting branch, so every sweep after it came back clean because
+nothing was ever reported. Only a mutation that LANDED showed the lens
+crashing instead of speaking.
+
 ### The first screen gets its gates (v41)
 
 The welcome surface was in no sweep, so nothing held it. Two real

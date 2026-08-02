@@ -6436,6 +6436,11 @@ body[data-nk-calm] #es-describe.es-busy #es-describe-go svg { animation: none; o
    * welcome scene was in no sweep (v41): the height came from the
    * input's line box and nothing asked it to be reachable. */
   min-height: 24px;
+  /* and it MATCHES the field it submits · 24 is the accessibility
+   * FLOOR, not a target, and a 24px key in a 27px field reads as a
+   * loose part. Stretching means it follows the field whatever the
+   * field becomes, instead of copying a number that will drift. */
+  align-self: stretch;
   display: inline-flex;
   align-items: center;
   justify-content: center;

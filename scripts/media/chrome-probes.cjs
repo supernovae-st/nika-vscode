@@ -81,6 +81,28 @@ const PROBE = () => {
   // region for falling back to a face that has no ✗, which is true and
   // irrelevant — nothing there ever reaches a screen. The clip-inset
   // 1x1 offscreen box is the standard shape.
+  // ONE implementation of « how bright is this », shared by every lens
+  // that judges it. It lived twice - once in the contrast lens, once in
+  // the ladder - and the opacity fold is exactly the repair that turned
+  // a green gate into eleven real violations. Two copies is two chances
+  // to repair only one.
+  const inkOf = (el) => {
+    const cs = getComputedStyle(el);
+    const fg0 = parse(cs.color);
+    if (!fg0) { return null; }
+    let op = 1;
+    for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+      op *= Number(getComputedStyle(n).opacity || 1);
+    }
+    return { ...fg0, a: fg0.a * op };
+  };
+  const ratioOf = (el) => {
+    const fg = inkOf(el), bg = bgOf(el);
+    if (!fg || !bg || fg.a < 0.05) { return null; }
+    const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
+    return { ratio: (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05), fg, bg };
+  };
+
   const paints = (el) => {
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) { return false; }
@@ -215,15 +237,9 @@ const PROBE = () => {
     // could never fail (the flat keycap sat at 3.08:1 and this lens
     // said green · v21). Ancestors count — opacity multiplies down.
     if (hasOwnText) {
-      const fg0 = parse(cs.color), bg = bgOf(el);
-      let op = 1;
-      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
-        op *= Number(getComputedStyle(n).opacity || 1);
-      }
-      const fg = fg0 ? { ...fg0, a: fg0.a * op } : null;
-      if (fg && bg && fg.a >= 0.05) {
-        const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
-        const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+      const measured = ratioOf(el);
+      if (measured !== null) {
+        const { ratio, fg } = measured;
         const px = parseFloat(cs.fontSize);
         const bold = parseInt(cs.fontWeight, 10) >= 700;
         const floor = (px >= 24 || (bold && px >= 18.66)) ? 3 : 4.5;
@@ -231,7 +247,12 @@ const PROBE = () => {
           out.contrast.push({
             sel: sel(el), text: (el.textContent || '').trim().slice(0, 40),
             ratio: +ratio.toFixed(2), floor, px: +px.toFixed(1), color: cs.color,
-            ...(op < 0.999 ? { opacity: +op.toFixed(2) } : {}),
+            // the veil, reported when there is one · the fold now lives in
+            // inkOf(), so this reads the folded alpha instead of a local
+            // `op` the extraction removed (it crashed the whole lens, and
+            // only a mutation that LANDED showed it: every sweep after
+            // the refactor was clean because nothing was ever reported)
+            ...(fg.a < 0.999 ? { opacity: +fg.a.toFixed(2) } : {}),
           });
         }
       }
@@ -368,18 +389,7 @@ const PROBE = () => {
     // first attempt here was: it rebuilt the composite by hand and the
     // gate stayed green through a mutation that made the preview shout
     // as loud as the name.
-    const ratio = (el) => {
-      const cs = getComputedStyle(el);
-      const fg0 = parse(cs.color), bg = bgOf(el);
-      if (!fg0 || !bg) { return null; }
-      let op = 1;
-      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
-        op *= Number(getComputedStyle(n).opacity || 1);
-      }
-      const fg = { ...fg0, a: fg0.a * op };
-      const L1 = lumOf(over(fg, bg)), L2 = lumOf(bg);
-      return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-    };
+    const ratio = (el) => { const m = ratioOf(el); return m === null ? null : m.ratio; };
     // The ladder is a COLOUR hierarchy, and forced-colors exists to
     // abolish exactly that: the system paints every row in one ink, all
     // three measured 21, and the lens read the user's own setting as a
