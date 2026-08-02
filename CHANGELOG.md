@@ -18,6 +18,28 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The failure path says what happened (v37)
+
+Auditing the state a user remembers found a serious one: a settled body
+wears `.nc-body-live` whether it landed OR broke, and a failure adds
+`.nc-body-err` on top. Both rules had the same specificity and `live`
+sits later in the file, so source order decided · and
+« NIKA-INFER-003 · provider refused » rendered in the SUCCESS green.
+
+- The selector names the combination that actually occurs, and a
+  `semantic` lens holds the law.
+- The verdict banner's line is a readout (counts, glyphs, durations),
+  so it takes the mono: in the sans it carried marks that face does not
+  own and fell back per machine, on the banner you read when something
+  broke.
+- A `paints()` guard stops every rendering lens from judging
+  screen-reader-only text.
+
+Measured and left alone: the card's five states are already distinct
+(hover, focus-visible and selected each have their own ring), and the
+wires' round casing under butt-capped strokes produces no visible
+overshoot.
+
 ### The host stops shadowing the spec (v36)
 
 `node.generated.css` is projected with zero specificity so the host can
