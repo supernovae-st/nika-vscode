@@ -267,7 +267,14 @@ body {
    * speaks the THEME's button voice; nika pins the brand blue. */
   --nk-cta: var(--vscode-button-background, #2b62ea);
   --nk-cta-hover: var(--vscode-button-hoverBackground, #2f6bff);
-  --nk-cta-ink: var(--vscode-button-foreground, #ffffff);
+  /* OUR ink on OUR button (v41). Reading the host's button FOREGROUND
+   * while supplying our own background pairs two unrelated sources: a
+   * theme that sets button.foreground and leaves button.background to
+   * the default put a #cccccc on our #2b62ea · 3.24:1, on the primary
+   * call to action of the first screen a new user sees. Every skin that
+   * redefines --nk-cta redefines this with it; white is what VS Code
+   * itself puts on a button background, light theme or dark. */
+  --nk-cta-ink: #ffffff;
   /* Run-state palette (LOCK-005 semantics — never brand-swapped). */
   --nk-st-running: var(--vscode-charts-blue, #3794ff);
   --nk-st-success: var(--vscode-charts-green, #89d185);
@@ -2046,8 +2053,12 @@ body.dag-loading #zoom-dock { display: none; }
   padding: 5px 14px;
   font-size: var(--nk-fs-ui);
   font-family: inherit;
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
+  /* the CTA pair, not a lone host token (v41) · this read the theme's
+   * button FOREGROUND while the background beside it came from
+   * --nk-cta, so a theme that sets one and not the other landed
+   * #cccccc on our blue: 3.24:1 on the first screen's primary action */
+  color: var(--nk-cta-ink);
+  background: var(--nk-cta);
   border: 1px solid var(--vscode-button-border, transparent);
   border-radius: calc(var(--nk-radius) - 2px);
   cursor: pointer;
@@ -6419,6 +6430,15 @@ body[data-nk-calm] #es-describe.es-busy #es-describe-go svg { animation: none; o
 #es-describe-go {
   flex: none;
   width: 32px;
+  /* WCAG 2.2 (2.5.8) · a pointer target is 24x24 CSS px minimum, and
+   * this one measured 32x16 · the submit of the FIRST thing a new user
+   * types, on the FIRST screen they see. It was invisible because the
+   * welcome scene was in no sweep (v41): the height came from the
+   * input's line box and nothing asked it to be reachable. */
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid color-mix(in srgb, var(--nk-cta) 40%, var(--nk-border));
   border-radius: var(--nk-radius);
   background:
@@ -7375,6 +7395,7 @@ body[data-nk-theme='phosphor'] {
   --nk-accent: #52e09a;
   --nk-data: #7fd6a0;
   --nk-cta: #14663f;
+  --nk-cta-ink: #eafff2;
   --nk-cta-hover: #187a4b;
   --nk-cta-ink: #eafff2;
   --nk-radius: 7px;
