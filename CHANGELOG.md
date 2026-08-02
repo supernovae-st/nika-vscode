@@ -24,6 +24,17 @@ alias is the token you write in `${{ tasks.X.commits }}`; it no longer
 shrinks, and the row packs by MEASURE rather than by count (two long
 wires used to overflow and mush each other).
 
+### The feed clears the legend (v39)
+
+At the narrow rung the legend is itself lifted above the full-width
+omnibar, and the activity feed's floor still answered only to the corner
+· 272x7px of overlap at 620 wide, whenever a run made the feed appear.
+It derives from what actually sits below it now.
+
+The collide lens caught this ONCE, by timing, because the feed is hidden
+at rest and the sweep never drove a run. `npm run probes` now includes a
+running and a failed pass, so the transient surfaces are judged too.
+
 ### A paused card shows what it asks (v38)
 
 The body already swaps for a landed output and for an error. The one

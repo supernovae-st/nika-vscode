@@ -194,6 +194,7 @@ body {
   --nk-minimap-w: 148px;
   --nk-omnibar-floor: 34px;
   --nk-omnibar-h: 48px;
+  --nk-legend-h: 19px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -2541,7 +2542,18 @@ body.dag-loading #zoom-dock { display: none; }
   /* The dock un-stacks: the omnibar takes the full row, the minimap and
    * the feed step up one floor — nothing overlaps at any width. */
   :root { --nk-corner-floor: 104px; }
-  #activity { bottom: var(--nk-corner-floor); }
+  /* The feed clears the LEGEND, not just the corner floor (v39) · at
+   * this rung the legend is itself lifted above the full-width omnibar,
+   * and the feed's floor still answered only to the corner: measured
+   * 272x7px of overlap at 620 wide, whenever a run made the feed
+   * appear. It derives from what actually sits below it, the same way
+   * the dock derives from the minimap. */
+  #activity {
+    bottom: calc(
+      var(--nk-omnibar-floor) + var(--nk-omnibar-h) + var(--nk-legend-h)
+      + var(--nk-corner-gap) * 2
+    );
+  }
   #transport { right: 12px; bottom: var(--nk-corner-floor); }
   /* The legend clears the full-width omnibar: its wrapping second row
    * used to climb INTO the bar. The old 60px sat INSIDE that bar
