@@ -6,3 +6,8 @@ out-integration/
 
 # Local run traces from manual testing (the DAG panel + nika run write here)
 .nika/
+
+# Raw capture output · the recipes in scripts/media/README.md turn these
+# into the GIFs under media/. Playwright also drops one page@<hash>.webm
+# per recorded page, which is how two of them rode a commit.
+scripts/media/*.webm
