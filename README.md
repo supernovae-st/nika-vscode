@@ -283,6 +283,27 @@ static cost · recorded clocks, and each lens renders one question:
   the whole story
 - **H · heatmap** · where the time went, as a toggle, never ambient
 
+### The map in the corner
+
+The minimap is not a thumbnail of the canvas · it is a second reading
+of the same graph, quieter, in three layers:
+
+- **the plan's rhythm** · faint bands, one per wave, the same read the
+  rail gives you on the left
+- **the topology** · every wire, because an overview without edges is a
+  scatter plot: it can say how much is done and never how the run is
+  ordered
+- **the critical path** · in the canvas's own amber, so the chain that
+  owns the wall-clock is the one thing the overview never buries
+
+The frame says where you are and nothing else: it clamps to the card
+rather than clipping away at its edges, and when it covers the whole
+graph it fades, because « all of it » is what the card's own border
+already says. Drag anywhere in it to fly · the camera follows the
+pointer instead of easing after it. Hover a task and it lights on the
+canvas too; the map and the graph are one surface, not two pictures of
+one thing.
+
 ### See the run
 
 ![A 38-task brand-studio workflow executes: the map lights up wave by wave, the camera dives onto expanded cards where declared media frames develop into recorded artifacts (image as the card body, floating header, the params pill), then pulls back for the verdict](media/dag-execution.gif)
@@ -321,11 +342,10 @@ network: every green close settles a ✓ wave through the cards.*
 - **The dense card** · the substance lives ON the node:
   - **the io row** · names the inbound wires (`alias ← producer`;
     click one, jump to the producer, `+N` when more)
-  - **the policy row** · the declared execution policy as chips
-    (`↻×3` retry budget · `⏱ 30s` timeout · on_error route
-    `✚ recover`/`⤼ skip`/`✗ fail` · `⤳ 2 outs` named output bindings ·
-    `▦ N` permits, engine-projected) · a settled verdict shows its
-    recorded spend (`✓ 1.2s · $0.0042`)
+  - **the policy row** · the declared execution policy as chips, each
+    led by its own mark (retry budget `×3` · timeout `30s` · the
+    on_error route · named output bindings · permits, engine-projected)
+    · a settled verdict shows its recorded spend (`✓ 1.2s · $0.0042`)
   - **the floating header + the pill** · an expanded card floats its
     verb tile, task id and engine identity (the model chip stays the
     click-to-change door) above the frame, and the declared knobs
@@ -454,7 +474,7 @@ network: every green close settles a ✓ wave through the cards.*
   (`⌘K ⌘S`: search "nika")
 - **The nika.sh skin** · the panel ships the landing page's design
   language by default: engineered-black register, one blue accent, the
-  4 verb hues as node LED spines (infer ◇ · exec ▷ · invoke ◆ · agent ✦),
+  4 verb hues as node LED spines, each verb wearing its own mark,
   Martian Mono, a full-spectrum edge aurora that sweeps once on a clean
   run close and flashes red on failure · `nika.dag.theme: editor` follows
   your theme instead · `phosphor` is the OLED register: true-black

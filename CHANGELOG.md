@@ -4,7 +4,18 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased]
+## [0.107.10] · 2026-08-02 · the audited surfaces
+
+Three passes over the surfaces nothing was holding: the artifact that
+reaches users, the screen they see first, and the instruments that
+judge both.
+
+### The README says what the canvas does (v42)
+
+The minimap became a map two waves ago and the README never mentioned
+it. It has its section now. And two lines were teaching glyphs the
+canvas stopped drawing: the policy chips and the verb spines are marks
+from the house library, not characters.
 
 ### One brightness, and a key that fills its field (v42)
 
