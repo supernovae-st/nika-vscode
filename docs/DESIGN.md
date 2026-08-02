@@ -738,6 +738,32 @@ The same law explains why a transform on a foreignObject's container
 is forbidden: it forces a compositing layer and frames arrive with the
 wires painted and the cards missing.
 
+**A derived position computes; it never copies (v26)** · the zoom dock
+carried `bottom: 140px` under the comment « minimap 96 + its 34 + 10
+breathing » · the arithmetic was right the day it was written · and a lie
+the day the minimap stepped up a floor. Same disease in the legend,
+lifted to 60px to clear an omnibar that occupies 34 to 82. Both were
+invisible until something else moved. The corner geometry is tokens
+now (`--nk-corner-floor` · `--nk-corner-gap` · `--nk-minimap-h/w` ·
+`--nk-omnibar-floor/h`) and every tenant derives from them with
+`calc()`, so a floor moves in one place and the stack follows.
+
+**One width is not a proof (v26)** · every probe and every screenshot in
+this arc was rendered at 1440x900, and a VS Code webview almost never
+gets that: it lives in an editor group, half a split, a column beside a
+terminal. The ladder is `1440x900,860x720,620x820` now, and the first
+sweep at real widths found two chrome clusters painting over each other
+at 620 · a `collide` lens holds the line (chrome may touch, never
+overlap; containment excluded).
+
+**An instrument reports the world you set, or it reports nothing (v26)**
+· three measurements agreed with each other because all three had
+silently fallen back to the default viewport: `newPage({ viewportSize })`
+is not an option Playwright reads. The probe now asserts
+`innerWidth x innerHeight` against what it asked for and throws
+otherwise. Agreement between instruments is not evidence when they
+share a fault.
+
 **The house does not animate what it does not own (v24)** · a character
 absent from the shipped face renders in whatever the OS supplies:
 foreign metrics, foreign weight, different on every machine. Measured

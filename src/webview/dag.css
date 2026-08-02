@@ -111,6 +111,18 @@ body {
   --nk-r-tile: 6px;
   --nk-r-panel: 8px;
   --nk-r-pop: 10px;
+  /* THE CORNER GEOMETRY (v26) · declared once, computed everywhere.
+   * The bottom-right stack (minimap · zoom dock · activity · transport)
+   * and the bottom strip (omnibar · legend) each derive their offsets
+   * from these. A floor moves in ONE place and every tenant follows;
+   * the two collisions this replaced were both hand-copied derivations
+   * that outlived the geometry they came from. */
+  --nk-corner-floor: 34px;
+  --nk-corner-gap: 10px;
+  --nk-minimap-h: 96px;
+  --nk-minimap-w: 148px;
+  --nk-omnibar-floor: 34px;
+  --nk-omnibar-h: 48px;
   /* The survey grid: faint "+" marks at 40px intersections (the Well
    * blueprint read) — one token, three skins retune the ink. */
   --nk-grid-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.05'%3E%3Cpath d='M20 16v8M16 20h8'/%3E%3C/g%3E%3C/svg%3E");
@@ -1644,10 +1656,17 @@ body.vscode-light .logo-dark { display: none; }
 /* The camera dock — bottom-right above the minimap (the Figma
  * placement): zoom · readout · fit · layout. Same ids as the old
  * toolbar seats, the handlers rebind for free. */
+/* THE CORNER STACK (v26). The dock used to carry `bottom: 140px` with
+ * the comment « minimap 96 + its 34 + 10 breathing » — a value DERIVED
+ * from the minimap's geometry and then copied by hand. The moment the
+ * minimap stepped up a floor at narrow widths, the copy stopped being
+ * true and the dock painted straight across it (measured 148x34px of
+ * overlap at 620px wide, the width half a split editor gives you).
+ * The derivation is now a calc, so a floor change cascades. */
 #zoom-dock {
   position: fixed;
   right: 12px;
-  bottom: 140px; /* minimap 96 + its 34 + 10 breathing */
+  bottom: calc(var(--nk-corner-floor) + var(--nk-minimap-h) + var(--nk-corner-gap));
   z-index: 44;
   display: inline-flex;
   align-items: center;
@@ -1707,9 +1726,9 @@ body.dag-loading #zoom-dock { display: none; }
 #minimap {
   position: fixed;
   right: 12px;
-  bottom: 34px;
-  width: 148px;
-  height: 96px;
+  bottom: var(--nk-corner-floor);
+  width: var(--nk-minimap-w);
+  height: var(--nk-minimap-h);
   border: 1px solid var(--nk-border);
   border-radius: var(--nk-r-panel);
   background: color-mix(in srgb, var(--nk-surface) 82%, transparent);
@@ -2339,12 +2358,19 @@ body.dag-loading #zoom-dock { display: none; }
   #btn-curve { display: none; }
   /* The dock un-stacks: the omnibar takes the full row, the minimap and
    * the feed step up one floor — nothing overlaps at any width. */
-  #minimap { bottom: 104px; }
-  #activity { bottom: 104px; }
-  #transport { right: 12px; bottom: 104px; }
+  :root { --nk-corner-floor: 104px; }
+  #activity { bottom: var(--nk-corner-floor); }
+  #transport { right: 12px; bottom: var(--nk-corner-floor); }
   /* The legend clears the full-width omnibar: its wrapping second row
-   * used to climb INTO the bar. */
-  #dag-legend { bottom: 60px; }
+   * used to climb INTO the bar. The old 60px sat INSIDE that bar
+   * (34 floor + 48 tall = 82), so the strip was not lifted, it was
+   * buried — measured 596x19px under the bar. Computed now. */
+  #dag-legend {
+    bottom: calc(var(--nk-omnibar-floor) + var(--nk-omnibar-h) + var(--nk-corner-gap));
+    /* Lifted into the corner's band, the strip must also YIELD to it:
+     * a full-width legend ran 7px under the map. */
+    right: calc(12px + var(--nk-minimap-w) + var(--nk-corner-gap));
+  }
 }
 
 /* The MEASURED rung of the shed ladder (dag.ts · fitToolbar).
@@ -2388,7 +2414,7 @@ body.dag-loading #zoom-dock { display: none; }
 
 @media (max-width: 520px) {
   #activity { width: 180px; max-height: 120px; }
-  #minimap { width: 110px; height: 72px; }
+  :root { --nk-minimap-h: 72px; --nk-minimap-w: 110px; }
   .legend-chip { font-size: var(--nk-fs-body); padding: 1px 6px; }
   #tr-time { display: none; }
 }
@@ -4852,7 +4878,7 @@ body.lod-far .edge-hit { pointer-events: none; }
 #omnibar {
   position: fixed;
   left: 50%;
-  bottom: 34px;
+  bottom: var(--nk-omnibar-floor);
   transform: translateX(-50%);
   z-index: 44;
   display: flex;
