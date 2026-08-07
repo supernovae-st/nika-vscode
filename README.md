@@ -542,10 +542,10 @@ network: every green close settles a ✓ wave through the cards.*
 - **One plugin, three ecosystems** · Cursor: search "nika" in Settings →
   Plugins (one Add installs skill + subagent + commands + check-on-edit
   hook + MCP oracle) · Codex: `codex plugin marketplace add
-  supernovae-st/nika-agents` + `codex plugin add nika@nika` · Claude Code:
-  `claude plugin marketplace add supernovae-st/nika-agents` + `claude
+  supernovae-st/nika-plugins` + `codex plugin add nika@nika` · Claude Code:
+  `claude plugin marketplace add supernovae-st/nika-plugins` + `claude
   plugin install nika@nika`. This extension is the IDE surface; the
-  [nika-agents](https://github.com/supernovae-st/nika-agents) plugin is
+  [nika-plugins](https://github.com/supernovae-st/nika-plugins) plugin is
   the agent surface · its README carries the who-does-what map (plugin =
   per-agent · `nika init` = per-repo · `nika wire` = per-machine).
 - **Deterministic authoring prompt** · copy the template→check→repair
@@ -632,7 +632,7 @@ cross-links, in the **Feature Contributions** tab.
     │ the release train                  🖥️ nika.sh · 📖 nika-docs
     ▼                                     the showroom · the manual
 📦 homebrew-tap · npm · Docker ── the docks
-🔌 nika-client · 🎨 nika-vscode · 🤖 nika-agents · ⚡ gh-nika ── the doors   ◀── you are here
+🔌 nika-client · 🎨 nika-vscode · 🤖 nika-plugins · ⚡ gh-nika ── the doors   ◀── you are here
 🏭 nika-action · 🧪 nika-actions-starter ── the CI district
 🏪 nika-registry ── the market · 🏛 nika-estate ── the land registry
 ```
@@ -647,7 +647,7 @@ cross-links, in the **Feature Contributions** tab.
 
 **Truth lives** · rides the engine's release train · what the canvas shows derives from the engine's own reading, never re-derived site-side.
 
-All the buildings: [nika-spec](https://github.com/supernovae-st/nika-spec) · [nika](https://github.com/supernovae-st/nika) · [nika.sh](https://github.com/supernovae-st/nika.sh) · [nika-docs](https://github.com/supernovae-st/nika-docs) · [nika-client](https://github.com/supernovae-st/nika-client) · [nika-vscode](https://github.com/supernovae-st/nika-vscode) · [nika-agents](https://github.com/supernovae-st/nika-agents) · [gh-nika](https://github.com/supernovae-st/gh-nika) · [homebrew-tap](https://github.com/supernovae-st/homebrew-tap) · [nika-action](https://github.com/supernovae-st/nika-action) · [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) · [nika-registry](https://github.com/supernovae-st/nika-registry) · [nika-estate](https://github.com/supernovae-st/nika-estate)
+All the buildings: [nika-spec](https://github.com/supernovae-st/nika-spec) · [nika](https://github.com/supernovae-st/nika) · [nika.sh](https://github.com/supernovae-st/nika.sh) · [nika-docs](https://github.com/supernovae-st/nika-docs) · [nika-client](https://github.com/supernovae-st/nika-client) · [nika-vscode](https://github.com/supernovae-st/nika-vscode) · [nika-plugins](https://github.com/supernovae-st/nika-plugins) · [gh-nika](https://github.com/supernovae-st/gh-nika) · [homebrew-tap](https://github.com/supernovae-st/homebrew-tap) · [nika-action](https://github.com/supernovae-st/nika-action) · [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) · [nika-registry](https://github.com/supernovae-st/nika-registry) · [nika-estate](https://github.com/supernovae-st/nika-estate)
 
 Every fact has one home · everything else is a gated projection.
 The living map: [nika.sh/map](https://nika.sh/map).
