@@ -4,6 +4,19 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.108.0] · 2026-08-08 · the access wave
+
+Lockstep on the engine's v0.108.0: `model:` picks the intelligence,
+`access` picks the path. The admission resolver is a pure function
+with a strict sovereign order (`local < mock < harness < oauth <
+api`); the `--access` pin on `run` and `try` is judged at the launch
+gates and refuses with `NIKA-1800/1801/1802`, never substitutes; the
+ACP harness class lands with its mock instrument. And the
+zero-authority scan now refuses every `exec` spelling, the shell form
+included. The extension's own surfaces are unchanged from 0.107.10 ·
+the README names the plugin building, and developer-local recordings
+no longer ride the repo.
+
 ## [0.107.10] · 2026-08-02 · the audited surfaces
 
 Three passes over the surfaces nothing was holding: the artifact that
