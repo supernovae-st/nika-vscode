@@ -36,9 +36,7 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
   });
 
 const BASE = [
-  'nika: v1',
-  'workflow:',
-  '  id: flow-doors-proof',
+  'nika: flow-doors-proof',
   'model: mock/echo',
   '',
   'inputs:',
@@ -97,7 +95,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN) || !speaksESplit(BIN))('flow doors × t
     expect(fanned).toContain('    after: { gather: success }');
     expect(fanned).toContain('      gather: ${{ tasks.gather.output }}');
     expect(fanned).toContain('    when: ${{ size(with.gather) > 0 }}');
-    expect(fanned).toContain('    for_each: ${{ inputs.urls }}');
+    expect(fanned).toContain('    for_each: { items: "${{ inputs.urls }}" }');
     expect(check(BIN!, fanned).clean).toBe(true);
   });
 

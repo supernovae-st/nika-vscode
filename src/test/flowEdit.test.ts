@@ -95,10 +95,12 @@ describe('flowEdit (order on state · gate · fan out)', () => {
     expect(lines[14]).toBe('      thread: terminal');
   });
 
-  it('a fresh for_each lands after when:, unquoted like the spec', () => {
+  it('a fresh for_each lands after when:, as the block the engine admits', () => {
+    // `for_each: { items: "…" }` — the bare scalar was refused at parse
+    // (« for_each must be a block with items: ») · measured 2026-08-18.
     const next = fanoutRewrite(WF, TASKS[1], 'inputs.urls')!;
     const lines = next.split('\n');
-    expect(lines[10]).toBe('    for_each: ${{ inputs.urls }}');
+    expect(lines[10]).toBe('    for_each: { items: "${{ inputs.urls }}" }');
     expect(lines[9]).toContain('when:');
   });
 

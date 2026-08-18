@@ -217,6 +217,37 @@ describe('collectBodyFacts · infer senses (spec 02 — thinking · vision)', ()
 });
 
 describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail_fast)', () => {
+  it('reads the collection and the knobs from the for_each BLOCK the engine admits (flow + nested)', () => {
+    // 0.109: `for_each: { items: "…", max_parallel: N, fail_fast: B }` — the
+    // knobs live INSIDE the block (spec 03); the pre-0.109 task-level
+    // spelling below stays readable for old files.
+    const flow = collectBodyFacts([
+      'nika: probe',
+      'tasks:',
+      '  crawl:',
+      '    for_each: { items: "${{ with.pages }}", max_parallel: 4, fail_fast: false }',
+      '    invoke:',
+      '      tool: nika:fetch',
+      '      args:',
+      '        url: ${{ item }}',
+    ].join('\n')).get('crawl');
+    expect(flow?.forEachSource).toBe('${{ with.pages }}');
+    expect(flow?.maxParallel).toBe(4);
+    expect(flow?.failFast).toBe(false);
+    const nested = collectBodyFacts([
+      'nika: probe',
+      'tasks:',
+      '  crawl:',
+      '    for_each:',
+      '      items: ${{ with.pages }}',
+      '      max_parallel: 2',
+      '    invoke:',
+      '      tool: nika:fetch',
+    ].join('\n')).get('crawl');
+    expect(nested?.forEachSource).toBe('${{ with.pages }}');
+    expect(nested?.maxParallel).toBe(2);
+  });
+
   it('reads the cap and the per-item idiom at task level only', () => {
     const facts = collectBodyFacts([
       'nika: v1',
