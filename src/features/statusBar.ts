@@ -79,7 +79,7 @@ export class NikaStatusBar implements vscode.Disposable {
     }
     this.item.command = 'nika.showMenu';
     // Feed the canary once per binary (cached; a no-op after the first
-    // verdict) — a gen-0 floor must not wait for the Station to open.
+    // verdict) — an older-engine floor must not wait for the Station to open.
     if (this.service.gen1 === undefined && caps.check) {
       void this.service.speaksGrammar().then((v) => {
         if (v !== undefined) { this.render(); }
