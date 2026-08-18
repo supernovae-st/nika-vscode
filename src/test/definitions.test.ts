@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { findTaskDeclaration, findVarDeclaration, resolveDefinition } from '../core/definitions';
 
 const WF = [
-  'nika: v1',            // 0
+  'nika: t',            // 0
   'workflow:',           // 1
   '  id: t',             // 2
   'const:',              // 3
@@ -57,7 +57,7 @@ describe('go-to-definition, the three navigable classes', () => {
 
   it('navigates each authority to its OWN block', () => {
     const doc = [
-      'nika: v1',                                    // 0
+      'nika: t',                                    // 0
       'workflow:',                                   // 1
       '  id: t',                                     // 2
       'inputs:',                                     // 3
@@ -82,7 +82,7 @@ describe('go-to-definition, the three navigable classes', () => {
     // The value is refused by the engine, but the editor is exactly the
     // tool you migrate IN: jumping to the old declaration must still work.
     const legacy = [
-      'nika: v1',                              // 0
+      'nika: t',                              // 0
       'workflow:',                             // 1
       '  id: t',                               // 2
       'vars:',                                 // 3

@@ -6,9 +6,9 @@ import {
 } from '../core/flowEdit';
 import { parseRichWorkflow } from '../workflowParser';
 
-const WF = `nika: v1
-workflow:
-  id: w
+const WF = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   gather:
     infer:
@@ -107,9 +107,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
 
   it('a binding grows an existing block with: and suffixes a taken alias', () => {
     const wf = [
-      'nika: v1',
-      'workflow:',
-      '  id: w',
+      'nika: w',
       'tasks:',
       '  gather:',
       '    infer:',
@@ -121,7 +119,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
       '      prompt: "${{ with.doc }}"',
       '',
     ].join('\n');
-    const digest = range('digest', 7, 11, {}, ['gather']);
+    const digest = range('digest', 5, 9, {}, ['gather']);
     const bound = bindingInsert(wf, digest, 'doc', 'tasks.gather.status', ['doc'])!;
     expect(bound.alias).toBe('doc_2');
     expect(bound.text).toContain('      doc_2: ${{ tasks.gather.status }}');
@@ -178,9 +176,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
 
 describe('islandKeyRewrite (the server-island position)', () => {
   const DOC = [
-    'nika: v1',
-    'workflow:',
-    '  id: w',
+    'nika: w',
     'model: mock/echo',
     'tasks:',
     '  a:',

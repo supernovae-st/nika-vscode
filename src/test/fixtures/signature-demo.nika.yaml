@@ -3,10 +3,9 @@
 # SIGNATURE DEMO · release-notes-i18n — the 60-second wow workflow.
 # Deep chain × wide fanout · all four verbs (infer · exec · invoke · agent) ·
 # CEL gate + jq fan-in · runs OFFLINE on mock/echo (zero key · zero network).
-nika: v1
-workflow:
-  id: release-notes-i18n
-  description: "digest local changes · draft release notes · translate ×4 locales · agent-verify · publish"
+#
+# digest local changes · draft release notes · translate ×4 locales · agent-verify · publish
+nika: release-notes-i18n
 
 model: mock/echo
 
@@ -14,8 +13,8 @@ const:                                        # neither is caller-overridable
   changes_dir: "./items"                      # `digest` hardcodes items/item-N.md
   locales: ["fr-FR", "de-DE", "ja-JP", "es-ES"]   # the description pins ×4
 
-# 0.106 · an absent permits block is the EMPTY boundary (NIKA-AUTH-006),
-# so the fixture grants exactly what its body spends — nothing wider.
+# An absent permits block is the EMPTY boundary (NIKA-AUTH-006), so the
+# fixture grants exactly what its body spends — nothing wider.
 permits:
   tools: ["nika:glob", "nika:jq"]
   exec: ["cat", "printf"]
@@ -52,9 +51,10 @@ tasks:
   translate:
     with:
       notes: ${{ tasks.draft.output }}
-    for_each: ${{ const.locales }}
-    max_parallel: 4
-    fail_fast: false
+    for_each:
+      items: ${{ const.locales }}
+      max_parallel: 4
+      fail_fast: false
     timeout: "60s"
     retry:
       max_attempts: 2

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { findVerbLines, invokeBodyFor, verbBlockEdit, verbBlockEnd } from '../core/verbBlocks';
 
-const WF = `nika: v1
-workflow:
-  id: probe
+const WF = `# probe · the fixture (two header lines keep the ranges below stable)
+#
+nika: probe
 model: mock/echo
 tasks:
   gather:

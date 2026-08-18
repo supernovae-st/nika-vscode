@@ -151,7 +151,7 @@ describe('parseCanonErrorCodes', () => {
 // ─── yamlContext ─────────────────────────────────────────────────────────────
 
 const DOC = [
-  'nika: v1',          // 0
+  'nika: t',          // 0
   'workflow:',         // 1
   '  id: t',           // 2
   '',                  // 3
@@ -195,9 +195,7 @@ describe('yamlContextAt', () => {
 // ─── renameRefs ──────────────────────────────────────────────────────────────
 
 const RENAME_DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: t',
+  'nika: t',
   'model: mock/echo',
   '',
   'tasks:',

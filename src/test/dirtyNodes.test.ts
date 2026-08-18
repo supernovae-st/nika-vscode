@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { computeDirty, taskFingerprints } from '../core/dirtyNodes';
 import { mergeRunHashes, parseCanvasState } from '../core/canvasState';
 
-const WF = `nika: v1
-workflow:
-  id: probe
+const WF = `nika: probe
 model: mock/echo
 tasks:
   seed:
@@ -27,9 +25,7 @@ tasks:
 describe('taskFingerprints (reformat-stable · change-sensitive)', () => {
   it('is stable under reindentation, blank lines, comments and key order', () => {
     const base = taskFingerprints(WF);
-    const reformatted = `nika: v1
-workflow:
-  id: probe
+    const reformatted = `nika: probe
 model: mock/echo
 tasks:
   seed:

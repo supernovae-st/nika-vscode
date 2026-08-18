@@ -147,7 +147,8 @@ function declLines(d: InputDecl): string[] {
 }
 
 /** Insert the declaration at the end of `inputs:` — creating the block
- * after the first of model:/description:/workflow:/nika: when absent.
+ * after `model:` (else right after the identity line `nika:` · the
+ * nine-key canonical order nika · model · inputs) when absent.
  * Undefined: flow-form inputs, duplicate name, or no envelope to anchor. */
 export function declareInput(text: string, decl: InputDecl): string | undefined {
   const lines = text.split('\n');
@@ -158,18 +159,10 @@ export function declareInput(text: string, decl: InputDecl): string | undefined 
     lines.splice(block.end + 1, 0, ...declLines(decl));
     return lines.join('\n');
   }
-  for (const key of ['model', 'workflow', 'nika']) {
-    const at = lines.findIndex((l) => key === 'workflow'
-      ? /^workflow:\s*(#.*)?$/.test(l) || /^workflow:\s/.test(l)
-      : new RegExp(`^${key}:\\s`).test(l));
+  for (const key of ['model', 'nika']) {
+    const at = lines.findIndex((l) => new RegExp(`^${key}:\\s`).test(l));
     if (at === -1) { continue; }
-    // W1: the workflow OBJECT carries id + description — the inputs block
-    // lands after its whole body, never inside it.
-    let slot = at;
-    if (key === 'workflow') {
-      while (slot + 1 < lines.length && /^ {2}\S/.test(lines[slot + 1])) { slot += 1; }
-    }
-    lines.splice(slot + 1, 0, '', 'inputs:', ...declLines(decl));
+    lines.splice(at + 1, 0, '', 'inputs:', ...declLines(decl));
     return lines.join('\n');
   }
   return undefined;

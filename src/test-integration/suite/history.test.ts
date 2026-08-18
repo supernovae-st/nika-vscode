@@ -50,9 +50,7 @@ function trace(tasks: Array<{ id: string; status: 'success' | 'failed'; duration
 }
 
 const WORKFLOW = [
-  'nika: v1',
-  'workflow:',
-  '  id: history-int',
+  'nika: history-int',
   'model: mock/echo',
   '',
   'tasks:',

@@ -3,9 +3,7 @@ import { annotateDataFlow, collectDataFlow, edgeKindOfPath } from '../core/dataf
 import type { DagNode } from '../core/cliContract';
 
 const DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: flow',
+  'nika: flow',
   'model: mock/echo',
   '',
   'tasks:',

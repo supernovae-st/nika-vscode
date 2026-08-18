@@ -18,7 +18,7 @@ describe('demoWorkflow — the sandbox const', () => {
     // no `v1`, no `workflow:` block; the description is the comment above.
     expect(DEMO_WORKFLOW).toMatch(/^nika: hello-canvas$/m);
     expect(DEMO_WORKFLOW).not.toMatch(/^workflow:/m);
-    expect(DEMO_WORKFLOW).not.toContain('nika: v1');
+    expect(DEMO_WORKFLOW).not.toContain('nika: t');
     expect(DEMO_WORKFLOW).toMatch(/^# brief · two angles in parallel · weave · write a receipt$/m);
     expect(DEMO_WORKFLOW).toContain('model: mock/echo');
     // The five tasks across four waves (brief → 2 angles → weave → receipt).

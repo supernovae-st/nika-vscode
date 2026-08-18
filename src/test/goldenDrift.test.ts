@@ -78,9 +78,9 @@ describe('reconstructActual — golden + drift = the run', () => {
 
 describe('outputsBlockLine — the failure anchor', () => {
   it('finds the top-level outputs: block, never an indented one', () => {
-    const yaml = 'nika: v1\nworkflow: x\n\noutputs:\n  t: 1\n\ntasks:\n  - id: a\n    outputs: nope\n';
-    expect(outputsBlockLine(yaml)).toBe(3);
-    expect(outputsBlockLine('nika: v1\ntasks: []\n')).toBeUndefined();
+    const yaml = 'nika: x\n\noutputs:\n  t: 1\n\ntasks:\n  a:\n    outputs: nope\n';
+    expect(outputsBlockLine(yaml)).toBe(2);
+    expect(outputsBlockLine('nika: t\ntasks: []\n')).toBeUndefined();
   });
 });
 

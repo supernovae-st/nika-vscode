@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { collectBodyFacts } from '../core/bodyFacts';
 
-const WF = `nika: v1
-workflow:
-  id: probe
+const WF = `nika: probe
 model: mock/echo
 tasks:
   gather:
@@ -171,8 +169,7 @@ describe('collectBodyFacts · cleanup is a task, not a block (spec 03 §unwind �
 describe('collectBodyFacts · infer senses (spec 02 — thinking · vision)', () => {
   it('reads the thinking budget and counts vision sources', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  see:',
       '    infer:',
@@ -192,8 +189,7 @@ describe('collectBodyFacts · infer senses (spec 02 — thinking · vision)', ()
 
   it('enabled-without-budget reads as -1 (on, uncapped); absent stays silent', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  think:',
       '    infer:',
@@ -244,8 +240,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
 
   it('reads the cap and the per-item idiom at task level only', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  crawl:',
       '    for_each: ${{ with.pages }}',
@@ -265,8 +260,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
 
   it('a with-alias named max_parallel cannot impersonate the policy', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  a:',
       '    exec: echo hi',
@@ -278,8 +272,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
 
   it('reads the for_each collection as written (unquoted interpolation — the spec form)', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  crawl:',
       '    for_each: ${{ with.pages }}',
@@ -296,8 +289,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
 
   it('for_each alone earns the entry, quoted forms unwrap one quote layer', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  fan:',
       '    for_each: "${{ tasks.list.output }}"',
@@ -308,8 +300,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
 
   it('a with-alias named for_each cannot impersonate the construct', () => {
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: probe',
       'tasks:',
       '  a:',
       '    exec: echo hi',
@@ -320,9 +311,7 @@ describe('collectBodyFacts · fan-out policies (spec 03 — max_parallel · fail
   });
 });
 
-const MEDIA_WF = `nika: v1
-workflow:
-  id: media_probe
+const MEDIA_WF = `nika: media_probe
 model: mock/echo
 tasks:
   stylize:

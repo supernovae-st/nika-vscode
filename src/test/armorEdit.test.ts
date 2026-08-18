@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ARMOR_SHAPES, armorWrite, wornArmor } from '../core/armorEdit';
 import { findTaskKey, type TaskRange } from '../core/flowEdit';
 
-const WF = `nika: v1
-workflow:
-  id: w
+const WF = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   fetch_data:
     after: { gather: success }

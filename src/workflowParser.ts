@@ -206,29 +206,21 @@ export function parseRichWorkflow(content: string): RichWorkflow {
     return keys;
   };
 
-  // W1: `workflow:` is an OBJECT — the display name is its `id:` field.
-  const workflowObjectId = (start: number): string | undefined => {
-    for (let i = start + 1; i < lines.length; i++) {
-      const ind = lines[i].match(/^( *)\S/);
-      if (!ind) { continue; }
-      if (ind[1].length === 0) { break; }
-      const m = lines[i].match(/^ {2}id\s*:\s*(.*)$/);
-      if (m) { return scalarOf(m[1]); }
-    }
-    return undefined;
-  };
-
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(TOP_KEY);
     if (!m) { continue; }
     const [, key, rest] = m;
     switch (key) {
-      case 'workflow':
-        wf.name = wf.name ?? (scalarOf(rest) ?? workflowObjectId(i));
+      case 'nika': {
+        // The nine-key envelope (nika 0.109): `nika: <id>` IS the identity
+        // — the display name is the value itself. The dead `v1` marker is
+        // not a name (the previous envelope's `workflow: { id }` block is
+        // refused by the engine, NIKA-PARSE-005 · `nika check --fix`
+        // migrates it); such a file simply has no name here.
+        const id = scalarOf(rest);
+        if (id && id !== 'v1') { wf.name = wf.name ?? id; }
         break;
-      case 'name':
-        wf.name = wf.name ?? scalarOf(rest);
-        break;
+      }
       case 'model':
         wf.defaultModel = scalarOf(rest);
         break;

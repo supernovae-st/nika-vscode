@@ -421,9 +421,7 @@ describe('permitsEdit', () => {
 
 describe('parseRichWorkflow', () => {
   const YAML = [
-    'nika: v1',
-    'workflow:',
-    '  id: audit',
+    'nika: audit',
     'model: anthropic/claude-sonnet-4-6',
     'secrets:',
     '  github_token: required',
