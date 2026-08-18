@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseHelpCommands, buildCapabilities, describeCapabilities } from '../core/capabilities';
-import { scanIslands, scanRefs, refAt, completionContextAt } from '../core/expr';
+import { AUTHORITIES, DEAD_ROOTS, isLiveRoot, scanIslands, scanRefs, refAt, completionContextAt } from '../core/expr';
 import { scanSecrets } from '../core/credentialLint';
 import { parseFix, applyPermitsFix, insertPermitsBlock } from '../core/permitsEdit';
 import { addAuthorityDeclaration } from '../core/structuralFixes';
@@ -235,6 +235,20 @@ describe('expr', () => {
 
     expect(completionContextAt('prompt: hello', 5)).toBeUndefined();
   });
+
+  it('the value authorities are exactly three · config is a DEAD root, scanned to teach, never live', () => {
+    // nika 0.109 · the nine-key envelope: `config:` is not a field
+    // (NIKA-PARSE-005) and `${{ config.X }}` is not a namespace
+    // (NIKA-VALUES-003) — a deployment value is an inputs: entry with
+    // required: false and a default:. The scanner still SEES a config
+    // read so the editor can point at the destination.
+    expect([...AUTHORITIES]).toEqual(['inputs', 'const', 'secrets']);
+    expect([...DEAD_ROOTS]).toEqual(['vars', 'env', 'config']);
+    expect(isLiveRoot('config')).toBe(false);
+    expect(isLiveRoot('inputs')).toBe(true);
+    const refs = scanRefs('p: "${{ config.REGION }} ${{ inputs.region }}"');
+    expect(refs.map((r) => r.root)).toEqual(['config', 'inputs']);
+  });
 });
 
 // ─── secretsScan ─────────────────────────────────────────────────────────────
@@ -448,34 +462,35 @@ describe('parseRichWorkflow', () => {
     expect(wf.permitsLine).toBe(YAML.split('\n').findIndex((l) => l === 'permits:'));
   });
 
-  it('keeps the four authorities apart — one home per spelling', () => {
+  it('keeps the three authorities apart — one home per spelling', () => {
     const wf = parseRichWorkflow([
-      'nika: v1',
-      'workflow:',
-      '  id: t',
+      'nika: t',
       'inputs:',
       '  topic: { type: string }',
-      'config:',
-      '  region: { type: string }',
+      '  region: { type: string, required: false, default: "eu" }',
       'const:',
       '  dir: "./out"',
       'secrets:',
       '  api_key:',
       '    source: vault',
+      '    key: prod/api',
       'tasks:',
       '  a:',
       '    exec: { command: ["echo"] }',
     ].join('\n'));
-    expect(wf.inputsKeys).toEqual(['topic']);
-    expect(wf.configKeys).toEqual(['region']);
+    // A deployment-supplied value is an inputs: entry (required: false +
+    // default:) — the fourth home, `config:`, died with the nine-key envelope.
+    expect(wf.inputsKeys).toEqual(['topic', 'region']);
     expect(wf.constKeys).toEqual(['dir']);
     expect(wf.secretsKeys).toEqual(['api_key']);
+    expect(wf.configKeys).toEqual([]);
   });
 
-  it('still READS a pre-flip file, into the dead buckets', () => {
-    // `vars:`/`env:` refuse on the engine (NIKA-VALUES-001/002) but the
-    // editor must not go blind on a file the user has yet to migrate:
-    // it parses them apart so the surfaces can classify, never author.
+  it('still READS a pre-migration file, into the dead buckets', () => {
+    // `vars:`/`env:` refuse on the engine (NIKA-VALUES-001/002) and
+    // `config:` refuses too (NIKA-PARSE-005 · nika 0.109) but the editor
+    // must not go blind on a file the user has yet to migrate: it parses
+    // them apart so the surfaces can classify and TEACH, never author.
     const wf = parseRichWorkflow([
       'nika: v1',
       'workflow:',
@@ -484,15 +499,17 @@ describe('parseRichWorkflow', () => {
       '  topic: "x"',
       'env:',
       '  TOKEN: "y"',
+      'config:',
+      '  region: { type: string, default: "eu" }',
       'tasks:',
       '  a:',
       '    exec: { command: ["echo"] }',
     ].join('\n'));
     expect(wf.deadVarsKeys).toEqual(['topic']);
     expect(wf.deadEnvKeys).toEqual(['TOKEN']);
+    expect(wf.configKeys).toEqual(['region']);
     // and NOTHING leaks into a live authority
     expect(wf.inputsKeys).toEqual([]);
-    expect(wf.configKeys).toEqual([]);
     expect(wf.constKeys).toEqual([]);
   });
 

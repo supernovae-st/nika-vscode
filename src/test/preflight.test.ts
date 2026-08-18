@@ -7,31 +7,37 @@ import {
 } from '../core/preflight';
 import type { CheckReport } from '../core/cliContract';
 
-const YAML = `nika: v1
-workflow:
-  id: release-notes
+const YAML = `# release notes · the preflight fixture (nine-key envelope · nika 0.109)
+nika: release-notes
 model: anthropic/claude-sonnet-4-6
+inputs:
+  region: { type: string, required: false, default: "eu-west-1" }
+  github_org:
+    type: string
+    required: true
 secrets:
   gh_token:
     source: env
     key: GITHUB_TOKEN
   vault_pass:
     source: vault
-config:
-  REGION: eu-west-1
-  GITHUB_ORG: supernovae-st
+    key: prod/db
 permits:
   net:
-    - api.github.com
-  exec: false
+    http:
+      - api.github.com
+  exec: []
 tasks:
   fetch:
     invoke:
       tool: "nika:fetch"
+      args:
+        url: "https://api.github.com/orgs/\${{ inputs.github_org }}"
   digest:
-    after: { fetch: success }
+    with:
+      page: "\${{ tasks.fetch.output }}"
     infer:
-      prompt: "Summarize \${{ tasks.fetch.output }} for \${{ config.REGION }} org \${{ config.GITHUB_ORG }}"
+      prompt: "Summarize \${{ with.page }} for \${{ inputs.region }} org \${{ inputs.github_org }}"
   local_pass:
     after: { fetch: success }
     infer:
@@ -67,14 +73,17 @@ const report = (over: Partial<CheckReport>): CheckReport => ({
 });
 
 describe('collectPreflightFacts', () => {
-  it('reads secrets sources, config keys, permits, and resolved models', () => {
+  it('reads secrets sources, declared inputs (required in flow AND block form), permits, and resolved models', () => {
     const f = collectPreflightFacts(YAML);
     expect(f.secrets).toEqual([
       { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
-      { name: 'vault_pass', source: 'vault' },
+      { name: 'vault_pass', source: 'vault', key: 'prod/db' },
     ]);
-    expect(f.envDefined).toEqual(['REGION', 'GITHUB_ORG']);
-    expect(f.envRefs).toEqual(['REGION', 'GITHUB_ORG']);
+    // A deployment-supplied value is an inputs: entry with required: false
+    // + default: (where `config:` went); only an explicit `required: true`
+    // makes an input mandatory (the engine's own rule).
+    expect(f.inputsDeclared).toEqual(['region', 'github_org']);
+    expect(f.inputsRequired).toEqual(['github_org']);
     expect(f.permitsDeclared).toBe(true);
     expect(f.permitCategories).toEqual(['net', 'exec']);
     // digest inherits the workflow default; local_pass overrides; fetch (invoke) has none.
@@ -83,7 +92,7 @@ describe('collectPreflightFacts', () => {
   });
 
   it('never throws on a half-typed file', () => {
-    expect(() => collectPreflightFacts('nika: v1\nsecrets:\n  half')).not.toThrow();
+    expect(() => collectPreflightFacts('nika: half-typed\nsecrets:\n  half')).not.toThrow();
   });
 });
 
@@ -122,17 +131,20 @@ describe('buildPreflight + renderPreflight', () => {
     expect(m.waves).toEqual([['fetch'], ['digest', 'local_pass']]);
     expect(m.modelRows.find((r) => r.model === 'ollama/qwen3.5')?.status).toBe('local');
     expect(m.blockers).toEqual([]);
-    // Both reads are DECLARED in `config:` — the only state that covers a
-    // config read (spec 01 · no ambient OS fallback).
-    expect(m.envRows).toEqual([
-      { name: 'REGION', status: 'defined' },
-      { name: 'GITHUB_ORG', status: 'defined' },
+    // The inputs story: a required input is a flight FACT (the run door
+    // asks for it), never a blocker; the defaulted one is optional.
+    expect(m.inputRows).toEqual([
+      { name: 'region', status: 'optional' },
+      { name: 'github_org', status: 'required' },
     ]);
     const md = renderPreflight(m);
     expect(md).toContain('**READY**');
     expect(md).toContain('$0.04 – $0.12');
     expect(md).toContain('run together');
-    expect(md).toContain('declared in the workflow `config:` block');
+    expect(md).toContain('## Secrets & inputs');
+    expect(md).toContain('input `github_org` · required · the caller supplies it at launch');
+    expect(md).toContain('input `region` · optional');
+    expect(md).not.toContain('config:');
   });
 
   it('missing env secret + missing model key → blockers, never a fake green', () => {
@@ -144,12 +156,12 @@ describe('buildPreflight + renderPreflight', () => {
       catalog: parseCatalogProviders(CATALOG),
       envPresent: () => false,
     });
-    // 2 blockers: the env-source secret + the model key. Both config
-    // reads are declared → NEVER blockers, whatever the process env holds.
+    // 2 blockers: the env-source secret + the model key. A required input
+    // is NEVER a blocker, whatever the process env holds (no ambient read).
     expect(m.blockers.length).toBe(2);
-    expect(m.envRows).toEqual([
-      { name: 'REGION', status: 'defined' },
-      { name: 'GITHUB_ORG', status: 'defined' },
+    expect(m.inputRows).toEqual([
+      { name: 'region', status: 'optional' },
+      { name: 'github_org', status: 'required' },
     ]);
     expect(m.secretRows[0].status).toBe('missing');
     expect(m.secretRows[1].status).toBe('declared'); // vault: never fake-verified
@@ -159,34 +171,31 @@ describe('buildPreflight + renderPreflight', () => {
     expect(md).toContain('not statically verifiable');
   });
 
-  it('an UNDECLARED config read blocks — the OS can never rescue it', () => {
-    // `${{ config.X }}` resolves ONLY against the envelope `config:`
-    // block; the engine never falls back to the ambient environment
-    // (spec 01 §config · « declared-only · no ambient OS fallback »).
-    // So a process env var of the same name is irrelevant — reporting
-    // « present » there would promise a run that cannot happen.
-    const undeclared = YAML.replace('  GITHUB_ORG: supernovae-st\n', '');
+  it('an input the OS happens to hold is still just an input — no ambient probe, no fake present', () => {
+    // No value authority has an ambient fallback (spec 01): the flight
+    // plan never probes the process env for an input, so `envPresent`
+    // saying yes changes nothing about the inputs rows — an undeclared
+    // read is NIKA-VAR-001 at check, and check owns that finding.
     const m = buildPreflight({
       workflowName: 'release-notes',
-      facts: collectPreflightFacts(undeclared),
+      facts: collectPreflightFacts(YAML),
       report: report({}),
       graph,
       catalog: parseCatalogProviders(CATALOG),
-      envPresent: () => true, // the OS HAS it — and it still does not count
+      envPresent: () => true,
     });
-    expect(m.envRows).toEqual([
-      { name: 'REGION', status: 'defined' },
-      { name: 'GITHUB_ORG', status: 'missing' },
+    expect(m.inputRows).toEqual([
+      { name: 'region', status: 'optional' },
+      { name: 'github_org', status: 'required' },
     ]);
-    expect(m.blockers).toContain(
-      'config `GITHUB_ORG`: read by the workflow, declared nowhere in config:',
-    );
+    expect(m.blockers).toEqual([]);
+    expect(renderPreflight(m)).not.toMatch(/config/);
   });
 
   it('unbounded cost stays a loud floor', () => {
     const m = buildPreflight({
       workflowName: 'x',
-      facts: collectPreflightFacts('nika: v1\ntasks: []\n'),
+      facts: collectPreflightFacts('nika: unbounded\ntasks: []\n'),
       report: report({
         cost: {
           tasks: [{ task: 'big', usd: 0.4, max_tokens: null }],
@@ -213,7 +222,7 @@ describe('buildPreflight + renderPreflight', () => {
   });
 
   it('mock provider is zero-key zero-spend', () => {
-    const facts = collectPreflightFacts('nika: v1\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: hi\n');
+    const facts = collectPreflightFacts('nika: mock-only\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: hi\n');
     const m = buildPreflight({ workflowName: 'x', facts, envPresent: () => false });
     expect(m.modelRows[0].status).toBe('local');
     expect(m.blockers).toEqual([]);
@@ -223,7 +232,7 @@ describe('buildPreflight + renderPreflight', () => {
 describe('preflightChipModel', () => {
   const base = (over: Record<string, unknown>) => ({
     workflowName: 'x', clean: true, findings: 0, waves: [],
-    secretRows: [], envRows: [], modelRows: [],
+    secretRows: [], inputRows: [], modelRows: [],
     permits: { declared: true, categories: [], escapes: 0, leaks: 0, egresses: 0 },
     cost: { label: '', unbounded: false, topTasks: [] },
     blockers: [],
@@ -257,16 +266,17 @@ describe('factsFromRequirements (E-REQ · the engine states the contract)', () =
         { name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' },
         { name: 'vault_pass', source: 'vault', key: 'prod/db' },
       ],
-      config_reads: ['GITHUB_ORG', 'REGION'],
-      config_defined: ['REGION'],
-      vars_required: ['target_url'],
+      inputs_read: ['github_org', 'region'],
+      inputs_required: ['github_org'],
     }, YAML);
     expect(facts.models.get('anthropic/claude-sonnet-4-6')).toEqual(['digest']);
     expect(facts.secrets[0]).toEqual({ name: 'gh_token', source: 'env', key: 'GITHUB_TOKEN' });
     // vault keys are lookup paths, never env names — the adapter drops them.
     expect(facts.secrets[1].key).toBeUndefined();
-    expect(facts.envRefs).toEqual(['GITHUB_ORG', 'REGION']);
-    expect(facts.envDefined).toEqual(['REGION']);
+    // The engine's word on what the caller must supply wins; the declared
+    // set still comes from the YAML (the wire carries reads, not decls).
+    expect(facts.inputsRequired).toEqual(['github_org']);
+    expect(facts.inputsDeclared).toEqual(['region', 'github_org']);
     // permits still come from the YAML (client-read).
     expect(facts.permitsDeclared).toBe(true);
     expect(facts.permitCategories).toEqual(['net', 'exec']);

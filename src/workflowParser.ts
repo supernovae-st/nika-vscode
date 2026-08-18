@@ -31,8 +31,7 @@ export interface ParsedTask {
 /**
  * The line ranges of the top-level `tasks:` block(s): [start+1, end)
  * line indices. A task key only counts INSIDE this block — indent-2 keys
- * under `inputs:` / `config:` / `const:` / `secrets:` / `permits:` are
- * not tasks.
+ * under `inputs:` / `const:` / `secrets:` / `permits:` are not tasks.
  */
 function tasksBlockRanges(lines: string[]): Array<[number, number]> {
   const ranges: Array<[number, number]> = [];
@@ -131,8 +130,6 @@ export interface RichWorkflow {
   secretsKeys: string[];
   /** Keys declared under top-level `inputs:`. */
   inputsKeys: string[];
-  /** Keys declared under top-level `config:`. */
-  configKeys: string[];
   /** Keys declared under top-level `const:`. */
   constKeys: string[];
   /** Keys under the DEAD `vars:` envelope field, when a pre-flip file
@@ -142,6 +139,12 @@ export interface RichWorkflow {
   /** Keys under the DEAD `env:` envelope field (NIKA-VALUES-002). Same
    *  contract: recognised so the editor can classify, never emitted. */
   deadEnvKeys: string[];
+  /** Keys under the DEAD `config:` envelope field — it died with the
+   *  nine-key envelope (nika 0.109 · NIKA-PARSE-005): a deployment-
+   *  supplied value is an `inputs:` entry with `required: false` and a
+   *  `default:`. Read to TEACH the migration (the `config.` completion
+   *  and the definitions still resolve against it), never to author. */
+  configKeys: string[];
   /** Line of the top-level `permits:` key, when present. */
   permitsLine?: number;
 }
@@ -184,10 +187,10 @@ export function parseRichWorkflow(content: string): RichWorkflow {
     tasks: [],
     secretsKeys: [],
     inputsKeys: [],
-    configKeys: [],
     constKeys: [],
     deadVarsKeys: [],
     deadEnvKeys: [],
+    configKeys: [],
   };
 
   // Pass 1 — top-level scalars and block keys.

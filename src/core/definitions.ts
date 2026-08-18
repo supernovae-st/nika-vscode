@@ -4,10 +4,11 @@
 //   ${{ tasks.NAME... }}                            → the `NAME:` task-key declaration
 //   ${{ <authority>.KEY... }}                       → the KEY under THAT authority's block
 //
-// The authority is whichever the reference names — inputs · config ·
-// const · secrets (spec 04 · the four value authorities). The dead
-// `vars.` / `env.` spellings still resolve against a pre-flip file so a
-// legacy document does not go silently un-navigable.
+// The authority is whichever the reference names — inputs · const ·
+// secrets (spec 04 · the three value authorities · nika 0.109). The dead
+// `vars.` / `env.` / `config.` spellings still resolve against a
+// pre-migration file so a legacy document does not go silently
+// un-navigable while it is being moved.
 export interface DefTarget { line: number; start: number; end: number }
 
 /** The `NAME:` task-key declaration line (W1 map form), or undefined. */
@@ -99,9 +100,9 @@ export function resolveDefinition(
   }
 
   // ${{ tasks.NAME… }} / ${{ <authority>.KEY… }} islands on this line.
-  // `vars` / `env` stay in the alternation so a pre-flip file still
-  // navigates — each resolves against its own (dead) block.
-  const NAV = /\$\{\{\s*(tasks|inputs|config|const|secrets|vars|env)\.([\w-]+)/g;
+  // `vars` / `env` / `config` stay in the alternation so a pre-migration
+  // file still navigates — each resolves against its own (dead) block.
+  const NAV = /\$\{\{\s*(tasks|inputs|const|secrets|vars|env|config)\.([\w-]+)/g;
   for (const m of lineText.matchAll(NAV)) {
     const rootStart = (m.index ?? 0) + m[0].indexOf(m[1]);
     const nameStart = rootStart + m[1].length + 1;

@@ -9,8 +9,7 @@ import {
   collectFindings,
   countReportFindings,
   byteOffsetToPosition,
-  configDefined,
-  configReads,
+  inputsRead,
   inputsRequired,
   topoWaves,
   type GraphDoc,
@@ -297,28 +296,26 @@ describe('parseCheckReport + collectFindings', () => {
     expect(older?.requirements).toBeUndefined();
   });
 
-  it('reads the requirements section in BOTH wire spellings (the E-split)', () => {
-    // R3a renamed three fields: the envelope `env:` block became
-    // `config:` and `vars:` became `inputs:`, so the checker reports
-    // config_reads / config_defined / inputs_required. Reading only the
-    // OLD names against a post-flip engine failed silently — an empty
-    // `?? []`, never an error — which quietly deleted the « run with
-    // inputs » CTA and the required-input run line. Both are read, new
-    // spelling first, so one client spans the flip.
-    const post = { models: [], secrets: [],
-      config_reads: ['REGION'], config_defined: ['REGION'], inputs_required: ['topic'] };
-    expect(inputsRequired(post)).toEqual(['topic']);
-    expect(configReads(post)).toEqual(['REGION']);
-    expect(configDefined(post)).toEqual(['REGION']);
-
-    const pre = { models: [], secrets: [],
-      env_reads: ['REGION'], env_defined: ['REGION'], vars_required: ['topic'] };
-    expect(inputsRequired(pre)).toEqual(['topic']);
-    expect(configReads(pre)).toEqual(['REGION']);
-    expect(configDefined(pre)).toEqual(['REGION']);
-
-    // Neither spelling present → empty, never a throw.
+  it('reads the requirements section in the nine-key vocabulary (inputs_read · inputs_required)', () => {
+    // nika 0.109 states the caller contract in the three-authority
+    // vocabulary (observed on the engine: `inputs_read` · `inputs_required`
+    // · `models` · `secrets`). The pre-0.109 spellings (`config_reads` ·
+    // `config_defined` · `env_reads` · `env_defined` · `vars_required`) died
+    // with the fields they described — a reader that kept them would report
+    // a `config:` lane no engine emits (an empty `?? []`, never an error).
+    const req = { models: [], secrets: [],
+      inputs_read: ['region', 'topic'], inputs_required: ['topic'] };
+    expect(inputsRequired(req)).toEqual(['topic']);
+    expect(inputsRead(req)).toEqual(['region', 'topic']);
+    // Absent → empty, never a throw.
     expect(inputsRequired({ models: [], secrets: [] })).toEqual([]);
+    expect(inputsRead({ models: [], secrets: [] })).toEqual([]);
+    // The dead spellings are not read: a legacy wire yields nothing, loudly
+    // nothing — not a phantom config lane.
+    const legacy = { models: [], secrets: [],
+      config_reads: ['REGION'], config_defined: ['REGION'], vars_required: ['topic'] } as unknown as Parameters<typeof inputsRequired>[0];
+    expect(inputsRequired(legacy)).toEqual([]);
+    expect(inputsRead(legacy)).toEqual([]);
   });
 
   it('prefers the engine-stamped severity + docs_url (E4 wire · ≥0.94)', () => {
