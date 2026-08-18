@@ -134,6 +134,22 @@ describe('graphDocToDag', () => {
     expect(waves.flat()).not.toContain('drop_temp');
     expect(waves.flat().sort()).toEqual(['fanout', 'fetch_page', 'summarize']);
   });
+
+  it('the unwind attachment reaches the canvas as a finally edge wearing its predicate', () => {
+    // The cleanup card has exactly ONE wire — the wire must say what it
+    // is (kind) and what it means (`unwind`), or the canvas draws a data
+    // wire that lies. The engine emits `predicate: "unwind"` on the finally
+    // edge (observed on 0.109 · `inspect --format json`); the adapter keeps
+    // it, the webview labels the wire with it.
+    const dag = graphDocToDag(DOC);
+    const fin = dag.edges.find((e) => e.kind === 'finally')!;
+    expect(fin).toBeDefined();
+    expect(fin.source).toBe('fanout');
+    expect(fin.target).toBe('drop_temp');
+    expect(fin.predicate).toBe('unwind');
+    expect(fin.label).toBeUndefined();
+    expect(fin.id).toBe('fanout->drop_temp:finally:unwind');
+  });
 });
 
 describe('parseCheckReport + collectFindings', () => {

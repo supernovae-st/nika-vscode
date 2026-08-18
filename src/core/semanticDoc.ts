@@ -11,8 +11,9 @@
 // Discovery is capability-first, never blind probing: the server names
 // the oracle and its IN-PAYLOAD format under
 // `capabilities.experimental.nika.semanticDocument.graphFormat`. The
-// client adopts format 2 only — a format-1 advertisement keeps the
-// CLI/client lanes, the same law `isGraphDoc` applies to CLI output.
+// client adopts format 3 only — a format-1 or format-2 advertisement
+// keeps the CLI/client lanes, the same law `isGraphDoc` applies to CLI
+// output.
 
 import { GraphDoc, isGraphDoc } from './cliContract';
 

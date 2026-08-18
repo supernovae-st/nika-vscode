@@ -36,7 +36,10 @@ function extractGraph(name = 'GRAPH'): { nodes: FixtureNode[]; edges: FixtureEdg
 }
 
 const VERBS = new Set(['infer', 'exec', 'invoke', 'agent']);
-const KINDS = new Set(['value', 'terminal-observation', 'failure-observation', 'control', 'recovery']);
+// graph_format 3: `finally` is the unwind attachment (producer → its
+// cleanup unit) and carries the `unwind` predicate like a control edge
+// carries its after: predicate.
+const KINDS = new Set(['value', 'terminal-observation', 'failure-observation', 'control', 'recovery', 'finally']);
 const PREDICATES = new Set(['success', 'failure', 'skipped', 'terminal']);
 
 // Both fixtures (the README run scene + the ?media CI-2 scene) are held
@@ -63,7 +66,29 @@ describe.each(['GRAPH', 'MEDIA_GRAPH'])('the %s harness fixture — held against
       if (e.kind === 'control') {
         expect(e.predicate !== undefined && PREDICATES.has(e.predicate), `${e.id}: control needs a predicate`).toBe(true);
       }
+      if (e.kind === 'finally') {
+        // The attachment: `unwind` on the wire, a `finally` node at its
+        // end that names the source among its anchors.
+        expect(e.predicate, `${e.id}: a finally edge carries unwind`).toBe('unwind');
+        const target = graph.nodes.find((n) => n.id === e.target) as { kind?: string; attachedTo?: string[] } | undefined;
+        expect(target?.kind, `${e.id}: the target is a cleanup unit`).toBe('finally');
+        expect(target?.attachedTo, `${e.id}: the unit names its anchor`).toContain(e.source);
+      }
     }
+  });
+
+  it('a cleanup unit is an attachment: kind finally · anchors named · no producers · one unwind wire in', () => {
+    const units = graph.nodes.filter((n) => (n as { kind?: string }).kind === 'finally');
+    for (const u of units) {
+      const unit = u as { id: string; attachedTo?: string[]; producers: string[] };
+      expect(unit.producers).toEqual([]);
+      expect(unit.attachedTo?.length ?? 0).toBeGreaterThan(0);
+      const inbound = graph.edges.filter((e) => e.target === unit.id);
+      expect(inbound.length).toBeGreaterThan(0);
+      for (const e of inbound) { expect(e.kind, `${e.id}: a cleanup unit's only wires are unwind attachments`).toBe('finally'); }
+    }
+    // The README scene carries one (the pixel proof of the format-3 vocabulary).
+    if (name === 'GRAPH') { expect(units.length).toBeGreaterThan(0); }
   });
 
   it('producers agree with the edges (the io story and the wires never diverge)', () => {

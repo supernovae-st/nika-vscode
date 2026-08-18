@@ -109,7 +109,7 @@ export class NikaService {
   private readonly checkInFlight = new Map<string, Promise<CheckOutcome>>();
   private readonly graphInFlight = new Map<string, Promise<GraphDoc | undefined>>();
 
-  // The `nika/semanticDocument` lane — set while a format-2 server runs
+  // The `nika/semanticDocument` lane — set while a format-3 server runs
   // (extension.ts wires it on initialize, clears it on server death).
   // The oracle is the SAME projection as `inspect --format json` minus
   // one process spawn per refresh, plus the spans the CLI cannot carry.

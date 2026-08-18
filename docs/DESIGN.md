@@ -291,7 +291,7 @@ outcome class they admit · success-family green, failure-family in
 the failure text voice at 70% (§2's predicate column, readable from
 afar).
 
-## 2 · Wires · the kind vocabulary (graph_format 2 · one channel per question)
+## 2 · Wires · the kind vocabulary (graph_format 3 · one channel per question)
 
 Channel allocation (the Bertin discipline): **dash = ontology** (solid
 carries a value · long-dash carries a RECORD read · dotted carries

@@ -45,7 +45,7 @@ describe('topoKey — blind to prose, sensitive to topology', () => {
     const g = clientDagFor(SIGNATURE, 'file:///demo.nika.yaml', 'demo');
     expect(g.nodes).toHaveLength(9);
     expect(g.nodes.map((n) => n.id)).toContain('stats');
-    // Both diamond arms exist — and each carries its graph_format 2 kind:
+    // Both diamond arms exist — and each carries its graph_format 3 kind:
     // stats reads discover.output through with: (value edge), digest
     // orders on discover's state (control edge, predicate carried).
     const statsArm = g.edges.find((e) => e.source === 'discover' && e.target === 'stats');

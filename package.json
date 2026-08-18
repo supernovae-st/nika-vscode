@@ -1563,7 +1563,7 @@
         "displayName": "Nika Graph",
         "toolReferenceName": "nikaGraph",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Project the canonical execution DAG of a Nika workflow (graph_format 2 JSON): topologically sorted task nodes with verb, model, when-gates, fan-out and static cost intervals, plus TYPED edges (value/terminal-observation/failure-observation carry a with: binding · control carries its after: predicate · recovery is on_error.recover's parking read). Requires the workflow to pass conformance first.",
+        "modelDescription": "Project the canonical execution DAG of a Nika workflow (graph_format 3 JSON): topologically sorted nodes with kind (task · finally for a cleanup unit on an unwind edge), verb, model, when-gates, fan-out and static cost intervals, plus TYPED edges (value/terminal-observation/failure-observation carry a with: binding · control carries its after: predicate · recovery is on_error.recover's parking read · finally is the after: { x: unwind } attachment). Requires the workflow to pass conformance first.",
         "inputSchema": {
           "type": "object",
           "properties": {

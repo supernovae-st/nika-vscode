@@ -1034,6 +1034,12 @@ body.running .dag-edge.edge-dep {
   opacity: 0.6;
 }
 
+.edge-dir-fin {
+  stroke: var(--nk-st-muted);
+  fill: none;
+  opacity: 0.6;
+}
+
 .edge-dir.dimmed {
   opacity: 0.1;
 }
@@ -1206,7 +1212,7 @@ body:not(.lod-far) .dag-edge {
    * authored hues never override an OS High Contrast palette. */
   .dag-edge.edge-data.edge-obs,
   .dag-edge.edge-data.edge-obs.edge-obs-fail { stroke: Highlight !important; }
-  .edge-dir-obs, .edge-dir-rec { stroke: CanvasText !important; fill: none !important; }
+  .edge-dir-obs, .edge-dir-rec, .edge-dir-fin { stroke: CanvasText !important; fill: none !important; }
   .edge-dir-obsfail { fill: CanvasText !important; stroke: none !important; }
 
   /* !important: the nika skin's body-scoped rules out-specify these —
@@ -2327,7 +2333,7 @@ body.dag-loading #zoom-dock { display: none; }
   opacity: 0.8;
 }
 
-/* ─── Typed edge kinds (graph_format 2) · beyond data/control ───────────── */
+/* ─── Typed edge kinds (graph_format 3) · beyond data/control ───────────── */
 
 /* Observation reads (.status/.duration_ms/.error through with:) — data
  * family, but the wire carries a RECORD read, not the value: same hue,
@@ -2360,6 +2366,23 @@ body.dag-loading #zoom-dock { display: none; }
 
 .dag-edge.edge-recovery:hover {
   opacity: 0.9;
+}
+
+/* Finally — the unwind attachment (format 3 · `after: { x: unwind }`):
+ * a cleanup task hangs off the task it cleans up after. Control family
+ * (muted hue · it orders cleanup after the producer settles), PARKED
+ * like recovery (never schedules · never flows · never joins a wave):
+ * a fine dot-dot cadence, quieter than a control wire, so the card
+ * with no wave still shows the one wire it has. */
+.dag-edge.edge-dep.edge-finally {
+  stroke-width: 1.4;
+  stroke-dasharray: 1.5 4;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.dag-edge.edge-dep.edge-finally:hover {
+  opacity: 0.95;
 }
 
 .ex-glyph-dep {

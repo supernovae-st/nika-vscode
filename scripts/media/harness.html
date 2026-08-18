@@ -373,9 +373,19 @@
           bindingsIn: [{ alias: 'notes', from: 'notes', path: 'notes_path' }],
           producers: ['notes'],
         },
+        {
+          // A cleanup unit (graph_format 3 · kind "finally"): hangs off
+          // `polish` by its unwind edge · no wave, no plan count · the
+          // card says what it hangs on, the wire says `unwind`.
+          id: 'drop_scratch', avgMs: 40, avgRuns: 4, label: 'drop_scratch', verb: 'exec', status: 'pending',
+          kind: 'finally', attachedTo: ['polish'],
+          commandPreview: 'rm -f ./scratch/draft.md',
+          permits: ['exec: /bin/rm'],
+          producers: [],
+        },
       ],
       edges: [
-        // The typed-kind fixture (graph_format 2): every closed-set kind
+        // The typed-kind fixture (graph_format 3): every closed-set kind
         // on one canvas · the harness IS the vocabulary's pixel proof.
         { id: 'history->digest', source: 'history', target: 'digest', kind: 'value', isDataEdge: true, label: 'commits' },
         { id: 'stats->chart', source: 'stats', target: 'chart', kind: 'value', isDataEdge: true, label: 'rows' },
@@ -386,6 +396,7 @@
         { id: 'notes->review', source: 'notes', target: 'review', kind: 'failure-observation', isDataEdge: true, label: 'errors' },
         { id: 'digest->review', source: 'digest', target: 'review', kind: 'recovery' },
         { id: 'digest->brief', source: 'digest', target: 'brief', kind: 'value', isDataEdge: true, label: 'headline' },
+        { id: 'polish->drop_scratch:finally:unwind', source: 'polish', target: 'drop_scratch', kind: 'finally', predicate: 'unwind' },
       ],
     };
 
@@ -767,7 +778,7 @@
         { taskId: 'poster', status: 'success', durationMs: 8032 },
         { taskId: 'voice', status: 'success', durationMs: 3785 },
         { taskId: 'jingle', status: 'success', durationMs: 2871 },
-        { taskId: 'draft', status: 'success', durationMs: 5111, outputPreview: 'nika: v1 · 6 tasks' },
+        { taskId: 'draft', status: 'success', durationMs: 5111, outputPreview: 'nika: release-notes · 6 tasks' },
         { taskId: 'shape', status: 'success', durationMs: 38 },
         { taskId: 'mergecfg', status: 'success', durationMs: 31 },
         { taskId: 'stylize', status: 'running' },

@@ -202,6 +202,57 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     }
   });
 
+  it('inspect --format json projects a cleanup unit as a finally NODE on an unwind edge (format 3 · the engine\'s own shape)', () => {
+    // Observed on the 0.109 engine (2026-08-18): the node carries
+    // `kind: "finally"`, the attachment is `{ kind: "finally", predicate:
+    // "unwind" }` from the producer to its cleanup task, and the PLAN
+    // seats only the task population (« 2 waves · 2 tasks » for two
+    // tasks + one cleanup unit). This pins that shape end to end.
+    const file = tmpWorkflow(`nika: unwind-seam
+model: mock/echo
+tasks:
+  gather:
+    infer:
+      prompt: "gather"
+  thread:
+    with:
+      seed: \${{ tasks.gather.output }}
+    infer:
+      prompt: "thread \${{ with.seed }}"
+  cleanup:
+    after: { thread: unwind }
+    infer:
+      prompt: "cleanup"
+`);
+    try {
+      const check = run(['check', file, '--json']);
+      expect(check.code, check.stdout).toBe(EXIT.OK);
+      const res = run(['inspect', file, '--format', 'json']);
+      expect(res.code).toBe(EXIT.OK);
+      const doc: unknown = JSON.parse(res.stdout);
+      expect(isGraphDoc(doc)).toBe(true);
+      const graph = doc as { graph_format: number; nodes: Array<{ id: string; kind: string }>; edges: Array<Record<string, unknown>> };
+      expect(graph.graph_format).toBe(3);
+      expect(graph.nodes.map((n) => [n.id, n.kind])).toEqual([
+        ['gather', 'task'], ['thread', 'task'], ['cleanup', 'finally'],
+      ]);
+      expect(graph.edges).toContainEqual({ from: 'thread', to: 'cleanup', kind: 'finally', predicate: 'unwind' });
+
+      const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
+      const cleanup = dag.nodes.find((n) => n.id === 'cleanup')!;
+      expect(cleanup.kind).toBe('finally');
+      expect(cleanup.attachedTo).toEqual(['thread']);
+      expect(cleanup.producers).toEqual([]);
+      const fin = dag.edges.find((e) => e.kind === 'finally')!;
+      expect(fin.predicate).toBe('unwind');
+      // The client's waves mirror the engine's PLAN: the unit sits in none.
+      const waves = topoWaves(dag.nodes, dag.edges.filter((e) => e.kind !== 'recovery' && e.kind !== 'finally'));
+      expect(waves).toEqual([['gather'], ['thread']]);
+    } finally {
+      fs.unlinkSync(file);
+    }
+  });
+
   it('the projected policy + per-task permits reach the cards (0.99.1+ graph · capability-honest)', () => {
     // Pins the WHOLE seam the dense cards read: engine projection →
     // graphDocToDag → card fields. Capability-honest: a binary whose
