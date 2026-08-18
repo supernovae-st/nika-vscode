@@ -39,7 +39,7 @@ export const NIKA_FEATURE_CODICON = { doctor: 'pulse', wired: 'plug', trace: 're
  *  add a word to the schema and its role follows on the next
  *  projection. Space-joined: a string costs a fraction of a literal
  *  array in a consumer bundle. */
-export const NIKA_ROLE_WORDS = { boundary: 'permits secrets', wire: 'after with', fail: 'backoff_max_ms backoff_ms backoff_strategy fail_workflow jitter max_attempts on_codes on_error on_finally recover retry skip', } as const
+export const NIKA_ROLE_WORDS = { boundary: 'permits secrets', wire: 'after with', fail: 'backoff_max_ms backoff_ms backoff_strategy jitter max_attempts on_codes on_error recover retry skip', } as const
 export type NikaRoleName = keyof typeof NIKA_ROLE_WORDS
 /** how each role MARKS its words — no role invents a hue, because the
  *  seven layer hues already collide with the four verb hues by
