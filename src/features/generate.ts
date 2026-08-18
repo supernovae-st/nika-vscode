@@ -27,7 +27,7 @@ import {
 } from '../core/cliContract';
 import { flashStatus } from './notify';
 import { generateWorkflow, type GenCheckOutcome, type GenResult } from '../core/generatePipeline';
-import { refinedIntent, slugifyIntent } from '../core/generateStaging';
+import { GENERATE_FALLBACK_TEMPLATE, refinedIntent, slugifyIntent } from '../core/generateStaging';
 import { rankBm25, type RankDoc } from '../core/intentRank';
 import { runCliOnText } from '../core/spawn';
 import type { NikaService } from '../nikaService';
@@ -116,7 +116,9 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
   }
 
   const prompt = [
-    'You are authoring ONE Nika workflow (`*.nika.yaml` · envelope `nika: v1`).',
+    'You are authoring ONE Nika workflow (`*.nika.yaml` · the nine-key envelope of nika 0.109:',
+    'the first line is `nika: <kebab-id>` — the workflow\'s own name, never `v1`, no `workflow:` block;',
+    'the only top-level keys are nika · model · inputs · const · secrets · permits · run · tasks · outputs).',
     '',
     'INTENT:',
     intent,
@@ -130,8 +132,13 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
     '- The binding IS the edge: import upstream data through `with:`',
     '  (`with: { doc: "${{ tasks.x.output }}" }` → body reads `${{ with.doc }}`);',
     '  order WITHOUT data via `after: { x: success }` (or terminal/failure/',
-    '  skipped). `tasks.*` anywhere else is refused (NIKA-VAR-021). Truly',
+    '  skipped · `unwind` makes the task a cleanup that always runs after x).',
+    '  `tasks.*` anywhere else is refused (NIKA-VAR-021). Truly',
     '  independent tasks must NOT be chained.',
+    '- Values: three authorities only — `inputs:` (typed · a deployment value',
+    '  is an input with `required: false` + `default:`) · `const:` · `secrets:`.',
+    '  `config:`/`vars:`/`env:` are not fields. Named jq bindings on a task are',
+    '  `extract:` (not `output:`); `on_error` is `{ skip: true }` or `{ recover: … }`.',
     '',
     `TEMPLATE (closest embedded skeleton \`${topTemplate?.slug ?? 'chain'}\` — adapt, don't start from zero):`,
     '```yaml',
@@ -146,7 +153,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
 
   return {
     prompt,
-    templateBody: topTemplate?.body ?? 'nika: v1\nworkflow:\n  id: generated\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n',
+    templateBody: topTemplate?.body ?? GENERATE_FALLBACK_TEMPLATE,
     templateSlug: topTemplate?.slug ?? 'chain',
   };
 }

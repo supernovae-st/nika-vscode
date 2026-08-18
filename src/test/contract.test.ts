@@ -29,6 +29,9 @@ import { parseCanonErrorCodes } from '../core/schemaIntel';
 import { applyPermitsFix, insertPermitsBlock, parseFix } from '../core/permitsEdit';
 import { scaffoldContent } from '../core/newWorkflowWizard';
 import { GRAMMAR_CANARY_DOC, grammarAccepted } from '../core/grammarCanary';
+import { DEMO_WORKFLOW } from '../core/demoWorkflow';
+import { GENERATE_FALLBACK_TEMPLATE } from '../core/generateStaging';
+import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
 
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
@@ -167,6 +170,52 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     } finally {
       fs.unlinkSync(canary);
     }
+  });
+
+  it('every OTHER template the extension writes checks clean on the pinned engine (own-corpus law · after #296)', () => {
+    // #296 pinned the blank scaffold and the sub-workflow scaffold. The
+    // extension writes three more files: the demo sandbox (`nika.tryDemo`
+    // · hello-canvas), every verb STARTER scaffold (the wizard's second
+    // step · one per generated starter), and the generation prompt's
+    // fallback template (what a model adapts when the corpus has no
+    // closer skeleton). Each is teaching; each must pass the oracle it
+    // ships with — a template the engine refuses on the first line
+    // teaches a refusal.
+    // authored HERE → must check hard-clean · a starter body is a Lane B
+    // projection of the spec's own starters (SLOT-marked skeletons whose
+    // `${{ inputs.input }}` the author declares next) → must PARSE and
+    // carry no envelope/parse-class finding; the slot's VAR-001 is the
+    // author's next move, not a dead form.
+    const authored: Array<[string, string]> = [
+      ['demo · hello-canvas', DEMO_WORKFLOW],
+      ['generate · fallback template', GENERATE_FALLBACK_TEMPLATE],
+    ];
+    const starters: Array<[string, string]> = [];
+    for (const verb of Object.keys(NIKA_VERB_STARTERS) as Array<keyof typeof NIKA_VERB_STARTERS>) {
+      for (const starter of NIKA_VERB_STARTERS[verb]) {
+        starters.push([`starter · ${starter.id}`, scaffoldContent('starter-probe', { kind: 'starter', verb, starter }, 'mock/echo')]);
+      }
+    }
+    expect(starters.length).toBeGreaterThan(0);
+    const judge = (label: string, body: string, hardClean: boolean): void => {
+      const file = tmpWorkflow(body);
+      try {
+        const res = run(['check', file, '--json']);
+        const report = parseCheckReport(res.stdout);
+        expect(report, `${label}: ${res.stdout}${res.stderr}`).toBeDefined();
+        expect(grammarAccepted(res.stdout), `${label} must PARSE on the pinned engine:\n${res.stdout}`).toBe(true);
+        const hard = collectFindings(report!).filter((f) => f.source !== 'hint');
+        const parseClass = hard.filter((f) => /^NIKA-PARSE-|^NIKA-VALUES-/.test(f.code));
+        expect(parseClass.map((f) => `${f.code}: ${f.message}`), `${label} teaches a dead form:\n${body}`).toEqual([]);
+        if (hardClean) {
+          expect(hard.map((f) => `${f.code}: ${f.message}`), `${label}:\n${body}`).toEqual([]);
+        }
+      } finally {
+        fs.unlinkSync(file);
+      }
+    };
+    for (const [label, body] of authored) { judge(label, body, true); }
+    for (const [label, body] of starters) { judge(label, body, false); }
   });
 
   it('check --json carries findings + did-you-mean on a broken workflow (exit 2)', () => {
