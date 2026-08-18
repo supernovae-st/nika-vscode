@@ -1,10 +1,14 @@
 name: spec-pin-heal
 
-# The pin advances itself: daily, if nika-spec main moved past SPEC_PIN,
-# re-project every generated surface at the new rev and open ONE
-# idempotent PR — this repo's full gate (tests · parity · projector
-# checks at the new pin) judges. Never a direct push: generated TS
-# feeds the shipped extension. SECURITY: no github.event data.
+# The pin follows the ENGINE's judged spec pin: daily, if the SPEC_PIN of
+# supernovae-st/nika at this repo's ENGINE_PIN moved past our SPEC_PIN,
+# re-project every generated surface at that rev and open ONE idempotent
+# PR — this repo's full gate (tests · parity · projector checks at the
+# new pin) judges. Never spec HEAD (2026-08-18: one frozen spec identity
+# per train — the engine's conformance suites judge it, the pack is
+# vendored from it, and our surfaces project from the same commit).
+# Never a direct push: generated TS feeds the shipped extension.
+# SECURITY: no github.event data.
 
 on:
   schedule:
@@ -29,8 +33,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          # The candidate is the ENGINE's judged pin (supernovae-st/nika
+          # SPEC_PIN at ENGINE_PIN), never spec HEAD: one frozen spec
+          # identity per train — the engine's conformance suites judged
+          # it, the pack was vendored from it, and this extension's
+          # generated surfaces project from the same commit (2026-08-18).
+          engine="$(grep -v '^#' ENGINE_PIN | head -1 | tr -d '[:space:]')"
+          head="$(curl -fsSL "https://raw.githubusercontent.com/supernovae-st/nika/${engine}/SPEC_PIN" | grep -v '^#' | head -1 | tr -d '[:space:]')"
+          [[ "$head" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::the engine's SPEC_PIN at ${engine} is not a commit sha"; exit 1; }
           git clone --filter=blob:none https://github.com/supernovae-st/nika-spec ../spec
-          head="$(git -C ../spec rev-parse HEAD)"
+          git -C ../spec checkout --detach "$head"
           pin="$(grep -v '^#' SPEC_PIN | head -1 | tr -d '[:space:]')"
           if [ "$head" = "$pin" ]; then echo "pin current ($pin) — nothing to heal"; exit 0; fi
           if grep -q '^# HOLD:' SPEC_PIN; then echo "pin HELD (see SPEC_PIN) — deliberate, not drift"; exit 0; fi

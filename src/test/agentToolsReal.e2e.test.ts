@@ -29,9 +29,7 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
   });
 
 const BASE = [
-  'nika: v1',
-  'workflow:',
-  '  id: agent-register-proof',
+  'nika: agent-register-proof',
   'model: mock/echo',
   // 0.106 · agent tools must ALSO sit inside permits.tools (AUTH-006) —
   // the boundary grants what the catalog picker will write below.
@@ -81,7 +79,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('agent register × the real binary', (
     // refs are NOT owned; drop it by hand here to model the author
     // deleting their typo, then pick two catalog tools).
     const cleaned = BASE.replace('"nika:doesnotexist"', '');
-    const next = toolsRewrite(cleaned, 8, 4, ['fetch', 'read'], bares)!;
+    const next = toolsRewrite(cleaned, 6, 4, ['fetch', 'read'], bares)!;
     expect(next).toContain('      tools: ["nika:fetch", "nika:read"]');
     expect(check(BIN!, next).clean).toBe(true);
   });
@@ -89,7 +87,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('agent register × the real binary', (
   it('the preserved stranger is the ENGINE\'s finding — the ownership law', () => {
     const bares = catalogBares(BIN!);
     // The picker re-picks fetch; the stranger survives verbatim…
-    const next = toolsRewrite(BASE, 8, 4, ['fetch'], bares)!;
+    const next = toolsRewrite(BASE, 6, 4, ['fetch'], bares)!;
     expect(next).toContain('"nika:doesnotexist"');
     // …and the engine, not the extension, names the problem.
     const report = check(BIN!, next);

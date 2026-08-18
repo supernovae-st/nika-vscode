@@ -19,9 +19,7 @@ import { gateShapes } from '../core/flowEdit';
 const FLOOR = eSplitFloor();
 
 const DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: islands-probe',
+  'nika: islands-probe',
   'model: mock/echo',
   'inputs:',
   '  publish: { type: bool, default: true }',

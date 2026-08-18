@@ -48,9 +48,7 @@ const found = CANDIDATES.map((bin) => ({ bin, caps: probe(bin) }))
 const BIN = found?.bin;
 const HAS_CATALOG = found?.caps?.catalog === true;
 
-const WORKFLOW = `nika: v1
-workflow:
-  id: artifacts-e2e
+const WORKFLOW = `nika: artifacts-e2e
 permits:
   fs:
     write:
@@ -108,9 +106,7 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-chart-e2e-'));
     try {
       const wf = path.join(dir, 'chart-e2e.nika.yaml');
-      fs.writeFileSync(wf, `nika: v1
-workflow:
-  id: chart-card-e2e
+      fs.writeFileSync(wf, `nika: chart-card-e2e
 permits:
   fs:
     write:

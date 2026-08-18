@@ -42,9 +42,7 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
   });
 
 const BASE = [
-  'nika: v1',
-  'workflow:',
-  '  id: contract-doors-proof',
+  'nika: contract-doors-proof',
   'model: mock/echo',
   '',
   'inputs:',
