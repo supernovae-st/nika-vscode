@@ -71,7 +71,7 @@ export function buildCursorRules(providers?: RulesIntel): string {
     '- agent: agent loop ({ model, prompt, tools: default-deny whitelist, max_turns, max_tokens_total })',
     '',
     '## Key Rules',
-    '- Interpolation · 5 namespaces. The THREE value authorities: ${{ inputs.x }} (typed, caller-supplied · a deployment-supplied value is an inputs: entry with required: false and a default:) · ${{ const.x }} (fixed value baked into the file) · ${{ secrets.x }} (vault-backed, masked). Plus the two runtime ones: ${{ with.alias }} · ${{ tasks.id.output }}',
+    '- Interpolation · the namespaces. The THREE value authorities: ${{ inputs.x }} (typed, caller-supplied · a deployment-supplied value is an inputs: entry with required: false and a default:) · ${{ const.x }} (fixed value baked into the file) · ${{ secrets.x }} (vault-backed, masked). Plus the two runtime ones: ${{ with.alias }} · ${{ tasks.id.output }}',
     '- DEAD: `config:`, `vars:` and `env:` are NOT envelope fields and ${{ config.X }} / ${{ vars.X }} / ${{ env.X }} are NOT namespaces (NIKA-PARSE-005 · NIKA-VALUES-001/002/003). Classify each value into the authority its ROLE commands — a typed parameter is inputs:, a fixed value const:, a governed store reference secrets:. Never a blind rename',
     '- `tasks.*` ONLY inside with:/after:/on_error.recover/outputs (NIKA-VAR-021 elsewhere — hoist it into with:)',
     '- The binding IS the edge: with: { alias: "${{ tasks.id.output }}" } (quote it in flow style — or use block style) then the body reads ${{ with.alias }}',

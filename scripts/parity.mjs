@@ -175,7 +175,14 @@ const ok = [];
 // ─── 7 · Volatile counts in teaching surfaces (projection law) ──────────────
 {
   const teaching = ['README.md', 'walkthrough'];
-  const volatile = /\b(the\s+)?(13|14|22|26|27|42)\s+(stdlib\s+)?(builtins?|providers?|extract modes?)\b|(builtins?|providers?|extract modes?)\s*\(\s*\d+\s*\)/i;
+  // The nouns whose counts drift: builtins · providers · extract modes
+  // (the spec canon) — and, since the nine-key envelope (nika 0.109),
+  // the envelope KEYS, the value AUTHORITIES and the NAMESPACES: a
+  // teaching surface that says « 13 keys », « 4 authorities » or
+  // « 6 namespaces » is a fossil of the previous envelope. Digits only:
+  // the house writes the small locked counts as words (« nine keys »,
+  // « three authorities ») and derives the large ones.
+  const volatile = /\b(the\s+)?(3|4|5|6|9|13|14|22|26|27|42)\s+(stdlib\s+)?(builtins?|providers?|extract modes?|(?:envelope\s+|top-level\s+)?keys?|(?:value\s+)?authorit(?:y|ies)|namespaces?)\b|(builtins?|providers?|extract modes?|keys?)\s*\(\s*\d+\s*\)/i;
   for (const rel of teaching) {
     const full = path.join(root, rel);
     const files = fs.statSync(full).isDirectory()
@@ -193,13 +200,18 @@ const ok = [];
       });
     }
   }
-  // mcpConfig writes .cursor/rules content — same law applies to generated rules.
-  const mcp = sources.get('src/mcpConfig.ts') ?? '';
-  mcp.split('\n').forEach((line, i) => {
-    if (volatile.test(line)) {
-      findings.push(`volatile count in GENERATED rules: src/mcpConfig.ts:${i + 1} → ${line.trim().slice(0, 80)}`);
-    }
-  });
+  // The .cursor/rules content is generated (core/cursorRules.ts builds
+  // it · mcpConfig.ts writes it) — the same law applies to generated
+  // rules, and the gate follows the text to where it lives (a gate that
+  // watched only the writer went blind the day the text moved).
+  for (const rel of ['src/core/cursorRules.ts', 'src/mcpConfig.ts']) {
+    const text = sources.get(rel) ?? fs.readFileSync(path.join(root, rel), 'utf-8');
+    text.split('\n').forEach((line, i) => {
+      if (volatile.test(line)) {
+        findings.push(`volatile count in GENERATED rules: ${rel}:${i + 1} → ${line.trim().slice(0, 80)}`);
+      }
+    });
+  }
   ok.push('teaching surfaces scanned for volatile counts');
 }
 

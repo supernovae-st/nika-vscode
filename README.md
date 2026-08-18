@@ -185,8 +185,8 @@ theme*, not to extensions:
   extract modes · a new field in the engine lights up here with zero
   extension update
 - **`${{ ... }}` expression intel** · completions, hover and
-  go-to-definition across the 6 namespaces · the four value authorities
-  (`inputs.` / `config.` / `const.` / `secrets.`) and the two runtime
+  go-to-definition across the namespaces · the three value authorities
+  (`inputs.` / `const.` / `secrets.` · nika 0.109) and the two runtime
   ones (`with.` / `tasks.`)
 - **Task rename & find-references** · hits all 4 syntactic homes
   (declaration · `after:` entries · `${{ tasks.X }}` islands · bare CEL
