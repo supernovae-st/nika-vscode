@@ -89,6 +89,11 @@ describe.each(['GRAPH', 'MEDIA_GRAPH'])('the %s harness fixture — held against
     }
     // The README scene carries one (the pixel proof of the format-3 vocabulary).
     if (name === 'GRAPH') { expect(units.length).toBeGreaterThan(0); }
+    // The producer side mirrors the edges: cleanupTasks ⇔ an outbound finally edge.
+    for (const n of graph.nodes as Array<{ id: string; cleanupTasks?: string[] }>) {
+      const outbound = graph.edges.filter((e) => e.kind === 'finally' && e.source === n.id).map((e) => e.target).sort();
+      expect((n.cleanupTasks ?? []).slice().sort(), `${n.id}: cleanupTasks must mirror its finally edges`).toEqual(outbound);
+    }
   });
 
   it('producers agree with the edges (the io story and the wires never diverge)', () => {

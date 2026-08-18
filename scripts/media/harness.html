@@ -323,6 +323,9 @@
           costMin: 0.001, costMax: 0.006, timeout: '30s',
           bindingsIn: [{ alias: 'draft', from: 'digest', path: 'headline' }],
           producers: ['digest'],
+          // the producer side of the unwind attachment: the card wears the
+          // ◈ unwind ×1 chip naming its cleanup unit (drop_scratch below)
+          cleanupTasks: ['drop_scratch'],
         },
         {
           id: 'notes', avgMs: 700, avgRuns: 4,  label: 'notes', verb: 'invoke', status: 'pending', secretLiterals: 1,
