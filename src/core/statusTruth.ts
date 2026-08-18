@@ -251,14 +251,15 @@ export function statusTruth(t: TruthInput): Truth {
     };
   }
 
-  // A generation gap is the NORMAL state between engine releases (the
-  // extension tracks the incoming grammar; scaffolds delegate to
-  // `nika new`, so daily authoring follows THE ENGINE's generation).
-  // It reads as a quiet truth line — a warn pill with a dead action
-  // (« update » to a release that does not exist yet) would nag every
-  // current pairing. The Station's grammar row stays the deep surface.
+  // A generation gap is a real state between engine releases: this
+  // extension writes the nine-key envelope (0.109) and an older engine
+  // refuses it at parse. Template scaffolds delegate to `nika new` and
+  // so follow THE ENGINE's generation; the blank scaffold, the doors and
+  // the lenses write ours. It reads as a quiet truth line with the one
+  // honest action (upgrade the engine) — the Station's grammar row stays
+  // the deep surface.
   if (t.gen1 === false) {
-    tooltip.unshift('engine speaks the previous grammar generation — scaffolds adapt; the newest lenses arrive with the next engine');
+    tooltip.unshift('engine speaks the previous grammar generation (nika: v1 · workflow:) — this extension writes the 0.109 envelope; upgrade the engine (brew upgrade nika) or scaffold with `nika new`');
   }
 
   return {

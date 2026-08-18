@@ -68,13 +68,13 @@ describe('structuralFixes parsers', () => {
   it('reads EACH authority — the ref carries the classification', () => {
     // The author already stated the role by the namespace they wrote.
     // The fix follows it; it never picks one for them.
-    for (const ns of ['inputs', 'config', 'const', 'secrets'] as const) {
+    for (const ns of ['inputs', 'const', 'secrets'] as const) {
       expect(parseUnresolvedRef(`unresolved reference \`${ns}.k\` in task \`a\``))
         .toEqual({ authority: ns, varName: 'k', task: 'a' });
     }
-    // A config/secret name is conventionally shout-case — still one ref.
-    expect(parseUnresolvedRef('unresolved reference `config.API_BASE` in task `a`'))
-      .toEqual({ authority: 'config', varName: 'API_BASE', task: 'a' });
+    // A secret name is conventionally shout-case — still one ref.
+    expect(parseUnresolvedRef('unresolved reference `secrets.API_BASE` in task `a`'))
+      .toEqual({ authority: 'secrets', varName: 'API_BASE', task: 'a' });
   });
 
   it('refuses the DEAD spellings — they are a teaching, not a missing decl', () => {
@@ -82,6 +82,9 @@ describe('structuralFixes parsers', () => {
     // it » there would author the very field the engine rejects.
     expect(parseUnresolvedRef('unresolved reference `vars.topic` in task `a`')).toBeUndefined();
     expect(parseUnresolvedRef('unresolved reference `env.TOKEN` in task `a`')).toBeUndefined();
+    // `config.` joined them with the nine-key envelope (NIKA-VALUES-003 ·
+    // a deployment knob is an input with a default): never a declaration.
+    expect(parseUnresolvedRef('unresolved reference `config.region` in task `a`')).toBeUndefined();
   });
 });
 
@@ -410,15 +413,17 @@ describe('addAuthorityDeclaration', () => {
     expect(addAuthorityDeclaration(DOC, 'const', 'dir')!).toContain('const:\n  dir: ""');
     expect(addAuthorityDeclaration(DOC, 'secrets', 'api_key')!)
       .toContain('secrets:\n  api_key:\n    source: env\n    key: API_KEY');
-    expect(addAuthorityDeclaration(DOC, 'config', 'region')!)
-      .toContain('config:\n  region:\n    type: string\n    default: ""');
+    // a deployment knob is an INPUT with a default (config: left the envelope)
+    expect(addAuthorityDeclaration(DOC, 'inputs', 'region')!)
+      .toContain('inputs:\n  region:\n    type: string\n    default: ""');
   });
 
   it('never authors a dead envelope field', () => {
-    for (const ns of ['inputs', 'config', 'const', 'secrets'] as const) {
+    for (const ns of ['inputs', 'const', 'secrets'] as const) {
       const out = addAuthorityDeclaration(DOC, ns, 'k')!;
       expect(out).not.toMatch(/^vars:/m);
       expect(out).not.toMatch(/^env:/m);
+      expect(out).not.toMatch(/^config:/m);
     }
   });
 

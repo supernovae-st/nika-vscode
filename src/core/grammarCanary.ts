@@ -1,17 +1,22 @@
 // grammarCanary.ts — the generation-floor probe (D-V8, product side).
 //
-// This extension writes the refonte grammar (`workflow:` object ·
-// `tasks:` map). A shipped pre-refonte engine rejects that shape at
-// parse (NIKA-PARSE-019 · parse_fatal). One tiny canary document +
-// one verdict reader — shared by the runtime Station probe and the
-// e2e floor gate, so « does this binary speak our grammar? » has
+// This extension writes the nine-key envelope (0.109 · `nika: <name>` is
+// the mark AND the identity · `tasks:` the discriminant). A shipped
+// previous-generation engine (0.108 · `nika: v1` + `workflow: { id }`)
+// refuses that mark at parse (NIKA-PARSE-003 · parse_fatal), and a
+// next-generation engine refuses the OLD document the same way
+// (NIKA-PARSE-005 · `workflow` unknown) — so the canary MUST be the
+// document this extension writes, or the answer inverts (measured
+// 2026-08-18: the 0.108 canary against a 0.109 engine read as « the
+// engine is older », while every scaffold it wrote was refused). One
+// tiny canary document + one verdict reader — shared by the runtime
+// Station probe and the e2e floor gate (src/test/lspHarness.ts imports
+// THIS constant), so « does this binary speak our grammar? » has
 // exactly one definition.
 
-/** The smallest refonte document — map-form workflow, tasks map. */
+/** The smallest nine-key document — the mark, a model, one task. */
 export const GRAMMAR_CANARY_DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: canary',
+  'nika: canary',
   'model: mock/echo',
   'tasks:',
   '  probe:',

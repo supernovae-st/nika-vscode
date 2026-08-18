@@ -678,9 +678,7 @@ does nothing.
 **4 verbs · locked forever.**
 
 ```yaml
-nika: v1
-workflow:
-  id: hello
+nika: hello               # the mark AND the name · one line
 
 model: mock/echo          # deterministic · swap for ollama/qwen3.5:4b or any provider
 
