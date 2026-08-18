@@ -147,12 +147,29 @@ describe('the tombstones stay buried', () => {
     'goal',
   ];
 
-  // Two lines name something OTHER than the language: the file's own
-  // `$schema` (a JSON-Schema URL) and the `workflow-name` capture scope
-  // (a scope NAME, not a painted key). Everything else is fair game.
+  // Some lines name something OTHER than the language, and a word landing
+  // there paints nothing. Four classes, each with its reason:
+  //   `"$schema"`            the file's own JSON-Schema URL
+  //   `workflow-name.nika`   a capture SCOPE name, not a painted key
+  //   `provider-name.nika`   same class — it scopes the vendor half of a
+  //                          model id (`anthropic` in `anthropic/claude-x`),
+  //                          which is a live value, not the dead `provider:`
+  //                          envelope key
+  //   `"include":`           TextMate's OWN structural key (a rule pointing
+  //                          at another rule). It is in every grammar ever
+  //                          written and has nothing to do with nika's dead
+  //                          `include:`.
+  // Everything else is fair game — a dead word smuggled into any match,
+  // alternation or not, reds here.
   const body = raw
     .split('\n')
-    .filter((line) => !line.includes('"$schema"') && !line.includes('workflow-name.nika'))
+    .filter(
+      (line) =>
+        !line.includes('"$schema"') &&
+        !line.includes('workflow-name.nika') &&
+        !line.includes('provider-name.nika') &&
+        !line.trimStart().startsWith('"include":'),
+    )
     .join('\n');
 
   it.each(TOMBSTONES)('never paints `%s`', (word) => {
