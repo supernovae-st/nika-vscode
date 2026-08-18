@@ -161,6 +161,19 @@ jobs:
           bin="$GITHUB_WORKSPACE/../engine/target/release/nika-cli"
           [ -x "$bin" ] || { echo "no nika-cli built"; exit 1; }
           echo "NIKA_BIN=$bin" >> "$GITHUB_ENV"
+      # The 0.109 engine REFUSES a permits-declaring workflow with exec
+      # children when the host cannot jail them (NIKA_SANDBOX=auto · the
+      # #889 fail-closed policy) — on a Linux runner without bubblewrap the
+      # journey suites' runs never start (measured 2026-08-18: 3 journey
+      # tests red with « expected 0 to be greater than 0 » events). Install
+      # the jail the same way the engine's own tests leg does, AppArmor
+      # detour included, so the runs run.
+      - name: Install bubblewrap (the exec jail the next engine requires)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Belt must be armed (the silent-skip class dies here)
         run: |
           [ -n "${NIKA_BIN:-}" ] && [ -x "$NIKA_BIN" ] || { echo "belt unarmed — NIKA_BIN missing"; exit 1; }
