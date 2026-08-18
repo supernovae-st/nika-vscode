@@ -61,9 +61,7 @@ function tmpWorkflow(content: string): string {
   return file;
 }
 
-const CLEAN_WF = `nika: v1
-workflow:
-  id: contract-smoke
+const CLEAN_WF = `nika: contract-smoke
 
 model: mock/echo
 
@@ -153,7 +151,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     }
   });
 
-  it('inspect --format json adapts into the webview DagGraph (graph_format 2)', () => {
+  it('inspect --format json adapts into the webview DagGraph (graph_format 3)', () => {
     const file = tmpWorkflow(CLEAN_WF);
     try {
       const res = run(['inspect', file, '--format', 'json']);
@@ -177,9 +175,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // graphDocToDag → card fields. Capability-honest: a binary whose
     // JSON predates the policy fields (brew 0.99.0) soft-passes — the
     // floor stays green while dev/next binaries PIN the contract.
-    const file = tmpWorkflow(`nika: v1
-workflow:
-  id: policy-seam
+    const file = tmpWorkflow(`nika: policy-seam
 model: mock/echo
 permits:
   fs:
@@ -195,7 +191,7 @@ tasks:
       max_attempts: 3
     on_error:
       skip: true
-    output:
+    extract:
       summary: ".text"
   save:
     after: { guarded: success }
@@ -349,7 +345,7 @@ tasks:
     // the SHAPE). The starters reference `inputs.*` since the E-split,
     // so the corpus must DECLARE inputs: or every skeleton would read an
     // undeclared name. This suite runs a dev-tree build, i.e. main.
-    const base = 'nika: v1\nworkflow:\n  id: edit-corpus\n\nmodel: mock/echo\n\ninputs:\n  topic: { type: string, default: "probe" }\n  input: { type: string, default: "probe" }\n\ntasks:\n  seed:\n    infer:\n      prompt: "hello"\n';
+    const base = 'nika: edit-corpus\n\nmodel: mock/echo\n\ninputs:\n  topic: { type: string, default: "probe" }\n  input: { type: string, default: "probe" }\n\ntasks:\n  seed:\n    infer:\n      prompt: "hello"\n';
     for (const verb of ['infer', 'exec', 'invoke', 'agent'] as const) {
       const inserted = insertTaskSkeleton(base, verb, 'seed');
       expect(inserted).toBeDefined();
@@ -369,9 +365,7 @@ tasks:
   it('shape propagation AGREES with the oracle (valid path clean · invalid flagged by both)', async () => {
     const { collectShapes, shapeAt } = await import('../core/schemaShape');
     const wf = (field: string): string => [
-      'nika: v1',
-      'workflow:',
-      '  id: shape-agreement',
+      'nika: shape-agreement',
       'model: mock/echo',
       '',
       'tasks:',
@@ -423,9 +417,7 @@ tasks:
     // triangle shape is CONFORMANT; any nudge is the engine's own
     // one-obvious-way lane, never a client re-guess.
     const doc = [
-      'nika: v1',
-      'workflow:',
-      '  id: redundancy',
+      'nika: redundancy',
       'model: mock/echo',
       '',
       'tasks:',
@@ -523,15 +515,15 @@ describe.skipIf(!BIN)('explain ↔ canon error codes (real binary)', () => {
 describe('graphDocToDag adaptation (pure)', () => {
   it('engine-projected policy wins the card fields (0.99+ graph)', () => {
     const doc = {
-      graph_format: 2,
+      graph_format: 3,
       workflow: 'policy_probe',
       nodes: [
         {
-          id: 'guarded', verb: 'infer',
+          id: 'guarded', kind: 'task', verb: 'infer',
           retry_max_attempts: 3, timeout_ms: 30_000,
           on_error: 'skip', outputs: ['summary', 'title'],
         },
-        { id: 'bare', verb: 'exec' },
+        { id: 'bare', kind: 'task', verb: 'exec' },
       ],
       edges: [],
     };
@@ -558,11 +550,11 @@ describe('graphDocToDag adaptation (pure)', () => {
 
   it('carries per-task permits onto the node (#367 contract)', () => {
     const doc = {
-      graph_format: 2,
+      graph_format: 3,
       workflow: 'permits_probe',
       nodes: [
-        { id: 'a', verb: 'invoke', tool: 'nika:fetch', permits: ['net.http: api.example.org'] },
-        { id: 'b', verb: 'infer', permits: [] },
+        { id: 'a', kind: 'task', verb: 'invoke', tool: 'nika:fetch', permits: ['net.http: api.example.org'] },
+        { id: 'b', kind: 'task', verb: 'infer', permits: [] },
       ],
       edges: [{ from: 'a', to: 'b', kind: 'control', predicate: 'success' }],
     };
@@ -610,9 +602,7 @@ describe.skipIf(!BIN)('dag insights on the real graph projection', () => {
 // width, witness size, pinch set. Capability-honest: older binaries
 // without the field skip the agreement (never a false claim).
 
-const DIAMOND_WF = `nika: v1
-workflow:
-  id: analysis-agreement
+const DIAMOND_WF = `nika: analysis-agreement
 
 model: mock/echo
 

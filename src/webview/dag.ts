@@ -640,6 +640,11 @@ interface DagNode {
   blockedBy?: string;
   /** `on_finally:` cleanup steps — ALWAYS run on a started task. */
   finallyCount?: number;
+  /** `"task"` · `"finally"` (graph_format 3 · mirrors core DagNode.kind):
+   *  a cleanup unit is an attachment — no wave, no plan count. */
+  kind?: string;
+  /** For a cleanup unit: the tasks whose `unwind` runs it. */
+  attachedTo?: string[];
   /** The agent loop's inner life (fold annotations — live + replay). */
   agent?: AgentFacts;
   /** In-flight spend (~$ curve · cost_incurred deltas) + stream proof. */
@@ -678,7 +683,7 @@ interface DagEdge {
   id: string;
   source: string;
   target: string;
-  /** graph_format 2 kind — value · terminal-observation ·
+  /** graph_format 3 kind — value · terminal-observation ·
    *  failure-observation · control · recovery (unknown → data render). */
   kind: string;
   /** control edges — the after: predicate. */
@@ -1347,6 +1352,14 @@ function cardFactsOf(node: DagNode): CardFact[] {
     facts.push({ k: 'stream', v: `${node.chunks} deltas received · the model is talking`, live: 'stream' });
   }
   const ctx = cardCtx;
+  if (node.kind === 'finally') {
+    // A cleanup unit has no wave: it runs on the unwind of its anchor(s)
+    // (spec 03 · graph_format 3 · never scheduled, never counted).
+    const anchors = node.attachedTo ?? [];
+    facts.push({ k: 'cleanup', v: anchors.length > 0
+      ? `runs on the unwind of ${anchors.join(', ')} · never scheduled`
+      : 'runs on unwind · never scheduled' });
+  }
   if (ctx) {
     const wave = ctx.waveOf.get(node.id);
     if (wave !== undefined && ctx.waveOf.size > 0) {

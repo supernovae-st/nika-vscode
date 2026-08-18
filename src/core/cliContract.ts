@@ -1,14 +1,18 @@
 // cliContract.ts — the grounded contracts of the `nika` CLI (pure · no vscode).
 //
 // Mirrors, field-for-field, what the engine actually emits today:
-//   · `nika inspect <file> --format json` → GraphDoc (graph_format: 2 · 03-dag §projection)
+//   · `nika inspect <file> --format json` → GraphDoc (graph_format: 3 · 03-dag §projection)
 //   · `nika check <file> --json`          → CheckReport (report_version: 1 · ADR-092)
 // Source of truth: crates/nika-cli/src/verbs/{inspect,check}.rs +
 // crates/nika-schema/src/check/mod.rs. If a field here disagrees with the
 // binary, the binary wins — adapters below are tolerant WITHIN the format
 // (optional fields, unknown keys and unknown edge kinds ignored — the
 // fold-tolerance law), but a reader MUST refuse a graph_format it does
-// not speak: format 1 is dead, no fallback survives W2.
+// not speak: formats 1 and 2 are dead, no fallback survives — format 3
+// (spec 03 §graph-projection · nika-spec f308fa3) admits cleanup units
+// as NODES (`kind: "finally"`), and a format-2 reader would schedule
+// them or count them in a wave, which is why 2 was retired rather than
+// tolerated (the extension moved 2026-08-18 · engine 0.109 emits 3).
 
 // ─── inspect --format json ──────────────────────────────────────────────────
 
@@ -19,6 +23,12 @@ export interface GraphDocFanOut {
 
 export interface GraphDocNode {
   id: string;
+  /** `"task"` · `"finally"` — the population this node belongs to (spec
+   *  03 §graph-projection · THE field that forced the format-3 bump: its
+   *  absence meant *everything is a task*, and a cleanup unit is not one —
+   *  it never joins a wave, it runs on the `unwind` of what it attaches
+   *  to). Required in format 3: `isGraphDoc` refuses a node without it. */
+  kind: string;
   verb: string;
   tool?: string | null;
   model?: string | null;
@@ -35,9 +45,10 @@ export interface GraphDocNode {
   outputs?: string[] | null;
 }
 
-/** The graph_format 2 edge kinds (closed at six · additive within the
- *  format · a reader ignores kinds it does not know). `finally` is
- *  RESERVED — named so the enum is complete, never emitted in W2. */
+/** The graph_format 3 edge kinds (closed at six · additive within the
+ *  format · a reader ignores kinds it does not know). `finally` is the
+ *  `after: {x: unwind}` attachment of a cleanup node to the task it
+ *  unwinds — emitted since format 3 (it was reserved in 2). */
 export type GraphEdgeKind =
   | 'value'
   | 'terminal-observation'
@@ -58,7 +69,7 @@ export interface GraphDocEdge {
 }
 
 export interface GraphDoc {
-  /** Always 2 — `isGraphDoc` refuses any other format (no v1 fallback). */
+  /** Always 3 — `isGraphDoc` refuses any other format (no 1/2 fallback). */
   graph_format: number;
   workflow: string;
   nodes: GraphDocNode[];
@@ -114,6 +125,13 @@ export interface DagNode {
   id: string;
   label: string;
   verb: string;
+  /** `"task"` (default when absent — the client sketch and older
+   *  callers) · `"finally"` (a cleanup unit · never scheduled, never in a
+   *  wave · runs on the unwind of `attachedTo`). Mirrors GraphDocNode.kind. */
+  kind?: string;
+  /** For a cleanup unit: the tasks whose `unwind` runs it (the sources
+   *  of its inbound `finally` edges). */
+  attachedTo?: string[];
   status: TaskStatus;
   durationMs?: number;
   /** Agent register size (client YAML read — default-deny means an
@@ -266,13 +284,25 @@ export function goishDuration(ms: number): string {
   return rest === 0 ? `${m}m` : `${m}m${rest}s`;
 }
 
-/** Accepts ONLY `graph_format: 2` — a reader refuses a format it does
+/** Accepts ONLY `graph_format: 3` — a reader refuses a format it does
  *  not speak rather than guess (format 1's untyped edges would be
- *  mis-read as ordering; the format number moved for that reason). */
+ *  mis-read as ordering · format 2 had no node `kind`, so a cleanup unit
+ *  would be scheduled or counted in a wave; the number moved for exactly
+ *  those reasons). Within 3 every node carries `kind` — a document that
+ *  omits it on any node is not format 3, whatever its number says. */
 export function isGraphDoc(value: unknown): value is GraphDoc {
   if (typeof value !== 'object' || value === null) { return false; }
   const v = value as Record<string, unknown>;
-  return v.graph_format === 2 && Array.isArray(v.nodes) && Array.isArray(v.edges);
+  if (v.graph_format !== 3 || !Array.isArray(v.nodes) || !Array.isArray(v.edges)) { return false; }
+  return v.nodes.every((n) => typeof n === 'object' && n !== null && typeof (n as Record<string, unknown>).kind === 'string');
+}
+
+/** A node the plan SCHEDULES (G_p) — a cleanup unit (`kind: "finally"`)
+ *  is an attachment: it never joins a wave and never counts as a task.
+ *  Absent `kind` (the client sketch · older DagNode producers) reads as
+ *  a task, the format-2 meaning those callers still carry. */
+export function isTaskNode(n: { kind?: string }): boolean {
+  return n.kind === undefined || n.kind === 'task';
 }
 
 /** Stable id for one typed edge — TWO edges may share endpoints (a
@@ -285,8 +315,16 @@ export function dagEdgeId(e: GraphDocEdge): string {
 /** Adapt the CLI's canonical GraphDoc into the webview DagGraph shape. */
 export function graphDocToDag(doc: GraphDoc): DagGraph {
   const producers = new Map<string, string[]>();
+  const attached = new Map<string, string[]>();
   for (const edge of doc.edges) {
-    if (!isSchedulingKind(edge.kind)) { continue; } // recovery parks, never orders
+    if (edge.kind === 'finally') {
+      // The unwind attachment: the cleanup unit (edge.to) runs when
+      // edge.from unwinds — an anchor, never a producer.
+      const list = attached.get(edge.to) ?? [];
+      if (!list.includes(edge.from)) { list.push(edge.from); }
+      attached.set(edge.to, list);
+    }
+    if (!isSchedulingKind(edge.kind)) { continue; } // recovery/finally park, never order
     const list = producers.get(edge.to) ?? [];
     if (!list.includes(edge.from)) { list.push(edge.from); }
     producers.set(edge.to, list);
@@ -300,9 +338,12 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
         id: n.id,
         label: n.id,
         verb: n.verb,
+        kind: n.kind,
         status: 'pending',
         producers: producers.get(n.id) ?? [],
       };
+      const anchors = attached.get(n.id);
+      if (anchors && anchors.length > 0) { node.attachedTo = anchors; }
       if (model) {
         node.model = model;
         const slash = model.indexOf('/');
@@ -890,10 +931,14 @@ export function byteOffsetToPosition(text: string, byteOffset: number): TextPosi
 // (only possible on the degraded client-parse path) fall into a final
 // catch-all wave instead of looping.
 
-export function topoWaves(nodes: Array<{ id: string }>, edges: Array<{ source: string; target: string }>): string[][] {
+export function topoWaves(nodes: Array<{ id: string; kind?: string }>, edges: Array<{ source: string; target: string }>): string[][] {
   const indegree = new Map<string, number>();
   const downstream = new Map<string, string[]>();
-  for (const n of nodes) { indegree.set(n.id, 0); }
+  // Only the SCHEDULED population enters the waves (G_p): a cleanup unit
+  // (`kind: "finally"`) is an attachment that runs on unwind — never a
+  // wave member, never counted (the engine's PLAN rung says « 2 waves ·
+  // 2 tasks » for two tasks + one cleanup unit; this mirrors it).
+  for (const n of nodes) { if (isTaskNode(n)) { indegree.set(n.id, 0); } }
   for (const e of edges) {
     if (!indegree.has(e.source) || !indegree.has(e.target)) { continue; }
     indegree.set(e.target, (indegree.get(e.target) ?? 0) + 1);
@@ -915,7 +960,7 @@ export function topoWaves(nodes: Array<{ id: string }>, edges: Array<{ source: s
     }
     frontier = next;
   }
-  const leftovers = nodes.map((n) => n.id).filter((id) => !seen.has(id));
+  const leftovers = nodes.filter((n) => isTaskNode(n)).map((n) => n.id).filter((id) => !seen.has(id));
   if (leftovers.length > 0) { waves.push(leftovers); } // cycle fallback
   return waves;
 }

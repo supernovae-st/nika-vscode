@@ -2,7 +2,7 @@
 //
 // The engine's LSP answers a bare TextDocumentIdentifier with the
 // analyzed workflow as ONE payload: the canonical graph projection
-// VERBATIM (the same graph_format-2 document `inspect --format json`
+// VERBATIM (the same graph_format-3 document `inspect --format json`
 // prints — three-protocol parity), plus a presentation wrapper the CLI
 // cannot carry: per-task declaration ranges. Adopting it removes a
 // process spawn per projection and hands the canvas exact node→source
@@ -19,8 +19,9 @@ import { GraphDoc, isGraphDoc } from './cliContract';
 /** The vendor-prefixed request method — typed once, never retyped. */
 export const SEMANTIC_DOCUMENT_METHOD = 'nika/semanticDocument';
 
-/** The one payload format this client speaks (mirrors `isGraphDoc`). */
-export const SEMANTIC_DOCUMENT_FORMAT = 2;
+/** The one payload format this client speaks (mirrors `isGraphDoc` ·
+ *  graph_format 3 · cleanup units as nodes). */
+export const SEMANTIC_DOCUMENT_FORMAT = 3;
 
 /** An LSP Range as the wire carries it (zero-based line/character). */
 export interface LspRange {

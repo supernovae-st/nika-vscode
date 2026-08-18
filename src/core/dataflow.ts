@@ -31,7 +31,7 @@ export interface DataFlowInfo {
   inputs: Map<string, BindingIn[]>;
 }
 
-/** The graph_format 2 role of one referenced field (03-dag §with table). */
+/** The graph_format 3 role of one referenced field (03-dag §with table). */
 export function edgeKindOfPath(path: string): 'value' | 'terminal-observation' | 'failure-observation' {
   const head = path.split('.')[0];
   if (head === 'status' || head === 'duration_ms' || head === 'started_at' || head === 'ended_at') {
