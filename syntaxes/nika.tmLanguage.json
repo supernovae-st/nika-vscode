@@ -165,7 +165,7 @@
       }
     },
     "verb-sub-fields": {
-      "match": "^\\s+(args|body|command|content|cwd|env|extract|goal|headers|json|max_iterations|max_tokens|max_turns|method|mode|model|params|prompt|resource|server|shell|stop_sequences|system|temperature|thinking|tool|tool_choice|tools|url|working_dir)(:)",
+      "match": "^\\s+(args|body|command|content|cwd|env|extract|headers|json|max_iterations|max_tokens|max_turns|method|mode|model|params|prompt|resource|server|shell|stop_sequences|system|temperature|thinking|tool|tool_choice|tools|url|working_dir)(:)",
       "captures": {
         "1": {
           "name": "variable.other.property.nika"
