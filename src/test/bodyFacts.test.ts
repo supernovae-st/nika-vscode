@@ -63,9 +63,7 @@ describe('collectBodyFacts', () => {
   });
 });
 
-const POLICY_WF = `nika: v1
-workflow:
-  id: policy_probe
+const POLICY_WF = `nika: policy-probe
 model: mock/echo
 tasks:
   guarded:
@@ -77,7 +75,7 @@ tasks:
       backoff_ms: 200
     on_error:
       skip: true
-    output:
+    extract:
       summary: ".text"
       title: ".title"
   flow_forms:
@@ -94,7 +92,7 @@ tasks:
       timeout: "\${{ tasks.guarded.output }}"
 `;
 
-describe('collectBodyFacts · policy facts (retry · timeout · on_error · output)', () => {
+describe('collectBodyFacts · policy facts (retry · timeout · on_error · extract)', () => {
   const facts = collectBodyFacts(POLICY_WF);
 
   it('reads retry.max_attempts from a block', () => {
@@ -109,8 +107,12 @@ describe('collectBodyFacts · policy facts (retry · timeout · on_error · outp
     expect(facts.get('guarded')?.onError).toBe('skip');
   });
 
-  it('collects named output bindings the task produces', () => {
+  it('collects the named extract: bindings the task produces (the old output: block is dead)', () => {
     expect(facts.get('guarded')?.outputNames).toEqual(['summary', 'title']);
+    // A pre-0.109 `output:` block is refused by the engine (NIKA-PARSE-005
+    // · renamed extract:) — the fallback reader does not resurrect it.
+    const dead = collectBodyFacts(POLICY_WF.replace('    extract:\n', '    output:\n'));
+    expect(dead.get('guarded')?.outputNames).toBeUndefined();
   });
 
   it('reads flow forms — retry: {max_attempts} · on_error: {recover}', () => {
@@ -118,59 +120,51 @@ describe('collectBodyFacts · policy facts (retry · timeout · on_error · outp
     expect(facts.get('flow_forms')?.onError).toBe('recover');
   });
 
+  it('on_error knows two actions — fail_workflow is not one (failure is the default · nika 0.109)', () => {
+    // The engine refuses `fail_workflow` (NIKA-PARSE-005 · « the fields
+    // here: recover · skip · on_codes »); a reader that still surfaced it
+    // would paint a chip for a form no file can carry.
+    const dead = collectBodyFacts([
+      'nika: dead-action',
+      'model: mock/echo',
+      'tasks:',
+      '  a:',
+      '    exec: { command: ["echo"] }',
+      '    on_error: { fail_workflow: true }',
+      '  b:',
+      '    exec: { command: ["echo"] }',
+      '    on_error:',
+      '      fail_workflow: true',
+    ].join('\n'));
+    expect(dead.get('a')?.onError).toBeUndefined();
+    expect(dead.get('b')?.onError).toBeUndefined();
+  });
+
   it('a with: alias named timeout never impersonates the task field', () => {
     expect(facts.get('decoy')?.timeout).toBeUndefined();
   });
 });
 
-describe('collectBodyFacts · on_finally (spec 03 §on_finally)', () => {
-  it('counts the cleanup list members and survives on a scalar-verb task', () => {
+describe('collectBodyFacts · cleanup is a task, not a block (spec 03 §unwind · nika 0.109)', () => {
+  it('an on_finally: block is dead — the fallback reader counts nothing from it', () => {
+    // The engine refuses it (NIKA-PARSE-005 · « cleanup is a TASK now,
+    // joined by an unwind edge »); the cleanup story rides the graph
+    // (a `finally` node · the producer's cleanupTasks), never a chip
+    // read from a dead block.
     const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
+      'nika: dead-block',
       'tasks:',
       '  process:',
       '    exec: ./process.sh',
       '    on_finally:',
       '      - exec:',
       '          command: ["rm", "-f", "/tmp/x"]',
-      '      - invoke:',
-      '          tool: nika:emit',
-      '          args: { event: done }',
       '  plain:',
       '    exec: echo hi',
     ].join('\n'));
-    expect(facts.get('process')?.finallyCount).toBe(2);
+    // No fact class carries the dead block: nothing named finally, no count.
+    expect(JSON.stringify([...facts.values()])).not.toContain('finally');
     expect(facts.get('plain')).toBeUndefined();
-  });
-
-  it('an empty or non-list on_finally counts nothing (check owns conformance)', () => {
-    const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
-      'tasks:',
-      '  a:',
-      '    exec: echo hi',
-      '    on_finally:',
-      '  b:',
-      '    exec: echo ho',
-      '    prompt: never',
-    ].join('\n'));
-    expect(facts.get('a')?.finallyCount).toBeUndefined();
-  });
-
-  it('a with-alias named on_finally can never impersonate the task-level hook', () => {
-    const facts = collectBodyFacts([
-      'nika: v1',
-      'workflow: probe',
-      'tasks:',
-      '  a:',
-      '    exec: echo hi',
-      '    with:',
-      '      on_finally:',
-      '        - not-a-cleanup',
-    ].join('\n'));
-    expect(facts.get('a')?.finallyCount).toBeUndefined();
   });
 });
 

@@ -27,7 +27,7 @@ export interface TaskRange {
 // flip point · D-V10) — re-exported so existing consumers keep their
 // import; new code imports the home module.
 export { AFTER_PREDICATES, DEFAULT_PREDICATE } from './predicates';
-import { DEFAULT_PREDICATE } from './predicates';
+import { DEFAULT_PREDICATE, UNWIND_PREDICATE } from './predicates';
 
 interface KeyLine {
   line: number;
@@ -282,6 +282,15 @@ export function gateShapes(
       label: `${t.id} success`,
       hint: `state is control — writes \`after: { ${t.id}: success }\`, never a when:`,
       action: { kind: 'after', producer: t.id, predicate: DEFAULT_PREDICATE },
+    });
+    // The attachment (nika 0.109 · spec 03 §unwind): this task becomes a
+    // cleanup unit that ALWAYS runs once the producer has started and
+    // settles — the grammar that replaced `on_finally:` (dead).
+    shapes.push({
+      id: `unwind-${t.id}`,
+      label: `${t.id} unwind`,
+      hint: `cleanup after ${t.id} — writes \`after: { ${t.id}: unwind }\` · runs once ${t.id} has started, whatever it settles to (success · failure · timeout · cancel) · never scheduled in a wave · its own failure never propagates`,
+      action: { kind: 'after', producer: t.id, predicate: UNWIND_PREDICATE },
     });
     shapes.push({
       id: `content-${t.id}`,

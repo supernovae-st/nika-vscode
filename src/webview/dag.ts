@@ -606,7 +606,7 @@ interface DagNode {
   retryMax?: number;
   /** `timeout` Go-duration string, as written (`30s`). */
   timeout?: string;
-  /** `on_error` action — recover · skip · fail_workflow. */
+  /** `on_error` action — recover · skip (failure is the default). */
   onError?: string;
   /** Named `output:` bindings the task PRODUCES (≤4). */
   outputNames?: string[];
@@ -638,8 +638,9 @@ interface DagNode {
   whyWhen?: string;
   /** Cancel pedagogy: the dependency whose outcome blocked admission. */
   blockedBy?: string;
-  /** `on_finally:` cleanup steps — ALWAYS run on a started task. */
-  finallyCount?: number;
+  /** The cleanup units attached to THIS task by an unwind edge (mirrors
+   *  core DagNode.cleanupTasks · the producer names them on its card). */
+  cleanupTasks?: string[];
   /** `"task"` · `"finally"` (graph_format 3 · mirrors core DagNode.kind):
    *  a cleanup unit is an attachment — no wave, no plan count. */
   kind?: string;
@@ -1250,7 +1251,7 @@ function hasPolicyRow(node: DagNode): boolean {
   return node.retryMax !== undefined
     || node.timeout !== undefined
     || node.onError !== undefined
-    || node.finallyCount !== undefined
+    || node.cleanupTasks !== undefined
     || node.thinkingBudget !== undefined
     || node.visionCount !== undefined
     || node.typedShape !== undefined
@@ -6018,9 +6019,6 @@ class DagRenderer {
       } else if (node.onError === 'skip') {
         chip('nc-pol-skip', 'skip',
           'on_error: skip · a failure skips this task; the error stays readable at tasks.X.error', HOUSE_ICON.polSkip);
-      } else if (node.onError === 'fail_workflow') {
-        chip('nc-pol-fail', '✗ fail',
-          'on_error: fail_workflow · a failure here stops the whole run');
       }
       if (node.thinkingBudget !== undefined) {
         const cap = node.thinkingBudget > 0
@@ -6050,9 +6048,10 @@ class DagRenderer {
         chip('nc-pol-failfast', '⊗ fail-fast',
           'fail_fast: true · the first iteration error fails the whole task; its output settles null, never a partial array.');
       }
-      if (node.finallyCount !== undefined) {
-        chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
-          `on_finally · ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
+      if (node.cleanupTasks !== undefined && node.cleanupTasks.length > 0) {
+        const n = node.cleanupTasks.length;
+        chip('nc-pol-finally', `◈ unwind ×${n}`,
+          `${n} cleanup task${n === 1 ? '' : 's'} attached by an unwind edge · ${node.cleanupTasks.join(', ')} · after: { ${node.id}: unwind } · they run once this task has started and settles (success · failure · timeout · cancel), in declaration order, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph. Never scheduled in a wave.`);
       }
       const outs = node.outputNames ?? [];
       if (outs.length > 0) {

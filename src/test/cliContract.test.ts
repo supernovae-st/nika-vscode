@@ -148,6 +148,12 @@ describe('graphDocToDag', () => {
     expect(fin.predicate).toBe('unwind');
     expect(fin.label).toBeUndefined();
     expect(fin.id).toBe('fanout->drop_temp:finally:unwind');
+    // The producer side of the attachment: its card names the units it
+    // unwinds into (the chip that replaced the dead on_finally count).
+    const byId = new Map(dag.nodes.map((n) => [n.id, n]));
+    expect(byId.get('fanout')?.cleanupTasks).toEqual(['drop_temp']);
+    expect(byId.get('summarize')?.cleanupTasks).toBeUndefined();
+    expect(byId.get('drop_temp')?.cleanupTasks).toBeUndefined();
   });
 });
 

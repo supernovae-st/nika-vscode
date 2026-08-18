@@ -177,13 +177,17 @@ export interface DagNode {
   retryMax?: number;
   /** `timeout` Go-duration string, as written (`30s` · client YAML read). */
   timeout?: string;
-  /** `on_error` action — exactly one of recover · skip · fail_workflow. */
+  /** `on_error` action — exactly one of recover · skip (a mapping ·
+   *  failure is the default · there is no fail_workflow · nika 0.109). */
   onError?: string;
-  /** Named `output:` bindings this task PRODUCES (client YAML read · ≤4). */
+  /** Named `extract:` bindings this task PRODUCES (engine `outputs` ·
+   *  client YAML read as the fallback · ≤4). */
   outputNames?: string[];
-  /** `on_finally:` cleanup steps declared on this task (client YAML
-   *  read) — ALWAYS run on a started task, whatever the outcome. */
-  finallyCount?: number;
+  /** The cleanup units attached to THIS task by an unwind edge (the
+   *  targets of its outbound `finally` edges · `after: { this: unwind }`
+   *  on the cleanup task). They run once this task has started and
+   *  settles, never in a wave — the producer's card names them. */
+  cleanupTasks?: string[];
   /** NIKA-DAG-006 (static gate analysis): the `when:` gate is FALSE
    *  under every reachable combination — this task can never run. */
   deadGate?: boolean;
@@ -318,13 +322,18 @@ export function dagEdgeId(e: GraphDocEdge): string {
 export function graphDocToDag(doc: GraphDoc): DagGraph {
   const producers = new Map<string, string[]>();
   const attached = new Map<string, string[]>();
+  const cleanups = new Map<string, string[]>();
   for (const edge of doc.edges) {
     if (edge.kind === 'finally') {
       // The unwind attachment: the cleanup unit (edge.to) runs when
-      // edge.from unwinds — an anchor, never a producer.
+      // edge.from unwinds — an anchor, never a producer. Both ends
+      // remember it: the unit its anchors, the producer its cleanups.
       const list = attached.get(edge.to) ?? [];
       if (!list.includes(edge.from)) { list.push(edge.from); }
       attached.set(edge.to, list);
+      const mine = cleanups.get(edge.from) ?? [];
+      if (!mine.includes(edge.to)) { mine.push(edge.to); }
+      cleanups.set(edge.from, mine);
     }
     if (!isSchedulingKind(edge.kind)) { continue; } // recovery/finally park, never order
     const list = producers.get(edge.to) ?? [];
@@ -346,6 +355,8 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
       };
       const anchors = attached.get(n.id);
       if (anchors && anchors.length > 0) { node.attachedTo = anchors; }
+      const mine = cleanups.get(n.id);
+      if (mine && mine.length > 0) { node.cleanupTasks = mine; }
       if (model) {
         node.model = model;
         const slash = model.indexOf('/');

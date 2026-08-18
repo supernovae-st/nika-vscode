@@ -4927,14 +4927,9 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
 }
 
-.nc-pol-fail {
-  color: var(--nk-st-failed);
-  border-color: color-mix(in srgb, var(--nk-st-failed) 38%, transparent);
-  background: color-mix(in srgb, var(--nk-st-failed) 7%, transparent);
-}
-
-/* finally — the cleanup promise: calm, neutral, always-there. The
-   cached hue family (a fact about the run's shape, not a state). */
+/* finally — the cleanup promise (the producer names the units an
+   unwind edge attaches to it): calm, neutral, always-there. The cached
+   hue family (a fact about the run's shape, not a state). */
 .nc-pol-finally {
   color: var(--nk-st-muted);
   border-color: color-mix(in srgb, var(--nk-st-muted) 45%, transparent);
@@ -6763,13 +6758,6 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
     color: CanvasText !important;
     border-color: CanvasText !important;
     forced-color-adjust: none;
-  }
-
-  /* fail_workflow keeps its danger as WEIGHT, not hue. */
-  .nc-pol-fail {
-    color: Highlight !important;
-    border-color: Highlight !important;
-    font-weight: 700;
   }
 
   /* Severity survives as WEIGHT + a marker, not hue. */

@@ -9,9 +9,16 @@
 // the brew binary refuses the old spellings (NIKA-DAG-005) — the flip
 // this module was built for, exercised exactly as designed: one line,
 // every consumer follows, zero hunt.
+//
+// nika 0.109 (the nine-key envelope) added `unwind`: not a settle-state
+// comparison but the E_f ATTACHMENT (spec 03 §unwind) — the task that
+// declares `after: { x: unwind }` is a cleanup unit (`kind: "finally"`
+// in graph_format 3), never scheduled, run once `x` has STARTED and
+// settles (success · failure · timeout · cancel). It replaced the
+// `on_finally:` block (dead · NIKA-PARSE-005): one grammar for a task.
 
-/** The closed predicate set — the CURRENT engine dialect. */
-export const AFTER_PREDICATES = ['success', 'failure', 'skipped', 'terminal'] as const;
+/** The closed predicate set — the CURRENT engine dialect (nika 0.109). */
+export const AFTER_PREDICATES = ['success', 'failure', 'skipped', 'terminal', 'unwind'] as const;
 
 export type AfterPredicate = (typeof AFTER_PREDICATES)[number];
 
@@ -30,4 +37,12 @@ export const PREDICATE_ADMITS: Record<AfterPredicate, readonly string[]> = {
   failure: ['failure'],
   skipped: ['skipped'],
   terminal: ['success', 'failure', 'skipped', 'cancelled'],
+  // unwind fires for a producer that STARTED, whatever it settled to
+  // (timeout is a failure · cancel included) — a producer that never
+  // ran (gate refused · skipped) unwinds nothing (spec 03 §unwind).
+  unwind: ['success', 'failure', 'cancelled'],
 };
+
+/** The attachment predicate — the one `after:` spelling that does NOT
+ *  order in G_p: it makes the declaring task a cleanup unit. */
+export const UNWIND_PREDICATE: AfterPredicate = 'unwind';

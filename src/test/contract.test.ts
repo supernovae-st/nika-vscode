@@ -245,6 +245,7 @@ tasks:
       expect(cleanup.producers).toEqual([]);
       const fin = dag.edges.find((e) => e.kind === 'finally')!;
       expect(fin.predicate).toBe('unwind');
+      expect(dag.nodes.find((n) => n.id === 'thread')?.cleanupTasks).toEqual(['cleanup']);
       // The client's waves mirror the engine's PLAN: the unit sits in none.
       const waves = topoWaves(dag.nodes, dag.edges.filter((e) => e.kind !== 'recovery' && e.kind !== 'finally'));
       expect(waves).toEqual([['gather'], ['thread']]);

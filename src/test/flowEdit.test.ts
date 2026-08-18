@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AFTER_PREDICATES, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import {
   afterRewrite, bindingInsert, descendantsOf, fanoutRewrite, findTaskKey, gateRewrite,
   gateShapes, islandKeyRewrite, taskKeyRewrite, upstreamCandidates, type TaskRange,
@@ -142,8 +143,20 @@ describe('flowEdit (order on state · gate · fan out)', () => {
       'var-flag-publish',
       'with-content-doc',
       'after-gather',
+      'unwind-gather',
       'content-gather',
     ]);
+    // The attachment row (nika 0.109 · spec 03 §unwind): the door can
+    // AUTHOR a cleanup unit — `after: { gather: unwind }` — the grammar
+    // that replaced the dead `on_finally:` block.
+    const unwind = shapes.find((s) => s.id === 'unwind-gather')!;
+    expect(unwind.action).toEqual({ kind: 'after', producer: 'gather', predicate: 'unwind' });
+    expect(unwind.hint).toContain('after: { gather: unwind }');
+    // The predicate table knows the attachment (the completion snippet
+    // and the hover pedagogy read THIS list · one module · zero hunt).
+    expect(AFTER_PREDICATES).toContain('unwind');
+    expect(PREDICATE_ADMITS.unwind).toEqual(['success', 'failure', 'cancelled']);
+    expect(isAfterPredicate('unwind')).toBe(true);
     const whens = shapes.filter((s) => s.action.kind === 'when');
     // Every when: expression reads local namespaces only — never tasks.*
     for (const s of whens) {

@@ -415,8 +415,8 @@ reads as another, none hides:
 | `for_each:` | the SOURCE row `∥ items ← x` (io grammar, non-clickable · the collection is an expression, not always a producer) + the ×N head badge counting iterations + the deck frame |
 | `max_parallel:` / `fail_fast:` | policy chips `∥ max N` · `⤼ per-item` / `⊗ fail-fast` (worded marks) |
 | `retry:` / `timeout:` / `on_error:` | policy chips `↻×N` · `⏱ 30s` · the on_error route (§1) |
-| `output:` | `⤳ N outs` policy chip; named bindings feed the io rows downstream |
-| `on_finally:` | `◈ N` policy chip · cleanup always runs on a started task |
+| `extract:` | `⤳ N outs` policy chip; named bindings feed the io rows downstream (the old `output:` block is dead) |
+| `after: { x: unwind }` | the cleanup unit is a NODE (`kind: finally` · graph_format 3): its own card (« cleanup · hangs on the unwind of x · never scheduled »), one faint wire labeled `unwind` from x, and x wears the `◈ unwind ×N` policy chip naming its cleanup tasks (the dead `on_finally:` block had a count chip here) |
 | `permits:` | `▦ N` chip + the audit lens hulls (engine-projected) |
 | `workflow:` call | the ⎘ door chip + the child peek + the promoted contract (§1) |
 

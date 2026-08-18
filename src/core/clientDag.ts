@@ -58,6 +58,18 @@ export function clientDagFor(text: string, uriString: string, fallbackName: stri
     }
   }
 
+  // The producer side of every unwind attachment (the card names its
+  // cleanup units) — the mirror of `attachedTo` on the unit.
+  const cleanups = new Map<string, string[]>();
+  for (const t of wf.tasks) {
+    for (const [producer, predicate] of Object.entries(t.after)) {
+      if (predicate !== 'unwind' || !known.has(producer)) { continue; }
+      const mine = cleanups.get(producer) ?? [];
+      if (!mine.includes(t.id)) { mine.push(t.id); }
+      cleanups.set(producer, mine);
+    }
+  }
+
   return {
     workflowName: wf.name ?? fallbackName,
     workflowUri: uriString,
@@ -74,6 +86,7 @@ export function clientDagFor(text: string, uriString: string, fallbackName: stri
       model: t.model ?? wf.defaultModel,
       tool: t.tool,
       producers: t.producers.filter((p) => t.after[p] !== 'unwind'),
+      ...(cleanups.has(t.id) ? { cleanupTasks: cleanups.get(t.id) } : {}),
       ...(t.withRefs.length > 0
         ? { bindingsIn: t.withRefs.map((r) => ({ alias: r.alias, from: r.from, path: r.path })) }
         : {}),
