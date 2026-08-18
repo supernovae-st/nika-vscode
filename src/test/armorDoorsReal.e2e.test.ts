@@ -33,10 +33,7 @@ const BIN = [process.env.NIKA_BIN, CELLAR, 'nika']
   });
 
 const BASE = [
-  'nika: v1',
-  'workflow:',
-  '  id: armor-doors-proof',
-  '  description: "the three walls"',
+  'nika: armor-doors-proof',
   // 0.106 · absent permits is the EMPTY boundary (NIKA-AUTH-006) — the
   // fixture grants exactly what it spends. And `succeeded` died with the
   // predicate respelling: `success` is the vocabulary.

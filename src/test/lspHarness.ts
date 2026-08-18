@@ -36,9 +36,7 @@ export const REAL_BIN: string | undefined = [
 
 /** The smallest gen-1 document — map-form workflow, tasks map. */
 const CANARY_DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: canary',
+  'nika: canary',
   'model: mock/echo',
   'tasks:',
   '  probe:',
@@ -70,6 +68,17 @@ export function speaksGen1(bin: string): boolean {
     }
   }
   canaryCache.set(bin, ok);
+  // Under CI with an ARMED belt (`NIKA_BIN` set) a canary refusal is a
+  // failure, never a skip: every real-binary suite gates on this answer,
+  // and a green produced by skipping is the silent-skip class the belt
+  // exists to kill. Locally the answer stays a boolean — a dev machine
+  // may carry the stable engine.
+  if (!ok && process.env.CI && process.env.NIKA_BIN && bin === process.env.NIKA_BIN) {
+    throw new Error(
+      `the real-engine belt is armed but ${bin} does not speak the canary grammar ` +
+      '(the 0.109 envelope) — refusing to skip under CI · point ENGINE_PIN at a next-train engine',
+    );
+  }
   return ok;
 }
 
@@ -79,9 +88,7 @@ export function speaksGen1(bin: string): boolean {
  *  post-flip engine refuses `vars:` with NIKA-VALUES-001 — the two
  *  forms are MUTUALLY EXCLUSIVE, so a fixture can only speak one. */
 const E_SPLIT_DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: e-split-probe',
+  'nika: e-split-probe',
   'model: mock/echo',
   'inputs:',
   '  topic: { type: string, default: "x" }',
@@ -134,7 +141,9 @@ export function eSplitFloor(): { bin: string | undefined; off: boolean; reason: 
   return { bin: floor.bin, off: false, reason: '' };
 }
 
-/** The one skip condition for gen-1 suites — carries its own reason. */
+/** The one skip condition for gen-1 suites — carries its own reason
+ *  (under an armed CI belt `speaksGen1` throws instead of answering
+ *  false, so no suite can skip quietly there). */
 export function gen1Floor(): { bin: string | undefined; off: boolean; reason: string } {
   if (!REAL_BIN) {
     return { bin: undefined, off: true, reason: 'no nika binary on this machine' };
@@ -143,7 +152,7 @@ export function gen1Floor(): { bin: string | undefined; off: boolean; reason: st
     return {
       bin: REAL_BIN,
       off: true,
-      reason: `${REAL_BIN} is a pre-refonte engine (gen-0 grammar) — set NIKA_BIN to a refonte build`,
+      reason: `${REAL_BIN} does not speak the canary grammar (the 0.109 envelope) — set NIKA_BIN to a next-train build`,
     };
   }
   return { bin: REAL_BIN, off: false, reason: '' };

@@ -14,11 +14,11 @@ import {
 } from '../core/semanticDoc';
 
 const GRAPH2 = {
-  graph_format: 2,
+  graph_format: 3,
   workflow: 'w',
   nodes: [
-    { id: 'a', verb: 'exec', when: null, fan_out: null, permits: [], cost_interval: null },
-    { id: 'b', verb: 'infer', when: null, fan_out: null, permits: [], cost_interval: null },
+    { id: 'a', kind: 'task', verb: 'exec', when: null, fan_out: null, permits: [], cost_interval: null },
+    { id: 'b', kind: 'task', verb: 'infer', when: null, fan_out: null, permits: [], cost_interval: null },
   ],
   edges: [{ from: 'a', to: 'b', kind: 'value', binding: 'text' }],
 };
@@ -30,8 +30,8 @@ const SPAN = {
 
 describe('semanticDocumentFormat — capability discovery, never blind probing', () => {
   it('reads the advertised graphFormat from the experimental block', () => {
-    const caps = { experimental: { nika: { semanticDocument: { graphFormat: 2 } } } };
-    expect(semanticDocumentFormat(caps)).toBe(2);
+    const caps = { experimental: { nika: { semanticDocument: { graphFormat: 3 } } } };
+    expect(semanticDocumentFormat(caps)).toBe(3);
   });
 
   it('a format-1 server is discovered as 1 — the caller refuses it', () => {

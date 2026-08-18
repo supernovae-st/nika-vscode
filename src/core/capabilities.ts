@@ -14,7 +14,7 @@ export interface CapabilitySet {
   version: string;
   check: boolean;
   /** `nika inspect` — anatomy AND the one graph projector
-   *  (`--format json|mermaid|dot` · graph_format 2). */
+   *  (`--format json|mermaid|dot` · graph_format 3). */
   inspect: boolean;
   explain: boolean;
   init: boolean;

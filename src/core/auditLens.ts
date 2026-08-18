@@ -1,7 +1,7 @@
 // auditLens.ts — the moat lens's pure derive (W3L · L3).
 //
 // « What can this file DO before a token is spent? » The engine
-// already answers per task (graph_format 2 `permits` — affirmative
+// already answers per task (graph_format 3 `permits` — affirmative
 // grants, engine-attributed); this module groups those grants into
 // the FOUR capability domains a human audits by (run programs · touch
 // files · reach the network · call tools), derives the hull groups

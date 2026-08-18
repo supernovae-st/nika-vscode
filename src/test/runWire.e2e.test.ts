@@ -50,9 +50,7 @@ function tmpWorkflow(content: string): string {
   return file;
 }
 
-const FANOUT_WF = `nika: v1
-workflow:
-  id: runwire-fanout
+const FANOUT_WF = `nika: runwire-fanout
 
 model: mock/echo
 
@@ -81,11 +79,14 @@ tasks:
       prompt: "Merge \${{ with.a }} and \${{ with.b }}."
 `;
 
-const FAILING_WF = `nika: v1
-workflow:
-  id: runwire-fail
+const FAILING_WF = `nika: runwire-fail
 
 model: mock/echo
+# 0.109: an exec under an absent permits: block is refused at launch
+# (NIKA-AUTH-006 · zero authority) — the grant is what lets boom run
+# and FAIL, which is the verdict this test keys on.
+permits:
+  exec: true
 
 tasks:
   ok_step:
@@ -100,9 +101,7 @@ tasks:
 
 // Envelope pins a CLOUD model — only the --model override makes this
 // runnable with zero keys. Exactly the ▶ mock preview path.
-const CLOUD_WF = `nika: v1
-workflow:
-  id: runwire-cloud
+const CLOUD_WF = `nika: runwire-cloud
 
 model: mistral/mistral-small
 

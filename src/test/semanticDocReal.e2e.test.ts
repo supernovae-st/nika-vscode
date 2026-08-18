@@ -24,9 +24,7 @@ import { REAL_BIN as BIN, lspSession } from './lspHarness';
 // what a format-2 server projects. On a format-1 server the capability
 // gate refuses BEFORE any grammar question, so one fixture serves both.
 const DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: oracle-probe',
+  'nika: oracle-probe',
   'model: mock/echo',
   'tasks:',
   '  fetch:',
@@ -41,7 +39,7 @@ const DOC = [
 ].join('\n');
 
 describe.skipIf(!BIN)('nika/semanticDocument × the real server', () => {
-  it('the advertised format decides adoption — a format-2 answer carries graph + spans', async () => {
+  it('the advertised format decides adoption — a format-3 answer carries graph + spans', async () => {
     const session = lspSession(BIN!);
     try {
       const init = await session.request('initialize', {
@@ -65,14 +63,19 @@ describe.skipIf(!BIN)('nika/semanticDocument × the real server', () => {
       expect(payload).toBeDefined();
 
       if (fmt !== SEMANTIC_DOCUMENT_FORMAT) {
-        // The honesty leg: a format we do not speak NEVER yields a
-        // graph through our parser — the extension stays on the CLI
-        // lane against this server.
-        expect(payload?.graph).toBeUndefined();
+        // The honesty leg: the ADVERTISEMENT decides adoption — against
+        // a server advertising a format we do not speak the extension
+        // never asks (it stays on the CLI lane), so nothing about this
+        // payload is a promise. (Until nika-lsp advertised the format it
+        // served — it said 2 while serving 3 — this leg asserted the
+        // payload carried no graph, which conflated the advertisement
+        // with the wire: a valid format-3 payload IS readable, the
+        // client simply would not have requested it.)
+        expect(typeof fmt).toBe('number');
         return;
       }
       // The adoption leg: canonical projection + spans, one payload.
-      expect(payload?.graph?.graph_format).toBe(2);
+      expect(payload?.graph?.graph_format).toBe(3);
       expect(payload?.graph?.workflow).toBe('oracle-probe');
       const ids = payload?.graph?.nodes.map((n) => n.id).sort();
       expect(ids).toEqual(['brief', 'fetch']);

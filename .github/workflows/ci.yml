@@ -96,14 +96,19 @@ jobs:
           python3 ../spec/scripts/design-projector.py --check
   # The real-engine belt (design wave 2026-08-01): the contract suite's
   # describe.skipIf(!BIN) silently skipped in CI forever — a binary
-  # regression could only be caught on a dev machine. This job downloads
-  # the RELEASED engine (the same asset a user installs, checksum-
-  # verified) and runs ONLY the real-binary suites against it. It cannot
-  # skip silently: if the binary is missing the belt FAILS loud.
+  # regression could only be caught on a dev machine. This job obtains
+  # the engine at ENGINE_PIN — the extension is a NEXT consumer (2026-08-18
+  # · the reader speaks graph_format 3 and the 0.109 envelope, which the
+  # newest published tag does not): a pin that is a commit sha is BUILT
+  # from source (cached by sha), a pin that is a release tag is DOWNLOADED
+  # (the same asset a user installs, checksum-verified). Never « latest
+  # release »: that is the stable train, and a suite judged against it
+  # would be red for the language the extension teaches. It cannot skip
+  # silently: if the binary is missing the belt FAILS loud.
   real-engine-belt:
-    name: engine contract · released binary
+    name: engine contract · the pinned next engine
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -111,10 +116,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Download the latest released engine (checksum-verified)
+      - name: Resolve the engine pin
+        id: pin
         run: |
           set -euo pipefail
-          tag="$(curl -fsSL https://api.github.com/repos/supernovae-st/nika/releases/latest | python3 -c 'import json,sys;print(json.load(sys.stdin)["tag_name"])')"
+          pin="$(grep -v '^#' ENGINE_PIN | head -1 | tr -d '[:space:]')"
+          [ -n "$pin" ] || { echo "ENGINE_PIN is empty"; exit 1; }
+          echo "pin=$pin" >> "$GITHUB_OUTPUT"
+          if [[ "$pin" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then echo "mode=release" >> "$GITHUB_OUTPUT"; else echo "mode=source" >> "$GITHUB_OUTPUT"; fi
+      - name: Download the pinned released engine (checksum-verified)
+        if: steps.pin.outputs.mode == 'release'
+        run: |
+          set -euo pipefail
+          tag="${{ steps.pin.outputs.pin }}"
           ver="${tag#v}"
           curl -fsSLO "https://github.com/supernovae-st/nika/releases/download/${tag}/nika-linux-x64-${ver}.tar.gz"
           curl -fsSLO "https://github.com/supernovae-st/nika/releases/download/${tag}/SHA256SUMS"
@@ -124,9 +138,45 @@ jobs:
           [ -n "$bin" ] || { echo "no nika binary in the tarball"; exit 1; }
           chmod +x "$bin"
           echo "NIKA_BIN=$(realpath "$bin")" >> "$GITHUB_ENV"
-          "$(realpath "$bin")" --version
+      - name: Checkout the pinned engine source
+        if: steps.pin.outputs.mode == 'source'
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/supernovae-st/nika "$GITHUB_WORKSPACE/../engine"
+          git -C "$GITHUB_WORKSPACE/../engine" checkout --detach "${{ steps.pin.outputs.pin }}"
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # master
+        if: steps.pin.outputs.mode == 'source'
+        with:
+          toolchain: "1.91"
+      - uses: Swatinem/rust-cache@258712b0b7b1ddf8bddc9fc3b0faca682b2736c3 # v2
+        if: steps.pin.outputs.mode == 'source'
+        with:
+          workspaces: ../engine
+          shared-key: engine-${{ steps.pin.outputs.pin }}
+      - name: Build the pinned engine (release · locked)
+        if: steps.pin.outputs.mode == 'source'
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nika-cli --bin nika-cli --manifest-path "$GITHUB_WORKSPACE/../engine/Cargo.toml"
+          bin="$GITHUB_WORKSPACE/../engine/target/release/nika-cli"
+          [ -x "$bin" ] || { echo "no nika-cli built"; exit 1; }
+          echo "NIKA_BIN=$bin" >> "$GITHUB_ENV"
+      # The 0.109 engine REFUSES a permits-declaring workflow with exec
+      # children when the host cannot jail them (NIKA_SANDBOX=auto · the
+      # #889 fail-closed policy) — on a Linux runner without bubblewrap the
+      # journey suites' runs never start (measured 2026-08-18: 3 journey
+      # tests red with « expected 0 to be greater than 0 » events). Install
+      # the jail the same way the engine's own tests leg does, AppArmor
+      # detour included, so the runs run.
+      - name: Install bubblewrap (the exec jail the next engine requires)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Belt must be armed (the silent-skip class dies here)
         run: |
           [ -n "${NIKA_BIN:-}" ] && [ -x "$NIKA_BIN" ] || { echo "belt unarmed — NIKA_BIN missing"; exit 1; }
+          "$NIKA_BIN" --version
       - name: Real-binary contract suites
-        run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts
+        run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts src/test/semanticDocReal.e2e.test.ts

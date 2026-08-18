@@ -169,7 +169,7 @@ import { registerSecretsDecor } from './features/secretsDecor';
 import { extractRunArtifacts } from './core/artifacts';
 import { attemptLadders } from './core/attempts';
 import { buildTimeline } from './core/timelineModel';
-import { topoWaves } from './core/cliContract';
+import { isTaskNode, topoWaves } from './core/cliContract';
 import { joinContract, parseChildVars, parseInvokeArgKeys } from './core/childContract';
 import { scanSecrets } from './core/credentialLint';
 import { collectShapes, renderShape } from './core/schemaShape';
@@ -1415,7 +1415,7 @@ export function activate(context: ExtensionContext): void {
           parseInvokeArgKeys(text, node.id),
         ).slice(0, 6);
         node.subManifest = {
-          tasks: child.nodes.length,
+          tasks: child.nodes.filter((c) => isTaskNode(c)).length,
           waves: childWaves.length,
           ...(contract.length > 0 ? { contract } : {}),
           ...(costMin !== undefined ? { costMin } : {}),

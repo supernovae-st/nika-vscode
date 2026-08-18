@@ -253,9 +253,45 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         outputIndent = indent;
       } else if (indent === taskIndent && name === 'for_each' && fact.forEachSource === undefined) {
         // Task-level only — a `with:` alias named for_each can never
-        // impersonate the construct (same discipline as timeout).
-        const v = scalarAt(lines, i, indent);
-        if (v) { fact.forEachSource = clamp(v).split('\n')[0]; }
+        // impersonate the construct (same discipline as timeout). The
+        // engine's shape is a BLOCK — `for_each: { items: "…" }` or the
+        // nested `items:` line — with the two knobs INSIDE it (spec 03);
+        // the collection is what `items` names. The bare scalar
+        // `for_each: ${{ … }}` was the pre-0.109 shape (refused now) and
+        // still reads as the source so an old file keeps its fact.
+        const raw = scalarAt(lines, i, indent);
+        // A quoted items value may carry `}` (an expression) — match the
+        // quote pair first, a bare token only up to the next `,` / `}`.
+        const inline = raw?.match(/^\{\s*items:\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)'|([^,}]+))/);
+        if (inline) {
+          const items = (inline[1] ?? inline[2] ?? inline[3] ?? '').trim();
+          fact.forEachSource = clamp(items).split('\n')[0];
+          const cap = raw!.match(/\bmax_parallel:\s*(\d+)/);
+          if (cap && fact.maxParallel === undefined) { fact.maxParallel = Number(cap[1]); }
+          const ff = raw!.match(/\bfail_fast:\s*(true|false)/);
+          if (ff && fact.failFast === undefined) { fact.failFast = ff[1] === 'true'; }
+        } else if (raw) {
+          fact.forEachSource = clamp(raw).split('\n')[0];
+        } else {
+          // Nested block: read the deeper-indented `items:` / knobs.
+          for (let j = i + 1; j < lines.length; j++) {
+            const l = lines[j];
+            if (l.trim().length === 0) { continue; }
+            const ind = l.match(/^( *)/)![1].length;
+            if (ind <= indent) { break; }
+            const km = l.trim().match(/^(items|max_parallel|fail_fast):\s*(.*)$/);
+            if (!km) { continue; }
+            if (km[1] === 'items' && fact.forEachSource === undefined) {
+              const v = scalarAt(lines, j, ind);
+              if (v) { fact.forEachSource = clamp(v).split('\n')[0]; }
+            } else if (km[1] === 'max_parallel' && fact.maxParallel === undefined) {
+              const n = Number(km[2].trim());
+              if (Number.isInteger(n) && n >= 1) { fact.maxParallel = n; }
+            } else if (km[1] === 'fail_fast' && fact.failFast === undefined) {
+              fact.failFast = km[2].trim() === 'true';
+            }
+          }
+        }
       } else if (indent === taskIndent && name === 'max_parallel' && fact.maxParallel === undefined) {
         const n = Number(line.slice(line.indexOf(':') + 1).trim());
         if (Number.isInteger(n) && n >= 1) { fact.maxParallel = n; }

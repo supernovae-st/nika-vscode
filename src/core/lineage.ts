@@ -3,7 +3,7 @@
 // « Select ${{ tasks.fetch.output }} and SEE the data's path »: from one
 // focus task, compute who feeds it (producers), who consumes it, in two
 // tiers (direct vs transitive), plus the exact edges that belong to the
-// story. Every graph_format 2 kind counts — a recovery edge is a real
+// story. Every graph_format 3 kind counts — a recovery edge is a real
 // read (the fallback consumes the settled record), so it lights too.
 
 export interface LineageEdge {

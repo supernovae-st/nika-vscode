@@ -341,7 +341,13 @@ export interface CollectionRef {
   needsBinding?: { producer: string; path: string; aliasBase: string };
 }
 
-/** `for_each: ${{ <ref> }}` — unquoted, the spec's own form. */
+/** `for_each: { items: "${{ <ref> }}" }` — the BLOCK the engine admits
+ *  (spec 03 §for_each · `items` + the optional `max_parallel` /
+ *  `fail_fast` knobs). The bare `for_each: ${{ ref }}` scalar this door
+ *  wrote until 2026-08-18 is refused at parse (« for_each must be a
+ *  block with items: ») — a door that writes what the engine refuses is
+ *  the defect class the real-binary suites exist for. Flow form, quoted:
+ *  an unquoted `${{ … }}` inside `{ }` is not YAML. */
 export function fanoutRewrite(text: string, task: TaskRange, ref: string): string | undefined {
-  return taskKeyRewrite(text, task, 'for_each', `\${{ ${ref} }}`);
+  return taskKeyRewrite(text, task, 'for_each', `{ items: "\${{ ${ref} }}" }`);
 }

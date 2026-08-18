@@ -17,10 +17,13 @@
 // one (a replayed/live run), else unit weights — never mix real
 // milliseconds with synthetic 1s (that lesson is paid for).
 
-import { isSchedulingKind, topoWaves } from './cliContract';
+import { isSchedulingKind, isTaskNode, topoWaves } from './cliContract';
 
 export interface AnalysisNode {
   id: string;
+  /** `"task"` · `"finally"` (graph_format 3) — a cleanup unit is outside
+   *  the plan: `analyzeDag` drops it before any structural read. */
+  kind?: string;
   durationMs?: number;
   /** Recorded mean across prior runs (flight recorder) — the pre-run
    *  weight when no measured duration exists yet. */
@@ -30,7 +33,7 @@ export interface AnalysisNode {
 export interface AnalysisEdge {
   source: string;
   target: string;
-  /** graph_format 2 kind — recovery/finally edges are NOT real ordering
+  /** graph_format 3 kind — recovery/finally edges are NOT real ordering
    *  (parking reads · cleanup attachments); absent = scheduling. */
   kind?: string;
 }
@@ -354,8 +357,14 @@ export function listScheduleMakespan(
   return makespan;
 }
 
-/** The full engineering read of a DAG — one call, every insight. */
-export function analyzeDag(nodes: AnalysisNode[], edges: AnalysisEdge[]): DagInsights {
+/** The full engineering read of a DAG — one call, every insight. The
+ *  read is over the SCHEDULED population (G_p · graph_format 3): a
+ *  cleanup unit (`kind: "finally"`) never enters a wave, an antichain, a
+ *  makespan or a blast radius — it runs on the unwind of its anchor. */
+export function analyzeDag(allNodes: AnalysisNode[], allEdges: AnalysisEdge[]): DagInsights {
+  const nodes = allNodes.filter((n) => isTaskNode(n));
+  const planned = new Set(nodes.map((n) => n.id));
+  const edges = allEdges.filter((e) => planned.has(e.source) && planned.has(e.target));
   const real = edges.filter((e) => isSchedulingKind(e.kind ?? 'control'));
   const { width, witness } = maxAntichain(nodes, real);
   const desc = descendantSets(nodes, real);

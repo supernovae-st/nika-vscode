@@ -12,16 +12,18 @@ import {
   configDefined,
   configReads,
   inputsRequired,
+  topoWaves,
   type GraphDoc,
 } from '../core/cliContract';
 
 const DOC: GraphDoc = {
-  graph_format: 2,
+  graph_format: 3,
   workflow: 'audit-site',
   nodes: [
-    { id: 'fetch_page', verb: 'invoke', tool: 'nika:fetch', when: 'true', permits: [] },
+    { id: 'fetch_page', kind: 'task', verb: 'invoke', tool: 'nika:fetch', when: 'true', permits: [] },
     {
       id: 'summarize',
+      kind: 'task',
       verb: 'infer',
       model: 'anthropic/claude-sonnet-4-6',
       when: null,
@@ -30,17 +32,22 @@ const DOC: GraphDoc = {
     },
     {
       id: 'fanout',
+      kind: 'task',
       verb: 'exec',
       when: '${{ size(with.summary) > 0 }}',
       fan_out: { kind: 'list', count: 3 },
       permits: [],
     },
+    // A cleanup unit (format 3): attached to fanout by its unwind edge —
+    // never a wave member, never a task in the plan.
+    { id: 'drop_temp', kind: 'finally', verb: 'exec', when: null, permits: ['exec: /bin/rm'] },
   ],
   edges: [
     { from: 'fetch_page', to: 'summarize', kind: 'value', binding: 'page' },
     { from: 'summarize', to: 'fanout', kind: 'control', predicate: 'success' },
     { from: 'summarize', to: 'fanout', kind: 'value', binding: 'summary' },
     { from: 'fetch_page', to: 'fanout', kind: 'recovery' },
+    { from: 'fanout', to: 'drop_temp', kind: 'finally', predicate: 'unwind' },
   ],
 };
 
@@ -48,8 +55,8 @@ describe('graphDocToDag', () => {
   it('adapts the CLI GraphDoc into the webview DagGraph — typed edges carried', () => {
     const dag = graphDocToDag(DOC);
     expect(dag.workflowName).toBe('audit-site');
-    expect(dag.nodes).toHaveLength(3);
-    expect(dag.edges).toHaveLength(4);
+    expect(dag.nodes).toHaveLength(4);
+    expect(dag.edges).toHaveLength(5);
 
     const byId = new Map(dag.nodes.map((n) => [n.id, n]));
     expect(byId.get('summarize')?.producers).toEqual(['fetch_page']);
@@ -61,7 +68,7 @@ describe('graphDocToDag', () => {
     // Two edges may share endpoints (control + value is the spec's own
     // gate-tightening pairing) — the kind qualifies the id, nothing drops.
     const ids = dag.edges.map((e) => e.id);
-    expect(new Set(ids).size).toBe(4);
+    expect(new Set(ids).size).toBe(5);
     const ctl = dag.edges.find((e) => e.kind === 'control')!;
     expect(ctl.predicate).toBe('success');
     expect(ctl.label).toBeUndefined();
@@ -95,15 +102,37 @@ describe('graphDocToDag', () => {
     expect(dag.nodes.find((x) => x.id === 'fetch_page')?.tool).toBe('nika:fetch');
   });
 
-  it('guards the envelope shape — and REFUSES format 1 (no fallback)', () => {
+  it('guards the envelope shape — and REFUSES formats 1 and 2 (no fallback)', () => {
     expect(isGraphDoc(DOC)).toBe(true);
     expect(isGraphDoc({ nodes: [] })).toBe(false);
     expect(isGraphDoc(null)).toBe(false);
     // A v1 reader assuming every edge orders would MIS-READ an
-    // observation edge — the format number moved for that reason, and a
+    // observation edge; a v2 reader assuming every node is a task would
+    // SCHEDULE a cleanup unit — the number moved for those reasons, and a
     // reader refuses what it does not speak rather than guess.
     expect(isGraphDoc({ graph_format: 1, workflow: 'w', nodes: [], edges: [] })).toBe(false);
-    expect(isGraphDoc({ graph_format: 3, workflow: 'w', nodes: [], edges: [] })).toBe(false);
+    expect(isGraphDoc({ graph_format: 2, workflow: 'w', nodes: [], edges: [] })).toBe(false);
+    expect(isGraphDoc({ graph_format: 3, workflow: 'w', nodes: [], edges: [] })).toBe(true);
+    expect(isGraphDoc({ graph_format: 4, workflow: 'w', nodes: [], edges: [] })).toBe(false);
+    // Within 3 every node carries `kind` — a document that omits it is
+    // not format 3, whatever its number says (that omission MEANS
+    // « everything is a task », the format-2 falsehood).
+    expect(isGraphDoc({ graph_format: 3, workflow: 'w', nodes: [{ id: 'a', verb: 'exec' }], edges: [] })).toBe(false);
+  });
+
+  it('a cleanup unit is an attachment: no producers, its anchors named, out of every wave', () => {
+    const dag = graphDocToDag(DOC);
+    const byId = new Map(dag.nodes.map((n) => [n.id, n]));
+    const cleanup = byId.get('drop_temp')!;
+    expect(cleanup.kind).toBe('finally');
+    expect(cleanup.producers).toEqual([]);
+    expect(cleanup.attachedTo).toEqual(['fanout']);
+    expect(byId.get('fanout')?.kind).toBe('task');
+    // The engine's PLAN rung says « 2 waves · 2 tasks » for two tasks +
+    // one cleanup unit; the client's waves mirror it — the unit is in none.
+    const waves = topoWaves(dag.nodes, dag.edges.filter((e) => e.kind !== 'recovery' && e.kind !== 'finally'));
+    expect(waves.flat()).not.toContain('drop_temp');
+    expect(waves.flat().sort()).toEqual(['fanout', 'fetch_page', 'summarize']);
   });
 });
 
