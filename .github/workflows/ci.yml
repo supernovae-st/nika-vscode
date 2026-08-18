@@ -179,4 +179,8 @@ jobs:
           [ -n "${NIKA_BIN:-}" ] && [ -x "$NIKA_BIN" ] || { echo "belt unarmed — NIKA_BIN missing"; exit 1; }
           "$NIKA_BIN" --version
       - name: Real-binary contract suites
-        run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts src/test/semanticDocReal.e2e.test.ts
+        # contract (the seam · every template the extension writes) ·
+        # journey · semanticDocument · the canary polarity (the engine
+        # accepts the nine-key canary AND refuses the dead envelope) ·
+        # the dead envelope keys (one refusal per retired key).
+        run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts src/test/semanticDocReal.e2e.test.ts src/test/grammarCanary.test.ts src/test/deadEnvelopeReal.e2e.test.ts
