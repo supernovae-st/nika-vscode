@@ -2112,7 +2112,7 @@ export function activate(context: ExtensionContext): void {
               if (pick !== 'Create it') { return; }
               const name = path.split('/').pop()?.replace(/\.nika\.yaml$/, '') ?? 'sub';
               await workspace.fs.writeFile(target, Buffer.from(
-                `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: mock/echo\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
+                `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: ${name}\n\nmodel: mock/echo\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
                 'utf-8',
               ));
               const doc = await workspace.openTextDocument(target);

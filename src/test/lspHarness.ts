@@ -5,14 +5,17 @@
 // a minimal JSON-RPC stdio client for `nika lsp`.
 //
 // The canary is the floor-honesty law (D-V8): extension main speaks
-// the refonte grammar (`workflow:` object · `tasks:` map) — a shipped
-// gen-0 binary rejects it at parse (NIKA-PARSE-019). A suite asserting
-// gen-1 semantics against a gen-0 binary is not red, it is OFF-FLOOR:
-// it must skip WITH ITS REASON, and run for real against a binary that
-// speaks the grammar (locally: NIKA_BIN=<refonte build>).
+// the nine-key envelope (0.109 · `nika: <name>` · `tasks:` map) — a
+// shipped previous-generation binary refuses the mark at parse
+// (NIKA-PARSE-003). A suite asserting current semantics against an
+// older binary is not red, it is OFF-FLOOR: it must skip WITH ITS
+// REASON, and run for real against a binary that speaks the grammar
+// (locally: NIKA_BIN=<next-train build>). The canary document itself
+// is the PRODUCT's (core/grammarCanary · one definition).
 // Spawn discipline: execFileSync/spawn argv-only — never a shell.
 
 import { execFileSync, spawn } from 'child_process';
+import { GRAMMAR_CANARY_DOC } from '../core/grammarCanary';
 import * as fs from 'fs';
 
 export const REAL_BIN: string | undefined = [
@@ -34,16 +37,8 @@ export const REAL_BIN: string | undefined = [
     } catch { return false; }
   });
 
-/** The smallest gen-1 document — map-form workflow, tasks map. */
-const CANARY_DOC = [
-  'nika: canary',
-  'model: mock/echo',
-  'tasks:',
-  '  probe:',
-  '    infer:',
-  '      prompt: "hi"',
-  '',
-].join('\n');
+/** The canary is the PRODUCT's — one definition (core/grammarCanary). */
+const CANARY_DOC = GRAMMAR_CANARY_DOC;
 
 const canaryCache = new Map<string, boolean>();
 

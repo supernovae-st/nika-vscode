@@ -5,7 +5,10 @@
 // lens names where it lives) · the action row above `workflow:` ·
 // Explain above `description:` · the status row above `tasks:`.
 // Anchors fall back up that chain, so a partial file never loses a
-// door — and none ever paints over the license/header comments.
+// door — and none ever paints over the license/header comments. On the
+// nine-key envelope (0.109 · no `workflow:`/`description:` lines) the
+// action row and Explain both fall back to the `nika:` line — the mark
+// carries the whole envelope, and its doors.
 
 /** Envelope keys live at the top; a scan that walked a 100k-line file
  * on every keystroke would be the real bug. */

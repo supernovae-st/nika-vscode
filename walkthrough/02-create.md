@@ -1,11 +1,10 @@
 # Create your first workflow
 
-Every Nika file starts with the frozen envelope:
+Every Nika file starts with the mark · the language as the key, the
+workflow's own name as the value:
 
 ```yaml
-nika: v1
-workflow:
-  id: hello
+nika: hello        # the mark AND the name
 
 model: mock/echo   # deterministic · no API key needed
 

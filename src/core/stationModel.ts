@@ -330,7 +330,7 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
         kind: 'fact',
         id: 'engine.grammar',
         label: 'speaks an older grammar',
-        description: 'this extension writes the refonte language — upgrade the engine',
+        description: 'this extension writes the nine-key envelope (0.109) — upgrade the engine',
         icon: 'warning',
         level: 'warn',
         command: { id: 'nika.checkBinary' },

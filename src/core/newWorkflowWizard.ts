@@ -198,5 +198,5 @@ export function scaffoldContent(name: string, pick: StarterPick, model: string):
   const task = pick.kind === 'starter'
     ? `  start:\n${indentBody(pick.starter.body, '    ')}`
     : '  start:\n    infer:\n      prompt: ""';
-  return `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: v1\nworkflow:\n  id: ${name}\n\nmodel: ${model}${modelComment}\n\ntasks:\n${task}\n${BREAK_ME_BLOCK}`;
+  return `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: ${name}\n\nmodel: ${model}${modelComment}\n\ntasks:\n${task}\n${BREAK_ME_BLOCK}`;
 }

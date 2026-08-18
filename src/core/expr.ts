@@ -29,18 +29,21 @@ export interface TemplateIsland {
   unclosed: boolean;
 }
 
-/** The four value authorities — the closed family a value is declared
- *  under (LAW-SURFACE-0201 · one authority, one spelling, no alias). */
-export const AUTHORITIES = ['inputs', 'config', 'const', 'secrets'] as const;
+/** The three value authorities — the closed family a value is declared
+ *  under (LAW-SURFACE-0201 · one authority, one spelling, no alias). A
+ *  deployment knob is an `inputs:` entry with a `default:` (the nine-key
+ *  envelope · `config:` left with it, 0.109). */
+export const AUTHORITIES = ['inputs', 'const', 'secrets'] as const;
 export type Authority = (typeof AUTHORITIES)[number];
 
-/** The 6 live namespaces: the four authorities + the two runtime ones. */
+/** The 5 live namespaces: the three authorities + the two runtime ones. */
 const ROOTS = ['tasks', 'with', ...AUTHORITIES] as const;
 export type RefRoot = (typeof ROOTS)[number];
 
-/** The pre-flip spellings. Scanned so a legacy file still resolves and
- *  can be TAUGHT; never completed, never authored. */
-export const DEAD_ROOTS = ['vars', 'env'] as const;
+/** The pre-flip spellings (`vars`/`env` · and `config` since the nine-key
+ *  envelope). Scanned so a legacy file still resolves and can be TAUGHT;
+ *  never completed, never authored. */
+export const DEAD_ROOTS = ['vars', 'env', 'config'] as const;
 export type DeadRoot = (typeof DEAD_ROOTS)[number];
 
 export type AnyRoot = RefRoot | DeadRoot;

@@ -50,13 +50,13 @@ export class TemplateCompletionProvider implements vscode.CompletionItemProvider
     const wf = parseRichWorkflow(text);
 
     if (ctx.kind === 'root') {
-      // The 6 namespaces (spec 04). The four value authorities first —
+      // The 5 namespaces (spec 04). The three value authorities first —
       // they are what a value is DECLARED under — then the two runtime
-      // ones. `vars` / `env` are absent by law: dead envelope fields
-      // (NIKA-VALUES-001/002), never offered.
+      // ones. `vars` / `env` / `config` are absent by law: dead envelope
+      // fields (NIKA-VALUES-001/002 · PARSE-005), never offered — a
+      // deployment knob is an input with a default.
       const roots: Array<[string, string]> = [
-        ['inputs', 'Typed workflow inputs — supplied by the caller at launch'],
-        ['config', 'Non-sensitive runtime config — supplied by the deployment · may appear in logs'],
+        ['inputs', 'Typed workflow inputs — supplied by the caller at launch (a deployment knob is an input with a default)'],
         ['const', 'Named constants — fixed values baked into the workflow'],
         ['secrets', 'Declared workflow secrets (masked · IFC-tracked)'],
         ['with', 'Aliases bound on THIS task — the binding IS the edge'],
@@ -153,7 +153,7 @@ export class TemplateCompletionProvider implements vscode.CompletionItemProvider
         item.documentation = new vscode.MarkdownString(
           `\`${ctx.root}:\` is a dead envelope field (\`${dead}\`). Classify the value `
           + 'into the authority its role commands · a typed parameter is `inputs:` · '
-          + 'a fixed value `const:` · non-sensitive runtime configuration `config:` · '
+          + 'a fixed value `const:` · a deployment knob an `inputs:` entry with a `default:` · '
           + 'a governed store reference `secrets:`.',
         );
         return [item];
@@ -235,16 +235,17 @@ export class TemplateHoverProvider implements vscode.HoverProvider {
     const word = document.getText(wordRange);
     const lineText = document.lineAt(position.line).text;
 
-    // 1bis · the envelope key — `nika: v1` at the top level is the ONE
+    // 1bis · the envelope key — the top-level `nika:` line is the ONE
     // `nika:`-prefixed token that is NOT a tool (operator screenshot
     // 2026-07-12: the bare key hit the unknown-builtin warning). Teach
-    // what it is instead.
-    if (/^nika:\s/.test(lineText) && (word === 'nika:' || word === 'nika' || word === 'v1')) {
+    // what it is instead: the mark AND the name (0.109 · nine keys).
+    if (/^nika:\s/.test(lineText) && (word === 'nika:' || word === 'nika' || lineText.slice(6).trim().startsWith(word))) {
       const md = new vscode.MarkdownString();
       md.appendMarkdown(
-        '**`nika: v1`** — the envelope, frozen forever. Every workflow starts with '
-        + '`nika: v1` · `workflow: <kebab-id>` · `tasks:` — the version never changes '
-        + 'with engine releases.',
+        '**`nika: <name>`** — the mark and the name. The key says « a Nika document », '
+        + 'the value is this workflow\'s kebab-case identifier; a `tasks:` key makes it a '
+        + 'workflow. No version to pin (`nika: v1` + `workflow:` is the previous envelope — '
+        + '`nika check --fix` migrates it).',
       );
       return new vscode.Hover(md, wordRange);
     }

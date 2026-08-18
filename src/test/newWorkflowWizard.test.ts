@@ -97,8 +97,11 @@ describe('modelRows — step 3', () => {
 describe('scaffoldContent — the written page', () => {
   it('blank + mock/echo reproduces the house shape (envelope · comment · break_me)', () => {
     const text = scaffoldContent('my-flow', { kind: 'blank' }, 'mock/echo');
-    expect(text).toContain('nika: v1');
-    expect(text).toContain('workflow:\n  id: my-flow');
+    // the nine-key envelope · the mark IS the name (a `workflow:` block
+    // would be NIKA-PARSE-005 on the pinned engine)
+    expect(text).toContain('nika: my-flow');
+    expect(text).not.toContain('nika: v1');
+    expect(text).not.toContain('workflow:');
     expect(text).toContain('model: mock/echo  # deterministic · zero keys');
     expect(text).toContain('prompt: ""');
     expect(text).toContain('# break_me:');

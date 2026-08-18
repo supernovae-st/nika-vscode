@@ -19,8 +19,10 @@ import { NIKA_VERB_STARTERS } from './verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
 
 /**
- * The four VALUE AUTHORITIES (spec 04 · the closed family every workflow
- * value is declared under · LAW-SURFACE-0201). `with` and `tasks` are the
+ * The three VALUE AUTHORITIES (spec 04 · the closed family every workflow
+ * value is declared under · LAW-SURFACE-0201 · `config:` left the envelope
+ * with the nine-key one, a deployment knob is an input with a default).
+ * `with` and `tasks` are the
  * runtime namespaces — they are never declared in the envelope, so no
  * declaration can repair them.
  *
@@ -29,17 +31,18 @@ import { parseRichWorkflow } from '../workflowParser';
  * an input). That is what makes this a classification and not a rename —
  * the fix follows the role the author declared, one authority per spelling.
  */
-export type Authority = 'inputs' | 'config' | 'const' | 'secrets';
+export type Authority = 'inputs' | 'const' | 'secrets';
 
 export interface UnresolvedRef { authority: Authority; varName: string; task?: string }
 
 /** Parse the VAR-001 message shape, keeping the authority the ref names.
- *  The dead `vars.` / `env.` spellings are deliberately NOT matched: they
- *  refuse with NIKA-VALUES-001/002, a classification teaching, not a
- *  missing declaration — a quick fix there would re-teach the dead form. */
+ *  The dead `vars.` / `env.` / `config.` spellings are deliberately NOT
+ *  matched: they refuse with NIKA-VALUES-001/002/003, a classification
+ *  teaching, not a missing declaration — a quick fix there would re-teach
+ *  the dead form. */
 export function parseUnresolvedRef(message: string): UnresolvedRef | undefined {
   const m = message.match(
-    /unresolved reference\s+`(inputs|config|const|secrets)\.([A-Za-z0-9_]+)`(?:\s+in task\s+`([a-z][a-z0-9_]*)`)?/,
+    /unresolved reference\s+`(inputs|const|secrets)\.([A-Za-z0-9_]+)`(?:\s+in task\s+`([a-z][a-z0-9_]*)`)?/,
   );
   if (!m) { return undefined; }
   return { authority: m[1] as Authority, varName: m[2], task: m[3] };
@@ -337,7 +340,7 @@ export function duplicateTask(
 }
 
 /** The declaration body each authority takes (spec 01 §field-by-field).
- *  `inputs:` and `config:` are TYPED declarations (`type:` required); a
+ *  `inputs:` entries are TYPED declarations (`type:` required); a
  *  `default:` keeps the file runnable, which is the contract the old
  *  untyped `name: ""` fix carried. `const:` takes a bare literal.
  *  `secrets:` is a reference to a store, never an inline value — `env`
@@ -346,7 +349,6 @@ export function duplicateTask(
 function declarationBody(authority: Authority, name: string, indent: string): string[] {
   switch (authority) {
     case 'inputs':
-    case 'config':
       return [`${indent}${name}:`, `${indent}  type: string`, `${indent}  default: ""`];
     case 'const':
       return [`${indent}${name}: ""`];
@@ -363,7 +365,6 @@ function declarationBody(authority: Authority, name: string, indent: string): st
 function declaredKeys(wf: ReturnType<typeof parseRichWorkflow>, authority: Authority): string[] {
   switch (authority) {
     case 'inputs': return wf.inputsKeys;
-    case 'config': return wf.configKeys;
     case 'const': return wf.constKeys;
     case 'secrets': return wf.secretsKeys;
   }

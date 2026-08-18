@@ -27,6 +27,8 @@ import {
 import { analyzeDag } from '../core/dagAnalysis';
 import { parseCanonErrorCodes } from '../core/schemaIntel';
 import { applyPermitsFix, insertPermitsBlock, parseFix } from '../core/permitsEdit';
+import { scaffoldContent } from '../core/newWorkflowWizard';
+import { GRAMMAR_CANARY_DOC, grammarAccepted } from '../core/grammarCanary';
 
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
@@ -134,6 +136,36 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
       expect(findings.every((f) => f.source === 'hint')).toBe(true);
     } finally {
       fs.unlinkSync(file);
+    }
+  });
+
+  it('the blank scaffold and the sub-workflow scaffold check clean on the pinned engine (own-corpus law)', () => {
+    // 2026-08-18: the extension scaffolded `nika: v1` + `workflow: { id }`
+    // — the previous envelope — while its ENGINE_PIN spoke the nine-key
+    // one; every blank/starter file the wizard wrote was refused on the
+    // first line (NIKA-PARSE-005). The scaffold is teaching: it must pass
+    // the oracle it ships with, like every snippet.
+    const blank = scaffoldContent('my-flow', { kind: 'blank' }, 'mock/echo')
+      // the break_me curriculum is commented YAML; the file as written must check
+      ;
+    const file = tmpWorkflow(blank);
+    try {
+      const res = run(['check', file, '--json']);
+      const report = parseCheckReport(res.stdout);
+      expect(report, res.stdout + res.stderr).toBeDefined();
+      expect(grammarAccepted(res.stdout), `the scaffold must PARSE on the pinned engine:\n${res.stdout}`).toBe(true);
+      const hard = collectFindings(report!).filter((f) => f.source !== 'hint');
+      expect(hard.map((f) => f.code), res.stdout).toEqual([]);
+    } finally {
+      fs.unlinkSync(file);
+    }
+    // the canary the Station probes is the same envelope
+    const canary = tmpWorkflow(GRAMMAR_CANARY_DOC);
+    try {
+      const res = run(['check', canary, '--json']);
+      expect(grammarAccepted(res.stdout), res.stdout).toBe(true);
+    } finally {
+      fs.unlinkSync(canary);
     }
   });
 
