@@ -150,10 +150,11 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
 
     // One placement law (core/lensAnchors · operator layout 2026-07-12):
     // each row sits on the line it serves — the GitHub door above
-    // `nika:` · Check/DAG/Run above `workflow:` · Explain above
-    // `description:` · the STATUS row above `tasks:` (the plan's numbers
-    // over the plan) — never over the license/header comments. Partial
-    // files fall back up that chain, so no door disappears.
+    // `nika:` · Check/DAG/Run + Explain fall back onto that same identity
+    // line (the nine-key envelope has no `workflow:`/`description:`) ·
+    // the STATUS row above `tasks:` (the plan's numbers over the plan)
+    // · never over the license/header comments. A pre-migration file
+    // still anchors on the dead keys while it is being moved.
     const lines = document.getText().split('\n');
     const anchors = findLensAnchors(lines);
     const row = (line: number): vscode.Range => new vscode.Range(line, 0, line, 0);

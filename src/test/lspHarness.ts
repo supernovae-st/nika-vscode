@@ -77,11 +77,12 @@ export function speaksGen1(bin: string): boolean {
   return ok;
 }
 
-/** The smallest legal E-split envelope: the four value authorities
- *  replaced `vars:`/`env:` (R3a · spec 01). A pre-flip engine refuses
- *  `inputs:` with NIKA-PARSE-005 « unknown field » exactly as a
- *  post-flip engine refuses `vars:` with NIKA-VALUES-001 — the two
- *  forms are MUTUALLY EXCLUSIVE, so a fixture can only speak one. */
+/** The smallest legal E-split envelope: the three value authorities
+ *  replaced `vars:`/`env:`/`config:` (R3a · spec 01 · the nine-key
+ *  envelope). A pre-flip engine refuses `inputs:` with NIKA-PARSE-005
+ *  « unknown field » exactly as a post-flip engine refuses `vars:`
+ *  with NIKA-VALUES-001 — the two forms are MUTUALLY EXCLUSIVE, so a
+ *  fixture can only speak one. */
 const E_SPLIT_DOC = [
   'nika: e-split-probe',
   'model: mock/echo',
@@ -95,7 +96,7 @@ const E_SPLIT_DOC = [
 
 const eSplitCache = new Map<string, boolean>();
 
-/** Does this binary speak the four value authorities? Probed on the
+/** Does this binary speak the three value authorities? Probed on the
  *  envelope itself, never inferred from a version string. */
 export function speaksESplit(bin: string): boolean {
   const hit = eSplitCache.get(bin);

@@ -1,8 +1,7 @@
-# The supernovae-st/nika commit the real-binary suites (contract ·
-# journeyReal · semanticDocReal · graph_format 3) are proven against.
-# The extension is a NEXT consumer (RELEASING.md §0 in the engine): it
-# follows the 0.109 train, not the newest published tag. CI builds this
-# exact commit (or downloads the release asset when the pin is a tag,
-# `v0.109.0-rc.1`) — never « latest release », which is the stable train
-# and speaks graph_format 2. Bump deliberately, with the reader.
-9f9dec3ef089fb91d4012f40f5cda8af68577d44
+# The supernovae-st/nika tag (or commit) the real-binary suites
+# (contract · journeyReal · semanticDocReal · graph_format 3 · the
+# dead-envelope refusals) are proven against. A release tag is
+# DOWNLOADED (checksum-verified · the same asset a user installs); a
+# commit sha is BUILT from source. Never « latest release » as a
+# floating pin. Bump deliberately, with the reader.
+v0.109.2

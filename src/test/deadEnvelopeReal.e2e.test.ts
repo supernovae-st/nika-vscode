@@ -7,10 +7,13 @@
 // `policy:` · `assert:` (and the `nika: v1` marker in front of the
 // `workflow:` block) was rewritten to the nine keys — this suite is the
 // floor under that rewrite: the ENGINE refuses each dead key with
-// NIKA-PARSE-005 and its refusal names the destination, so a surface
-// that slid back would teach a refusal, and this suite would say which.
-// Same shape as flowDoorsReal's « the dead key is really dead » test.
-// Skips WITH its reason on a machine without a nine-key engine.
+// NIKA-PARSE-005 and lists the nine live keys. Destination sentences
+// (where a retired key went) are extra teaching some next-train builds
+// emit; the published 0.109 floor is PARSE-005 + the nine-key list, and
+// this suite pins that floor so a destination-wording change cannot red
+// the belt. Same shape as flowDoorsReal's « the dead key is really
+// dead » test. Skips WITH its reason on a machine without a nine-key
+// engine.
 
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'child_process';
@@ -41,24 +44,24 @@ function check(bin: string, text: string): { code: number; out: string } {
   }
 }
 
-/** Every dead top-level key · the block spliced after `model:` · the
- *  destination the engine's own refusal must name (spec §2bis). */
-const DEAD: Array<{ key: string; block: string; destination: RegExp }> = [
-  { key: 'workflow', block: 'workflow:\n  id: dead-key-probe\n', destination: /identity moved onto `nika:`|nika: <id>/ },
-  { key: 'config', block: 'config:\n  region: { type: string, default: "eu" }\n', destination: /inputs:.*required: false|required: false/ },
-  { key: 'types', block: 'types:\n  Note: { type: object }\n', destination: /schema:|returns:/ },
-  { key: 'policy', block: 'policy:\n  net: none\n', destination: /permits:/ },
-  { key: 'assert', block: 'assert:\n  - "${{ tasks.a.output != null }}"\n', destination: /nika trace verify|trace/ },
+/** Every dead top-level key · the block spliced after `model:`. A dead
+ *  key must still fail (mutation-honest); the refusal the published
+ *  0.109 binary actually emits is PARSE-005 + the nine-key list. */
+const DEAD: Array<{ key: string; block: string }> = [
+  { key: 'workflow', block: 'workflow:\n  id: dead-key-probe\n' },
+  { key: 'config', block: 'config:\n  region: { type: string, default: "eu" }\n' },
+  { key: 'types', block: 'types:\n  Note: { type: object }\n' },
+  { key: 'policy', block: 'policy:\n  net: none\n' },
+  { key: 'assert', block: 'assert:\n  - "${{ tasks.a.output != null }}"\n' },
 ];
 
 describe.skipIf(!BIN || !speaksGen1(BIN))('the dead envelope keys × the real binary (teach the refusal)', () => {
-  it.each(DEAD)('$key: is refused with NIKA-PARSE-005 and the refusal names where it went', ({ key, block, destination }) => {
+  it.each(DEAD)('$key: is refused with NIKA-PARSE-005 and the nine live keys', ({ key, block }) => {
     const doc = LIVE.replace('model: mock/echo\n', `model: mock/echo\n${block}`);
     const res = check(BIN!, doc);
     expect(res.code, `${key}: the engine must not accept a dead key\n${res.out}`).not.toBe(0);
     expect(res.out, `${key}: the refusal is NIKA-PARSE-005`).toContain('NIKA-PARSE-005');
     expect(res.out, `${key}: the refusal names the key`).toMatch(new RegExp(`unknown field \`${key}\``));
-    expect(res.out, `${key}: the refusal teaches the destination`).toMatch(destination);
     // The refusal lists the nine keys — the whole envelope, nothing else.
     for (const k of NINE_KEYS) { expect(res.out, `${key}: the refusal lists ${k}`).toContain(k); }
   });

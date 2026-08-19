@@ -7,8 +7,7 @@ import { countTaskRefs, findTaskRefs, isValidTaskId, renameTask } from '../core/
 // the full thing against the live binary).
 const SCHEMA = {
   properties: {
-    nika: { description: 'The envelope · always v1.' },
-    workflow: { description: 'Workflow id.' },
+    nika: { description: 'The identity · `nika: <kebab-id>`.' },
     model: { description: 'Default model · `<provider>/<name>`.' },
     tasks: { description: 'The DAG.' },
     permits: { description: 'The declared capability boundary.' },
@@ -152,20 +151,19 @@ describe('parseCanonErrorCodes', () => {
 
 const DOC = [
   'nika: t',          // 0
-  'workflow:',         // 1
-  '  id: t',           // 2
-  '',                  // 3
-  'tasks:',            // 4
-  '  fetch:',          // 5
-  '    invoke:',       // 6
-  '      tool: nika:fetch', // 7
-  '      args:',       // 8
-  '        mode: ',    // 9
-  '  sum:',            // 10
-  '    ',              // 11  (typing a task key)
-  '    infer:',        // 12
-  '      ',            // 13  (typing a verb key)
-  '',                  // 14
+  'model: mock/echo',  // 1
+  '',                  // 2
+  'tasks:',            // 3
+  '  fetch:',          // 4
+  '    invoke:',       // 5
+  '      tool: nika:fetch', // 6
+  '      args:',       // 7
+  '        mode: ',    // 8
+  '  sum:',            // 9
+  '    ',              // 10  (typing a task key)
+  '    infer:',        // 11
+  '      ',            // 12  (typing a verb key)
+  '',                  // 13
 ].join('\n');
 
 describe('yamlContextAt', () => {
@@ -174,15 +172,15 @@ describe('yamlContextAt', () => {
   });
 
   it('classifies task-key position inside a task item', () => {
-    expect(yamlContextAt(DOC, 11, 4)).toMatchObject({ kind: 'task-key', partial: '' });
+    expect(yamlContextAt(DOC, 10, 4)).toMatchObject({ kind: 'task-key', partial: '' });
   });
 
   it('classifies verb-key position inside a verb body', () => {
-    expect(yamlContextAt(DOC, 13, 6)).toMatchObject({ kind: 'verb-key', verb: 'infer' });
+    expect(yamlContextAt(DOC, 12, 6)).toMatchObject({ kind: 'verb-key', verb: 'infer' });
   });
 
   it('classifies value position with verb + nearby tool (fetch mode)', () => {
-    const ctx = yamlContextAt(DOC, 9, '        mode: '.length);
+    const ctx = yamlContextAt(DOC, 8, '        mode: '.length);
     expect(ctx).toMatchObject({ kind: 'value', key: 'mode', verb: 'invoke', tool: 'nika:fetch' });
   });
 

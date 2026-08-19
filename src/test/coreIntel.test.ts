@@ -279,9 +279,7 @@ describe('secretsScan', () => {
     // the replacement with the entry. Proven here on the composed text
     // exactly as codeActions composes it.
     const yaml = [
-      'nika: v1',
-      'workflow:',
-      '  id: t',
+      'nika: t',
       'tasks:',
       '  ship:',
       '    invoke:',
@@ -341,7 +339,7 @@ describe('permitsEdit', () => {
   });
 
   it('appends to an existing nested list', () => {
-    const doc = ['nika: v1', 'permits:', '  net:', '    hosts:', '      - "a.com"', 'tasks: []'].join('\n');
+    const doc = ['nika: t', 'permits:', '  net:', '    hosts:', '      - "a.com"', 'tasks: []'].join('\n');
     const out = applyPermitsFix(doc, { value: 'b.com', path: ['net', 'hosts'] })!;
     const lines = out.split('\n');
     expect(lines[4]).toBe('      - "a.com"');
@@ -360,7 +358,7 @@ describe('permitsEdit', () => {
   });
 
   it('creates the whole boundary when absent (default-deny once present)', () => {
-    const doc = 'nika: v1\nworkflow:\n  id: t\ntasks: []\n';
+    const doc = 'nika: t\ntasks: []\n';
     const out = applyPermitsFix(doc, { value: 'example.com', path: ['net', 'hosts'] })!;
     expect(out).toContain('\npermits:\n  net:\n    hosts:\n      - "example.com"');
   });
@@ -372,7 +370,7 @@ describe('permitsEdit', () => {
 
   it('edits flow-style lines in place — the --infer-permits shape', () => {
     const doc = [
-      'nika: v1',
+      'nika: t',
       'permits:',
       '  net: { http: ["example.com"] }',
       '  exec: false',
@@ -406,13 +404,13 @@ describe('permitsEdit', () => {
   });
 
   it('replaces or appends the full inferred boundary', () => {
-    const doc = 'nika: v1\npermits:\n  net:\n    hosts:\n      - "old.com"\ntasks: []';
+    const doc = 'nika: t\npermits:\n  net:\n    hosts:\n      - "old.com"\ntasks: []';
     const out = insertPermitsBlock(doc, 'permits:\n  net:\n    hosts:\n    - "new.com"\n');
     expect(out).toContain('new.com');
     expect(out).not.toContain('old.com');
     expect(out).toContain('tasks: []');
 
-    const fresh = insertPermitsBlock('nika: v1\ntasks: []\n', 'permits:\n  fs: {}');
+    const fresh = insertPermitsBlock('nika: t\ntasks: []\n', 'permits:\n  fs: {}');
     expect(fresh).toContain('\npermits:\n  fs: {}');
   });
 });

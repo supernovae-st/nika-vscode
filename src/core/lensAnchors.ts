@@ -2,13 +2,12 @@
 //
 // Each row sits on the line it serves (operator layout 2026-07-12):
 // the GitHub door above `nika:` (the envelope names the language, the
-// lens names where it lives) · the action row above `workflow:` ·
-// Explain above `description:` · the status row above `tasks:`.
+// lens names where it lives) · Check/DAG/Run and Explain fall back
+// onto that same identity line · the status row above `tasks:`.
 // Anchors fall back up that chain, so a partial file never loses a
-// door — and none ever paints over the license/header comments. On the
-// nine-key envelope (0.109 · no `workflow:`/`description:` lines) the
-// action row and Explain both fall back to the `nika:` line — the mark
-// carries the whole envelope, and its doors.
+// door · and none ever paints over the license/header comments. A
+// pre-migration file still anchors on the dead `workflow:` /
+// `description:` keys while it is being moved.
 
 /** Envelope keys live at the top; a scan that walked a 100k-line file
  * on every keystroke would be the real bug. */
@@ -17,9 +16,10 @@ const SCAN_CAP = 400;
 export interface LensAnchors {
   /** `nika:` line (else 0) — the project door (GitHub). */
   env: number;
-  /** `workflow:` line (else env) — Check · DAG · Run. */
+  /** Check · DAG · Run — `nika:` on the nine-key envelope, else the
+   *  dead `workflow:` line while a file is being moved. */
   actions: number;
-  /** `description:` line (else actions) — Explain. */
+  /** Explain — same identity line, else a leftover `description:`. */
   explain: number;
   /** `tasks:` line (else actions) — verdict · ceiling · CTAs. */
   status: number;

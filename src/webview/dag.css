@@ -4851,8 +4851,9 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 
 /* The policy row — the task's declared execution policy as footer chips
  * (retry · timeout · on_error · outputs · permits). Facts only; hue is
- * semantic: recover wears the absorbed-failure amber, fail_workflow the
- * danger red, outputs the data voice — never decoration. */
+ * semantic: recover wears the absorbed-failure amber, skip the bypass
+ * mark, outputs the data voice · never decoration. Failure is the
+ * default (there is no fail_workflow). */
 .nc-policy {
   display: flex;
   align-items: center;
