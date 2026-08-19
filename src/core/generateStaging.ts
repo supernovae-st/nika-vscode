@@ -32,3 +32,14 @@ export function refinedIntent(baseIntent: string, refinement: string): string {
   if (delta.length === 0) { return base; }
   return `${base}\n\nRefinement (apply to the workflow above): ${delta}`;
 }
+
+/**
+ * The template the generation prompt falls back to when the corpus has
+ * no closer skeleton — the smallest nine-key workflow (nika 0.109 ·
+ * `nika: <id>` is the identity · no `workflow:` block · no `v1`).
+ * Own-corpus law: it must check clean on the pinned engine
+ * (contract.test proves it) — a template the oracle refuses teaches a
+ * refusal to every generated draft.
+ */
+export const GENERATE_FALLBACK_TEMPLATE
+  = 'nika: generated\n\nmodel: mock/echo  # deterministic · zero keys · swap for provider/model when ready\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n';

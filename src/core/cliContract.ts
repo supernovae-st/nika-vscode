@@ -62,7 +62,8 @@ export interface GraphDocEdge {
   to: string;
   /** Typed kind (GraphEdgeKind values today — unknown kinds tolerated). */
   kind: string;
-  /** control edges — the `after:` predicate (success · failure · skipped · terminal). */
+  /** control edges — the `after:` predicate (success · failure · skipped ·
+   *  terminal) · finally edges — `unwind` (the attachment's own word). */
   predicate?: string;
   /** data/observation edges — the `with:` binding name that created it. */
   binding?: string;
@@ -176,13 +177,17 @@ export interface DagNode {
   retryMax?: number;
   /** `timeout` Go-duration string, as written (`30s` · client YAML read). */
   timeout?: string;
-  /** `on_error` action — exactly one of recover · skip · fail_workflow. */
+  /** `on_error` action — exactly one of recover · skip (a mapping ·
+   *  failure is the default · there is no fail_workflow · nika 0.109). */
   onError?: string;
-  /** Named `output:` bindings this task PRODUCES (client YAML read · ≤4). */
+  /** Named `extract:` bindings this task PRODUCES (engine `outputs` ·
+   *  client YAML read as the fallback · ≤4). */
   outputNames?: string[];
-  /** `on_finally:` cleanup steps declared on this task (client YAML
-   *  read) — ALWAYS run on a started task, whatever the outcome. */
-  finallyCount?: number;
+  /** The cleanup units attached to THIS task by an unwind edge (the
+   *  targets of its outbound `finally` edges · `after: { this: unwind }`
+   *  on the cleanup task). They run once this task has started and
+   *  settles, never in a wave — the producer's card names them. */
+  cleanupTasks?: string[];
   /** NIKA-DAG-006 (static gate analysis): the `when:` gate is FALSE
    *  under every reachable combination — this task can never run. */
   deadGate?: boolean;
@@ -241,11 +246,12 @@ export interface DagEdge {
   id: string;
   source: string;
   target: string;
-  /** graph_format 2 typed kind — value · terminal-observation ·
-   *  failure-observation · control · recovery (unknown kinds tolerated,
-   *  rendered as data). There is no untyped edge anymore. */
+  /** graph_format 3 typed kind — value · terminal-observation ·
+   *  failure-observation · control · recovery · finally (unknown kinds
+   *  tolerated, rendered as data). There is no untyped edge anymore. */
   kind: string;
-  /** control edges — the `after:` predicate (success · failure · skipped · terminal). */
+  /** control edges — the `after:` predicate (success · failure · skipped ·
+   *  terminal) · finally edges carry `unwind`. */
   predicate?: string;
   /** data/observation edges — the `with:` binding name riding the wire. */
   label?: string;
@@ -316,13 +322,18 @@ export function dagEdgeId(e: GraphDocEdge): string {
 export function graphDocToDag(doc: GraphDoc): DagGraph {
   const producers = new Map<string, string[]>();
   const attached = new Map<string, string[]>();
+  const cleanups = new Map<string, string[]>();
   for (const edge of doc.edges) {
     if (edge.kind === 'finally') {
       // The unwind attachment: the cleanup unit (edge.to) runs when
-      // edge.from unwinds — an anchor, never a producer.
+      // edge.from unwinds — an anchor, never a producer. Both ends
+      // remember it: the unit its anchors, the producer its cleanups.
       const list = attached.get(edge.to) ?? [];
       if (!list.includes(edge.from)) { list.push(edge.from); }
       attached.set(edge.to, list);
+      const mine = cleanups.get(edge.from) ?? [];
+      if (!mine.includes(edge.to)) { mine.push(edge.to); }
+      cleanups.set(edge.from, mine);
     }
     if (!isSchedulingKind(edge.kind)) { continue; } // recovery/finally park, never order
     const list = producers.get(edge.to) ?? [];
@@ -344,6 +355,8 @@ export function graphDocToDag(doc: GraphDoc): DagGraph {
       };
       const anchors = attached.get(n.id);
       if (anchors && anchors.length > 0) { node.attachedTo = anchors; }
+      const mine = cleanups.get(n.id);
+      if (mine && mine.length > 0) { node.cleanupTasks = mine; }
       if (model) {
         node.model = model;
         const slash = model.indexOf('/');
@@ -446,41 +459,33 @@ export interface ReportDagAnalysis {
 /**
  * E-REQ (0.95+): the caller contract, stated by the checker itself.
  *
- * The E-split (R3a) renamed three of these ON THE WIRE — the envelope
- * `env:` block became `config:` and `vars:` became `inputs:`, so the
- * checker now reports `config_reads` / `config_defined` /
- * `inputs_required`. Both spellings are declared here and read with the
- * new one first: a field the running binary does not emit is simply
- * absent, and reading only the old names made the required-input CTA
- * vanish silently against a post-flip engine (an empty `?? []`, never
- * an error — the worst kind of break).
+ * nika 0.109 (the nine-key envelope) states it in the three-authority
+ * vocabulary: `inputs_read` (every `${{ inputs.X }}` the body reads) ·
+ * `inputs_required` (the entries declared `required: true` · the caller
+ * MUST supply them · the run-with-inputs door) · `models` · `secrets`.
+ * The pre-0.109 spellings (`config_reads` · `config_defined` ·
+ * `env_reads` · `env_defined` · `vars_required`) are gone with the
+ * fields they described — a reader that kept them would report a
+ * `config:` lane no engine emits (an empty `?? []`, never an error —
+ * the worst kind of break).
  */
 export interface ReportRequirements {
   models: Array<{ model: string; tasks: string[] }>;
   secrets: Array<{ name: string; source: string; key: string }>;
-  /** Post-flip spellings (`config:` · `inputs:`). */
-  config_reads?: string[];
-  config_defined?: string[];
+  /** Every input name the body READS (`${{ inputs.X }}`). */
+  inputs_read?: string[];
+  /** Inputs declared `required: true` — the caller supplies them at launch. */
   inputs_required?: string[];
-  /** Pre-flip spellings — a binary older than the E-split. */
-  env_reads?: string[];
-  env_defined?: string[];
-  vars_required?: string[];
 }
 
-/** The names the body READS from the deployment-config authority. */
-export function configReads(req: ReportRequirements): string[] {
-  return req.config_reads ?? req.env_reads ?? [];
+/** The input names the body READS (`${{ inputs.X }}`). */
+export function inputsRead(req: ReportRequirements): string[] {
+  return req.inputs_read ?? [];
 }
 
-/** The names the envelope DECLARES under that authority. */
-export function configDefined(req: ReportRequirements): string[] {
-  return req.config_defined ?? req.env_defined ?? [];
-}
-
-/** Inputs the caller MUST supply (`required: true`, no `default:`). */
+/** Inputs the caller MUST supply (`required: true`). */
 export function inputsRequired(req: ReportRequirements): string[] {
-  return req.inputs_required ?? req.vars_required ?? [];
+  return req.inputs_required ?? [];
 }
 
 export interface CheckReport {

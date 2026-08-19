@@ -76,17 +76,16 @@ describe('parseWorkflowTasks', () => {
   });
 
   it('preserves correct line numbers', () => {
-    const yaml = `schema: "nika/workflow@0.12"
-workflow:
-  id: test
+    const yaml = `nika: test
+model: mock/echo
 tasks:
   first:
     infer: "a"
   second:
     exec: "b"`;
     const tasks = parseWorkflowTasks(yaml);
-    expect(tasks[0].line).toBe(4); // line index of "first:"
-    expect(tasks[1].line).toBe(6); // line index of "second:"
+    expect(tasks[0].line).toBe(3); // line index of "first:"
+    expect(tasks[1].line).toBe(5); // line index of "second:"
   });
 
   it('a kebab key is not a task id (snake_case grammar)', () => {

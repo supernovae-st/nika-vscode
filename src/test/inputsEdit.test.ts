@@ -4,9 +4,7 @@ import {
   parseInputEntries, promoteInput, typeHeadWord,
 } from '../core/inputsEdit';
 
-const WF = `nika: v1
-workflow:
-  id: w
+const WF = `nika: w
 model: mock/echo
 
 inputs:
@@ -81,7 +79,7 @@ describe('inputsEdit (« declare an input » · « make it callable »)', () => 
     // The old untyped shorthand (`name: value`) is not a legal input
     // (spec 01 §inputs), so omitting the type falls back to `string`
     // rather than emitting a row the engine refuses.
-    const next = declareInput('nika: v1\nworkflow:\n  id: w\ninputs:\n  a: 1\n', { name: 'b', def: '"x"' })!;
+    const next = declareInput('nika: w\ninputs:\n  a: 1\n', { name: 'b', def: '"x"' })!;
     expect(next).toContain('  b:\n    type: string\n    default: "x"');
     expect(next).not.toContain('  b: "x"');
   });
@@ -91,15 +89,19 @@ describe('inputsEdit (« declare an input » · « make it callable »)', () => 
     expect(next).toContain('  tags:\n    type: { array: string }');
   });
 
-  it('creates the inputs block after the envelope head when absent', () => {
-    const next = declareInput('nika: v1\nworkflow:\n  id: w\ntasks:\n', { name: 'topic', type: 'string' })!;
-    expect(next).toContain('  id: w\n\ninputs:\n  topic:\n    type: string\ntasks:');
+  it('creates the inputs block after model: (else the identity line) when absent — the nine-key order', () => {
+    expect(declareInput('nika: w\ntasks:\n', { name: 'topic', type: 'string' })!)
+      .toContain('nika: w\n\ninputs:\n  topic:\n    type: string\ntasks:');
+    expect(declareInput('nika: w\nmodel: mock/echo\ntasks:\n', { name: 'topic', type: 'string' })!)
+      .toContain('model: mock/echo\n\ninputs:\n  topic:\n    type: string\ntasks:');
   });
 
-  it('never authors the dead envelope field', () => {
-    const next = declareInput('nika: v1\nworkflow:\n  id: w\ntasks:\n', { name: 'topic', type: 'string' })!;
+  it('never authors a dead envelope field', () => {
+    const next = declareInput('nika: w\ntasks:\n', { name: 'topic', type: 'string' })!;
     expect(next).not.toMatch(/^vars:/m);
     expect(next).not.toMatch(/^env:/m);
+    expect(next).not.toMatch(/^config:/m);
+    expect(next).not.toMatch(/^workflow:/m);
   });
 
   it('refuses duplicates, flow-form blocks, and headless fragments', () => {
@@ -144,7 +146,7 @@ describe('inputsEdit (« declare an input » · « make it callable »)', () => 
   });
 
   it('refuses to promote a record literal — no invented closed shape', () => {
-    const wf = 'nika: v1\nworkflow:\n  id: w\ninputs:\n  opts: { a: 1 }\n';
+    const wf = 'nika: w\ninputs:\n  opts: { a: 1 }\n';
     expect(promoteInput(wf, 'opts')).toBeUndefined();
   });
 });

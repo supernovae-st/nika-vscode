@@ -1059,7 +1059,7 @@ export function activate(context: ExtensionContext): void {
         SEMANTIC_DOCUMENT_METHOD,
         client.code2ProtocolConverter.asTextDocumentIdentifier(doc),
       ));
-      log('INFO', 'one voice: server owns graph projection (nika/semanticDocument · format 2)');
+      log('INFO', 'one voice: server owns graph projection (nika/semanticDocument · format 3)');
     } else {
       service.setSemanticOracle(undefined);
       if (caps !== undefined && fmt !== undefined) {

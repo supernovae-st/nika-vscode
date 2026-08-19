@@ -29,6 +29,9 @@ import { parseCanonErrorCodes } from '../core/schemaIntel';
 import { applyPermitsFix, insertPermitsBlock, parseFix } from '../core/permitsEdit';
 import { scaffoldContent } from '../core/newWorkflowWizard';
 import { GRAMMAR_CANARY_DOC, grammarAccepted } from '../core/grammarCanary';
+import { DEMO_WORKFLOW } from '../core/demoWorkflow';
+import { GENERATE_FALLBACK_TEMPLATE } from '../core/generateStaging';
+import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
 
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
@@ -169,6 +172,52 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     }
   });
 
+  it('every OTHER template the extension writes checks clean on the pinned engine (own-corpus law · after #296)', () => {
+    // #296 pinned the blank scaffold and the sub-workflow scaffold. The
+    // extension writes three more files: the demo sandbox (`nika.tryDemo`
+    // · hello-canvas), every verb STARTER scaffold (the wizard's second
+    // step · one per generated starter), and the generation prompt's
+    // fallback template (what a model adapts when the corpus has no
+    // closer skeleton). Each is teaching; each must pass the oracle it
+    // ships with — a template the engine refuses on the first line
+    // teaches a refusal.
+    // authored HERE → must check hard-clean · a starter body is a Lane B
+    // projection of the spec's own starters (SLOT-marked skeletons whose
+    // `${{ inputs.input }}` the author declares next) → must PARSE and
+    // carry no envelope/parse-class finding; the slot's VAR-001 is the
+    // author's next move, not a dead form.
+    const authored: Array<[string, string]> = [
+      ['demo · hello-canvas', DEMO_WORKFLOW],
+      ['generate · fallback template', GENERATE_FALLBACK_TEMPLATE],
+    ];
+    const starters: Array<[string, string]> = [];
+    for (const verb of Object.keys(NIKA_VERB_STARTERS) as Array<keyof typeof NIKA_VERB_STARTERS>) {
+      for (const starter of NIKA_VERB_STARTERS[verb]) {
+        starters.push([`starter · ${starter.id}`, scaffoldContent('starter-probe', { kind: 'starter', verb, starter }, 'mock/echo')]);
+      }
+    }
+    expect(starters.length).toBeGreaterThan(0);
+    const judge = (label: string, body: string, hardClean: boolean): void => {
+      const file = tmpWorkflow(body);
+      try {
+        const res = run(['check', file, '--json']);
+        const report = parseCheckReport(res.stdout);
+        expect(report, `${label}: ${res.stdout}${res.stderr}`).toBeDefined();
+        expect(grammarAccepted(res.stdout), `${label} must PARSE on the pinned engine:\n${res.stdout}`).toBe(true);
+        const hard = collectFindings(report!).filter((f) => f.source !== 'hint');
+        const parseClass = hard.filter((f) => /^NIKA-PARSE-|^NIKA-VALUES-/.test(f.code));
+        expect(parseClass.map((f) => `${f.code}: ${f.message}`), `${label} teaches a dead form:\n${body}`).toEqual([]);
+        if (hardClean) {
+          expect(hard.map((f) => `${f.code}: ${f.message}`), `${label}:\n${body}`).toEqual([]);
+        }
+      } finally {
+        fs.unlinkSync(file);
+      }
+    };
+    for (const [label, body] of authored) { judge(label, body, true); }
+    for (const [label, body] of starters) { judge(label, body, false); }
+  });
+
   it('check --json carries findings + did-you-mean on a broken workflow (exit 2)', () => {
     const file = tmpWorkflow(CLEAN_WF.replaceAll('nika:fetch', 'nika:fetchh'));
     try {
@@ -197,6 +246,58 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
         // The with: binding IS the edge — typed value, the alias rides it.
         { id: 'fetch_page->summarize:value:page', source: 'fetch_page', target: 'summarize', kind: 'value', label: 'page' },
       ]);
+    } finally {
+      fs.unlinkSync(file);
+    }
+  });
+
+  it('inspect --format json projects a cleanup unit as a finally NODE on an unwind edge (format 3 · the engine\'s own shape)', () => {
+    // Observed on the 0.109 engine (2026-08-18): the node carries
+    // `kind: "finally"`, the attachment is `{ kind: "finally", predicate:
+    // "unwind" }` from the producer to its cleanup task, and the PLAN
+    // seats only the task population (« 2 waves · 2 tasks » for two
+    // tasks + one cleanup unit). This pins that shape end to end.
+    const file = tmpWorkflow(`nika: unwind-seam
+model: mock/echo
+tasks:
+  gather:
+    infer:
+      prompt: "gather"
+  thread:
+    with:
+      seed: \${{ tasks.gather.output }}
+    infer:
+      prompt: "thread \${{ with.seed }}"
+  cleanup:
+    after: { thread: unwind }
+    infer:
+      prompt: "cleanup"
+`);
+    try {
+      const check = run(['check', file, '--json']);
+      expect(check.code, check.stdout).toBe(EXIT.OK);
+      const res = run(['inspect', file, '--format', 'json']);
+      expect(res.code).toBe(EXIT.OK);
+      const doc: unknown = JSON.parse(res.stdout);
+      expect(isGraphDoc(doc)).toBe(true);
+      const graph = doc as { graph_format: number; nodes: Array<{ id: string; kind: string }>; edges: Array<Record<string, unknown>> };
+      expect(graph.graph_format).toBe(3);
+      expect(graph.nodes.map((n) => [n.id, n.kind])).toEqual([
+        ['gather', 'task'], ['thread', 'task'], ['cleanup', 'finally'],
+      ]);
+      expect(graph.edges).toContainEqual({ from: 'thread', to: 'cleanup', kind: 'finally', predicate: 'unwind' });
+
+      const dag = graphDocToDag(doc as Parameters<typeof graphDocToDag>[0]);
+      const cleanup = dag.nodes.find((n) => n.id === 'cleanup')!;
+      expect(cleanup.kind).toBe('finally');
+      expect(cleanup.attachedTo).toEqual(['thread']);
+      expect(cleanup.producers).toEqual([]);
+      const fin = dag.edges.find((e) => e.kind === 'finally')!;
+      expect(fin.predicate).toBe('unwind');
+      expect(dag.nodes.find((n) => n.id === 'thread')?.cleanupTasks).toEqual(['cleanup']);
+      // The client's waves mirror the engine's PLAN: the unit sits in none.
+      const waves = topoWaves(dag.nodes, dag.edges.filter((e) => e.kind !== 'recovery' && e.kind !== 'finally'));
+      expect(waves).toEqual([['gather'], ['thread']]);
     } finally {
       fs.unlinkSync(file);
     }

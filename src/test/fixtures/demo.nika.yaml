@@ -11,12 +11,14 @@
 #   fail_fast: false + on_error recover: null — one bad item yields null
 #     at its index (order preserved) · the batch lives · filter downstream
 #   per-iteration retry/timeout · the flaky world is normal
-nika: v1
-workflow:
-  id: fanout-template           # SLOT: kebab-case workflow id
-  description: "discover N items · process in parallel · merge"   # SLOT
+#
+# discover N items · process in parallel · merge     # SLOT: one line saying what this does
+nika: fanout-template               # SLOT: kebab-case workflow id (the identity line · nine-key envelope · nika 0.109)
 
 model: mock/echo
+
+permits:                            # the boundary · exactly what the body spends
+  tools: ["nika:glob", "nika:jq"]
 
 inputs:                             # the caller may point the fanout elsewhere
   collection_source:                # SLOT: where the collection comes from
@@ -32,9 +34,10 @@ tasks:
   process:
     with:
       items: ${{ tasks.discover.output }}   # the binding IS the edge
-    for_each: ${{ with.items }}
-    max_parallel: 4                 # SLOT: the polite ceiling
-    fail_fast: false
+    for_each:                       # the fan-out is a BLOCK · the leash lives INSIDE it
+      items: ${{ with.items }}
+      max_parallel: 4               # SLOT: the polite ceiling
+      fail_fast: false
     timeout: "60s"                  # SLOT: per-iteration bound
     retry:
       max_attempts: 3

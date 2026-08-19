@@ -2,17 +2,17 @@
 //
 // « Costs and secrets visible BEFORE the run »: compose what the binary
 // already proves statically (`check --json` — cost ceiling · waves ·
-// permits escapes · secret flows) with what the client can verify
-// without spending a token (secrets/config declarations vs the actual
-// environment · models vs the catalog's key requirements). Every line
+// permits escapes · secret flows · the inputs the caller must supply)
+// with what the client can verify without spending a token (secret
+// declarations vs the actual environment · models vs the catalog's key
+// requirements). Every line
 // is DERIVED — nothing here executes, estimates never masquerade as
 // facts, and what cannot be verified says so (« declared », never
 // « verified »).
 
 import { parseRichWorkflow } from '../workflowParser';
-import { scanRefs } from './expr';
 import {
-  configDefined, configReads,
+  inputsRequired,
   type CheckReport, type ReportRequirements,
 } from './cliContract';
 
@@ -28,10 +28,14 @@ export interface SecretFact {
 
 export interface PreflightFacts {
   secrets: SecretFact[];
-  /** Keys DECLARED by the envelope `config:` block (spec 01). */
-  envDefined: string[];
-  /** Config names the body actually READS (`${{ config.X }}`). */
-  envRefs: string[];
+  /** Keys DECLARED by the envelope `inputs:` block (spec 01 · the typed
+   *  caller-supplied authority · a deployment-supplied value lives here
+   *  too, with `required: false` and a `default:` — `config:` is gone). */
+  inputsDeclared: string[];
+  /** The inputs the caller MUST supply at launch (`required: true`) —
+   *  the engine states them (`requirements.inputs_required`); the client
+   *  read below is the no-report fallback. */
+  inputsRequired: string[];
   /** model id → task ids that will call it (infer/agent only). */
   models: Map<string, string[]>;
   /** Declared `permits:` categories (fs · net · exec · tools). */
@@ -50,8 +54,8 @@ export function factsFromRequirements(req: ReportRequirements, text: string): Pr
       source: s.source,
       key: s.source === 'env' ? s.key : undefined,
     })),
-    envDefined: configDefined(req),
-    envRefs: configReads(req),
+    inputsDeclared: clientFacts.inputsDeclared,
+    inputsRequired: inputsRequired(req),
     models: new Map(req.models.map((m) => [m.model, m.tasks])),
     permitCategories: clientFacts.permitCategories,
     permitsDeclared: clientFacts.permitsDeclared,
@@ -66,20 +70,23 @@ export function factsFromRequirements(req: ReportRequirements, text: string): Pr
 export function collectPreflightFacts(text: string): PreflightFacts {
   const lines = text.split('\n');
   const secrets: SecretFact[] = [];
-  const envDefined: string[] = [];
+  const inputsDeclared: string[] = [];
+  const inputsRequiredSet = new Set<string>();
   const permitCategories: string[] = [];
   let permitsDeclared = false;
 
-  type Block = 'secrets' | 'config' | 'permits' | null;
+  type Block = 'secrets' | 'inputs' | 'permits' | null;
   let block: Block = null;
   let current: SecretFact | null = null;
+  let currentInput: string | null = null;
 
   for (const line of lines) {
     const top = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
     if (top) {
       current = null;
+      currentInput = null;
       block = top[1] === 'secrets' ? 'secrets'
-        : top[1] === 'config' ? 'config'
+        : top[1] === 'inputs' ? 'inputs'
           : top[1] === 'permits' ? 'permits' : null;
       if (top[1] === 'permits') { permitsDeclared = true; }
       continue;
@@ -90,8 +97,11 @@ export function collectPreflightFacts(text: string): PreflightFacts {
       if (block === 'secrets') {
         current = { name: key2[1], source: 'vault' };
         secrets.push(current);
-      } else if (block === 'config') {
-        envDefined.push(key2[1]);
+      } else if (block === 'inputs') {
+        currentInput = key2[1];
+        inputsDeclared.push(key2[1]);
+        // Flow form: `topic: { type: string, required: true }`.
+        if (/\brequired:\s*true\b/.test(key2[2])) { inputsRequiredSet.add(key2[1]); }
       } else {
         permitCategories.push(key2[1]);
       }
@@ -102,6 +112,12 @@ export function collectPreflightFacts(text: string): PreflightFacts {
       const value = key4[2].replace(/#.*$/, '').trim().replace(/^["']|["']$/g, '');
       if (key4[1] === 'source' && value) { current.source = value; }
       if (key4[1] === 'key' && value) { current.key = value; }
+    }
+    // Block form: `required: true` under the entry (the engine's rule:
+    // only an explicit `required: true` makes an input mandatory).
+    if (key4 && block === 'inputs' && currentInput && key4[1] === 'required'
+      && key4[2].replace(/#.*$/, '').trim() === 'true') {
+      inputsRequiredSet.add(currentInput);
     }
   }
 
@@ -115,15 +131,14 @@ export function collectPreflightFacts(text: string): PreflightFacts {
     (models.get(model) ?? models.set(model, []).get(model)!).push(task.id);
   }
 
-  // Requirements = what the body READS: `${{ config.X }}` refs (a key
-  // merely declared in the envelope is configuration, not a requirement).
-  const envRefs = [...new Set(
-    scanRefs(text)
-      .filter((r) => r.root === 'config' && r.path.length > 0)
-      .map((r) => r.path[0]),
-  )];
-
-  return { secrets, envDefined, envRefs, models, permitCategories, permitsDeclared };
+  return {
+    secrets,
+    inputsDeclared,
+    inputsRequired: inputsDeclared.filter((k) => inputsRequiredSet.has(k)),
+    models,
+    permitCategories,
+    permitsDeclared,
+  };
 }
 
 // ─── Catalog: provider → key requirements ───────────────────────────────────
@@ -193,11 +208,13 @@ export interface PreflightModel {
   findings: number;
   waves: string[][];
   secretRows: SecretRow[];
-  /** `config:` reads. 'defined' = the envelope declares it · 'missing'
-   *  = it does not. There is no OS-presence state: a `${{ config.X }}`
-   *  read resolves ONLY against the envelope block, the engine never
-   *  falls back to the ambient environment (spec 01 §config). */
-  envRows: Array<{ name: string; status: 'defined' | 'missing' }>;
+  /** The declared inputs: 'required' = the caller supplies it at launch
+   *  (`required: true` · the run-with-inputs door asks for it · never a
+   *  blocker) · 'optional' = a `default:` or an unset optional (a
+   *  deployment-supplied value lives HERE, `required: false` + `default:`
+   *  — there is no `config:` block and no ambient fallback: an
+   *  undeclared `${{ inputs.X }}` is NIKA-VAR-001 at check). */
+  inputRows: Array<{ name: string; status: 'required' | 'optional' }>;
   modelRows: ModelRow[];
   permits: { declared: boolean; categories: string[]; escapes: number; leaks: number; egresses: number };
   cost: { label: string; unbounded: boolean; topTasks: Array<{ task: string; label: string }> };
@@ -266,18 +283,15 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     };
   });
 
-  // DECLARED-ONLY · no ambient OS fallback. A `${{ config.X }}` the
-  // envelope does not declare is NIKA-VAR-001 at check — it can never be
-  // rescued by an environment variable of the same name, so probing the
-  // OS here would have reported « present » for a workflow that cannot
-  // run. The undeclared read is simply a blocker.
-  const envRows = facts.envRefs.map((name) => {
-    if (facts.envDefined.includes(name)) {
-      return { name, status: 'defined' as const };
-    }
-    blockers.push(`config \`${name}\`: read by the workflow, declared nowhere in config:`);
-    return { name, status: 'missing' as const };
-  });
+  // The inputs story: what the caller supplies at launch. A required
+  // input is a FACT of the flight plan, not a blocker — the run door asks
+  // for it. There is no OS-presence probe: `inputs:` has no ambient
+  // fallback (an undeclared read is NIKA-VAR-001 at check, and check
+  // owns that finding).
+  const inputRows = facts.inputsDeclared.map((name) => ({
+    name,
+    status: facts.inputsRequired.includes(name) ? 'required' as const : 'optional' as const,
+  }));
 
   // Engine rates (0.96+): model → "$in/$out per 1M" — appended to the
   // row detail. An unpriced model shows nothing (never $0).
@@ -344,7 +358,7 @@ export function buildPreflight(inputs: PreflightInputs): PreflightModel {
     findings: report?.conformance.length ?? 0,
     waves: inputs.graph ? wavesOf(inputs.graph) : [],
     secretRows,
-    envRows,
+    inputRows,
     modelRows,
     permits: {
       declared: facts.permitsDeclared,
@@ -473,21 +487,20 @@ export function renderPreflight(m: PreflightModel): string {
   }
   out.push('');
 
-  out.push('## Secrets & env');
+  out.push('## Secrets & inputs');
   out.push('');
-  if (m.secretRows.length === 0 && m.envRows.length === 0) {
-    out.push('No `secrets:` or `config:` declared.');
+  if (m.secretRows.length === 0 && m.inputRows.length === 0) {
+    out.push('No `secrets:` or `inputs:` declared.');
   } else {
     for (const s of m.secretRows) {
       const icon = s.status === 'present' ? '✓' : s.status === 'missing' ? '✗' : '·';
       out.push(`- ${icon} secret \`${s.name}\` (${s.source}) · ${s.detail}`);
     }
-    for (const e of m.envRows) {
-      const icon = e.status === 'missing' ? '✗' : '✓';
-      const detail = e.status === 'defined'
-        ? 'declared in the workflow `config:` block'
-        : 'read but NEVER declared: `config:` has no ambient fallback';
-      out.push(`- ${icon} config \`${e.name}\` · ${detail}`);
+    for (const e of m.inputRows) {
+      const detail = e.status === 'required'
+        ? 'required · the caller supplies it at launch (run with inputs)'
+        : 'optional · a `default:` or unset (a deployment-supplied value lives here, `required: false`)';
+      out.push(`- · input \`${e.name}\` · ${detail}`);
     }
   }
   out.push('');

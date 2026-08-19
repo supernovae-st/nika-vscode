@@ -31,8 +31,7 @@ export interface ParsedTask {
 /**
  * The line ranges of the top-level `tasks:` block(s): [start+1, end)
  * line indices. A task key only counts INSIDE this block — indent-2 keys
- * under `inputs:` / `config:` / `const:` / `secrets:` / `permits:` are
- * not tasks.
+ * under `inputs:` / `const:` / `secrets:` / `permits:` are not tasks.
  */
 function tasksBlockRanges(lines: string[]): Array<[number, number]> {
   const ranges: Array<[number, number]> = [];
@@ -131,8 +130,6 @@ export interface RichWorkflow {
   secretsKeys: string[];
   /** Keys declared under top-level `inputs:`. */
   inputsKeys: string[];
-  /** Keys declared under top-level `config:`. */
-  configKeys: string[];
   /** Keys declared under top-level `const:`. */
   constKeys: string[];
   /** Keys under the DEAD `vars:` envelope field, when a pre-flip file
@@ -142,6 +139,12 @@ export interface RichWorkflow {
   /** Keys under the DEAD `env:` envelope field (NIKA-VALUES-002). Same
    *  contract: recognised so the editor can classify, never emitted. */
   deadEnvKeys: string[];
+  /** Keys under the DEAD `config:` envelope field — it died with the
+   *  nine-key envelope (nika 0.109 · NIKA-PARSE-005): a deployment-
+   *  supplied value is an `inputs:` entry with `required: false` and a
+   *  `default:`. Read to TEACH the migration (the `config.` completion
+   *  and the definitions still resolve against it), never to author. */
+  configKeys: string[];
   /** Line of the top-level `permits:` key, when present. */
   permitsLine?: number;
 }
@@ -184,10 +187,10 @@ export function parseRichWorkflow(content: string): RichWorkflow {
     tasks: [],
     secretsKeys: [],
     inputsKeys: [],
-    configKeys: [],
     constKeys: [],
     deadVarsKeys: [],
     deadEnvKeys: [],
+    configKeys: [],
   };
 
   // Pass 1 — top-level scalars and block keys.
@@ -203,29 +206,21 @@ export function parseRichWorkflow(content: string): RichWorkflow {
     return keys;
   };
 
-  // W1: `workflow:` is an OBJECT — the display name is its `id:` field.
-  const workflowObjectId = (start: number): string | undefined => {
-    for (let i = start + 1; i < lines.length; i++) {
-      const ind = lines[i].match(/^( *)\S/);
-      if (!ind) { continue; }
-      if (ind[1].length === 0) { break; }
-      const m = lines[i].match(/^ {2}id\s*:\s*(.*)$/);
-      if (m) { return scalarOf(m[1]); }
-    }
-    return undefined;
-  };
-
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(TOP_KEY);
     if (!m) { continue; }
     const [, key, rest] = m;
     switch (key) {
-      case 'workflow':
-        wf.name = wf.name ?? (scalarOf(rest) ?? workflowObjectId(i));
+      case 'nika': {
+        // The nine-key envelope (nika 0.109): `nika: <id>` IS the identity
+        // — the display name is the value itself. The dead `v1` marker is
+        // not a name (the previous envelope's `workflow: { id }` block is
+        // refused by the engine, NIKA-PARSE-005 · `nika check --fix`
+        // migrates it); such a file simply has no name here.
+        const id = scalarOf(rest);
+        if (id && id !== 'v1') { wf.name = wf.name ?? id; }
         break;
-      case 'name':
-        wf.name = wf.name ?? scalarOf(rest);
-        break;
+      }
       case 'model':
         wf.defaultModel = scalarOf(rest);
         break;

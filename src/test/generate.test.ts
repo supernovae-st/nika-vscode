@@ -67,30 +67,26 @@ describe('intentRank · BM25', () => {
 
 describe('generatePipeline · extractYaml', () => {
   it('takes the fenced yaml block', () => {
-    const text = 'Reasoning…\n```yaml\nnika: v1\nworkflow:\n  id: x\n```\n';
-    expect(extractYaml(text)).toBe('nika: v1\nworkflow:\n  id: x');
+    const text = 'Reasoning…\n```yaml\nnika: x\n```\n';
+    expect(extractYaml(text)).toBe('nika: x');
   });
 
   it('the LAST envelope-bearing block wins (reasoning may quote snippets)', () => {
     const text = [
       'First a sketch:',
       '```yaml',
-      'nika: v1',
-      'workflow:',
-      '  id: draft',
+      'nika: draft',
       '```',
       'Final version:',
       '```yaml',
-      'nika: v1',
-      'workflow:',
-      '  id: final',
+      'nika: final',
       '```',
     ].join('\n');
-    expect(extractYaml(text)).toContain('workflow:\n  id: final');
+    expect(extractYaml(text)).toBe('nika: final');
   });
 
   it('accepts raw text already opening with the envelope', () => {
-    expect(extractYaml('nika: v1\nworkflow:\n  id: raw\n')).toBe('nika: v1\nworkflow:\n  id: raw');
+    expect(extractYaml('nika: raw\n')).toBe('nika: raw');
   });
 
   it('prose without yaml → undefined', () => {
@@ -100,8 +96,8 @@ describe('generatePipeline · extractYaml', () => {
 
 describe('generatePipeline · dedup + ordering', () => {
   it('normalization erases comments and blank lines, not structure', () => {
-    const a = 'nika: v1\n\n# comment\nworkflow:\n  id: x  # trailing\n';
-    const b = 'nika: v1\nworkflow:\n  id: x\n';
+    const a = 'nika: x  # trailing\n\n# comment\nmodel: mock/echo\n';
+    const b = 'nika: x\nmodel: mock/echo\n';
     expect(normalizeForDedup(a)).toBe(normalizeForDedup(b));
   });
 
@@ -123,8 +119,8 @@ describe('generatePipeline · dedup + ordering', () => {
   });
 
   it('repair prompt embeds the draft, the report and the exemplar', () => {
-    const p = buildRepairPrompt('nika: v1\n', outcome({ findings: 2, reportJson: '{"x":1}' }), 'EXEMPLAR');
-    expect(p).toContain('nika: v1');
+    const p = buildRepairPrompt('nika: t\n', outcome({ findings: 2, reportJson: '{"x":1}' }), 'EXEMPLAR');
+    expect(p).toContain('nika: t');
     expect(p).toContain('{"x":1}');
     expect(p).toContain('EXEMPLAR');
     expect(p).toContain('add "X" to permits.<path>');
@@ -132,7 +128,7 @@ describe('generatePipeline · dedup + ordering', () => {
 });
 
 describe('generatePipeline · the loop budget', () => {
-  const yamlAnswer = (wf: string): string => '```yaml\nnika: v1\nworkflow: ' + wf + '\n```';
+  const yamlAnswer = (wf: string): string => '```yaml\nnika: ' + wf + '\n```';
 
   const checkBy = (
     table: Record<string, Partial<GenCheckOutcome>>,
@@ -140,7 +136,7 @@ describe('generatePipeline · the loop budget', () => {
   ): ((yaml: string) => Promise<GenCheckOutcome>) =>
     async (yaml: string): Promise<GenCheckOutcome> => {
       calls?.push(yaml);
-      const wf = yaml.match(/workflow: (\S+)/)?.[1] ?? '?';
+      const wf = yaml.match(/nika: (\S+)/)?.[1] ?? '?';
       return { exit: 0, findings: 0, hints: 0, codes: [], parsed: true, ...(table[wf] ?? {}) };
     };
 
@@ -187,7 +183,7 @@ describe('generatePipeline · the loop budget', () => {
       { candidates: 3, repairRounds: 2 },
     );
     expect(result?.clean).toBe(true);
-    expect(result?.yaml).toContain('workflow: c2');
+    expect(result?.yaml).toContain('nika: c2');
   });
 
   it('structurally identical candidates hit the oracle once', async () => {
@@ -256,7 +252,7 @@ describe('generatePipeline · the loop budget', () => {
       },
       { candidates: 1, repairRounds: 1 },
     );
-    expect(result?.yaml).toContain('workflow: draft');
+    expect(result?.yaml).toContain('nika: draft');
     expect(result?.findings).toBe(1);
   });
 

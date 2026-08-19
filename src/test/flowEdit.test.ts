@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { AFTER_PREDICATES, PREDICATE_ADMITS, isAfterPredicate } from '../core/predicates';
 import {
   afterRewrite, bindingInsert, descendantsOf, fanoutRewrite, findTaskKey, gateRewrite,
   gateShapes, islandKeyRewrite, taskKeyRewrite, upstreamCandidates, type TaskRange,
 } from '../core/flowEdit';
 import { parseRichWorkflow } from '../workflowParser';
 
-const WF = `nika: v1
-workflow:
-  id: w
+const WF = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   gather:
     infer:
@@ -106,9 +107,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
 
   it('a binding grows an existing block with: and suffixes a taken alias', () => {
     const wf = [
-      'nika: v1',
-      'workflow:',
-      '  id: w',
+      'nika: w',
       'tasks:',
       '  gather:',
       '    infer:',
@@ -120,7 +119,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
       '      prompt: "${{ with.doc }}"',
       '',
     ].join('\n');
-    const digest = range('digest', 7, 11, {}, ['gather']);
+    const digest = range('digest', 5, 9, {}, ['gather']);
     const bound = bindingInsert(wf, digest, 'doc', 'tasks.gather.status', ['doc'])!;
     expect(bound.alias).toBe('doc_2');
     expect(bound.text).toContain('      doc_2: ${{ tasks.gather.status }}');
@@ -142,8 +141,20 @@ describe('flowEdit (order on state · gate · fan out)', () => {
       'var-flag-publish',
       'with-content-doc',
       'after-gather',
+      'unwind-gather',
       'content-gather',
     ]);
+    // The attachment row (nika 0.109 · spec 03 §unwind): the door can
+    // AUTHOR a cleanup unit — `after: { gather: unwind }` — the grammar
+    // that replaced the dead `on_finally:` block.
+    const unwind = shapes.find((s) => s.id === 'unwind-gather')!;
+    expect(unwind.action).toEqual({ kind: 'after', producer: 'gather', predicate: 'unwind' });
+    expect(unwind.hint).toContain('after: { gather: unwind }');
+    // The predicate table knows the attachment (the completion snippet
+    // and the hover pedagogy read THIS list · one module · zero hunt).
+    expect(AFTER_PREDICATES).toContain('unwind');
+    expect(PREDICATE_ADMITS.unwind).toEqual(['success', 'failure', 'cancelled']);
+    expect(isAfterPredicate('unwind')).toBe(true);
     const whens = shapes.filter((s) => s.action.kind === 'when');
     // Every when: expression reads local namespaces only — never tasks.*
     for (const s of whens) {
@@ -165,9 +176,7 @@ describe('flowEdit (order on state · gate · fan out)', () => {
 
 describe('islandKeyRewrite (the server-island position)', () => {
   const DOC = [
-    'nika: v1',
-    'workflow:',
-    '  id: w',
+    'nika: w',
     'model: mock/echo',
     'tasks:',
     '  a:',

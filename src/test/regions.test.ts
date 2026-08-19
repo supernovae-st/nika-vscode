@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRegions } from '../core/regions';
 
-const WF = `nika: v1
-workflow:
-  id: probe
+const WF = `nika: probe
 model: mock/echo
 tasks:
   setup:
@@ -52,7 +50,7 @@ describe('parseRegions', () => {
   });
 
   it('drops an empty region (no task follows the marker)', () => {
-    const trailing = `nika: v1
+    const trailing = `nika: t
 tasks:
   a:
     exec: { command: x }
@@ -62,7 +60,7 @@ tasks:
   });
 
   it('keeps two regions with the same label distinct', () => {
-    const dup = `nika: v1
+    const dup = `nika: t
 tasks:
   # nika:region Loop
   a:

@@ -12,6 +12,7 @@ import {
   patchVscodeConfig,
   type JsonObject,
 } from './core/mcpConfigShape';
+import { RULES_TEACHES, buildCursorRules, shouldRewriteRules, type RulesIntel } from './core/cursorRules';
 
 export type LogFn = (level: string, msg: string) => void;
 
@@ -93,13 +94,16 @@ export async function ensureCursorGlobalMcpConfig(absoluteServerPath: string, lo
   }
 }
 
-/** Provider groups for the generated rules (derived from the canon). */
-export interface RulesIntel {
-  cloud: string[];
-  local: string[];
-  test: string[];
-}
+/** Re-exported for the callers that pass provider groups (extension ·
+ *  lspClient) — the shape lives with the pure text builder. */
+export type { RulesIntel } from './core/cursorRules';
 
+/** Write `.cursor/rules/nika.mdc` — the AI-assistant teaching text.
+ *  Never overwrites a user's own file; DOES refresh a file this
+ *  extension generated at an older language (the stamp line says which
+ *  engine it teaches · `shouldRewriteRules`), because a stale copy would
+ *  keep teaching every model in the workspace a grammar the installed
+ *  engine refuses. */
 export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Promise<void> {
   const folder = workspace.workspaceFolders?.[0];
   if (!folder) { return; }
@@ -107,67 +111,25 @@ export async function ensureCursorRules(log: LogFn, providers?: RulesIntel): Pro
   const rulesDir = Uri.joinPath(folder.uri, '.cursor', 'rules');
   const rulePath = Uri.joinPath(rulesDir, 'nika.mdc');
 
+  let refresh = false;
   try {
-    await workspace.fs.stat(rulePath);
-    return; // Already exists
+    const existing = Buffer.from(await workspace.fs.readFile(rulePath)).toString('utf8');
+    if (!shouldRewriteRules(existing)) { return; } // the user's own, or already current
+    refresh = true;
   } catch {
     // Create
   }
 
   // Vocabulary derives from the binary at generation time — a hardcoded
   // provider list in generated rules is exactly the teaching-drift class
-  // the own-corpus law exists for. No intel → point at the source.
-  const providerLines = providers
-    ? [
-        '## Providers (from the embedded canon at setup time)',
-        `cloud: ${providers.cloud.join(', ')}`,
-        `local (sovereign · zero-cloud): ${providers.local.join(', ')}`,
-        `test: ${providers.test.join(', ')}`,
-      ]
-    : [
-        '## Providers',
-        'Run `nika spec --canon` for the canonical provider list (cloud · local-sovereign · test).',
-      ];
-
-  const content = [
-    '---',
-    'description: Nika workflow language rules for AI assistance',
-    'globs: ["**/*.nika.yaml", "**/*.nika.yml"]',
-    'alwaysApply: false',
-    '---',
-    '',
-    '# Nika Workflow Language',
-    '',
-    'Envelope: the first line is `nika: <kebab-name>` — the mark AND the identity (nine keys: nika · model · inputs · const · secrets · permits · run · tasks · outputs). Extension: .nika.yaml.',
-    '',
-    '## 4 Verbs (locked forever)',
-    '- infer: LLM call ({ prompt, system?, temperature?, schema? })',
-    '- exec: subprocess ({ command: ["prog", "arg"] argv-only, cwd?, shell? for pipes/redirects, capture: stdout|stderr|combined|structured })',
-    '- invoke: builtin/MCP tool ({ tool, args }) — HTTP fetch = `tool: nika:fetch` (a TOOL, not a verb)',
-    '- agent: agent loop ({ model, prompt, tools: default-deny whitelist, max_turns, max_tokens_total })',
-    '',
-    '## Key Rules',
-    '- Interpolation · 5 namespaces. The THREE value authorities: ${{ inputs.x }} (typed, caller-supplied · a deployment knob is an input with a default) · ${{ const.x }} (fixed value) · ${{ secrets.x }} (vault-backed, masked). Plus the two runtime ones: ${{ with.alias }} · ${{ tasks.id.output }}',
-    '- DEAD: `vars:`, `env:` and `config:` are NOT envelope fields and ${{ vars.X }} / ${{ env.X }} / ${{ config.X }} are NOT namespaces (NIKA-VALUES-001/002/003). Classify each value into the authority its ROLE commands — a typed parameter is inputs:, a fixed value const:, a deployment knob an inputs: entry with required: false + default:, a governed store reference secrets:. Never a blind rename. Also gone from the envelope: workflow: (the id is nika: itself, the description a # comment above it) · types: (shape rides returns:/schema:) · policy: · assert:',
-    '- `tasks.*` ONLY inside with:/after:/on_error.recover/an unwind task body/outputs (NIKA-VAR-021 elsewhere — hoist it into with:)',
-    '- The binding IS the edge: with: { alias: "${{ tasks.id.output }}" } (quote it in flow style — or use block style) then the body reads ${{ with.alias }}',
-    '- Order without data: after: { task_id: success } (predicates: success | failure | skipped | terminal | unwind) — depends_on is dead (NIKA-PARSE-024 · check --fix migrates). Cleanup is a TASK joined by after: { parent: unwind } (the old on_finally: list is gone)',
-    '- Model: combined form `model: provider/name` (e.g. ollama/llama3.2 · mock/echo for tests)',
-    '- timeout is a Go-duration string, quoted: timeout: "5m"',
-    '- Secrets: declare `secrets: { name: { source: env|vault|file, key: … } }` and read ${{ secrets.name }} — masked in logs/traces. NEVER literal keys in YAML, and never a bare env read',
-    '- inputs: entries are TYPED declarations (`type:` required). Types are the closed grammar: null · bool · integer · number · string · bytes · uri · path · duration · timestamp, plus constructors { array: T } · { map: T } · { object: {…} } · { union: […] } · { enum: […] }. `boolean` and bare `array`/`object` are NOT types',
-    '- extract: named jq bindings over a task output (the old task-level output: is renamed) · outputs: = the workflow return value · for_each is a BLOCK { items, max_parallel?, fail_fast? } · lift: is the one door that opens a named law (taint · data-as-code · a because: always)',
-    '- when: CEL conditional, LOCAL reads only (the value authorities · with · item/index) · retry: { max_attempts, backoff } · on_error: exactly one action — recover: <value> | skip: true (fail_workflow is gone: an unrecovered failure already fails the run)',
-    '- After writing or editing any *.nika.yaml, ALWAYS run `nika check <file> --json` and fix every finding before finishing. Never declare the task done while findings remain. Unknown code → `nika explain NIKA-XXXX`.',
-    '',
-    ...providerLines,
-    '',
-    'Refer to AGENTS.md for complete documentation · `nika spec <section>` for the embedded spec.',
-  ].join('\n');
+  // the own-corpus law exists for. No intel → the text points at the source.
+  const content = buildCursorRules(providers);
 
   await workspace.fs.createDirectory(rulesDir);
   await workspace.fs.writeFile(rulePath, Buffer.from(content));
-  log('INFO', 'Auto-generated .cursor/rules/nika.mdc');
+  log('INFO', refresh
+    ? `Refreshed .cursor/rules/nika.mdc (an older generation taught a dead grammar · now teaches ${RULES_TEACHES})`
+    : `Auto-generated .cursor/rules/nika.mdc (teaches ${RULES_TEACHES})`);
 }
 
 export async function ensureVscodeMcpConfig(_resolvedServerPath: string | undefined, log: LogFn): Promise<McpWriteResult> {

@@ -58,20 +58,20 @@ function fakeRunner(stdinDash: boolean): TextRunner & {
 describe('runCliOnText', () => {
   it('pipes over the dash when the binary reads stdin — zero disk', async () => {
     const runner = fakeRunner(true);
-    await runCliOnText(runner, (f) => ['check', f, '--json'], 'nika: v1\n', 20000, 'base');
+    await runCliOnText(runner, (f) => ['check', f, '--json'], 'nika: t\n', 20000, 'base');
     expect(runner.calls).toHaveLength(1);
     expect(runner.calls[0].args).toEqual(['check', '-', '--json']);
-    expect(runner.calls[0].stdin).toBe('nika: v1\n');
+    expect(runner.calls[0].stdin).toBe('nika: t\n');
     expect(runner.calls[0].timeoutMs).toBe(20000);
   });
 
   it('falls back to a real tmp file on a pre-dash binary, then cleans up', async () => {
     const runner = fakeRunner(false);
-    await runCliOnText(runner, (f) => ['check', f, '--json'], 'nika: v1\n', 20000, 'base');
+    await runCliOnText(runner, (f) => ['check', f, '--json'], 'nika: t\n', 20000, 'base');
     const call = runner.calls[0];
     expect(call.args[1]).toMatch(/nika-ext-base-.*\.nika\.yaml$/);
     expect(call.stdin).toBeUndefined();
-    expect(call.tmpContent).toBe('nika: v1\n');
+    expect(call.tmpContent).toBe('nika: t\n');
     // The unlink callback fires on the event loop — give it one macrotask.
     await new Promise((r) => setTimeout(r, 20));
     expect(existsSync(call.args[1])).toBe(false);

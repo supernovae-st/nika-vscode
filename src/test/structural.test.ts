@@ -89,9 +89,7 @@ describe('structuralFixes parsers', () => {
 });
 
 const DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: t',
+  'nika: t',
   'model: mock/echo',
   '',
   'tasks:',
@@ -179,7 +177,7 @@ describe('graph editing backends (the n8n loop)', () => {
   });
 
   it('creates the tasks block when the document has none', () => {
-    const res = insertTaskSkeleton('nika: v1\nworkflow:\n  id: t\nmodel: mock/echo\n', 'exec')!;
+    const res = insertTaskSkeleton('nika: t\nmodel: mock/echo\n', 'exec')!;
     const wf = parseRichWorkflow(res.text);
     expect(wf.tasks.map((t) => t.id)).toEqual(['exec']);
   });
@@ -343,9 +341,7 @@ describe('edge-case hunt · YAML-surgery bugs', () => {
 
   it('addAuthorityDeclaration never splices INTO a multi-line value', () => {
     const doc = [
-      'nika: v1',
-      'workflow:',
-      '  id: t',
+      'nika: t',
       'const:',
       '  prompt: |',
       '    Summarize the input.',
@@ -363,9 +359,7 @@ describe('edge-case hunt · YAML-surgery bugs', () => {
 
   it('a trailing comment documents the NEXT task — spans exclude it', () => {
     const doc = [
-      'nika: v1',
-      'workflow:',
-      '  id: t',
+      'nika: t',
       'tasks:',
       '  a:',
       '    exec: { command: ["echo", "a"] }',

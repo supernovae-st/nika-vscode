@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { findOutputsBlock, outputsRewrite, parseOutputs } from '../core/outputsEdit';
 
-const WITH_BLOCK = `nika: v1
-workflow:
-  id: w
+const WITH_BLOCK = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   gather:
     infer:
@@ -47,18 +47,18 @@ describe('outputsEdit (« choose what it publishes »)', () => {
   });
 
   it('publishes .output — never the bare tasks.X trap', () => {
-    const next = outputsRewrite('nika: v1\nworkflow:\n  id: w\n', ['a'])!;
+    const next = outputsRewrite('nika: w\n', ['a'])!;
     expect(next).toContain('outputs:\n  a: "${{ tasks.a.output }}"');
     expect(next).not.toMatch(/\$\{\{ tasks\.a \}\}/);
   });
 
   it('appends at EOF when the block is absent — trailing blanks trimmed', () => {
-    const next = outputsRewrite('nika: v1\nworkflow:\n  id: w\n\n\n', ['a'])!;
-    expect(next.endsWith('  id: w\n\noutputs:\n  a: "${{ tasks.a.output }}"\n')).toBe(true);
+    const next = outputsRewrite('nika: w\n\n\n', ['a'])!;
+    expect(next.endsWith('nika: w\n\noutputs:\n  a: "${{ tasks.a.output }}"\n')).toBe(true);
   });
 
   it('an empty pick with no customs removes the whole block', () => {
-    const next = outputsRewrite('nika: v1\n\noutputs:\n  a: "${{ tasks.a.output }}"\n', [])!;
+    const next = outputsRewrite('nika: t\n\noutputs:\n  a: "${{ tasks.a.output }}"\n', [])!;
     expect(next).not.toContain('outputs:');
   });
 

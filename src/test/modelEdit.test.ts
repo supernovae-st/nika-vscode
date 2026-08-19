@@ -27,20 +27,17 @@ describe('modelEdit (the missing-brain door)', () => {
     })).toEqual({ needy: ['b'] });
   });
 
-  it('inserts after the workflow object — the envelope\'s canonical slot', () => {
-    const next = insertDefaultModel('nika: v1\nworkflow:\n  id: w\n  description: "d"\ntasks:\n', 'ollama/qwen3.5:4b')!;
-    expect(next.split('\n')[4]).toBe('model: ollama/qwen3.5:4b');
-  });
-
-  it('falls back up the envelope chain (workflow · nika)', () => {
-    expect(insertDefaultModel('nika: v1\nworkflow:\n  id: w\ntasks:\n', 'mock/echo')!.split('\n')[3])
-      .toBe('model: mock/echo');
-    expect(insertDefaultModel('nika: v1\ntasks:\n', 'mock/echo')!.split('\n')[1])
+  it('inserts right after the identity line — the envelope\'s canonical slot (nika · model · …)', () => {
+    // The nine-key envelope (nika 0.109): `nika: <id>` is the identity;
+    // there is no `workflow:` object to skip — the slot is line 2.
+    const next = insertDefaultModel('# what this does\nnika: w\ntasks:\n', 'ollama/qwen3.5:4b')!;
+    expect(next.split('\n')).toEqual(['# what this does', 'nika: w', 'model: ollama/qwen3.5:4b', 'tasks:', '']);
+    expect(insertDefaultModel('nika: t\ntasks:\n', 'mock/echo')!.split('\n')[1])
       .toBe('model: mock/echo');
   });
 
   it('refuses when a top-level model exists — the lens path owns it', () => {
-    expect(insertDefaultModel('nika: v1\nmodel: mock/echo\n', 'ollama/x')).toBeUndefined();
+    expect(insertDefaultModel('nika: t\nmodel: mock/echo\n', 'ollama/x')).toBeUndefined();
   });
 
   it('refuses a headless fragment — nothing to anchor the envelope', () => {
@@ -48,7 +45,7 @@ describe('modelEdit (the missing-brain door)', () => {
   });
 
   it('a task-level model: (indented) never blocks the envelope insert', () => {
-    const wf = 'nika: v1\nworkflow:\n  id: w\ntasks:\n  a:\n    model: ollama/x\n    infer:\n      prompt: "p"\n';
+    const wf = 'nika: w\ntasks:\n  a:\n    model: ollama/x\n    infer:\n      prompt: "p"\n';
     expect(insertDefaultModel(wf, 'mock/echo')).toBeDefined();
   });
 });

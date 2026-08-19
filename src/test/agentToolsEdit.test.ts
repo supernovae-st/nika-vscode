@@ -3,9 +3,9 @@ import { findAgentTools, ownedRef, toolsRewrite } from '../core/agentToolsEdit';
 
 const CATALOG = new Set(['fetch', 'read', 'write', 'jq']);
 
-const FLOW = `nika: v1
-workflow:
-  id: w
+const FLOW = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   judge:
     agent:
@@ -14,7 +14,7 @@ tasks:
       max_turns: 10
 `;
 
-const BLOCK = `nika: v1
+const BLOCK = `nika: t
 tasks:
   judge:
     agent:

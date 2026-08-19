@@ -3,7 +3,7 @@
 // Speaks raw JSON-RPC (Content-Length framing) to `nika lsp` exactly
 // like vscode-languageclient does: initialize → didOpen →
 // nika/semanticDocument. Proves BOTH floors honestly:
-// - a server advertising graphFormat 2 answers with the canonical
+// - a server advertising graphFormat 3 answers with the canonical
 //   projection our parser adopts (graph + spans);
 // - a format-1 advertisement is REFUSED at the capability gate — the
 //   client never adopts what it cannot speak (the isGraphDoc law over
@@ -20,8 +20,8 @@ import {
 } from '../core/semanticDoc';
 import { REAL_BIN as BIN, lspSession } from './lspHarness';
 
-// The refonte grammar (workflow object · tasks map · with: binding) —
-// what a format-2 server projects. On a format-1 server the capability
+// The nine-key envelope (nika: identity · tasks map · with: binding) —
+// what a format-3 server projects. On an older server the capability
 // gate refuses BEFORE any grammar question, so one fixture serves both.
 const DOC = [
   'nika: oracle-probe',

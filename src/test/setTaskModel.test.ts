@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setTaskModel } from '../core/structuralFixes';
 
-const WF = `nika: v1
-workflow:
-  id: probe
+const WF = `nika: probe
 model: mock/echo
 tasks:
   has_model:

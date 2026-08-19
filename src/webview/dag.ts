@@ -606,7 +606,7 @@ interface DagNode {
   retryMax?: number;
   /** `timeout` Go-duration string, as written (`30s`). */
   timeout?: string;
-  /** `on_error` action — recover · skip · fail_workflow. */
+  /** `on_error` action — recover · skip (failure is the default). */
   onError?: string;
   /** Named `output:` bindings the task PRODUCES (≤4). */
   outputNames?: string[];
@@ -638,8 +638,9 @@ interface DagNode {
   whyWhen?: string;
   /** Cancel pedagogy: the dependency whose outcome blocked admission. */
   blockedBy?: string;
-  /** `on_finally:` cleanup steps — ALWAYS run on a started task. */
-  finallyCount?: number;
+  /** The cleanup units attached to THIS task by an unwind edge (mirrors
+   *  core DagNode.cleanupTasks · the producer names them on its card). */
+  cleanupTasks?: string[];
   /** `"task"` · `"finally"` (graph_format 3 · mirrors core DagNode.kind):
    *  a cleanup unit is an attachment — no wave, no plan count. */
   kind?: string;
@@ -684,9 +685,12 @@ interface DagEdge {
   source: string;
   target: string;
   /** graph_format 3 kind — value · terminal-observation ·
-   *  failure-observation · control · recovery (unknown → data render). */
+   *  failure-observation · control · recovery · finally (unknown → data
+   *  render). `finally` is the unwind attachment: producer → its
+   *  cleanup task (`after: { producer: unwind }` · spec 03 §unwind). */
   kind: string;
-  /** control edges — the after: predicate. */
+  /** control edges — the after: predicate (success · failure · skipped ·
+   *  terminal) · finally edges carry `unwind`. */
   predicate?: string;
   /** data/observation edges — the with: binding name. */
   label?: string;
@@ -1247,7 +1251,7 @@ function hasPolicyRow(node: DagNode): boolean {
   return node.retryMax !== undefined
     || node.timeout !== undefined
     || node.onError !== undefined
-    || node.finallyCount !== undefined
+    || node.cleanupTasks !== undefined
     || node.thinkingBudget !== undefined
     || node.visionCount !== undefined
     || node.typedShape !== undefined
@@ -1774,7 +1778,9 @@ function buildElkGraph(
     edges: graph.edges.map((edge) => {
       // Mono metrics, never DOM measure (the Dagster law): 10px
       // Martian Mono ≈ 6px/char + breathing room.
-      const text = edge.kind === 'control' ? edge.predicate : edge.label;
+      // A finally edge wears its predicate (`unwind`) exactly like a
+      // control edge — the layout reserves the same label room.
+      const text = edge.kind === 'control' || edge.kind === 'finally' ? edge.predicate : edge.label;
       const labels = text
         ? [{
             text,
@@ -4810,6 +4816,14 @@ class DagRenderer {
       if (deps > 0) {
         return `${deps} dependenc${deps === 1 ? 'y' : 'ies'} arrive${deps === 1 ? 's' : ''} here (ordering only)`;
       }
+      if (d.kind === 'finally') {
+        // A cleanup unit has no producers, but it is not a root: its one
+        // wire is the unwind attachment (parked · never an ordering edge).
+        const anchors = d.attachedTo ?? [];
+        return anchors.length > 0
+          ? `cleanup · hangs on the unwind of ${anchors.join(', ')} · never scheduled`
+          : 'cleanup · runs on unwind · never scheduled';
+      }
       return 'no inputs · a root task';
     });
     const portsOut = enter
@@ -6005,9 +6019,6 @@ class DagRenderer {
       } else if (node.onError === 'skip') {
         chip('nc-pol-skip', 'skip',
           'on_error: skip · a failure skips this task; the error stays readable at tasks.X.error', HOUSE_ICON.polSkip);
-      } else if (node.onError === 'fail_workflow') {
-        chip('nc-pol-fail', '✗ fail',
-          'on_error: fail_workflow · a failure here stops the whole run');
       }
       if (node.thinkingBudget !== undefined) {
         const cap = node.thinkingBudget > 0
@@ -6037,9 +6048,10 @@ class DagRenderer {
         chip('nc-pol-failfast', '⊗ fail-fast',
           'fail_fast: true · the first iteration error fails the whole task; its output settles null, never a partial array.');
       }
-      if (node.finallyCount !== undefined) {
-        chip('nc-pol-finally', `◈ finally ×${node.finallyCount}`,
-          `on_finally · ${node.finallyCount} cleanup step${node.finallyCount === 1 ? '' : 's'} that ALWAYS run once this task has started (success · failure · timeout · cancel), sequentially, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph.`);
+      if (node.cleanupTasks !== undefined && node.cleanupTasks.length > 0) {
+        const n = node.cleanupTasks.length;
+        chip('nc-pol-finally', `◈ unwind ×${n}`,
+          `${n} cleanup task${n === 1 ? '' : 's'} attached by an unwind edge · ${node.cleanupTasks.join(', ')} · after: { ${node.id}: unwind } · they run once this task has started and settles (success · failure · timeout · cancel), in declaration order, best-effort: a cleanup error is logged and never changes this task's outcome. A failed task cleans up BEFORE its failure settles into the graph. Never scheduled in a wave.`);
       }
       const outs = node.outputNames ?? [];
       if (outs.length > 0) {
@@ -6664,6 +6676,11 @@ class DagRenderer {
       .attr('class', (d) => {
         const meta = dagEdgeMap.get(d.id);
         if (meta?.kind === 'recovery') { return 'dag-edge edge-recovery'; }
+        // The unwind attachment (format 3): the cleanup unit's only wire —
+        // control family (it orders cleanup after the producer settles),
+        // parked (never schedules · never flows). Its own dash, its own
+        // hover, so the card that has no wave still shows what it hangs on.
+        if (meta?.kind === 'finally') { return 'dag-edge edge-dep edge-finally'; }
         if (meta?.kind === 'control') { return 'dag-edge edge-dep'; }
         // value + the two observations (+ unknown future kinds — the
         // reader-tolerance rule renders them as data, never drops them).
@@ -6677,7 +6694,7 @@ class DagRenderer {
       })
       .attr('marker-end', (d) => {
         const meta = dagEdgeMap.get(d.id);
-        return `url(#arrow-${meta?.kind === 'control' || meta?.kind === 'recovery' ? 'dep' : 'data'})`;
+        return `url(#arrow-${meta?.kind === 'control' || meta?.kind === 'recovery' || meta?.kind === 'finally' ? 'dep' : 'data'})`;
       })
       // Entering wires get their geometry AT ONCE (they fade in in place,
       // like the cards) — particles measure/ride the path immediately;
@@ -6729,6 +6746,8 @@ class DagRenderer {
         }
         case 'recovery':
           return `${ends.target}'s on_error.recover reads ${ends.source}\nrecovery · a parking read at recovery time, never an ordering edge\nadmits · (parked · outside the precedence graph)`;
+        case 'finally':
+          return `${ends.target} cleans up after ${ends.source}\nunwind · after: { ${ends.source}: unwind } · runs once ${ends.source} has STARTED and settles (success · failure · timeout · cancel) · never scheduled, never in a wave · its own failure never propagates\nadmits · (parked · outside the precedence graph)`;
         case 'terminal-observation':
           return `${ends.source} ── ${meta.label ?? ''} ──▶ ${ends.target}\nobservation · the binding reads the settled record\nadmits {success · failure · skipped · cancelled}`;
         case 'failure-observation':
@@ -6746,7 +6765,8 @@ class DagRenderer {
       .data(elkEdges.filter((e) => {
         const meta = dagEdgeMap.get(e.id);
         if (!meta) { return false; }
-        return meta.kind === 'control' ? !!meta.predicate : isDataKind(meta.kind) && !!meta.label;
+        // A finally edge wears its predicate (`unwind`) like a control edge.
+        return meta.kind === 'control' || meta.kind === 'finally' ? !!meta.predicate : isDataKind(meta.kind) && !!meta.label;
       }), (d) => d.id);
     labels.exit().remove();
     labels
@@ -6754,7 +6774,7 @@ class DagRenderer {
       .append('text')
       .attr('class', (d) => {
         const meta = dagEdgeMap.get(d.id);
-        if (meta?.kind !== 'control') {
+        if (meta?.kind !== 'control' && meta?.kind !== 'finally') {
           return meta?.kind === 'failure-observation' ? 'edge-label edge-label-obs-fail' : 'edge-label';
         }
         // The predicate TINT (§S.4): the outcome class rides its label
@@ -6770,7 +6790,7 @@ class DagRenderer {
       .attr('text-anchor', 'middle')
       .text((d) => {
         const meta = dagEdgeMap.get(d.id);
-        return meta?.kind === 'control' ? meta.predicate ?? '' : meta?.label ?? '';
+        return meta?.kind === 'control' || meta?.kind === 'finally' ? meta.predicate ?? '' : meta?.label ?? '';
       });
 
     this.destackEdgeLabels();
@@ -6782,14 +6802,15 @@ class DagRenderer {
     // chevron, a terminal observation wears a HOLLOW DOT (reads every
     // outcome), a failure observation a DIAMOND in the failure hue
     // (admits on failure/skipped), recovery an open HOOK (the parking
-    // read loops back). `finally` stays reserved — parked without a
-    // waist until the engine emits it.
+    // read loops back), finally a BRACKET (the unwind attachment: the
+    // cleanup hangs off the producer · emitted since format 3).
     const DIR_FORM: Record<string, { cls: string; d: string }> = {
       'value': { cls: 'edge-dir-data', d: 'M -3.4 -3.1 L 3 0 L -3.4 3.1' },
       'control': { cls: 'edge-dir-dep', d: 'M -3.4 -3.1 L 3 0 L -3.4 3.1' },
       'terminal-observation': { cls: 'edge-dir-obs', d: 'M 2.9 0 A 2.9 2.9 0 1 0 -2.9 0 A 2.9 2.9 0 1 0 2.9 0' },
       'failure-observation': { cls: 'edge-dir-obsfail', d: 'M 0 -3.3 L 3.3 0 L 0 3.3 L -3.3 0 Z' },
       'recovery': { cls: 'edge-dir-rec', d: 'M 2.6 -2.2 A 3.2 3.2 0 1 0 2.6 2.2' },
+      'finally': { cls: 'edge-dir-fin', d: 'M -3 -3.2 L -3 3.2 M -3 0 L 3 0' },
     };
     const dirFormOf = (d: ElkExtendedEdge): { cls: string; d: string } => {
       const kind = dagEdgeMap.get(d.id)?.kind ?? '';
@@ -6798,7 +6819,7 @@ class DagRenderer {
     };
     const dirs = this.edgeGroup
       .selectAll<SVGPathElement, ElkExtendedEdge>('path.edge-dir')
-      .data(elkEdges.filter((e) => dagEdgeMap.get(e.id)?.kind !== 'finally'), (d) => d.id);
+      .data(elkEdges, (d) => d.id);
     dirs.exit().remove();
     dirs
       .enter()
@@ -8242,7 +8263,7 @@ function buildExplainer(): void {
     ['ex-glyph-data', 'Blue labeled edges', 'data actually CROSSES here · the with: binding IS the edge (the label is its alias); dotted-blue = an observation read (.status/.error)'],
     ['ex-glyph-lineage', 'Lineage · follow the data', 'click a card (or put the caret inside ${{ tasks.x }} in the YAML): producers and consumers stay lit, direct neighbors louder, the data wires saturate, the rest fades · Esc clears'],
     ['ex-glyph-gate', 'Preflight chip (run pill)', 'the flight plan at a glance · ✗ missing keys/secrets · ⚠ flows · ✓ ready; click it for the full document (cost · secrets · permits · waves)'],
-    ['ex-glyph-dep', 'Gray dashed edges', 'control · after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read'],
+    ['ex-glyph-dep', 'Gray dashed edges', 'control · after: { producer: predicate } orders on state, never data (the label is the predicate); a dim dotted wire is on_error.recover\'s parking read; a faint wire labeled unwind hangs a cleanup task off the task it cleans up after (after: { x: unwind } · never scheduled)'],
     ['ex-glyph-zoom', 'Zoom far out', 'the map read · cards become tiles, ids hold one readable size at any distance (semantic zoom)'],
     ['ex-glyph-focus', 'what if? (X)', 'replay admission with a task failed · dead paths dim, the paths that exist ONLY for failure light up · Esc clears, nothing runs'],
     ['ex-glyph-stack', 'workflow call', 'the chip is a door (click opens the child) · the card face shows the child\u2019s inputs · supplied · default · ⚠ required · the breadcrumb climbs back'],

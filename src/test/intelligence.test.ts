@@ -30,9 +30,7 @@ describe('damerau + didYouMean', () => {
 // ─── schema shape propagation ────────────────────────────────────────────────
 
 const DOC = [
-  'nika: v1',
-  'workflow:',
-  '  id: shapes',
+  'nika: shapes',
   'model: mock/echo',
   '',
   'tasks:',

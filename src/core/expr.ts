@@ -6,11 +6,11 @@
 // and classify the completion context so the editor can offer members
 // without the server.
 //
-// Grammar (spec 04 §the 6 namespaces): ${{ <root>.<path> }} with roots
-//   inputs · config · const · secrets   the four VALUE AUTHORITIES
+// Grammar (spec 04 · 5 live namespaces): ${{ <root>.<path> }} with roots
+//   inputs · const · secrets            the three VALUE AUTHORITIES
 //   with · tasks                        the two RUNTIME namespaces
 // Everything else inside the island is out of scope here (CEL lives in
-// `when:` · jq lives in `output:`).
+// `when:` · jq lives in `extract:`).
 //
 // `vars` and `env` are recognised but DEAD (NIKA-VALUES-001/002 · the
 // E-split · R3a). They are scanned so the editor can still read a

@@ -23,13 +23,12 @@ export interface BodyFacts {
   retryMax?: number;
   /** `timeout` Go-duration string, unquoted (`30s` · `1h30m`). */
   timeout?: string;
-  /** `on_error` action — recover · skip · fail_workflow (exactly one). */
+  /** `on_error` action — recover · skip (exactly one · a mapping ·
+   *  failure is the default, there is no fail_workflow · nika 0.109). */
   onError?: string;
-  /** Named `output:` bindings the task produces (≤4 names). */
+  /** Named `extract:` bindings the task produces (≤4 names · the old
+   *  `output:` block is dead · NIKA-PARSE-005). */
   outputNames?: string[];
-  /** `on_finally:` cleanup steps — list members (spec 03 §on_finally:
-   *  ALWAYS runs on a started task · sequential · best-effort). */
-  finallyCount?: number;
   /** infer `thinking:` — the scratch budget (budget_tokens), or -1
    *  when enabled without an explicit budget (spec 02 §fields). */
   thinkingBudget?: number;
@@ -45,8 +44,9 @@ export interface BodyFacts {
   failFast?: boolean;
 }
 
-/** The on_error action keys (schema $defs/onError — exactly one). */
-const ON_ERROR_ACTIONS = new Set(['recover', 'skip', 'fail_workflow']);
+/** The on_error action keys (schema $defs/onError — exactly one ·
+ *  `recover:` or `skip: true` · failure needs no key, it is the default). */
+const ON_ERROR_ACTIONS = new Set(['recover', 'skip']);
 
 const MAX_LINES = 3;
 const MAX_CHARS = 220;
@@ -108,7 +108,7 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
     // block indents; -1 = closed. Their facts read only ONE level down.
     let retryIndent = -1;
     let onErrorIndent = -1;
-    let outputIndent = -1;
+    let extractIndent = -1;
 
     // Task-LEVEL keys sit at the minimum key indent of the BODY — the
     // declaring key line is excluded (W1 map form: `name:` matches the
@@ -130,7 +130,7 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
       if (key) {
         if (retryIndent >= 0 && indent <= retryIndent) { retryIndent = -1; }
         if (onErrorIndent >= 0 && indent <= onErrorIndent) { onErrorIndent = -1; }
-        if (outputIndent >= 0 && indent <= outputIndent) { outputIndent = -1; }
+        if (extractIndent >= 0 && indent <= extractIndent) { extractIndent = -1; }
       }
 
       // Args block members (one level under `args:`).
@@ -222,7 +222,7 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         }
         continue;
       }
-      if (outputIndent >= 0 && indent > outputIndent) {
+      if (extractIndent >= 0 && indent > extractIndent) {
         const outs = fact.outputNames ?? (fact.outputNames = []);
         if (outs.length < 4 && !outs.includes(name)) { outs.push(name); }
         continue;
@@ -245,12 +245,13 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
         if (inline) { fact.retryMax = Number(inline[1]); }
         else { retryIndent = indent; }
       } else if (indent === taskIndent && name === 'on_error') {
+        // Flow form `on_error: { skip: true }` / `{ recover: … }`.
         const inline = line.slice(line.indexOf(':') + 1)
-          .match(/\b(recover|skip|fail_workflow)\b/);
+          .match(/\b(recover|skip)\b/);
         if (inline) { fact.onError = inline[1]; }
         else { onErrorIndent = indent; }
-      } else if (indent === taskIndent && name === 'output') {
-        outputIndent = indent;
+      } else if (indent === taskIndent && name === 'extract') {
+        extractIndent = indent;
       } else if (indent === taskIndent && name === 'for_each' && fact.forEachSource === undefined) {
         // Task-level only — a `with:` alias named for_each can never
         // impersonate the construct (same discipline as timeout). The
@@ -325,30 +326,17 @@ export function collectBodyFacts(text: string): Map<string, BodyFacts> {
           if (t2.trim().startsWith('- ')) { n += 1; }
         }
         if (n > 0) { fact.visionCount = n; }
-      } else if (indent === taskIndent && name === 'on_finally' && fact.finallyCount === undefined) {
-        // Cleanup steps = the list members one level down. Only `- `
-        // entries count (each is a mini-task); a non-list body is a
-        // conformance problem `nika check` owns — we count nothing.
-        let n = 0;
-        for (let j = i + 1; j <= task.endLine && j < lines.length; j++) {
-          const t = lines[j];
-          if (t.trim().length === 0) { continue; }
-          const kj = t.match(/^(\s*)\S/);
-          if (kj && kj[1].length <= indent) { break; }
-          if (t.trim().startsWith('- ')) { n += 1; }
-        }
-        if (n > 0) { fact.finallyCount = n; }
       }
     }
 
     if (argPairs.length > 0) { fact.args = argPairs.join(' · '); }
     // Any declared fact earns the entry — a scalar-verb task
-    // (`exec: echo hi`) with only an `on_finally:` block must not
-    // vanish because it carries no prompt/command/args substance.
+    // (`exec: echo hi`) with only a policy field must not vanish because
+    // it carries no prompt/command/args substance.
     if (fact.prompt || fact.command || fact.args
         || fact.retryMax !== undefined || fact.timeout !== undefined
         || fact.onError !== undefined || fact.toolsCount !== undefined
-        || fact.outputNames !== undefined || fact.finallyCount !== undefined
+        || fact.outputNames !== undefined
         || fact.thinkingBudget !== undefined || fact.visionCount !== undefined
         || fact.maxParallel !== undefined || fact.failFast !== undefined
         || fact.forEachSource !== undefined) {

@@ -5,21 +5,21 @@
 // workspace's .nika.yaml files. Pure functions; the feature layer feeds
 // them file contents and wires the pick UI.
 
-/** The `workflow:` name of a nika YAML — a light line-scan, no parser. */
+/** The workflow's name — the `nika: <id>` identity line of the nine-key
+ *  envelope (nika 0.109) — a light line-scan, no parser. */
 export function workflowNameOf(yamlText: string): string | undefined {
-  // W1: `workflow:` is an object — the name is its `id:` field. Quoted
-  // value first: a `#` INSIDE quotes is part of the name, not a comment —
-  // the single mixed regex truncated `"deploy #7"` to `deploy`, so a
-  // quoted-hash workflow could never exact-match its own journal (the
-  // 0.97.2 review's extractor-divergence finding).
-  let inWorkflow = false;
+  // Quoted value first: a `#` INSIDE quotes is part of the name, not a
+  // comment — the single mixed regex truncated `"deploy #7"` to `deploy`,
+  // so a quoted-hash workflow could never exact-match its own journal
+  // (the 0.97.2 review's extractor-divergence finding). The dead `v1`
+  // marker is not a name: a previous-envelope file has no name here.
   for (const line of yamlText.split('\n')) {
-    if (/^\S/.test(line)) { inWorkflow = /^workflow:\s*(#.*)?$/.test(line); }
-    if (!inWorkflow) { continue; }
-    const q = /^ {2}id:\s*"([^"]*)"\s*(#.*)?$/.exec(line) ?? /^ {2}id:\s*'([^']*)'\s*(#.*)?$/.exec(line);
-    if (q) { return q[1].trim() || undefined; }
-    const bare = /^ {2}id:\s*([^#\n]+?)\s*(#.*)?$/.exec(line);
-    if (bare) { return bare[1].trim() || undefined; }
+    if (!/^nika:\s/.test(line)) { continue; }
+    const quoted = line.match(/^nika:\s*"([^"]*)"\s*(#.*)?$/) ?? line.match(/^nika:\s*'([^']*)'\s*(#.*)?$/);
+    const bare = line.match(/^nika:\s*([^#\n]+?)\s*(#.*)?$/);
+    const name = (quoted ? quoted[1] : bare ? bare[1] : '').trim();
+    if (name.length === 0 || name === 'v1') { return undefined; }
+    return name;
   }
   return undefined;
 }

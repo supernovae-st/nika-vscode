@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { SCHEMA_SHAPES, schemaInsert, verbHasSchema, verbTakesSchema } from '../core/schemaEdit';
 
-const WF = `nika: v1
-workflow:
-  id: w
+const WF = `# w · the fixture (two header lines keep the ranges below stable)
+#
+nika: w
 tasks:
   gather:
     infer:

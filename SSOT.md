@@ -16,7 +16,7 @@ knowledge artifact is missing from this ledger (or points nowhere).
 | model catalog (pickers · missing-brain door) | `nika catalog --json` |
 | builtin tools register (invoke door · agent tools door · palette) | `nika catalog --tools --json` |
 | error-code pedagogy | `nika explain` |
-| graph facts (cost interval · when · fan-out inlays) | `nika inspect --format json` (graph_format 2) · over the LSP, `nika/semanticDocument` serves the SAME document + spans |
+| graph facts (cost interval · when · fan-out inlays · cleanup units) | `nika inspect --format json` (graph_format 3 · nodes carry `kind: task \| finally` · the unwind attachment is a `finally` edge) · over the LSP, `nika/semanticDocument` serves the SAME document + spans |
 | new-workflow templates | `nika new` (embedded engine templates) |
 | permits boundary (declare · tighten) | `nika check --infer-permits` |
 
@@ -53,7 +53,7 @@ speaks. Two kinds · only one converges:
 | lens **doors** (pickers · surgical edits) | · | never retire: doors are GESTURES (compose `after:` entries, hoist `with:` bindings, rewrite blocks); the LSP informs, a door acts |
 | `flowEdit.gateShapes` (when-gate register) | `when:` islands (engine ≥ 0.103) | **CONVERGED**: when a server with completion runs, the gate door's FIRST row hands the empty `when: ` value to the native suggest (the engine's islands speak); shapes stay as the offline fallback + the gesture rows (`after:` · the hoist) the server cannot make. `islandsReal.e2e` belt-checks the shared LOCAL names (client ⊆ server) |
 | collection candidates (`flowDoors`) | `for_each:` islands (engine ≥ 0.103) | **CONVERGED**: same lane, same belt |
-| graph projection (`inspect --format json` spawn per refresh) | `nika/semanticDocument` (advertised since 0.102 · adopted at `graphFormat` 2) | **CONVERGED**: the oracle is the projection VERBATIM plus per-task spans; the CLI is the no-server fallback, the client sketch the last rung. `semanticDocReal.e2e` proves both floors |
+| graph projection (`inspect --format json` spawn per refresh) | `nika/semanticDocument` (advertised since 0.102 · adopted at `graphFormat` 3 · engine 0.109) | **CONVERGED**: the oracle is the projection VERBATIM plus per-task spans; the CLI is the no-server fallback, the client sketch the last rung. `semanticDocReal.e2e` proves both floors |
 | `FALLBACK_TOOL_BLURBS` | catalog (Lane A) | never retire: the offline courtesy cache · but names stay belt-checked |
 
 The rule: a KNOWLEDGE register duplicated across the seam converges

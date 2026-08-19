@@ -100,7 +100,7 @@ describe('scaffoldContent — the written page', () => {
     // the nine-key envelope · the mark IS the name (a `workflow:` block
     // would be NIKA-PARSE-005 on the pinned engine)
     expect(text).toContain('nika: my-flow');
-    expect(text).not.toContain('nika: v1');
+    expect(text).not.toContain('nika: t');
     expect(text).not.toContain('workflow:');
     expect(text).toContain('model: mock/echo  # deterministic · zero keys');
     expect(text).toContain('prompt: ""');

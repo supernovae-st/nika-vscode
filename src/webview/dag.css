@@ -1034,6 +1034,12 @@ body.running .dag-edge.edge-dep {
   opacity: 0.6;
 }
 
+.edge-dir-fin {
+  stroke: var(--nk-st-muted);
+  fill: none;
+  opacity: 0.6;
+}
+
 .edge-dir.dimmed {
   opacity: 0.1;
 }
@@ -1206,7 +1212,7 @@ body:not(.lod-far) .dag-edge {
    * authored hues never override an OS High Contrast palette. */
   .dag-edge.edge-data.edge-obs,
   .dag-edge.edge-data.edge-obs.edge-obs-fail { stroke: Highlight !important; }
-  .edge-dir-obs, .edge-dir-rec { stroke: CanvasText !important; fill: none !important; }
+  .edge-dir-obs, .edge-dir-rec, .edge-dir-fin { stroke: CanvasText !important; fill: none !important; }
   .edge-dir-obsfail { fill: CanvasText !important; stroke: none !important; }
 
   /* !important: the nika skin's body-scoped rules out-specify these —
@@ -2327,7 +2333,7 @@ body.dag-loading #zoom-dock { display: none; }
   opacity: 0.8;
 }
 
-/* ─── Typed edge kinds (graph_format 2) · beyond data/control ───────────── */
+/* ─── Typed edge kinds (graph_format 3) · beyond data/control ───────────── */
 
 /* Observation reads (.status/.duration_ms/.error through with:) — data
  * family, but the wire carries a RECORD read, not the value: same hue,
@@ -2360,6 +2366,23 @@ body.dag-loading #zoom-dock { display: none; }
 
 .dag-edge.edge-recovery:hover {
   opacity: 0.9;
+}
+
+/* Finally — the unwind attachment (format 3 · `after: { x: unwind }`):
+ * a cleanup task hangs off the task it cleans up after. Control family
+ * (muted hue · it orders cleanup after the producer settles), PARKED
+ * like recovery (never schedules · never flows · never joins a wave):
+ * a fine dot-dot cadence, quieter than a control wire, so the card
+ * with no wave still shows the one wire it has. */
+.dag-edge.edge-dep.edge-finally {
+  stroke-width: 1.4;
+  stroke-dasharray: 1.5 4;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.dag-edge.edge-dep.edge-finally:hover {
+  opacity: 0.95;
 }
 
 .ex-glyph-dep {
@@ -4828,8 +4851,9 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
 
 /* The policy row — the task's declared execution policy as footer chips
  * (retry · timeout · on_error · outputs · permits). Facts only; hue is
- * semantic: recover wears the absorbed-failure amber, fail_workflow the
- * danger red, outputs the data voice — never decoration. */
+ * semantic: recover wears the absorbed-failure amber, skip the bypass
+ * mark, outputs the data voice · never decoration. Failure is the
+ * default (there is no fail_workflow). */
 .nc-policy {
   display: flex;
   align-items: center;
@@ -4904,14 +4928,9 @@ body:not(.lod-far) .nc-mode-grand .nc-preview {
   background: color-mix(in srgb, var(--nk-st-retrying) 8%, transparent);
 }
 
-.nc-pol-fail {
-  color: var(--nk-st-failed);
-  border-color: color-mix(in srgb, var(--nk-st-failed) 38%, transparent);
-  background: color-mix(in srgb, var(--nk-st-failed) 7%, transparent);
-}
-
-/* finally — the cleanup promise: calm, neutral, always-there. The
-   cached hue family (a fact about the run's shape, not a state). */
+/* finally — the cleanup promise (the producer names the units an
+   unwind edge attaches to it): calm, neutral, always-there. The cached
+   hue family (a fact about the run's shape, not a state). */
 .nc-pol-finally {
   color: var(--nk-st-muted);
   border-color: color-mix(in srgb, var(--nk-st-muted) 45%, transparent);
@@ -6740,13 +6759,6 @@ body[data-nk-theme='nika'] .es-button-ghost:hover {
     color: CanvasText !important;
     border-color: CanvasText !important;
     forced-color-adjust: none;
-  }
-
-  /* fail_workflow keeps its danger as WEIGHT, not hue. */
-  .nc-pol-fail {
-    color: Highlight !important;
-    border-color: Highlight !important;
-    font-weight: 700;
   }
 
   /* Severity survives as WEIGHT + a marker, not hue. */

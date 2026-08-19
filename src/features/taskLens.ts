@@ -33,7 +33,7 @@ const FLOW_DOORS = [
     key: 'when',
     command: 'nika.chooseGate',
     title: GATE_DOOR,
-    tooltip: 'Swap the CEL v0.1 gate — LOCAL reads only (inputs · config · const · secrets · with): upstream state becomes after:, an upstream value crosses through with: first',
+    tooltip: 'Swap the CEL v0.1 gate — LOCAL reads only (inputs · const · secrets · with): upstream state becomes after:, an upstream value crosses through with: first',
   },
   {
     key: 'for_each',

@@ -9,9 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { joinContract, parseChildVars, parseInvokeArgKeys } from '../core/childContract';
 
 const CHILD = [
-  'nika: v1',
-  'workflow:',
-  '  id: brief',
+  'nika: brief',
   '',
   'vars:',
   '  output_dir: "./out"',
@@ -42,15 +40,13 @@ describe('parseChildVars — the spec 01 §vars discriminator', () => {
   });
 
   it('a workflow without vars declares nothing', () => {
-    expect(parseChildVars('nika: v1\nworkflow:\n  id: x\ntasks:\n  a:\n    exec:\n      command: ["ls"]\n')).toEqual([]);
+    expect(parseChildVars('nika: x\ntasks:\n  a:\n    exec:\n      command: ["ls"]\n')).toEqual([]);
   });
 });
 
 describe('parseInvokeArgKeys — the parent side', () => {
   const PARENT = [
-    'nika: v1',
-    'workflow:',
-    '  id: parent',
+    'nika: parent',
     'tasks:',
     '  brief:',
     '    invoke:',
@@ -95,7 +91,7 @@ describe('parseChildVars — degradation stays honest (edge forms)', () => {
   it('a fully-inline flow-form vars block degrades to NO rows — never a crash, never a guess', () => {
     // The line-based read does not enter a `vars: { … }` one-liner;
     // the card simply shows no contract (garnish law). Documented.
-    const vars = parseChildVars('nika: v1\nworkflow:\n  id: x\nvars: { topic: "release", style: plain }\ntasks:\n  a:\n    exec:\n      command: ["ls"]\n');
+    const vars = parseChildVars('nika: x\nvars: { topic: "release", style: plain }\ntasks:\n  a:\n    exec:\n      command: ["ls"]\n');
     expect(vars).toEqual([]);
   });
 
