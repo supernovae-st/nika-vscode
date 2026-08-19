@@ -4,6 +4,15 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.111.0] · 2026-08-19 · the authoring loop
+
+Lockstep on the engine's v0.111.0. `nika check --json` now exposes
+`paid_ready`, `compiled`, and `next`; `nika:inspect` is live from the
+first task and follows the run after each wave; `nika:compose` remains
+agent-loop-only after `nika:done`. The extension's real-binary belt now
+proves these surfaces against the released asset. ENGINE_PIN is
+`v0.111.0`.
+
 ## [0.109.2] · 2026-08-19 · the nine-key envelope
 
 Lockstep on the engine's v0.109.2. The identity is `nika: <kebab-id>`
