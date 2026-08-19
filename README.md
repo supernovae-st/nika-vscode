@@ -155,9 +155,7 @@ theme*, not to extensions:
 
   | line | door | writes |
   |---|---|---|
-  | `nika:` | GitHub | (the project door) |
-  | `workflow:` | Check · DAG · Run | (the action row) |
-  | `description:` | Explain | (the offline narrative) |
+  | `nika:` | GitHub · Check · DAG · Run · Explain | (the identity line · mark AND name · nine keys) |
   | `model:` | *choose your model* | the catalog ref (local-first) |
   | `inputs:` | *declare an input* · *make it callable · N untyped* | a typed input (`type:` is required) · untyped→typed repair |
   | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N inputs ride --var* | each run-blocking gap, one gesture |
@@ -678,7 +676,7 @@ does nothing.
 **4 verbs · locked forever.**
 
 ```yaml
-nika: hello               # the mark AND the name · one line
+nika: hello               # identity is nika: <kebab-id> · nine keys
 
 model: mock/echo          # deterministic · swap for ollama/qwen3.5:4b or any provider
 
