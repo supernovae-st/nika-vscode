@@ -11,7 +11,7 @@ paints that audit live:
   permits.<path>`) · literal secrets rewrite to a declared
   `${{ secrets.<name> }}`
 - **Completions · hover · go-to-definition** inside `${{ ... }}` islands
-  (`inputs.` · `config.` · `const.` · `secrets.` · `with.` · `tasks.`)
+  (`inputs.` · `const.` · `secrets.` · `with.` · `tasks.`)
 - **Static audit in the margin** · per-task cost `$min–max`, when-gates ⌁,
   fan-out ×N · the workflow cost ceiling on a code lens
 
