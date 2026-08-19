@@ -4,6 +4,18 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.109.2] · 2026-08-19 · the nine-key envelope
+
+Lockstep on the engine's v0.109.2. The identity is `nika: <kebab-id>`
+(mark AND name) and the live envelope is the nine keys: `nika` ·
+`model` · `inputs` · `const` · `secrets` · `permits` · `run` ·
+`tasks` · `outputs`. Dead forms are refused, not aliased: the
+fourteen-key pair (`nika: v1` + `workflow:`) parse-fails with
+`NIKA-PARSE-005`. `config:` is gone; `on_error` is recover or skip;
+cleanup is a task on `unwind`. The grammar, scaffolds, teaching
+surfaces, and residual reader follow. The canvas reader speaks
+`graph_format` 3. ENGINE_PIN is `v0.109.2`.
+
 ## [0.108.0] · 2026-08-08 · the access wave
 
 Lockstep on the engine's v0.108.0: `model:` picks the intelligence,
