@@ -46,8 +46,14 @@ export const NIKA_SCHEMA_SHAPES: readonly SchemaShape[] = [
   {
     id: "grade",
     label: "a grade",
-    hint: "enum: the closed set — the model cannot invent a fifth answer.",
+    hint: "Letter grades stay strings. Numeric levels are type: integer — models emit JSON 3, never \"3\".",
     body: "schema:\n  type: object\n  required: [grade]\n  properties:\n    grade: { type: string, enum: [A, B, C] }   # SLOT: the closed set\n",
+  },
+  {
+    id: "count",
+    label: "an integer count",
+    hint: "Numeric facts are integers with a numeric enum. A string enum of digits is the shape models do not emit.",
+    body: "schema:\n  type: object\n  additionalProperties: false\n  required: [count]\n  properties:\n    count:\n      type: integer\n      enum: [0, 1, 2, 3]   # SLOT: the closed numeric set\n",
   },
 ] as const;
 
