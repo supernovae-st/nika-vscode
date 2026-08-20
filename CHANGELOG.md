@@ -4,6 +4,14 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.112.0] · 2026-08-20 · instrument honesty
+
+Lockstep on the engine's v0.112.0. Test binaries cannot open the OS
+keychain, JOURNEY counts model endpoints instead of tasks, recovered
+fan-out is recorded as recovered, and broken trace chains are refused.
+The extension's real-binary belt now proves these surfaces against the
+released asset. ENGINE_PIN is `v0.112.0`.
+
 ## [0.111.0] · 2026-08-19 · the authoring loop
 
 Lockstep on the engine's v0.111.0. `nika check --json` now exposes
