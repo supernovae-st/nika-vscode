@@ -13,9 +13,11 @@ import * as path from 'path';
 import { EventEmitter, type Event, type TextDocument } from 'vscode';
 import { parseTryShowroom, type ShowroomRow } from './core/tryShowroom';
 import {
+  CAPABILITY_COMMANDS,
   buildCapabilities,
   hasSchemaDoor,
   noCapabilities,
+  parseHelpCommands,
   type CapabilitySet,
 } from './core/capabilities';
 import {
@@ -173,26 +175,36 @@ export class NikaService {
       this.changeEmitter.fire();
       return;
     }
-    // `check --help` rides along for the dash probe (engine #190), and
-    // `explain --help` for the file-form probe (engine #298): on a
-    // binary without the subcommand, clap errors and the empty stdout
-    // keeps the gate off — no conditional second round-trip.
-    // The V5 help hides the machine verbs from the first screen — each
-    // still answers its own --help; a rc-0 door proves the verb.
-    const HIDDEN_VERBS = ['inspect', 'spec', 'lsp', 'mcp', 'dap'] as const;
-    const [help, version, checkHelp, explainHelp, ...hiddenProbes] = await Promise.all([
+    // `check --help` carries the dash/fix probes and `explain --help` carries
+    // the file-form probe. The other historically hidden machine doors ride
+    // the same first wave. A successful own help is capability evidence.
+    const FIRST_PROBE_VERBS = ['check', 'explain', 'inspect', 'spec', 'lsp', 'mcp', 'dap'] as const;
+    const [help, version, ...firstProbes] = await Promise.all([
       spawnCli(binaryPath, ['--help'], 5000),
       spawnCli(binaryPath, ['--version'], 5000),
-      spawnCli(binaryPath, ['check', '--help'], 5000),
-      spawnCli(binaryPath, ['explain', '--help'], 5000),
-      ...HIDDEN_VERBS.map((v) => spawnCli(binaryPath, [v, '--help'], 5000)),
+      ...FIRST_PROBE_VERBS.map((verb) => spawnCli(binaryPath, [verb, '--help'], 5000)),
     ]);
-    const probedOk = HIDDEN_VERBS.filter((_, i) => hiddenProbes[i]?.code === 0);
+    const probeResults = new Map<string, CliResult>(
+      FIRST_PROBE_VERBS.map((verb, index) => [verb, firstProbes[index]]),
+    );
+    const listed = parseHelpCommands(help.stdout);
+    const omitted = CAPABILITY_COMMANDS.filter(
+      (verb) => !listed.has(verb) && !probeResults.has(verb),
+    );
+    const omittedResults = await Promise.all(
+      omitted.map((verb) => spawnCli(binaryPath, [verb, '--help'], 5000)),
+    );
+    omitted.forEach((verb, index) => probeResults.set(verb, omittedResults[index]));
+    const probedOk = CAPABILITY_COMMANDS.filter(
+      (verb) => probeResults.get(verb)?.code === 0,
+    );
+    const checkHelp = probeResults.get('check');
+    const explainHelp = probeResults.get('explain');
     this.capsValue = buildCapabilities(
       help.stdout,
       version.stdout || version.stderr,
-      checkHelp.stdout,
-      explainHelp.stdout,
+      checkHelp?.stdout ?? '',
+      explainHelp?.stdout ?? '',
       probedOk,
     );
     this.changeEmitter.fire();

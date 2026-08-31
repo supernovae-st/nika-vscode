@@ -5,7 +5,32 @@
 // explain · spec · schema · examples · new · completions · trace)
 // lights up immediately; `run` / `lsp` / `mcp` light up the day the
 // engine ships them — same extension, zero release needed. The probe
-// parses `--help` (clap's "Commands:" section), never guesses.
+// parses `--help` and proves omitted doors through their own `--help`,
+// never guesses.
+
+/** Every command that can light an extension capability. When the first
+ *  screen omits a door, the service proves that door directly. */
+export const CAPABILITY_COMMANDS = [
+  'check',
+  'inspect',
+  'explain',
+  'init',
+  'spec',
+  'schema',
+  'model',
+  'try',
+  'new',
+  'trace',
+  'run',
+  'lsp',
+  'dap',
+  'mcp',
+  'wire',
+  'doctor',
+  'test',
+  'context',
+  'welcome',
+] as const;
 
 export interface CapabilitySet {
   /** Subcommand names found in `--help`. */
@@ -88,13 +113,23 @@ export function hasSchemaDoor(caps: Pick<CapabilitySet, 'spec' | 'schema'>): boo
   return caps.spec || caps.schema;
 }
 
-/** Parse the clap `--help` output into the set of subcommand names. */
+/** Parse a clap command table or the 0.116 first-contact help mirror. */
 export function parseHelpCommands(helpText: string): Set<string> {
   const commands = new Set<string>();
   const lines = helpText.split('\n');
   let inCommands = false;
   for (const raw of lines) {
     const line = raw.replace(/\r$/, '');
+    // 0.116's first screen is intentionally a five-line next-step mirror,
+    // not clap's exhaustive command table. Capture only an explicit second
+    // token; the bare `nika` row is the welcome door, not a subcommand claim.
+    const firstContact = line.match(/^nika\s+([a-z][a-z0-9-]*)(?:\s|$)/);
+    if (
+      firstContact
+      && (CAPABILITY_COMMANDS as readonly string[]).includes(firstContact[1])
+    ) {
+      commands.add(firstContact[1]);
+    }
     if (/^Commands:\s*$/.test(line)) {
       inCommands = true;
       continue;
@@ -120,11 +155,8 @@ export function buildCapabilities(
   explainHelpText = '',
   probedOk: readonly string[] = [],
 ): CapabilitySet {
-  // 0.107 hides the machine verbs (inspect · spec · lsp · mcp · dap)
-  // from the first help screen (the V5 twelve-visible law) — they still
-  // answer their own --help. The caller probes those directly; a verb
-  // proven by its own door joins the set (the belt caught the dark
-  // caps against the released binary, 2026-08-01).
+  // The first screen is not an exhaustive capability register. A verb proven
+  // by its own successful --help door joins the visible command set.
   const commands = parseHelpCommands(helpText);
   for (const p of probedOk) { commands.add(p); }
   return {

@@ -4,6 +4,23 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.116.2] · 2026-08-31 · every live door stays lit
+
+Lockstep on the published engine 0.116.2. `ENGINE_PIN` names its immutable
+release tag at exact commit `c4cdbeafb58fe3705beb1d1000a14a8d18efc973`. The
+engine's first `--help` screen is
+now a compact next-step mirror instead of an exhaustive command table.
+The extension parses those visible doors and proves every omitted capability
+through its own successful `--help`, so diagnostics, trace, LSP, MCP, replay,
+and authoring affordances stay honest without a version matrix. The real-binary
+belt proves the new probe against the exact candidate binary. Generated
+language surfaces intentionally remain on the unchanged 0.116.0 spec pin
+`4565b9d`.
+
+This source convergence does not claim a marketplace publication. Tagging and
+publishing remain the separate readiness and identity ceremony in
+`PUBLISHING.md`.
+
 ## [0.112.0] · 2026-08-20 · instrument honesty
 
 Lockstep on the engine's v0.112.0. Test binaries cannot open the OS

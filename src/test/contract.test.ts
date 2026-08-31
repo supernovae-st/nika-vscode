@@ -13,7 +13,11 @@ import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { buildCapabilities } from '../core/capabilities';
+import {
+  CAPABILITY_COMMANDS,
+  buildCapabilities,
+  parseHelpCommands,
+} from '../core/capabilities';
 import {
   EXIT,
   collectFindings,
@@ -93,11 +97,10 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   it('capability probe AGREES with the binary --help (generation-independent)', () => {
     const help = run(['--help']).stdout;
     const version = run(['--version']).stdout;
-    // 0.107 hides the machine verbs from the first screen (the twelve-
-    // visible law) — the service proves them by their own --help door;
-    // the test mirrors that exact probe path.
-    const HIDDEN = ['inspect', 'spec', 'lsp', 'mcp', 'dap'];
-    const probedOk = HIDDEN.filter((v) => run([v, '--help']).code === 0);
+    // The first screen is a user next-step mirror, not an exhaustive command
+    // register. Every capability the extension may expose is proven by the
+    // command's own help door when omitted there.
+    const probedOk = CAPABILITY_COMMANDS.filter((verb) => run([verb, '--help']).code === 0);
     const caps = buildCapabilities(help, version, '', '', probedOk);
     // The static suite is the floor — every generation that gets here
     // ships it (a binary without `check` is not a Nika binary). The
@@ -115,12 +118,11 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // land with ZERO extension release — and it stays true across the
     // dev-tree's release (may lag) vs debug (fresh) binaries, instead of
     // re-coupling the test to one generation's feature set.
-    const lists = (cmd: string): boolean => new RegExp(`^\\s{2}${cmd}\\s`, 'm').test(help);
-    expect(caps.run).toBe(lists('run'));
-    // lsp/mcp ride the PROBE path when hidden (0.107): the flag equals
-    // help-visibility OR a proven own door — the same law the service runs.
-    expect(caps.lsp).toBe(lists('lsp') || probedOk.includes('lsp'));
-    expect(caps.mcp).toBe(lists('mcp') || probedOk.includes('mcp'));
+    const listed = parseHelpCommands(help);
+    expect(caps.run).toBe(listed.has('run') || probedOk.includes('run'));
+    // lsp/mcp ride the same proof path when the first screen omits them.
+    expect(caps.lsp).toBe(listed.has('lsp') || probedOk.includes('lsp'));
+    expect(caps.mcp).toBe(listed.has('mcp') || probedOk.includes('mcp'));
   });
 
   it('check --json parses through the adapter on a clean workflow (exit 0)', () => {
