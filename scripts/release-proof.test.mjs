@@ -10,6 +10,7 @@ import {
   installPinnedEngine,
   readPinnedRelease,
   releaseAsset,
+  releaseReceipt,
 } from './pinned-engine.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -27,6 +28,8 @@ test('the release ceremony fails closed and gates before packaging', () => {
   assert.match(workflow, /\[ -n "\$OVSX_PAT" \].*exit 1/);
   assert.match(workflow, /\[ -n "\$VSCE_PAT" \].*exit 1/);
   assert.doesNotMatch(workflow, /HAS_OVSX|HAS_VSCE|if: env\.HAS_/);
+  assert.doesNotMatch(workflow, /skipDuplicate:\s*true|skip-duplicate/);
+  assert.equal(workflow.match(/skipDuplicate:\s*false/g)?.length, 2);
   assert.ok(workflow.indexOf('npm audit --audit-level=low') < workflow.indexOf('npm run test:integration'));
   assert.ok(workflow.indexOf('npm run test:integration') < workflow.indexOf('npx vsce package'));
   for (const action of workflow.matchAll(/uses:\s+([^\s#]+)/g)) {
@@ -60,21 +63,46 @@ test('checksum selection is exact and unique', () => {
   assert.throws(() => checksumForAsset(`${hash}  ${asset}\n${hash} *${asset}\n`, asset), /found 2/);
 });
 
-test('version receipt refuses a stale binary', () => {
-  assert.doesNotThrow(() => assertVersionReceipt('nika 0.116.2 (c4cdbeafb)\n', '0.116.2'));
-  assert.throws(() => assertVersionReceipt('nika 0.116.0 (old)\n', '0.116.2'), /version mismatch/);
+test('the 0.116.2 public assets have version-controlled immutable anchors', () => {
+  const expectedCommit = 'c4cdbeafb58fe3705beb1d1000a14a8d18efc973';
+  const receipts = new Map([
+    ['nika-linux-arm64-0.116.2.tar.gz', '278f11c927e793cc51cae98ee04dde498a51a8af925733772828053f94d79c20'],
+    ['nika-linux-x64-0.116.2.tar.gz', '5b94ebab8ea5a3e915c33d8b712400dd80e9c8f559d652cb288c38af23356024'],
+    ['nika-macos-arm64-0.116.2.tar.gz', '5c66aafc4127fcf3383477badf13690614973075a640512136517f376d716f86'],
+    ['nika-macos-x64-0.116.2.tar.gz', '6cb60636b21817260f7e6ae06cb1f521f96c07c960e7347467e60692236a2142'],
+  ]);
+  for (const [asset, sha256] of receipts) {
+    assert.deepEqual(releaseReceipt('v0.116.2', asset), { commit: expectedCommit, sha256 });
+  }
+  assert.throws(
+    () => releaseReceipt('v0.116.3', 'nika-linux-x64-0.116.3.tar.gz'),
+    /no version-controlled release receipt/,
+  );
 });
 
-test('a corrupt public archive is refused before extraction', async () => {
+test('version receipt refuses stale or foreign build identities', () => {
+  const commit = 'c4cdbeafb58fe3705beb1d1000a14a8d18efc973';
+  assert.doesNotThrow(() => assertVersionReceipt('nika 0.116.2 (c4cdbeafb)\n', '0.116.2', commit));
+  assert.throws(
+    () => assertVersionReceipt('nika 0.116.0 (c4cdbeafb)\n', '0.116.2', commit),
+    /identity mismatch/,
+  );
+  assert.throws(
+    () => assertVersionReceipt('nika 0.116.2 (deadbeef0)\n', '0.116.2', commit),
+    /identity mismatch/,
+  );
+});
+
+test('deadbeef0 archive and co-modified SHA256SUMS cannot replace the anchored release', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'nika-pin-download-test-'));
   let extractionCalls = 0;
   try {
     writeFileSync(join(dir, 'ENGINE_PIN'), 'v0.116.2\n');
     const asset = releaseAsset(process.platform, process.arch, '0.116.2');
-    const archive = Buffer.from('not the published bytes');
-    const wrongHash = createHash('sha256').update('different').digest('hex');
+    const archive = Buffer.from('#!/bin/sh\necho "nika 0.116.2 (deadbeef0)"\n');
+    const coModifiedHash = createHash('sha256').update(archive).digest('hex');
     const fetchImpl = async (url) => {
-      const body = Buffer.from(url.endsWith('SHA256SUMS') ? `${wrongHash}  ${asset}\n` : archive);
+      const body = Buffer.from(url.endsWith('SHA256SUMS') ? `${coModifiedHash}  ${asset}\n` : archive);
       return {
         ok: true,
         status: 200,
@@ -89,7 +117,7 @@ test('a corrupt public archive is refused before extraction', async () => {
         tempRoot: dir,
         execFileSyncImpl: () => { extractionCalls += 1; return ''; },
       }),
-      /SHA256 mismatch/,
+      /SHA256SUMS drift/,
     );
     assert.equal(extractionCalls, 0);
   } finally {

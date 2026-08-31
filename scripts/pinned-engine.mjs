@@ -19,6 +19,22 @@ import { join, resolve } from 'node:path';
 
 const RELEASES = 'https://github.com/supernovae-st/nika/releases/download';
 
+// Version-controlled release receipts are independent of GitHub's mutable
+// asset store. A replaced archive cannot bless itself by replacing
+// SHA256SUMS too: both its digest and the binary's build commit must still
+// match this reviewed source anchor. Every ENGINE_PIN bump adds one receipt.
+const RELEASE_RECEIPTS = Object.freeze({
+  'v0.116.2': Object.freeze({
+    commit: 'c4cdbeafb58fe3705beb1d1000a14a8d18efc973',
+    assets: Object.freeze({
+      'nika-linux-arm64-0.116.2.tar.gz': '278f11c927e793cc51cae98ee04dde498a51a8af925733772828053f94d79c20',
+      'nika-linux-x64-0.116.2.tar.gz': '5b94ebab8ea5a3e915c33d8b712400dd80e9c8f559d652cb288c38af23356024',
+      'nika-macos-arm64-0.116.2.tar.gz': '5c66aafc4127fcf3383477badf13690614973075a640512136517f376d716f86',
+      'nika-macos-x64-0.116.2.tar.gz': '6cb60636b21817260f7e6ae06cb1f521f96c07c960e7347467e60692236a2142',
+    }),
+  }),
+});
+
 export function readPinnedRelease(rootDir) {
   const pin = readFileSync(resolve(rootDir, 'ENGINE_PIN'), 'utf8')
     .split('\n')
@@ -46,6 +62,15 @@ export function releaseAsset(platform, arch, version) {
   return `nika-${target}-${version}.tar.gz`;
 }
 
+export function releaseReceipt(tag, assetName) {
+  const receipt = RELEASE_RECEIPTS[tag];
+  const sha256 = receipt?.assets[assetName];
+  if (!receipt || !sha256) {
+    throw new Error(`no version-controlled release receipt for ${tag} / ${assetName}`);
+  }
+  return { commit: receipt.commit, sha256 };
+}
+
 export function checksumForAsset(sums, assetName) {
   const escaped = assetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = new RegExp(`^([0-9a-fA-F]{64})\\s+\\*?${escaped}$`);
@@ -60,11 +85,15 @@ export function checksumForAsset(sums, assetName) {
   return matches[0][1].toLowerCase();
 }
 
-export function assertVersionReceipt(output, expectedVersion) {
-  const reported = /^nika\s+(\d+\.\d+\.\d+)(?:\s|$)/m.exec(output)?.[1];
-  if (reported !== expectedVersion) {
+export function assertVersionReceipt(output, expectedVersion, expectedCommit) {
+  const match = /^nika\s+(\d+\.\d+\.\d+)\s+\(([0-9a-f]{9})\)$/m.exec(output);
+  const reportedVersion = match?.[1];
+  const reportedCommit = match?.[2];
+  const anchoredCommit = expectedCommit.slice(0, 9);
+  if (reportedVersion !== expectedVersion || reportedCommit !== anchoredCommit) {
     throw new Error(
-      `ENGINE_PIN version mismatch: expected ${expectedVersion}, binary reported ${String(reported)}`,
+      `ENGINE_PIN identity mismatch: expected ${expectedVersion} (${anchoredCommit}), `
+      + `binary reported ${String(reportedVersion)} (${String(reportedCommit)})`,
     );
   }
 }
@@ -97,6 +126,7 @@ export async function installPinnedEngine({
   }
   const { tag, version } = readPinnedRelease(rootDir);
   const assetName = releaseAsset(platform, arch, version);
+  const receipt = releaseReceipt(tag, assetName);
   const baseUrl = `${RELEASES}/${tag}`;
   const workDir = mkdtempSync(join(tempRoot, 'nika-vscode-engine-'));
 
@@ -105,10 +135,17 @@ export async function installPinnedEngine({
       download(`${baseUrl}/SHA256SUMS`, fetchImpl),
       download(`${baseUrl}/${assetName}`, fetchImpl),
     ]);
-    const expected = checksumForAsset(sumsBytes.toString('utf8'), assetName);
+    const releaseIndexHash = checksumForAsset(sumsBytes.toString('utf8'), assetName);
     const actual = createHash('sha256').update(archiveBytes).digest('hex');
-    if (actual !== expected) {
-      throw new Error(`SHA256 mismatch for ${assetName}: expected ${expected}, got ${actual}`);
+    if (releaseIndexHash !== receipt.sha256) {
+      throw new Error(
+        `SHA256SUMS drift for ${assetName}: anchored ${receipt.sha256}, index claims ${releaseIndexHash}`,
+      );
+    }
+    if (actual !== receipt.sha256) {
+      throw new Error(
+        `archive digest mismatch for ${assetName}: anchored ${receipt.sha256}, got ${actual}`,
+      );
     }
 
     const archivePath = join(workDir, assetName);
@@ -123,12 +160,13 @@ export async function installPinnedEngine({
       encoding: 'utf8',
       timeout: 10_000,
     });
-    assertVersionReceipt(String(versionOutput), version);
+    assertVersionReceipt(String(versionOutput), version, receipt.commit);
 
     return {
       assetName,
       binaryPath,
       cleanup: () => rmSync(workDir, { recursive: true, force: true }),
+      commit: receipt.commit,
       sha256: actual,
       tag,
       version,

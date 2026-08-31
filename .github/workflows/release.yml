@@ -73,11 +73,11 @@ jobs:
         with:
           pat: ${{ secrets.OVSX_PAT }}
           extensionFile: nika-lang.vsix
-          skipDuplicate: true
+          skipDuplicate: false # existing version is an error; byte equality is unproven
       - name: Publish to VS Marketplace
         uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
         with:
           pat: ${{ secrets.VSCE_PAT }}
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: nika-lang.vsix
-          skipDuplicate: true
+          skipDuplicate: false # existing version is an error; byte equality is unproven

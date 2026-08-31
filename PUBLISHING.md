@@ -181,7 +181,9 @@ monorepo, live on split: tag-gated → refuse either missing registry secret →
 audit → typecheck · tests · parity → real VS Code integration against the
 checksum-verified `ENGINE_PIN` artifact → package → publish the SAME VSIX to
 OpenVSX then VSM via HaaLeo/publish-vscode-extension. Both secrets are
-mandatory for a green ceremony: `VSCE_PAT` · `OVSX_PAT`.
+mandatory for a green ceremony: `VSCE_PAT` · `OVSX_PAT`. Duplicate versions
+fail loudly; the ceremony never treats « already exists » as proof that the
+registry's bytes equal the VSIX built by this run.
 
 ## Repo split (monorepo → supernovae-st/nika-vscode)
 
