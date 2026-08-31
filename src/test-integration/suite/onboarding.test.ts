@@ -80,7 +80,7 @@ suite('nika-lang · onboarding (V2.a · the door + the sandbox)', () => {
     assert.ok(fs.existsSync(expected), 'hello-canvas.nika.yaml must land at the workspace root');
     const body = fs.readFileSync(expected, 'utf-8');
     assert.ok(body.includes('model: mock/echo'), 'the demo runs offline on mock/echo');
-    assert.ok(body.includes('id: hello-canvas'), 'the demo is the hello-canvas workflow');
+    assert.ok(body.includes('nika: hello-canvas'), 'the demo is the hello-canvas workflow');
 
     // (b) it opened in the editor (the user sees the YAML)
     const active = vscode.window.activeTextEditor;

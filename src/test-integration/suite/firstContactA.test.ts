@@ -133,7 +133,7 @@ suite('first contact · launch A (virgin machine · zero gestures to green)', ()
     // wire (activation → probe → firstContactMove = auto-demo → tryDemo).
     await until(`${DEMO_FILE} written by the extension itself`, () => fs.existsSync(demo), 25000);
     const body = fs.readFileSync(demo, 'utf-8');
-    assert.ok(body.includes('id: hello-canvas'), 'the landed file is THE demo workflow');
+    assert.ok(body.includes('nika: hello-canvas'), 'the landed file is THE demo workflow');
     assert.ok(body.includes('model: mock/echo'), 'the demo pins mock/echo — zero keys, zero network');
   });
 
