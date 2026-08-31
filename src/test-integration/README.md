@@ -10,7 +10,13 @@ npm run test:integration
 
 It downloads a pinned VS Code build (once, cached in `.vscode-test/`),
 launches it with the extension loaded, and runs the Mocha suite inside
-the extension host. `runTests.ts` opens a throwaway workspace that points
+the extension host. Before either host starts, the launcher downloads the
+exact public release archive named by `ENGINE_PIN`, checks its named
+`SHA256SUMS` entry, and proves `nika --version` matches the pin. Caller
+`NIKA_BIN`, Homebrew and PATH are deliberately ignored, so a developer's
+stale or in-flight engine cannot counterfeit release evidence.
+
+`runTests.ts` opens a throwaway workspace that points
 the binary at a bogus path (LSP off) so the smoke test targets what it
 means to — activation, not the language server.
 
