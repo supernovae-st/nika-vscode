@@ -27,7 +27,7 @@ test('the release ceremony fails closed and gates before packaging', () => {
   assert.match(workflow, /\[ -n "\$OVSX_PAT" \].*exit 1/);
   assert.match(workflow, /\[ -n "\$VSCE_PAT" \].*exit 1/);
   assert.doesNotMatch(workflow, /HAS_OVSX|HAS_VSCE|if: env\.HAS_/);
-  assert.ok(workflow.indexOf('npm audit --audit-level=high') < workflow.indexOf('npm run test:integration'));
+  assert.ok(workflow.indexOf('npm audit --audit-level=low') < workflow.indexOf('npm run test:integration'));
   assert.ok(workflow.indexOf('npm run test:integration') < workflow.indexOf('npx vsce package'));
   for (const action of workflow.matchAll(/uses:\s+([^\s#]+)/g)) {
     assert.match(action[1], /@[0-9a-f]{40}$/, `action is not SHA-pinned: ${action[1]}`);

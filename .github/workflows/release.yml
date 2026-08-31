@@ -39,7 +39,9 @@ jobs:
           [ -n "$VSCE_PAT" ] || { echo "::error::VSCE_PAT is required"; exit 1; }
       - run: npm ci
       - name: Dependency audit
-        run: npm audit --audit-level=high
+        # The release lock currently has zero findings. Keep that claim
+        # monotone: low means any future advisory blocks publication.
+        run: npm audit --audit-level=low
       # The tag IS the version claim — refuse a mislabeled VSIX before
       # anything builds (a tag/manifest drift must never publish).
       - name: The manifest matches the tag
