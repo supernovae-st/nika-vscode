@@ -29,6 +29,13 @@ Options:
   -V, --version  Print version
 `;
 
+const FIRST_CONTACT_HELP = `nika             a plan from a file
+nika new hello   one file that runs on this machine
+nika run         run a file
+nika check       audit a file before it runs
+nika doctor      PATH, model, sandbox
+`;
+
 describe('capabilities', () => {
   it('parses the clap Commands: section, excluding help', () => {
     const cmds = parseHelpCommands(CLAP_HELP);
@@ -38,6 +45,27 @@ describe('capabilities', () => {
     expect(cmds.has('help')).toBe(false);
     expect(cmds.has('run')).toBe(false);
     expect(cmds.size).toBe(9);
+  });
+
+  it('parses the 0.116 first-contact mirror without treating bare nika as a command', () => {
+    expect([...parseHelpCommands(FIRST_CONTACT_HELP)]).toEqual([
+      'new', 'run', 'check', 'doctor',
+    ]);
+  });
+
+  it('adds capabilities proved through their own help doors', () => {
+    const caps = buildCapabilities(
+      FIRST_CONTACT_HELP,
+      'nika 0.116.0',
+      '',
+      '',
+      ['explain', 'inspect', 'spec', 'trace', 'lsp', 'mcp'],
+    );
+    expect(caps.check).toBe(true);
+    expect(caps.explain).toBe(true);
+    expect(caps.trace).toBe(true);
+    expect(caps.lsp).toBe(true);
+    expect(caps.mcp).toBe(true);
   });
 
   it('builds the gate set — run/lsp/mcp stay off until the engine ships them', () => {

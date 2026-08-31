@@ -17,8 +17,8 @@ confidence gate between "the pyramid is green" and "a stranger's first
                                    esbuild without regenerating the lock)
                npm test         → the belt suite whole (vitest · spec
                                    parity · tokens parity · voice gate ·
-                                   glyph registry · walkthrough media ·
-                                   eslint)
+                                   glyph registry · release coherence ·
+                                   walkthrough media · eslint)
                npm run test:integration → real VS Code hosts: the
                                    integration suite + the first-contact
                                    e2e (launch A: zero gestures to
@@ -74,17 +74,19 @@ confidence gate between "the pyramid is green" and "a stranger's first
 
 If every box holds in BOTH skins, the feel is real. Tag when ready.
 
-### The odd-minor trap (choose before you tag)
+### Stable or pre-release (choose before you tag)
 
 The version tracks the engine announce line. VS Marketplace's OFFICIAL
-pre-release convention is **odd-minor = pre-release**. `0.93.0` has an
-odd minor (93), so:
-- **Stable release** (recommended for the first public ship): publish
-  WITHOUT `--pre-release`. The odd minor is then cosmetic · the engine-
-  parity number wins; ignore the convention.
-- **Pre-release channel**: `vsce publish --pre-release` embraces the
-  odd-minor. Don't mix · a stable at an odd minor then a `--pre-release`
-  at the same minor confuses the channel. Pick one lane and stay in it.
+pre-release convention uses an odd minor for pre-release builds. Engine
+lockstep remains the source version law, so choose the registry lane explicitly:
+
+- **Stable release**: publish without `--pre-release`.
+- **Pre-release channel**: use `vsce publish --pre-release` and keep that lane
+  consistent for the minor line.
+
+Source convergence is not publication. Advancing `package.json`, both pins,
+generated projections, and the changelog makes a release candidate; only the
+operator-owned tag ceremony can make the registries claim that version.
 
 ## Blockers · accounts (do these FIRST · lead time)
 
@@ -140,12 +142,27 @@ odd minor (93), so:
 
 ## Version strategy
 
-`0.93.x` tracks the engine announce line (was `0.81.x` pre-2026-07).
-See "The odd-minor trap" in the readiness gate above before choosing
-stable vs `--pre-release` · 93 is odd, so the convention reads it as a
-pre-release unless you publish stable and treat the minor as cosmetic.
-`vsce publish minor|patch` auto-bumps + tags; we bump by hand
-(`npm version`) to stay in engine-parity lockstep, so tag manually.
+The extension source tracks the released engine's exact semver line. Advance
+the manifest and lockfile with `npm version <engine-version>
+--no-git-tag-version`, set `ENGINE_PIN` to that immutable engine tag, set
+`SPEC_PIN` to the exact commit recorded by that engine tag, then run the spec
+projectors. Add the changelog entry and complete every automated and manual
+readiness gate before an operator creates the matching tag.
+
+When the source candidate exists before its public engine tag, `ENGINE_PIN`
+uses the exact 40-character engine commit and carries a strict
+`# CANDIDATE_VERSION: <semver>` marker. Never write a tag that does not exist.
+Once the engine tag is public and resolves to that commit, replace the marker
+and SHA with the immutable tag before the extension tag ceremony.
+
+`vsce publish minor|patch` auto-bumps and tags, so it is not the admitted
+lockstep path. The tag is created manually only after source, engine pin, spec
+pin, generated surfaces, package artifact, and feel pass agree.
+
+`npm run release-coherence` is the local ratchet: it refuses a manifest,
+lockfile, `ENGINE_PIN`, `SPEC_PIN`, or changelog that no longer describes one
+coherent source release. Registry versions stay an explicit post-tag check;
+they are external state, not source truth.
 
 ## Platform-specific VSIX (when the engine binary bundles)
 
