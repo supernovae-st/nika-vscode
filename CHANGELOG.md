@@ -21,6 +21,11 @@ This source convergence does not claim a marketplace publication. Tagging and
 publishing remain the separate readiness and identity ceremony in
 `PUBLISHING.md`.
 
+Replay moves from `⌘K ⌘P` to `⌘K ⌘Y`: the first tag gate for this line
+(2026-09-01) found the live default keymap owning `⌘K ⌘P` for
+`workbench.action.showAllEditors`, a shadow the static table had missed.
+P joins that table so the unit belt catches the class before a tag does.
+
 ## [0.112.0] · 2026-08-20 · instrument honesty
 
 Lockstep on the engine's v0.112.0. Test binaries cannot open the OS

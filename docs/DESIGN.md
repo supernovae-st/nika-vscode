@@ -1224,7 +1224,7 @@ tree-side row to its nika view (§7d):
 | Add task | `⌘K ⌘N` | New task |
 | Root search | `⌘K ⌘M` | Menu, grown into the gate (§7c) |
 | Diff two runs | `⌘K ⌘A` | A/B · one run against another |
-| Replay a recorded run | `⌘K ⌘P` | rePlay |
+| Replay a recorded run | `⌘K ⌘Y` | replaY |
 | Fork from task | `⌘K ⌘B` | Branch |
 | Verify journal | `⌘K ⌘V` | Verify |
 | Try the demo | `⌘K ⌘H` | Hands-on (D is a default chord: find-match) |
@@ -1412,7 +1412,7 @@ stays where it was: `runReport` remains the export-grade document
 per-task spend). The traces watcher re-renders an open page while
 an engine writes, so a live run's detail breathes. `command:` links
 are dead in the preview (annexe R R13), so the page teaches its
-deeper doors BY NAME (`⌘K ⌘.` · `⌘K ⌘P`), never as fake anchors.
+deeper doors BY NAME (`⌘K ⌘.` · `⌘K ⌘Y`), never as fake anchors.
 
 Accessories are UNIFORM: a run row's description reads the same
 three columns in Runs and History · status glyph first, duration,

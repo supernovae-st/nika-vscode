@@ -192,7 +192,7 @@ export function renderRunDetail(i: RunDetailInputs): string {
   out.push('');
   out.push(`journal: \`${i.fsPath}\``);
   out.push('');
-  out.push('_Deeper — the tree action panel on the run row (`⌘K ⌘.`): replay on the canvas (`⌘K ⌘P`) · diff two runs · debug (time travel) · verify the chain · reproduce · the provable Run Report · OpenTelemetry export._');
+  out.push('_Deeper — the tree action panel on the run row (`⌘K ⌘.`): replay on the canvas (`⌘K ⌘Y`) · diff two runs · debug (time travel) · verify the chain · reproduce · the provable Run Report · OpenTelemetry export._');
   return out.join('\n');
 }
 

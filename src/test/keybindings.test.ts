@@ -37,9 +37,12 @@ const pkg = JSON.parse(
 const bindings = pkg.contributes.keybindings;
 const known = new Set(pkg.contributes.commands.map((c) => c.command));
 
-/** Second strokes the DEFAULT keymap already binds on ctrl+k ctrl+<x>. */
+/** Second strokes the DEFAULT keymap already binds on ctrl+k ctrl+<x>.
+ *  P joined the table from the live dump: upstream owns ⌘K ⌘P for
+ *  workbench.action.showAllEditors (the v0.116.2 tag gate, 2026-09-01),
+ *  which is why replay rides Y, not its initial. */
 const DEFAULT_OCCUPIED = new Set([
-  'c', 'd', 'f', 'i', 'j', 'l', 'o', 'q', 'r', 's', 't', 'u', 'w', 'x',
+  'c', 'd', 'f', 'i', 'j', 'l', 'o', 'p', 'q', 'r', 's', 't', 'u', 'w', 'x',
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 ]);
 
@@ -91,10 +94,11 @@ describe('the ⌘K chord family (DESIGN.md §7b)', () => {
     }
   });
 
-  it('the flight-recorder tier is wired: A/B diff · rePlay · Branch · Verify', () => {
+  it('the flight-recorder tier is wired: A/B diff · replaY · Branch · Verify', () => {
     const byCommand = new Map(bindings.map((b) => [b.command, b.key]));
     expect(byCommand.get('nika.diffTraces')).toBe('ctrl+k ctrl+a');
-    expect(byCommand.get('nika.replayTrace')).toBe('ctrl+k ctrl+p');
+    // P is upstream's (showAllEditors) — replay rides Y, its last letter.
+    expect(byCommand.get('nika.replayTrace')).toBe('ctrl+k ctrl+y');
     expect(byCommand.get('nika.forkFromTask')).toBe('ctrl+k ctrl+b');
     expect(byCommand.get('nika.verifyTrace')).toBe('ctrl+k ctrl+v');
     // The flight-recorder chords answer from the canvas too.
@@ -151,7 +155,7 @@ describe('the teaching labels (core/chordLabels — menu + a11y, one voice)', ()
     expect(labels.get('nika.runWorkflow')).toBe('⌘+k ⌘+e');
     expect(labels.get('nika.checkWorkflow')).toBe('⌘+k ⌘+k');
     expect(labels.get('nika.showDag')).toBe('⌘+k ⌘+g');
-    expect(labels.get('nika.replayTrace')).toBe('⌘+k ⌘+p');
+    expect(labels.get('nika.replayTrace')).toBe('⌘+k ⌘+y');
     expect(labels.get('nika.tryDemo')).toBe('⌘+k ⌘+h');
   });
 });

@@ -402,7 +402,7 @@ network: every green close settles a ✓ wave through the cards.*
 - **Every run opens its detail** · Enter on a recorded run shows one
   calm page: verdict, per-task breakdown, artifacts, spend, the
   question when a run waits on you · live while the engine writes
-- **Time-travel replay** · replay a recorded run (`⌘K ⌘P`) and **scrub
+- **Time-travel replay** · replay a recorded run (`⌘K ⌘Y`) and **scrub
   its whole timeline**: play/pause (Space), drag the handle, the DAG
   state at any instant computed locally. Replay re-renders, never
   re-executes
@@ -467,7 +467,7 @@ network: every green close settles a ✓ wave through the cards.*
   (connect-mode: a picker of the valid targets, the same wire the drag
   makes) · `⌥`+arrows nudge a card one 8px grid cell · the `⌘K` chord
   family carries the flight recorder (`⌘K ⌘A` diff two runs ·
-  `⌘K ⌘P` replay · `⌘K ⌘B` fork from task): the whole canvas without
+  `⌘K ⌘Y` replay · `⌘K ⌘B` fork from task): the whole canvas without
   the mouse · every command is rebindable in Keyboard Shortcuts
   (`⌘K ⌘S`: search "nika")
 - **The nika.sh skin** · the panel ships the landing page's design
