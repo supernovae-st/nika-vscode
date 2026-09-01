@@ -360,7 +360,7 @@ class TraceItem extends vscode.TreeItem {
     if (trace.model.unknownLines > 0) {
       md.appendMarkdown(`\n\n$(warning) ${trace.model.unknownLines} unparsed line${trace.model.unknownLines === 1 ? '' : 's'} (foreign dialect?)`);
     }
-    md.appendMarkdown(`\n\n_click opens the run detail · replay rides ⌘K ⌘P — re-render, never re-execute_`);
+    md.appendMarkdown(`\n\n_click opens the run detail · replay rides ⌘K ⌘Y — re-render, never re-execute_`);
     this.tooltip = md;
     // Enter pushes the DETAIL (§7e — the stack law); replay keeps its
     // chord, its ⌘K ⌘. row and the palette. Args stay explicit.

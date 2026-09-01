@@ -1471,8 +1471,8 @@
       },
       {
         "command": "nika.replayTrace",
-        "key": "ctrl+k ctrl+p",
-        "mac": "cmd+k cmd+p",
+        "key": "ctrl+k ctrl+y",
+        "mac": "cmd+k cmd+y",
         "when": "editorLangId == 'nika' || activeWebviewPanelId == 'nika.dagView'"
       },
       {
