@@ -1,12 +1,13 @@
 # release.yml — tag-gated publish (OpenVSX + VS Marketplace).
 #
 # Push a `v*` tag → package the VSIX once → publish the identical artifact
-# to every registry whose token is configured. One VSIX, two registries.
+# to both registries. One VSIX, two registries. Missing credentials fail
+# before the artifact is built: a green tag means both publishes ran.
 # Linux runner ON PURPOSE: Windows-built VSIXes drop the POSIX executable
 # bit, which breaks any bundled binary (PUBLISHING.md §platform-specific).
 # Injection-safe: no github.event data is interpolated anywhere.
 #
-# Secrets (each registry step self-skips when its token is absent):
+# Required secrets:
 #   OVSX_PAT — open-vsx.org token · namespace contributor (Cursor/Windsurf/VSCodium)
 #   VSCE_PAT — Azure DevOps · Marketplace>Manage · all-orgs
 #              (migrate to Entra --azure-credential before Dec 2026)
@@ -21,13 +22,26 @@ on:
 jobs:
   gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22 # vsce 3.x floor
           cache: npm
+      - name: Both registry credentials are configured
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+          [ -n "$OVSX_PAT" ] || { echo "::error::OVSX_PAT is required"; exit 1; }
+          [ -n "$VSCE_PAT" ] || { echo "::error::VSCE_PAT is required"; exit 1; }
       - run: npm ci
+      - name: Dependency audit
+        # The release lock currently has zero findings. Keep that claim
+        # monotone: low means any future advisory blocks publication.
+        run: npm audit --audit-level=low
       # The tag IS the version claim — refuse a mislabeled VSIX before
       # anything builds (a tag/manifest drift must never publish).
       - name: The manifest matches the tag
@@ -38,8 +52,10 @@ jobs:
       # parity check (run by `npm test`) asserts exists before packaging.
       - run: npm run compile
       - run: npm test # vitest (contract suite self-skips without a binary) + parity
+      - name: Real VS Code hosts against the checksum-verified ENGINE_PIN asset
+        run: xvfb-run -a npm run test:integration
       - run: npx vsce package --no-dependencies -o nika-lang.vsix
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: vsix
           path: nika-lang.vsix
@@ -47,28 +63,21 @@ jobs:
   publish:
     needs: gate
     runs-on: ubuntu-latest
-    # Each step runs only when its token is configured, so the pipeline is
-    # green with whichever PATs exist (OVSX-only today; add VSCE_PAT to
-    # enable the Marketplace half — no workflow edit needed).
-    env:
-      HAS_OVSX: ${{ secrets.OVSX_PAT != '' }}
-      HAS_VSCE: ${{ secrets.VSCE_PAT != '' }}
+    timeout-minutes: 15
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: vsix
       - name: Publish to OpenVSX (Cursor · Windsurf · VSCodium)
-        if: env.HAS_OVSX == 'true'
-        uses: HaaLeo/publish-vscode-extension@v2
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
         with:
           pat: ${{ secrets.OVSX_PAT }}
           extensionFile: nika-lang.vsix
-          skipDuplicate: true
+          skipDuplicate: false # existing version is an error; byte equality is unproven
       - name: Publish to VS Marketplace
-        if: env.HAS_VSCE == 'true'
-        uses: HaaLeo/publish-vscode-extension@v2
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
         with:
           pat: ${{ secrets.VSCE_PAT }}
           registryUrl: https://marketplace.visualstudio.com
           extensionFile: nika-lang.vsix
-          skipDuplicate: true
+          skipDuplicate: false # existing version is an error; byte equality is unproven

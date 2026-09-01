@@ -21,9 +21,10 @@
 // are unit-tested (src/test/firstContact.test.ts) — this launcher
 // proves the WIRING of the first contact, the units prove the memory.
 //
-// Self-skips (exit 0) without a released engine binary — the runWire
-// law. Prefers Cellar over bare PATH: a sister session routinely swaps
-// /opt/homebrew/bin/nika for an in-flight build (journeyReal's law).
+// The launcher requires NIKA_BIN + NIKA_ENGINE_VERSION from
+// scripts/run-integration.mjs. That parent downloads ENGINE_PIN's public
+// release archive, verifies SHA256SUMS and proves the version receipt.
+// This child refuses missing or mismatched evidence: no PATH fallback.
 //
 //   npm run test:e2e:first-contact      (also chained into test:integration)
 
@@ -33,32 +34,18 @@ import * as os from 'os';
 import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
 
-function probe(bin: string): boolean {
-  try {
-    const help = execFileSync(bin, ['run', '--help'], { timeout: 5000, encoding: 'utf-8' });
-    return help.includes('--resume') && help.includes('--from');
-  } catch {
-    return false;
+function requirePinnedEngine(): string {
+  const engine = process.env.NIKA_BIN;
+  const expected = process.env.NIKA_ENGINE_VERSION;
+  if (!engine || !path.isAbsolute(engine) || !expected) {
+    throw new Error('first-contact e2e requires the verified ENGINE_PIN receipt');
   }
-}
-
-/** A RELEASED engine, absolute (the workspace setting wants a path):
- *  env pin → newest Cellar → the brew/usr symlinks. */
-function resolveEngine(): string | undefined {
-  const cellar = (() => {
-    try {
-      const base = '/opt/homebrew/Cellar/nika';
-      const versions = fs.readdirSync(base).sort();
-      return versions.length
-        ? path.join(base, versions[versions.length - 1], 'bin', 'nika')
-        : undefined;
-    } catch {
-      return undefined;
-    }
-  })();
-  return [process.env.NIKA_BIN, cellar, '/opt/homebrew/bin/nika', '/usr/local/bin/nika']
-    .filter((p): p is string => typeof p === 'string' && p.length > 0)
-    .find(probe);
+  const output = execFileSync(engine, ['--version'], { timeout: 5000, encoding: 'utf-8' });
+  const reported = /^nika\s+(\d+\.\d+\.\d+)(?:\s|$)/m.exec(output)?.[1];
+  if (reported !== expected) {
+    throw new Error(`first-contact e2e engine mismatch: expected ${expected}, got ${String(reported)}`);
+  }
+  return engine;
 }
 
 /** A test workspace pinned to the real engine (no download in the gate). */
@@ -73,12 +60,8 @@ function makeWorkspace(tag: string, engine: string): string {
 }
 
 async function main(): Promise<void> {
-  const engine = resolveEngine();
-  if (!engine) {
-    console.log('first-contact e2e: no released engine (NIKA_BIN · Cellar · brew) — skipped');
-    return;
-  }
-  console.log(`first-contact e2e: engine ${engine}`);
+  const engine = requirePinnedEngine();
+  console.log(`first-contact e2e: verified engine ${engine} (${process.env.NIKA_ENGINE_VERSION})`);
 
   const extensionDevelopmentPath = path.resolve(__dirname, '..');
   const extensionTestsPath = path.resolve(__dirname, './suite/index');

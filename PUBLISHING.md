@@ -21,7 +21,9 @@ confidence gate between "the pyramid is green" and "a stranger's first
                                    walkthrough media · eslint)
                npm run test:integration → real VS Code hosts: the
                                    integration suite + the first-contact
-                                   e2e (launch A: zero gestures to
+                                   e2e against ENGINE_PIN's public,
+                                   checksum-verified release archive
+                                   (launch A: zero gestures to
                                    green; the never-twice guards are
                                    unit-pinned — the harness's storage
                                    is memory-backed, cross-launch state
@@ -175,10 +177,13 @@ microsoft/vscode-platform-specific-sample.
 ## CI (activates when this dir becomes the standalone repo)
 
 `.github/workflows/release.yml` is committed here, inert inside the
-monorepo, live on split: tag-gated → gate (typecheck · tests · parity ·
-package) → publish the SAME VSIX to OpenVSX then VSM via
-HaaLeo/publish-vscode-extension@v2. Preflight `vsce verify-pat` /
-`ovsx verify-pat`. Secrets: `VSCE_PAT` · `OVSX_PAT`.
+monorepo, live on split: tag-gated → refuse either missing registry secret →
+audit → typecheck · tests · parity → real VS Code integration against the
+checksum-verified `ENGINE_PIN` artifact → package → publish the SAME VSIX to
+OpenVSX then VSM via HaaLeo/publish-vscode-extension. Both secrets are
+mandatory for a green ceremony: `VSCE_PAT` · `OVSX_PAT`. Duplicate versions
+fail loudly; the ceremony never treats « already exists » as proof that the
+registry's bytes equal the VSIX built by this run.
 
 ## Repo split (monorepo → supernovae-st/nika-vscode)
 
