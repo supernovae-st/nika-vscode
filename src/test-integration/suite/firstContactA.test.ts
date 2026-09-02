@@ -169,12 +169,18 @@ suite('first contact · launch A (virgin machine · zero gestures to green)', ()
     // lines: a red run on a runner nobody can log into must explain
     // itself in the test output (the release gate went red twice on
     // Linux with nothing but « expected true » to read · 2026-09-01).
-    const verdictLines = fs.readFileSync(trace, 'utf-8').split('\n')
-      .filter((l) => /"kind":\s*"(workflow_failed|task_failed|run_settled|workflow_completed)"/.test(l))
-      .map((l) => l.slice(0, 700));
+    // The whole chronology, compact (kind:task), then every line whose
+    // kind or fields speak of a failure, refusal or denial — a workflow
+    // that fails with no task_failed line (measured on the Linux release
+    // runner · 2026-09-02) explains itself only through those.
+    const rawLines = fs.readFileSync(trace, 'utf-8').split('\n').filter((l) => l.trim().length > 0);
+    const chronology = events.map((e) => (e.task ? `${e.kind}:${e.task}` : e.kind)).join(' · ');
+    const verdictLines = rawLines
+      .filter((l) => /fail|refus|deni|error|abort|cancel|settled|permit/i.test(l))
+      .map((l) => l.slice(0, 900));
     assert.ok(
       events.some((e) => e.kind === 'workflow_completed'),
-      `the run completes GREEN — the journal's verdict lines:\n${verdictLines.join('\n')}`,
+      `the run completes GREEN — chronology: ${chronology}\n— the journal's telling lines:\n${verdictLines.join('\n')}`,
     );
     assert.ok(!events.some((e) => e.kind === 'workflow_failed'), 'no failed verdict');
     assert.ok(!events.some((e) => e.kind === 'task_failed'), 'no task failed');
