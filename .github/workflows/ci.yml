@@ -190,6 +190,6 @@ jobs:
       # never fired on a push. The belt runs the same e2e here, on the same
       # Linux runner, the same jail and the same pinned released engine, so
       # a red first contact is a red PR, never a red tag.
-      - name: First contact e2e (the release gate's twin)
+      - name: Real VS Code hosts (the release gate's twin · both suites, same order)
         if: steps.pin.outputs.mode == 'release'
-        run: xvfb-run -a npm run test:integration -- --first-contact-only
+        run: xvfb-run -a npm run test:integration
