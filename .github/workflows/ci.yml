@@ -184,3 +184,12 @@ jobs:
         # accepts the nine-key canary AND refuses the dead envelope) ·
         # the dead envelope keys (one refusal per retired key).
         run: npx vitest run src/test/contract.test.ts src/test/journeyReal.e2e.test.ts src/test/semanticDocReal.e2e.test.ts src/test/grammarCanary.test.ts src/test/deadEnvelopeReal.e2e.test.ts
+      # The release gate's first-contact e2e used to run only at tag time
+      # and went red there twice (2026-09-01 · runs 33570485552 and
+      # 33575188330) while every PR was green: a fossil gate whose twin
+      # never fired on a push. The belt runs the same e2e here, on the same
+      # Linux runner, the same jail and the same pinned released engine, so
+      # a red first contact is a red PR, never a red tag.
+      - name: First contact e2e (the release gate's twin)
+        if: steps.pin.outputs.mode == 'release'
+        run: xvfb-run -a npm run test:integration -- --first-contact-only
