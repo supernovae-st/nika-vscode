@@ -1891,7 +1891,7 @@
     "@eslint/js": "^10.0.1",
     "@types/d3-ease": "^3.0.2",
     "@types/d3-selection": "^3.0.11",
-    "@types/d3-shape": "^3.1.8",
+    "@types/d3-shape": "^3.2.0",
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/mocha": "^10.0.10",
@@ -1901,12 +1901,12 @@
     "@vscode/vsce": "^3.9.2",
     "elkjs": "^0.12.0",
     "esbuild": "^0.28.2",
-    "eslint": "^10.8.1",
+    "eslint": "^10.9.1",
     "glob": "^13.0.6",
     "mocha": "^12.0.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.67.0",
-    "vitest": "^4.1.2"
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
   },
   "qna": false
 }
