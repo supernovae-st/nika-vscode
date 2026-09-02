@@ -52,6 +52,19 @@ jobs:
       # parity check (run by `npm test`) asserts exists before packaging.
       - run: npm run compile
       - run: npm test # vitest (contract suite self-skips without a binary) + parity
+      # The pinned engine REFUSES a permits-declaring workflow with exec
+      # children when the host cannot jail them (NIKA_SANDBOX=auto · the
+      # fail-closed policy). The first-contact demo declares exec permits,
+      # so on a runner without bubblewrap its run never starts, no journal
+      # appears, and the suite times out (measured 2026-09-01 · run
+      # 33570485552 · green on macOS where seatbelt exists). ci.yml's belt
+      # installs the jail before the same suites; this gate must too, or it
+      # is a fossil twin that goes red only at tag time.
+      - name: Install bubblewrap (the exec jail the pinned engine requires)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
       - name: Real VS Code hosts against the checksum-verified ENGINE_PIN asset
         run: xvfb-run -a npm run test:integration
       - run: npx vsce package --no-dependencies -o nika-lang.vsix
