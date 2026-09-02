@@ -65,6 +65,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends bubblewrap
           sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
+          # Without this the jail starts and dies with status 1 (the demo's
+          # printf: « NIKA-SEC-001 · landlock/bwrap refused the confined
+          # process » · measured 2026-09-02 · run 33577500959) — the belt
+          # has carried this line since its jail step was written.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Real VS Code hosts against the checksum-verified ENGINE_PIN asset
         run: xvfb-run -a npm run test:integration
       - run: npx vsce package --no-dependencies -o nika-lang.vsix

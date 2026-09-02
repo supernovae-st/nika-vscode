@@ -190,6 +190,15 @@ jobs:
       # never fired on a push. The belt runs the same e2e here, on the same
       # Linux runner, the same jail and the same pinned released engine, so
       # a red first contact is a red PR, never a red tag.
-      - name: Real VS Code hosts (the release gate's twin · both suites, same order)
+      # The real-binary contract suites above leave engine state in the
+      # runner's HOME, and the first contact that follows then lands a
+      # different file (measured 2026-09-02 · run 33577484194 · « the
+      # landed file is THE demo workflow »). The suite's premise is a virgin
+      # machine: give the twin a fresh HOME, as the release gate has one.
+      - name: Real VS Code hosts (the release gate's twin · both suites, same order · fresh HOME)
         if: steps.pin.outputs.mode == 'release'
-        run: xvfb-run -a npm run test:integration
+        env:
+          HOME: ${{ runner.temp }}/virgin-home
+        run: |
+          mkdir -p "$HOME"
+          xvfb-run -a npm run test:integration
