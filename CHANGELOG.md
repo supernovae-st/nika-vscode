@@ -4,6 +4,25 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.118.1] · unpublished candidate · one admitted engine
+
+The source candidate requires stable engine 0.118.1 or newer. `ENGINE_PIN`
+identifies the exact candidate commit; it is not an invented public tag.
+Generated language and design surfaces follow that engine's exact spec pin.
+Public archives, clean-host editor behavior and both registry publications
+remain separate readiness gates in `PUBLISHING.md`.
+
+One admission policy now guards discovery, restarts, LSP, workflows, native
+tasks, Station and LM tools. Unsupported selections retain their refusal;
+late probes cannot revive a replaced engine. The selected absolute path is
+preserved, and MCP wiring cannot silently choose another PATH engine.
+
+Retired schema/tools/context commands, old executable-name discovery,
+pre-stdin temporary files and unused editor-generated rule/config writers
+are removed. Current capabilities are read from the engine, canonical
+failures never select another writer, and installation completes only after
+admission. Recorded trace reading and live operator capabilities remain.
+
 ## [0.116.2] · 2026-08-31 · every live door stays lit
 
 Lockstep on the published engine 0.116.2. `ENGINE_PIN` names its immutable
