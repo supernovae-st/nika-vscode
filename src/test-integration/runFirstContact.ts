@@ -49,8 +49,8 @@ function requirePinnedEngine(): string {
 }
 
 /** A test workspace pinned to the real engine (no download in the gate). */
-function makeWorkspace(tag: string, engine: string): string {
-  const ws = fs.mkdtempSync(path.join(os.tmpdir(), `nk-fc-${tag}-`));
+function makeWorkspace(fixture: string, engine: string): string {
+  const ws = path.join(fixture, 'workspace');
   fs.mkdirSync(path.join(ws, '.vscode'), { recursive: true });
   fs.writeFileSync(
     path.join(ws, '.vscode', 'settings.json'),
@@ -66,10 +66,11 @@ async function main(): Promise<void> {
   const extensionDevelopmentPath = path.resolve(__dirname, '..');
   const extensionTestsPath = path.resolve(__dirname, './suite/index');
   // Short tmp path (the 103-char Unix-socket cap · runTests.ts learned it).
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-fc-ud-'));
-  const wsA = makeWorkspace('a', engine);
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-fc-'));
+  const userDataDir = path.join(fixture, 'user');
 
   try {
+    const wsA = makeWorkspace(fixture, engine);
     // ── Launch A · the virgin first contact ──────────────────────────
     await runTests({
       extensionDevelopmentPath,
@@ -82,16 +83,17 @@ async function main(): Promise<void> {
   } catch (err) {
     console.error('first-contact e2e failed:', err);
     if (process.env.NIKA_FC_DEBUG === '1') {
-      console.error(`debug: profile kept at ${userDataDir} · workspace ${wsA}`);
+      console.error(`debug: fixture kept at ${fixture}`);
     }
-    process.exit(1);
+    process.exitCode = 1;
   } finally {
     if (process.env.NIKA_FC_DEBUG !== '1') {
-      for (const dir of [userDataDir, wsA]) {
-        try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
-      }
+      fs.rmSync(fixture, { recursive: true, force: true });
     }
   }
 }
 
-void main();
+void main().catch((err: unknown) => {
+  console.error('first-contact fixture failed:', err);
+  process.exitCode = 1;
+});
