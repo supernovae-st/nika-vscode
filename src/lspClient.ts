@@ -58,8 +58,6 @@ export interface ClientState {
   resolvedServerPath: string | undefined;
   /** Lifecycle sink for the status bar (extension.ts wires it). */
   statusSink?: (state: 'starting' | 'running' | 'failed') => void;
-  /** Canon-derived provider groups for generated rules (extension wires it). */
-  rulesIntel?: () => import('./mcpConfig').RulesIntel | undefined;
   /** The one-voice reconciler (#103): called with the server's
    * initialize capabilities on every (re)start — client twins the
    * server replaces are silenced; called with `undefined` when the

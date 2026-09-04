@@ -600,7 +600,6 @@ export function activate(context: ExtensionContext): void {
   });
   // statusSink is (re)assigned below once the language-status items exist —
   // nothing fires it before activation completes (LSP start is async-after).
-  state.rulesIntel = () => service.intel?.providers;
 
   // Capability context keys drive `when` clauses in package.json menus.
   context.subscriptions.push(service.onDidChange(() => {

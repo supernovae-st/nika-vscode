@@ -63,10 +63,6 @@ export async function ensureCursorGlobalMcpConfig(absoluteServerPath: string, lo
   }
 }
 
-/** Re-exported for the callers that pass provider groups (extension ·
- *  lspClient) — the shape lives with the pure text builder. */
-export type { RulesIntel } from './core/cursorRules';
-
 export async function ensureWindsurfMcpConfig(resolvedServerPath: string | undefined, log: LogFn): Promise<McpWriteResult> {
   // Windsurf uses a global config at ~/.codeium/windsurf/mcp_config.json
   const homeDir = process.env.HOME ?? process.env.USERPROFILE;
