@@ -108,8 +108,29 @@ step · each step checks itself off as you actually do it.
   verified download on first open (HTTPS + SHA-256 · explicit consent ·
   [policy](SECURITY.md)).
   Without the binary you still get syntax, snippets and the client-side
-  DAG (schema-driven completions come alive once the binary is found:
+  DAG (schema-driven completions come alive once a supported binary is admitted:
   they read the engine's own `nika spec --schema`).
+
+**Candidate engine requirement:** this source candidate requires stable-version
+engine **0.118.1 or newer**. The 0.118.1 release is not yet published; this is
+preparation for that release, not support supplied by the current 0.116.2
+release. Release versions, immutable asset receipts and clean-host validation
+must converge before this candidate can be published. Developers can select
+the matching candidate binary with `nika.server.path`.
+
+Every selected binary is checked before LSP, workflow execution or host wiring
+becomes available, including configured, bundled, PATH, cached and downloaded
+binaries and restarts. Older, malformed or prerelease versions produce an
+update reason; the extension does not silently replace the selected binary.
+Syntax, snippets and static editor views remain available. Downloads still
+require consent, and an unsupported latest public release is refused before
+downloading its executable.
+
+Discovery freezes the selected executable's absolute path, including PATH
+entries and symlinks. MCP wiring uses that selection too: Cursor and Windsurf
+can receive a machine-scoped absolute path; portable VS Code wiring is refused
+until `nika` on PATH resolves to the admitted engine. This is path consistency,
+not a claim that an executable cannot be replaced on disk later.
 
 ## Icons in your editor
 
@@ -139,8 +160,8 @@ theme*, not to extensions:
   to explanations: the full `is_clean` family list, so the editor's
   verdict IS the binary's exit code
 - **No tmp-file dance** · dirty and untitled buffers pipe straight into
-  the binary over stdin (`nika check -` · 0.94+): keystroke-fresh audits
-  without ever touching your disk; older engines keep the tmp fallback
+  the binary over stdin (`nika check -`): keystroke-fresh audits
+  without ever touching your disk; unsupported engines are refused
 - **One-keystroke permits repair** · the engine's machine-applicable fix
   grammar (`add "X" to permits.<path>`) applied as a quick fix · the same
   convergence loop agents run in CI
@@ -568,9 +589,9 @@ network: every green close settles a ✓ wave through the cards.*
 
 ### Engine-honest by construction
 - **Capability-gated UI** · the extension probes what the binary ACTUALLY
-  ships (`--help`) · the static suite + `run` light up today (the gate lit
-  `run` the day nika-runtime reached L3, zero extension update); `lsp` /
-  `mcp` light up the same way the day they climb
+  ships after version admission. LSP, workflow and wiring surfaces require
+  their current capabilities; a refused operation does not trigger a
+  retired command spelling.
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
   are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
   `nika try` · `nika new`) · nothing duplicated, nothing drifts

@@ -1579,7 +1579,7 @@
         "displayName": "Nika Workspace",
         "toolReferenceName": "nikaWorkspace",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS, never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires a nika binary with the workspace aggregate (`welcome --deep` on 0.104+, `context` on older dev builds); without one this tool is not registered.",
+        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS, never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires an admitted engine with the current workspace aggregate (`welcome --deep`); without one this tool is not registered.",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -1638,8 +1638,7 @@
               "altText": "One binary: the extension drives nika: check, run with local traces, language server, time-travel debug. Install via Finish Setup (verified download) or brew."
             },
             "completionEvents": [
-              "onCommand:nika.checkBinary",
-              "onCommand:nika.finishSetup"
+              "onContext:nika.hasBinary"
             ]
           },
           {

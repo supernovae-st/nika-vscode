@@ -45,22 +45,26 @@ export function registerNikaTaskProvider(
   context.subscriptions.push(
     vscode.tasks.registerTaskProvider('nika', {
       async provideTasks(): Promise<vscode.Task[]> {
-        const binary = service.binaryPath ?? 'nika';
+        if (!service.available) { return []; }
         const files = await vscode.workspace.findFiles(
           '**/*.nika.yaml',
           '**/node_modules/**',
           25,
         );
+        const binary = service.binaryPath;
+        if (!service.available || !binary) { return []; }
         const tasks: vscode.Task[] = [];
         for (const uri of files) {
           const rel = vscode.workspace.asRelativePath(uri);
           const folder = vscode.workspace.getWorkspaceFolder(uri) ?? vscode.TaskScope.Workspace;
-          tasks.push(buildTask(
-            { type: 'nika', command: 'check', file: rel },
-            folder,
-            `check ${rel}`,
-            binary,
-          ));
+          if (service.caps.check) {
+            tasks.push(buildTask(
+              { type: 'nika', command: 'check', file: rel },
+              folder,
+              `check ${rel}`,
+              binary,
+            ));
+          }
           if (service.caps.run) {
             tasks.push(buildTask(
               { type: 'nika', command: 'run', file: rel },
@@ -74,6 +78,11 @@ export function registerNikaTaskProvider(
       },
 
       resolveTask(task: vscode.Task): vscode.Task | undefined {
+        const binary = service.binaryPath;
+        if (!service.available || !binary) {
+          if (service.supportError) { void vscode.window.showWarningMessage(`Nika: ${service.supportError}`); }
+          return undefined;
+        }
         const def = task.definition as NikaTaskDefinition;
         if (def.type !== 'nika' || typeof def.command !== 'string' || def.command.length === 0) {
           return undefined;
@@ -82,7 +91,7 @@ export function registerNikaTaskProvider(
           def,
           task.scope ?? vscode.TaskScope.Workspace,
           task.name,
-          service.binaryPath ?? 'nika',
+          binary,
         );
       },
     }),

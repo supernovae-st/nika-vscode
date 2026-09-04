@@ -7,7 +7,8 @@ export interface HostWiringRequest {
   mcp: boolean;
   wire: boolean;
   binaryPath?: string;
-  nikaOnPath: boolean;
+  /** The portable command resolves to the same admitted executable path. */
+  portableBinaryMatches: boolean;
 }
 
 export type HostWiringOutcome =
@@ -25,7 +26,8 @@ export interface HostWiringEffects {
 /** Called only after the existing setup command or autoSetup authorization.
  * Select one writer before acting; an engine result never selects another.
  * The engine currently writes the portable `nika` command, so Cursor/Windsurf
- * download-only machine configuration is a distinct, upfront host operation.
+ * machine configuration for a different/missing PATH selection is an upfront
+ * host operation. A portable config must never select another engine.
  */
 export async function wireHostOnce(
   request: HostWiringRequest,
@@ -34,7 +36,7 @@ export async function wireHostOnce(
   if (!request.mcp) {
     return { kind: 'unsupported', detail: 'This binary does not expose nika mcp; update it before wiring.' };
   }
-  if (request.target !== 'vscode' && !request.nikaOnPath
+  if (request.target !== 'vscode' && !request.portableBinaryMatches
       && request.binaryPath && isAbsolute(request.binaryPath)) {
     const result = await effects.machineAbsolute(request.target, request.binaryPath);
     if (result.state === 'wired' || result.state === 'unchanged') {
@@ -46,6 +48,9 @@ export async function wireHostOnce(
         ? `Refusing to overwrite malformed MCP config ${result.file ?? `for ${request.target}`}.`
         : `${request.target} MCP configuration was not written${result.file ? `: ${result.file}` : '.'}`,
     };
+  }
+  if (!request.portableBinaryMatches) {
+    return { kind: 'unsupported', detail: 'MCP uses the portable command "nika", but PATH does not select the admitted engine. Put the selected engine on PATH before wiring this host.' };
   }
   if (!request.wire) {
     return { kind: 'unsupported', detail: 'This binary does not expose nika wire; update it before wiring.' };

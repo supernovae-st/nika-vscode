@@ -3,8 +3,7 @@
 // Every feature consumes the engine through this service: it resolves the
 // binary, probes its REAL capability surface (`--help` · never a hardcoded
 // matrix), caches per-document check/graph results, and pipes dirty
-// buffers over stdin (`check -` · engine #190) — tmp files only as the
-// pre-dash fallback. Vocabulary lives in the binary (spec · schema ·
+// buffers over stdin (`check -`). Vocabulary lives in the binary (spec · schema ·
 // templates · examples) — the extension projects, never duplicates.
 
 import * as fs from 'fs';
@@ -15,7 +14,6 @@ import { parseTryShowroom, type ShowroomRow } from './core/tryShowroom';
 import {
   CAPABILITY_COMMANDS,
   buildCapabilities,
-  hasSchemaDoor,
   noCapabilities,
   parseHelpCommands,
   type CapabilitySet,
@@ -51,6 +49,7 @@ import {
   type WelcomeDeep,
 } from './core/stationModel';
 import { runCliOnText, spawnCli, type CliResult } from './core/spawn';
+import { engineSupportError, probeBinaryVersion } from './core/binaryVersion';
 
 export type { CliResult } from './core/spawn';
 
@@ -96,6 +95,8 @@ interface CacheEntry<T> {
 
 export class NikaService {
   private binary: string | undefined;
+  private binaryGeneration = 0;
+  private supportErrorValue: string | undefined;
   private capsValue = noCapabilities();
   private readonly changeEmitter = new EventEmitter<void>();
   readonly onDidChange: Event<void> = this.changeEmitter.event;
@@ -126,6 +127,11 @@ export class NikaService {
     return this.binary;
   }
 
+  /** Refusal for the selected engine, distinct from a missing installation. */
+  get supportError(): string | undefined {
+    return this.supportErrorValue;
+  }
+
   get caps(): CapabilitySet {
     return this.capsValue;
   }
@@ -143,25 +149,34 @@ export class NikaService {
 
   private toolCatsValue: Record<string, import('./core/cliContract').ToolMeta> | undefined;
 
-  /** BARE builtin name → kebab category (`nika tools --json` · engine ≥0.94).
-   *  Undefined on older binaries — consumers keep their fallback. */
+  /** BARE builtin name → kebab category (`nika catalog --tools --json`).
+   *  Undefined when the capability or its response is unavailable. */
   get toolCats(): Record<string, import('./core/cliContract').ToolMeta> | undefined {
     return this.toolCatsValue;
   }
 
   private catalogModelsValue: Record<string, CatalogModel[]> | undefined;
 
-  /** Provider → exact model rows (`nika catalog --json` · engine ≥0.94).
-   *  Undefined on older binaries — the picker keeps free typing. */
+  /** Provider → exact model rows (`nika catalog --json`).
+   *  Undefined on a failed read; the picker keeps free typing. */
   get catalogModels(): Record<string, CatalogModel[]> | undefined {
     return this.catalogModelsValue;
   }
 
   /** Set (or clear) the resolved binary and re-probe its surface. */
   async setBinary(binaryPath: string | undefined): Promise<void> {
-    this.binary = binaryPath;
+    const generation = ++this.binaryGeneration;
+    const current = (): boolean => generation === this.binaryGeneration;
+    this.binary = undefined;
+    this.supportErrorValue = undefined;
+    this.capsValue = noCapabilities();
+    this.intelValue = undefined;
+    this.toolCatsValue = undefined;
+    this.catalogModelsValue = undefined;
+    this.semanticOracle = undefined;
     this.checkCache.clear();
     this.graphCache.clear();
+    this.spansCache.clear();
     // Forget in-flight spawns from the OLD binary: their .then() would
     // otherwise re-stamp the cleared caches with wrong-binary results.
     // (The processes finish on their own; .finally() deleting an absent
@@ -171,20 +186,29 @@ export class NikaService {
     this.grammarValue = undefined;
     this.doctorFailsValue = undefined;
     this.deepValue = undefined;
+    this.changeEmitter.fire();
     if (!binaryPath) {
-      this.capsValue = noCapabilities();
+      return;
+    }
+    // Version admission precedes every capability probe and effect. A newer
+    // selection revokes this attempt, including its pending async results.
+    const version = await probeBinaryVersion(binaryPath);
+    if (!current()) { return; }
+    this.supportErrorValue = engineSupportError(version) ?? undefined;
+    if (this.supportErrorValue) {
       this.changeEmitter.fire();
       return;
     }
-    // `check --help` carries the dash/fix probes and `explain --help` carries
+    this.binary = binaryPath;
+    // `check --help` carries the fix probe and `explain --help` carries
     // the file-form probe. The other historically hidden machine doors ride
     // the same first wave. A successful own help is capability evidence.
-    const FIRST_PROBE_VERBS = ['check', 'explain', 'inspect', 'spec', 'catalog', 'lsp', 'mcp', 'dap'] as const;
-    const [help, version, ...firstProbes] = await Promise.all([
+    const FIRST_PROBE_VERBS = ['check', 'explain', 'inspect', 'spec', 'catalog', 'run', 'lsp', 'mcp', 'dap'] as const;
+    const [help, ...firstProbes] = await Promise.all([
       spawnCli(binaryPath, ['--help'], 5000),
-      spawnCli(binaryPath, ['--version'], 5000),
       ...FIRST_PROBE_VERBS.map((verb) => spawnCli(binaryPath, [verb, '--help'], 5000)),
     ]);
+    if (!current()) { return; }
     const probeResults = new Map<string, CliResult>(
       FIRST_PROBE_VERBS.map((verb, index) => [verb, firstProbes[index]]),
     );
@@ -195,6 +219,7 @@ export class NikaService {
     const omittedResults = await Promise.all(
       omitted.map((verb) => spawnCli(binaryPath, [verb, '--help'], 5000)),
     );
+    if (!current()) { return; }
     omitted.forEach((verb, index) => probeResults.set(verb, omittedResults[index]));
     const probedOk = CAPABILITY_COMMANDS.filter(
       (verb) => probeResults.get(verb)?.code === 0,
@@ -202,26 +227,29 @@ export class NikaService {
     const checkHelp = probeResults.get('check');
     const explainHelp = probeResults.get('explain');
     this.capsValue = buildCapabilities(
-      help.stdout,
-      version.stdout || version.stderr,
-      checkHelp?.stdout ?? '',
-      explainHelp?.stdout ?? '',
+      help.code === 0 ? help.stdout : '',
+      `nika ${version}`,
+      checkHelp?.code === 0 ? checkHelp.stdout : '',
+      explainHelp?.code === 0 ? explainHelp.stdout : '',
       probedOk,
       {
         spec: probeResults.get('spec')?.code === 0 ? probeResults.get('spec')?.stdout : undefined,
         catalog: probeResults.get('catalog')?.code === 0 ? probeResults.get('catalog')?.stdout : undefined,
+        run: probeResults.get('run')?.code === 0 ? probeResults.get('run')?.stdout : undefined,
       },
     );
     this.changeEmitter.fire();
+    if (!current()) { return; }
 
     // Load the schema/canon-derived vocabulary (async — providers pick it
     // up on the next query; a change event re-renders open surfaces).
     this.intelValue = undefined;
-    if (hasSchemaDoor(this.capsValue)) {
+    if (this.capsValue.specSchema) {
       const [schemaRes, canonRes] = await Promise.all([
         readSchema(this.capsValue, (args, timeoutMs) => spawnCli(binaryPath, args, timeoutMs)),
         this.capsValue.spec ? spawnCli(binaryPath, ['spec', '--canon'], 10000) : undefined,
       ]);
+      if (!current()) { return; }
       try {
         this.intelValue = schemaRes?.code === 0
           ? buildSchemaIntel(JSON.parse(schemaRes.stdout), canonRes?.code === 0 ? canonRes.stdout : '')
@@ -230,17 +258,18 @@ export class NikaService {
         this.intelValue = undefined;
       }
       this.changeEmitter.fire();
+      if (!current()) { return; }
     }
 
-    // The binary's own vocabulary (engine ≥0.94 · E1): tool categories
-    // + the exact per-provider model rows. Older binaries fail the
-    // spawn or the parse — every consumer keeps its fallback.
+    // The binary's own vocabulary: tool categories and exact model rows.
+    // Failed reads remain unavailable without retrying retired commands.
     this.toolCatsValue = undefined;
     this.catalogModelsValue = undefined;
     const [toolsRes, catalogRes] = await Promise.all([
       readToolCatalog(this.capsValue, (args, timeoutMs) => spawnCli(binaryPath, args, timeoutMs)),
       this.capsValue.commands.has('catalog') ? spawnCli(binaryPath, ['catalog', '--json'], 10000) : undefined,
     ]);
+    if (!current()) { return; }
     if (toolsRes?.code === 0) {
       this.toolCatsValue = parseToolMeta(toolsRes.stdout);
     }
@@ -267,13 +296,13 @@ export class NikaService {
 
   runCli(args: string[], timeoutMs = 30000, stdin?: string, cwd?: string): Promise<CliResult> {
     if (!this.binary) {
-      return Promise.resolve({ code: EXIT.ENV, stdout: '', stderr: 'nika binary not resolved' });
+      return Promise.resolve({ code: EXIT.ENV, stdout: '', stderr: this.supportError ?? 'nika binary not admitted' });
     }
     return spawnCli(this.binary, args, timeoutMs, stdin, cwd);
   }
 
   /** Run a CLI verb against `doc` — real path when saved, otherwise the
-   *  text leg (stdin dash · tmp fallback on pre-dash binaries). Public:
+   *  text leg (stdin dash). Public:
    *  one-shot doc-scoped verbs (explain's engine voice) ride it too. */
   runDocCli(
     doc: TextDocument,
@@ -283,7 +312,7 @@ export class NikaService {
     if (!doc.isDirty && doc.uri.scheme === 'file') {
       return this.runCli(args(doc.uri.fsPath), timeoutMs);
     }
-    return runCliOnText(this, args, doc.getText(), timeoutMs, 'doc');
+    return runCliOnText(this, args, doc.getText(), timeoutMs);
   }
 
   // ─── check ────────────────────────────────────────────────────────────────
@@ -489,16 +518,13 @@ export class NikaService {
     return verdict;
   }
 
-  /** The workspace aggregate — `welcome --deep --json` (0.104 line),
-   *  the retired `context --json` as the dev-build fallback. The
+  /** The workspace aggregate — `welcome --deep --json`. The
    *  Probe union keeps « no verb », « no answer » and « broken
    *  answer » as three separate stories (census pattern 5: the old
    *  collapsed `undefined` painted blank UIs with no story). */
   async welcomeDeep(cwd?: string): Promise<Probe<WelcomeDeep>> {
-    if (!this.caps.welcome && !this.caps.context) { return { kind: 'unsupported' }; }
-    const args = this.caps.welcome
-      ? ['welcome', '--deep', '--json']
-      : ['context', '--json'];
+    if (!this.caps.welcome) { return { kind: 'unsupported' }; }
+    const args = ['welcome', '--deep', '--json'];
     this.probeStarted();
     let res: CliResult;
     try {

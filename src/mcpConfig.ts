@@ -1,6 +1,7 @@
 // mcpConfig.ts — IDE-specific MCP configuration
 //
-// Machine-scoped absolute-path wiring for download-only Cursor/Windsurf.
+// Machine-scoped absolute-path wiring for Cursor/Windsurf when PATH does not
+// select the admitted engine.
 // Portable/project wiring belongs to the engine; these are not retry writers.
 
 import { env } from 'vscode';
@@ -55,7 +56,7 @@ export async function ensureCursorGlobalMcpConfig(absoluteServerPath: string, lo
     const result = patchCursorLikeConfig(existing, absoluteServerPath);
     if (!result.changed && existing !== undefined) { return { state: 'unchanged', file: configPath }; }
     fs.writeFileSync(configPath, JSON.stringify(result.config, null, 2));
-    log('INFO', `Wrote machine-scoped ~/.cursor/mcp.json (nika not on PATH — absolute path used)`);
+    log('INFO', `Wrote machine-scoped ~/.cursor/mcp.json (selected engine absolute path used)`);
     return { state: 'wired', file: configPath };
   } catch (err) {
     log('WARN', `global mcp.json write failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -63,15 +64,13 @@ export async function ensureCursorGlobalMcpConfig(absoluteServerPath: string, lo
   }
 }
 
-export async function ensureWindsurfMcpConfig(resolvedServerPath: string | undefined, log: LogFn): Promise<McpWriteResult> {
+export async function ensureWindsurfMcpConfig(absoluteServerPath: string, log: LogFn): Promise<McpWriteResult> {
   // Windsurf uses a global config at ~/.codeium/windsurf/mcp_config.json
   const homeDir = process.env.HOME ?? process.env.USERPROFILE;
   if (!homeDir) { return { state: 'skipped' }; }
 
   const configDir = path.join(homeDir, '.codeium', 'windsurf');
   const configPath = path.join(configDir, 'mcp_config.json');
-
-  const nikaPath = resolvedServerPath ?? 'nika';
 
   try {
     fs.mkdirSync(configDir, { recursive: true });
@@ -85,7 +84,7 @@ export async function ensureWindsurfMcpConfig(resolvedServerPath: string | undef
         return { state: 'refused-malformed', file: configPath };
       }
     }
-    const result = patchCursorLikeConfig(existing, nikaPath);
+    const result = patchCursorLikeConfig(existing, absoluteServerPath);
     if (!result.changed && existing !== undefined) { return { state: 'unchanged', file: configPath }; }
     fs.writeFileSync(configPath, JSON.stringify(result.config, null, 2));
     log('INFO', result.migrated

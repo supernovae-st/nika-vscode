@@ -145,7 +145,6 @@ export interface StationHandles {
 export function registerStation(
   context: vscode.ExtensionContext,
   service: NikaService,
-  resolvedPath: () => string | undefined,
 ): StationHandles {
   const provider = new StationTreeProvider(
     service,
@@ -163,7 +162,11 @@ export function registerStation(
   context.subscriptions.push(view);
 
   const inTerminal = (line: string): void => {
-    const nika = resolvedPath() ?? 'nika';
+    const nika = service.binaryPath;
+    if (!service.available || !nika) {
+      void vscode.window.showWarningMessage(`Nika: ${service.supportError ?? 'Select a supported engine before running Station commands.'}`);
+      return;
+    }
     const terminal = vscode.window.createTerminal({ name: 'Nika: station' });
     terminal.show();
     // Only `nika …` lines run; anything else would be a doctor fix the

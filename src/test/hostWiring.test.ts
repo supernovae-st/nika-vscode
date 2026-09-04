@@ -4,7 +4,7 @@ import { wireHostOnce, type HostWiringRequest } from '../core/hostWiring';
 
 const request: HostWiringRequest = {
   target: 'cursor', directory: '/project', mcp: true, wire: true,
-  binaryPath: '/download/nika', nikaOnPath: true,
+  binaryPath: '/download/nika', portableBinaryMatches: true,
 };
 
 function effects(code = 0, stderr = '', stdout = '') {
@@ -47,7 +47,7 @@ describe('one host wiring attempt', () => {
 
   it.each([true, false])('selects the download-only Cursor operation before any engine attempt (wire=%s)', async (wire) => {
     const io = effects(2, 'must never execute');
-    expect(await wireHostOnce({ ...request, wire, nikaOnPath: false }, io))
+    expect(await wireHostOnce({ ...request, wire, portableBinaryMatches: false }, io))
       .toEqual({ kind: 'wired', via: 'host-absolute' });
     expect(io.runCli).not.toHaveBeenCalled();
     expect(io.machineAbsolute).toHaveBeenCalledExactlyOnceWith('cursor', '/download/nika');
@@ -55,22 +55,30 @@ describe('one host wiring attempt', () => {
 
   it.each(['refused-malformed', 'skipped'] as const)('a refused download-only operation never reports wired or retries: %s', async (state) => {
     const io = { ...effects(), machineAbsolute: vi.fn(async () => ({ state, file: '/home/.cursor/mcp.json' })) };
-    expect((await wireHostOnce({ ...request, nikaOnPath: false }, io)).kind).toBe('failed');
+    expect((await wireHostOnce({ ...request, portableBinaryMatches: false }, io)).kind).toBe('failed');
     expect(io.runCli).not.toHaveBeenCalled();
     expect(io.machineAbsolute).toHaveBeenCalledTimes(1);
   });
 
   it('preserves Windsurf machine-scoped downloaded-binary setup without a second writer', async () => {
     const io = effects();
-    expect(await wireHostOnce({ ...request, target: 'windsurf', nikaOnPath: false }, io))
+    expect(await wireHostOnce({ ...request, target: 'windsurf', portableBinaryMatches: false }, io))
       .toEqual({ kind: 'wired', via: 'host-absolute' });
     expect(io.machineAbsolute).toHaveBeenCalledExactlyOnceWith('windsurf', '/download/nika');
     expect(io.runCli).not.toHaveBeenCalled();
   });
 
+  it('refuses portable VS Code wiring when PATH does not select the admitted engine', async () => {
+    const io = effects();
+    expect(await wireHostOnce({ ...request, target: 'vscode', portableBinaryMatches: false }, io))
+      .toMatchObject({ kind: 'unsupported', detail: expect.stringContaining('PATH does not select the admitted engine') });
+    expect(io.runCli).not.toHaveBeenCalled();
+    expect(io.machineAbsolute).not.toHaveBeenCalled();
+  });
+
   it('a relative binary name is never written as the download-only absolute path', async () => {
     const io = effects();
-    expect((await wireHostOnce({ ...request, wire: false, nikaOnPath: false, binaryPath: 'nika' }, io)).kind)
+    expect((await wireHostOnce({ ...request, wire: false, portableBinaryMatches: false, binaryPath: 'nika' }, io)).kind)
       .toBe('unsupported');
     expect(io.machineAbsolute).not.toHaveBeenCalled();
   });

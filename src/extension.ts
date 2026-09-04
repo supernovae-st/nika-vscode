@@ -60,7 +60,8 @@ import {
   downloadNikaBinary,
   DownloadCancelled,
   GITHUB_RELEASES_URL,
-  isBinaryWorking,
+  findLocalBinary,
+  findExecutableOnPath,
   findBundledBinary,
   GITHUB_INSTALL_URL,
 } from './binaryInstaller';
@@ -110,7 +111,6 @@ import {
 } from './core/semanticDoc';
 import { findTaskRefs, renameTask } from './core/renameRefs';
 import { buildAddTaskPicks } from './core/addTaskPicks';
-import { commandOnPath } from './core/pathLookup';
 import {
   modelRows,
   scaffoldContent,
@@ -491,6 +491,10 @@ async function pickModel(
  */
 async function requireEngine(service: NikaService, doing: string): Promise<boolean> {
   if (service.available) { return true; }
+  if (service.supportError) {
+    void window.showWarningMessage(`Nika: ${service.supportError}`);
+    return false;
+  }
   const pick = await window.showWarningMessage(
     `Nika: ${doing} needs the engine binary — it is not on this machine yet.`,
     'Install / detect',
@@ -655,11 +659,12 @@ export function activate(context: ExtensionContext): void {
       await context.globalState.update('nika.downloadDeclined', undefined);
       if (!service.available) {
         const fresh = await resolveBinary(context, true);
-        state.resolvedServerPath = fresh;
         await service.setBinary(fresh);
-        if (!fresh) { return; } // the download path already spoke
+        state.resolvedServerPath = service.binaryPath;
+        if (service.supportError) { void window.showWarningMessage(`Nika: ${service.supportError}`); }
+        if (!service.available) { return; }
         if (service.caps.lsp && !state.client) {
-          startClient(context, state, log, fresh);
+          startClient(context, state, log, service.binaryPath);
         }
       }
       const equip = await equipHost(true);
@@ -726,7 +731,7 @@ export function activate(context: ExtensionContext): void {
       // command line, and the terminal spawned with cwd
       // « run 01-hello --model mock » — the operator's exact toast,
       // 2026-07-28: the 10-second proof failed in its first second.
-      runNikaCommand(state.resolvedServerPath, 'try 01-hello', '');
+      runNikaCommand(service.binaryPath, 'try 01-hello', '');
     }),
   );
 
@@ -841,7 +846,7 @@ export function activate(context: ExtensionContext): void {
   // providers · workspace). Lane A pure: everything it shows comes
   // from `welcome --deep --json` + `doctor --json` + the grammar
   // canary; it degrades honestly to the one install action.
-  const stationHandles = registerStation(context, service, () => state.resolvedServerPath);
+  const stationHandles = registerStation(context, service);
   const station = stationHandles.provider;
 
   // The tree action panel (⌘K ⌘. · DESIGN.md §7d): every tree row's
@@ -2330,7 +2335,7 @@ export function activate(context: ExtensionContext): void {
     void commands.executeCommand('nika.preflightWorkflow', dagWorkflowUri);
   };
 
-  // Canvas glyphs speak the binary's vocabulary (`nika tools --json`) —
+  // Canvas glyphs speak the binary's vocabulary (`nika catalog --tools --json`) —
   // seeded now, refreshed whenever the service re-probes the binary.
   dagPanel.setToolCats(service.toolCats);
   context.subscriptions.push(service.onDidChange(() => {
@@ -2699,7 +2704,7 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       if (doc.isDirty) { await doc.save(); }
-      runNikaCommand(state.resolvedServerPath, 'check --fix', doc.uri.fsPath);
+      runNikaCommand(service.binaryPath, 'check --fix', doc.uri.fsPath);
     }),
     // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
     // A human surface (the engine refuses it with --json), so it rides the
@@ -2712,7 +2717,7 @@ export function activate(context: ExtensionContext): void {
         return;
       }
       if (doc.isDirty) { await doc.save(); }
-      runNikaCommand(state.resolvedServerPath, 'run --dry-run', doc.uri.fsPath);
+      runNikaCommand(service.binaryPath, 'run --dry-run', doc.uri.fsPath);
     }),
     // Run with inputs — the check report's inputs_required IS the input
     // contract: one type-ahead box per required var (Esc anywhere cancels
@@ -2760,11 +2765,12 @@ export function activate(context: ExtensionContext): void {
         });
         return;
       }
-      runNikaCommand(state.resolvedServerPath, `run ${extraArgs.join(' ')}`.trim(), doc.uri.fsPath);
+      runNikaCommand(service.binaryPath, `run ${extraArgs.join(' ')}`.trim(), doc.uri.fsPath);
     }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
+      if (!(await requireEngine(service, 'running a workflow'))) { return; }
       // The engine runs the file on disk — save first so it runs what the
       // editor (and the DAG) shows, and so the run's fingerprints record
       // the content that actually ran (not stale on-disk text).
@@ -2784,7 +2790,7 @@ export function activate(context: ExtensionContext): void {
           });
           return;
         }
-        runNikaCommand(state.resolvedServerPath, 'run', doc.uri.fsPath);
+        runNikaCommand(service.binaryPath, 'run', doc.uri.fsPath);
         return;
       }
       // `run` has shipped in the engine (nika-runtime L3); this branch
@@ -2807,10 +2813,10 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       if (!service.caps.check) {
-        // Old binary → terminal fallback. MISSING binary → the gate
-        // (a "command not found" terminal is a dead end, not guidance).
+        // An admitted binary without structured check support can still
+        // render its own terminal refusal. A missing engine needs setup.
         if (!(await requireEngine(service, 'checking a workflow'))) { return; }
-        runNikaCommand(state.resolvedServerPath, 'check', doc.uri.fsPath);
+        runNikaCommand(service.binaryPath, 'check', doc.uri.fsPath);
         return;
       }
       service.invalidate(doc.uri.toString());
@@ -2840,7 +2846,7 @@ export function activate(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       if (!(await requireEngine(service, 'inspecting a workflow'))) { return; }
-      runNikaCommand(state.resolvedServerPath, 'inspect', doc.uri.fsPath);
+      runNikaCommand(service.binaryPath, 'inspect', doc.uri.fsPath);
     }),
     // Command: deterministic workflow explanation (offline · zero LLM) —
     // the engine's graph+check projections composed into a readable
@@ -3113,7 +3119,9 @@ export function activate(context: ExtensionContext): void {
       const pick = picked?.pick;
       if (!pick) { return; }
       if (pick.terminal) {
-        const nika = state.resolvedServerPath ?? getNikaPath();
+        if (!(await requireEngine(service, 'starting a session'))) { return; }
+        const nika = service.binaryPath;
+        if (!nika) { return; }
         const terminal = window.createTerminal({
           name: 'Nika: wizard',
           cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
@@ -3599,8 +3607,9 @@ export function activate(context: ExtensionContext): void {
       await replayIntoDag(dagPanel, service, traceUri, active);
       dagPanel.focusNode(taskId);
     }),
-    commands.registerCommand('nika.watchDemo', () => {
-      runNikaCommand(state.resolvedServerPath, 'trace replay --demo', '');
+    commands.registerCommand('nika.watchDemo', async () => {
+      if (!(await requireEngine(service, 'replaying a demo'))) { return; }
+      runNikaCommand(service.binaryPath, 'trace replay --demo', '');
     }),
     // Command: diff two recorded runs on the DAG ("why is this run 3x
     // slower"). First pick = BASE (reference) · second = COMPARE (under
@@ -3904,7 +3913,7 @@ export function activate(context: ExtensionContext): void {
         const picked = qp.selectedItems[0];
         qp.hide();
         if (picked?.slug) {
-          runNikaCommand(state.resolvedServerPath, `try ${picked.slug}`, '');
+          runNikaCommand(service.binaryPath, `try ${picked.slug}`, '');
         }
       });
       qp.onDidHide(() => qp.dispose());
@@ -3924,9 +3933,11 @@ export function activate(context: ExtensionContext): void {
   // Command: Verify the nika binary (walkthrough step 1 completion event).
   context.subscriptions.push(
     commands.registerCommand('nika.checkBinary', async () => {
-      const p = state.resolvedServerPath ?? getNikaPath();
-      if (p && (await isBinaryWorking(p))) {
+      const p = service.binaryPath;
+      if (p && service.available) {
         flashStatus(`$(check) nika binary OK · ${p} · ${service.caps.version}`, 6000);
+      } else if (service.supportError) {
+        void window.showWarningMessage(`Nika: ${service.supportError}`);
       } else {
         window.showWarningMessage(
           'Nika: binary not found — the extension can install it for you.',
@@ -3945,6 +3956,7 @@ export function activate(context: ExtensionContext): void {
   // Command: Wire MCP + agent rules for the current client (consent via command).
   context.subscriptions.push(
     commands.registerCommand('nika.setupMcp', async () => {
+      if (!(await requireEngine(service, 'wiring this workspace'))) { return; }
       const folder = workspace.workspaceFolders?.[0];
       if (!folder) {
         window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
@@ -4000,7 +4012,7 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.doctor', async () => {
       if (!(await requireEngine(service, 'running the doctor'))) { return; }
-      runNikaCommand(state.resolvedServerPath, 'doctor', '');
+      runNikaCommand(service.binaryPath, 'doctor', '');
     }),
   );
 
@@ -4010,7 +4022,7 @@ export function activate(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.doctorPing', async () => {
       if (!(await requireEngine(service, 'pinging local providers'))) { return; }
-      runNikaCommand(state.resolvedServerPath, 'doctor --ping', '');
+      runNikaCommand(service.binaryPath, 'doctor --ping', '');
     }),
   );
 
@@ -4026,7 +4038,7 @@ export function activate(context: ExtensionContext): void {
       return;
     }
     if (doc.isDirty && !(await doc.save())) { return; }
-    runNikaCommand(state.resolvedServerPath, update ? 'test --update' : 'test', doc.uri.fsPath);
+    runNikaCommand(service.binaryPath, update ? 'test --update' : 'test', doc.uri.fsPath);
   };
   context.subscriptions.push(
     commands.registerCommand('nika.testWorkflow', (uri?: Uri) => runGoldenTest(uri, false)),
@@ -4040,6 +4052,8 @@ export function activate(context: ExtensionContext): void {
   // Command: Restart language server
   context.subscriptions.push(
     commands.registerCommand('nika.restartServer', async () => {
+      state.resolvedServerPath = undefined;
+      await service.setBinary(undefined);
       if (state.client) {
         await safeStopClient(state.client);
         state.client = undefined;
@@ -4051,9 +4065,9 @@ export function activate(context: ExtensionContext): void {
       // previously declined (the auto path stays silent after a decline).
       await context.globalState.update('nika.downloadDeclined', undefined);
       const fresh = await resolveBinary(context, true);
-      state.resolvedServerPath = fresh;
       await service.setBinary(fresh);
-      if (fresh) { checkVersionMismatch(context, log, fresh); }
+      state.resolvedServerPath = service.binaryPath;
+      if (service.binaryPath) { checkVersionMismatch(context, log, service.binaryPath); }
       void state.pushWelcomeData?.();
       if (service.caps.lsp) {
         // The flash rides the Running transition, never the launch: an
@@ -4062,6 +4076,8 @@ export function activate(context: ExtensionContext): void {
         startClient(context, state, log, state.resolvedServerPath, () => {
           flashStatus('$(check) language server restarted');
         });
+      } else if (service.supportError) {
+        void window.showWarningMessage(`Nika: ${service.supportError}`);
       } else {
         void informSoftly('binary-predates-lsp', 'Nika: this binary has no `lsp` yet — client-side intelligence stays active.');
       }
@@ -4155,12 +4171,19 @@ export function activate(context: ExtensionContext): void {
 
   void (async () => {
     const binaryPath = await resolveBinary(context);
-    state.resolvedServerPath = binaryPath;
     await service.setBinary(binaryPath);
+    state.resolvedServerPath = service.binaryPath;
     // Version-skew is a BINARY fact, not an LSP one — warn on every
     // resolution, not only when `nika lsp` happens to start (an old
     // extension against a new non-LSP binary got no signal before).
-    if (binaryPath) { checkVersionMismatch(context, log, binaryPath); }
+    if (service.binaryPath) { checkVersionMismatch(context, log, service.binaryPath); }
+    if (service.supportError) {
+      statusBar.setLspState('off');
+      langStatus.setLspState('off');
+      log('WARN', service.supportError);
+      void window.showWarningMessage(`Nika: ${service.supportError}`);
+      return;
+    }
 
     // Cursor host → one toast EVER pointing at the two setup moves this
     // extension cannot make itself: the marketplace plugin (rules + skill
@@ -4188,7 +4211,7 @@ export function activate(context: ExtensionContext): void {
       });
     }
 
-    if (!binaryPath) {
+    if (!service.binaryPath) {
       statusBar.setLspState('off');
       langStatus.setLspState('off');
       // One toast EVER (not one per window per day): after the first
@@ -4248,7 +4271,7 @@ export function activate(context: ExtensionContext): void {
       // keeps expression intel (server is structure-level at v0.1) and the
       // secrets lint, but check-diagnostics defer to the server.
       diagnosticsController.lspOwnsDiagnostics = true;
-      startClient(context, state, log, binaryPath);
+      startClient(context, state, log, service.binaryPath);
     } else {
       statusBar.setLspState('off');
       langStatus.setLspState('off');
@@ -4262,16 +4285,15 @@ export function activate(context: ExtensionContext): void {
  * Choose a single host operation before writing; preserve its refusal.
  */
 async function equipHost(silent = false): Promise<HostWiringOutcome> {
-  const nikaOnPath = commandOnPath('nika', process.env.PATH, process.platform, (candidate) => {
-    try { fs.accessSync(candidate, fs.constants.X_OK); return true; } catch { return false; }
-  });
+  const portableBinaryMatches = svc.binaryPath !== undefined
+    && findExecutableOnPath('nika') === svc.binaryPath;
   const outcome = await wireHostOnce({
     target: isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode',
     directory: workspace.workspaceFolders?.[0]?.uri.fsPath,
     mcp: svc.caps.mcp,
     wire: svc.caps.wire,
-    binaryPath: state.resolvedServerPath,
-    nikaOnPath: Boolean(nikaOnPath),
+    binaryPath: svc.binaryPath,
+    portableBinaryMatches,
   }, {
     runCli: (args, timeoutMs) => svc.runCli(args, timeoutMs),
     machineAbsolute: (target, binaryPath) => target === 'cursor'
@@ -4302,11 +4324,6 @@ async function equipHost(silent = false): Promise<HostWiringOutcome> {
       void informSoftly('host-live-autosetup', 'Nika is live · MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).');
     }
   }
-  if (outcome.kind === 'wired' && outcome.via === 'engine' && !nikaOnPath) {
-    void window.showWarningMessage(
-      'Nika MCP config uses the portable command "nika". Add the installed binary to PATH so your agent can start MCP.',
-    );
-  }
   return outcome;
 }
 
@@ -4322,49 +4339,15 @@ async function autoEquipOnce(): Promise<void> {
   await equipHost();
 }
 
-/** Discovery priority: explicit config → bundled → PATH (`nika` · `nika-cli`) → cached → download. */
+/** Discovery priority: explicit config → bundled → PATH (`nika`) → cached → consented download. */
 async function resolveBinary(context: ExtensionContext, explicit = false): Promise<string | undefined> {
-  const configPath = getNikaPath();
-  if (configPath !== 'nika') {
-    if (await isBinaryWorking(configPath)) {
-      log('INFO', `Using configured binary: ${configPath}`);
-      return configPath;
-    }
-    // An explicit setting that does not run was the ONE silent
-    // no-binary state — say so, then let the fallbacks play.
-    log('WARN', `Configured nika.server.path does not run: ${configPath}`);
-    void window.showWarningMessage(
-      `Nika: the configured server path does not run (\`${configPath}\`) — falling back to bundled/PATH discovery.`,
-      'Open settings',
-    ).then((pick) => {
-      if (pick === 'Open settings') {
-        void commands.executeCommand('workbench.action.openSettings', 'nika.server.path');
-      }
-    });
-  }
-
-  const bundled = findBundledBinary(context);
-  if (bundled) {
-    log('INFO', `Using bundled binary: ${bundled}`);
-    return bundled;
-  }
-
-  for (const candidate of ['nika', 'nika-cli']) {
-    if (await isBinaryWorking(candidate)) {
-      log('INFO', `Using PATH binary: ${candidate}`);
-      return candidate;
-    }
-  }
-
   const storagePath = context.globalStorageUri.fsPath;
   const isWindows = process.platform === 'win32';
   const cachedBinary = path.join(storagePath, isWindows ? 'nika.exe' : 'nika');
-  if (fs.existsSync(cachedBinary)) {
-    if (await isBinaryWorking(cachedBinary)) {
-      log('INFO', `Using cached binary: ${cachedBinary}`);
-      return cachedBinary;
-    }
-    fs.unlink(cachedBinary, () => undefined);
+  const selected = findLocalBinary(getNikaPath(), findBundledBinary(context) ?? undefined, cachedBinary);
+  if (selected) {
+    log('INFO', `Selected binary for admission: ${selected}`);
+    return selected;
   }
 
   const autoDownload = workspace.getConfiguration('nika').get<boolean>('server.autoDownload', true);
@@ -4402,7 +4385,7 @@ async function resolveBinary(context: ExtensionContext, explicit = false): Promi
   }
   try {
     const downloaded = await downloadNikaBinary(storagePath);
-    if (downloaded && fs.existsSync(downloaded) && (await isBinaryWorking(downloaded))) {
+    if (downloaded && fs.existsSync(downloaded)) {
       // The moment of highest intent — the toast carries the NEXT moves
       // instead of dead-ending (first-install audit 2026-07-12). Wiring
       // still requires the explicit click: downloading a binary is not

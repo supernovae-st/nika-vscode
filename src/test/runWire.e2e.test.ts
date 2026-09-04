@@ -21,8 +21,8 @@ import { foldTrace } from '../core/traceFold';
 
 const CANDIDATES = [
   process.env.NIKA_BIN,
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika-cli'),
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika-cli'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika'),
 ].filter((p): p is string => typeof p === 'string');
 
 const BIN = CANDIDATES.find((p) => {
@@ -131,7 +131,7 @@ describe.skipIf(!BIN)('live-run wire (real binary · the canvas run pill seam)',
     } finally {
       fs.unlinkSync(file);
     }
-  });
+  }, 60000); // Match runStream's process budget for candidate debug builds.
 
   it('the fold is chunk-boundary-independent on the REAL stream', () => {
     const file = tmpWorkflow(FANOUT_WF);

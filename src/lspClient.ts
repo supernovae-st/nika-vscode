@@ -72,7 +72,8 @@ export function getNikaPath(): string {
 }
 
 export function runNikaCommand(resolvedServerPath: string | undefined, subcmd: string, filePath: string): void {
-  const nika = resolvedServerPath ?? getNikaPath();
+  if (!resolvedServerPath) { return; }
+  const nika = resolvedServerPath;
   // The spawn-cwd law reaches the terminal twin: the engine journals at
   // the process CWD, so a terminal opened at the workspace root would
   // scatter a nested workflow's journals away from every surface that
@@ -89,9 +90,8 @@ export function runNikaCommand(resolvedServerPath: string | undefined, subcmd: s
 }
 
 /** Compare extension version with LSP server version and warn on mismatch. */
-export function checkVersionMismatch(context: ExtensionContext, log: LogFn, resolvedPath?: string): void {
+export function checkVersionMismatch(context: ExtensionContext, log: LogFn, serverPath: string): void {
   const extVersion = context.extension.packageJSON.version as string;
-  const serverPath = resolvedPath ?? getNikaPath();
 
   execFile(serverPath, ['--version'], { timeout: 5000 }, (error, stdout) => {
     if (error) { return; }
@@ -189,8 +189,9 @@ export function startClient(
    *  orange chip (operator screenshot, 2026-07-28). */
   onRunning?: () => void,
 ): void {
+  if (!overridePath) { return; }
   const config = workspace.getConfiguration('nika');
-  const serverPath = overridePath ?? getNikaPath();
+  const serverPath = overridePath;
   const extraArgs = config.get<string[]>('server.extraArgs', []);
 
   // `nika lsp` (stdio) — the D-2026-06-10-N6 in-binary contract. Extra

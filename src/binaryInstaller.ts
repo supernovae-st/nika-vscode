@@ -4,14 +4,14 @@
 // Pure functions with no module-level state — all dependencies passed as parameters.
 
 import { window, ProgressLocation, ExtensionContext, type CancellationToken } from 'vscode';
-import { execFile } from 'child_process';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { IncomingMessage } from 'http';
 import { extractBinaryFromTarGz, extractBinaryFromZip } from './core/archive';
-import { probeBinaryVersion, versionReceiptError } from './core/binaryVersion';
+import { engineSupportError, probeBinaryVersion, versionReceiptError } from './core/binaryVersion';
+import { findCommandOnPath } from './core/pathLookup';
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/supernovae-st/nika/releases/latest';
 const GITHUB_LATEST_HTML = 'https://github.com/supernovae-st/nika/releases/latest';
@@ -188,6 +188,8 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         progress.report({ message: 'Resolving the latest release...' });
         const version = await resolveLatestVersion();
         if (token.isCancellationRequested) { throw new DownloadCancelled(); }
+        const supportError = engineSupportError(version);
+        if (supportError) { throw new Error(`Latest public release: ${supportError}`); }
         const archiveExt = isWindows ? '.zip' : '.tar.gz';
         const archiveName = `${artifactName}-${version}${archiveExt}`;
         const assetUrl = `${GITHUB_DOWNLOAD_BASE}/v${version}/${archiveName}`;
@@ -261,13 +263,28 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
   );
 }
 
-/** Checks if the binary at the given path is functional. */
-export function isBinaryWorking(binaryPath: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    execFile(binaryPath, ['--version'], { timeout: 5000 }, (error) => {
-      resolve(!error);
-    });
+/** Select once, then let NikaService admit the selection. An unsupported
+ * configured, bundled, PATH or cached engine is never replaced silently. */
+export function findLocalBinary(configuredPath: string, bundled: string | undefined, cached: string): string | undefined {
+  if (configuredPath !== 'nika') {
+    const named = !configuredPath.includes('/') && !configuredPath.includes('\\');
+    return (named ? findExecutableOnPath(configuredPath) : undefined) ?? canonicalPath(configuredPath);
+  }
+  if (bundled) { return canonicalPath(bundled); }
+  return findExecutableOnPath('nika') ?? (fs.existsSync(cached) ? canonicalPath(cached) : undefined);
+}
+
+/** Freeze the selected path, including relative PATH entries and symlinks. */
+export function findExecutableOnPath(name: string): string | undefined {
+  const selected = findCommandOnPath(name, process.env.PATH, process.platform, (candidate) => {
+    try { fs.accessSync(candidate, fs.constants.X_OK); return true; } catch { return false; }
   });
+  return selected ? canonicalPath(selected) : undefined;
+}
+
+function canonicalPath(candidate: string): string {
+  const absolute = path.resolve(candidate);
+  try { return fs.realpathSync(absolute); } catch { return absolute; }
 }
 
 /** Check for bundled binary in platform-specific VSIX (rust-analyzer pattern). */

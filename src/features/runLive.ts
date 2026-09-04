@@ -105,6 +105,10 @@ export function runWorkflowLive(
 ): void {
   const binary = service.binaryPath;
   if (!binary) {
+    if (service.supportError) {
+      void vscode.window.showWarningMessage(`Nika: ${service.supportError}`);
+      return;
+    }
     void vscode.window
       .showWarningMessage('Nika: running needs the engine binary — it is not on this machine yet.', 'Finish setup')
       .then((pick) => {
@@ -413,4 +417,3 @@ const FEED_ICON: Record<string, string> = {
   skipped: STATUS_CHAR.skipped,
   cancelled: STATUS_CHAR.cancelled,
 };
-

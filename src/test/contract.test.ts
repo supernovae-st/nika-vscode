@@ -36,12 +36,13 @@ import { GRAMMAR_CANARY_DOC, grammarAccepted } from '../core/grammarCanary';
 import { DEMO_WORKFLOW } from '../core/demoWorkflow';
 import { GENERATE_FALLBACK_TEMPLATE } from '../core/generateStaging';
 import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
+import { engineSupportError, parseBinaryVersion } from '../core/binaryVersion';
 
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
   process.env.NIKA_BIN,
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika-cli'),
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika-cli'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika'),
 ].filter((p): p is string => typeof p === 'string');
 
 const BIN = CANDIDATES.find((p) => {
@@ -94,6 +95,29 @@ tasks:
 `;
 
 describe.skipIf(!BIN)('engine contract (real binary)', () => {
+  it('the selected development binary meets the candidate support floor', () => {
+    const version = run(['--version']);
+    expect(version.code).toBe(0);
+    expect(engineSupportError(parseBinaryVersion(version.stdout))).toBeNull();
+  });
+
+  it.each([
+    ['check', '-', '--json'],
+    ['check', '-', '--infer-permits', '--color', 'never'],
+    ['inspect', '-', '--format', 'json'],
+    ['explain', '-', '--json'],
+  ])('supported engine accepts dirty-buffer stdin: %s', (...args) => {
+    const result = run(args, CLEAN_WF);
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout.length).toBeGreaterThan(0);
+  });
+
+  it('the supported run door proves both resume flags', () => {
+    const help = run(['run', '--help']);
+    expect(help.code).toBe(0);
+    expect(buildCapabilities('', run(['--version']).stdout, '', '', ['run'], { run: help.stdout }).resume).toBe(true);
+  });
+
   it('capability probe AGREES with the binary --help (generation-independent)', () => {
     const help = run(['--help']).stdout;
     const version = run(['--version']).stdout;

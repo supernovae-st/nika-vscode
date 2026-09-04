@@ -157,9 +157,9 @@ jobs:
         if: steps.pin.outputs.mode == 'source'
         run: |
           set -euo pipefail
-          cargo build --release --locked -p nika-cli --bin nika-cli --manifest-path "$GITHUB_WORKSPACE/../engine/Cargo.toml"
-          bin="$GITHUB_WORKSPACE/../engine/target/release/nika-cli"
-          [ -x "$bin" ] || { echo "no nika-cli built"; exit 1; }
+          cargo build --release --locked -p nika-cli --bin nika --manifest-path "$GITHUB_WORKSPACE/../engine/Cargo.toml"
+          bin="$GITHUB_WORKSPACE/../engine/target/release/nika"
+          [ -x "$bin" ] || { echo "no nika built"; exit 1; }
           echo "NIKA_BIN=$bin" >> "$GITHUB_ENV"
       # The 0.109 engine REFUSES a permits-declaring workflow with exec
       # children when the host cannot jail them (NIKA_SANDBOX=auto · the
