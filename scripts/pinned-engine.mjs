@@ -86,7 +86,7 @@ export function checksumForAsset(sums, assetName) {
 }
 
 export function assertVersionReceipt(output, expectedVersion, expectedCommit) {
-  const match = /^nika\s+(\d+\.\d+\.\d+)\s+\(([0-9a-f]{9})\)$/m.exec(output);
+  const match = /^nika (\d+\.\d+\.\d+) \(([0-9a-f]{9})\)\r?\n?$/.exec(output);
   const reportedVersion = match?.[1];
   const reportedCommit = match?.[2];
   const anchoredCommit = expectedCommit.slice(0, 9);

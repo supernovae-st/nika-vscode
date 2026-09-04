@@ -91,6 +91,13 @@ test('version receipt refuses stale or foreign build identities', () => {
     () => assertVersionReceipt('nika 0.116.2 (deadbeef0)\n', '0.116.2', commit),
     /identity mismatch/,
   );
+  for (const output of [
+    'unrelated program\nnika 0.116.2 (c4cdbeafb)\n',
+    'nika 0.116.2 (c4cdbeafb)\nnika 0.118.1 (deadbeef0)\n',
+    'nika 0.116.2 (c4cdbeafb)\nextra diagnostics\n',
+  ]) {
+    assert.throws(() => assertVersionReceipt(output, '0.116.2', commit), /identity mismatch/);
+  }
 });
 
 test('deadbeef0 archive and co-modified SHA256SUMS cannot replace the anchored release', async () => {
