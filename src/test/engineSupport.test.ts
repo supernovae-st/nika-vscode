@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { engineSupportError, parseBinaryVersion } from '../core/binaryVersion';
 
 describe('engine support floor', () => {
-  it.each(['0.116.2', '0.118.0', '0.117.99'])('refuses %s with the required update', (version) => {
-    expect(engineSupportError(version)).toContain('0.118.1');
+  it.each(['0.116.2', '0.118.0', '0.118.1', '0.117.99'])('refuses %s with the required update', (version) => {
+    expect(engineSupportError(version)).toContain('0.118.2');
     expect(engineSupportError(version)).toContain(version);
   });
-  it.each(['0.118.1', '0.118.1+build.7', '0.118.2', '0.119.0', '1.0.0'])('admits %s', (version) => {
+  it.each(['0.118.2', '0.118.2+build.7', '0.118.3', '0.119.0', '1.0.0'])('admits %s', (version) => {
     expect(engineSupportError(version)).toBeNull();
   });
   it.each([null, '', '0.118', '00.118.1', '0.118.01', '0.118.1garbage', '0.118.1-', '0.118.1+', '0.118.1-rc.01'])('refuses malformed %s', (version) => {
-    expect(engineSupportError(version)).toMatch(/0\.118\.1/);
+    expect(engineSupportError(version)).toMatch(/0\.118\.2/);
     expect(engineSupportError(version)).not.toBeNull();
   });
   it.each(['0.118.1-rc.1', '0.118.2-beta.1', '1.0.0-dev+local'])('does not treat prerelease %s as stable support', (version) => {

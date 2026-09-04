@@ -31,14 +31,14 @@ beforeEach(() => {
 });
 
 describe('service admission before capabilities and effects', () => {
-  it.each(['0.116.2', '0.118.0', '0.118.1-rc.1', null])('rejects %s before help, workflow, or either host writer', async (version) => {
+  it.each(['0.116.2', '0.118.0', '0.118.1', '0.118.2-rc.1', null])('rejects %s before help, workflow, or either host writer', async (version) => {
     vi.mocked(probeBinaryVersion).mockResolvedValue(version);
     const service = new NikaService();
     await service.setBinary('/selected/nika');
     expect(service.available).toBe(false);
     expect(service.binaryPath).toBeUndefined();
     expect(service.caps.commands.size).toBe(0);
-    expect(service.supportError).toContain('0.118.1');
+    expect(service.supportError).toContain('0.118.2');
     const result = await service.runCli(['run', 'workflow.nika.yaml']);
     expect(result.code).not.toBe(0);
     expect(result.stderr).toBe(service.supportError);
@@ -49,7 +49,7 @@ describe('service admission before capabilities and effects', () => {
     expect(machineAbsolute).not.toHaveBeenCalled();
   });
   it('accepts a supported selection, proves current operations, and permits execution', async () => {
-    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.1');
+    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.2');
     const service = new NikaService();
     await service.setBinary('/selected/nika');
     expect(service.available).toBe(true);
@@ -64,7 +64,7 @@ describe('service admission before capabilities and effects', () => {
     expect(verbs).not.toContain('context');
   });
   it('revokes the previous engine while restart admission is pending and after refusal', async () => {
-    vi.mocked(probeBinaryVersion).mockResolvedValueOnce('0.118.1');
+    vi.mocked(probeBinaryVersion).mockResolvedValueOnce('0.118.2');
     const service = new NikaService();
     await service.setBinary('/supported/nika');
     let release!: (value: string | null) => void;
@@ -87,14 +87,14 @@ describe('service admission before capabilities and effects', () => {
     const stale = service.setBinary('/previous/nika');
     vi.mocked(probeBinaryVersion).mockResolvedValueOnce('0.118.0');
     await service.setBinary('/current/nika');
-    release('0.118.1');
+    release('0.118.2');
     await stale;
     expect(service.available).toBe(false);
     expect(service.supportError).toContain('0.118.0');
     expect(spawnCli).not.toHaveBeenCalled();
   });
   it('a supported version cannot invent absent canonical capabilities', async () => {
-    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.1');
+    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.2');
     vi.mocked(spawnCli).mockResolvedValue({ code: 2, stdout: '', stderr: 'unsupported' });
     const service = new NikaService();
     await service.setBinary('/minimal/nika');
@@ -105,7 +105,7 @@ describe('service admission before capabilities and effects', () => {
   });
 
   it('a stale successful help probe cannot restore capabilities after a later refusal', async () => {
-    vi.mocked(probeBinaryVersion).mockResolvedValueOnce('0.118.1');
+    vi.mocked(probeBinaryVersion).mockResolvedValueOnce('0.118.2');
     let release!: (value: { code: number; stdout: string; stderr: string }) => void;
     vi.mocked(spawnCli).mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
     const service = new NikaService();
@@ -123,7 +123,7 @@ describe('service admission before capabilities and effects', () => {
   });
 
   it('workspace aggregation uses only welcome and preserves absence after refusal', async () => {
-    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.1');
+    vi.mocked(probeBinaryVersion).mockResolvedValue('0.118.2');
     const service = new NikaService();
     await service.setBinary('/selected/nika');
     vi.mocked(spawnCli).mockClear();

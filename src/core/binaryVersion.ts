@@ -9,7 +9,7 @@
 import { execFile } from 'child_process';
 
 /** Candidate source floor. Publication still requires the release receipts. */
-export const MINIMUM_ENGINE_VERSION = '0.118.1';
+export const MINIMUM_ENGINE_VERSION = '0.118.2';
 
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 

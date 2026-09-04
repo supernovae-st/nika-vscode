@@ -112,7 +112,7 @@ step · each step checks itself off as you actually do it.
   they read the engine's own `nika spec --schema`).
 
 **Candidate engine requirement:** this source candidate requires stable-version
-engine **0.118.1 or newer**. The 0.118.1 release is not yet published; this is
+engine **0.118.2 or newer**. The 0.118.2 release is not yet published; this is
 preparation for that release, not support supplied by the current 0.116.2
 release. Release versions, immutable asset receipts and clean-host validation
 must converge before this candidate can be published. Developers can select

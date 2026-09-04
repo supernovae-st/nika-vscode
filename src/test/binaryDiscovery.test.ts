@@ -76,7 +76,7 @@ describe('select one local binary without replacing unsupported candidates', () 
 });
 
 describe.skipIf(process.platform === 'win32')('download support admission', () => {
-  it.each(['0.116.2', '0.118.0', '0.118.1-rc.1', 'malformed'])('refuses public release %s before artifact download or storage writes', async (version) => {
+  it.each(['0.116.2', '0.118.0', '0.118.1', '0.118.2-rc.1', 'malformed'])('refuses public release %s before artifact download or storage writes', async (version) => {
     vi.mocked(https.get).mockImplementation((_url: unknown, _options: unknown, callback: unknown) => {
       (callback as (response: unknown) => void)({ headers: { location: `https://github.com/supernovae-st/nika/releases/tag/v${version}` }, resume: vi.fn() });
       return { on: vi.fn() } as unknown as ReturnType<typeof https.get>;
@@ -90,7 +90,7 @@ describe.skipIf(process.platform === 'win32')('download support admission', () =
       });
     }
     const storage = path.join(directory, 'storage');
-    await expect(downloadNikaBinary(storage)).rejects.toThrow('0.118.1');
+    await expect(downloadNikaBinary(storage)).rejects.toThrow('0.118.2');
     expect(https.get).toHaveBeenCalledTimes(1);
     expect(fs.existsSync(storage)).toBe(false);
     expect(fs.readdirSync(directory)).toEqual([]);

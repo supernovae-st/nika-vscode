@@ -4,5 +4,5 @@
 # DOWNLOADED (checksum-verified · the same asset a user installs); a
 # commit sha is BUILT from source. Never « latest release » as a
 # floating pin. Bump deliberately, with the reader.
-# CANDIDATE_VERSION: 0.118.1
-e593a6a3bcd3cd561cd33b2bcf455dee28da3d3a
+# CANDIDATE_VERSION: 0.118.2
+a456ed966ef9616774910221fd7b32fef8da128b
