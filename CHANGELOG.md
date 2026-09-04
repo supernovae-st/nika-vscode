@@ -12,6 +12,12 @@ Generated language and design surfaces follow that engine's exact spec pin.
 Public archives, clean-host editor behavior and both registry publications
 remain separate readiness gates in `PUBLISHING.md`.
 
+Engine installation verifies a candidate in per-attempt staging before
+replacing installed bytes. Download errors and cancellation await stream
+closure and cleanup; a failed attempt preserves the previous binary.
+Archive transfers have a finite deadline and cannot truncate a file owned
+by another transfer.
+
 One admission policy now guards discovery, restarts, LSP, workflows, native
 tasks, Station and LM tools. Unsupported selections retain their refusal;
 late probes cannot revive a replaced engine. The selected absolute path is
