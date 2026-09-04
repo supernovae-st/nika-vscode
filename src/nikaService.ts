@@ -38,6 +38,7 @@ import { annotateDataFlow } from './core/dataflow';
 import { collectBodyFacts } from './core/bodyFacts';
 import { parseRegions } from './core/regions';
 import { buildSchemaIntel, type SchemaIntel } from './core/schemaIntel';
+import { readSchema, readToolCatalog } from './core/capabilityReads';
 import { GRAMMAR_CANARY_DOC, grammarAccepted } from './core/grammarCanary';
 import { parseSemanticDocument, type TaskSpans } from './core/semanticDoc';
 import {
@@ -178,7 +179,7 @@ export class NikaService {
     // `check --help` carries the dash/fix probes and `explain --help` carries
     // the file-form probe. The other historically hidden machine doors ride
     // the same first wave. A successful own help is capability evidence.
-    const FIRST_PROBE_VERBS = ['check', 'explain', 'inspect', 'spec', 'lsp', 'mcp', 'dap'] as const;
+    const FIRST_PROBE_VERBS = ['check', 'explain', 'inspect', 'spec', 'catalog', 'lsp', 'mcp', 'dap'] as const;
     const [help, version, ...firstProbes] = await Promise.all([
       spawnCli(binaryPath, ['--help'], 5000),
       spawnCli(binaryPath, ['--version'], 5000),
@@ -206,6 +207,10 @@ export class NikaService {
       checkHelp?.stdout ?? '',
       explainHelp?.stdout ?? '',
       probedOk,
+      {
+        spec: probeResults.get('spec')?.code === 0 ? probeResults.get('spec')?.stdout : undefined,
+        catalog: probeResults.get('catalog')?.code === 0 ? probeResults.get('catalog')?.stdout : undefined,
+      },
     );
     this.changeEmitter.fire();
 
@@ -213,16 +218,14 @@ export class NikaService {
     // up on the next query; a change event re-renders open surfaces).
     this.intelValue = undefined;
     if (hasSchemaDoor(this.capsValue)) {
-      // New door first (engine ≥ the Rams pass: `spec --schema`), the
-      // retired `schema` verb as the published-binary fallback.
-      const [schemaNew, canonRes] = await Promise.all([
-        spawnCli(binaryPath, ['spec', '--schema'], 10000),
-        spawnCli(binaryPath, ['spec', '--canon'], 10000),
+      const [schemaRes, canonRes] = await Promise.all([
+        readSchema(this.capsValue, (args, timeoutMs) => spawnCli(binaryPath, args, timeoutMs)),
+        this.capsValue.spec ? spawnCli(binaryPath, ['spec', '--canon'], 10000) : undefined,
       ]);
-      const schemaRes =
-        schemaNew.code === 0 ? schemaNew : await spawnCli(binaryPath, ['schema'], 10000);
       try {
-        this.intelValue = buildSchemaIntel(JSON.parse(schemaRes.stdout), canonRes.stdout);
+        this.intelValue = schemaRes?.code === 0
+          ? buildSchemaIntel(JSON.parse(schemaRes.stdout), canonRes?.code === 0 ? canonRes.stdout : '')
+          : undefined;
       } catch {
         this.intelValue = undefined;
       }
@@ -234,18 +237,14 @@ export class NikaService {
     // spawn or the parse — every consumer keeps its fallback.
     this.toolCatsValue = undefined;
     this.catalogModelsValue = undefined;
-    // New door first (`catalog --tools` · the Rams pass), the retired
-    // `tools` verb as the published-binary fallback.
-    const [toolsNew, catalogRes] = await Promise.all([
-      spawnCli(binaryPath, ['catalog', '--tools', '--json'], 10000),
-      spawnCli(binaryPath, ['catalog', '--json'], 10000),
+    const [toolsRes, catalogRes] = await Promise.all([
+      readToolCatalog(this.capsValue, (args, timeoutMs) => spawnCli(binaryPath, args, timeoutMs)),
+      this.capsValue.commands.has('catalog') ? spawnCli(binaryPath, ['catalog', '--json'], 10000) : undefined,
     ]);
-    const toolsRes =
-      toolsNew.code === 0 ? toolsNew : await spawnCli(binaryPath, ['tools', '--json'], 10000);
-    if (toolsRes.code === 0) {
+    if (toolsRes?.code === 0) {
       this.toolCatsValue = parseToolMeta(toolsRes.stdout);
     }
-    if (catalogRes.code === 0) {
+    if (catalogRes?.code === 0) {
       this.catalogModelsValue = parseCatalogModels(catalogRes.stdout);
     }
     if (this.toolCatsValue || this.catalogModelsValue) { this.changeEmitter.fire(); }
@@ -618,13 +617,8 @@ export class NikaService {
   }
 
   async schemaText(): Promise<string | undefined> {
-    if (!hasSchemaDoor(this.caps)) { return undefined; }
-    // New door first (`spec --schema` · the Rams pass), the retired
-    // `schema` verb as the published-binary fallback.
-    const fresh = await this.runCli(['spec', '--schema']);
-    if (fresh.code === EXIT.OK) { return fresh.stdout; }
-    const res = await this.runCli(['schema']);
-    return res.code === EXIT.OK ? res.stdout : undefined;
+    const res = await readSchema(this.caps, (args, timeoutMs) => this.runCli(args, timeoutMs));
+    return res?.code === EXIT.OK ? res.stdout : undefined;
   }
 
   async examplesList(): Promise<string[]> {

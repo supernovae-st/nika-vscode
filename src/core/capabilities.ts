@@ -17,6 +17,8 @@ export const CAPABILITY_COMMANDS = [
   'init',
   'spec',
   'schema',
+  'catalog',
+  'tools',
   'model',
   'try',
   'new',
@@ -45,6 +47,9 @@ export interface CapabilitySet {
   init: boolean;
   spec: boolean;
   schema: boolean;
+  /** Canonical read flags proven by the command's successful own help. */
+  specSchema: boolean;
+  catalogTools: boolean;
   /** `nika model` — local GGUFs: pull · serve · list · rm (0.105+). */
   model: boolean;
   examples: boolean;
@@ -105,12 +110,12 @@ export function versionAtLeast(versionText: string, major: number, minor: number
 }
 
 /** The schema door: 0.105 folded the `schema` verb into `spec --schema`.
- *  The door is open when EITHER form ships — consumers try the new form
- *  first and keep the retired verb as the published-binary fallback.
+ *  The door is open when either form ships. Consumers select the advertised
+ *  canonical operation; a failure never retries a retired spelling.
  *  Gating on `schema` alone left every 0.105 user without schema intel
  *  (the fallback chain existed but sat behind a dead outer gate). */
-export function hasSchemaDoor(caps: Pick<CapabilitySet, 'spec' | 'schema'>): boolean {
-  return caps.spec || caps.schema;
+export function hasSchemaDoor(caps: Pick<CapabilitySet, 'specSchema' | 'schema'>): boolean {
+  return caps.specSchema || caps.schema;
 }
 
 /** Parse a clap command table or the 0.116 first-contact help mirror. */
@@ -154,6 +159,7 @@ export function buildCapabilities(
   checkHelpText = '',
   explainHelpText = '',
   probedOk: readonly string[] = [],
+  readHelp: { spec?: string; catalog?: string } = {},
 ): CapabilitySet {
   // The first screen is not an exhaustive capability register. A verb proven
   // by its own successful --help door joins the visible command set.
@@ -168,6 +174,8 @@ export function buildCapabilities(
     init: commands.has('init'),
     spec: commands.has('spec'),
     schema: commands.has('schema'),
+    specSchema: commands.has('spec') && /^\s+--schema(?:[=\s]|$)/m.test(readHelp.spec ?? ''),
+    catalogTools: commands.has('catalog') && /^\s+--tools(?:[=\s]|$)/m.test(readHelp.catalog ?? ''),
     model: commands.has('model'),
     // V5: the showroom door is `try` (the examples verb tree died
     // in 0.107) — the cap keeps its name, its source is the living door.

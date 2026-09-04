@@ -74,15 +74,12 @@ import {
 } from './lspClient';
 import {
   ensureCursorGlobalMcpConfig,
-  ensureCursorMcpConfig,
-  type McpWriteResult,
-  ensureCursorRules,
-  ensureVscodeMcpConfig,
   ensureWindsurfMcpConfig,
   isCursor,
   isWindsurf,
 } from './mcpConfig';
 import { NikaService } from './nikaService';
+import { wireHostOnce, type HostWiringOutcome } from './core/hostWiring';
 import { NikaStatusBar } from './features/statusBar';
 import { NikaLanguageStatus } from './features/languageStatus';
 import { WorkspaceLint } from './features/workspaceLint';
@@ -667,6 +664,10 @@ export function activate(context: ExtensionContext): void {
         }
       }
       const equip = await equipHost(true);
+      if (equip.kind !== 'wired') {
+        void window.showWarningMessage(`Nika setup: MCP wiring ${equip.kind}. ${equip.detail}`);
+        return;
+      }
       const folder = workspace.workspaceFolders?.[0];
       let inited = false;
       if (folder && service.caps.init) {
@@ -681,21 +682,10 @@ export function activate(context: ExtensionContext): void {
         }
       }
       void refreshJourney();
-      if (equip === 'failed') {
-        // The one orchestrated gesture promised «nothing here is
-        // silent» — a wire failure must not collapse into ‹unchanged›.
-        void window.showWarningMessage(
-          `Nika setup: engine ${service.caps.version || 'ready'} ready, but the MCP wire FAILED — your agent cannot start the oracle yet.`,
-          'Details',
-        ).then((pick) => {
-          if (pick === 'Details') { void commands.executeCommand('nika.showOutput'); }
-        });
-        return;
-      }
       // Diet: a completed setup is visible in every surface it lit —
       // the recap flashes, no toast survives it.
       flashStatus(
-        `$(check) Nika setup complete · engine ${service.caps.version || 'ready'} · MCP ${equip === 'wired' ? 'wired' : 'unchanged'} · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
+        `$(check) Nika setup complete · engine ${service.caps.version || 'ready'} · MCP wired · LSP ${service.caps.lsp ? 'on' : 'client-side'}${inited ? ' · repo equipped' : ''}`,
         6000,
       );
     }),
@@ -3161,7 +3151,12 @@ export function activate(context: ExtensionContext): void {
       }
       const created = (res.stdout.match(/created /g) ?? []).length;
       const skipped = (res.stdout.match(/skipped/g) ?? []).length;
-      await configureMcpForHost(state.resolvedServerPath, service.intel?.providers, false);
+      const equip = await equipHost(true);
+      if (equip.kind !== 'wired') {
+        void window.showWarningMessage(`Nika: project files scaffolded, but MCP wiring ${equip.kind}. ${equip.detail}`);
+        void refreshJourney();
+        return;
+      }
       void refreshJourney();
       void window.showInformationMessage(
         `Nika: project equipped · ${created} file(s) scaffolded${skipped ? `, ${skipped} kept` : ''}, MCP + agent rules wired.`,
@@ -3977,33 +3972,27 @@ export function activate(context: ExtensionContext): void {
       } else {
         void informSoftly('binary-predates-init', 'Nika: this binary has no `init`; wiring MCP only.');
       }
-      // The engine's own idempotent writer is canonical when present
-      // (registry SSOT, covers cursor·vscode·windsurf·claude·codex) —
-      // the extension's hand-writers stay as the older-binary fallback.
-      if (service.caps.wire) {
-        const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
-        const res = await service.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
-        if (res.code === 0) {
-          const extra = await window.showInformationMessage(
-            `Nika: MCP + agent rules wired for ${target} (engine-canonical).`,
-            'Also wire codex',
-            'Also wire claude',
-          );
-          if (extra) {
-            const t2 = extra.endsWith('codex') ? 'codex' : 'claude';
-            const r2 = await service.runCli(['wire', t2, '--dir', folder.uri.fsPath], 30000);
-            if (r2.code === 0) {
-              flashStatus(`$(plug) ${t2} wired — its agent now calls the same oracle`);
-            } else {
-              log('WARN', `nika wire ${t2} failed (${r2.code}): ${r2.stderr || r2.stdout}`);
-              window.showWarningMessage(`Nika: wire ${t2} failed — see the output channel.`);
-            }
-          }
-          return;
-        }
-        log('WARN', `nika wire ${target} failed (${res.code}): ${res.stderr || res.stdout} — falling back to extension writers`);
+      const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
+      const equip = await equipHost(true);
+      if (equip.kind !== 'wired') {
+        void window.showWarningMessage(`Nika: MCP wiring ${equip.kind}. ${equip.detail}`);
+        return;
       }
-      await configureMcpForHost(state.resolvedServerPath, service.intel?.providers);
+      const extra = await window.showInformationMessage(
+        `Nika: MCP + agent rules wired for ${target}.`,
+        ...(service.caps.wire ? ['Also wire codex', 'Also wire claude'] : []),
+      );
+      if (extra) {
+        const t2 = extra.endsWith('codex') ? 'codex' : 'claude';
+        const r2 = await service.runCli(['wire', t2, '--dir', folder.uri.fsPath], 30000);
+        if (r2.code === 0) {
+          flashStatus(`$(plug) ${t2} wired · its agent now calls the same oracle`);
+        } else {
+          const detail = r2.stderr || r2.stdout || `exit ${r2.code}`;
+          log('WARN', `nika wire ${t2} failed: ${detail}`);
+          void window.showWarningMessage(`Nika: wire ${t2} failed. ${detail}`);
+        }
+      }
     }),
   );
 
@@ -4270,32 +4259,33 @@ export function activate(context: ExtensionContext): void {
 }
 
 /**
- * The one auto-power move: wire MCP for this host (engine-canonical
- * `nika wire`, idempotent · Cursor-global fallback). Shared by the
- * activation path, the binary-becomes-available TRANSITION (a download
- * mid-session must light everything without a reload — the gap the
- * first cut had) and the Finish-setup orchestrator.
+ * Shared by explicit setup and the existing autoSetup-authorized paths.
+ * Choose a single host operation before writing; preserve its refusal.
  */
-type EquipOutcome = 'wired' | 'failed' | 'skipped';
-
-async function equipHost(silent = false): Promise<EquipOutcome> {
-  const folder = workspace.workspaceFolders?.[0];
-  let outcome: EquipOutcome = 'skipped';
-  if (svc.caps.wire && folder) {
-    const target = isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode';
-    const res = await svc.runCli(['wire', target, '--dir', folder.uri.fsPath], 30000);
-    outcome = res.code === 0 ? 'wired' : 'failed';
-    if (outcome === 'failed') {
-      log('WARN', `auto wire ${target} failed (${res.code}): ${res.stderr || res.stdout}`);
+async function equipHost(silent = false): Promise<HostWiringOutcome> {
+  const nikaOnPath = commandOnPath('nika', process.env.PATH, process.platform, (candidate) => {
+    try { fs.accessSync(candidate, fs.constants.X_OK); return true; } catch { return false; }
+  });
+  const outcome = await wireHostOnce({
+    target: isCursor() ? 'cursor' : isWindsurf() ? 'windsurf' : 'vscode',
+    directory: workspace.workspaceFolders?.[0]?.uri.fsPath,
+    mcp: svc.caps.mcp,
+    wire: svc.caps.wire,
+    binaryPath: state.resolvedServerPath,
+    nikaOnPath: Boolean(nikaOnPath),
+  }, {
+    runCli: (args, timeoutMs) => svc.runCli(args, timeoutMs),
+    machineAbsolute: (target, binaryPath) => target === 'cursor'
+      ? ensureCursorGlobalMcpConfig(binaryPath, log)
+      : ensureWindsurfMcpConfig(binaryPath, log),
+  });
+  if (outcome.kind !== 'wired') {
+    log(outcome.kind === 'failed' ? 'WARN' : 'INFO', `MCP wiring ${outcome.kind}: ${outcome.detail}`);
+    if (!silent && outcome.kind === 'failed') {
+      void window.showWarningMessage(`Nika: MCP wiring failed. ${outcome.detail}`);
     }
   }
-  if (outcome !== 'wired' && isCursor() && state.resolvedServerPath) {
-    const fallback = await ensureCursorGlobalMcpConfig(state.resolvedServerPath, log);
-    // The fallback only counts when it actually holds the wiring — a
-    // refused/failed write must never upgrade a failure to «wired».
-    if (fallback.state === 'wired' || fallback.state === 'unchanged') { outcome = 'wired'; }
-  }
-  if (outcome === 'wired' && !silent) {
+  if (outcome.kind === 'wired' && !silent) {
     // ONE toast per activation (Rams pass): the Cursor plugin pointer
     // rides it; the separate one-shot stays for the auto-setup-off path.
     const cursorTail = isCursor()
@@ -4313,6 +4303,11 @@ async function equipHost(silent = false): Promise<EquipOutcome> {
       void informSoftly('host-live-autosetup', 'Nika is live · MCP wired, language server on, diagnostics running (opt out: nika.autoSetup).');
     }
   }
+  if (outcome.kind === 'wired' && outcome.via === 'engine' && !nikaOnPath) {
+    void window.showWarningMessage(
+      'Nika MCP config uses the portable command "nika". Add the installed binary to PATH so your agent can start MCP.',
+    );
+  }
   return outcome;
 }
 
@@ -4326,73 +4321,6 @@ async function autoEquipOnce(): Promise<void> {
   if (extContext.workspaceState.get<boolean>('nika.autoEquipDone')) { return; }
   await extContext.workspaceState.update('nika.autoEquipDone', true);
   await equipHost();
-}
-
-async function configureMcpForHost(
-  resolvedServerPath: string | undefined,
-  providers: Parameters<typeof ensureCursorRules>[1],
-  notify = true,
-): Promise<void> {
-  if (!workspace.workspaceFolders?.[0]) {
-    window.showWarningMessage('Nika: open a folder before wiring MCP and agent rules.');
-    return;
-  }
-  let written: McpWriteResult;
-  if (isCursor()) {
-    written = await ensureCursorMcpConfig(resolvedServerPath, log);
-    await ensureCursorRules(log, providers);
-    if (notify && written.state !== 'refused-malformed') {
-      flashStatus(written.state === 'unchanged'
-        ? '$(plug) MCP already wired for Cursor'
-        : '$(plug) MCP + .cursor/rules wired for Cursor');
-    }
-  } else if (isWindsurf()) {
-    written = await ensureWindsurfMcpConfig(resolvedServerPath, log);
-    if (notify && written.state !== 'refused-malformed') {
-      flashStatus(written.state === 'unchanged'
-        ? '$(plug) MCP already wired for Windsurf'
-        : '$(plug) MCP config wired for Windsurf');
-    }
-  } else {
-    written = await ensureVscodeMcpConfig(resolvedServerPath, log);
-    if (notify && written.state !== 'refused-malformed') {
-      flashStatus(written.state === 'unchanged'
-        ? '$(plug) MCP already wired (.vscode/mcp.json)'
-        : '$(plug) MCP config wired (.vscode/mcp.json)');
-    }
-  }
-  if (written.state === 'refused-malformed' && written.file) {
-    // The refusal was the SILENT lie: the file it will not touch gets
-    // named, with the door to fix it — «wired» never flashes over it.
-    const file = written.file;
-    void window.showWarningMessage(
-      `Nika: ${path.basename(file)} is not valid JSON — refusing to overwrite it. Fix the file, then rerun setup.`,
-      'Open file',
-    ).then((pick) => {
-      if (pick === 'Open file') {
-        void window.showTextDocument(Uri.file(file));
-      }
-    });
-  }
-  // The PATH gap, CLOSED instead of warned (first-run intelligence):
-  // when the only binary is the extension-downloaded one, `nika` is not
-  // on PATH and the workspace config's portable command cannot start the
-  // oracle. Cursor gets the machine-scoped ~/.cursor/mcp.json with the
-  // absolute path (never committed · other servers untouched); the probe
-  // guarantees a brew install is never shadowed.
-  const nikaOnPath = commandOnPath('nika', process.env.PATH, process.platform, (c) => {
-    try { fs.accessSync(c, fs.constants.X_OK); return true; } catch { return false; }
-  });
-  if (resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && isCursor()) {
-    await ensureCursorGlobalMcpConfig(resolvedServerPath, log);
-    if (notify) {
-      void informSoftly('cursor-global-mcp-path', 'Nika: `nika` is not on PATH — the machine-scoped ~/.cursor/mcp.json now points at the downloaded binary.');
-    }
-  } else if (notify && resolvedServerPath && path.isAbsolute(resolvedServerPath) && !nikaOnPath && !isWindsurf()) {
-    window.showWarningMessage(
-      `Nika MCP workspace config uses the portable command "nika". Add ${path.dirname(resolvedServerPath)} to PATH if your agent cannot start MCP.`,
-    );
-  }
 }
 
 /** Discovery priority: explicit config → bundled → PATH (`nika` · `nika-cli`) → cached → download. */
