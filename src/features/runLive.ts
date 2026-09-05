@@ -19,7 +19,6 @@ import { STATUS_CHAR } from '../core/glyphRegistry';
 import { summarizeRun, type FoldedStatus, type RunModel } from '../core/traceFold';
 import { TraceStream } from '../core/traceStream';
 import { runObservationError } from '../core/runObservation';
-import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
 import { runAnnouncementStream } from '../core/runAnnouncement';
 import type { DagPanel, TaskStatus } from '../dagPanel';
@@ -152,14 +151,6 @@ export function runWorkflowLive(
     spawnFingerprints = undefined;
   }
 
-  {
-    const keep = vscode.workspace.getConfiguration('nika').get<number>('traces.keep', 200);
-    const extra = opts?.extraArgs ?? [];
-    const ri = extra.indexOf('--resume');
-    // Protect the imminent spawn's own --resume target; paused journals
-    // are protected inside the pruner (both were the 0.97.0 CRITICAL).
-    pruneTraces(path.dirname(fsPath), keep, ri >= 0 ? extra[ri + 1] : undefined);
-  }
   // The anchor only prints at run END: a run that dies without printing
   // it (Stop = SIGTERM · crash · sink failure · older engine) must NOT
   // wear the PREVIOUS run's head on its verdict banner — the map is
@@ -452,11 +443,6 @@ export function runWorkflowLive(
         } else {
           maybeAskCommunity(verdict);
         }
-      }
-      // Only meaningful runs land (≥1 task event) — a spawn that died
-      // before any task event has nothing worth resuming from.
-      if (model.tasks.size > 0 && buffer.length > 0) {
-        persistTrace(fsPath, buffer);
       }
       if (code !== 0 && code !== null && verdict !== 'failed' && verdict !== 'cancelled') {
         // Exited non-zero but the stream did not explain why (crash before

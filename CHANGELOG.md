@@ -24,8 +24,14 @@ that observation limit retracts current badges and running highlights,
 continues draining the engine process, and reports an incomplete preview.
 It never persists a truncated capture or turns exit zero into a green run.
 Split editors now update together when an observation changes or disappears.
-This bounds live observation, not offline replay or the engine journal;
-removing the remaining editor-side capture persistence is still separate work.
+This bounds live observation, not offline replay or the engine journal.
+
+The engine is now the only journal writer and retention owner. The editor's
+duplicate trace copy, filename-ranked resume lookup, automatic pruner and
+`nika.traces.keep` setting are removed. Existing journals are not deleted by
+this migration. Resume uses the current engine announcement or asks for one
+local journal; canceling that choice does nothing, never starts a fresh run.
+The engine still judges the chosen journal's binding and resumability.
 
 Test Explorer judges the machine capture of its own engine process, not a
 filename-ranked journal from an older run. Timeout, capture overflow, missing

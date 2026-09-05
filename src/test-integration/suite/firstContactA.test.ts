@@ -111,17 +111,31 @@ suite('first contact · launch A (virgin machine · zero gestures to green)', ()
     // drain) runs a beat LATER. Killing the host between the two once
     // masked the close path entirely (2026-07-24). Bridge with an
     // OBSERVABLE per this suite's own law, never a blind sleep:
-    // persistTrace() writes the extension's own trace copy
-    // (`hello-canvas-<stamp>.ndjson` — slug-first, disjoint from the
-    // engine's stamp-first journal names) at the END of the close
-    // handler, so that file on disk proves the verdict/celebrate path
-    // ran to completion inside this window.
-    const dir = path.join(workspaceRoot(), '.nika', 'traces');
+    // The existing canvas-state projection is written after the verdict
+    // and celebration path, inside close. In this virgin workspace,
+    // all five task fingerprints prove that callback reached its end.
+    // This is editor memory, not a second journal or a seal verifier.
+    const statePath = path.join(workspaceRoot(), '.nika', 'canvas-state.json');
     await until(
-      'the extension trace copy (the run-close handler ran)',
-      () => fs.existsSync(dir) && fs.readdirSync(dir).some((f) => f.startsWith('hello-canvas-')),
+      'the final canvas-state projection (the run-close handler ran)',
+      () => {
+        try {
+          const state = JSON.parse(fs.readFileSync(statePath, 'utf8')) as {
+            version?: unknown;
+            workflows?: Record<string, { taskHashes?: Record<string, unknown> }>;
+          };
+          const hashes = state.workflows?.[DEMO_FILE]?.taskHashes;
+          return state.version === 1 && hashes !== undefined && DEMO_TASKS.every((task) => {
+            const hash = hashes[task];
+            return typeof hash === 'string' && /^[0-9a-f]{8}$/.test(hash);
+          });
+        } catch { return false; }
+      },
       30000,
     );
+    const journals = fs.readdirSync(path.join(workspaceRoot(), '.nika', 'traces'))
+      .filter((file) => file.endsWith('.ndjson'));
+    assert.equal(journals.length, 1, 'one demo run has one engine journal, never an editor tee');
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await sleep(500);
   });

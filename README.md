@@ -637,8 +637,8 @@ The sixteen you'll reach for first: the full set lives in the
 
 ## Settings
 
-Ten that carry the surface: all of them, with defaults and
-cross-links, in the **Feature Contributions** tab.
+Key settings are below; the complete list, defaults and cross-links live
+in the **Feature Contributions** tab.
 
 | Setting | Default | What it carries |
 |---|---|---|
@@ -648,10 +648,13 @@ cross-links, in the **Feature Contributions** tab.
 | `nika.diagnostics.runOn` | `type` | when `nika check` paints squiggles (`save` calms it, `off` silences) |
 | `nika.diagnostics.severity` | `{}` | remap any finding per code or family (`NIKA-SEC-*` · `off` hides one) |
 | `nika.run.liveDag` | on | runs stream onto the DAG instead of a terminal scroll |
-| `nika.traces.keep` | `200` | flight-recorder housekeeping: keep the newest N journals per workflow |
 | `nika.replay.speed` | `6` | time-travel compression (6 = six times faster than recorded) |
 | `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
 | `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
+
+Run journals and retention belong to the engine; the extension neither
+duplicates nor prunes them. Resume uses the journal announced for the current
+workflow, or asks you to choose one. Canceling the picker starts no run.
 
 <!-- city:map -->
 ## The city · where this repo sits

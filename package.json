@@ -1023,13 +1023,6 @@
           "order": 33,
           "markdownDescription": "Warn on literal credentials pasted in workflow YAML (pure local scan) with a quick fix that declares the key under `secrets:` and reads it masked. Off: pasted keys sit unflagged until review."
         },
-        "nika.traces.keep": {
-          "type": "number",
-          "default": 200,
-          "minimum": 0,
-          "order": 42,
-          "markdownDescription": "Journal housekeeping: keep the newest N run journals per workflow directory (0 = unlimited). Above the cap, oldest journals are deleted after each run; paused journals and the active resume target always survive."
-        },
         "nika.traces.glob": {
           "type": "string",
           "default": "**/.nika/traces/*.ndjson",

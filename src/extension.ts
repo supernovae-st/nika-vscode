@@ -127,7 +127,7 @@ import { runWorkflowLive, cancelActiveRun, lastTracePathByWorkflow, isRunActive 
 import { initCommunityAsk } from './features/communityAsk';
 import { initFirstGreen } from './features/firstGreen';
 import { flashStatus, informSoftly, initNotify } from './features/notify';
-import { latestTraceFor } from './core/tracePersist';
+import { chooseResumeJournal } from './features/resumeSource';
 import { explainWorkflow } from './core/explainWorkflow';
 import { costDelta } from './core/costDelta';
 import { CostBaselineTracker } from './features/costBaseline';
@@ -2403,7 +2403,7 @@ function activateTrusted(context: ExtensionContext): void {
     }
   };
 
-  // Δ re-run what changed — `run --resume <newest trace>` (ADR-099). The
+  // Δ re-run what changed — an announced or explicitly chosen journal. The
   // ENGINE decides the dirty slice by def_hash/input_hash; unchanged
   // tasks cache-hit their recorded output. ONE flow shared by the canvas
   // Δ button and the `nika.resumeWorkflow` palette command.
@@ -2412,21 +2412,15 @@ function activateTrusted(context: ExtensionContext): void {
     if (!doc) { return; }
     if (!service.caps.resume) {
       void informSoftly(
-        'binary-predates-resume',
-        'Nika: this binary predates `run --resume` (the 0.93 line) — update it to re-run only what changed.',
+        'engine-resume-unavailable',
+        'Nika: the selected engine does not provide resumable runs.',
       );
       return;
     }
-    if (doc.isDirty) { await doc.save(); }
     if (doc.uri.scheme !== 'file') { return; }
-    const trace = latestTraceFor(doc.uri.fsPath);
-    if (!trace) {
-      // Diet: narration of an automatic fallback — a flash, the run
-      // itself is the visible answer.
-      flashStatus('$(play) no recorded run to resume from — running the whole workflow');
-      await commands.executeCommand('nika.runWorkflow', doc.uri);
-      return;
-    }
+    const trace = await chooseResumeJournal(doc.uri.fsPath, lastTracePathByWorkflow.get(doc.uri.fsPath));
+    if (!trace) { return; }
+    if (doc.isDirty && !(await doc.save())) { return; }
     dagWorkflowUri = doc.uri;
     const graph = await loadGraphFor(doc);
     dagPanel.show(graph);

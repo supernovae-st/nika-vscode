@@ -4,11 +4,16 @@ import type { DagPanel } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 
 const host = vi.hoisted(() => ({
-  spawn: vi.fn(), warning: vi.fn(), store: vi.fn(), persist: vi.fn(), hashes: vi.fn(),
+  spawn: vi.fn(), warning: vi.fn(), store: vi.fn(), write: vi.fn(), hashes: vi.fn(),
+  mkdir: vi.fn(), unlink: vi.fn(),
   active: vi.fn(), community: vi.fn(),
   celebrate: vi.fn(), clear: vi.fn(),
 }));
 vi.mock('child_process', () => ({ spawn: host.spawn }));
+vi.mock('fs', async (importOriginal) => ({
+  ...await importOriginal<typeof import('fs')>(),
+  writeFileSync: host.write, mkdirSync: host.mkdir, unlinkSync: host.unlink,
+}));
 vi.mock('vscode', () => ({
   EventEmitter: class { event = vi.fn(); fire = host.active; },
   workspace: { getConfiguration: () => ({ get: () => 200 }) },
@@ -19,7 +24,6 @@ vi.mock('../features/communityAsk', () => ({ maybeAskCommunity: host.community }
 vi.mock('../features/firstGreen', () => ({ maybeCelebrateFirstGreen: host.celebrate }));
 vi.mock('../features/runsView', () => ({ cancelActiveReplay: vi.fn() }));
 vi.mock('../core/canvasState', () => ({ saveRunHashes: host.hashes }));
-vi.mock('../core/tracePersist', () => ({ persistTrace: host.persist, pruneTraces: vi.fn() }));
 vi.mock('../core/traceStore', () => ({ traceStore: { set: host.store, clear: host.clear } }));
 
 class Child extends EventEmitter {
@@ -54,6 +58,14 @@ beforeEach(async () => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('live run ownership and settlement', () => {
+  it('observes the engine journal without creating or pruning another trace', () => {
+    api.runWorkflowLive(service, panel, file, log);
+    children[0].stdout.emit('data', event('task_completed', [{ key: 'task', value: 'work' }]) + event('workflow_completed'));
+    children[0].emit('close', 0);
+    expect(host.write).not.toHaveBeenCalled();
+    expect(host.mkdir).not.toHaveBeenCalled();
+    expect(host.unlink).not.toHaveBeenCalled();
+  });
   it.each([
     { tail: event('workflow_completed'), code: 1 },
     { tail: event('workflow_completed'), code: null },
@@ -67,7 +79,7 @@ describe('live run ownership and settlement', () => {
     children[0].emit('close', code);
     expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain('observation');
     expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).not.toContain('st-success');
-    expect(host.persist).not.toHaveBeenCalled();
+    expect(host.write).not.toHaveBeenCalled();
     expect(host.hashes).not.toHaveBeenCalled();
     expect(host.celebrate).not.toHaveBeenCalled();
     expect(host.community).not.toHaveBeenCalled();
@@ -88,7 +100,7 @@ describe('live run ownership and settlement', () => {
     children[0].emit('close', 0);
     expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain('live preview incomplete');
     expect(host.store).not.toHaveBeenCalled();
-    expect(host.persist).not.toHaveBeenCalled();
+    expect(host.write).not.toHaveBeenCalled();
     expect(host.hashes).not.toHaveBeenCalled();
     expect(host.celebrate).not.toHaveBeenCalled();
     expect(host.community).not.toHaveBeenCalled();
@@ -154,7 +166,7 @@ describe('live run ownership and settlement', () => {
     expect(host.warning).not.toHaveBeenCalled();
     old.emit('close', -2);
     expect(onClose).not.toHaveBeenCalled();
-    expect(host.persist).not.toHaveBeenCalled();
+    expect(host.write).not.toHaveBeenCalled();
     old.emit('close', -2);
     old.stdout.emit('data', event('workflow_completed'));
     expect(api.isRunActive()).toBe(true);
