@@ -15,6 +15,34 @@ permissions:
   contents: read
 
 jobs:
+  native-terminal:
+    name: native terminal · literal argv + empty-window refusal
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run compile && npm run compile:integration
+      # Source transport needs no public engine or credentials. The same
+      # owned-process runner still requires host exit; assertions alone
+      # cannot turn a stuck host into a passing probe.
+      - name: Both native transport boundaries, including host exit
+        run: |
+          xvfb-run -a node --input-type=module <<'JS'
+          import { runSuite } from './scripts/run-integration.mjs';
+          for (const empty of ['0', '1']) {
+            runSuite('out-integration/runTests.js', {
+              ...process.env,
+              NIKA_ITEST_SUITE: 'terminalArgs',
+              NIKA_TERMINAL_EMPTY: empty,
+            }, { timeoutMs: 180_000 });
+          }
+          JS
+
   ownership-model:
     name: ownership model · safety + two negative controls
     runs-on: ubuntu-latest

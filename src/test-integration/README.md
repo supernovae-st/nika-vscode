@@ -20,7 +20,24 @@ stale or in-flight engine cannot counterfeit release evidence.
 the binary at a bogus path (LSP off) so the smoke test targets what it
 means to — activation, not the language server.
 
-What it asserts (`suite/activation.test.ts`):
+## Source-only terminal transport
+
+The `native-terminal` PR job independently runs `terminalArgs` twice on
+Linux: a folder host must preserve literal argv, working directory, TTY
+input and retained output; an empty window must refuse without submitting
+a task. It uses the same production adapter and bounded process-group
+runner, requires each host to exit, and needs no public engine archive.
+It does not replace the release-installed first-contact gate above.
+
+On the audited macOS host, the terminal assertions passed but automatic
+host teardown timed out. A separate bare-extension control reproduced
+that timeout with Nika absent. That observation does not certify native
+teardown or establish the underlying host defect; the boundary stays open
+until a complete clean-host run exits successfully.
+
+## Smoke-host assertions
+
+The default suite also checks (`suite/activation.test.ts`):
 
 - the extension **activates without throwing**
 - its **command surface is registered** (`nika.showDag` · `checkWorkflow`
