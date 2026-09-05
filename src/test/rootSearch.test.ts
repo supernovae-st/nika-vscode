@@ -72,6 +72,22 @@ describe('matchTier · the house matcher', () => {
     expect(matchTier('RW', wf)).toBe(2);
   });
 
+  it('a later boundary match still beats an earlier interior occurrence', () => {
+    expect(matchTier('run', item('a', 'prune run', 0))).toBe(1);
+    expect(matchTier('run', item('a', 'prune runner', 0))).toBe(1);
+    expect(matchTier('run', item('a', 'prune', 0))).toBe(2);
+  });
+
+  it('preserves every declared separator, repeated characters and UTF-16 matching', () => {
+    for (const separator of [' ', '\t', '-', '_', '.', ':', '/', '(', ')', '"', "'"]) {
+      expect(matchTier('beta', item('a', `alpha${separator}beta`, 0))).toBe(1);
+    }
+    expect(matchTier('beta', item('a', 'alpha\nbeta', 0))).toBe(2);
+    expect(matchTier('rr', item('a', 'run', 0))).toBeUndefined();
+    expect(matchTier('rr', item('a', 'run runner', 0))).toBe(2);
+    expect(matchTier('🦋r', item('a', 'prefix 🦋 runner', 0))).toBe(2);
+  });
+
   it('out-of-order or absent characters do not match', () => {
     expect(matchTier('wr ru', wf)).toBe(undefined);
     expect(matchTier('xyz', wf)).toBe(undefined);

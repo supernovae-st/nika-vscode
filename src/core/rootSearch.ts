@@ -79,19 +79,23 @@ const WORD_SEP = new Set([' ', '\t', '-', '_', '.', ':', '/', '(', ')', '"', "'"
 
 /** True when `q` sits at the start of a NON-first word of `text`. */
 function startsAWord(q: string, text: string): boolean {
-  for (let i = 1; i < text.length; i++) {
-    if (WORD_SEP.has(text[i - 1]) && text.startsWith(q, i)) { return true; }
+  // Search occurrences in the native string primitive; inspect separators
+  // only at actual matches, not once per character of every candidate.
+  for (let i = text.indexOf(q, 1); i !== -1; i = text.indexOf(q, i + 1)) {
+    if (WORD_SEP.has(text[i - 1])) { return true; }
   }
   return false;
 }
 
 /** True when the characters of `q` appear in `text` in order. */
 function isSubsequence(q: string, text: string): boolean {
-  let i = 0;
-  for (let j = 0; j < text.length && i < q.length; j++) {
-    if (text[j] === q[i]) { i++; }
+  let position = 0;
+  for (let i = 0; i < q.length; i++) {
+    const match = text.indexOf(q[i], position);
+    if (match === -1) { return false; }
+    position = match + 1;
   }
-  return i === q.length;
+  return true;
 }
 
 /**
