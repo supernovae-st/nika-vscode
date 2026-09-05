@@ -16,6 +16,22 @@ import {
 
 const root = resolve(import.meta.dirname, '..');
 
+test('the publishing runbook names the live standalone release owner', () => {
+  const runbook = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
+  assert.match(runbook, /https:\/\/github\.com\/supernovae-st\/nika-vscode/);
+  assert.doesNotMatch(runbook, /inert inside|live on split|git subtree split/);
+  assert.match(runbook, /not a cross-registry transaction/);
+});
+
+test('publishing readiness compiles before the belt and records immutable public receipts', () => {
+  const runbook = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
+  assert(runbook.indexOf('npm run compile') >= 0);
+  assert(runbook.indexOf('npm run compile') < runbook.indexOf('npm test'));
+  assert.match(runbook, /scripts\/pinned-engine\.mjs/);
+  assert.match(runbook, /RELEASE_RECEIPTS/);
+  assert.match(runbook, /tree equality/);
+});
+
 test('integration failures cannot bypass owned engine cleanup', () => {
   for (const file of [
     'scripts/run-integration.mjs',
