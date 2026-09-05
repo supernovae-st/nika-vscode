@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -15,6 +15,104 @@ import {
 } from './pinned-engine.mjs';
 
 const root = resolve(import.meta.dirname, '..');
+
+function httpResponse(url, body, headers = {}) {
+  const response = new Response(body, { headers });
+  Object.defineProperty(response, 'url', { value: url });
+  return response;
+}
+
+for (const mode of ['declared', 'chunked', 'underreported', 'invalid-length']) {
+  test(`release download refuses ${mode} oversized metadata before archive fetch or extraction`, async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'nika-pin-bounded-'));
+    let extractionCalls = 0;
+    const requests = [];
+    let cancelled = false;
+    try {
+      writeFileSync(join(dir, 'ENGINE_PIN'), 'v0.116.2\n');
+      const fetchImpl = async (url) => {
+        requests.push(url);
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array(64 * 1024));
+            controller.enqueue(new Uint8Array(1));
+          },
+          pull(controller) { controller.error(new Error('body consumed past size boundary')); },
+          cancel() { cancelled = true; },
+        }, { highWaterMark: 0 });
+        const length = { declared: '65537', underreported: '1', 'invalid-length': '1e9' }[mode];
+        return httpResponse(url, stream, length ? { 'content-length': length } : {});
+      };
+      await assert.rejects(installPinnedEngine({
+        rootDir: dir, tempRoot: dir, fetchImpl,
+        execFileSyncImpl: () => { extractionCalls += 1; },
+      }), /download limit|invalid content-length/);
+      assert.equal(extractionCalls, 0);
+      assert.equal(requests.length, 1, 'metadata refusal must precede archive admission');
+      assert.ok(cancelled, 'the rejected response body must be cancelled');
+      assert.deepEqual(readdirSync(dir), ['ENGINE_PIN'], 'owned scratch must be removed');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}
+
+test('an oversized archive header is refused before its first read or extraction', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nika-pin-archive-bound-'));
+  let reads = 0;
+  let cancelled = false;
+  try {
+    writeFileSync(join(dir, 'ENGINE_PIN'), 'v0.116.2\n');
+    const asset = releaseAsset(process.platform, process.arch, '0.116.2');
+    const { sha256 } = releaseReceipt('v0.116.2', asset);
+    const fetchImpl = async (url) => {
+      if (url.endsWith('SHA256SUMS')) return httpResponse(url, `${sha256}  ${asset}\n`);
+      return httpResponse(url, new ReadableStream({
+        pull() { reads += 1; },
+        cancel() { cancelled = true; },
+      }, { highWaterMark: 0 }), { 'content-length': String(256 * 1024 * 1024 + 1) });
+    };
+    await assert.rejects(installPinnedEngine({
+      rootDir: dir, tempRoot: dir, fetchImpl,
+      execFileSyncImpl: () => assert.fail('refused archive reached extraction'),
+    }), /download limit/);
+    assert.equal(reads, 0);
+    assert.ok(cancelled);
+    assert.deepEqual(readdirSync(dir), ['ENGINE_PIN']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('exact-limit metadata in tiny chunks preserves bytes before anchored archive refusal', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nika-pin-exact-bound-'));
+  const requests = [];
+  try {
+    writeFileSync(join(dir, 'ENGINE_PIN'), 'v0.116.2\n');
+    const asset = releaseAsset(process.platform, process.arch, '0.116.2');
+    const { sha256 } = releaseReceipt('v0.116.2', asset);
+    const sums = Buffer.from(`${sha256}  ${asset}\n`.padEnd(64 * 1024, ' '));
+    const fetchImpl = async (url) => {
+      requests.push(url);
+      if (!url.endsWith('SHA256SUMS')) return httpResponse(url, 'foreign archive');
+      let offset = 0;
+      return httpResponse(url, new ReadableStream({
+        pull(controller) {
+          if (offset === sums.length) controller.close();
+          else controller.enqueue(sums.subarray(offset, ++offset));
+        },
+      }));
+    };
+    await assert.rejects(installPinnedEngine({
+      rootDir: dir, tempRoot: dir, fetchImpl,
+      execFileSyncImpl: () => assert.fail('foreign archive reached extraction'),
+    }), /archive digest mismatch/);
+    assert.equal(requests.length, 2);
+    assert.deepEqual(readdirSync(dir), ['ENGINE_PIN']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test('the publishing runbook names the live standalone release owner', () => {
   const runbook = readFileSync(resolve(root, 'PUBLISHING.md'), 'utf8');
@@ -215,12 +313,7 @@ test('deadbeef0 archive and co-modified SHA256SUMS cannot replace the anchored r
     const coModifiedHash = createHash('sha256').update(archive).digest('hex');
     const fetchImpl = async (url) => {
       const body = Buffer.from(url.endsWith('SHA256SUMS') ? `${coModifiedHash}  ${asset}\n` : archive);
-      return {
-        ok: true,
-        status: 200,
-        url,
-        arrayBuffer: async () => body,
-      };
+      return httpResponse(url, body);
     };
     await assert.rejects(
       installPinnedEngine({
