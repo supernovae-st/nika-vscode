@@ -24,7 +24,13 @@ that observation limit retracts current badges and running highlights,
 continues draining the engine process, and reports an incomplete preview.
 It never persists a truncated capture or turns exit zero into a green run.
 Split editors now update together when an observation changes or disappears.
-This bounds live observation, not offline replay or the engine journal.
+The same per-journal budget now bounds recorded reads across history, detail,
+replay, reports, comparisons, X-ray and debug lookup. The reader admits a
+regular file and its opened descriptor before allocating payload memory,
+counts subsequent appends and rejects an oversized journal without returning
+a prefix. Explicit detail/report/replay actions explain the observation limit;
+the engine's durable journal is untouched. This is a per-file observation
+bound, not a global cache budget, atomic file snapshot or integrity proof.
 
 The engine is now the only journal writer and retention owner. The editor's
 duplicate trace copy, filename-ranked resume lookup, automatic pruner and

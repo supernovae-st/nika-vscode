@@ -1,7 +1,5 @@
 import { createTraceFold, type RunModel } from './traceFold';
-
-/** An editor observation budget, not a limit on the engine's durable journal. */
-export const LIVE_TRACE_MAX_BYTES = 16 * 1024 * 1024;
+import { TRACE_MAX_BYTES } from './traceLimits';
 
 /** Decode each complete line once, with a bounded raw capture for local replay. */
 export class TraceStream {
@@ -12,8 +10,8 @@ export class TraceStream {
   private ended = false;
   private exceeded = false;
 
-  constructor(private readonly maxBytes = LIVE_TRACE_MAX_BYTES) {
-    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > LIVE_TRACE_MAX_BYTES) {
+  constructor(private readonly maxBytes = TRACE_MAX_BYTES) {
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > TRACE_MAX_BYTES) {
       throw new RangeError('invalid live trace observation limit');
     }
   }

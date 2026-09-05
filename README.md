@@ -656,6 +656,12 @@ Run journals and retention belong to the engine; the extension neither
 duplicates nor prunes them. Resume uses the journal announced for the current
 workflow, or asks you to choose one. Canceling the picker starts no run.
 
+Editor observations admit at most 16 MiB per journal, live or recorded.
+An oversized file remains on disk; detail, report and replay explain why no
+partial preview is loaded. The bound is not a global cache budget or a claim
+that the file cannot change while it is read. Engine CLI operations keep
+their own limits and integrity checks.
+
 <!-- city:map -->
 ## The city · where this repo sits
 

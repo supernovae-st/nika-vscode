@@ -159,6 +159,8 @@ import {
 } from './core/preflight';
 import { traceStore } from './core/traceStore';
 import { foldTrace } from './core/traceFold';
+import { readTraceFile, TraceReadError } from './core/traceFile';
+import { UNREADABLE_DESCRIPTION } from './core/runsModel';
 import { renderRunReport } from './core/runReport';
 import { verifyChain } from './core/chainVerify';
 import { XrayInlayProvider } from './features/xray';
@@ -349,7 +351,7 @@ async function collectHistoryRuns(
   for (const { f, m } of stamped) {
     if (runs.length >= 12) { break; }
     try {
-      const model = foldTrace(fs.readFileSync(f.fsPath, 'utf-8'));
+      const model = foldTrace(readTraceFile(f.fsPath));
       const taskIds = [...model.tasks.keys()];
       if (!traceBelongsTo(model.workflowName, docName, taskIds, ids)) { continue; }
       if (taskIds.length === 0) { continue; }
@@ -2593,11 +2595,11 @@ function activateTrusted(context: ExtensionContext): void {
       }
       let fold;
       try {
-        fold = foldTrace(fs.readFileSync(traceUri.fsPath, 'utf-8'));
-      } catch {
+        fold = foldTrace(readTraceFile(traceUri.fsPath));
+      } catch (error) {
         void window
           .showWarningMessage(
-            'Nika: this trace is unreadable — it may be truncated (a killed run) or from another engine generation.',
+            `Nika: ${error instanceof TraceReadError ? error.message : UNREADABLE_DESCRIPTION}.`,
             'Reveal in Finder', 'Copy path',
           )
           .then((pick) => {
@@ -3506,11 +3508,11 @@ function activateTrusted(context: ExtensionContext): void {
       }
       let ndjson: string;
       try {
-        ndjson = fs.readFileSync(target.fsPath, 'utf-8');
-      } catch {
+        ndjson = readTraceFile(target.fsPath);
+      } catch (error) {
         void window
           .showWarningMessage(
-            'Nika: this trace is unreadable — it may be truncated (a killed run) or from another engine generation.',
+            `Nika: ${error instanceof TraceReadError ? error.message : UNREADABLE_DESCRIPTION}.`,
             'Reveal in Finder', 'Copy path',
           )
           .then((pick) => {
@@ -3715,16 +3717,20 @@ function activateTrusted(context: ExtensionContext): void {
         void window.showInformationMessage('Nika: pick a run in the Runs view to reproduce.');
         return;
       }
-      const name = (() => {
-        try { return foldTrace(fs.readFileSync(recorded.fsPath, 'utf-8')).workflowName; } catch { return undefined; }
-      })();
+      let name: string | undefined;
+      try {
+        name = foldTrace(readTraceFile(recorded.fsPath)).workflowName;
+      } catch (error) {
+        void window.showWarningMessage(`Nika: ${error instanceof TraceReadError ? error.message : UNREADABLE_DESCRIPTION}.`);
+        return;
+      }
       const glob = workspace.getConfiguration('nika').get<string>('traces.glob', '**/.nika/traces/*.ndjson');
       const files = (await workspace.findFiles(glob, '**/node_modules/**', 100))
         .filter((f) => f.fsPath !== recorded.fsPath);
       const candidates = files
         .map((f) => {
           try {
-            const text = fs.readFileSync(f.fsPath, 'utf-8');
+            const text = readTraceFile(f.fsPath);
             return { f, name: foldTrace(text).workflowName, m: fs.statSync(f.fsPath).mtimeMs };
           } catch { return undefined; }
         })

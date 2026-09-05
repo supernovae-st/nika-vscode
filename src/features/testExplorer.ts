@@ -30,6 +30,7 @@ import * as path from 'path';
 import type { NikaService } from '../nikaService';
 import { parseRichWorkflow } from '../workflowParser';
 import { foldTrace } from '../core/traceFold';
+import { readTraceFile } from '../core/traceFile';
 import { runSummaryLine, taskVerdict } from '../core/testBridge';
 import { runObservationError } from '../core/runObservation';
 import {
@@ -312,7 +313,7 @@ export function registerTestExplorer(
       if (explorerRunsInFlight > 0) { return; }
       const stat = fs.statSync(uri.fsPath);
       if (publishedTraces.get(uri.fsPath) === stat.size) { return; }
-      const model = foldTrace(fs.readFileSync(uri.fsPath, 'utf-8'));
+      const model = foldTrace(readTraceFile(uri.fsPath));
       if (model.tasks.size === 0) { return; }
       // A growing journal publishes at its terminal write only.
       if (!['completed', 'failed', 'cancelled'].includes(model.workflowStatus)) { return; }

@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import { workflowDrifted } from '../core/workflowDrift';
 import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
+import { readTraceFile, TraceReadError } from '../core/traceFile';
 import { formatEta, measuredEtaMs } from '../core/runEta';
 import { verifyChain, type ChainVerdict } from '../core/chainVerify';
 import { parseTraceOutputs } from '../core/xray';
@@ -143,7 +144,7 @@ function foldTraceCached(fsPath: string): { model: RunModel; mtimeMs: number } |
     if (hit && hit.mtimeMs === stat.mtimeMs && hit.sizeBytes === stat.size) {
       return { model: hit.model, mtimeMs: stat.mtimeMs };
     }
-    const model = foldTrace(fs.readFileSync(fsPath, 'utf-8'));
+    const model = foldTrace(readTraceFile(fsPath));
     foldCache.set(fsPath, { mtimeMs: stat.mtimeMs, sizeBytes: stat.size, model });
     // Bounded: drop the oldest insertion past 40 entries (the finder
     // caps at 60 files; 40 covers every warm path without pinning MBs
@@ -154,6 +155,7 @@ function foldTraceCached(fsPath: string): { model: RunModel; mtimeMs: number } |
     }
     return { model, mtimeMs: stat.mtimeMs };
   } catch {
+    foldCache.delete(fsPath);
     return undefined;
   }
 }
@@ -293,7 +295,7 @@ export async function latestTraceForGraph(
     const overlap = ids.filter((id) => graphIds.has(id)).length / ids.length;
     if (overlap < 0.6) { continue; }
     try {
-      return { ndjson: fs.readFileSync(f.uri.fsPath, 'utf-8'), fsPath: f.uri.fsPath };
+      return { ndjson: readTraceFile(f.uri.fsPath), fsPath: f.uri.fsPath };
     } catch {
       continue;
     }
@@ -630,7 +632,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           traces.push(cached);
           continue;
         }
-        const content = fs.readFileSync(uri.fsPath, 'utf-8');
+        const content = readTraceFile(uri.fsPath);
         const entry: TraceFile = {
           uri,
           mtimeMs: stat.mtimeMs,
@@ -646,6 +648,7 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
         // An unreadable journal COUNTS — it lands in the trailing
         // Unreadable section instead of silently vanishing from the
         // recorder (the catch used to swallow it whole).
+        this.parsed.delete(uri.fsPath);
         unreadable.push(uri);
       }
     }
@@ -728,7 +731,7 @@ export function overlayTraceOntoDag(dagPanel: DagPanel, traceUri: vscode.Uri): b
 
   let model: RunModel;
   try {
-    model = foldTrace(fs.readFileSync(traceUri.fsPath, 'utf-8'));
+    model = foldTrace(readTraceFile(traceUri.fsPath));
   } catch {
     return false;
   }
@@ -787,7 +790,13 @@ export async function replayIntoDag(
   traceUri: vscode.Uri,
   activeDoc: vscode.TextDocument | undefined,
 ): Promise<void> {
-  const content = fs.readFileSync(traceUri.fsPath, 'utf-8');
+  let content: string;
+  try {
+    content = readTraceFile(traceUri.fsPath);
+  } catch (error) {
+    void vscode.window.showWarningMessage(`Nika: ${error instanceof TraceReadError ? error.message : UNREADABLE_DESCRIPTION}.`);
+    return;
+  }
   const model = foldTrace(content);
   if (model.tasks.size === 0) {
     void vscode.window.showWarningMessage('Nika: this trace contains no task events.');
@@ -883,8 +892,8 @@ export function diffTracesOntoDag(
   let baseOutputs: Map<string, unknown>;
   let compareOutputs: Map<string, unknown>;
   try {
-    const baseRaw = fs.readFileSync(baseUri.fsPath, 'utf-8');
-    const compareRaw = fs.readFileSync(compareUri.fsPath, 'utf-8');
+    const baseRaw = readTraceFile(baseUri.fsPath);
+    const compareRaw = readTraceFile(compareUri.fsPath);
     base = foldTrace(baseRaw);
     compare = foldTrace(compareRaw);
     baseOutputs = parseTraceOutputs(baseRaw);

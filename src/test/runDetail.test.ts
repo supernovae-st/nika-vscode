@@ -177,7 +177,7 @@ describe('renderRunDetail — artifacts (doors, never the gallery)', () => {
 describe('renderUnreadableDetail — one voice with the Runs view', () => {
   it('speaks the unreadable vocabulary verbatim and names the file', () => {
     const md = renderUnreadableDetail('/t/broken.ndjson', UNREADABLE_DESCRIPTION);
-    expect(md).toContain('This journal would not read — truncated (a killed run) or from another engine generation.');
+    expect(md).toContain(`This journal would not read — ${UNREADABLE_DESCRIPTION}.`);
     expect(md).toContain('journal: `/t/broken.ndjson`');
   });
 });

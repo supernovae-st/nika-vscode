@@ -137,7 +137,7 @@ export function runRowDescription(
 /** The unreadable story, verbatim from the existing toast — one
  *  vocabulary across surfaces (a row and a toast never disagree). */
 export const UNREADABLE_DESCRIPTION =
-  'truncated (a killed run) or from another engine generation';
+  'journal unavailable, over the editor observation limit, truncated or unsupported';
 
 /** The trailing section for journals the scan could not read — the
  *  catch COUNTS instead of swallowing. Absent at zero: an empty
