@@ -63,15 +63,15 @@ jobs:
           TLC_JAR: ${{ runner.temp }}/tla2tools.jar
         run: node scripts/check-run-ownership-model.mjs
 
-  # The rendered surface, judged by machine. Nine lenses (clip · target ·
-  # contrast · spill · motion · occluded · glyph · collide · truncated)
+  # The rendered surface, judged by machine. Twelve lenses (clip · target ·
+  # contrast · spill · motion · occluded · glyph · collide · truncated ·
+  # harmony · ladder · semantic)
   # across four skins and three widths, plus the i18n shape corpus and
-  # forced-colors, plus 45 a11y journeys. These proved every visual
-  # claim in DESIGN.md for months while running nowhere but a laptop:
-  # a proof nobody re-runs is a memory, not a gate. Headless was
-  # qualified by mutation against the headed reference, not assumed.
+  # forced-colors and keyboard/accessibility journeys. This judges the
+  # browser harness, not native host activation, terminal processes or
+  # released artifacts: those boundaries retain separate gates.
   probes:
-    name: probes · 9 lenses × 4 skins × 3 widths + shape + forced + a11y
+    name: probes · 12 lenses × 4 skins × 3 widths + shape + forced + a11y
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

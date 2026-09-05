@@ -185,10 +185,15 @@ its sections is height-safe by construction.
 | infer | **prose** · the ask is a quotation | the prompt leads under the mechanism line, wrapped in dim « » marks + a 2px quote-rail (`--nk-verb-infer-canon` 30%). The rail and quotes leave together when the recorded output swaps in · data is not a quotation. The senses ∴ thinking / ▣ vision chip in the infer text voice. |
 | exec | **terminal** · the machine window | `$ cmd` in a framed strip: 2px rail (`--nk-verb-exec-canon` 30%) + ink-wash ground (5%) + strict mono. The frame HOLDS through the settle · `→ stdout` keeps talking in the same window (a place, not a speech-act; the swap only ADDS `.nc-body-live`). |
 | invoke | **hero** · the tool IS the card | the ONE reorder: the essence (the tool's soul, §1's essence grammar) appends BEFORE the sub · `invoke · ⚒ nika:jq` becomes the second line, the caption under the work. The essence reads half a point larger (10.5px). |
-| agent | **loop** · the inner life, structured | the LOOP BAND under the goal: `turn 3 · saw 5/12 tools` + the budget meter. HONEST meter: a declared budget fills a ratio bar (`--nk-verb-agent-text`); totals without a ceiling stay a bare counter · a bar would invent the denominator. nudged / stalled / compose stay prose facts below; the band survives mid-LOD (it is anatomy, not a fact), far-LOD drops it with the story. |
+| agent | **loop** · the inner life, structured | the LOOP BAND under the goal: `turn 3 · saw 5/12 tools` + recorded token usage. The recessed band derives its darker ground from `--nk-page`; an observed increase in turn count lights its rim once, never on a timer. A finite positive declared budget and valid counts produce a ratio meter (`--nk-verb-agent-text`); zero/unknown budgets stay a counter, unknown usage stays `? tk`. The accessible value retains actual over-budget usage even when paint clips at 100%. Calm mode, reduced motion and forced colors suppress the rim effect. nudged / stalled / compose stay prose facts below; mid-LOD retains the band and far-LOD drops it with the story. |
 
 The min anatomy stays fixed for every verb (head · verdict · one
 essence line) · the voices inflect the grand story, never the tile.
+
+An explicit task focus raises its card to native text scale when it fits
+between the chrome insets. It preserves a human's closer zoom; a smaller
+panel only raises as far as its available space permits. Whole-graph Fit
+remains the overview gesture, not a promise that every detail is readable.
 
 ## 1e · The card type ladder · nine named voices (W-D18)
 

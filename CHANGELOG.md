@@ -29,6 +29,12 @@ Doctor suggestions are copied for review, never automatically executed.
 Auto-provided tasks use absolute file paths in multi-root workspaces and
 do not treat virtual documents as local process inputs.
 
+Agent cards use a recessed loop band and a single rim effect on an observed
+turn increase. Reduced motion, calm mode and forced colors suppress it.
+Recorded token meters retain actual over-budget counts; zero or unknown
+budgets never invent a ratio. Explicit task focus restores native text size
+when it fits, respecting the top and bottom chrome in a short panel.
+
 Workspace Trust now gates the entire active extension, not only the binary
 path setting. Restricted Mode keeps declarative syntax and snippets but
 registers no workflow commands, starts no engine or LSP, writes no demo and

@@ -4097,8 +4097,9 @@ body.lod-far .nc-pill { display: none; }
    life as a structured row under the goal: turn counter · tool routing
    · the budget meter. HONEST meter: a declared budget fills a ratio
    bar; totals without a ceiling stay a bare counter (a bar needs a
-   real denominator). Static by design — nothing animates, nothing to
-   gate for reduced-motion. 14px row + 4px gap = AGENT_BAND_H 18. */
+   positive denominator). The meter never advances on a timer. A new
+   observed turn lights the band once; reduced motion keeps a static
+   readout. 14px row + 4px gap = AGENT_BAND_H 18. */
 .nc-agent-band {
   display: flex;
   align-items: center;
@@ -4110,6 +4111,28 @@ body.lod-far .nc-pill { display: none; }
   overflow: hidden;
   font-size: var(--nk-fs-meta);
   font-family: var(--nk-mono);
+}
+.dag-node.verb-agent .nc-agent-band {
+  position: relative;
+  padding: 0 4px;
+  border-radius: var(--nk-r-chip);
+  background: color-mix(in srgb, var(--nk-page) 72%, transparent);
+  box-shadow: inset 0 1px 0 var(--nk-border-soft);
+}
+@keyframes nk-loop-update {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  body:not([data-nk-calm]) .nk-loop-update::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--nk-verb-agent-text);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: nk-loop-update var(--nk-dur-base) var(--nk-ease-effects) both;
+  }
 }
 .nc-ab-loop {
   color: var(--nk-verb-agent-text);
@@ -4128,7 +4151,9 @@ body.lod-far .nc-pill { display: none; }
 }
 .nc-ab-fill {
   display: block;
+  width: 100%;
   height: 100%;
+  transform-origin: left center;
   border-radius: var(--nk-r-bar);
   background: var(--nk-verb-agent-text);
 }
@@ -4140,6 +4165,8 @@ body.lod-far .nc-pill { display: none; }
   white-space: nowrap;
 }
 @media (forced-colors: active) {
+  .dag-node.verb-agent .nc-agent-band { background: Canvas; box-shadow: none; }
+  .nk-loop-update::after { display: none; animation: none !important; }
   .nc-ab-meter { background: Canvas; border: 1px solid CanvasText; }
   .nc-ab-fill { background: Highlight; }
 }

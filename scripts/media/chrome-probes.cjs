@@ -2,7 +2,7 @@
 // chrome-probes.cjs — the canvas CHROME proof suite (sister to a11y-probes).
 //
 // a11y-probes asks whether the canvas SPEAKS. This asks whether it FITS:
-// five lenses swept across every skin, panel width and OS preference,
+// twelve lenses swept across every skin, panel width and OS preference,
 // each reporting instances so a fix can be structural instead of
 // anecdotal.
 //
@@ -34,8 +34,8 @@
 //      MOTION=reduce        prefers-reduced-motion (arms the MOTION lens)
 //      RUN=running|failed   drive the live run chrome (the sim only ends green)
 //      SHAPE=1              re-label with long / CJK / RTL / diacritic / 1-char ids
-// Headed, like its sister; playwright stays out of the manifest. Not
-// wired to CI by design — the judge runs it, the belt stays fast.
+// HEADLESS=1 is the CI path; headed runs remain available for diagnosis.
+// The probes job invokes the same suite; playwright stays probe-only.
 const path = require('path');
 const { chromium } = require(process.env.NIKA_PLAYWRIGHT || 'playwright');
 
@@ -686,7 +686,7 @@ const PROBE = () => {
   }
   }
   if (b !== null) { await b.close().catch(() => {}); }
-  // A probe that only PRINTS is a report, not a gate. Nine lenses ran
+  // A probe that only PRINTS is a report, not a gate. Twelve lenses ran
   // across every skin and width this sweep was given; if any of them
   // has something to say, the build hears it.
   console.log(`\nchrome-probes: ${total === 0 ? 'clean' : total + ' finding' + (total === 1 ? '' : 's')} · ${SKINS.length} skin(s) x ${SIZES.length} size(s)${FORCED ? ' · forced-colors' : ''}${SHAPE ? ' · shape corpus' : ''}`);
