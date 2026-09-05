@@ -18,7 +18,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   host.handlers.clear();
   registerStation({ subscriptions: [], extension: { packageJSON: { version: '0.118.2' } } } as unknown as ExtensionContext,
-    { available: false, caps: {}, onDidChange: () => ({ dispose() {} }) } as unknown as NikaService);
+    { available: false, caps: {}, onDidChangeEngine: () => ({ dispose() {} }) } as unknown as NikaService);
 });
 
 describe('doctor prose is not an executable contract', () => {

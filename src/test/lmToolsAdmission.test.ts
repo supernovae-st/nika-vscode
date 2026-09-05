@@ -32,7 +32,7 @@ function setup(available = false, welcome = false): {
   const service = {
     available, caps: { ...noCapabilities(), welcome },
     runCli: vi.fn(async () => ({ code: 0, stdout: '{"context_version":1}', stderr: '' })),
-    onDidChange: (listener: () => void) => { refresh = listener; return { dispose: vi.fn() }; },
+    onDidChangeEngine: (listener: () => void) => { refresh = listener; return { dispose: vi.fn() }; },
   } as unknown as NikaService;
   registerLmTools({ subscriptions } as ExtensionContext, service, vi.fn());
   return { service, refresh: () => refresh(), dispose: () => subscriptions.forEach((item) => item.dispose()) };

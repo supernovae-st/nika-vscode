@@ -134,7 +134,7 @@ export class DiagnosticsController implements vscode.Disposable {
         this.findings.delete(key);
         this.secrets.delete(key);
       }),
-      this.service.onDidChange(() => this.refreshAll()),
+      this.service.onDidChangeEngine(() => this.refreshAll()),
       vscode.languages.onDidChangeDiagnostics((e) => latchSawDiagnostics(e.uris)),
     );
     this.refreshAll();

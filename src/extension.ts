@@ -626,7 +626,7 @@ function activateTrusted(context: ExtensionContext): void {
   // nothing fires it before activation completes (LSP start is async-after).
 
   // Capability context keys drive `when` clauses in package.json menus.
-  context.subscriptions.push(service.onDidChange(() => {
+  context.subscriptions.push(service.onDidChangeEngine(() => {
     const caps = service.caps;
     // The transition auto-power: a binary that ARRIVES mid-session (the
     // download path) must light everything without a reload.
@@ -2228,7 +2228,7 @@ function activateTrusted(context: ExtensionContext): void {
     // visible on the canvas while the demo streams (never a toast).
     dagPanel.runVerdict('▶', 'offline demo — mock provider, no keys', 'st-running');
   };
-  context.subscriptions.push(service.onDidChange(() => {
+  context.subscriptions.push(service.onDidChangeEngine(() => {
     maybeAutoRunDemo().catch((e) => {
       // A failed wire never dead-ends the first contact: say so in the
       // log and fall back to the greeting (the demo stays one gesture).
@@ -2359,7 +2359,7 @@ function activateTrusted(context: ExtensionContext): void {
   // Canvas glyphs speak the binary's vocabulary (`nika catalog --tools --json`) —
   // seeded now, refreshed whenever the service re-probes the binary.
   dagPanel.setToolCats(service.toolCats);
-  context.subscriptions.push(service.onDidChange(() => {
+  context.subscriptions.push(service.onDidChangeEngine(() => {
     dagPanel.setToolCats(service.toolCats);
     dagPanel.setPaletteModels(paletteModels(service));
   }));

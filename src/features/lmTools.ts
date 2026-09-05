@@ -63,7 +63,7 @@ export function registerLmTools(
     clear();
     if (service.available) { registerAdmittedTools({ subscriptions: registrations }, service, log); }
   };
-  context.subscriptions.push(service.onDidChange(refresh), { dispose: clear });
+  context.subscriptions.push(service.onDidChangeEngine(refresh), { dispose: clear });
   refresh();
 }
 

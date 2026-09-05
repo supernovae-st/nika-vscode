@@ -98,6 +98,12 @@ export class NikaService {
   private binaryGeneration = 0;
   private supportErrorValue: string | undefined;
   private capsValue = noCapabilities();
+  /** Selected engine admission, capabilities or vocabulary changed.
+   *  Consumers may re-query the engine; probe activity never fires this. */
+  private readonly engineChangeEmitter = new EventEmitter<void>();
+  readonly onDidChangeEngine: Event<void> = this.engineChangeEmitter.event;
+  /** Render-only notification, including probe activity and cached results.
+   *  Do not start another sweep from this event: it observes that sweep. */
   private readonly changeEmitter = new EventEmitter<void>();
   readonly onDidChange: Event<void> = this.changeEmitter.event;
   /** Fired after a check/graph completes for a document (uri string). */
@@ -163,6 +169,11 @@ export class NikaService {
     return this.catalogModelsValue;
   }
 
+  private engineChanged(): void {
+    this.engineChangeEmitter.fire();
+    this.changeEmitter.fire();
+  }
+
   /** Set (or clear) the resolved binary and re-probe its surface. */
   async setBinary(binaryPath: string | undefined): Promise<void> {
     const generation = ++this.binaryGeneration;
@@ -184,9 +195,10 @@ export class NikaService {
     this.checkInFlight.clear();
     this.graphInFlight.clear();
     this.grammarValue = undefined;
+    this.grammarInFlight = undefined;
     this.doctorFailsValue = undefined;
     this.deepValue = undefined;
-    this.changeEmitter.fire();
+    this.engineChanged();
     if (!binaryPath) {
       return;
     }
@@ -196,7 +208,7 @@ export class NikaService {
     if (!current()) { return; }
     this.supportErrorValue = engineSupportError(version) ?? undefined;
     if (this.supportErrorValue) {
-      this.changeEmitter.fire();
+      this.engineChanged();
       return;
     }
     this.binary = binaryPath;
@@ -238,7 +250,7 @@ export class NikaService {
         run: probeResults.get('run')?.code === 0 ? probeResults.get('run')?.stdout : undefined,
       },
     );
-    this.changeEmitter.fire();
+    this.engineChanged();
     if (!current()) { return; }
 
     // Load the schema/canon-derived vocabulary (async — providers pick it
@@ -257,7 +269,7 @@ export class NikaService {
       } catch {
         this.intelValue = undefined;
       }
-      this.changeEmitter.fire();
+      this.engineChanged();
       if (!current()) { return; }
     }
 
@@ -276,7 +288,7 @@ export class NikaService {
     if (catalogRes?.code === 0) {
       this.catalogModelsValue = parseCatalogModels(catalogRes.stdout);
     }
-    if (this.toolCatsValue || this.catalogModelsValue) { this.changeEmitter.fire(); }
+    if (this.toolCatsValue || this.catalogModelsValue) { this.engineChanged(); }
   }
 
   invalidate(uriString: string): void {
@@ -454,6 +466,7 @@ export class NikaService {
   // ─── station surfaces (welcome --deep · doctor --json · the canary) ───────
 
   private grammarValue: boolean | undefined;
+  private grammarInFlight: Promise<boolean | undefined> | undefined;
 
   /** The canary's cached verdict, synchronously — the status pill reads
    *  this every render; `speaksGrammar()` fills it (once per binary). */
@@ -510,12 +523,23 @@ export class NikaService {
   async speaksGrammar(): Promise<boolean | undefined> {
     if (!this.caps.check) { return undefined; }
     if (this.grammarValue !== undefined) { return this.grammarValue; }
-    const res = await this.runCli(
-      ['check', '-', '--json', '--color', 'never'], 20000, GRAMMAR_CANARY_DOC,
-    );
-    const verdict = grammarAccepted(res.stdout);
-    if (verdict !== undefined) { this.grammarValue = verdict; }
-    return verdict;
+    if (this.grammarInFlight) { return this.grammarInFlight; }
+    const generation = this.binaryGeneration;
+    const pending = (async () => {
+      const res = await this.runCli(
+        ['check', '-', '--json', '--color', 'never'], 20000, GRAMMAR_CANARY_DOC,
+      );
+      const verdict = grammarAccepted(res.stdout);
+      if (generation === this.binaryGeneration && verdict !== undefined) { this.grammarValue = verdict; }
+      return verdict;
+    })();
+    this.grammarInFlight = pending;
+    try {
+      return await pending;
+    } finally {
+      // A retired generation must not detach the new selection's probe.
+      if (this.grammarInFlight === pending) { this.grammarInFlight = undefined; }
+    }
   }
 
   /** The workspace aggregate — `welcome --deep --json`. The
@@ -524,6 +548,7 @@ export class NikaService {
    *  collapsed `undefined` painted blank UIs with no story). */
   async welcomeDeep(cwd?: string): Promise<Probe<WelcomeDeep>> {
     if (!this.caps.welcome) { return { kind: 'unsupported' }; }
+    const generation = this.binaryGeneration;
     const args = ['welcome', '--deep', '--json'];
     this.probeStarted();
     let res: CliResult;
@@ -535,7 +560,9 @@ export class NikaService {
     if (res.code !== 0 || !res.stdout) { return { kind: 'no-output' }; }
     try {
       const deep = parseWelcomeDeep(JSON.parse(res.stdout));
-      if (deep) {
+      // The original caller still receives its observation, but an old
+      // engine must not stamp caches cleared or filled by a new selection.
+      if (deep && generation === this.binaryGeneration) {
         this.deepValue = deep;
         this.changeEmitter.fire();
       }
@@ -552,6 +579,7 @@ export class NikaService {
    *  stdout regardless. */
   async doctorJson(cwd?: string): Promise<Probe<DoctorReport>> {
     if (!this.caps.doctor) { return { kind: 'unsupported' }; }
+    const generation = this.binaryGeneration;
     this.probeStarted();
     let res: CliResult;
     try {
@@ -563,7 +591,7 @@ export class NikaService {
     try {
       const report = parseDoctorReport(JSON.parse(res.stdout));
       if (!report) { return { kind: 'unparseable', detail: 'shape mismatch (summary/findings)' }; }
-      if (this.doctorFailsValue !== report.summary.fail) {
+      if (generation === this.binaryGeneration && this.doctorFailsValue !== report.summary.fail) {
         this.doctorFailsValue = report.summary.fail;
         // The pill reads this cache on render — a changed fail count
         // must reach it without waiting for the next binary event.

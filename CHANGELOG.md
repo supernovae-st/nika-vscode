@@ -32,6 +32,15 @@ Live cost deltas stay separate from recorded task amounts, so replay never
 adds both measurements of the same spend. A live curve alone does not
 invent a recorded total.
 
+Station sweeps no longer relaunch themselves when a diagnostic starts or
+finishes. Engine admission and vocabulary changes have a distinct event;
+probe observations repaint status without rechecking workflows, rebuilding
+agent tools or rereading virtual documents. Explicit refresh remains available.
+Late doctor, workspace and grammar observations cannot repopulate a revoked
+engine cache or replace the selected engine's newer observations.
+Status repainting starts no grammar probe; concurrent Station and status
+requests share the selected engine's in-flight canary.
+
 Interactive commands and native tasks share a literal-argv process boundary.
 No filename, model id or input value becomes shell code. VS Code variable
 expressions are refused before task submission; interactive commands require

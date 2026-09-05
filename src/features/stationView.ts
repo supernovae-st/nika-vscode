@@ -256,11 +256,11 @@ export function registerStation(
   );
 
   // Engine truth changed (binary swap · caps re-probe) → re-derive.
-  // Debounced: setBinary fires up to three pulses per resolution
-  // (caps · intel · catalog) — one trailing refresh serves them all
-  // instead of three doctor+welcome+canary spawn storms at boot.
+  // Debounce admission/caps/vocabulary pulses. Probe activity and results
+  // are observations, not changed inputs: subscribing to onDidChange here
+  // would make every sweep schedule itself again, even while in flight.
   let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-  context.subscriptions.push(service.onDidChange(() => {
+  context.subscriptions.push(service.onDidChangeEngine(() => {
     if (refreshTimer) { clearTimeout(refreshTimer); }
     refreshTimer = setTimeout(() => { void provider.refresh(); }, 300);
   }));
