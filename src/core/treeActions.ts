@@ -229,7 +229,7 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
         ? click('$(type-hierarchy) Focus the task in the DAG')
         : [];
     case 'stationFixable':
-      return [row('$(tools) Apply the fix', 'nika.station.fix', [el])];
+      return [row('$(tools) Suggested fix', 'nika.station.fix', [el])];
     case 'stationDoctorHead':
       return [row('$(output) Doctor full report · in the terminal', 'nika.station.doctorReport', [],
         caps.available ? {} : { off: NEEDS_ENGINE })];

@@ -12,6 +12,7 @@
 
 import * as vscode from 'vscode';
 import { NikaService } from '../nikaService';
+import { runNikaCommand } from '../nikaTerminal';
 import {
   buildStationRows,
   deriveStationBadge,
@@ -161,17 +162,13 @@ export function registerStation(
   });
   context.subscriptions.push(view);
 
-  const inTerminal = (line: string): void => {
+  const inTerminal = (args: readonly string[]): void => {
     const nika = service.binaryPath;
     if (!service.available || !nika) {
       void vscode.window.showWarningMessage(`Nika: ${service.supportError ?? 'Select a supported engine before running Station commands.'}`);
       return;
     }
-    const terminal = vscode.window.createTerminal({ name: 'Nika: station' });
-    terminal.show();
-    // Only `nika …` lines run; anything else would be a doctor fix the
-    // human must own (an export line carries a secret slot).
-    terminal.sendText(line.replace(/^nika\b/, `"${nika}"`));
+    void runNikaCommand(nika, args);
   };
 
   context.subscriptions.push(
@@ -183,24 +180,19 @@ export function registerStation(
       // Palette invocation passes undefined — String coercion would run
       // `nika wire undefined` (the refuter's counterexample). Type first.
       if (typeof client !== 'string' || !/^[a-z-]+$/.test(client)) { return; }
-      inTerminal(`nika wire ${client}`);
+      inTerminal(['wire', client]);
       setTimeout(() => { void provider.refresh(); }, 4000);
     }),
-    vscode.commands.registerCommand('nika.station.applyFix', async (fix: string) => {
+    vscode.commands.registerCommand('nika.station.copyFix', async (fix: unknown) => {
       if (typeof fix !== 'string' || fix.length === 0) { return; }
-      if (/^nika\b/.test(fix)) {
-        inTerminal(fix);
-        setTimeout(() => { void provider.refresh(); }, 4000);
-        return;
-      }
-      // `export X_API_KEY=…` and friends: the human owns secrets — we
-      // hand the exact line to the clipboard, never run it, never ask
-      // for the value (sovereignty Rule 1).
+      // Doctor supplies prose, not an executable argv contract. Even a
+      // line starting with `nika` may contain shell operators. Copy it
+      // for human review; typed Station gestures own direct execution.
       await vscode.env.clipboard.writeText(fix);
-      vscode.window.setStatusBarMessage(`$(clippy) copied — ${fix}`, 4000);
+      vscode.window.setStatusBarMessage('$(clippy) Suggested fix copied. Review before running.', 4000);
     }),
     vscode.commands.registerCommand('nika.station.doctorReport', () => {
-      inTerminal('nika doctor');
+      inTerminal(['doctor']);
     }),
     // Serve a pulled GGUF — a FOREGROUND OpenAI-compatible server, so
     // the terminal is the honest vehicle: the banner says how workflows
@@ -219,7 +211,7 @@ export function registerStation(
         { title: 'Serve a local model (foreground terminal · Ctrl-C stops it)' },
       );
       if (pick === undefined) { return; }
-      inTerminal(`nika model serve --model ${pick.label}`);
+      inTerminal(['model', 'serve', '--model', pick.label]);
     }),
     // Pull a GGUF — the terminal is the honest vehicle here too: the
     // CLI prints the size BEFORE downloading and confirms ≥2GiB itself
@@ -234,7 +226,7 @@ export function registerStation(
         validateInput: (s) => (/^\S+\/\S+$/.test(s.trim()) ? undefined : 'The Hub id looks like owner/repo[:QUANT]'),
       });
       if (id === undefined || id.trim().length === 0) { return; }
-      inTerminal(`nika model pull ${id.trim()}`);
+      inTerminal(['model', 'pull', id.trim()]);
       setTimeout(() => { void provider.refresh(); }, 8000);
     }),
     // Remove rides the wrench + a MODAL confirm — owner/repo removes
@@ -247,15 +239,15 @@ export function registerStation(
         'Remove',
       );
       if (go !== 'Remove') { return; }
-      inTerminal(`nika model rm ${id}`);
+      inTerminal(['model', 'rm', id]);
       setTimeout(() => { void provider.refresh(); }, 4000);
     }),
     vscode.commands.registerCommand('nika.station.fix', async (row: unknown) => {
       // The inline wrench receives the tree row — typeof first (the
       // command is palette-hidden, but the guard is the law, not the
       // menu). It re-routes to the row's repair command, so the fix
-      // behavior stays the audited one: `nika …` runs in a VISIBLE
-      // terminal · `export …` goes to the clipboard, never executed.
+      // behavior stays explicit: typed repairs run in a visible terminal;
+      // free-text doctor suggestions are copied, never executed.
       if (typeof row !== 'object' || row === null) { return; }
       const fix = (row as StationRow).fix;
       if (!fix || typeof fix.id !== 'string') { return; }

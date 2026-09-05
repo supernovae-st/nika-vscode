@@ -21,6 +21,14 @@ Trace announcements retain the complete 64-hex engine head and paths with
 spaces across stderr chunks. Torn, malformed or oversized announcements
 stay absent instead of producing a truncated proof identity.
 
+Interactive commands and native tasks share a literal-argv process boundary.
+No filename, model id or input value becomes shell code. VS Code variable
+expressions are refused before task submission; interactive commands require
+an open folder because global tasks are not a supported host contract.
+Doctor suggestions are copied for review, never automatically executed.
+Auto-provided tasks use absolute file paths in multi-root workspaces and
+do not treat virtual documents as local process inputs.
+
 Workspace Trust now gates the entire active extension, not only the binary
 path setting. Restricted Mode keeps declarative syntax and snippets but
 registers no workflow commands, starts no engine or LSP, writes no demo and

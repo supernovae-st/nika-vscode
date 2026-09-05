@@ -26,7 +26,7 @@ export interface SessionPick {
   description: string;
   command: string;
   /** run in a terminal at the workspace root instead of a command */
-  terminal?: string;
+  terminal?: readonly string[];
   kind?: 'separator';
 }
 
@@ -51,7 +51,7 @@ export function buildSessionPicks(s: SessionState): SessionPick[] {
       label: '$(comment-discussion) Guided wizard — build a workflow step by step',
       description: 'the binary asks, you answer — a chat in your terminal, a checked file out',
       command: '',
-      terminal: 'new',
+      terminal: ['new'],
     });
   }
   picks.push({

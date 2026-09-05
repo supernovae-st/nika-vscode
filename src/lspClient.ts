@@ -71,24 +71,6 @@ export function getNikaPath(): string {
   return workspace.getConfiguration('nika').get<string>('server.path', 'nika');
 }
 
-export function runNikaCommand(resolvedServerPath: string | undefined, subcmd: string, filePath: string): void {
-  if (!resolvedServerPath) { return; }
-  const nika = resolvedServerPath;
-  // The spawn-cwd law reaches the terminal twin: the engine journals at
-  // the process CWD, so a terminal opened at the workspace root would
-  // scatter a nested workflow's journals away from every surface that
-  // looks beside the file (Runs tree · resume substrate · averages).
-  const cwd = filePath.length > 0 ? path.dirname(filePath) : undefined;
-  const terminal = window.createTerminal({ name: `Nika: ${subcmd}`, cwd });
-  terminal.show();
-  if (filePath.length === 0) {
-    terminal.sendText(`"${nika}" ${subcmd}`);
-    return;
-  }
-  const escaped = filePath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  terminal.sendText(`"${nika}" ${subcmd} "${escaped}"`);
-}
-
 /** Compare extension version with LSP server version and warn on mismatch. */
 export function checkVersionMismatch(context: ExtensionContext, log: LogFn, serverPath: string): void {
   const extVersion = context.extension.packageJSON.version as string;

@@ -252,8 +252,8 @@ export interface StationRow {
    *  re-probe). A primary click never executes; repairs live on `fix`. */
   command?: { id: string; args?: unknown[] };
   /** The row's repair, carried by the inline wrench action — never the
-   *  primary click. String fixes route through nika.station.applyFix
-   *  (`nika …` → terminal · `export …` → clipboard, never run). */
+   *  primary click. String fixes route through nika.station.copyFix
+   *  (clipboard for human review, never automatic execution). */
   fix?: { id: string; args?: unknown[] };
   /** contextValue override for rows that carry a targeted inline action
    *  (the doctor head rows carry the full-report action). */
@@ -609,7 +609,7 @@ export function buildStationRows(snap: StationSnapshot): StationRow[] {
     tooltip: f.fix ? `${f.detail}\n\nfix: ${f.fix}` : f.detail,
     icon: f.level === 'fail' ? 'error' : 'warning',
     level: f.level,
-    ...(f.fix ? { fix: { id: 'nika.station.applyFix', args: [f.fix] } } : {}),
+    ...(f.fix ? { fix: { id: 'nika.station.copyFix', args: [f.fix] } } : {}),
   });
   const fails = actionable.filter((f) => f.level === 'fail');
   const warns = actionable.filter((f) => f.level === 'warn');

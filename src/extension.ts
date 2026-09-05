@@ -69,11 +69,11 @@ import {
 import {
   startClient,
   getNikaPath,
-  runNikaCommand,
   safeStopClient,
   checkVersionMismatch,
   type ClientState,
 } from './lspClient';
+import { runNikaCommand } from './nikaTerminal';
 import {
   ensureCursorGlobalMcpConfig,
   ensureWindsurfMcpConfig,
@@ -751,7 +751,7 @@ function activateTrusted(context: ExtensionContext): void {
       // command line, and the terminal spawned with cwd
       // « run 01-hello --model mock » — the operator's exact toast,
       // 2026-07-28: the 10-second proof failed in its first second.
-      runNikaCommand(service.binaryPath, 'try 01-hello', '');
+      void runNikaCommand(service.binaryPath, ['try', '01-hello']);
     }),
   );
 
@@ -2725,7 +2725,7 @@ function activateTrusted(context: ExtensionContext): void {
         return;
       }
       if (doc.isDirty) { await doc.save(); }
-      runNikaCommand(service.binaryPath, 'check --fix', doc.uri.fsPath);
+      void runNikaCommand(service.binaryPath, ['check', '--fix'], doc.uri.fsPath);
     }),
     // Command: dry-run — the engine's static plan, ZERO effects (spec §10).
     // A human surface (the engine refuses it with --json), so it rides the
@@ -2738,7 +2738,7 @@ function activateTrusted(context: ExtensionContext): void {
         return;
       }
       if (doc.isDirty) { await doc.save(); }
-      runNikaCommand(service.binaryPath, 'run --dry-run', doc.uri.fsPath);
+      void runNikaCommand(service.binaryPath, ['run', '--dry-run'], doc.uri.fsPath);
     }),
     // Run with inputs — the check report's inputs_required IS the input
     // contract: one type-ahead box per required var (Esc anywhere cancels
@@ -2786,7 +2786,7 @@ function activateTrusted(context: ExtensionContext): void {
         });
         return;
       }
-      runNikaCommand(service.binaryPath, `run ${extraArgs.join(' ')}`.trim(), doc.uri.fsPath);
+      void runNikaCommand(service.binaryPath, ['run', ...extraArgs], doc.uri.fsPath);
     }),
     commands.registerCommand('nika.runWorkflow', async (uri?: Uri) => {
       const doc = await requireNikaDocument(uri);
@@ -2811,7 +2811,7 @@ function activateTrusted(context: ExtensionContext): void {
           });
           return;
         }
-        runNikaCommand(service.binaryPath, 'run', doc.uri.fsPath);
+        void runNikaCommand(service.binaryPath, ['run'], doc.uri.fsPath);
         return;
       }
       // `run` has shipped in the engine (nika-runtime L3); this branch
@@ -2837,7 +2837,7 @@ function activateTrusted(context: ExtensionContext): void {
         // An admitted binary without structured check support can still
         // render its own terminal refusal. A missing engine needs setup.
         if (!(await requireEngine(service, 'checking a workflow'))) { return; }
-        runNikaCommand(service.binaryPath, 'check', doc.uri.fsPath);
+        void runNikaCommand(service.binaryPath, ['check'], doc.uri.fsPath);
         return;
       }
       service.invalidate(doc.uri.toString());
@@ -2867,7 +2867,7 @@ function activateTrusted(context: ExtensionContext): void {
       const doc = await requireNikaDocument(uri);
       if (!doc) { return; }
       if (!(await requireEngine(service, 'inspecting a workflow'))) { return; }
-      runNikaCommand(service.binaryPath, 'inspect', doc.uri.fsPath);
+      void runNikaCommand(service.binaryPath, ['inspect'], doc.uri.fsPath);
     }),
     // Command: deterministic workflow explanation (offline · zero LLM) —
     // the engine's graph+check projections composed into a readable
@@ -3141,14 +3141,7 @@ function activateTrusted(context: ExtensionContext): void {
       if (!pick) { return; }
       if (pick.terminal) {
         if (!(await requireEngine(service, 'starting a session'))) { return; }
-        const nika = service.binaryPath;
-        if (!nika) { return; }
-        const terminal = window.createTerminal({
-          name: 'Nika: wizard',
-          cwd: workspace.workspaceFolders?.[0]?.uri.fsPath,
-        });
-        terminal.show();
-        terminal.sendText(`"${nika}" ${pick.terminal}`);
+        await runNikaCommand(service.binaryPath, pick.terminal);
         return;
       }
       if (pick.command) { void commands.executeCommand(pick.command); }
@@ -3630,7 +3623,7 @@ function activateTrusted(context: ExtensionContext): void {
     }),
     commands.registerCommand('nika.watchDemo', async () => {
       if (!(await requireEngine(service, 'replaying a demo'))) { return; }
-      runNikaCommand(service.binaryPath, 'trace replay --demo', '');
+      void runNikaCommand(service.binaryPath, ['trace', 'replay', '--demo']);
     }),
     // Command: diff two recorded runs on the DAG ("why is this run 3x
     // slower"). First pick = BASE (reference) · second = COMPARE (under
@@ -3934,7 +3927,7 @@ function activateTrusted(context: ExtensionContext): void {
         const picked = qp.selectedItems[0];
         qp.hide();
         if (picked?.slug) {
-          runNikaCommand(service.binaryPath, `try ${picked.slug}`, '');
+          void runNikaCommand(service.binaryPath, ['try', picked.slug]);
         }
       });
       qp.onDidHide(() => qp.dispose());
@@ -4033,7 +4026,7 @@ function activateTrusted(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.doctor', async () => {
       if (!(await requireEngine(service, 'running the doctor'))) { return; }
-      runNikaCommand(service.binaryPath, 'doctor', '');
+      void runNikaCommand(service.binaryPath, ['doctor']);
     }),
   );
 
@@ -4043,7 +4036,7 @@ function activateTrusted(context: ExtensionContext): void {
   context.subscriptions.push(
     commands.registerCommand('nika.doctorPing', async () => {
       if (!(await requireEngine(service, 'pinging local providers'))) { return; }
-      runNikaCommand(service.binaryPath, 'doctor --ping', '');
+      void runNikaCommand(service.binaryPath, ['doctor', '--ping']);
     }),
   );
 
@@ -4059,7 +4052,7 @@ function activateTrusted(context: ExtensionContext): void {
       return;
     }
     if (doc.isDirty && !(await doc.save())) { return; }
-    runNikaCommand(service.binaryPath, update ? 'test --update' : 'test', doc.uri.fsPath);
+    void runNikaCommand(service.binaryPath, update ? ['test', '--update'] : ['test'], doc.uri.fsPath);
   };
   context.subscriptions.push(
     commands.registerCommand('nika.testWorkflow', (uri?: Uri) => runGoldenTest(uri, false)),

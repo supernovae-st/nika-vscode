@@ -29,6 +29,13 @@ async function main(): Promise<void> {
     // under it and the path is capped at 103 chars — our deep repo path
     // blows past that. A short tmp dir keeps the socket legal.
     const userDataDir = path.join(fixture, 'user');
+    fs.mkdirSync(path.join(userDataDir, 'User'), { recursive: true });
+    fs.writeFileSync(path.join(userDataDir, 'User', 'settings.json'), JSON.stringify({
+      'nika.server.path': '/nonexistent/nika-smoke',
+      'nika.server.autoDownload': false,
+      'workbench.startupEditor': 'none',
+      'chat.disableAIFeatures': true,
+    }));
 
     // A test WORKSPACE that points the binary at a bogus path (autoDownload
     // off): the smoke suite targets activation · commands · language ·
@@ -47,7 +54,8 @@ async function main(): Promise<void> {
       extensionTestsPath,
       // The workspace folder + a throwaway user-data-dir + no other
       // extensions = a clean, LSP-free host.
-      launchArgs: [workspace, `--user-data-dir=${userDataDir}`, '--disable-extensions', '--disable-gpu'],
+      launchArgs: [...(process.env.NIKA_TERMINAL_EMPTY === '1' ? [] : [workspace]), `--user-data-dir=${userDataDir}`, '--disable-extensions', '--disable-gpu'],
+      extensionTestsEnv: { NIKA_TEST_NODE: process.execPath },
     });
   } catch (err) {
     console.error('integration tests failed:', err);

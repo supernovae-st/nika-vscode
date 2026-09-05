@@ -815,8 +815,8 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
-        "command": "nika.station.applyFix",
-        "title": "Apply Doctor Fix",
+        "command": "nika.station.copyFix",
+        "title": "Copy Doctor Suggestion",
         "category": "Nika",
         "enablement": "isWorkspaceTrusted"
       },
@@ -849,7 +849,7 @@
       },
       {
         "command": "nika.station.fix",
-        "title": "Apply Fix",
+        "title": "Suggested Fix",
         "icon": "$(wrench)",
         "category": "Nika",
         "enablement": "isWorkspaceTrusted"
@@ -1316,7 +1316,7 @@
           "when": "false"
         },
         {
-          "command": "nika.station.applyFix",
+          "command": "nika.station.copyFix",
           "when": "false"
         },
         {

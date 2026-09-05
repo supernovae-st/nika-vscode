@@ -83,6 +83,13 @@ write workflow files. Use VS Code's **Manage Workspace Trust** after reviewing
 the folder. Offline or mock execution still needs trust: no keys or spend
 does not mean no local effects.
 
+Interactive terminal commands require an open folder. They launch the
+admitted engine with separate arguments, never a generated shell command,
+and retain the result in the task terminal. VS Code `${…}` variable
+expressions in these arguments are refused before submission; use the CLI
+directly when those literal values are required. Doctor suggestions are
+copied for review rather than executed automatically.
+
 Driving yourself is three gestures:
 
 1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).

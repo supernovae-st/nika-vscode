@@ -149,7 +149,7 @@ describe('buildStationRows — pure derivation (now · next · recent)', () => {
   it('a finding’s repair rides the wrench (fix), never the primary click', () => {
     const next = buildStationRows(snap).find((r) => r.id === 'next');
     const zed = flatten(next ? [next] : []).find((c) => c.description === 'nika wire zed');
-    expect(zed?.fix).toEqual({ id: 'nika.station.applyFix', args: ['nika wire zed'] });
+    expect(zed?.fix).toEqual({ id: 'nika.station.copyFix', args: ['nika wire zed'] });
     expect(zed?.command).toBeUndefined();
   });
 
@@ -181,7 +181,7 @@ describe('buildStationRows — pure derivation (now · next · recent)', () => {
     // Navigation-only commands may ride a click; anything that spawns
     // a terminal, touches the clipboard or restarts a process must be
     // a `fix` (the wrench) instead.
-    const executing = ['nika.station.applyFix', 'nika.station.wire', 'nika.station.doctorReport', 'nika.doctorPing', 'nika.restartServer'];
+    const executing = ['nika.station.copyFix', 'nika.station.wire', 'nika.station.doctorReport', 'nika.doctorPing', 'nika.restartServer'];
     for (const row of flatten(buildStationRows({ ...snap, lspState: 'failed' }))) {
       if (row.command) { expect(executing).not.toContain(row.command.id); }
     }
