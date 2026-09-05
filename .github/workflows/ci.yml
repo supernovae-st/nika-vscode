@@ -15,6 +15,26 @@ permissions:
   contents: read
 
 jobs:
+  ownership-model:
+    name: ownership model · safety + two negative controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Fetch the pinned TLA+ tool
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --max-time 120 --retry 2 --max-filesize 16777216 \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar \
+            --output "$RUNNER_TEMP/tla2tools.jar"
+      - name: Complete exploration and named mutant counterexamples
+        env:
+          TLC_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: node scripts/check-run-ownership-model.mjs
+
   # The rendered surface, judged by machine. Nine lenses (clip · target ·
   # contrast · spill · motion · occluded · glyph · collide · truncated)
   # across four skins and three widths, plus the i18n shape corpus and

@@ -57,6 +57,9 @@ The runner pins that digest, bounds heap, workers, output and execution time,
 checks the positive model and both named negative outcomes, and removes only
 its own temporary state directory. This explicit Java-based gate is separate
 from `npm test`; neither substitutes for the other or native-host testing.
+The `ownership-model` CI job downloads that pinned tool and runs the same
+positive exploration plus both negative controls on every pull request.
+Its green covers only the finite adapter model described above.
 
 Lamport's [safety-proof notes](https://lamport.azurewebsites.net/tla/proving-safety.pdf)
 motivate explicit invariants; his [liveness tutorial](https://lamport.azurewebsites.net/tla/tutorial/session9.html)
