@@ -27,6 +27,15 @@ Split editors now update together when an observation changes or disappears.
 This bounds live observation, not offline replay or the engine journal;
 removing the remaining editor-side capture persistence is still separate work.
 
+Test Explorer judges the machine capture of its own engine process, not a
+filename-ranked journal from an older run. Timeout, capture overflow, missing
+terminal events and a completed event contradicted by a failing exit produce
+an observation error, never inherited green badges. Canvas runs share that
+observation guard, including signal exits, and do not persist or celebrate
+an incomplete result. Test Explorer has one task/workflow reporter for its
+owned process and journal-ingest paths; a failed task cannot become a green
+workflow merely because the final event says completed.
+
 Trace announcements retain the complete 64-hex engine head and paths with
 spaces across stderr chunks. Torn, malformed or oversized announcements
 stay absent instead of producing a truncated proof identity.

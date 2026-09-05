@@ -18,6 +18,7 @@ import { taskFingerprints } from '../core/dirtyNodes';
 import { STATUS_CHAR } from '../core/glyphRegistry';
 import { summarizeRun, type FoldedStatus, type RunModel } from '../core/traceFold';
 import { TraceStream } from '../core/traceStream';
+import { runObservationError } from '../core/runObservation';
 import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
 import { runAnnouncementStream } from '../core/runAnnouncement';
@@ -340,6 +341,14 @@ export function runWorkflowLive(
         dagPanel.runVerdict('…', story, 'st-retrying');
         opts?.onClose?.();
         return; // No prefix persistence, success fingerprints or celebration.
+      }
+      const observationError = runObservationError(model, code);
+      if (observationError && (model.tasks.size > 0 || code === 0 || code === null)) {
+        traceStore.clear(fsPath);
+        dagPanel.note('…', observationError, undefined, 'st-retrying');
+        dagPanel.runVerdict('…', observationError, 'st-retrying');
+        opts?.onClose?.();
+        return;
       }
       paint(model); // Complete the final cards before releasing process ownership.
       // Final fold ALWAYS lands in the store (the throttle above may have

@@ -54,6 +54,27 @@ beforeEach(async () => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('live run ownership and settlement', () => {
+  it.each([
+    { tail: event('workflow_completed'), code: 1 },
+    { tail: event('workflow_completed'), code: null },
+    { tail: '', code: 0 },
+    { tail: `${event('workflow_completed')}broken-json\n`, code: 0 },
+    { tail: `${event('task_failed', [{ key: 'task', value: 'other' }])}${event('workflow_completed')}`, code: 0 },
+  ])('never turns an incomplete or contradictory process capture green: %j', ({ tail, code }) => {
+    const onClose = vi.fn();
+    api.runWorkflowLive(service, panel, file, log, undefined, { onClose });
+    children[0].stdout.emit('data', event('task_completed', [{ key: 'task', value: 'work' }]) + tail);
+    children[0].emit('close', code);
+    expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain('observation');
+    expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).not.toContain('st-success');
+    expect(host.persist).not.toHaveBeenCalled();
+    expect(host.hashes).not.toHaveBeenCalled();
+    expect(host.celebrate).not.toHaveBeenCalled();
+    expect(host.community).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(api.isRunActive()).toBe(false);
+  });
+
   it('drains an over-limit stream without manufacturing a final verdict or another journal', () => {
     const onClose = vi.fn();
     api.runWorkflowLive(service, panel, file, log, undefined, { onClose });
