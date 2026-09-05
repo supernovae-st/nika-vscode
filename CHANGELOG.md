@@ -17,6 +17,10 @@ pending replacement. Superseded output and callbacks cannot repaint the
 next run. Stop signals once, escalates after five seconds if still open,
 and does not claim that cancellation undid earlier effects.
 
+Trace announcements retain the complete 64-hex engine head and paths with
+spaces across stderr chunks. Torn, malformed or oversized announcements
+stay absent instead of producing a truncated proof identity.
+
 Workspace Trust now gates the entire active extension, not only the binary
 path setting. Restricted Mode keeps declarative syntax and snippets but
 registers no workflow commands, starts no engine or LSP, writes no demo and

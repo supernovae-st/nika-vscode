@@ -54,6 +54,19 @@ beforeEach(async () => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('live run ownership and settlement', () => {
+  it('preserves the current announced path and complete head across stderr chunks', () => {
+    const head = 'ab'.repeat(32);
+    const header = `nika run: trace: .nika/traces/a space.ndjson · 7 events · chain ${head} · sealed\n`;
+    api.runWorkflowLive(service, panel, file, log);
+    const cut = header.indexOf(head) + 31;
+    children[0].stderr.emit('data', header.slice(0, cut));
+    children[0].stderr.emit('data', header.slice(cut));
+    children[0].stdout.emit('data', event('workflow_completed'));
+    children[0].emit('close', 0);
+    expect(api.lastTracePathByWorkflow.get(file)).toBe('/fixture/.nika/traces/a space.ndjson');
+    expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain(`7 events · chain ${head}`);
+  });
+
   it('holds one process until close and retains only the latest replacement', () => {
     api.runWorkflowLive(service, panel, file, log);
     api.runWorkflowLive(service, panel, '/fixture/discarded.nika.yaml', log);
@@ -163,6 +176,8 @@ describe('live run ownership and settlement', () => {
   it('does not confuse a signal error with failure to spawn', () => {
     api.runWorkflowLive(service, panel, file, log);
     children[0].emit('error', Object.assign(new Error('signal failed'), { code: 'EPERM' }));
+    expect(host.warning).toHaveBeenCalledWith('Nika: run process error — signal failed');
+    expect(service.setBinary).not.toHaveBeenCalled();
     children[0].stdout.emit('data', event('workflow_completed'));
     children[0].emit('close', 0);
     expect(panel.runVerdict).toHaveBeenCalledTimes(1);

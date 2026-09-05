@@ -26,6 +26,7 @@ import { STATUS_CHAR } from '../core/glyphRegistry';
 import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
 import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
+import { runAnnouncementStream } from '../core/runAnnouncement';
 import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 import { cancelActiveReplay } from './runsView';
@@ -45,7 +46,7 @@ const STOP_ESCALATION_MS = 5000;
 /** workflow fsPath → the journal the engine last announced on stderr —
  *  the exact file a paused run must be resumed FROM. */
 export const lastTracePathByWorkflow = new Map<string, string>();
-/** The run's printed anchor (`N events · chain <head32>`) per workflow. */
+/** The run's printed complete chain head per workflow, not a verified seal. */
 const lastAnchorByWorkflow = new Map<string, string>();
 
 /** True while a spawned `nika run` drives the DAG (liveDag suspends). */
@@ -204,6 +205,10 @@ export function runWorkflowLive(
   presentationOwner = handle;
   setRunActive(handle);
   const ownsPresentation = (): boolean => activeRun === handle && !handle.superseded;
+  const announcement = runAnnouncementStream(({ path: journal, events, head }) => {
+    lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), journal));
+    lastAnchorByWorkflow.set(fsPath, `${events} events · chain ${head}`);
+  });
 
   let buffer = '';
   // Rolling stderr tail — the refused-run branch in `close` greps it for
@@ -287,21 +292,18 @@ export function runWorkflowLive(
   child.stderr.on('data', (chunk: string) => {
     if (!ownsPresentation()) { return; }
     stderrTail = (stderrTail + chunk).slice(-4096);
-    const m = chunk.match(/trace: (\S+\.ndjson)/);
-    if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
-    // The anchor (0.97+): the engine prints `· N events · chain <head32>`
-    // on the trace line — hold it so the close toast can carry the
-    // proof identity (scrollback ↔ toast ↔ tooltip, one head). Full
-    // 32 hex: the engine's writer-side review (M4) rejected 16 as a
-    // forgeable width — truncating here would undo that on the banner.
-    const anchor = chunk.match(/(\d+) events · chain ([0-9a-f]{32})/);
-    if (anchor) { lastAnchorByWorkflow.set(fsPath, `${anchor[1]} events · chain ${anchor[2]}`); }
+    announcement.push(chunk);
     log('WARN', `nika run: ${chunk.trim()}`);
   });
 
   child.on('error', (err) => {
     spawnFailed = child.pid === undefined;
     if (!ownsPresentation()) { return; }
+    if (!spawnFailed) {
+      log('WARN', `nika run process error: ${err.message}`);
+      void vscode.window.showWarningMessage(`Nika: run process error — ${err.message}`);
+      return;
+    }
     // A spawn error is a SETUP state (the classic: a cached path whose
     // file vanished — ENOENT). Offer the door and clear the dead path so
     // every surface re-probes instead of replaying the same failure.
@@ -319,6 +321,7 @@ export function runWorkflowLive(
     if (activeRun !== handle) { return; }
     try {
       if (!ownsPresentation() || spawnFailed) { return; }
+      announcement.finish();
       paint(); // final flush FIRST — the buffer now holds every complete
                // line; the last card must reach its terminal status before
                // the pill flips to idle (else Run re-enables mid-glow).
