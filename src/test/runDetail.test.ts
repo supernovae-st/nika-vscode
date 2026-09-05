@@ -22,7 +22,7 @@ import { extractRunArtifacts } from '../core/artifacts';
 function line(kind: string, tsMs: number, fields: Array<{ key: string; value: unknown }>): string {
   return JSON.stringify({
     id: '00000000-0000-0000-0000-000000000000',
-    timestamp: { unix_ms: tsMs },
+    timestamp: tsMs * 1e6,
     kind,
     run: 'run-detail-test',
     fields,
@@ -37,7 +37,7 @@ const NDJSON = [
   line('task_started', 10, [{ key: 'task', value: 'seed' }]),
   line('task_completed', 1210, [
     { key: 'task', value: 'seed' }, { key: 'note', value: 'infer · mock/echo' },
-    { key: 'duration_ms', value: 1200 }, { key: 'usd', value: 0.01 },
+    { key: 'duration_ms', value: 1200 }, { key: 'cost_usd', value: 0.01 },
   ]),
   line('task_started', 1220, [{ key: 'task', value: 'cachedone' }]),
   line('task_cache_hit', 1222, [{ key: 'task', value: 'cachedone' }, { key: 'duration_ms', value: 2 }]),

@@ -90,7 +90,7 @@ describe('renderRunReport', () => {
 describe('renderRunReport · task_recovered (D-2026-07-08-N4)', () => {
   it('a repaired success is named in the verdict line AND the task row', () => {
     const line = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
-      JSON.stringify({ id: 'x', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+      JSON.stringify({ id: 'x', timestamp: ts * 1e6, kind, run: 'run-1', fields });
     const ndjson = [
       line('workflow_started', [{ key: 'workflow', value: 'demo' }], 1000),
       line('task_started', [{ key: 'task', value: 'fragile' }], 1001),

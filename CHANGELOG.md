@@ -21,6 +21,13 @@ Trace announcements retain the complete 64-hex engine head and paths with
 spaces across stderr chunks. Torn, malformed or oversized announcements
 stay absent instead of producing a truncated proof identity.
 
+Trace replay reads the current event fields and signed-nanosecond clock.
+Retired object-kind records stay unknown, numeric text never becomes a
+measurement, and one-key JSON objects retain their structure. Old alias
+spellings and epoch-unit guesses no longer invent current engine facts.
+Unknown event names cannot inherit object-prototype states or invent an
+agent turn merely by sharing a prefix.
+
 Interactive commands and native tasks share a literal-argv process boundary.
 No filename, model id or input value becomes shell code. VS Code variable
 expressions are refused before task submission; interactive commands require
