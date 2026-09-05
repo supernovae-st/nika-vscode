@@ -102,6 +102,16 @@ describe('matchTier · the house matcher', () => {
     expect(matchTier('zzz', station)).toBe(undefined);
   });
 
+  it('a later keyword boundary outranks an earlier label or keyword subsequence', () => {
+    const labelScatter = item('a', 'Rain', 0, { keywords: ['rune', 'go RN'] });
+    const keywordScatter = item('b', 'Open station', 1, { keywords: ['rune', 'go RN'] });
+    expect(matchTier(' rn ', labelScatter)).toBe(1);
+    expect(matchTier(' RN ', keywordScatter)).toBe(1);
+    const scatter = item('c', 'Rain', 2);
+    expect(rankSearch(' RN ', [scatter, keywordScatter, labelScatter], {}, NOW))
+      .toEqual([labelScatter, keywordScatter, scatter]);
+  });
+
   it('the empty query matches everything at tier 0 (the resting screen)', () => {
     expect(matchTier('', wf)).toBe(0);
     expect(matchTier('   ', wf)).toBe(0);
@@ -358,11 +368,16 @@ describe('the perf pin · rank 500 rows under 5ms', () => {
       frec = visit(frec, `cmd.${i * 5}`, NOW - (i % 14) * DAY);
     }
     rankSearch('rn', items, frec, NOW);
+    const cpuStart = process.cpuUsage();
     const t0 = performance.now();
     for (let i = 0; i < 20; i++) {
       rankSearch('rn', items, frec, NOW);
     }
     const mean = (performance.now() - t0) / 20;
-    expect(mean).toBeLessThan(5);
+    const cpu = process.cpuUsage(cpuStart);
+    // Keep the latency gate unchanged; CPU time only diagnoses scheduler
+    // pressure when the wall-clock claim fails on a shared runner.
+    const cpuMean = (cpu.user + cpu.system) / 20_000;
+    expect(mean, `500 rows: wall ${mean.toFixed(3)}ms, CPU ${cpuMean.toFixed(3)}ms per run`).toBeLessThan(5);
   });
 });

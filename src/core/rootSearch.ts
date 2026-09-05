@@ -108,7 +108,11 @@ function isSubsequence(q: string, text: string): boolean {
  * The empty query matches everything at tier 0 (the resting screen).
  */
 export function matchTier(q: string, item: SearchItem): MatchTier | undefined {
-  const qn = q.trim().toLowerCase();
+  return matchNormalized(q.trim().toLowerCase(), item);
+}
+
+/** rankSearch normalizes the query once for the whole candidate set. */
+function matchNormalized(qn: string, item: SearchItem): MatchTier | undefined {
   if (qn.length === 0) { return 0; }
   if (item.aliases !== undefined) {
     for (const a of item.aliases) {
@@ -118,16 +122,16 @@ export function matchTier(q: string, item: SearchItem): MatchTier | undefined {
   const label = item.label.toLowerCase();
   if (label.startsWith(qn)) { return 0; }
   if (startsAWord(qn, label)) { return 1; }
+  let subsequence = isSubsequence(qn, label);
   const keywords = item.keywords ?? [];
   for (const k of keywords) {
     const kn = k.toLowerCase();
     if (kn.startsWith(qn) || startsAWord(qn, kn)) { return 1; }
+    // A later keyword can still raise this to tier 1. Reuse its normalized
+    // spelling and never scan another subsequence once tier 2 is known.
+    if (!subsequence && isSubsequence(qn, kn)) { subsequence = true; }
   }
-  if (isSubsequence(qn, label)) { return 2; }
-  for (const k of keywords) {
-    if (isSubsequence(qn, k.toLowerCase())) { return 2; }
-  }
-  return undefined;
+  return subsequence ? 2 : undefined;
 }
 
 /**
@@ -154,7 +158,7 @@ export function rankSearch(
   }
   const ranked: Array<{ it: SearchItem; tier: MatchTier; f: number }> = [];
   for (const it of items) {
-    const tier = matchTier(qn, it);
+    const tier = matchNormalized(qn, it);
     if (tier === undefined) { continue; }
     ranked.push({ it, tier, f: habit(it) });
   }
