@@ -12,6 +12,11 @@ Generated language and design surfaces follow that engine's exact spec pin.
 Public archives, clean-host editor behavior and both registry publications
 remain separate readiness gates in `PUBLISHING.md`.
 
+Live runs now retain process ownership until `close`, with at most one
+pending replacement. Superseded output and callbacks cannot repaint the
+next run. Stop signals once, escalates after five seconds if still open,
+and does not claim that cancellation undid earlier effects.
+
 Workspace Trust now gates the entire active extension, not only the binary
 path setting. Restricted Mode keeps declarative syntax and snippets but
 registers no workflow commands, starts no engine or LSP, writes no demo and

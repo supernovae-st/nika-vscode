@@ -34,8 +34,13 @@ import { cancelActiveReplay } from './runsView';
  *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
 const STORE_THROTTLE_MS = 500;
 
-/** A live run handle — cancellable, one at a time per panel. */
-let activeRun: { kill: () => void } | undefined;
+/** One process owner. Sending a signal is not process settlement. */
+interface LiveRun { kill(): void; superseded: boolean }
+let activeRun: LiveRun | undefined;
+let presentationOwner: LiveRun | undefined;
+/** At most one pending intent; a newer request replaces it, never queues work. */
+let pendingRun: (() => void) | undefined;
+const STOP_ESCALATION_MS = 5000;
 
 /** workflow fsPath → the journal the engine last announced on stderr —
  *  the exact file a paused run must be resumed FROM. */
@@ -54,17 +59,17 @@ export function isRunActive(): boolean {
 const runActiveEmitter = new vscode.EventEmitter<boolean>();
 export const onDidChangeRunActive: vscode.Event<boolean> = runActiveEmitter.event;
 
-function setRunActive(handle: { kill: () => void } | undefined): void {
+function setRunActive(handle: LiveRun | undefined): void {
   const was = activeRun !== undefined;
   activeRun = handle;
   const is = activeRun !== undefined;
   if (was !== is) { runActiveEmitter.fire(is); }
 }
 
-/** Stop any live run in flight (a new run, or panel dispose). */
+/** Discard pending work and request stop; ownership lasts until child close. */
 export function cancelActiveRun(): void {
+  pendingRun = undefined;
   activeRun?.kill();
-  setRunActive(undefined);
 }
 
 // Walkthrough completionEvent producers — one-way session latches. Every
@@ -117,9 +122,16 @@ export function runWorkflowLive(
     return;
   }
 
-  // A fresh run supersedes any prior run AND any replay transport —
-  // the live present wins.
-  cancelActiveRun();
+  if (activeRun) {
+    // Fence the old child's UI immediately, but do not spawn over it. The
+    // close handler starts only the latest intent after all stdio settles.
+    const nextOpts = opts ? { ...opts, extraArgs: opts.extraArgs?.slice() } : undefined;
+    pendingRun = () => runWorkflowLive(service, dagPanel, fsPath, log, onlyTask, nextOpts);
+    activeRun.superseded = true;
+    activeRun.kill();
+    return;
+  }
+  // The newly owned live present supersedes replay transport.
   dagPanel.clearTransport();
   cancelActiveReplay();
   const preview = opts?.extraArgs?.includes('mock/echo') === true;
@@ -158,6 +170,7 @@ export function runWorkflowLive(
   // cleared at spawn so a missing anchor stays missing (the trust
   // surface never shows a head that belongs to another journal).
   lastAnchorByWorkflow.delete(fsPath);
+  lastTracePathByWorkflow.delete(fsPath);
   const child = spawn(
     binary,
     ['run', fsPath, '--json', '--color', 'never', ...(onlyTask ? ['--task', onlyTask] : []), ...(opts?.extraArgs ?? [])],
@@ -171,7 +184,26 @@ export function runWorkflowLive(
       env: { ...process.env, NO_COLOR: '1' },
     },
   );
-  setRunActive({ kill: () => child.kill() });
+  let stopRequested = false;
+  let spawnFailed = false;
+  let escalation: ReturnType<typeof setTimeout> | undefined;
+  const handle: LiveRun = {
+    superseded: false,
+    kill: () => {
+      if (stopRequested) { return; }
+      stopRequested = true;
+      escalation = setTimeout(() => {
+        if (activeRun !== handle) { return; }
+        log('WARN', 'nika run has not closed after stop; sending SIGKILL and still awaiting close');
+        child.kill('SIGKILL');
+      }, STOP_ESCALATION_MS);
+      escalation.unref();
+      child.kill();
+    },
+  };
+  presentationOwner = handle;
+  setRunActive(handle);
+  const ownsPresentation = (): boolean => activeRun === handle && !handle.superseded;
 
   let buffer = '';
   // Rolling stderr tail — the refused-run branch in `close` greps it for
@@ -181,6 +213,7 @@ export function runWorkflowLive(
   let lastStorePublish = 0;
   let lastProgress = '';
   const paint = (): void => {
+    if (!ownsPresentation()) { return; }
     const model = foldTrace(buffer);
     if (model.tasks.size === 0) { return; }
     // The stop button's heartbeat: `■ 3/7` — settled over scheduled.
@@ -246,11 +279,13 @@ export function runWorkflowLive(
 
   child.stdout.setEncoding('utf-8');
   child.stdout.on('data', (chunk: string) => {
+    if (!ownsPresentation()) { return; }
     buffer += chunk;
     paint();
   });
   child.stderr.setEncoding('utf-8');
   child.stderr.on('data', (chunk: string) => {
+    if (!ownsPresentation()) { return; }
     stderrTail = (stderrTail + chunk).slice(-4096);
     const m = chunk.match(/trace: (\S+\.ndjson)/);
     if (m) { lastTracePathByWorkflow.set(fsPath, path.resolve(path.dirname(fsPath), m[1])); }
@@ -265,8 +300,8 @@ export function runWorkflowLive(
   });
 
   child.on('error', (err) => {
-    setRunActive(undefined);
-    dagPanel.setRunState(false);
+    spawnFailed = child.pid === undefined;
+    if (!ownsPresentation()) { return; }
     // A spawn error is a SETUP state (the classic: a cached path whose
     // file vanished — ENOENT). Offer the door and clear the dead path so
     // every surface re-probes instead of replaying the same failure.
@@ -275,135 +310,155 @@ export function runWorkflowLive(
       .then((pick) => {
         if (pick === 'Finish setup') { void vscode.commands.executeCommand('nika.finishSetup'); }
       });
-    if (/ENOENT/i.test(err.message)) { void service.setBinary(undefined); }
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT' && service.binaryPath === binary) {
+      void service.setBinary(undefined);
+    }
   });
-  child.on('close', (code) => {
-    setRunActive(undefined);
-    paint(); // final flush FIRST — the buffer now holds every complete
-             // line; the last card must reach its terminal status before
-             // the pill flips to idle (else Run re-enables mid-glow).
-    dagPanel.setRunState(false);
-    const model = foldTrace(buffer);
-    // Final fold ALWAYS lands in the store (the throttle above may have
-    // swallowed the last intermediate) — the badges' resting truth.
-    if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
-    const verdict = model.workflowStatus;
-    if (verdict === 'failed' && !sawFailureLatched) {
-      // The break-it-on-purpose step checks itself on the FIRST failed
-      // verdict — the red taught, whoever started the run.
-      sawFailureLatched = true;
-      latchContext('nika.sawFailure');
-    }
-    // ADR-099: paused is a QUESTION, not a failure — amber, the message
-    // itself, and the answer flow one click away (exit 4 · human-gate).
-    const icon = verdict === 'completed' ? '✓'
-      : verdict === 'cancelled' ? '⊘'
-      : verdict === 'paused' ? '⏸' : '✗';
-    const cls = verdict === 'completed' ? 'st-success'
-      : verdict === 'cancelled' ? 'st-cancelled'
-      : verdict === 'paused' ? 'st-retrying' : 'st-failed';
-    if (code !== 0 && code !== null && model.tasks.size === 0) {
-      // The refused run SPEAKS (operator F5 · 2026-07-28): exit 2 with an
-      // empty journal is the pre-flight check saying no BEFORE the first
-      // wave — the old fold rendered it « ✗ run unknown · ▶ 0 tasks »,
-      // which told the operator nothing (the demo's own permits gap died
-      // exactly here). Name the refusal, surface its NIKA codes (stdout
-      // JSON or stderr both carry them), and hand the first one to the
-      // verdict banner so the Explain door rides it.
-      const codes = [...new Set(`${buffer}\n${stderrTail}`.match(/NIKA-[A-Z]+-\d+/g) ?? [])];
-      const named = codes.slice(0, 3).join(' · ');
-      // clap ALSO exits 2 on unknown argv (an older engine meeting
-      // --resume/--from) — that story is «update the engine», never
-      // «fix the finding» (the check-refusal words would gaslight).
-      const argvMiss = /unexpected argument|unrecognized subcommand/i.exec(stderrTail)
-        ? stderrTail.match(/(?:unexpected argument|unrecognized subcommand) '([^']+)'/i)?.[1]
-        : undefined;
-      const story = argvMiss
-        ? `this engine does not know ${argvMiss} — update nika (brew upgrade nika)`
-        : code === 2
-        ? `check refused the run${named ? ` · ${named}` : ''} — fix the finding, then ▶`
-        : `run died before its first event (exit ${code})${named ? ` · ${named}` : ''}`;
-      dagPanel.note('✗', story, undefined, 'st-failed');
-      dagPanel.runVerdict('✗', story, 'st-failed', undefined, codes[0]);
-    } else if (verdict === 'paused' && model.paused) {
-      const q = model.paused.message ?? `task \`${model.paused.task}\` awaits an answer`;
-      dagPanel.note('⏸', `paused · ${model.paused.task} asks: ${q}`, model.paused.task, cls);
-      dagPanel.runVerdict('⏸', `paused — ${q}`, cls);
-      // The paused record carries ITS OWN journal (captured now, while
-      // this child's announce is provably the map's value) — an answer
-      // clicked hours later must never resume whatever ran since.
-      opts?.onPaused?.({ ...model.paused, tracePath: lastTracePathByWorkflow.get(fsPath) });
-    } else {
-      // The anchor rides the verdict (0.97+ engines print it): the DAG
-      // banner shows the SAME head the scrollback and tooltip hold.
-      const anchor = lastAnchorByWorkflow.get(fsPath);
-      const suffix = anchor ? ` · ${anchor}` : '';
-      dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}${suffix}`, undefined, cls);
-      // The verdict banner — the same summary, visible WITHOUT opening the
-      // feed (summarizeRun leads with its own icon; the banner owns it).
-      // A failure hands the banner its FIRST failed task + the NIKA code
-      // its story named (when it did) — the Explain/Fork doors ride them.
-      const firstFailed = verdict === 'failed'
-        ? [...model.tasks.values()].find((t) => t.status === 'failed')
-        : undefined;
-      const failedCode = firstFailed?.preview?.match(/NIKA-[A-Z]+-\d+/)?.[0];
-      // The HUMAN verdict (the hero speaks a sentence · the provable
-      // facts trail quiet): « every task landed » beats « run
-      // completed » — and a failure NAMES its task before the facts.
-      const total = model.tasks.size;
-      const settled = [...model.tasks.values()].filter((t) => t.status === 'success').length;
-      const human = verdict === 'completed'
-        ? (settled === total ? 'every task landed' : `${settled} of ${total} landed`)
-        : verdict === 'cancelled'
-        ? 'stopped by hand · nothing half-written'
-        : firstFailed
-        ? `${firstFailed.id} broke the run · ${settled} landed before it`
-        : 'the run broke before its first task';
-      dagPanel.runVerdict(
-        icon,
-        `${human} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`,
-        cls,
-        firstFailed?.id,
-        failedCode,
-      );
-      // The peak (peak-end): the FIRST green verdict ever gets the one
-      // confetti — the mock demo counts, the sandbox IS the aha. On a
-      // fresh machine the auto-demo's close lands here, so the fall
-      // happens DURING the zero-gesture first run: the peak sits at
-      // the end, by construction.
-      const celebrated = maybeCelebrateFirstGreen(verdict, dagPanel);
-      // The one earned ask, ever — fires on the FIRST completed run only
-      // (communityAsk owns the flag; a dismissal counts as answered).
-      // When the confetti flies, the toast waits out the fall (~1.5s)
-      // so the one celebration is never covered by a notification.
-      if (celebrated) {
-        setTimeout(() => maybeAskCommunity(verdict), 1500);
+  child.once('close', (code) => {
+    if (escalation) { clearTimeout(escalation); }
+    if (activeRun !== handle) { return; }
+    try {
+      if (!ownsPresentation() || spawnFailed) { return; }
+      paint(); // final flush FIRST — the buffer now holds every complete
+               // line; the last card must reach its terminal status before
+               // the pill flips to idle (else Run re-enables mid-glow).
+      const model = foldTrace(buffer);
+      // Final fold ALWAYS lands in the store (the throttle above may have
+      // swallowed the last intermediate) — the badges' resting truth.
+      if (model.tasks.size > 0) { traceStore.set(fsPath, model); }
+      const verdict = model.workflowStatus;
+      if (verdict === 'failed' && !sawFailureLatched) {
+        // The break-it-on-purpose step checks itself on the FIRST failed
+        // verdict — the red taught, whoever started the run.
+        sawFailureLatched = true;
+        latchContext('nika.sawFailure');
+      }
+      // ADR-099: paused is a QUESTION, not a failure — amber, the message
+      // itself, and the answer flow one click away (exit 4 · human-gate).
+      const icon = verdict === 'completed' ? '✓'
+        : verdict === 'cancelled' ? '⊘'
+        : verdict === 'paused' ? '⏸' : '✗';
+      const cls = verdict === 'completed' ? 'st-success'
+        : verdict === 'cancelled' ? 'st-cancelled'
+        : verdict === 'paused' ? 'st-retrying' : 'st-failed';
+      if (code !== 0 && code !== null && model.tasks.size === 0) {
+        // The refused run SPEAKS (operator F5 · 2026-07-28): exit 2 with an
+        // empty journal is the pre-flight check saying no BEFORE the first
+        // wave — the old fold rendered it « ✗ run unknown · ▶ 0 tasks »,
+        // which told the operator nothing (the demo's own permits gap died
+        // exactly here). Name the refusal, surface its NIKA codes (stdout
+        // JSON or stderr both carry them), and hand the first one to the
+        // verdict banner so the Explain door rides it.
+        const codes = [...new Set(`${buffer}\n${stderrTail}`.match(/NIKA-[A-Z]+-\d+/g) ?? [])];
+        const named = codes.slice(0, 3).join(' · ');
+        // clap ALSO exits 2 on unknown argv (an older engine meeting
+        // --resume/--from) — that story is «update the engine», never
+        // «fix the finding» (the check-refusal words would gaslight).
+        const argvMiss = /unexpected argument|unrecognized subcommand/i.exec(stderrTail)
+          ? stderrTail.match(/(?:unexpected argument|unrecognized subcommand) '([^']+)'/i)?.[1]
+          : undefined;
+        const story = argvMiss
+          ? `this engine does not know ${argvMiss} — update nika (brew upgrade nika)`
+          : code === 2
+          ? `check refused the run${named ? ` · ${named}` : ''} — fix the finding, then ▶`
+          : `run died before its first event (exit ${code})${named ? ` · ${named}` : ''}`;
+        dagPanel.note('✗', story, undefined, 'st-failed');
+        dagPanel.runVerdict('✗', story, 'st-failed', undefined, codes[0]);
+      } else if (verdict === 'paused' && model.paused) {
+        const q = model.paused.message ?? `task \`${model.paused.task}\` awaits an answer`;
+        dagPanel.note('⏸', `paused · ${model.paused.task} asks: ${q}`, model.paused.task, cls);
+        dagPanel.runVerdict('⏸', `paused — ${q}`, cls);
+        // The paused record carries ITS OWN journal (captured now, while
+        // this child's announce is provably the map's value) — an answer
+        // clicked hours later must never resume whatever ran since.
+        opts?.onPaused?.({ ...model.paused, tracePath: lastTracePathByWorkflow.get(fsPath) });
       } else {
-        maybeAskCommunity(verdict);
+        // The anchor rides the verdict (0.97+ engines print it): the DAG
+        // banner shows the SAME head the scrollback and tooltip hold.
+        const anchor = lastAnchorByWorkflow.get(fsPath);
+        const suffix = anchor ? ` · ${anchor}` : '';
+        dagPanel.note(icon, `run ${verdict} · ${summarizeRun(model)}${suffix}`, undefined, cls);
+        // The verdict banner — the same summary, visible WITHOUT opening the
+        // feed (summarizeRun leads with its own icon; the banner owns it).
+        // A failure hands the banner its FIRST failed task + the NIKA code
+        // its story named (when it did) — the Explain/Fork doors ride them.
+        const firstFailed = verdict === 'failed'
+          ? [...model.tasks.values()].find((t) => t.status === 'failed')
+          : undefined;
+        const failedCode = firstFailed?.preview?.match(/NIKA-[A-Z]+-\d+/)?.[0];
+        // The HUMAN verdict (the hero speaks a sentence · the provable
+        // facts trail quiet): « every task landed » beats « run
+        // completed » — and a failure NAMES its task before the facts.
+        const total = model.tasks.size;
+        const settled = [...model.tasks.values()].filter((t) => t.status === 'success').length;
+        const human = verdict === 'completed'
+          ? (settled === total ? 'every task landed' : `${settled} of ${total} landed`)
+          : verdict === 'cancelled'
+          ? 'run cancelled · earlier effects may remain'
+          : firstFailed
+          ? `${firstFailed.id} broke the run · ${settled} landed before it`
+          : 'the run broke before its first task';
+        dagPanel.runVerdict(
+          icon,
+          `${human} · ${summarizeRun(model).replace(/^[✓✗⊘↷…] /, '')}${suffix}`,
+          cls,
+          firstFailed?.id,
+          failedCode,
+        );
+        // The peak (peak-end): the FIRST green verdict ever gets the one
+        // confetti — the mock demo counts, the sandbox IS the aha. On a
+        // fresh machine the auto-demo's close lands here, so the fall
+        // happens DURING the zero-gesture first run: the peak sits at
+        // the end, by construction.
+        const celebrated = maybeCelebrateFirstGreen(verdict, dagPanel);
+        // The one earned ask, ever — fires on the FIRST completed run only
+        // (communityAsk owns the flag; a dismissal counts as answered).
+        // When the confetti flies, the toast waits out the fall (~1.5s)
+        // so the one celebration is never covered by a notification.
+        if (celebrated) {
+          setTimeout(() => {
+            if (!activeRun && presentationOwner === handle && !handle.superseded) {
+              maybeAskCommunity(verdict);
+            }
+          }, 1500);
+        } else {
+          maybeAskCommunity(verdict);
+        }
+      }
+      // Only meaningful runs land (≥1 task event) — a spawn that died
+      // before any task event has nothing worth resuming from.
+      if (model.tasks.size > 0 && buffer.length > 0) {
+        persistTrace(fsPath, buffer);
+      }
+      if (code !== 0 && code !== null && verdict !== 'failed' && verdict !== 'cancelled') {
+        // Exited non-zero but the stream did not explain why (crash before
+        // a workflow_failed event) — say so rather than imply success.
+        log('WARN', `nika run exited ${code} without a terminal workflow event`);
+      }
+      // Record the spawn-time fingerprints of every task that SUCCEEDED —
+      // per-task, so a partially failing run still clears its clean part.
+      // Preview runs count: mock/echo executed the same substance.
+      if (spawnFingerprints) {
+        const succeeded = new Map<string, string>();
+        for (const t of model.tasks.values()) {
+          const hash = spawnFingerprints.get(t.id);
+          if (t.status === 'success' && hash !== undefined) { succeeded.set(t.id, hash); }
+        }
+        saveRunHashes(fsPath, succeeded);
+      }
+      opts?.onClose?.();
+    } finally {
+      // Never release on error, signal, exit, or a timer: close is the one
+      // settlement point, and even a throwing UI consumer cannot strand it.
+      const next = pendingRun;
+      pendingRun = undefined;
+      try {
+        dagPanel.setRunState(false);
+      } finally {
+        setRunActive(undefined);
+        next?.();
       }
     }
-    // Only meaningful runs land (≥1 task event) — a spawn that died
-    // before any task event has nothing worth resuming from.
-    if (model.tasks.size > 0 && buffer.length > 0) {
-      persistTrace(fsPath, buffer);
-    }
-    if (code !== 0 && code !== null && verdict !== 'failed' && verdict !== 'cancelled') {
-      // Exited non-zero but the stream did not explain why (crash before
-      // a workflow_failed event) — say so rather than imply success.
-      log('WARN', `nika run exited ${code} without a terminal workflow event`);
-    }
-    // Record the spawn-time fingerprints of every task that SUCCEEDED —
-    // per-task, so a partially failing run still clears its clean part.
-    // Preview runs count: mock/echo executed the same substance.
-    if (spawnFingerprints) {
-      const succeeded = new Map<string, string>();
-      for (const t of model.tasks.values()) {
-        const hash = spawnFingerprints.get(t.id);
-        if (t.status === 'success' && hash !== undefined) { succeeded.set(t.id, hash); }
-      }
-      saveRunHashes(fsPath, succeeded);
-    }
-    opts?.onClose?.();
   });
 }
 
