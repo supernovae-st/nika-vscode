@@ -123,7 +123,11 @@ operator-owned tag ceremony can make the registries claim that version.
       `vscode:prepublish` runs clean+typecheck+build
 - [x] `capabilities.untrustedWorkspaces: limited` with
       `restrictedConfigurations: [nika.server.path, nika.server.extraArgs]`
-      · a malicious workspace must NOT choose which binary we spawn
+      · registration of the active extension also waits for actual workspace
+      trust. Before trust: syntax/snippets only, no engine process or files.
+      `firstContactRestricted` uses a native launcher without the standard
+      test helper's `--disable-workspace-trust`. Normal first-contact and
+      smoke suites are trusted-host tests, not evidence for Restricted Mode.
 - [x] `capabilities.virtualWorkspaces: limited` (undeclared default is
       `true`, wrong for a binary-backed extension)
 - [x] activationEvents: `onLanguage:` implicit since 1.74 · only

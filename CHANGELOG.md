@@ -12,6 +12,13 @@ Generated language and design surfaces follow that engine's exact spec pin.
 Public archives, clean-host editor behavior and both registry publications
 remain separate readiness gates in `PUBLISHING.md`.
 
+Workspace Trust now gates the entire active extension, not only the binary
+path setting. Restricted Mode keeps declarative syntax and snippets but
+registers no workflow commands, starts no engine or LSP, writes no demo and
+does not consume first-contact state. Explicit trust activates these once.
+The native restricted-workspace test does not use the standard test host's
+trust-disabling flag.
+
 Engine installation verifies a candidate in per-attempt staging before
 replacing installed bytes. Download errors and cancellation await stream
 closure and cleanup; a failed attempt preserves the previous binary.

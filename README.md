@@ -60,7 +60,7 @@ messages and positions come from the engine, not the extension.*
 |---|---|
 | **The canvas is alive** | not a picture of your workflow · the workflow itself: prompts on the cards, typed wires, five lenses, and the run streaming onto it wave by wave |
 | **Audited before it runs** | cost ceiling · permits boundary · secret flows · dead gates: static facts painted in the margin before the run exists |
-| **The first run happens by itself** | first install opens the hello-canvas demo and streams it on `mock/echo` · offline, zero keys, the aha in under ten seconds |
+| **A first run after workspace trust** | first install in a trusted, empty workspace opens the hello-canvas demo and streams it on `mock/echo` · offline, zero keys |
 | **Traces stay yours** | every run writes a hash-chained local journal: replay it, diff it, verify it offline · nothing ever leaves your machine |
 | **Your models, local first** | Ollama · llama.cpp · vLLM · LM Studio first-class, then Mistral · Hugging Face · OpenAI · xAI · Anthropic and more · swap one `model:` line |
 
@@ -70,12 +70,18 @@ messages and positions come from the engine, not the extension.*
 
 ## 30 seconds to the wow
 
-On a machine's first install, the wow comes to you: the four-wave
+After you trust the workspace, on a machine's first install the four-wave
 `hello-canvas` demo opens on the canvas and **runs itself** on
 `mock/echo`: no key, no spend (a workspace that already
 carries workflows is never touched; the walkthrough greets instead).
 The first green verdict you ever watch lands with the one confetti
 this extension will ever throw.
+
+In **Restricted Mode**, syntax highlighting and snippets remain available.
+The engine, LSP, commands and automatic demo do not start, and Nika does not
+write workflow files. Use VS Code's **Manage Workspace Trust** after reviewing
+the folder. Offline or mock execution still needs trust: no keys or spend
+does not mean no local effects.
 
 Driving yourself is three gestures:
 

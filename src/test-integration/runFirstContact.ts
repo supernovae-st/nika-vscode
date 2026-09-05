@@ -1,5 +1,7 @@
 // runFirstContact.ts — the first-contact e2e: launch A, the whole
-// zero-gesture chain on a REAL VS Code + a REAL released engine.
+// post-trust zero-gesture chain on a REAL VS Code + a REAL released engine.
+// @vscode/test-electron disables workspace trust for this trusted-host test.
+// runRestrictedWorkspace.ts separately verifies that trust is enforced.
 //
 //   launch A · fresh user-data-dir (globalState empty = the virgin
 //              machine) + a workspace with no workflows + a REAL engine

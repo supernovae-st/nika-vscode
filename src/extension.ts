@@ -39,6 +39,7 @@ import { pickDagTarget } from './core/dagTarget';
 import { budgetError, extraArgsFor } from './core/runInputs';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
+import { activateOnceTrusted } from './core/trustedActivation';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { subCreateAllowed } from './core/webviewPathGuard';
 import { needsConfirm, parseDeepLink } from './core/deepLink';
@@ -514,6 +515,25 @@ async function requireEngine(service: NikaService, doing: string): Promise<boole
 // ─── Activation ─────────────────────────────────────────────────────────────
 
 export function activate(context: ExtensionContext): void {
+  // Trust gates registration itself, including programmatic commands and
+  // automatic first contact. Restricting server.path alone does not prevent
+  // the selected binary from executing workspace code.
+  const waiting = workspace.isTrusted ? undefined
+    : window.createStatusBarItem(StatusBarAlignment.Left, 100);
+  if (waiting) {
+    waiting.text = '$(lock) Nika · Restricted Mode';
+    waiting.tooltip = 'Syntax and snippets are available. Trust this workspace to enable the Nika engine and commands.';
+    waiting.command = 'workbench.trust.manage';
+    waiting.show();
+    context.subscriptions.push(waiting);
+  }
+  context.subscriptions.push(activateOnceTrusted(workspace, () => {
+    waiting?.dispose();
+    activateTrusted(context);
+  }));
+}
+
+function activateTrusted(context: ExtensionContext): void {
   extContext = context;
   initCommunityAsk(context);
   initFirstGreen(context);
@@ -2160,8 +2180,8 @@ export function activate(context: ExtensionContext): void {
   // ─── The missing wire (V-SOTA.A): first contact runs the demo itself ──────
   // On a machine's FIRST activation ever, once the engine is here (at the
   // first probe, or the moment Finish Setup lands it mid-session), the demo
-  // opens AND runs on mock/echo — zero key · zero network · zero spend, so
-  // consent is trivially satisfied and the on-canvas banner names the state.
+  // opens AND runs on mock/echo after workspace trust. No keys or spend
+  // does NOT imply permission to execute: trust gates the entire activation.
   // The DAG lights itself in under ten seconds; the walkthrough follows as
   // optional depth (the create/run/dag steps already checked by the run).
   // Guard: a workspace already carrying *.nika.yaml is an existing user's
@@ -2169,7 +2189,7 @@ export function activate(context: ExtensionContext): void {
   // and the gesture budget). Reduced-motion does NOT gate this: a real run
   // is content, not decoration.
   const maybeAutoRunDemo = async (): Promise<void> => {
-    if (!firstContactArmed || autoDemoFlown) { return; }
+    if (!workspace.isTrusted || !firstContactArmed || autoDemoFlown) { return; }
     if (!service.available) {
       // Engine not here yet — the current flow greets (door + walkthrough)
       // and the wire STAYS armed for a binary landing this session.
@@ -2181,6 +2201,7 @@ export function activate(context: ExtensionContext): void {
     const move = firstContactMove({
       armed: true,
       flown: false,
+      workspaceTrusted: workspace.isTrusted,
       binaryAvailable: true,
       workspaceHasWorkflows: existing.length > 0,
     });

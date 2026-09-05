@@ -4,8 +4,9 @@
 // mock provider, the canvas, the walkthrough — and the first activation
 // wired NONE of them together. This table is the wire: on a machine's
 // FIRST contact ever, the demo opens and runs ITSELF on mock/echo (zero
-// key · zero network · zero spend — consent is trivially satisfied and
-// the banner says so), and the walkthrough follows as optional depth.
+// key · zero network · zero spend), only AFTER the user trusts the
+// workspace. Offline execution is still execution, not implicit consent.
+// The walkthrough follows as optional depth.
 //
 // The first-run gesture budget, pinned (firstContact.test.ts):
 //   before · binary present:  2 gestures to first green (Try the demo · ▶ mock)
@@ -39,13 +40,15 @@ export interface FirstContactFacts {
   armed: boolean;
   /** The one shot already fired this session. */
   flown: boolean;
+  /** Explicit VS Code workspace trust, not provider availability or cost. */
+  workspaceTrusted: boolean;
   binaryAvailable: boolean;
   /** The open workspace already contains *.nika.yaml files. */
   workspaceHasWorkflows: boolean;
 }
 
 export function firstContactMove(f: FirstContactFacts): FirstContactMove {
-  if (!f.armed || f.flown) { return 'none'; }
+  if (!f.workspaceTrusted || !f.armed || f.flown) { return 'none'; }
   if (!f.binaryAvailable) { return 'greet-and-wait'; }
   return f.workspaceHasWorkflows ? 'walkthrough' : 'auto-demo';
 }

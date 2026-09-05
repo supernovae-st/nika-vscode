@@ -67,7 +67,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In Restricted Mode the workspace cannot override which binary the extension executes; static language features stay on.",
+      "description": "In Restricted Mode only syntax and snippets are available. Engine probes, LSP, commands, workspace writes and the first-contact demo wait for Workspace Trust.",
       "restrictedConfigurations": [
         "nika.server.path",
         "nika.server.extraArgs"
@@ -209,599 +209,704 @@
         "command": "nika.runWorkflow",
         "title": "Run Current Workflow",
         "icon": "$(play)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runWorkflowWithInputs",
         "title": "Run Workflow with Inputs (and a spend ceiling)",
         "icon": "$(play-circle)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.resumeWorkflow",
         "title": "Resume Last Run (re-run what changed)",
         "icon": "$(refresh)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.fixWorkflow",
         "title": "Fix Workflow (the engine’s rename repairs)",
         "icon": "$(wrench)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.dryRunWorkflow",
         "title": "Dry-Run (show the plan · zero effects)",
         "icon": "$(checklist)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.checkWorkflow",
         "title": "Validate Current Workflow",
         "icon": "$(check)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.newSession",
         "title": "New Session",
         "category": "Nika",
-        "icon": "$(comment-discussion)"
+        "icon": "$(comment-discussion)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.openWalkthrough",
         "title": "Open the Getting-Started Tour",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.initProject",
         "title": "Init Project (scaffold + wire everything)",
         "category": "Nika",
-        "icon": "$(rocket)"
+        "icon": "$(rocket)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.newWorkflow",
         "title": "New Workflow File",
         "icon": "$(new-file)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.addTask",
         "title": "Add Task (verb or builtin)",
         "category": "Nika",
-        "icon": "$(add)"
+        "icon": "$(add)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.restartServer",
         "title": "Restart Language Server",
         "icon": "$(refresh)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showTasks",
         "title": "Show Tasks (Outline)",
         "icon": "$(list-tree)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showOutput",
         "title": "Show Output",
         "icon": "$(output)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.pickModel",
         "title": "Pick Model (catalog · local-first)",
         "icon": "$(arrow-swap)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.pickVerbBody",
         "title": "Pick Verb Body (starters · catalog)",
         "icon": "$(sparkle)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.typeOutput",
         "title": "Type Its Output (schema shape)",
         "icon": "$(symbol-structure)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.pickOutputs",
         "title": "Choose What It Publishes (outputs)",
         "icon": "$(export)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.declareInput",
         "title": "Declare an Input (vars)",
         "icon": "$(symbol-parameter)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.promoteVars",
         "title": "Make Inputs Callable (typed vars)",
         "icon": "$(plug)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.wireInputs",
         "title": "Order on State (after)",
         "icon": "$(link)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.chooseGate",
         "title": "Choose a Gate (when · CEL)",
         "icon": "$(filter)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.chooseCollection",
         "title": "Choose the Collection (for_each)",
         "icon": "$(symbol-array)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.makeResilient",
         "title": "Make Task Resilient (retry · recover · timeout)",
         "icon": "$(pulse)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.chooseAgentTools",
         "title": "Choose Agent Tools (default-deny register)",
         "icon": "$(tools)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.chooseDefaultModel",
         "title": "Choose Default Model (envelope)",
         "icon": "$(arrow-swap)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showDag",
         "title": "Open the Canvas (workflow DAG)",
         "icon": "$(type-hierarchy)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvasAccessibilityHelp",
         "title": "Canvas Accessibility Help",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.tryDemo",
         "title": "Try the Demo Workflow",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.checkBinary",
         "title": "Verify Engine Binary",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.setupMcp",
         "title": "Setup MCP + Agent Rules",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showMenu",
         "title": "Command Menu",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showReport",
         "title": "Open Check Report (static pre-flight)",
         "icon": "$(output)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.inspectWorkflow",
         "title": "Inspect Anatomy (tasks · cost · permits)",
         "icon": "$(list-tree)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.explainWorkflow",
         "title": "Explain Workflow (deterministic · offline)",
         "icon": "$(book)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.preflightWorkflow",
         "title": "Preflight (cost · secrets · permits, before any token)",
         "icon": "$(shield)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.inferPermits",
         "title": "Insert Inferred Permits Boundary",
         "icon": "$(shield)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.quietFinding",
         "title": "Quiet a Finding in This Workspace",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.pickTheme",
         "title": "Pick the Canvas Theme",
         "icon": "$(color-mode)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.explainCode",
         "title": "Explain Error Code (NIKA-XXXX)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.replayTrace",
         "title": "Replay a Recorded Run (trace)",
         "icon": "$(debug-rerun)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.diffTraces",
         "title": "Diff Two Runs on the DAG",
         "icon": "$(diff)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.debugReplay",
         "title": "Debug This Run (replay · time travel)",
         "icon": "$(debug-alt)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.verifyTrace",
         "title": "Verify Journal (tamper-evidence chain)",
         "icon": "$(shield)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.reproduceRun",
         "title": "Reproduce Run (determinism check)",
         "icon": "$(law)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.exportEvidence",
         "title": "Export Evidence Pack (journal · manifest · receipt · VERIFY.md)",
         "icon": "$(package)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.explainReceipt",
         "title": "Explain Receipt (readable projection)",
         "icon": "$(book)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.exportOtel",
         "title": "Export Run to OpenTelemetry (Jaeger · Grafana · Langfuse)",
         "icon": "$(telescope)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.rerunTask",
         "title": "Re-run Task (and its upstream)",
         "icon": "$(debug-restart)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.forkFromTask",
         "title": "Fork From Task (upstream rehydrates from the trace)",
         "icon": "$(repo-forked)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runReport",
         "title": "Run Report (provable · read from the trace)",
         "icon": "$(notebook)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runDetail",
         "title": "Run Detail (the run at a glance)",
         "icon": "$(open-preview)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.answerPause",
         "title": "Answer the Paused Run",
         "icon": "$(comment-discussion)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.answerLastPause",
         "title": "Answer the Waiting Run",
         "icon": "$(debug-pause)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runHistory",
         "title": "Run History (cross-run grid · flaky · trends)",
         "icon": "$(graph-line)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.history.exportDoc",
         "title": "Export History as a Document (shareable · diffable)",
         "icon": "$(markdown)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.history.close",
         "title": "Close Run History",
         "icon": "$(close)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.history.report",
         "title": "Run Report (provable · read from the trace)",
         "icon": "$(output)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.history.diffPrevious",
         "title": "Diff Against the Previous Run",
         "icon": "$(diff)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runs.showTaskInDag",
         "title": "Show Task in DAG (replay this run · center the task)",
         "icon": "$(target)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.captureLintBaseline",
         "title": "Capture Lint Baseline (accept current findings as the baseline)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.watchDemo",
         "title": "Watch Demo Replay",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.openSpec",
         "title": "Open Embedded Spec",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.openSchema",
         "title": "Open Embedded JSON Schema",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.browseExamples",
         "title": "Try an Example (offline showroom)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.copyAiPrompt",
         "title": "Copy AI Authoring Prompt (deterministic protocol)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.generateWorkflow",
         "title": "Generate Workflow from Intent (oracle-checked)",
         "icon": "$(sparkle)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.refreshRuns",
         "title": "Refresh Runs",
         "icon": "$(refresh)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.fixAll",
         "title": "Fix All Auto-Fixable Issues",
         "icon": "$(wand)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.focusTaskInDag",
         "title": "Focus Task in DAG",
         "icon": "$(target)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.peekTaskRefs",
         "title": "Peek Task References",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.doctor",
         "title": "Doctor (diagnose environment)",
         "icon": "$(pulse)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.doctorPing",
         "title": "Doctor + Ping Local Providers",
         "icon": "$(radio-tower)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.testWorkflow",
         "title": "Golden Test (mock provider · offline)",
         "icon": "$(beaker)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.testUpdate",
         "title": "Update the Golden (rewrites the pin from this run)",
         "icon": "$(beaker)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.runTask",
         "title": "Run Task (and its upstream)",
         "category": "Nika Canvas",
-        "icon": "$(play)"
+        "icon": "$(play)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.duplicateTask",
         "title": "Duplicate Task",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.deleteTask",
         "title": "Delete Task",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.openYaml",
         "title": "Open in YAML",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.copyTaskId",
         "title": "Copy Task Id",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.renameTask",
         "title": "Rename Task (references follow)",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.canvas.focusTask",
         "title": "Focus Task",
-        "category": "Nika Canvas"
+        "category": "Nika Canvas",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.applyVerbColors",
         "title": "Apply Verb Colors (canonical hues, every theme)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.finishSetup",
         "title": "Finish Setup (engine + MCP + LSP, one gesture)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.runProof",
         "title": "Run the 10-Second Proof (offline, zero keys)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.starOnGitHub",
         "title": "Star nika on GitHub",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.copyRunLine",
         "title": "Copy Run Line (--var placeholders)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.exportDag",
         "title": "Export DAG (Mermaid · Graphviz)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.showStation",
         "title": "Open the Station (engine · agents · doctor)",
         "icon": "$(radio-tower)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.refresh",
         "title": "Refresh Station",
         "icon": "$(refresh)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.wire",
         "title": "Wire an Agent Client (MCP)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.applyFix",
         "title": "Apply Doctor Fix",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.doctorReport",
         "title": "Doctor Full Report (in the terminal)",
         "icon": "$(terminal)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.serveModel",
         "title": "Serve a Local Model (terminal)",
         "icon": "$(play-circle)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.pullModel",
         "title": "Pull a Local Model (terminal)",
         "icon": "$(cloud-download)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.rmModel",
         "title": "Remove a Local Model",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.station.fix",
         "title": "Apply Fix",
         "icon": "$(wrench)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.workflows.run",
         "title": "Run Workflow",
         "icon": "$(play)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.workflows.check",
         "title": "Check Workflow",
         "icon": "$(check)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.workflows.showDag",
         "title": "Open the Canvas (workflow DAG)",
         "icon": "$(type-hierarchy)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.workflows.rerunTask",
         "title": "Re-run Task (and its upstream)",
         "icon": "$(debug-rerun)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.workflows.focusTask",
         "title": "Focus Task in DAG",
         "icon": "$(target)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.search",
         "title": "Search Everything",
         "icon": "$(search)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.search.resetRanking",
         "title": "Reset Search Ranking",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "nika.treeActions",
         "title": "Tree Actions (every action of the focused row)",
-        "category": "Nika"
+        "category": "Nika",
+        "enablement": "isWorkspaceTrusted"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -1754,42 +1859,59 @@
     ],
     "viewsWelcome": [
       {
+        "view": "nikaStation",
+        "when": "!isWorkspaceTrusted",
+        "contents": "Restricted Mode: syntax and snippets remain available. The engine, workflow commands and automatic demo do not run until you trust this workspace.\n[Manage Workspace Trust](command:workbench.trust.manage)"
+      },
+      {
+        "view": "nikaRuns",
+        "when": "!isWorkspaceTrusted",
+        "contents": "Restricted Mode: syntax and snippets remain available. The engine, workflow commands and automatic demo do not run until you trust this workspace.\n[Manage Workspace Trust](command:workbench.trust.manage)"
+      },
+      {
         "view": "nikaWorkflows",
-        "when": "nika.journey == 'noBinary'",
+        "when": "!isWorkspaceTrusted",
+        "contents": "Restricted Mode: syntax and snippets remain available. The engine, workflow commands and automatic demo do not run until you trust this workspace.\n[Manage Workspace Trust](command:workbench.trust.manage)"
+      },
+      {
+        "view": "nikaWorkflows",
+        "when": "isWorkspaceTrusted && (nika.journey == 'noBinary')",
         "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet: every surface below waits on it.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP: one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation): both sovereign, no account."
       },
       {
         "view": "nikaWorkflows",
-        "when": "nika.journey == 'unequipped'",
+        "when": "isWorkspaceTrusted && (nika.journey == 'unequipped')",
         "contents": "This repo is not equipped for Nika yet.\n[Init this project · scaffold + wire everything](command:nika.initProject)\nAgent rules · MCP · schema wiring: one gesture, skip-if-exists.\n[New session · wizard · describe · templates](command:nika.newSession)\n[▶ Run the 10-second proof](command:nika.runProof)"
       },
       {
         "view": "nikaWorkflows",
-        "when": "nika.journey == 'empty' && workspaceFolderCount == 0",
+        "when": "isWorkspaceTrusted && (nika.journey == 'empty' && workspaceFolderCount == 0)",
         "contents": "No folder is open: workflows are files, and files need a home.\n[Open Folder](command:workbench.action.files.openFolder)\nNo folder handy? The try showroom reads without one: [try an example](command:nika.browseExamples)."
       },
       {
         "view": "nikaWorkflows",
-        "when": "nika.journey == 'empty' && workspaceFolderCount != 0",
+        "when": "isWorkspaceTrusted && (nika.journey == 'empty' && workspaceFolderCount != 0)",
         "contents": "No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo · offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
       },
       {
         "view": "nikaWorkflows",
-        "when": "nika.journey == 'working'",
+        "when": "isWorkspaceTrusted && (nika.journey == 'working')",
         "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Try an example (offline)](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
-        "contents": "No recorded runs yet: this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\n`nika try <slug>` is offline by default: a zero-spend rehearsal, no keys.\n[⧈ Try an example · offline, zero keys](command:nika.browseExamples)"
+        "contents": "No recorded runs yet: this view is the flight recorder: every run writes a tamper-evident, hash-chained trace here.\n[▶ Run a workflow](command:nika.runWorkflow)\n`nika try <slug>` is offline by default: a zero-spend rehearsal, no keys.\n[⧈ Try an example · offline, zero keys](command:nika.browseExamples)",
+        "when": "isWorkspaceTrusted"
       },
       {
         "view": "nikaStation",
-        "when": "nika.journey == 'noBinary'",
+        "when": "isWorkspaceTrusted && (nika.journey == 'noBinary')",
         "contents": "The station lights up with the engine: install it and every row below becomes live machine truth.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)"
       },
       {
         "view": "nikaRunHistory",
-        "contents": "No recorded runs match this workflow yet: run it once and the grid fills itself.\n[▶ Run Workflow](command:nika.runWorkflow)\nMock needs no key: `mock/echo` rehearses offline, and every run still writes its trace."
+        "contents": "No recorded runs match this workflow yet: run it once and the grid fills itself.\n[▶ Run Workflow](command:nika.runWorkflow)\nMock needs no key: `mock/echo` rehearses offline, and every run still writes its trace.",
+        "when": "isWorkspaceTrusted"
       }
     ],
     "breakpoints": [

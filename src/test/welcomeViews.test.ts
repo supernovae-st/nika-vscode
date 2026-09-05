@@ -16,10 +16,11 @@ interface WelcomeEntry { view: string; when?: string; contents: string }
 
 const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), 'utf-8'),
-) as { contributes: { viewsWelcome: WelcomeEntry[] } };
+) as { contributes: { viewsWelcome: WelcomeEntry[]; commands: { command: string; enablement?: string }[] } };
 
 const welcomes = pkg.contributes.viewsWelcome;
 const forView = (view: string): WelcomeEntry[] => welcomes.filter((w) => w.view === view);
+const trusted = (condition: string): string => `isWorkspaceTrusted && (${condition})`;
 
 /** Lines that are a single command link — VS Code renders these as buttons. */
 const buttonLines = (contents: string): string[] =>
@@ -28,11 +29,11 @@ const buttonLines = (contents: string): string[] =>
 describe('viewsWelcome — the state matrix', () => {
   it('nikaWorkflows covers all five discriminated states', () => {
     const whens = forView('nikaWorkflows').map((w) => w.when);
-    expect(whens).toContain("nika.journey == 'noBinary'");
-    expect(whens).toContain("nika.journey == 'unequipped'");
-    expect(whens).toContain("nika.journey == 'empty' && workspaceFolderCount == 0");
-    expect(whens).toContain("nika.journey == 'empty' && workspaceFolderCount != 0");
-    expect(whens).toContain("nika.journey == 'working'");
+    expect(whens).toContain(trusted("nika.journey == 'noBinary'"));
+    expect(whens).toContain(trusted("nika.journey == 'unequipped'"));
+    expect(whens).toContain(trusted("nika.journey == 'empty' && workspaceFolderCount == 0"));
+    expect(whens).toContain(trusted("nika.journey == 'empty' && workspaceFolderCount != 0"));
+    expect(whens).toContain(trusted("nika.journey == 'working'"));
     // The old catch-all is gone — every state is deliberate.
     expect(whens.some((w) => w?.includes('!='), )).toBe(true);
     expect(whens).not.toContain("nika.journey != 'noBinary' && nika.journey != 'unequipped'");
@@ -40,7 +41,7 @@ describe('viewsWelcome — the state matrix', () => {
 
   it('no-workspace: names the cause, ONE primary button (Open Folder)', () => {
     const entry = forView('nikaWorkflows')
-      .find((w) => w.when === "nika.journey == 'empty' && workspaceFolderCount == 0");
+      .find((w) => w.when === trusted("nika.journey == 'empty' && workspaceFolderCount == 0"));
     expect(entry).toBeDefined();
     expect(entry?.contents).toContain('No folder is open');
     const buttons = buttonLines(entry?.contents ?? '');
@@ -50,7 +51,7 @@ describe('viewsWelcome — the state matrix', () => {
 
   it('folder without workflows: names the cause, Try the demo is THE one button', () => {
     const entry = forView('nikaWorkflows')
-      .find((w) => w.when === "nika.journey == 'empty' && workspaceFolderCount != 0");
+      .find((w) => w.when === trusted("nika.journey == 'empty' && workspaceFolderCount != 0"));
     expect(entry).toBeDefined();
     expect(entry?.contents).toContain('No workflows here yet');
     const buttons = buttonLines(entry?.contents ?? '');
@@ -63,7 +64,7 @@ describe('viewsWelcome — the state matrix', () => {
   });
 
   it('engine absent: install button + sovereign install docs (brew · source)', () => {
-    const entry = forView('nikaWorkflows').find((w) => w.when === "nika.journey == 'noBinary'");
+    const entry = forView('nikaWorkflows').find((w) => w.when === trusted("nika.journey == 'noBinary'"));
     expect(entry?.contents).toContain('not on this machine yet');
     expect(buttonLines(entry?.contents ?? '')[0]).toContain('nika.finishSetup');
     expect(entry?.contents).toContain('https://github.com/supernovae-st/homebrew-tap');
@@ -82,6 +83,23 @@ describe('viewsWelcome — the state matrix', () => {
   it('every nikaWorkflows welcome names a CTA (no dead-end state)', () => {
     for (const entry of forView('nikaWorkflows')) {
       expect(buttonLines(entry.contents).length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('Restricted Mode offers host trust management, never a Nika effect command', () => {
+    for (const view of ['nikaWorkflows', 'nikaRuns', 'nikaStation']) {
+      const entry = forView(view).find((w) => w.when === '!isWorkspaceTrusted');
+      expect(entry?.contents).toContain('command:workbench.trust.manage');
+      expect(entry?.contents).not.toContain('command:nika.');
+    }
+    for (const entry of welcomes.filter((w) => w.when !== '!isWorkspaceTrusted')) {
+      expect(entry.when).toMatch(/^isWorkspaceTrusted(?: && |$)/);
+    }
+  });
+
+  it('every contributed command is visibly disabled until workspace trust', () => {
+    for (const command of pkg.contributes.commands) {
+      expect(command.enablement, command.command).toMatch(/^isWorkspaceTrusted(?: && |$)/);
     }
   });
 });

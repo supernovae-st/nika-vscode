@@ -54,7 +54,10 @@ export async function runIntegration({
       NIKA_ENGINE_VERSION: engine.version,
     };
     log(`integration engine: ${engine.tag} · ${engine.assetName} · sha256 ${engine.sha256}`);
-    if (!firstContactOnly) run('out-integration/runTests.js', env);
+    if (!firstContactOnly) {
+      run('out-integration/runRestrictedWorkspace.js', env);
+      run('out-integration/runTests.js', env);
+    }
     run('out-integration/runFirstContact.js', env);
   } finally {
     engine.cleanup();

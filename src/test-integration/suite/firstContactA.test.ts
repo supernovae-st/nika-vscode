@@ -95,6 +95,7 @@ function hasWebviewTab(): boolean {
 suite('first contact · launch A (virgin machine · zero gestures to green)', () => {
   suiteSetup(async function () {
     this.timeout(30000);
+    assert.equal(vscode.workspace.isTrusted, true, 'this is the trusted-host journey; Restricted Mode has its own suite');
     const ext = vscode.extensions.getExtension(EXT_ID);
     assert.ok(ext, `extension ${EXT_ID} must be present`);
     // onStartupFinished activates the extension by itself; awaiting the

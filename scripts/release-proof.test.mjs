@@ -21,14 +21,16 @@ test('integration failures cannot bypass owned engine cleanup', () => {
     'scripts/run-integration.mjs',
     'src/test-integration/runTests.ts',
     'src/test-integration/runFirstContact.ts',
+    'src/test-integration/runRestrictedWorkspace.ts',
   ]) {
     const source = readFileSync(resolve(root, file), 'utf8');
     assert.doesNotMatch(source, /process\.exit\(/, `${file} bypasses finally`);
   }
 });
 
-test('integration releases the exact installed engine after either suite fails', async () => {
-  for (const failingSuite of [null, 'out-integration/runTests.js', 'out-integration/runFirstContact.js']) {
+test('integration releases the exact installed engine after any suite fails', async () => {
+  const suites = ['out-integration/runRestrictedWorkspace.js', 'out-integration/runTests.js', 'out-integration/runFirstContact.js'];
+  for (const failingSuite of [null, ...suites]) {
     let cleanupCount = 0;
     const calls = [];
     const failure = new Error('host failed');
@@ -49,7 +51,7 @@ test('integration releases the exact installed engine after either suite fails',
     if (failingSuite) await assert.rejects(run, (error) => error === failure);
     else await run;
     assert.equal(cleanupCount, 1);
-    assert.equal(calls.length, failingSuite === 'out-integration/runTests.js' ? 1 : 2);
+    assert.deepEqual(calls, failingSuite ? suites.slice(0, suites.indexOf(failingSuite) + 1) : suites);
   }
 });
 
