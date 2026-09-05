@@ -3,16 +3,9 @@
 // The capability gate lit `run` the day nika-runtime reached L3; this
 // is what the live overlay was built for all along. `run --json`
 // emits the SAME canonical NDJSON the flight-recorder writes, so the
-// whole tested fold path is reused verbatim — accumulate stdout, re-
-// fold the buffer on each flush, paint the folded statuses. No second
-// parser (own-corpus law applied to the run wire), no animation: the
-// stream IS the present.
-//
-// Re-folding the whole buffer each flush (vs incremental model
-// mutation) is deliberate: a partial trailing line simply fails to
-// parse and is ignored until the next chunk completes it, so the
-// painted state is always derived from whole events and the FINAL
-// state is exact regardless of chunk boundaries.
+// tested reducer is reused incrementally. Complete lines are admitted once,
+// detached snapshots paint the present, and raw capture has a hard byte cap.
+// Losing observation never becomes a successful run or a complete journal.
 
 import { spawn } from 'child_process';
 import * as fs from 'fs';
@@ -23,7 +16,8 @@ import { maybeCelebrateFirstGreen } from './firstGreen';
 import { saveRunHashes } from '../core/canvasState';
 import { taskFingerprints } from '../core/dirtyNodes';
 import { STATUS_CHAR } from '../core/glyphRegistry';
-import { foldTrace, summarizeRun, type FoldedStatus } from '../core/traceFold';
+import { summarizeRun, type FoldedStatus, type RunModel } from '../core/traceFold';
+import { TraceStream } from '../core/traceStream';
 import { persistTrace, pruneTraces } from '../core/tracePersist';
 import { traceStore } from '../core/traceStore';
 import { runAnnouncementStream } from '../core/runAnnouncement';
@@ -31,9 +25,9 @@ import type { DagPanel, TaskStatus } from '../dagPanel';
 import type { NikaService } from '../nikaService';
 import { cancelActiveReplay } from './runsView';
 
-/** Min gap between intermediate store publishes — editor surfaces
- *  (badges · hover) don't need chunk-rate redraws; the DAG does. */
+/** Store readers update twice a second; canvas paints coalesce separately. */
 const STORE_THROTTLE_MS = 500;
+const PAINT_THROTTLE_MS = 50;
 
 /** One process owner. Sending a signal is not process settlement. */
 interface LiveRun { kill(): void; superseded: boolean }
@@ -210,17 +204,18 @@ export function runWorkflowLive(
     lastAnchorByWorkflow.set(fsPath, `${events} events · chain ${head}`);
   });
 
-  let buffer = '';
+  const stream = new TraceStream();
+  let observationLost = false;
+  let paintTimer: ReturnType<typeof setTimeout> | undefined;
   // Rolling stderr tail — the refused-run branch in `close` greps it for
   // the NIKA codes a pre-flight check named (bounded · refusals are short).
   let stderrTail = '';
-  let lastPainted = '';
+  const lastPainted = new Set<string>();
   let lastStorePublish = 0;
   let lastProgress = '';
-  const paint = (): void => {
+  const paint = (model: RunModel | undefined = stream.snapshot()): void => {
     if (!ownsPresentation()) { return; }
-    const model = foldTrace(buffer);
-    if (model.tasks.size === 0) { return; }
+    if (!model || model.tasks.size === 0) { return; }
     // The stop button's heartbeat: `■ 3/7` — settled over scheduled.
     // Posted only on change (settling is the only thing that moves it).
     let settled = 0;
@@ -265,8 +260,8 @@ export function runWorkflowLive(
     // a redraw log) — keyed on the id+status set painted so far.
     for (const t of model.tasks.values()) {
       const key = `${t.id}:${t.status}`;
-      if (TERMINAL.has(t.status) && !lastPainted.includes(`|${key}|`)) {
-        lastPainted += `|${key}|`;
+      if (TERMINAL.has(t.status) && !lastPainted.has(key)) {
+        lastPainted.add(key);
         if (t.cached === true) {
           // ADR-099 rehydration — the story must never read as if the
           // task re-executed; ○ + "cached", not a plain green success.
@@ -285,8 +280,19 @@ export function runWorkflowLive(
   child.stdout.setEncoding('utf-8');
   child.stdout.on('data', (chunk: string) => {
     if (!ownsPresentation()) { return; }
-    buffer += chunk;
-    paint();
+    if (!stream.push(chunk)) {
+      if (stream.limited && !observationLost) {
+        observationLost = true;
+        if (paintTimer) { clearTimeout(paintTimer); paintTimer = undefined; }
+        traceStore.clear(fsPath);
+        dagPanel.note('…', 'live preview limit reached (16 MiB) · engine still owns the run', undefined, 'st-retrying');
+      }
+      return; // Keep draining stdout; the engine's journal is independent.
+    }
+    if (!paintTimer && chunk.length > 0) {
+      paintTimer = setTimeout(() => { paintTimer = undefined; paint(); }, PAINT_THROTTLE_MS);
+      paintTimer.unref();
+    }
   });
   child.stderr.setEncoding('utf-8');
   child.stderr.on('data', (chunk: string) => {
@@ -318,14 +324,24 @@ export function runWorkflowLive(
   });
   child.once('close', (code) => {
     if (escalation) { clearTimeout(escalation); }
+    if (paintTimer) { clearTimeout(paintTimer); paintTimer = undefined; }
     if (activeRun !== handle) { return; }
     try {
       if (!ownsPresentation() || spawnFailed) { return; }
       announcement.finish();
-      paint(); // final flush FIRST — the buffer now holds every complete
-               // line; the last card must reach its terminal status before
-               // the pill flips to idle (else Run re-enables mid-glow).
-      const model = foldTrace(buffer);
+      stream.finish();
+      const model = stream.snapshot();
+      const buffer = stream.text();
+      if (!model || buffer === undefined) {
+        const journal = lastTracePathByWorkflow.get(fsPath);
+        const story = `live preview incomplete · process closed${code === null ? '' : ` (exit ${code})`}`
+          + (journal ? ` · inspect ${journal}` : ' · inspect the engine journal');
+        dagPanel.note('…', story, undefined, 'st-retrying');
+        dagPanel.runVerdict('…', story, 'st-retrying');
+        opts?.onClose?.();
+        return; // No prefix persistence, success fingerprints or celebration.
+      }
+      paint(model); // Complete the final cards before releasing process ownership.
       // Final fold ALWAYS lands in the store (the throttle above may have
       // swallowed the last intermediate) — the badges' resting truth.
       if (model.tasks.size > 0) { traceStore.set(fsPath, model); }

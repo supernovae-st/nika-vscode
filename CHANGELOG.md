@@ -17,6 +17,16 @@ pending replacement. Superseded output and callbacks cannot repaint the
 next run. Stop signals once, escalates after five seconds if still open,
 and does not claim that cancellation undid earlier effects.
 
+Live traces and replay share one event reducer. Each complete live line is
+decoded once; paints are coalesced and receive detached snapshots. The raw
+live capture is capped at 16 MiB before appending another chunk. Crossing
+that observation limit retracts current badges and running highlights,
+continues draining the engine process, and reports an incomplete preview.
+It never persists a truncated capture or turns exit zero into a green run.
+Split editors now update together when an observation changes or disappears.
+This bounds live observation, not offline replay or the engine journal;
+removing the remaining editor-side capture persistence is still separate work.
+
 Trace announcements retain the complete 64-hex engine head and paths with
 spaces across stderr chunks. Torn, malformed or oversized announcements
 stay absent instead of producing a truncated proof identity.

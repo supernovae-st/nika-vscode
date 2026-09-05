@@ -6,7 +6,7 @@ import type { NikaService } from '../nikaService';
 const host = vi.hoisted(() => ({
   spawn: vi.fn(), warning: vi.fn(), store: vi.fn(), persist: vi.fn(), hashes: vi.fn(),
   active: vi.fn(), community: vi.fn(),
-  celebrate: vi.fn(),
+  celebrate: vi.fn(), clear: vi.fn(),
 }));
 vi.mock('child_process', () => ({ spawn: host.spawn }));
 vi.mock('vscode', () => ({
@@ -20,7 +20,7 @@ vi.mock('../features/firstGreen', () => ({ maybeCelebrateFirstGreen: host.celebr
 vi.mock('../features/runsView', () => ({ cancelActiveReplay: vi.fn() }));
 vi.mock('../core/canvasState', () => ({ saveRunHashes: host.hashes }));
 vi.mock('../core/tracePersist', () => ({ persistTrace: host.persist, pruneTraces: vi.fn() }));
-vi.mock('../core/traceStore', () => ({ traceStore: { set: host.store } }));
+vi.mock('../core/traceStore', () => ({ traceStore: { set: host.store, clear: host.clear } }));
 
 class Child extends EventEmitter {
   pid: number | undefined = 1;
@@ -54,6 +54,43 @@ beforeEach(async () => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('live run ownership and settlement', () => {
+  it('drains an over-limit stream without manufacturing a final verdict or another journal', () => {
+    const onClose = vi.fn();
+    api.runWorkflowLive(service, panel, file, log, undefined, { onClose });
+    children[0].stdout.emit('data', event('task_started', [{ key: 'task', value: 'work' }]));
+    children[0].stdout.emit('data', 'x'.repeat(16 * 1024 * 1024 + 1));
+    expect(children[0].kill).not.toHaveBeenCalled();
+    expect(api.isRunActive()).toBe(true);
+    expect(host.clear).toHaveBeenCalledWith(file);
+    host.store.mockClear();
+    children[0].stdout.emit('data', event('workflow_completed'));
+    children[0].emit('close', 0);
+    expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain('live preview incomplete');
+    expect(host.store).not.toHaveBeenCalled();
+    expect(host.persist).not.toHaveBeenCalled();
+    expect(host.hashes).not.toHaveBeenCalled();
+    expect(host.celebrate).not.toHaveBeenCalled();
+    expect(host.community).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(api.isRunActive()).toBe(false);
+  });
+
+  it('coalesces tiny chunks and cancels any delayed paint when the process closes', () => {
+    api.runWorkflowLive(service, panel, file, log);
+    const text = event('task_started', [{ key: 'task', value: 'work' }]);
+    for (const character of text) { children[0].stdout.emit('data', character); }
+    expect(panel.batchUpdateStatus).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(50);
+    expect(panel.batchUpdateStatus).toHaveBeenCalledTimes(1);
+    children[0].stdout.emit('data', event('task_completed', [{ key: 'task', value: 'work' }]));
+    children[0].stdout.emit('data', event('workflow_completed'));
+    children[0].emit('close', 0);
+    const paints = vi.mocked(panel.batchUpdateStatus).mock.calls.length;
+    vi.advanceTimersByTime(1000);
+    expect(panel.batchUpdateStatus).toHaveBeenCalledTimes(paints);
+    expect(JSON.stringify(vi.mocked(panel.runVerdict).mock.calls)).toContain('every task landed');
+  });
+
   it('preserves the current announced path and complete head across stderr chunks', () => {
     const head = 'ab'.repeat(32);
     const header = `nika run: trace: .nika/traces/a space.ndjson · 7 events · chain ${head} · sealed\n`;

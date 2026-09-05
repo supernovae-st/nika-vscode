@@ -1252,8 +1252,7 @@ function activateTrusted(context: ExtensionContext): void {
     runHighlight,
     traceStore.onDidUpdate((key) => {
       const rec = traceStore.get(key);
-      if (!rec) { return; }
-      const running = [...rec.fold.tasks.values()]
+      const running = [...(rec?.fold.tasks.values() ?? [])]
         .filter((t) => t.status === 'running' || t.status === 'retrying')
         .map((t) => t.id);
       paintRunningSpans(key, running);

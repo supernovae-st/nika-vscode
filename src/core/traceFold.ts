@@ -317,7 +317,8 @@ const AGENT_FACT_KINDS: ReadonlySet<string> = new Set([
 
 const TERMINAL: ReadonlySet<FoldedStatus> = new Set(['success', 'failed', 'skipped', 'cancelled']);
 
-export function foldTrace(ndjson: string): RunModel {
+/** One stateful reducer; published snapshots never alias its mutable state. */
+export function createTraceFold(): { pushLine(raw: string): void; snapshot(): RunModel } {
   const model: RunModel = {
     workflowStatus: 'unknown',
     tasks: new Map(),
@@ -327,13 +328,13 @@ export function foldTrace(ndjson: string): RunModel {
 
   let synthetic = 0; // ordering fallback when lines carry no timestamp
   let lastRealTs: number | undefined;
-  for (const raw of ndjson.split('\n')) {
+  const pushLine = (raw: string): void => {
     const line = raw.trim();
-    if (line.length === 0) { continue; }
+    if (line.length === 0) { return; }
     const ev = normalizeEventLine(line);
     if (!ev) {
       model.unknownLines += 1;
-      continue;
+      return;
     }
     synthetic += 1;
     // Timeline ordering may fall back to the last real timestamp (or a
@@ -358,16 +359,16 @@ export function foldTrace(ndjson: string): RunModel {
         if (ev.workflowName !== undefined) {
           model.workflowName = ev.workflowName;
         }
-        continue;
+        return;
       case 'workflow_completed':
         model.workflowStatus = 'completed';
-        continue;
+        return;
       case 'workflow_failed':
         model.workflowStatus = 'failed';
-        continue;
+        return;
       case 'workflow_cancelled':
         model.workflowStatus = 'cancelled';
-        continue;
+        return;
       // ADR-099 durable pause (`nika:prompt` awaiting an answer) — the
       // process stopped; without a mapping the Runs view reads the run
       // as live forever.
@@ -381,7 +382,7 @@ export function foldTrace(ndjson: string): RunModel {
             choices: ev.choices,
           };
         }
-        continue;
+        return;
       case 'cost_incurred':
         // Deltas describe the in-flight curve only. Adding them to the
         // terminal task amounts would count the same spend twice and
@@ -399,7 +400,7 @@ export function foldTrace(ndjson: string): RunModel {
             model.tasks.set(ev.taskId, lt);
           }
         }
-        continue;
+        return;
       default:
         break;
     }
@@ -417,7 +418,7 @@ export function foldTrace(ndjson: string): RunModel {
           model.tasks.set(ev.taskId, t);
         }
       }
-      continue;
+      return;
     }
 
     // The stream is MOVING (contract §3.3): infer_chunk counts prove
@@ -431,7 +432,7 @@ export function foldTrace(ndjson: string): RunModel {
           model.tasks.set(ev.taskId, t);
         }
       }
-      continue;
+      return;
     }
 
     // The agent loop's inner life — annotations on the RUNNING task,
@@ -477,11 +478,11 @@ export function foldTrace(ndjson: string): RunModel {
         }
         model.tasks.set(ev.taskId, t);
       }
-      continue;
+      return;
     }
 
     const status = TASK_STATUS.get(ev.kind);
-    if (!status || !ev.taskId) { continue; }
+    if (!status || !ev.taskId) { return; }
 
     const task: FoldedTask = model.tasks.get(ev.taskId) ?? {
       id: ev.taskId,
@@ -497,7 +498,7 @@ export function foldTrace(ndjson: string): RunModel {
     // line is always trace corruption, never information.
     const alreadyTerminal = TERMINAL.has(task.status);
     const incomingTerminal = TERMINAL.has(status);
-    if (alreadyTerminal) { continue; }
+    if (alreadyTerminal) { return; }
 
     if (ev.kind === 'task_retrying') { task.retries += 1; }
     if (ev.kind === 'task_cache_hit') { task.cached = true; }
@@ -545,22 +546,33 @@ export function foldTrace(ndjson: string): RunModel {
     task.status = status;
     model.tasks.set(ev.taskId, task);
     model.timeline.push({ atMs: at, taskId: ev.taskId, status, durationMs: task.durationMs, cached: task.cached });
-  }
+  };
 
-  // A trace that never reached a terminal workflow event but has terminal
-  // tasks everywhere reads as completed-in-substance; stay honest and only
-  // upgrade unknown → running when task activity exists.
-  if (model.workflowStatus === 'unknown' && model.tasks.size > 0) {
-    model.workflowStatus = 'running';
-  }
+  const snapshot = (): RunModel => {
+    const result = structuredClone(model);
+    // A trace that never reached a terminal workflow event but has terminal
+    // tasks everywhere reads as completed-in-substance; stay honest and only
+    // upgrade unknown → running when task activity exists.
+    if (result.workflowStatus === 'unknown' && result.tasks.size > 0) {
+      result.workflowStatus = 'running';
+    }
 
-  // The scrubber (frameAt · timelineBounds) assumes ascending atMs; a
-  // fan-out trace's NDJSON can interleave concurrent writers out of
-  // strict time order. Array.prototype.sort is stable, so same-timestamp
-  // entries keep line order (last-write-wins per frameAt's contract).
-  model.timeline.sort((a, b) => a.atMs - b.atMs);
+    // The scrubber (frameAt · timelineBounds) assumes ascending atMs; a
+    // fan-out trace's NDJSON can interleave concurrent writers out of
+    // strict time order. Array.prototype.sort is stable, so same-timestamp
+    // entries keep line order (last-write-wins per frameAt's contract).
+    result.timeline.sort((a, b) => a.atMs - b.atMs);
 
-  return model;
+    return result;
+  };
+  return { pushLine, snapshot };
+}
+
+/** Whole-file replay and the incremental live observer use one event reducer. */
+export function foldTrace(ndjson: string): RunModel {
+  const fold = createTraceFold();
+  for (const raw of ndjson.split('\n')) { fold.pushLine(raw); }
+  return fold.snapshot();
 }
 
 /** `999ms` · `1.2s` · `2m03` — badge-terse duration ladder. Minute spans
