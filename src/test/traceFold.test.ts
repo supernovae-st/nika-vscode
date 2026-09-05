@@ -7,16 +7,17 @@ import { foldTrace, formatRunBadge, normalizeEventLine, summarizeRun } from '../
 // Real nika 0.92.0 flight-recorder captures (signature-demo · 4 verbs ·
 // mock/echo offline) — the wire as the engine actually writes it.
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
+const NS = 1_718_193_600_000_000_000; // 2024-06-12T12:00:00Z in nanos
 const fixtureFold = (name: string): ReturnType<typeof foldTrace> =>
   foldTrace(fs.readFileSync(path.join(FIXTURES, name), 'utf-8'));
 
 function diamondLine(kind: string, opts: { task?: string; ts?: number; usd?: number } = {}): string {
   const fields: Array<{ key: string; value: unknown }> = [];
   if (opts.task) { fields.push({ key: 'task', value: opts.task }); }
-  if (opts.usd !== undefined) { fields.push({ key: 'usd', value: { float: opts.usd } }); }
+  if (opts.usd !== undefined) { fields.push({ key: kind === 'cost_incurred' ? 'usd' : 'cost_usd', value: opts.usd }); }
   return JSON.stringify({
     id: '00000000-0000-0000-0000-000000000000',
-    timestamp: { unix_ms: opts.ts ?? 0 },
+    timestamp: (opts.ts ?? 0) * 1e6,
     kind,
     run: 'run-1',
     fields,
@@ -29,14 +30,81 @@ describe('normalizeEventLine', () => {
     expect(ev).toMatchObject({ kind: 'task_started', taskId: 'fetch', tsMs: 1000 });
   });
 
-  it('reads the brouillon generation shape (kind.type tag)', () => {
-    const ev = normalizeEventLine(JSON.stringify({
+  it('counts the retired brouillon object-kind dialect as unknown, without inventing a task', () => {
+    const line = JSON.stringify({
       ts: '2026-05-24T16:19:00Z',
       kind: { type: 'TaskCompleted', task_id: 'render' },
-    }));
-    expect(ev?.kind).toBe('task_completed');
-    expect(ev?.taskId).toBe('render');
-    expect(ev?.tsMs).toBeGreaterThan(0);
+    });
+    expect(normalizeEventLine(line)).toBeUndefined();
+    const model = foldTrace(line);
+    expect(model.tasks.size).toBe(0);
+    expect(model.workflowStatus).toBe('unknown');
+    expect(model.unknownLines).toBe(1);
+  });
+
+  it('preserves one-key JSON output instead of interpreting its property as a scalar tag', () => {
+    for (const output of [{ answer: 42 }, { String: 'actual data' }, { nested: { one: true } }]) {
+      const ev = normalizeEventLine(v2Line('task_completed', {
+        task: 'render', fields: [{ key: 'output', value: output }],
+      }));
+      expect(ev?.output).toBe(JSON.stringify(output));
+    }
+  });
+
+  it('does not reinterpret tagged task or cost objects as current scalar fields', () => {
+    const ev = normalizeEventLine(v2Line('task_completed', { fields: [
+      { key: 'task', value: { String: 'invented' } },
+      { key: 'cost_usd', value: { float: 0.5 } },
+    ] }));
+    expect(ev?.taskId).toBeUndefined();
+    expect(ev?.usd).toBeUndefined();
+  });
+
+  it.each(['', ' ', '0', '1.5'])('does not invent a numeric measurement from text %j', (value) => {
+    const ev = normalizeEventLine(v2Line('task_completed', { task: 'a', fields: [
+      { key: 'cost_usd', value }, { key: 'tokens', value }, { key: 'duration_ms', value },
+    ] }));
+    expect(ev?.usd).toBeUndefined();
+    expect(ev?.tokens).toBeUndefined();
+    expect(ev?.durationMs).toBeUndefined();
+  });
+
+  it.each([0, -1_000_000_000, 1_000_000_000, NS])('reads signed nanoseconds without guessing epoch units: %s', (ns) => {
+    expect(normalizeEventLine(v2Line('workflow_started', { ns }))?.tsMs).toBe(ns / 1e6);
+  });
+
+  it.each([{ unix_ms: 1000 }, { unix_ns: 1000 }, '2026-05-24T16:19:00Z'])('does not interpret a retired timestamp shape: %j', (timestamp) => {
+    expect(normalizeEventLine(JSON.stringify({ kind: 'workflow_started', timestamp, fields: [] }))?.tsMs).toBeUndefined();
+  });
+
+  it('does not translate retired field aliases or camel-case kinds into current facts', () => {
+    const line = JSON.stringify({ kind: 'TaskCompleted', ts: NS, fields: [
+      { key: 'task_id', value: 'invented' }, { key: 'usd', value: 0.5 },
+    ] });
+    const ev = normalizeEventLine(line);
+    expect(ev?.kind).toBe('TaskCompleted');
+    expect(ev?.taskId).toBeUndefined();
+    expect(ev?.usd).toBeUndefined();
+    expect(ev?.tsMs).toBeUndefined();
+    expect(foldTrace(line).tasks.size).toBe(0);
+  });
+
+  it('keeps live cost deltas and settled task costs on their own field contracts', () => {
+    for (const [kind, key, wrongKey] of [
+      ['cost_incurred', 'usd', 'cost_usd'],
+      ['task_completed', 'cost_usd', 'usd'],
+    ]) {
+      expect(normalizeEventLine(v2Line(kind, { fields: [
+        { key, value: 0.25 }, { key: wrongKey, value: 99 },
+      ] }))?.usd).toBe(0.25);
+      expect(normalizeEventLine(v2Line(kind, { fields: [{ key: wrongKey, value: 99 }] }))?.usd).toBeUndefined();
+    }
+  });
+
+  it.each(['__proto__', 'constructor', 'toString', 'agent_future_unknown'])('does not give an unknown event a task state: %s', (kind) => {
+    const model = foldTrace(v2Line(kind, { task: 'invented', fields: [{ key: 'turn', value: 5 }] }));
+    expect(model.tasks.size).toBe(0);
+    expect(model.workflowStatus).toBe('unknown');
   });
 
   it('returns undefined on garbage without throwing', () => {
@@ -67,7 +135,8 @@ describe('foldTrace', () => {
     expect(model.tasks.get('a')).toMatchObject({ status: 'success', retries: 1, durationMs: 1500 });
     expect(model.tasks.get('b')?.status).toBe('failed');
     expect(model.tasks.get('c')?.status).toBe('skipped');
-    expect(model.totalUsd).toBeCloseTo(0.02);
+    expect(model.liveUsd).toBeCloseTo(0.02);
+    expect(model.totalUsd).toBeUndefined();
     expect(model.startMs).toBe(0);
     expect(model.endMs).toBe(2030);
     expect(model.unknownLines).toBe(0);
@@ -140,8 +209,6 @@ describe('foldTrace', () => {
 // (Timestamp · serde transparent) · kind = snake_case string · fields =
 // [{key, value}] untagged scalars · keys: task · duration_ms (clock-
 // derived AUTHORITY) · cost_usd · tokens · note.
-
-const NS = 1_718_193_600_000_000_000; // 2024-06-12T12:00:00Z in nanos
 
 function v2Line(
   kind: string,
@@ -496,7 +563,7 @@ describe('the skip/cancel WHY (0.95+ journals)', () => {
 
 describe('task_recovered (0.98+ wire · D-2026-07-08-N4)', () => {
   const line = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
-    JSON.stringify({ id: 'x', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+    JSON.stringify({ id: 'x', timestamp: ts * 1e6, kind, run: 'run-1', fields });
   const recoveredTrace = [
     line('workflow_started', [{ key: 'workflow', value: 'demo' }], 1000),
     line('task_started', [{ key: 'task', value: 'fragile' }], 1001),
@@ -569,7 +636,7 @@ describe('task_recovered · the REAL wire (engine-main capture, 2026-07-09)', ()
 describe('the red teaches — the failure story crosses the wire (wave G)', () => {
   it('a failed fold carries preview + whyWhen/blockedBy for the card', () => {
     const kv = (kind: string, fields: Array<{ key: string; value: unknown }>, ts: number): string =>
-      JSON.stringify({ id: '0', timestamp: { unix_ms: ts }, kind, run: 'run-1', fields });
+      JSON.stringify({ id: '0', timestamp: ts * 1e6, kind, run: 'run-1', fields });
     const lines = [
       kv('task_started', [{ key: 'task', value: 'a' }], 1),
       kv('task_failed', [
@@ -667,6 +734,30 @@ describe('foldTrace · live meters (cost_incurred · infer_chunk — contract §
     expect(model.liveTokens).toBe(100);
     expect(model.tasks.get('draft')?.liveUsd).toBeCloseTo(0.003, 6);
     expect(model.tasks.get('draft')?.liveTokens).toBe(100);
+  });
+
+  it('does not add live deltas to the same task\'s recorded amount', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('cost_incurred', { task: 'draft', usd: 0.001 }),
+      line('cost_incurred', { task: 'draft', usd: 0.002 }),
+      line('task_completed', { task: 'draft', cost_usd: 0.003 }),
+      line('workflow_completed', {}),
+    ].join('\n'));
+    expect(model.liveUsd).toBeCloseTo(0.003, 10);
+    expect(model.tasks.get('draft')?.usd).toBeCloseTo(0.003, 10);
+    expect(model.totalUsd).toBeCloseTo(0.003, 10);
+  });
+
+  it('keeps the recorded amount unknown when only a live curve was observed', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('cost_incurred', { task: 'draft', usd: 0.003 }),
+      line('task_completed', { task: 'draft' }),
+      line('workflow_completed', {}),
+    ].join('\n'));
+    expect(model.liveUsd).toBeCloseTo(0.003, 10);
+    expect(model.totalUsd).toBeUndefined();
   });
 
   it('chunks count the stream; a settled task is frozen against late meters', () => {

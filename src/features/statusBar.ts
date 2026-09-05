@@ -14,6 +14,7 @@ export class NikaStatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
   private readonly disposables: vscode.Disposable[] = [];
   private lspState: 'off' | 'starting' | 'running' | 'failed' = 'off';
+  private disposed = false;
 
   constructor(
     private readonly service: NikaService,
@@ -24,12 +25,22 @@ export class NikaStatusBar implements vscode.Disposable {
     this.disposables.push(
       this.item,
       service.onDidChange(() => this.render()),
+      service.onDidChangeEngine(() => this.refreshGrammar()),
       // The spin follows the live-run lifecycle (annexe A #10) — one
       // event, no handle threading through the run call sites.
       onDidChangeRunActive(() => this.render()),
       vscode.window.onDidChangeActiveTextEditor(() => this.render()),
     );
     this.render();
+    this.refreshGrammar();
+  }
+
+  /** Engine input changes may probe; rendering its observations may not. */
+  private refreshGrammar(): void {
+    if (!this.service.available || !this.service.caps.check) { return; }
+    void this.service.speaksGrammar().then(() => {
+      if (!this.disposed) { this.render(); }
+    });
   }
 
   setLspState(state: 'off' | 'starting' | 'running' | 'failed'): void {
@@ -78,13 +89,6 @@ export class NikaStatusBar implements vscode.Disposable {
       return;
     }
     this.item.command = 'nika.showMenu';
-    // Feed the canary once per binary (cached; a no-op after the first
-    // verdict) — an older-engine floor must not wait for the Station to open.
-    if (this.service.gen1 === undefined && caps.check) {
-      void this.service.speaksGrammar().then((v) => {
-        if (v !== undefined) { this.render(); }
-      });
-    }
     const busyLine = isRunActive()
       ? '$(sync~spin) a run is live — the canvas narrates it'
       : this.service.probing
@@ -108,6 +112,7 @@ export class NikaStatusBar implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.disposed = true;
     for (const d of this.disposables) { d.dispose(); }
   }
 }

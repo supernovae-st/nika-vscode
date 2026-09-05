@@ -142,7 +142,9 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
-  });
+  // Multiple real engine processes, including candidate debug builds, use
+  // the same 30-second budget as the subprocess seam above.
+  }, 30000);
 
   it('nika:prompt pauses with the QUESTION in the journal; --answer resumes and completes', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-pause-'));
@@ -186,7 +188,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
-  });
+  }, 30000);
 
   it('journals follow the process CWD, not the workflow file (the spawn-cwd law)', () => {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-cwd-'));

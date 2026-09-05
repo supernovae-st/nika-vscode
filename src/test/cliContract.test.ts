@@ -370,7 +370,7 @@ describe('byteOffsetToPosition', () => {
 });
 
 // ─── resume capability (ADR-099 · version-gated flag, not a subcommand) ─────
-import { buildCapabilities, versionAtLeast } from '../core/capabilities';
+import { buildCapabilities } from '../core/capabilities';
 
 describe('parseToolMeta (nika tools --json · v1 envelope)', () => {
   it('maps BARE tool names → category + the binary description (the teaching voice)', () => {
@@ -467,18 +467,12 @@ describe('parseCatalogModels (nika catalog --json · v1 envelope)', () => {
 
 describe('resume capability gate', () => {
   const HELP = 'Commands:\n  run  Execute\n  check  Audit\n\nOptions:\n';
-  it('lights at the 0.93 line and above', () => {
-    expect(buildCapabilities(HELP, 'nika 0.93.1').resume).toBe(true);
-    expect(buildCapabilities(HELP, 'nika 0.94.0').resume).toBe(true);
-    expect(buildCapabilities(HELP, 'nika 1.0.0').resume).toBe(true);
+  it('requires both flags in the current run help', () => {
+    expect(buildCapabilities(HELP, 'nika 0.118.1', '', '', [], { run: '  --resume <TRACE>\n  --from <TASK>' }).resume).toBe(true);
   });
-  it('stays dark below 0.93 or without run', () => {
-    expect(buildCapabilities(HELP, 'nika 0.92.0').resume).toBe(false);
-    expect(buildCapabilities('Commands:\n  check  Audit\n', 'nika 0.93.1').resume).toBe(false);
-    expect(buildCapabilities(HELP, 'garbage').resume).toBe(false);
-  });
-  it('versionAtLeast parses the real --version shapes', () => {
-    expect(versionAtLeast('nika 0.93.1', 0, 93)).toBe(true);
-    expect(versionAtLeast('nika-cli 0.92.0', 0, 93)).toBe(false);
+  it('a version alone, a missing flag, or a missing run command grants nothing', () => {
+    expect(buildCapabilities(HELP, 'nika 0.118.1').resume).toBe(false);
+    expect(buildCapabilities(HELP, 'nika 0.118.1', '', '', [], { run: '  --resume <TRACE>' }).resume).toBe(false);
+    expect(buildCapabilities('Commands:\n  check Audit\n', 'nika 0.118.1', '', '', [], { run: '  --resume <TRACE>\n  --from <TASK>' }).resume).toBe(false);
   });
 });

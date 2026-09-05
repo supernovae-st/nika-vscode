@@ -4,14 +4,15 @@
 // Pure functions with no module-level state — all dependencies passed as parameters.
 
 import { window, ProgressLocation, ExtensionContext, type CancellationToken } from 'vscode';
-import { execFile } from 'child_process';
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { IncomingMessage } from 'http';
+import { pipeline } from 'node:stream/promises';
 import { extractBinaryFromTarGz, extractBinaryFromZip } from './core/archive';
-import { probeBinaryVersion, versionReceiptError } from './core/binaryVersion';
+import { engineSupportError, probeBinaryVersion, versionReceiptError } from './core/binaryVersion';
+import { findCommandOnPath } from './core/pathLookup';
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/supernovae-st/nika/releases/latest';
 const GITHUB_LATEST_HTML = 'https://github.com/supernovae-st/nika/releases/latest';
@@ -69,31 +70,26 @@ export function getArtifactName(): string | null {
 }
 
 /** Follows HTTP redirects (GitHub redirects asset downloads). */
-function httpGet(url: string): Promise<IncomingMessage> {
-  return new Promise((resolve, reject) => {
-    const request = (targetUrl: string, redirectsLeft: number): void => {
-      https.get(targetUrl, { headers: { 'User-Agent': 'vscode-nika-extension' } }, (res) => {
-        if (
-          (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)
-          && res.headers.location
-          && redirectsLeft > 0
-        ) {
-          res.resume();
-          // https.get throws SYNCHRONOUSLY on a non-https URL — an
-          // http:// redirect would crash the extension host (and would
-          // be a protocol downgrade for a binary download anyway).
-          if (!res.headers.location.startsWith('https://')) {
-            reject(new Error(`refusing non-https redirect: ${res.headers.location}`));
-            return;
-          }
-          request(res.headers.location, redirectsLeft - 1);
-          return;
-        }
+async function httpGet(url: string, signal?: AbortSignal): Promise<IncomingMessage> {
+  for (let redirectsLeft = 5; ; redirectsLeft--) {
+    signal?.throwIfAborted();
+    const response = await new Promise<IncomingMessage>((resolve, reject) => {
+      https.get(url, { headers: { 'User-Agent': 'vscode-nika-extension' }, signal }, (res) => {
+        // A response may fail after headers but before its body consumer
+        // attaches. Keep that error handled; pipeline/readBody also observe it.
+        res.on('error', reject);
         resolve(res);
       }).on('error', reject);
-    };
-    request(url, 5);
-  });
+    });
+    const redirect = [301, 302, 307, 308].includes(response.statusCode ?? 0);
+    if (!redirect || !response.headers.location) { return response; }
+    response.destroy();
+    if (redirectsLeft === 0) { throw new Error('too many release download redirects'); }
+    if (!response.headers.location.startsWith('https://')) {
+      throw new Error(`refusing non-https redirect: ${response.headers.location}`);
+    }
+    url = response.headers.location;
+  }
 }
 
 /** Reads the full body of an HTTP response as a string. */
@@ -111,59 +107,42 @@ export class DownloadCancelled extends Error {
   constructor() { super('download cancelled'); }
 }
 
-/** Downloads a URL to a file path, streaming directly to disk.
- *  `token` (optional) aborts the in-flight transfer — the stream is
- *  destroyed and the partial file removed (never a half binary). */
-function downloadToFile(url: string, destPath: string, token?: CancellationToken): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath);
-    const cleanup = (err: Error): void => {
-      file.destroy();
-      fs.unlink(destPath, () => undefined);
-      reject(err);
-    };
-    if (token) {
-      const sub = token.onCancellationRequested(() => {
-        sub.dispose();
-        cleanup(new DownloadCancelled());
-      });
+/** Transfer one new archive. Await stream closure and failed-transfer cleanup;
+ * never truncate or remove a destination owned by another transfer. The
+ * deadline covers this transfer's headers, redirects and body, not installation. */
+export async function downloadToFile(url: string, destPath: string, token?: CancellationToken): Promise<void> {
+  if (token?.isCancellationRequested) { throw new DownloadCancelled(); }
+  const controller = new AbortController();
+  const sub = token?.onCancellationRequested(() => controller.abort(new DownloadCancelled()));
+  const deadline = setTimeout(() => controller.abort(new Error('engine archive download timed out')), 180_000);
+  let response: IncomingMessage | undefined;
+  let ownsFile = false;
+  try {
+    controller.signal.throwIfAborted();
+    response = await httpGet(url, controller.signal);
+    if (response.statusCode !== 200) {
+      throw new Error(`HTTP ${response.statusCode} downloading binary`);
     }
-
-    const request = (targetUrl: string, redirectsLeft: number): void => {
-      if (token?.isCancellationRequested) { return; } // cleanup already fired
-      https.get(targetUrl, { headers: { 'User-Agent': 'vscode-nika-extension' } }, (res) => {
-        if (
-          (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)
-          && res.headers.location
-          && redirectsLeft > 0
-        ) {
-          res.resume();
-          if (!res.headers.location.startsWith('https://')) {
-            cleanup(new Error(`refusing non-https redirect: ${res.headers.location}`));
-            return;
-          }
-          request(res.headers.location, redirectsLeft - 1);
-          return;
-        }
-        if (res.statusCode !== 200) {
-          // Drain the response — an unconsumed body keeps the socket
-          // pinned until the server gives up.
-          res.resume();
-          cleanup(new Error(`HTTP ${res.statusCode} downloading binary`));
-          return;
-        }
-        res.pipe(file);
-        file.on('finish', () => file.close(() => resolve()));
-        file.on('error', cleanup);
-      }).on('error', cleanup);
-    };
-    request(url, 5);
-  });
+    controller.signal.throwIfAborted();
+    const file = fs.createWriteStream(destPath, { flags: 'wx' });
+    file.once('open', () => { ownsFile = true; });
+    // pipeline installs both error handlers immediately, destroys peers on
+    // failure, and settles after closure; pipe + a late file handler did not.
+    await pipeline(response, file, { signal: controller.signal });
+  } catch (error) {
+    response?.destroy();
+    if (ownsFile) { await fs.promises.unlink(destPath); }
+    throw controller.signal.aborted ? controller.signal.reason : error;
+  } finally {
+    clearTimeout(deadline);
+    sub?.dispose();
+  }
 }
 
 /**
  * Downloads the latest nika binary from GitHub releases.
- * Returns the path to the downloaded binary, or null on failure.
+ * Returns the installed path, or null on an unsupported platform. Errors
+ * reject without replacing an existing binary with unverified bytes.
  */
 export async function downloadNikaBinary(storagePath: string): Promise<string | null> {
   const artifactName = getArtifactName();
@@ -184,10 +163,13 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
       cancellable: true,
     },
     async (progress, token) => {
+      let stagingPath: string | undefined;
       try {
         progress.report({ message: 'Resolving the latest release...' });
         const version = await resolveLatestVersion();
         if (token.isCancellationRequested) { throw new DownloadCancelled(); }
+        const supportError = engineSupportError(version);
+        if (supportError) { throw new Error(`Latest public release: ${supportError}`); }
         const archiveExt = isWindows ? '.zip' : '.tar.gz';
         const archiveName = `${artifactName}-${version}${archiveExt}`;
         const assetUrl = `${GITHUB_DOWNLOAD_BASE}/v${version}/${archiveName}`;
@@ -196,8 +178,9 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
 
         // Ensure storage directory exists
         fs.mkdirSync(storagePath, { recursive: true });
-
-        const archiveDest = path.join(storagePath, archiveName);
+        stagingPath = fs.mkdtempSync(path.join(storagePath, '.nika-install-'));
+        const archiveDest = path.join(stagingPath, archiveName);
+        const candidateDest = path.join(stagingPath, binaryName);
         await downloadToFile(assetUrl, archiveDest, token);
         if (token.isCancellationRequested) { throw new DownloadCancelled(); }
 
@@ -221,7 +204,6 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         const actualHash = crypto.createHash('sha256')
           .update(fs.readFileSync(archiveDest)).digest('hex');
         if (actualHash !== expectedHash) {
-          fs.unlinkSync(archiveDest);
           throw new Error(
             `SHA256 mismatch for ${archiveName}: expected ${expectedHash}, got ${actualHash}`,
           );
@@ -230,44 +212,57 @@ export async function downloadNikaBinary(storagePath: string): Promise<string | 
         progress.report({ message: 'Extracting binary...' });
 
         if (isWindows) {
-          await extractBinaryFromZip(archiveDest, binaryDest);
+          await extractBinaryFromZip(archiveDest, candidateDest);
         } else {
-          await extractBinaryFromTarGz(archiveDest, binaryDest);
-          fs.chmodSync(binaryDest, 0o755);
+          await extractBinaryFromTarGz(archiveDest, candidateDest);
+          fs.chmodSync(candidateDest, 0o755);
         }
 
         // The receipt: SHA256SUMS proved the download, this proves the
         // install — the binary on disk must report the version we resolved.
-        // A mismatch refuses the install and removes the wrong binary (a
-        // bad executable in storage is worse than none).
+        // Verify in owned staging. A failed receipt must not delete the
+        // previously installed binary or leave unverified executable bytes.
         progress.report({ message: 'Verifying the installed binary...' });
-        const receiptError = versionReceiptError(await probeBinaryVersion(binaryDest), version);
+        const receiptError = versionReceiptError(await probeBinaryVersion(candidateDest), version);
         if (receiptError) {
-          fs.unlink(binaryDest, () => undefined);
           throw new Error(receiptError);
         }
-
-        // Clean up archive
-        fs.unlink(archiveDest, () => undefined);
-
+        if (token.isCancellationRequested) { throw new DownloadCancelled(); }
+        // Same-storage rename publishes only the verified file. This is
+        // installation settlement, not a cross-process version-order lock.
+        fs.renameSync(candidateDest, binaryDest);
         progress.report({ message: 'Done.' });
         return binaryDest;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        void message; // handled by caller
-        throw err;
+      } finally {
+        // The exact mkdtemp directory belongs to this attempt alone.
+        if (stagingPath) { await fs.promises.rm(stagingPath, { recursive: true, force: true }); }
       }
     },
   );
 }
 
-/** Checks if the binary at the given path is functional. */
-export function isBinaryWorking(binaryPath: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    execFile(binaryPath, ['--version'], { timeout: 5000 }, (error) => {
-      resolve(!error);
-    });
+/** Select once, then let NikaService admit the selection. An unsupported
+ * configured, bundled, PATH or cached engine is never replaced silently. */
+export function findLocalBinary(configuredPath: string, bundled: string | undefined, cached: string): string | undefined {
+  if (configuredPath !== 'nika') {
+    const named = !configuredPath.includes('/') && !configuredPath.includes('\\');
+    return (named ? findExecutableOnPath(configuredPath) : undefined) ?? canonicalPath(configuredPath);
+  }
+  if (bundled) { return canonicalPath(bundled); }
+  return findExecutableOnPath('nika') ?? (fs.existsSync(cached) ? canonicalPath(cached) : undefined);
+}
+
+/** Freeze the selected path, including relative PATH entries and symlinks. */
+export function findExecutableOnPath(name: string): string | undefined {
+  const selected = findCommandOnPath(name, process.env.PATH, process.platform, (candidate) => {
+    try { fs.accessSync(candidate, fs.constants.X_OK); return true; } catch { return false; }
   });
+  return selected ? canonicalPath(selected) : undefined;
+}
+
+function canonicalPath(candidate: string): string {
+  const absolute = path.resolve(candidate);
+  try { return fs.realpathSync(absolute); } catch { return absolute; }
 }
 
 /** Check for bundled binary in platform-specific VSIX (rust-analyzer pattern). */

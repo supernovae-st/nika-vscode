@@ -14,6 +14,7 @@ import * as vscode from 'vscode';
 
 import { matchWorkflowFiles, mergeLaunchConfig, replayConfig, workflowNameOf } from '../core/debugConfig';
 import { foldTrace } from '../core/traceFold';
+import { readTraceFile } from '../core/traceFile';
 
 /** The engine binary serves the session: `nika dap` over stdio. */
 class NikaDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
@@ -110,7 +111,7 @@ async function newestTraceFor(workflowName: string | undefined): Promise<string 
     .sort((a, b) => b.m - a.m);
   if (workflowName !== undefined) {
     for (const { f } of dated) {
-      const text = safeRead(f.fsPath);
+      const text = safeReadTrace(f.fsPath);
       if (text && foldTrace(text).workflowName === workflowName) { return f.fsPath; }
     }
     return undefined;
@@ -120,6 +121,10 @@ async function newestTraceFor(workflowName: string | undefined): Promise<string 
 
 function safeRead(p: string): string | undefined {
   try { return fs.readFileSync(p, 'utf-8'); } catch { return undefined; }
+}
+
+function safeReadTrace(p: string): string | undefined {
+  try { return readTraceFile(p); } catch { return undefined; }
 }
 
 // Walkthrough completionEvent producer — a one-way session latch. The
@@ -152,7 +157,7 @@ export function registerDebugReplay(
         void vscode.window.showInformationMessage('Nika: pick a run in the Runs view to debug.');
         return;
       }
-      const text = safeRead(trace.fsPath);
+      const text = safeReadTrace(trace.fsPath);
       const name = text ? foldTrace(text).workflowName : undefined;
       const candidates = await vscode.workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 200);
       const loaded = candidates

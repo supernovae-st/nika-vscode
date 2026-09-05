@@ -4,6 +4,120 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.118.2] · unpublished candidate · one admitted engine
+
+The source candidate requires stable engine 0.118.2 or newer. `ENGINE_PIN`
+identifies the exact candidate commit; it is not an invented public tag.
+Generated language and design surfaces follow that engine's exact spec pin.
+Public archives, clean-host editor behavior and both registry publications
+remain separate readiness gates in `PUBLISHING.md`.
+
+The duplicate TypeScript chain verifier is removed. It had drifted from the
+engine and called hash-checked events "sealed" without verifying a signature.
+Recorded views and reports now explicitly disclaim integrity verification.
+Verify Journal requests the engine's machine result and opens all proof legs
+and gaps as JSON, including nonzero refusals. Wrong versions, paths, exit
+bindings and incomplete captures refuse without a prose fallback. No verifier
+is spawned by a background scan and no result certifies a later file read.
+
+Live runs now retain process ownership until `close`, with at most one
+pending replacement. Superseded output and callbacks cannot repaint the
+next run. Stop signals once, escalates after five seconds if still open,
+and does not claim that cancellation undid earlier effects.
+
+Live traces and replay share one event reducer. Each complete live line is
+decoded once; paints are coalesced and receive detached snapshots. The raw
+live capture is capped at 16 MiB before appending another chunk. Crossing
+that observation limit retracts current badges and running highlights,
+continues draining the engine process, and reports an incomplete preview.
+It never persists a truncated capture or turns exit zero into a green run.
+Split editors now update together when an observation changes or disappears.
+The same per-journal budget now bounds recorded reads across history, detail,
+replay, reports, comparisons, X-ray and debug lookup. The reader admits a
+regular file and its opened descriptor before allocating payload memory,
+counts subsequent appends and rejects an oversized journal without returning
+a prefix. Explicit detail/report/replay actions explain the observation limit;
+the engine's durable journal is untouched. This is a per-file observation
+bound, not a global cache budget, atomic file snapshot or integrity proof.
+
+The engine is now the only journal writer and retention owner. The editor's
+duplicate trace copy, filename-ranked resume lookup, automatic pruner and
+`nika.traces.keep` setting are removed. Existing journals are not deleted by
+this migration. Resume uses the current engine announcement or asks for one
+local journal; canceling that choice does nothing, never starts a fresh run.
+The engine still judges the chosen journal's binding and resumability.
+
+Test Explorer judges the machine capture of its own engine process, not a
+filename-ranked journal from an older run. Timeout, capture overflow, missing
+terminal events and a completed event contradicted by a failing exit produce
+an observation error, never inherited green badges. Canvas runs share that
+observation guard, including signal exits, and do not persist or celebrate
+an incomplete result. Test Explorer has one task/workflow reporter for its
+owned process and journal-ingest paths; a failed task cannot become a green
+workflow merely because the final event says completed.
+
+Trace announcements retain the complete 64-hex engine head and paths with
+spaces across stderr chunks. Torn, malformed or oversized announcements
+stay absent instead of producing a truncated proof identity.
+
+Trace replay reads the current event fields and signed-nanosecond clock.
+Retired object-kind records stay unknown, numeric text never becomes a
+measurement, and one-key JSON objects retain their structure. Old alias
+spellings and epoch-unit guesses no longer invent current engine facts.
+Unknown event names cannot inherit object-prototype states or invent an
+agent turn merely by sharing a prefix.
+
+Live cost deltas stay separate from recorded task amounts, so replay never
+adds both measurements of the same spend. A live curve alone does not
+invent a recorded total.
+
+Station sweeps no longer relaunch themselves when a diagnostic starts or
+finishes. Engine admission and vocabulary changes have a distinct event;
+probe observations repaint status without rechecking workflows, rebuilding
+agent tools or rereading virtual documents. Explicit refresh remains available.
+Late doctor, workspace and grammar observations cannot repopulate a revoked
+engine cache or replace the selected engine's newer observations.
+Status repainting starts no grammar probe; concurrent Station and status
+requests share the selected engine's in-flight canary.
+
+Interactive commands and native tasks share a literal-argv process boundary.
+No filename, model id or input value becomes shell code. VS Code variable
+expressions are refused before task submission; interactive commands require
+an open folder because global tasks are not a supported host contract.
+Doctor suggestions are copied for review, never automatically executed.
+Auto-provided tasks use absolute file paths in multi-root workspaces and
+do not treat virtual documents as local process inputs.
+
+Agent cards use a recessed loop band and a single rim effect on an observed
+turn increase. Reduced motion, calm mode and forced colors suppress it.
+Recorded token meters retain actual over-budget counts; zero or unknown
+budgets never invent a ratio. Explicit task focus restores native text size
+when it fits, respecting the top and bottom chrome in a short panel.
+
+Workspace Trust now gates the entire active extension, not only the binary
+path setting. Restricted Mode keeps declarative syntax and snippets but
+registers no workflow commands, starts no engine or LSP, writes no demo and
+does not consume first-contact state. Explicit trust activates these once.
+The native restricted-workspace test does not use the standard test host's
+trust-disabling flag.
+
+Engine installation verifies a candidate in per-attempt staging before
+replacing installed bytes. Download errors and cancellation await stream
+closure and cleanup; a failed attempt preserves the previous binary.
+Archive transfers have a finite deadline and cannot truncate a file owned
+by another transfer.
+
+One admission policy now guards discovery, restarts, LSP, workflows, native
+tasks, Station and LM tools. Unsupported selections retain their refusal;
+late probes cannot revive a replaced engine. The selected absolute path is
+preserved, and MCP wiring cannot silently choose another PATH engine.
+
+Retired schema/tools/context commands, old executable-name discovery,
+pre-stdin temporary files and unused editor-generated rule/config writers
+are removed. Current capabilities are read from the engine, canonical
+failures never select another writer, and installation completes only after
+admission. Recorded trace reading and live operator capabilities remain.
+
 ## [0.116.2] · 2026-08-31 · every live door stays lit
 
 Lockstep on the published engine 0.116.2. `ENGINE_PIN` names its immutable

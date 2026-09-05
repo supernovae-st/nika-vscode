@@ -2,9 +2,7 @@
 // (pure · no vscode). Powers the Runs view, the DAG replay, and the live
 // run overlay.
 //
-// Tolerant by design — it accepts BOTH trace dialects in the wild:
-//   · Diamond `nika-event` Event lines (runtime v2's REAL wire — every
-//     detail verified against the serde derives + emit sites):
+// Project the current `nika-event` Event wire, not a guessed dialect:
 //       { id: {uuid}, timestamp: <i64 UNIX NANOSECONDS · transparent>,
 //         kind: "task_started" (snake_case), run: {uuid}|null,
 //         correlation: null, fields: [{key, value}] }
@@ -12,10 +10,9 @@
 //     clock-derived; ts-derived spans LIE for tasks that ran before
 //     their settle slot) · `cost_usd` · `tokens` · `note` · `detail`.
 //     Values are serde-untagged plain scalars.
-//   · brouillon v0.7x generation traces:
-//       { ts?, kind: { type: "...", task_id?, ... } }
 // Unknown lines are skipped, never fatal: a replay of a half-written
-// trace shows what it can prove and nothing more.
+// trace shows what it can prove and nothing more. Retired object-kind
+// records stay unknown; JSON objects are never guessed scalar wrappers.
 //
 // The status vocabulary mirrors the engine's §3.1 state machine:
 // `retrying` (the attempt failed · the TASK has not — amber, transient)
@@ -115,6 +112,8 @@ export interface RunModel {
    *  replay-debugger's journal→source match). */
   workflowName?: string;
   tasks: Map<string, FoldedTask>;
+  /** Sum of observed terminal task amounts, never the in-flight curve.
+   *  This projection is not the engine's whole-run settlement. */
   totalUsd?: number;
   /** In-flight run spend (cost_incurred deltas — the ~$ curve). */
   liveUsd?: number;
@@ -190,20 +189,7 @@ interface NormalizedEvent {
 
 function asNumber(v: unknown): number | undefined {
   if (typeof v === 'number' && Number.isFinite(v)) { return v; }
-  if (typeof v === 'string') {
-    const n = Number(v);
-    if (Number.isFinite(n)) { return n; }
-  }
   return undefined;
-}
-
-/** Unwrap serde-style values: 42 · "x" · {"float":1.2} · {"String":"x"}. */
-function unwrapValue(v: unknown): unknown {
-  if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
-    const entries = Object.entries(v as Record<string, unknown>);
-    if (entries.length === 1) { return entries[0][1]; }
-  }
-  return v;
 }
 
 function fieldsToMap(fields: unknown): Map<string, unknown> {
@@ -213,39 +199,17 @@ function fieldsToMap(fields: unknown): Map<string, unknown> {
     if (typeof f !== 'object' || f === null) { continue; }
     const rec = f as Record<string, unknown>;
     if (typeof rec.key === 'string') {
-      map.set(rec.key, unwrapValue(rec.value));
+      map.set(rec.key, rec.value);
     }
   }
   return map;
 }
 
 function timestampToMs(ts: unknown): number | undefined {
-  if (typeof ts === 'number') {
-    // Magnitude ladder — present-era epochs sit ~×1000 apart per unit
-    // (1.7e9 s · 1.7e12 ms · 1.7e15 µs · 1.7e18 ns), so midpoint
-    // thresholds separate them unambiguously. The runtime's REAL wire
-    // is bare i64 NANOSECONDS (Timestamp · serde transparent): under
-    // the old `>1e12 ⇒ millis` heuristic a 2-second task read as ~23
-    // days (×10⁶) — the ladder is the fix.
-    if (ts > 1e17) { return ts / 1e6; } // nanoseconds
-    if (ts > 1e14) { return ts / 1e3; } // microseconds
-    if (ts > 1e11) { return ts; } //       milliseconds
-    return ts * 1000; //                   seconds
-  }
-  if (typeof ts === 'string') {
-    const parsed = Date.parse(ts);
-    return Number.isNaN(parsed) ? undefined : parsed;
-  }
-  if (typeof ts === 'object' && ts !== null) {
-    const rec = ts as Record<string, unknown>;
-    for (const key of ['unix_ns', 'unix_ms', 'ms', 'millis']) {
-      const n = asNumber(rec[key]);
-      if (n !== undefined) { return key === 'unix_ns' ? n / 1e6 : n; }
-    }
-    const secs = asNumber(rec.secs ?? rec.seconds);
-    if (secs !== undefined) { return secs * 1000; }
-  }
-  return undefined;
+  // Timestamp is transparent signed UNIX nanoseconds, including before
+  // 1970. Its unit does not depend on magnitude or the host's date parser.
+  // This is display arithmetic, not validation of the engine's i64 domain.
+  return typeof ts === 'number' && Number.isFinite(ts) ? ts / 1e6 : undefined;
 }
 
 /** The wire's `output` is a string for text tasks, structured for JSON
@@ -268,12 +232,6 @@ function outputToString(v: unknown): string | undefined {
   return oneLine.length > 160 ? `${oneLine.slice(0, 159)}…` : oneLine;
 }
 
-function snake(kind: string): string {
-  return kind
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .toLowerCase();
-}
-
 export function normalizeEventLine(line: string): NormalizedEvent | undefined {
   let parsed: unknown;
   try {
@@ -287,17 +245,17 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
   // Diamond shape — kind is the snake_case slug string.
   if (typeof rec.kind === 'string') {
     const fields = fieldsToMap(rec.fields);
-    const taskId = (fields.get('task') ?? fields.get('task_id')) as string | undefined;
+    const taskId = fields.get('task');
     // `detail` outranks `note`: on task_failed the wire puts the whole
     // NIKA-XXX story in detail while note stays the verb·tool descriptor.
     const note = fields.get('detail') ?? fields.get('note');
     return {
-      kind: snake(rec.kind),
+      kind: rec.kind,
       taskId: typeof taskId === 'string' ? taskId : undefined,
-      tsMs: timestampToMs(rec.timestamp ?? rec.ts),
-      // Runtime v2 emits per-task `cost_usd` on terminal events; the
-      // older dialect used a bare `usd` on cost_incurred lines.
-      usd: asNumber(fields.get('cost_usd') ?? fields.get('usd')),
+      tsMs: timestampToMs(rec.timestamp),
+      // Distinct event contracts, not aliases: live deltas use `usd`;
+      // settled task measurements use `cost_usd`.
+      usd: asNumber(fields.get(rec.kind === 'cost_incurred' ? 'usd' : 'cost_usd')),
       durationMs: asNumber(fields.get('duration_ms')),
       tokens: asNumber(fields.get('tokens')),
       note: typeof note === 'string' ? note : undefined,
@@ -333,41 +291,34 @@ export function normalizeEventLine(line: string): NormalizedEvent | undefined {
     };
   }
 
-  // brouillon shape — kind is an object with a `type` tag.
-  if (typeof rec.kind === 'object' && rec.kind !== null) {
-    const k = rec.kind as Record<string, unknown>;
-    if (typeof k.type === 'string') {
-      const taskId = k.task_id ?? k.taskId ?? k.task;
-      return {
-        kind: snake(k.type),
-        taskId: typeof taskId === 'string' ? taskId : undefined,
-        tsMs: timestampToMs(rec.ts ?? rec.timestamp),
-        usd: asNumber(k.usd ?? k.cost_usd),
-      };
-    }
-  }
-
   return undefined;
 }
 
-const TASK_STATUS: Record<string, FoldedStatus> = {
-  task_scheduled: 'pending',
-  task_started: 'running',
+const TASK_STATUS = new Map<string, FoldedStatus>([
+  ['task_scheduled', 'pending'],
+  ['task_started', 'running'],
   // §3.1: the attempt failed, the TASK has not — amber, not green-running.
-  task_retrying: 'retrying',
-  task_completed: 'success',
+  ['task_retrying', 'retrying'],
+  ['task_completed', 'success'],
   // ADR-099 resume: not re-executed — the recorded output was injected.
   // Paints as success; `cached` carries the distinction.
-  task_cache_hit: 'success',
-  task_failed: 'failed',
+  ['task_cache_hit', 'success'],
+  ['task_failed', 'failed'],
   // §3.1: a decision, not a defect — dim, NEVER red.
-  task_cancelled: 'cancelled',
-  task_skipped: 'skipped',
-};
+  ['task_cancelled', 'cancelled'],
+  ['task_skipped', 'skipped'],
+]);
+
+/** Only annotations this reader understands may create or update agent facts. */
+const AGENT_FACT_KINDS: ReadonlySet<string> = new Set([
+  'agent_tools_selected', 'agent_nudge', 'agent_stalled',
+  'agent_compose_checked', 'agent_budget_checkpoint',
+]);
 
 const TERMINAL: ReadonlySet<FoldedStatus> = new Set(['success', 'failed', 'skipped', 'cancelled']);
 
-export function foldTrace(ndjson: string): RunModel {
+/** One stateful reducer; published snapshots never alias its mutable state. */
+export function createTraceFold(): { pushLine(raw: string): void; snapshot(): RunModel } {
   const model: RunModel = {
     workflowStatus: 'unknown',
     tasks: new Map(),
@@ -377,13 +328,13 @@ export function foldTrace(ndjson: string): RunModel {
 
   let synthetic = 0; // ordering fallback when lines carry no timestamp
   let lastRealTs: number | undefined;
-  for (const raw of ndjson.split('\n')) {
+  const pushLine = (raw: string): void => {
     const line = raw.trim();
-    if (line.length === 0) { continue; }
+    if (line.length === 0) { return; }
     const ev = normalizeEventLine(line);
     if (!ev) {
       model.unknownLines += 1;
-      continue;
+      return;
     }
     synthetic += 1;
     // Timeline ordering may fall back to the last real timestamp (or a
@@ -408,16 +359,16 @@ export function foldTrace(ndjson: string): RunModel {
         if (ev.workflowName !== undefined) {
           model.workflowName = ev.workflowName;
         }
-        continue;
+        return;
       case 'workflow_completed':
         model.workflowStatus = 'completed';
-        continue;
+        return;
       case 'workflow_failed':
         model.workflowStatus = 'failed';
-        continue;
+        return;
       case 'workflow_cancelled':
         model.workflowStatus = 'cancelled';
-        continue;
+        return;
       // ADR-099 durable pause (`nika:prompt` awaiting an answer) — the
       // process stopped; without a mapping the Runs view reads the run
       // as live forever.
@@ -431,14 +382,12 @@ export function foldTrace(ndjson: string): RunModel {
             choices: ev.choices,
           };
         }
-        continue;
+        return;
       case 'cost_incurred':
-        // Legacy read preserved: the old dialect carried run spend ONLY
-        // on these lines. The v2 wire's live ~$ curve (contract §3.3)
-        // folds alongside — run-level always, task-level when the delta
-        // is attributed, terminal-frozen like every annotation.
+        // Deltas describe the in-flight curve only. Adding them to the
+        // terminal task amounts would count the same spend twice and
+        // turn a live observation into a recorded amount.
         if (ev.usd !== undefined) {
-          model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
           model.liveUsd = (model.liveUsd ?? 0) + ev.usd;
         }
         if (ev.tokens !== undefined) { model.liveTokens = (model.liveTokens ?? 0) + ev.tokens; }
@@ -451,7 +400,7 @@ export function foldTrace(ndjson: string): RunModel {
             model.tasks.set(ev.taskId, lt);
           }
         }
-        continue;
+        return;
       default:
         break;
     }
@@ -469,7 +418,7 @@ export function foldTrace(ndjson: string): RunModel {
           model.tasks.set(ev.taskId, t);
         }
       }
-      continue;
+      return;
     }
 
     // The stream is MOVING (contract §3.3): infer_chunk counts prove
@@ -483,13 +432,13 @@ export function foldTrace(ndjson: string): RunModel {
           model.tasks.set(ev.taskId, t);
         }
       }
-      continue;
+      return;
     }
 
     // The agent loop's inner life — annotations on the RUNNING task,
     // never a status transition (a terminal task stays frozen: agent
     // events after settle would be trace corruption, same law).
-    if (ev.kind.startsWith('agent_') && ev.taskId !== undefined) {
+    if (AGENT_FACT_KINDS.has(ev.kind) && ev.taskId !== undefined) {
       const t = model.tasks.get(ev.taskId)
         ?? { id: ev.taskId, status: 'pending' as FoldedStatus, retries: 0 };
       if (!TERMINAL.has(t.status)) {
@@ -529,11 +478,11 @@ export function foldTrace(ndjson: string): RunModel {
         }
         model.tasks.set(ev.taskId, t);
       }
-      continue;
+      return;
     }
 
-    const status = TASK_STATUS[ev.kind];
-    if (!status || !ev.taskId) { continue; }
+    const status = TASK_STATUS.get(ev.kind);
+    if (!status || !ev.taskId) { return; }
 
     const task: FoldedTask = model.tasks.get(ev.taskId) ?? {
       id: ev.taskId,
@@ -549,7 +498,7 @@ export function foldTrace(ndjson: string): RunModel {
     // line is always trace corruption, never information.
     const alreadyTerminal = TERMINAL.has(task.status);
     const incomingTerminal = TERMINAL.has(status);
-    if (alreadyTerminal) { continue; }
+    if (alreadyTerminal) { return; }
 
     if (ev.kind === 'task_retrying') { task.retries += 1; }
     if (ev.kind === 'task_cache_hit') { task.cached = true; }
@@ -597,22 +546,33 @@ export function foldTrace(ndjson: string): RunModel {
     task.status = status;
     model.tasks.set(ev.taskId, task);
     model.timeline.push({ atMs: at, taskId: ev.taskId, status, durationMs: task.durationMs, cached: task.cached });
-  }
+  };
 
-  // A trace that never reached a terminal workflow event but has terminal
-  // tasks everywhere reads as completed-in-substance; stay honest and only
-  // upgrade unknown → running when task activity exists.
-  if (model.workflowStatus === 'unknown' && model.tasks.size > 0) {
-    model.workflowStatus = 'running';
-  }
+  const snapshot = (): RunModel => {
+    const result = structuredClone(model);
+    // A trace that never reached a terminal workflow event but has terminal
+    // tasks everywhere reads as completed-in-substance; stay honest and only
+    // upgrade unknown → running when task activity exists.
+    if (result.workflowStatus === 'unknown' && result.tasks.size > 0) {
+      result.workflowStatus = 'running';
+    }
 
-  // The scrubber (frameAt · timelineBounds) assumes ascending atMs; a
-  // fan-out trace's NDJSON can interleave concurrent writers out of
-  // strict time order. Array.prototype.sort is stable, so same-timestamp
-  // entries keep line order (last-write-wins per frameAt's contract).
-  model.timeline.sort((a, b) => a.atMs - b.atMs);
+    // The scrubber (frameAt · timelineBounds) assumes ascending atMs; a
+    // fan-out trace's NDJSON can interleave concurrent writers out of
+    // strict time order. Array.prototype.sort is stable, so same-timestamp
+    // entries keep line order (last-write-wins per frameAt's contract).
+    result.timeline.sort((a, b) => a.atMs - b.atMs);
 
-  return model;
+    return result;
+  };
+  return { pushLine, snapshot };
+}
+
+/** Whole-file replay and the incremental live observer use one event reducer. */
+export function foldTrace(ndjson: string): RunModel {
+  const fold = createTraceFold();
+  for (const raw of ndjson.split('\n')) { fold.pushLine(raw); }
+  return fold.snapshot();
 }
 
 /** `999ms` · `1.2s` · `2m03` — badge-terse duration ladder. Minute spans

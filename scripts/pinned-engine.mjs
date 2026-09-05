@@ -18,6 +18,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const RELEASES = 'https://github.com/supernovae-st/nika/releases/download';
+// Admission bounds apply before buffering, independently of mutable HTTP
+// metadata. The reviewed archives are below 20 MiB; leave explicit headroom
+// for future releases without granting the response unbounded memory.
+const MAX_CHECKSUM_BYTES = 64 * 1024;
+const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 
 // Version-controlled release receipts are independent of GitHub's mutable
 // asset store. A replaced archive cannot bless itself by replacing
@@ -86,7 +91,7 @@ export function checksumForAsset(sums, assetName) {
 }
 
 export function assertVersionReceipt(output, expectedVersion, expectedCommit) {
-  const match = /^nika\s+(\d+\.\d+\.\d+)\s+\(([0-9a-f]{9})\)$/m.exec(output);
+  const match = /^nika (\d+\.\d+\.\d+) \(([0-9a-f]{9})\)\r?\n?$/.exec(output);
   const reportedVersion = match?.[1];
   const reportedCommit = match?.[2];
   const anchoredCommit = expectedCommit.slice(0, 9);
@@ -98,19 +103,62 @@ export function assertVersionReceipt(output, expectedVersion, expectedCommit) {
   }
 }
 
-async function download(url, fetchImpl) {
+async function download(url, fetchImpl, maxBytes) {
   const response = await fetchImpl(url, {
     redirect: 'follow',
     signal: AbortSignal.timeout(120_000),
     headers: { 'user-agent': 'nika-vscode-release-proof' },
   });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} downloading ${url}`);
+  let reader;
+  try {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} downloading ${url}`);
+    }
+    if (!response.url.startsWith('https://')) {
+      throw new Error(`refusing non-HTTPS download response: ${response.url}`);
+    }
+    const length = response.headers.get('content-length');
+    if (length !== null) {
+      const declared = Number(length);
+      if (!/^\d+$/.test(length) || !Number.isSafeInteger(declared)) {
+        throw new Error(`invalid content-length downloading ${url}`);
+      }
+      if (declared > maxBytes) {
+        throw new Error(`download limit ${maxBytes} bytes exceeded for ${url}`);
+      }
+    }
+    if (!response.body) throw new Error(`missing download body for ${url}`);
+    reader = response.body.getReader();
+    // Coalesce tiny chunks instead of retaining one object per byte. Even a
+    // compliant byte count must not buy an unbounded chunk-metadata budget.
+    let bytes = Buffer.alloc(0);
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return bytes.subarray(0, size);
+      if (value.byteLength > maxBytes - size) {
+        throw new Error(`download limit ${maxBytes} bytes exceeded for ${url}`);
+      }
+      const required = size + value.byteLength;
+      if (required > bytes.length) {
+        const capacity = Math.min(maxBytes, Math.max(required, 64 * 1024, bytes.length * 2));
+        const grown = Buffer.alloc(capacity);
+        bytes.copy(grown, 0, 0, size);
+        bytes = grown;
+      }
+      bytes.set(value, size);
+      size += value.byteLength;
+    }
+  } finally {
+    // Await cancellation before removing owned scratch. Header refusal also
+    // owns its unread body, and a failed checksum never starts the archive.
+    if (reader) {
+      try { await reader.cancel(); } catch { /* preserve the admission failure */ }
+      reader.releaseLock();
+    } else if (response.body) {
+      try { await response.body.cancel(); } catch { /* preserve the admission failure */ }
+    }
   }
-  if (!response.url.startsWith('https://')) {
-    throw new Error(`refusing non-HTTPS download response: ${response.url}`);
-  }
-  return Buffer.from(await response.arrayBuffer());
 }
 
 export async function installPinnedEngine({
@@ -131,17 +179,15 @@ export async function installPinnedEngine({
   const workDir = mkdtempSync(join(tempRoot, 'nika-vscode-engine-'));
 
   try {
-    const [sumsBytes, archiveBytes] = await Promise.all([
-      download(`${baseUrl}/SHA256SUMS`, fetchImpl),
-      download(`${baseUrl}/${assetName}`, fetchImpl),
-    ]);
+    const sumsBytes = await download(`${baseUrl}/SHA256SUMS`, fetchImpl, MAX_CHECKSUM_BYTES);
     const releaseIndexHash = checksumForAsset(sumsBytes.toString('utf8'), assetName);
-    const actual = createHash('sha256').update(archiveBytes).digest('hex');
     if (releaseIndexHash !== receipt.sha256) {
       throw new Error(
         `SHA256SUMS drift for ${assetName}: anchored ${receipt.sha256}, index claims ${releaseIndexHash}`,
       );
     }
+    const archiveBytes = await download(`${baseUrl}/${assetName}`, fetchImpl, MAX_ARCHIVE_BYTES);
+    const actual = createHash('sha256').update(archiveBytes).digest('hex');
     if (actual !== receipt.sha256) {
       throw new Error(
         `archive digest mismatch for ${assetName}: anchored ${receipt.sha256}, got ${actual}`,

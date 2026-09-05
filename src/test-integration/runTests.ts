@@ -15,6 +15,7 @@ import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
 
 async function main(): Promise<void> {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-it-'));
   try {
     // out-integration/ sits at the repo root — ONE level up IS the
     // extension (package.json + out/). Two levels up is the parent
@@ -27,14 +28,21 @@ async function main(): Promise<void> {
     // The user-data-dir must be SHORT: VS Code opens a Unix domain socket
     // under it and the path is capped at 103 chars — our deep repo path
     // blows past that. A short tmp dir keeps the socket legal.
-    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-ud-'));
+    const userDataDir = path.join(fixture, 'user');
+    fs.mkdirSync(path.join(userDataDir, 'User'), { recursive: true });
+    fs.writeFileSync(path.join(userDataDir, 'User', 'settings.json'), JSON.stringify({
+      'nika.server.path': '/nonexistent/nika-smoke',
+      'nika.server.autoDownload': false,
+      'workbench.startupEditor': 'none',
+      'chat.disableAIFeatures': true,
+    }));
 
     // A test WORKSPACE that points the binary at a bogus path (autoDownload
     // off): the smoke suite targets activation · commands · language ·
     // webview — NOT the LSP. Without this the real `nika` on PATH starts
     // `nika lsp`, and tearing the host down mid-handshake makes the
     // languageclient thrash on its own start-failure (library-internal).
-    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-ws-'));
+    const workspace = path.join(fixture, 'workspace');
     fs.mkdirSync(path.join(workspace, '.vscode'), { recursive: true });
     fs.writeFileSync(
       path.join(workspace, '.vscode', 'settings.json'),
@@ -46,12 +54,18 @@ async function main(): Promise<void> {
       extensionTestsPath,
       // The workspace folder + a throwaway user-data-dir + no other
       // extensions = a clean, LSP-free host.
-      launchArgs: [workspace, `--user-data-dir=${userDataDir}`, '--disable-extensions', '--disable-gpu'],
+      launchArgs: [...(process.env.NIKA_TERMINAL_EMPTY === '1' ? [] : [workspace]), `--user-data-dir=${userDataDir}`, '--disable-extensions', '--disable-gpu'],
+      extensionTestsEnv: { NIKA_TEST_NODE: process.execPath },
     });
   } catch (err) {
     console.error('integration tests failed:', err);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    fs.rmSync(fixture, { recursive: true, force: true });
   }
 }
 
-void main();
+void main().catch((err: unknown) => {
+  console.error('integration fixture failed:', err);
+  process.exitCode = 1;
+});

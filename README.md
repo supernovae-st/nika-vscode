@@ -60,7 +60,7 @@ messages and positions come from the engine, not the extension.*
 |---|---|
 | **The canvas is alive** | not a picture of your workflow · the workflow itself: prompts on the cards, typed wires, five lenses, and the run streaming onto it wave by wave |
 | **Audited before it runs** | cost ceiling · permits boundary · secret flows · dead gates: static facts painted in the margin before the run exists |
-| **The first run happens by itself** | first install opens the hello-canvas demo and streams it on `mock/echo` · offline, zero keys, the aha in under ten seconds |
+| **A first run after workspace trust** | first install in a trusted, empty workspace opens the hello-canvas demo and streams it on `mock/echo` · offline, zero keys |
 | **Traces stay yours** | every run writes a hash-chained local journal: replay it, diff it, verify it offline · nothing ever leaves your machine |
 | **Your models, local first** | Ollama · llama.cpp · vLLM · LM Studio first-class, then Mistral · Hugging Face · OpenAI · xAI · Anthropic and more · swap one `model:` line |
 
@@ -70,12 +70,25 @@ messages and positions come from the engine, not the extension.*
 
 ## 30 seconds to the wow
 
-On a machine's first install, the wow comes to you: the four-wave
+After you trust the workspace, on a machine's first install the four-wave
 `hello-canvas` demo opens on the canvas and **runs itself** on
 `mock/echo`: no key, no spend (a workspace that already
 carries workflows is never touched; the walkthrough greets instead).
 The first green verdict you ever watch lands with the one confetti
 this extension will ever throw.
+
+In **Restricted Mode**, syntax highlighting and snippets remain available.
+The engine, LSP, commands and automatic demo do not start, and Nika does not
+write workflow files. Use VS Code's **Manage Workspace Trust** after reviewing
+the folder. Offline or mock execution still needs trust: no keys or spend
+does not mean no local effects.
+
+Interactive terminal commands require an open folder. They launch the
+admitted engine with separate arguments, never a generated shell command,
+and retain the result in the task terminal. VS Code `${…}` variable
+expressions in these arguments are refused before submission; use the CLI
+directly when those literal values are required. Doctor suggestions are
+copied for review rather than executed automatically.
 
 Driving yourself is three gestures:
 
@@ -108,8 +121,29 @@ step · each step checks itself off as you actually do it.
   verified download on first open (HTTPS + SHA-256 · explicit consent ·
   [policy](SECURITY.md)).
   Without the binary you still get syntax, snippets and the client-side
-  DAG (schema-driven completions come alive once the binary is found:
+  DAG (schema-driven completions come alive once a supported binary is admitted:
   they read the engine's own `nika spec --schema`).
+
+**Candidate engine requirement:** this source candidate requires stable-version
+engine **0.118.2 or newer**. The 0.118.2 release is not yet published; this is
+preparation for that release, not support supplied by the current 0.116.2
+release. Release versions, immutable asset receipts and clean-host validation
+must converge before this candidate can be published. Developers can select
+the matching candidate binary with `nika.server.path`.
+
+Every selected binary is checked before LSP, workflow execution or host wiring
+becomes available, including configured, bundled, PATH, cached and downloaded
+binaries and restarts. Older, malformed or prerelease versions produce an
+update reason; the extension does not silently replace the selected binary.
+Syntax, snippets and static editor views remain available. Downloads still
+require consent, and an unsupported latest public release is refused before
+downloading its executable.
+
+Discovery freezes the selected executable's absolute path, including PATH
+entries and symlinks. MCP wiring uses that selection too: Cursor and Windsurf
+can receive a machine-scoped absolute path; portable VS Code wiring is refused
+until `nika` on PATH resolves to the admitted engine. This is path consistency,
+not a claim that an executable cannot be replaced on disk later.
 
 ## Icons in your editor
 
@@ -139,8 +173,8 @@ theme*, not to extensions:
   to explanations: the full `is_clean` family list, so the editor's
   verdict IS the binary's exit code
 - **No tmp-file dance** · dirty and untitled buffers pipe straight into
-  the binary over stdin (`nika check -` · 0.94+): keystroke-fresh audits
-  without ever touching your disk; older engines keep the tmp fallback
+  the binary over stdin (`nika check -`): keystroke-fresh audits
+  without ever touching your disk; unsupported engines are refused
 - **One-keystroke permits repair** · the engine's machine-applicable fix
   grammar (`add "X" to permits.<path>`) applied as a quick fix · the same
   convergence loop agents run in CI
@@ -417,11 +451,11 @@ network: every green close settles a ✓ wave through the cards.*
   run projects its journal to OTLP/JSON lines: drag into Jaeger UI, or
   POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
   collector, zero vendor
-- **Tamper-evident runs** (nika ≥ 0.96) · every journal line hash-chains
-  to the previous one; the Runs view walks the chain client-side: a
-  broken journal gets a warning shield that outranks its run verdict,
-  an intact one shows its head (compare against the one the run
-  printed). The run report states its own integrity
+- **Engine-owned verification** · **Verify Journal** asks
+  `nika trace verify <trace> --json` and opens the complete result: chain,
+  seal, anchor, replay and refusal details. Recorded views and reports
+  explicitly remain unverified observations. They neither recompute a
+  second integrity verdict nor infer a signature from hash consistency
 - **Reproduce Run: determinism check** (nika ≥ 0.97) · right-click a
   run, pick another journal of the same workflow: every task classified
   reproduced / NONDETERMINISTIC (same def+inputs, different output) /
@@ -568,9 +602,9 @@ network: every green close settles a ✓ wave through the cards.*
 
 ### Engine-honest by construction
 - **Capability-gated UI** · the extension probes what the binary ACTUALLY
-  ships (`--help`) · the static suite + `run` light up today (the gate lit
-  `run` the day nika-runtime reached L3, zero extension update); `lsp` /
-  `mcp` light up the same way the day they climb
+  ships after version admission. LSP, workflow and wiring surfaces require
+  their current capabilities; a refused operation does not trigger a
+  retired command spelling.
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
   are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
   `nika try` · `nika new`) · nothing duplicated, nothing drifts
@@ -596,15 +630,15 @@ The sixteen you'll reach for first: the full set lives in the
 | `Nika: Golden Test` | `nika test` against the pinned golden (mock provider · offline) |
 | `Nika: Replay a Recorded Run` | scrub the whole timeline: replay re-renders, never re-executes |
 | `Nika: Diff Two Runs on the DAG` | the first divergence leads; the culprit task centers |
-| `Nika: Run Report` | one provable markdown per run: the trace's own events, gaps stated |
+| `Nika: Run Report` | recorded events and stated gaps, with integrity verification kept separate |
 | `Nika: Run History` | the cross-run grid: flaky steps are a recorded fact, not a guess |
 | `Nika: Doctor` | the engine diagnoses its environment: exact fixes, never mutates |
 | `Nika: Open the Getting-Started Tour` | the walkthrough: steps check themselves off as you do them |
 
 ## Settings
 
-Ten that carry the surface: all of them, with defaults and
-cross-links, in the **Feature Contributions** tab.
+Key settings are below; the complete list, defaults and cross-links live
+in the **Feature Contributions** tab.
 
 | Setting | Default | What it carries |
 |---|---|---|
@@ -614,10 +648,19 @@ cross-links, in the **Feature Contributions** tab.
 | `nika.diagnostics.runOn` | `type` | when `nika check` paints squiggles (`save` calms it, `off` silences) |
 | `nika.diagnostics.severity` | `{}` | remap any finding per code or family (`NIKA-SEC-*` · `off` hides one) |
 | `nika.run.liveDag` | on | runs stream onto the DAG instead of a terminal scroll |
-| `nika.traces.keep` | `200` | flight-recorder housekeeping: keep the newest N journals per workflow |
 | `nika.replay.speed` | `6` | time-travel compression (6 = six times faster than recorded) |
 | `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
 | `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
+
+Run journals and retention belong to the engine; the extension neither
+duplicates nor prunes them. Resume uses the journal announced for the current
+workflow, or asks you to choose one. Canceling the picker starts no run.
+
+Editor observations admit at most 16 MiB per journal, live or recorded.
+An oversized file remains on disk; detail, report and replay explain why no
+partial preview is loaded. The bound is not a global cache budget or a claim
+that the file cannot change while it is read. Engine CLI operations keep
+their own limits and integrity checks.
 
 <!-- city:map -->
 ## The city · where this repo sits

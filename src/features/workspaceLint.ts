@@ -69,7 +69,7 @@ export class WorkspaceLint implements vscode.Disposable {
       }),
       // Binary appeared / capabilities changed → the whole workspace view
       // may change. Config flips re-sweep or clear.
-      this.service.onDidChange(() => this.scheduleSweep(800)),
+      this.service.onDidChangeEngine(() => this.scheduleSweep(800)),
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('nika.diagnostics')) { this.scheduleSweep(200); }
       }),

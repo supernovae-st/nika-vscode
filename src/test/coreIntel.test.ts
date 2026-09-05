@@ -133,23 +133,6 @@ Options:
   -h, --help  Print help
 `;
 
-  const CHECK_HELP_PRE_DASH = CHECK_HELP_DASH.replace(' · `-` reads stdin', '');
-
-  it('lights stdinDash when check --help documents the dash', () => {
-    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1', CHECK_HELP_DASH);
-    expect(caps.stdinDash).toBe(true);
-  });
-
-  it('keeps stdinDash off on a pre-dash binary — the tmp fallback stays', () => {
-    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1', CHECK_HELP_PRE_DASH);
-    expect(caps.stdinDash).toBe(false);
-  });
-
-  it('keeps stdinDash off when the probe itself failed (empty output)', () => {
-    const caps = buildCapabilities(CLAP_HELP, 'nika-cli 0.93.1');
-    expect(caps.stdinDash).toBe(false);
-  });
-
   // `check --fix` rides the same discriminator surface: its own flag
   // line in `check --help` (captured verbatim from the released 0.105).
   const CHECK_HELP_FIX = `${CHECK_HELP_DASH}
@@ -167,7 +150,7 @@ Options:
   });
 
   // Captured verbatim from the engine #298 build (2026-07-08) — the file
-  // form's own doc line is the discriminator, same law as stdinDash.
+  // form's own doc line is the discriminator.
   const EXPLAIN_HELP_FILE_FORM = `Teach one error code (cause · category · fix-form) — or narrate a workflow FILE: what it does · the waves · cost before a token is spent · what it touches · how to run it
 
 Usage: nika explain [OPTIONS] <CODE>
@@ -206,11 +189,6 @@ Arguments:
     expect(caps.explainFile).toBe(false);
   });
 
-  it('never lights stdinDash without check itself', () => {
-    const noCheck = CLAP_HELP.replace(/^ {2}check.*\n/m, '');
-    const caps = buildCapabilities(noCheck, 'nika-cli 0.93.1', CHECK_HELP_DASH);
-    expect(caps.stdinDash).toBe(false);
-  });
 });
 
 // ─── expr ────────────────────────────────────────────────────────────────────

@@ -57,7 +57,6 @@ export class CostBaselineTracker {
         (file) => ['check', file, '--json'],
         headText,
         20000,
-        'base',
       );
       const report = parseCheckReport(res.stdout);
       if (!report) { return undefined; }

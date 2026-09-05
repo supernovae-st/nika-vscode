@@ -171,12 +171,12 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
           { teach: 'nika.diffTraces' }),
         row('$(debug-alt) Debug this run · time travel', 'nika.debugReplay', [el],
           caps.dap ? {} : { off: 'this engine has no `nika dap`' }),
-        row('$(verified) Verify the journal chain', 'nika.verifyTrace', [el], {
+        row('$(verified) Verify Journal · engine evidence', 'nika.verifyTrace', [el], {
           teach: 'nika.verifyTrace', ...(engineOff !== undefined ? { off: engineOff } : {}),
         }),
         row('$(sync) Reproduce the run · determinism check', 'nika.reproduceRun', [el],
           engineOff !== undefined ? { off: engineOff } : {}),
-        row('$(output) Run report · provable, from the trace', 'nika.runReport', [el]),
+        row('$(output) Run report · recorded observations', 'nika.runReport', [el]),
         row('$(archive) Export the evidence dossier', 'nika.exportEvidence', [item.traceUri],
           engineOff !== undefined ? { off: engineOff } : {}),
         row('$(book) Explain the receipt', 'nika.explainReceipt', [item.traceUri]),
@@ -220,7 +220,7 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
           item.hasTrace === true ? [item.traceUri] : [], {
             teach: 'nika.replayTrace', ...(off !== undefined ? { off } : {}),
           }),
-        row('$(output) Run report · provable, from the trace', 'nika.history.report', [el],
+        row('$(output) Run report · recorded observations', 'nika.history.report', [el],
           off !== undefined ? { off } : {}),
       ];
     }
@@ -229,7 +229,7 @@ function itemRowsFor(item: TreeItemFacts, caps: TreeCaps): TreeActionRow[] {
         ? click('$(type-hierarchy) Focus the task in the DAG')
         : [];
     case 'stationFixable':
-      return [row('$(tools) Apply the fix', 'nika.station.fix', [el])];
+      return [row('$(tools) Suggested fix', 'nika.station.fix', [el])];
     case 'stationDoctorHead':
       return [row('$(output) Doctor full report · in the terminal', 'nika.station.doctorReport', [],
         caps.available ? {} : { off: NEEDS_ENGINE })];

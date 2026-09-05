@@ -105,8 +105,9 @@ describe('the agent loop band · one gate, three consumers', () => {
   it('the meter is honest — a bar only under a declared budget, a bare counter otherwise', () => {
     const band = src.slice(src.indexOf('private appendAgentBand'), src.indexOf('private appendCardWhy'));
     // The bar path requires the declared ceiling…
-    expect(band).toContain('if (af.budget.budget !== undefined)');
-    expect(band).toContain('af.budget.totalTokens / af.budget.budget');
+    expect(band).toContain('agentBudgetReadout(af.budget.totalTokens, af.budget.budget)');
+    expect(band).toContain('if (readout.fraction !== undefined)');
+    expect(band).toContain("meter.setAttribute('aria-valuetext', readout.title)");
     // …and the no-ceiling path paints text only (no fill element).
     const bare = band.slice(band.indexOf('} else {'));
     expect(bare).toContain('nc-ab-tk');
@@ -178,6 +179,15 @@ describe('the four voices · CSS (dag.css)', () => {
 
   it('far LOD drops the band with the rest of the card story', () => {
     expect(css).toContain('body.lod-far .nc-agent-band,');
+  });
+  it('an observed turn lights only the rim, with calm and motion opt-outs', () => {
+    expect(src).toContain('agentTurnAdvanced(prevTurn === undefined ? undefined : Number(prevTurn), node.agent?.turns)');
+    expect(css).toContain('body:not([data-nk-calm]) .nk-loop-update::after');
+    const at = css.indexOf('@keyframes nk-loop-update');
+    const effect = css.slice(at, css.indexOf('.nc-ab-loop', at));
+    expect(effect).toContain('@media (prefers-reduced-motion: no-preference)');
+    expect(effect).toContain('animation: nk-loop-update var(--nk-dur-base)');
+    expect(effect).not.toContain('infinite');
   });
 });
 

@@ -15,15 +15,63 @@ permissions:
   contents: read
 
 jobs:
-  # The rendered surface, judged by machine. Nine lenses (clip · target ·
-  # contrast · spill · motion · occluded · glyph · collide · truncated)
+  native-terminal:
+    name: native terminal · literal argv + empty-window refusal
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run compile && npm run compile:integration
+      # Source transport needs no public engine or credentials. The same
+      # owned-process runner still requires host exit; assertions alone
+      # cannot turn a stuck host into a passing probe.
+      - name: Both native transport boundaries, including host exit
+        run: |
+          xvfb-run -a node --input-type=module <<'JS'
+          import { runSuite } from './scripts/run-integration.mjs';
+          for (const empty of ['0', '1']) {
+            runSuite('out-integration/runTests.js', {
+              ...process.env,
+              NIKA_ITEST_SUITE: 'terminalArgs',
+              NIKA_TERMINAL_EMPTY: empty,
+            }, { timeoutMs: 180_000 });
+          }
+          JS
+
+  ownership-model:
+    name: ownership model · safety + two negative controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Fetch the pinned TLA+ tool
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --max-time 120 --retry 2 --max-filesize 16777216 \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar \
+            --output "$RUNNER_TEMP/tla2tools.jar"
+      - name: Complete exploration and named mutant counterexamples
+        env:
+          TLC_JAR: ${{ runner.temp }}/tla2tools.jar
+        run: node scripts/check-run-ownership-model.mjs
+
+  # The rendered surface, judged by machine. Twelve lenses (clip · target ·
+  # contrast · spill · motion · occluded · glyph · collide · truncated ·
+  # harmony · ladder · semantic)
   # across four skins and three widths, plus the i18n shape corpus and
-  # forced-colors, plus 45 a11y journeys. These proved every visual
-  # claim in DESIGN.md for months while running nowhere but a laptop:
-  # a proof nobody re-runs is a memory, not a gate. Headless was
-  # qualified by mutation against the headed reference, not assumed.
+  # forced-colors and keyboard/accessibility journeys. This judges the
+  # browser harness, not native host activation, terminal processes or
+  # released artifacts: those boundaries retain separate gates.
   probes:
-    name: probes · 9 lenses × 4 skins × 3 widths + shape + forced + a11y
+    name: probes · 12 lenses × 4 skins × 3 widths + shape + forced + a11y
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -157,9 +205,9 @@ jobs:
         if: steps.pin.outputs.mode == 'source'
         run: |
           set -euo pipefail
-          cargo build --release --locked -p nika-cli --bin nika-cli --manifest-path "$GITHUB_WORKSPACE/../engine/Cargo.toml"
-          bin="$GITHUB_WORKSPACE/../engine/target/release/nika-cli"
-          [ -x "$bin" ] || { echo "no nika-cli built"; exit 1; }
+          cargo build --release --locked -p nika-cli --bin nika --manifest-path "$GITHUB_WORKSPACE/../engine/Cargo.toml"
+          bin="$GITHUB_WORKSPACE/../engine/target/release/nika"
+          [ -x "$bin" ] || { echo "no nika built"; exit 1; }
           echo "NIKA_BIN=$bin" >> "$GITHUB_ENV"
       # The 0.109 engine REFUSES a permits-declaring workflow with exec
       # children when the host cannot jail them (NIKA_SANDBOX=auto · the

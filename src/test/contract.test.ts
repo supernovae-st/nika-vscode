@@ -36,12 +36,14 @@ import { GRAMMAR_CANARY_DOC, grammarAccepted } from '../core/grammarCanary';
 import { DEMO_WORKFLOW } from '../core/demoWorkflow';
 import { GENERATE_FALLBACK_TEMPLATE } from '../core/generateStaging';
 import { NIKA_VERB_STARTERS } from '../core/verbStarters.generated';
+import { engineSupportError, parseBinaryVersion } from '../core/binaryVersion';
+import { traceVerificationDocument } from '../core/traceVerification';
 
 // Candidate binaries, dev-tree first. Override with NIKA_BIN.
 const CANDIDATES = [
   process.env.NIKA_BIN,
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika-cli'),
-  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika-cli'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/release/nika'),
+  path.resolve(__dirname, '../../../../repos/engine/repo/target/debug/nika'),
 ].filter((p): p is string => typeof p === 'string');
 
 const BIN = CANDIDATES.find((p) => {
@@ -94,6 +96,52 @@ tasks:
 `;
 
 describe.skipIf(!BIN)('engine contract (real binary)', () => {
+  it('delegates the chain and seal distinction, including a stripped header, to the real engine', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-verify-adapter-'));
+    try {
+      const trace = path.join(dir, 'recorded.ndjson');
+      const raw = fs.readFileSync(path.join(__dirname, 'fixtures', 'chained-run.ndjson'), 'utf8');
+      fs.writeFileSync(trace, raw);
+      const intact = run(['trace', 'verify', trace, '--json']);
+      const document = traceVerificationDocument(intact, trace);
+      expect(document).toBeDefined();
+      expect(JSON.parse(document ?? 'null')).toMatchObject({ verify_version: 1, trace, seal: { tier: 'unsealed' } });
+
+      const lines = raw.split('\n');
+      const header = JSON.parse(lines[0]);
+      delete header.chain;
+      lines[0] = JSON.stringify(header);
+      fs.writeFileSync(trace, lines.join('\n'));
+      const stripped = run(['trace', 'verify', trace, '--json']);
+      expect(stripped.code).not.toBe(0);
+      expect(JSON.parse(traceVerificationDocument(stripped, trace) ?? 'null'))
+        .toMatchObject({ verify_version: 1, trace, tier: 'broken' });
+    } finally { fs.rmSync(dir, { recursive: true }); }
+  });
+
+  it('the selected development binary meets the candidate support floor', () => {
+    const version = run(['--version']);
+    expect(version.code).toBe(0);
+    expect(engineSupportError(parseBinaryVersion(version.stdout))).toBeNull();
+  });
+
+  it.each([
+    ['check', '-', '--json'],
+    ['check', '-', '--infer-permits', '--color', 'never'],
+    ['inspect', '-', '--format', 'json'],
+    ['explain', '-', '--json'],
+  ])('supported engine accepts dirty-buffer stdin: %s', (...args) => {
+    const result = run(args, CLEAN_WF);
+    expect(result.code, result.stderr).toBe(0);
+    expect(result.stdout.length).toBeGreaterThan(0);
+  });
+
+  it('the supported run door proves both resume flags', () => {
+    const help = run(['run', '--help']);
+    expect(help.code).toBe(0);
+    expect(buildCapabilities('', run(['--version']).stdout, '', '', ['run'], { run: help.stdout }).resume).toBe(true);
+  });
+
   it('capability probe AGREES with the binary --help (generation-independent)', () => {
     const help = run(['--help']).stdout;
     const version = run(['--version']).stdout;

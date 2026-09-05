@@ -1,4 +1,4 @@
-// pathLookup.ts — is a command reachable on PATH? (pure · injectable)
+// pathLookup.ts — select one executable from PATH (pure · injectable).
 //
 // The MCP config gap: workspace .cursor/mcp.json deliberately says
 // `nika` (portable — an absolute path committed to a repo breaks every
@@ -9,21 +9,21 @@
 // gate: only when `nika` is genuinely NOT reachable (a brew install
 // must never be shadowed by a downloaded binary).
 
-export function commandOnPath(
+export function findCommandOnPath(
   name: string,
   pathEnv: string | undefined,
   platform: NodeJS.Platform,
   isExecutable: (candidate: string) => boolean,
-): boolean {
-  if (!pathEnv) { return false; }
+): string | undefined {
+  if (!pathEnv) { return undefined; }
   const sep = platform === 'win32' ? ';' : ':';
   const exts = platform === 'win32' ? ['.exe', '.cmd', '.bat', ''] : [''];
   for (const dir of pathEnv.split(sep)) {
     if (!dir) { continue; }
     for (const ext of exts) {
       const joined = platform === 'win32' ? `${dir}\\${name}${ext}` : `${dir}/${name}${ext}`;
-      if (isExecutable(joined)) { return true; }
+      if (isExecutable(joined)) { return joined; }
     }
   }
-  return false;
+  return undefined;
 }
