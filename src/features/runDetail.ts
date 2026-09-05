@@ -15,7 +15,6 @@ import * as path from 'path';
 import { foldTrace } from '../core/traceFold';
 import { readTraceFile, TraceReadError } from '../core/traceFile';
 import { extractRunArtifacts } from '../core/artifacts';
-import { verifyChain } from '../core/chainVerify';
 import { renderRunDetail, renderUnreadableDetail } from '../core/runDetail';
 import { UNREADABLE_DESCRIPTION } from '../core/runsModel';
 
@@ -74,7 +73,6 @@ class RunDetailProvider implements vscode.TextDocumentContentProvider {
       model: foldTrace(ndjson),
       artifacts: extractRunArtifacts(ndjson),
       resolvePath,
-      chain: verifyChain(ndjson),
     });
   }
 }

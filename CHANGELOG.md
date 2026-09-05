@@ -12,6 +12,14 @@ Generated language and design surfaces follow that engine's exact spec pin.
 Public archives, clean-host editor behavior and both registry publications
 remain separate readiness gates in `PUBLISHING.md`.
 
+The duplicate TypeScript chain verifier is removed. It had drifted from the
+engine and called hash-checked events "sealed" without verifying a signature.
+Recorded views and reports now explicitly disclaim integrity verification.
+Verify Journal requests the engine's machine result and opens all proof legs
+and gaps as JSON, including nonzero refusals. Wrong versions, paths, exit
+bindings and incomplete captures refuse without a prose fallback. No verifier
+is spawned by a background scan and no result certifies a later file read.
+
 Live runs now retain process ownership until `close`, with at most one
 pending replacement. Superseded output and callbacks cannot repaint the
 next run. Stop signals once, escalates after five seconds if still open,

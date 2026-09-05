@@ -4,7 +4,7 @@
 // one calm page per recorded run, at a glance: verdict · per-task
 // breakdown · artifacts · the paused question when the run waits on a
 // human. Read from the journal alone, like every run surface. The
-// PROVABLE export stays `runReport` (integrity narrative · ladders ·
+// Recorded export stays `runReport` (observation limits · ladders ·
 // the image gallery · per-task spend); this page is the quick read,
 // and it teaches the deeper doors BY NAME — `command:` links are dead
 // in the preview (annexe R R13), so nothing here pretends to be one.
@@ -13,7 +13,7 @@ import type { RunModel } from './traceFold';
 import { humanizeDuration } from './traceFold';
 import type { RunArtifact } from './artifacts';
 import { humanBytes } from './artifacts';
-import type { ChainVerdict } from './chainVerify';
+import { TRACE_INTEGRITY_NOTICE } from './traceVerification';
 import { STATUS_CHAR } from './glyphRegistry';
 import { relativeDay } from './runsModel';
 
@@ -32,8 +32,6 @@ export interface RunDetailInputs {
    *  resolved artifacts become `file:` links (the report's idiom).
    *  Unresolvable stays a code span: the gap says so. */
   resolvePath?: (p: string) => string | undefined;
-  /** The tamper-evidence walk — a broken chain outranks the verdict. */
-  chain?: ChainVerdict;
 }
 
 const usd = (n: number): string =>
@@ -53,25 +51,6 @@ function verdictGlyph(model: RunModel): string {
     : model.workflowStatus === 'cancelled' ? STATUS_CHAR.cancelled
     : model.workflowStatus === 'paused' ? STATUS_CHAR.paused
     : STATUS_CHAR.running;
-}
-
-/** The attestation line per chain verdict — undefined stays silent
- *  (no journal read · nothing honest to claim). */
-function shieldLine(chain: ChainVerdict | undefined): string | undefined {
-  if (chain === undefined) { return undefined; }
-  switch (chain.kind) {
-    case 'intact':
-      return `✓ **chain intact** · ${chain.events} event${chain.events === 1 ? '' : 's'} sealed · head \`${chain.head.slice(0, 12)}…\` — matches \`nika trace verify\``;
-    case 'torn':
-      return `✓ **chain verified to the torn tail** · ${chain.events} event${chain.events === 1 ? '' : 's'} sealed (a crash mid-write is not tampering) — \`nika trace verify\` agrees`;
-    case 'broken':
-      return `⚠ **chain BROKEN at line ${chain.line}** — this journal fails \`nika trace verify\`; every claim on this page is unverified`;
-    case 'unchained':
-      return '○ pre-chain journal (engine < 0.96) — no tamper evidence was recorded for this run';
-    case 'empty':
-    case 'unreadable':
-      return undefined;
-  }
 }
 
 export function renderRunDetail(i: RunDetailInputs): string {
@@ -113,18 +92,8 @@ export function renderRunDetail(i: RunDetailInputs): string {
   ].filter(Boolean).join(' · '));
   out.push('');
 
-  // ── The shield — the tamper-evidence verdict, positive OR negative ──
-  // The attestation is a first-class fact, not a silence: intact and
-  // torn SAY so (with the head to compare against the run's own print),
-  // broken outranks everything, unchained states the era honestly.
-  // `command:` links are dead in the preview (annexe R R13), so the
-  // one-gesture re-verify stays the K-panel door the footer teaches —
-  // the CLI twin rides inline as the self-verifiable claim.
-  const shield = shieldLine(i.chain);
-  if (shield !== undefined) {
-    out.push(shield);
-    out.push('');
-  }
+  out.push(TRACE_INTEGRITY_NOTICE);
+  out.push('');
 
   // ── The needs-you fact — a paused run leads with its question ──
   if (model.paused !== undefined) {
@@ -139,7 +108,7 @@ export function renderRunDetail(i: RunDetailInputs): string {
 
   // ── Trust facts — stated, never papered over ──
   if (model.unknownLines > 0) {
-    out.push(`⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this page reads what it can prove`);
+    out.push(`⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this page shows only parsed observations`);
     out.push('');
   }
 
@@ -192,7 +161,7 @@ export function renderRunDetail(i: RunDetailInputs): string {
   out.push('');
   out.push(`journal: \`${i.fsPath}\``);
   out.push('');
-  out.push('_Deeper — the tree action panel on the run row (`⌘K ⌘.`): replay on the canvas (`⌘K ⌘Y`) · diff two runs · debug (time travel) · verify the chain · reproduce · the provable Run Report · OpenTelemetry export._');
+  out.push('_Deeper — the tree action panel on the run row (`⌘K ⌘.`): replay on the canvas (`⌘K ⌘Y`) · diff two runs · debug (time travel) · Verify Journal · reproduce · the recorded Run Report · OpenTelemetry export._');
   return out.join('\n');
 }
 

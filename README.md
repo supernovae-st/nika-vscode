@@ -451,11 +451,11 @@ network: every green close settles a ✓ wave through the cards.*
   run projects its journal to OTLP/JSON lines: drag into Jaeger UI, or
   POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
   collector, zero vendor
-- **Tamper-evident runs** (nika ≥ 0.96) · every journal line hash-chains
-  to the previous one; the Runs view walks the chain client-side: a
-  broken journal gets a warning shield that outranks its run verdict,
-  an intact one shows its head (compare against the one the run
-  printed). The run report states its own integrity
+- **Engine-owned verification** · **Verify Journal** asks
+  `nika trace verify <trace> --json` and opens the complete result: chain,
+  seal, anchor, replay and refusal details. Recorded views and reports
+  explicitly remain unverified observations. They neither recompute a
+  second integrity verdict nor infer a signature from hash consistency
 - **Reproduce Run: determinism check** (nika ≥ 0.97) · right-click a
   run, pick another journal of the same workflow: every task classified
   reproduced / NONDETERMINISTIC (same def+inputs, different output) /
@@ -630,7 +630,7 @@ The sixteen you'll reach for first: the full set lives in the
 | `Nika: Golden Test` | `nika test` against the pinned golden (mock provider · offline) |
 | `Nika: Replay a Recorded Run` | scrub the whole timeline: replay re-renders, never re-executes |
 | `Nika: Diff Two Runs on the DAG` | the first divergence leads; the culprit task centers |
-| `Nika: Run Report` | one provable markdown per run: the trace's own events, gaps stated |
+| `Nika: Run Report` | recorded events and stated gaps, with integrity verification kept separate |
 | `Nika: Run History` | the cross-run grid: flaky steps are a recorded fact, not a guess |
 | `Nika: Doctor` | the engine diagnoses its environment: exact fixes, never mutates |
 | `Nika: Open the Getting-Started Tour` | the walkthrough: steps check themselves off as you do them |

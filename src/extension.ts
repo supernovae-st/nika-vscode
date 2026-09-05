@@ -162,7 +162,7 @@ import { foldTrace } from './core/traceFold';
 import { readTraceFile, TraceReadError } from './core/traceFile';
 import { UNREADABLE_DESCRIPTION } from './core/runsModel';
 import { renderRunReport } from './core/runReport';
-import { verifyChain } from './core/chainVerify';
+import { registerTraceVerification } from './features/traceVerification';
 import { XrayInlayProvider } from './features/xray';
 import { registerTestExplorer } from './features/testExplorer';
 import { registerSecretsDecor } from './features/secretsDecor';
@@ -863,6 +863,7 @@ function activateTrusted(context: ExtensionContext): void {
   // The run detail page (`nika-run:` · DESIGN.md §7e) — the one primary
   // every run item shares; the traces watcher keeps an open page live.
   const runDetail = registerRunDetail(context);
+  registerTraceVerification(context, service);
 
   // The Station — the cockpit tree (engine · doctor · agents ·
   // providers · workspace). Lane A pure: everything it shows comes
@@ -3542,7 +3543,6 @@ function activateTrusted(context: ExtensionContext): void {
         artifacts: extractRunArtifacts(ndjson),
         resolvePath,
         ladders: attemptLadders(ndjson),
-        chain: verifyChain(ndjson),
       });
       const preview = await workspace.openTextDocument({ language: 'markdown', content: md });
       try {
@@ -3627,29 +3627,6 @@ function activateTrusted(context: ExtensionContext): void {
     // (Jaeger drag-drop · Aspire · Grafana · Langfuse) becomes a nika
     // viewer. Pure projection via `nika trace export`; file lands beside
     // the journal, sovereign, zero collector.
-    // Command: engine-authoritative chain verdict on one click — the
-    // tooltip's client walk is instant; this is the engine's own word
-    // (and the full head, for the anchor comparison).
-    commands.registerCommand('nika.verifyTrace', async (arg?: { trace?: { uri: Uri } }) => {
-      const trace = arg?.trace?.uri;
-      if (!trace) {
-        void window.showInformationMessage('Nika: pick a run in the Runs view to verify.');
-        return;
-      }
-      const res = await service.runCli(['trace', 'verify', trace.fsPath], 15000);
-      const noise = (res.stderr || res.stdout).trim();
-      if (/unrecognized subcommand|unexpected argument/.test(noise)) {
-        void window.showErrorMessage('Nika: this engine has no `trace verify` — needs nika ≥ 0.97 (brew upgrade nika).');
-        return;
-      }
-      const first = (res.stdout || noise).split('\n')[0]?.trim() ?? 'no output';
-      if (res.code === 0) {
-        void window.showInformationMessage(`Nika: ${first}`);
-      } else {
-        void window.showWarningMessage(`Nika: ${first}`);
-      }
-    }),
-
     // Command: export the run's evidence pack (0.107 · RAMS-15: the
     // dossier lives under `trace` — journal + manifest + receipt +
     // VERIFY.md in one directory, never clobbered).

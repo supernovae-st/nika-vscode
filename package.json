@@ -500,7 +500,7 @@
       },
       {
         "command": "nika.verifyTrace",
-        "title": "Verify Journal (tamper-evidence chain)",
+        "title": "Verify Journal (engine evidence)",
         "icon": "$(shield)",
         "category": "Nika",
         "enablement": "isWorkspaceTrusted"
@@ -1813,7 +1813,7 @@
           {
             "id": "proof",
             "title": "Prove it ran (chain · reproduce · export)",
-            "description": "Every run hash-chains its journal: the Runs view shows a shield when a journal fails verification, and the run report states its own integrity. Right-click a run → **Reproduce Run** classifies WHY two runs diverge (NONDETERMINISTIC names the flaky task). **Export to OpenTelemetry** ships the trace, chain head included, to Jaeger/Grafana/Langfuse.\n[Open the Runs view](command:nikaRuns.focus)",
+            "description": "Right-click a run → **Verify Journal** opens the engine's complete chain, seal and anchor result. Recorded views and reports remain observations, not integrity certificates. **Reproduce Run** classifies why two recorded runs diverge. **Export to OpenTelemetry** projects the trace to a local OTLP file.\n[Open the Runs view](command:nikaRuns.focus)",
             "media": {
               "markdown": "walkthrough/07-proof.md"
             },

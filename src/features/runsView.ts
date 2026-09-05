@@ -12,7 +12,7 @@ import * as path from 'path';
 import { foldTrace, humanizeDuration, summarizeRun, type RunModel } from '../core/traceFold';
 import { readTraceFile, TraceReadError } from '../core/traceFile';
 import { formatEta, measuredEtaMs } from '../core/runEta';
-import { verifyChain, type ChainVerdict } from '../core/chainVerify';
+import { TRACE_INTEGRITY_NOTICE } from '../core/traceVerification';
 import { parseTraceOutputs } from '../core/xray';
 import { extractRunArtifacts, humanBytes, pickCardArtifact, type RunArtifact } from '../core/artifacts';
 import { attemptLadders, renderLadder, type Attempt } from '../core/attempts';
@@ -121,9 +121,6 @@ interface TraceFile {
   mtimeMs: number;
   /** Cache-key twin of mtime — breaks same-mtime-tick append ties. */
   sizeBytes: number;
-  /** The tamper-evidence walk (engine 0.96+ · client twin of
-   *  `nika trace verify`) — broken gets marked, unchained stays silent. */
-  chain: ChainVerdict;
   model: RunModel;
   /** Media/file outputs recovered from the raw trace (assets-not-blobs). */
   artifacts: Map<string, RunArtifact[]>;
@@ -325,32 +322,17 @@ class TraceItem extends vscode.TreeItem {
     // A paused run is a different KIND of row — it waits on a human, so
     // its menus and K-panel lead with the Answer door.
     this.contextValue = trace.model.workflowStatus === 'paused' ? 'nikaTracePaused' : 'nikaTrace';
-    // A broken chain outranks the run verdict: an unverified journal's
-    // "completed" is itself unverified (Proof Arc P2).
-    this.iconPath = trace.chain.kind === 'broken'
-      ? new vscode.ThemeIcon('shield', new vscode.ThemeColor('problemsWarningIcon.foreground'))
-      : new vscode.ThemeIcon(
-          trace.model.workflowStatus === 'completed' ? 'pass-filled'
-          : trace.model.workflowStatus === 'failed' ? 'error'
-          : trace.model.workflowStatus === 'cancelled' ? 'circle-slash'
-          // ADR-099 durable pause — waiting on an answer, not live, not dead.
-          : trace.model.workflowStatus === 'paused' ? 'debug-pause'
-          : 'pulse',
-        );
+    // Status is an observation. Integrity is a separate engine-owned request.
+    this.iconPath = new vscode.ThemeIcon(
+      trace.model.workflowStatus === 'completed' ? 'pass-filled'
+      : trace.model.workflowStatus === 'failed' ? 'error'
+      : trace.model.workflowStatus === 'cancelled' ? 'circle-slash'
+      : trace.model.workflowStatus === 'paused' ? 'debug-pause'
+      : 'pulse',
+    );
     const md = new vscode.MarkdownString(undefined, true);
     md.appendMarkdown(`**${path.basename(trace.uri.fsPath)}** — ${trace.model.workflowStatus}\n\n`);
-    if (trace.chain.kind === 'broken') {
-      md.appendMarkdown(
-        `$(shield) **chain BROKEN at line ${trace.chain.line}** — this journal fails \`nika trace verify\`; its claims are unverified\n\n`,
-      );
-    } else if (trace.chain.kind === 'intact' || trace.chain.kind === 'torn') {
-      // The anchor UX: this head should MATCH the one the run printed
-      // (`trace: … · chain <head32>`) — scrollback vs journal, closed.
-      // Full 32 hex (engine M4: 16 is a forgeable width).
-      md.appendMarkdown(
-        `$(verified-filled) chain intact — head \`${trace.chain.head.slice(0, 32)}\`${trace.chain.kind === 'torn' ? ' (final line torn — crash, not tampering)' : ''}\n\n`,
-      );
-    }
+    md.appendMarkdown(`${TRACE_INTEGRITY_NOTICE}\n\n`);
     const tasks = [...trace.model.tasks.values()];
     const ok = tasks.filter((t) => t.status === 'success').length;
     const bad = tasks.filter((t) => t.status === 'failed').length;
@@ -637,7 +619,6 @@ export class RunsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem
           uri,
           mtimeMs: stat.mtimeMs,
           sizeBytes: stat.size,
-          chain: verifyChain(content),
           model: foldTrace(content),
           artifacts: extractRunArtifacts(content),
           ladders: attemptLadders(content),
