@@ -112,6 +112,8 @@ export interface RunModel {
    *  replay-debugger's journal→source match). */
   workflowName?: string;
   tasks: Map<string, FoldedTask>;
+  /** Sum of observed terminal task amounts, never the in-flight curve.
+   *  This projection is not the engine's whole-run settlement. */
   totalUsd?: number;
   /** In-flight run spend (cost_incurred deltas — the ~$ curve). */
   liveUsd?: number;
@@ -381,12 +383,10 @@ export function foldTrace(ndjson: string): RunModel {
         }
         continue;
       case 'cost_incurred':
-        // Legacy read preserved: the old dialect carried run spend ONLY
-        // on these lines. The v2 wire's live ~$ curve (contract §3.3)
-        // folds alongside — run-level always, task-level when the delta
-        // is attributed, terminal-frozen like every annotation.
+        // Deltas describe the in-flight curve only. Adding them to the
+        // terminal task amounts would count the same spend twice and
+        // turn a live observation into a recorded amount.
         if (ev.usd !== undefined) {
-          model.totalUsd = (model.totalUsd ?? 0) + ev.usd;
           model.liveUsd = (model.liveUsd ?? 0) + ev.usd;
         }
         if (ev.tokens !== undefined) { model.liveTokens = (model.liveTokens ?? 0) + ev.tokens; }

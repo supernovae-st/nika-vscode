@@ -135,7 +135,8 @@ describe('foldTrace', () => {
     expect(model.tasks.get('a')).toMatchObject({ status: 'success', retries: 1, durationMs: 1500 });
     expect(model.tasks.get('b')?.status).toBe('failed');
     expect(model.tasks.get('c')?.status).toBe('skipped');
-    expect(model.totalUsd).toBeCloseTo(0.02);
+    expect(model.liveUsd).toBeCloseTo(0.02);
+    expect(model.totalUsd).toBeUndefined();
     expect(model.startMs).toBe(0);
     expect(model.endMs).toBe(2030);
     expect(model.unknownLines).toBe(0);
@@ -733,6 +734,30 @@ describe('foldTrace · live meters (cost_incurred · infer_chunk — contract §
     expect(model.liveTokens).toBe(100);
     expect(model.tasks.get('draft')?.liveUsd).toBeCloseTo(0.003, 6);
     expect(model.tasks.get('draft')?.liveTokens).toBe(100);
+  });
+
+  it('does not add live deltas to the same task\'s recorded amount', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('cost_incurred', { task: 'draft', usd: 0.001 }),
+      line('cost_incurred', { task: 'draft', usd: 0.002 }),
+      line('task_completed', { task: 'draft', cost_usd: 0.003 }),
+      line('workflow_completed', {}),
+    ].join('\n'));
+    expect(model.liveUsd).toBeCloseTo(0.003, 10);
+    expect(model.tasks.get('draft')?.usd).toBeCloseTo(0.003, 10);
+    expect(model.totalUsd).toBeCloseTo(0.003, 10);
+  });
+
+  it('keeps the recorded amount unknown when only a live curve was observed', () => {
+    const model = foldTrace([
+      line('task_started', { task: 'draft' }),
+      line('cost_incurred', { task: 'draft', usd: 0.003 }),
+      line('task_completed', { task: 'draft' }),
+      line('workflow_completed', {}),
+    ].join('\n'));
+    expect(model.liveUsd).toBeCloseTo(0.003, 10);
+    expect(model.totalUsd).toBeUndefined();
   });
 
   it('chunks count the stream; a settled task is frozen against late meters', () => {

@@ -28,6 +28,10 @@ spellings and epoch-unit guesses no longer invent current engine facts.
 Unknown event names cannot inherit object-prototype states or invent an
 agent turn merely by sharing a prefix.
 
+Live cost deltas stay separate from recorded task amounts, so replay never
+adds both measurements of the same spend. A live curve alone does not
+invent a recorded total.
+
 Interactive commands and native tasks share a literal-argv process boundary.
 No filename, model id or input value becomes shell code. VS Code variable
 expressions are refused before task submission; interactive commands require
