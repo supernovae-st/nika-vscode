@@ -28,6 +28,7 @@ const MUST_EXCLUDE = [
   ['tooling', 'scripts/**'],
   ['editor config', '.vscode/**'],
   ['dependencies', 'node_modules/**'],
+  ['test config', 'vitest.config.*'],
 ];
 
 const lines = ignore.split('\n').map((l) => l.trim()).filter((l) => l !== '' && !l.startsWith('#'));

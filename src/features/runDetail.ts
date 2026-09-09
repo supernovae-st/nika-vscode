@@ -13,8 +13,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { foldTrace } from '../core/traceFold';
+import { readTraceFile, TraceReadError } from '../core/traceFile';
 import { extractRunArtifacts } from '../core/artifacts';
-import { verifyChain } from '../core/chainVerify';
 import { renderRunDetail, renderUnreadableDetail } from '../core/runDetail';
 import { UNREADABLE_DESCRIPTION } from '../core/runsModel';
 
@@ -46,11 +46,11 @@ class RunDetailProvider implements vscode.TextDocumentContentProvider {
     let ndjson: string;
     let mtimeMs: number;
     try {
-      ndjson = fs.readFileSync(fsPath, 'utf-8');
+      ndjson = readTraceFile(fsPath);
       mtimeMs = fs.statSync(fsPath).mtimeMs;
-    } catch {
+    } catch (error) {
       // The honest page, one voice with the Runs view's unreadable row.
-      return renderUnreadableDetail(fsPath, UNREADABLE_DESCRIPTION);
+      return renderUnreadableDetail(fsPath, error instanceof TraceReadError ? error.message : UNREADABLE_DESCRIPTION);
     }
     // Artifact paths are as-recorded (often run-cwd relative) — resolve
     // the report's way: absolute-and-exists · run cwd (the trace dir's
@@ -73,7 +73,6 @@ class RunDetailProvider implements vscode.TextDocumentContentProvider {
       model: foldTrace(ndjson),
       artifacts: extractRunArtifacts(ndjson),
       resolvePath,
-      chain: verifyChain(ndjson),
     });
   }
 }

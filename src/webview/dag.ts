@@ -53,6 +53,7 @@ import { lineageOf, type LineageView } from '../core/lineage';
 import { afterglowVerdict, isFlowing } from '../core/edgeTruth';
 import { CULL_MIN_NODES, boxSleeps, cullMargins, edgeSleeps } from './cullMath';
 import { roundedPolyline } from './wireGeometry';
+import { agentBudgetReadout, agentTurnAdvanced } from './agentBudgetReadout';
 
 // Every animation in this view is gated on the user's motion preference —
 // read LIVE: runtime gates see an OS-level toggle without a panel reload
@@ -995,6 +996,7 @@ const NODE_RADIUS = 10;
 const PADDING = 40;
 /** Floating top rail clearance — fit parks the graph below it. */
 const TOP_INSET = 54;
+const BOTTOM_INSET = 96;
 
 // Card anatomy metrics (must mirror the .nc-* CSS so ELK gets true boxes:
 // DESIGN.md §1 — pad 10 · head 22 · divider 12 · preview 124 img
@@ -4487,9 +4489,16 @@ class DagRenderer {
     }
     if (!this.svg.node()) { this.applyFocus(taskId); return; }
     const { w: svgW, h: svgH } = this.svgSize();
-    const k = Math.max(this.currentZoom, 0.6);
+    // Focusing asks to READ one card, not keep its text at map scale.
+    // Raise it to native size when the visible pool has room; preserve
+    // a human's closer zoom and fit a smaller panel without forcing 1x.
+    // Leave 4px for card paint outside the layout box. Center inside the
+    // usable pool too: the top and bottom chrome have different heights.
+    const readable = Math.min(1, (svgW - PADDING * 2) / box.w, (svgH - TOP_INSET - BOTTOM_INSET - 8) / box.h);
+    const k = Math.max(this.currentZoom, readable);
+    const centerY = (svgH + TOP_INSET - BOTTOM_INSET) / 2;
     const t = zoomIdentity
-      .translate(svgW / 2 - (box.x + box.w / 2) * k, svgH / 2 - (box.y + box.h / 2) * k)
+      .translate(svgW / 2 - (box.x + box.w / 2) * k, centerY - (box.y + box.h / 2) * k)
       .scale(k);
     // Camera BEFORE focus: applyFocus's roving focus() forces the one
     // style flush of this task — behind the camera writes (transform ·
@@ -5059,6 +5068,7 @@ class DagRenderer {
     const band = document.createElement('div');
     band.className = 'nc-agent-band';
     if (af.turns !== undefined) {
+      band.dataset.turn = String(af.turns);
       const loop = document.createElement('span');
       loop.className = 'nc-ab-loop';
       const routing = af.offered !== undefined && af.universe !== undefined
@@ -5070,21 +5080,27 @@ class DagRenderer {
       band.appendChild(loop);
     }
     if (af.budget !== undefined) {
-      if (af.budget.budget !== undefined) {
+      const readout = agentBudgetReadout(af.budget.totalTokens, af.budget.budget);
+      if (readout.fraction !== undefined) {
         const meter = document.createElement('span');
         meter.className = 'nc-ab-meter';
+        meter.setAttribute('role', 'meter');
+        meter.setAttribute('aria-label', 'Recorded agent token usage');
+        meter.setAttribute('aria-valuemin', '0');
+        meter.setAttribute('aria-valuemax', '100');
+        meter.setAttribute('aria-valuenow', String(readout.fraction * 100));
+        meter.setAttribute('aria-valuetext', readout.title);
         const fill = document.createElement('i');
         fill.className = 'nc-ab-fill';
-        const pct = Math.min(100, (af.budget.totalTokens / af.budget.budget) * 100);
-        fill.style.width = `${pct.toFixed(1)}%`;
+        fill.style.transform = `scaleX(${readout.fraction})`;
         meter.appendChild(fill);
-        meter.title = `${af.budget.totalTokens} of ${af.budget.budget} tokens \u2014 the declared budget`;
+        meter.title = readout.title;
         band.appendChild(meter);
       } else {
         const count = document.createElement('span');
         count.className = 'nc-ab-tk';
-        count.textContent = `${af.budget.totalTokens} tk`;
-        count.title = `${af.budget.totalTokens} tokens so far \u2014 no declared budget, so no bar`;
+        count.textContent = readout.text;
+        count.title = readout.title;
         band.appendChild(count);
       }
     }
@@ -6585,7 +6601,11 @@ class DagRenderer {
     // The chip flip (QRcodeAI): the tile flips Y only when the card's
     // IDENTITY line changed (verb · model) — never on a status repaint.
     const prevSub = host.querySelector('.nc-sub')?.textContent ?? '';
+    const prevTurn = host.querySelector<HTMLElement>('.nc-agent-band')?.dataset.turn;
     this.buildCardHtml(host, node, mode);
+    if (node.status === 'running' && agentTurnAdvanced(prevTurn === undefined ? undefined : Number(prevTurn), node.agent?.turns)) {
+      host.querySelector('.nc-agent-band')?.classList.add('nk-loop-update');
+    }
     const nextSub = host.querySelector('.nc-sub')?.textContent ?? '';
     if (prevSub !== '' && nextSub !== prevSub) {
       const tile = host.querySelector('.nc-tile');
@@ -7428,7 +7448,7 @@ class DagRenderer {
     // Breathing room scales down with the panel — a fixed 40px ate a
     // fifth of a sidebar-docked canvas.
     const fitPad = Math.min(PADDING, Math.round(Math.min(svgW, svgH) * 0.05));
-    const usableH = Math.max(svgH - TOP_INSET - 96, 160);
+    const usableH = Math.max(svgH - TOP_INSET - BOTTOM_INSET, 160);
     const usableW = Math.max(svgW - leftInset, 240);
 
     let graphW: number;

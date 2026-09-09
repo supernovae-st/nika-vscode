@@ -1,7 +1,7 @@
 // runReport.ts — the run report document (pure · no vscode).
 //
-// « Provable after it runs »: one markdown document per recorded run,
-// composed ONLY of what the trace proves — statuses, durations, spend,
+// One observation document per recorded run,
+// composed ONLY of what the trace records — statuses, durations, spend,
 // retries, cache hits, artifacts with provenance. No narrative claim
 // without its event; gaps say so (« no cost data », never $0 invented).
 // The document is local, diff-able, shareable by file — never a service.
@@ -12,7 +12,7 @@ import type { RunArtifact } from './artifacts';
 import { STATUS_CHAR } from './glyphRegistry';
 import { humanBytes } from './artifacts';
 import { renderLadder, type Attempt } from './attempts';
-import type { ChainVerdict } from './chainVerify';
+import { TRACE_INTEGRITY_NOTICE } from './traceVerification';
 
 export interface RunReportInputs {
   traceName: string;
@@ -24,9 +24,6 @@ export interface RunReportInputs {
   resolvePath?: (p: string) => string | undefined;
   /** Per-task attempt ladders — failures grow their per-attempt story. */
   ladders?: Map<string, Attempt[]>;
-  /** The tamper-evidence walk (engine 0.96+) — the proof-carrying
-   *  report carries its proof. */
-  chain?: ChainVerdict;
 }
 
 const usd = (n: number): string =>
@@ -64,18 +61,9 @@ export function renderRunReport(inputs: RunReportInputs): string {
   out.push(`- Workflow: **${model.workflowStatus ?? 'unknown'}** — ${ok} succeeded · ${bad} failed · ${skipped} skipped${cached > 0 ? ` · ${cached} from cache` : ''}${recovered > 0 ? ` · ${recovered} recovered` : ''}${retries > 0 ? ` · ${retries} retr${retries === 1 ? 'y' : 'ies'}` : ''}`);
   out.push(`- Wall clock: ${wallMs !== undefined ? humanizeDuration(wallMs) : 'not recoverable from this trace'}`);
   out.push(`- Spend: ${priced ? usd(spend) : 'no cost data (mock/local — nothing was priced)'}`);
-  if (inputs.chain) {
-    const c = inputs.chain;
-    if (c.kind === 'intact') {
-      out.push(`- Integrity: chain **intact** — head \`${c.head}\` (tamper-evident; compare against the head the run printed)`);
-    } else if (c.kind === 'torn') {
-      out.push(`- Integrity: chain intact through the last complete line — head \`${c.head}\` (final line torn: a crash mid-write, not tampering)`);
-    } else if (c.kind === 'broken') {
-      out.push(`- ⚠ Integrity: **chain BROKEN at line ${c.line}** — this journal fails \`nika trace verify\`; every claim in this report is unverified`);
-    }
-  }
+  out.push(`- ${TRACE_INTEGRITY_NOTICE}`);
   if (model.unknownLines > 0) {
-    out.push(`- ⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this report reads what it can prove`);
+    out.push(`- ⚠ ${model.unknownLines} unparsed line${model.unknownLines === 1 ? '' : 's'} (foreign dialect?) — this report shows only parsed observations`);
   }
   out.push('');
 

@@ -42,7 +42,7 @@ export function registerMcpDefinitionProvider(
   context.subscriptions.push(
     emitter,
     // Binary appears/changes → the definition (command path) may change.
-    service.onDidChange(() => emitter.fire()),
+    service.onDidChangeEngine(() => emitter.fire()),
   );
 
   try {

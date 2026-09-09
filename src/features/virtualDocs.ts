@@ -20,7 +20,7 @@ export class NikaDocProvider implements vscode.TextDocumentContentProvider {
     service.onDidUpdateDocument((uriString) => {
       this.emitter.fire(docUri('report', uriString));
     });
-    service.onDidChange(() => {
+    service.onDidChangeEngine(() => {
       // Binary swap invalidates every projected surface.
       for (const kind of ['spec', 'canon', 'schema'] as const) {
         this.emitter.fire(docUri(kind));

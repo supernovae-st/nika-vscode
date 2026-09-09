@@ -28,6 +28,18 @@ describe('normalizeWorkflowKey', () => {
 });
 
 describe('TraceStore', () => {
+  it('retracts a lost observation and notifies only when a record was removed', () => {
+    const store = new TraceStore();
+    const seen: string[] = [];
+    const file = P('ws', 'demo.nika.yaml');
+    store.set(file, fixtureFold('fixture-run-a.ndjson'));
+    store.onDidUpdate((key) => seen.push(key));
+    store.clear(P('ws', '.', 'demo.nika.yaml'));
+    store.clear(file);
+    expect(store.get(file)).toBeUndefined();
+    expect(seen).toEqual([file]);
+  });
+
   it('set/get round-trips a real green fold with a publish timestamp', () => {
     const store = new TraceStore();
     const before = Date.now();

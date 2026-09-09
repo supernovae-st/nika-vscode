@@ -57,6 +57,21 @@ export function registerLmTools(
   service: NikaService,
   log: (level: string, msg: string) => void,
 ): void {
+  const registrations: vscode.Disposable[] = [];
+  const clear = (): void => { registrations.splice(0).forEach((tool) => tool.dispose()); };
+  const refresh = (): void => {
+    clear();
+    if (service.available) { registerAdmittedTools({ subscriptions: registrations }, service, log); }
+  };
+  context.subscriptions.push(service.onDidChangeEngine(refresh), { dispose: clear });
+  refresh();
+}
+
+function registerAdmittedTools(
+  context: Pick<vscode.ExtensionContext, 'subscriptions'>,
+  service: NikaService,
+  log: (level: string, msg: string) => void,
+): void {
   if (!vscode.workspace.getConfiguration('nika').get<boolean>('ai.toolsEnabled', true)) {
     return;
   }
@@ -115,16 +130,9 @@ export function registerLmTools(
       },
     }),
   );
-  // The workspace aggregate — `welcome --deep --json` on the 0.104
-  // line (the RENAMED context verb; the old spelling stays as the
-  // dev-build fallback). Registered only when the probed binary
-  // carries one of the doors — the tool list itself stays honest (a
-  // host asking for nika_workspace on an old binary would get a
-  // permanent error, so it never appears).
-  if (service.caps.welcome || service.caps.context) {
-    const args = service.caps.welcome
-      ? ['welcome', '--deep', '--json']
-      : ['context', '--json'];
+  // Register the workspace aggregate only when its current door is proven.
+  if (service.caps.welcome) {
+    const args = ['welcome', '--deep', '--json'];
     context.subscriptions.push(
       lm.registerTool('nika_workspace', {
         invoke: async () => {

@@ -1,6 +1,6 @@
 // traceStore.ts — the ONE in-memory home of "the last run of workflow X"
 // (pure · no vscode). Two publishers feed it — the live runner (runLive
-// re-folds its NDJSON buffer · throttled intermediates + exact final) and
+// incrementally folds NDJSON · throttled intermediates + exact final) and
 // the trace overlay (runsView folds the file after its majority-overlap
 // gate) — and every editor surface (line badges · hover cards) reads the
 // SAME fold back through `onDidUpdate`. One fold, many faces.
@@ -62,7 +62,7 @@ export class TraceStore {
   private readonly records = new Map<string, TraceRecord>();
   private readonly emitter = new Emitter<string>();
 
-  /** Fires with the NORMALIZED workflow key after every `set`. */
+  /** Fires with the NORMALIZED workflow key after publication or removal. */
   readonly onDidUpdate = this.emitter.event;
 
   /** Publish the latest fold for a workflow file (latest write wins). */
@@ -72,7 +72,13 @@ export class TraceStore {
     this.emitter.fire(key);
   }
 
-  /** Latest known fold for a workflow file — undefined when never run. */
+  /** Retract an observation that can no longer support a current-run claim. */
+  clear(workflowFsPath: string): void {
+    const key = normalizeWorkflowKey(workflowFsPath);
+    if (this.records.delete(key)) { this.emitter.fire(key); }
+  }
+
+  /** Latest observation, or undefined when absent or explicitly retracted. */
   get(workflowFsPath: string): TraceRecord | undefined {
     return this.records.get(normalizeWorkflowKey(workflowFsPath));
   }

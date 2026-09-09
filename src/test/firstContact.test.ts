@@ -19,9 +19,13 @@
 import { describe, expect, it } from 'vitest';
 import { firstContactMove } from '../core/firstContact';
 
-const FIRST = { armed: true, flown: false };
+const FIRST = { armed: true, flown: false, workspaceTrusted: true };
 
 describe('firstContactMove — the wire (V-SOTA.A)', () => {
+  it.each([true, false])('never runs or greets before workspace trust, even with binaryAvailable=%s', (binaryAvailable) => {
+    expect(firstContactMove({ ...FIRST, workspaceTrusted: false, binaryAvailable, workspaceHasWorkflows: false }))
+      .toBe('none');
+  });
   it('the real first contact with an engine auto-runs the demo — 0 gestures to first green', () => {
     expect(firstContactMove({ ...FIRST, binaryAvailable: true, workspaceHasWorkflows: false }))
       .toBe('auto-demo');
@@ -45,16 +49,16 @@ describe('firstContactMove — the wire (V-SOTA.A)', () => {
   it('not first contact (or already flown) → nothing, whatever else is true', () => {
     for (const binaryAvailable of [true, false]) {
       for (const workspaceHasWorkflows of [true, false]) {
-        expect(firstContactMove({ armed: false, flown: false, binaryAvailable, workspaceHasWorkflows }))
+        expect(firstContactMove({ ...FIRST, armed: false, flown: false, binaryAvailable, workspaceHasWorkflows }))
           .toBe('none');
-        expect(firstContactMove({ armed: true, flown: true, binaryAvailable, workspaceHasWorkflows }))
+        expect(firstContactMove({ ...FIRST, armed: true, flown: true, binaryAvailable, workspaceHasWorkflows }))
           .toBe('none');
       }
     }
   });
 
   it('the one shot cannot resurrect: flown wins over every other fact', () => {
-    expect(firstContactMove({ armed: true, flown: true, binaryAvailable: true, workspaceHasWorkflows: false }))
+    expect(firstContactMove({ ...FIRST, flown: true, binaryAvailable: true, workspaceHasWorkflows: false }))
       .toBe('none');
   });
 });

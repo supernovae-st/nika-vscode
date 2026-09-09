@@ -6,17 +6,12 @@ export const NIKA_MCP_ARGS = ['mcp'] as const;
 export interface NikaMcpServer {
   command: string;
   args: string[];
-  type?: 'stdio';
 }
 
 export type JsonObject = Record<string, unknown>;
 
-export function nikaMcpServer(command = NIKA_MCP_COMMAND, includeType = false): NikaMcpServer {
-  const server: NikaMcpServer = { command, args: [...NIKA_MCP_ARGS] };
-  if (includeType) {
-    server.type = 'stdio';
-  }
-  return server;
+export function nikaMcpServer(command = NIKA_MCP_COMMAND): NikaMcpServer {
+  return { command, args: [...NIKA_MCP_ARGS] };
 }
 
 export function isStaleNikaMcpServer(value: unknown): boolean {
@@ -47,22 +42,6 @@ export function patchCursorLikeConfig(input: JsonObject | undefined, command = N
   return { config, changed, migrated };
 }
 
-export function patchVscodeConfig(input: JsonObject | undefined, command = NIKA_MCP_COMMAND): {
-  config: JsonObject;
-  changed: boolean;
-  migrated: boolean;
-} {
-  const config: JsonObject = { ...(input ?? {}) };
-  const servers = isObject(config.servers) ? { ...config.servers } : {};
-  const existing = servers.nika;
-  const desired = nikaMcpServer(command, true);
-  const migrated = isStaleNikaMcpServer(existing);
-  const changed = !serverEquals(existing, desired);
-  servers.nika = desired;
-  config.servers = servers;
-  return { config, changed, migrated };
-}
-
 function serverEquals(existing: unknown, desired: NikaMcpServer): boolean {
   if (!isObject(existing)) {
     return false;
@@ -71,7 +50,7 @@ function serverEquals(existing: unknown, desired: NikaMcpServer): boolean {
     && Array.isArray(existing.args)
     && existing.args.length === desired.args.length
     && existing.args.every((arg, idx) => arg === desired.args[idx])
-    && existing.type === desired.type;
+    && existing.type === undefined;
 }
 
 function isObject(value: unknown): value is JsonObject {

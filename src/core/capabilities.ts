@@ -2,7 +2,7 @@
 //
 // The extension adapts to what the binary ACTUALLY ships instead of
 // hardcoding a feature matrix: today's static suite (check · inspect ·
-// explain · spec · schema · examples · new · completions · trace)
+// explain · spec · examples · new · completions · trace)
 // lights up immediately; `run` / `lsp` / `mcp` light up the day the
 // engine ships them — same extension, zero release needed. The probe
 // parses `--help` and proves omitted doors through their own `--help`,
@@ -16,7 +16,7 @@ export const CAPABILITY_COMMANDS = [
   'explain',
   'init',
   'spec',
-  'schema',
+  'catalog',
   'model',
   'try',
   'new',
@@ -28,14 +28,13 @@ export const CAPABILITY_COMMANDS = [
   'wire',
   'doctor',
   'test',
-  'context',
   'welcome',
 ] as const;
 
 export interface CapabilitySet {
   /** Subcommand names found in `--help`. */
   commands: Set<string>;
-  /** `--version` output, trimmed (e.g. "nika-cli 0.80.0"). */
+  /** Admitted engine version (e.g. "nika 0.118.1"). */
   version: string;
   check: boolean;
   /** `nika inspect` — anatomy AND the one graph projector
@@ -44,7 +43,9 @@ export interface CapabilitySet {
   explain: boolean;
   init: boolean;
   spec: boolean;
-  schema: boolean;
+  /** Canonical read flags proven by the command's successful own help. */
+  specSchema: boolean;
+  catalogTools: boolean;
   /** `nika model` — local GGUFs: pull · serve · list · rm (0.105+). */
   model: boolean;
   examples: boolean;
@@ -64,53 +65,22 @@ export interface CapabilitySet {
    *  engine-side dirty-slice — unchanged tasks cache-hit with their
    *  recorded output, edited tasks + their cone re-run. */
   resume: boolean;
-  /** `check/graph/inspect -` read stdin (engine #190): dirty buffers pipe
-   *  straight into the binary — no tmp-file dance. Probed on the REAL
-   *  `check --help` text (a version gate would misread dev builds — main
-   *  carried the dash while still reporting 0.93.1); pre-dash binaries
-   *  keep the tmp fallback. */
-  stdinDash: boolean;
   /** `check --fix` — the in-binary repair loop (`clippy --fix` shape):
    *  applies the typed did-you-mean renames (fields · tools · args),
    *  rewrites the ONE real file and re-audits; ambiguous tokens are
    *  skipped with a note, never guessed. Probed on the `check --help`
-   *  text (the stdinDash law: help text over version numbers). */
+   *  text (help text over version numbers). */
   checkFix: boolean;
   /** `explain <file>` narrates a workflow (engine #298 · the 30s arc):
    *  the positional routes a PATH to the story renderer (waves · cost
    *  honesty · touches · run/trace hand-off) with an `--json` machine
-   *  twin. Probed on the REAL `explain --help` doc line (same law as
-   *  stdinDash: help text over version numbers — dev builds lie about
-   *  versions, never about their own help). Consumed: the explain
+   *  twin. Probed on the REAL `explain --help` doc line. The explain
    *  command speaks the ENGINE's narration when this probes true. */
   explainFile: boolean;
-  /** `nika context` aggregates the workspace (engine 0.99 line · the
-   *  30s arc W4): every workflow audited + runs folded + environment,
-   *  one versioned JSON. RENAMED to `welcome --deep` on the 0.104
-   *  line — this probe keeps the old verb alive for the dev builds
-   *  that still carry it; `welcome` is the current door. */
-  context: boolean;
   /** `nika welcome` (0.104 line) — `--json` machine snapshot ·
    *  `--deep --json` = the full context aggregate (context_version 1).
    *  Powers the Station view and the `nika_workspace` LM tool. */
   welcome: boolean;
-}
-
-/** True when the probed version is ≥ major.minor (e.g. "nika 0.93.1"). */
-export function versionAtLeast(versionText: string, major: number, minor: number): boolean {
-  const m = versionText.match(/(\d+)\.(\d+)(?:\.(\d+))?/);
-  if (!m) { return false; }
-  const [maj, min] = [Number(m[1]), Number(m[2])];
-  return maj > major || (maj === major && min >= minor);
-}
-
-/** The schema door: 0.105 folded the `schema` verb into `spec --schema`.
- *  The door is open when EITHER form ships — consumers try the new form
- *  first and keep the retired verb as the published-binary fallback.
- *  Gating on `schema` alone left every 0.105 user without schema intel
- *  (the fallback chain existed but sat behind a dead outer gate). */
-export function hasSchemaDoor(caps: Pick<CapabilitySet, 'spec' | 'schema'>): boolean {
-  return caps.spec || caps.schema;
 }
 
 /** Parse a clap command table or the 0.116 first-contact help mirror. */
@@ -154,6 +124,7 @@ export function buildCapabilities(
   checkHelpText = '',
   explainHelpText = '',
   probedOk: readonly string[] = [],
+  readHelp: { spec?: string; catalog?: string; run?: string } = {},
 ): CapabilitySet {
   // The first screen is not an exhaustive capability register. A verb proven
   // by its own successful --help door joins the visible command set.
@@ -167,7 +138,8 @@ export function buildCapabilities(
     explain: commands.has('explain'),
     init: commands.has('init'),
     spec: commands.has('spec'),
-    schema: commands.has('schema'),
+    specSchema: commands.has('spec') && /^\s+--schema(?:[=\s]|$)/m.test(readHelp.spec ?? ''),
+    catalogTools: commands.has('catalog') && /^\s+--tools(?:[=\s]|$)/m.test(readHelp.catalog ?? ''),
     model: commands.has('model'),
     // V5: the showroom door is `try` (the examples verb tree died
     // in 0.107) — the cap keeps its name, its source is the living door.
@@ -181,21 +153,16 @@ export function buildCapabilities(
     wire: commands.has('wire'),
     doctor: commands.has('doctor'),
     test: commands.has('test'),
-    // A flag, not a subcommand — the top-level help can't carry it, so
-    // the gate is the release line that shipped ADR-099. A custom build
-    // reporting an older version just keeps the affordance hidden.
-    resume: commands.has('run') && versionAtLeast(versionText, 0, 93),
-    // The dash is an ARGUMENT shape, not a subcommand — the discriminator
-    // is its own doc line in `check --help` ("`-` reads stdin").
-    stdinDash: commands.has('check') && /reads stdin/.test(checkHelpText),
-    // A flag with its own help line — same law as stdinDash.
+    resume: commands.has('run')
+      && /^\s+--resume(?:[=\s]|$)/m.test(readHelp.run ?? '')
+      && /^\s+--from(?:[=\s]|$)/m.test(readHelp.run ?? ''),
+    // A flag with its own help line.
     checkFix: commands.has('check') && /--fix\b/.test(checkHelpText),
     // The file form overloads an EXISTING subcommand — the discriminator
     // is its own doc line in `explain --help` (released 0.97 says only
     // « Teach one error code »; the file form adds « narrate a workflow
     // FILE »).
     explainFile: commands.has('explain') && /narrate a workflow FILE/.test(explainHelpText),
-    context: commands.has('context'),
     // `welcome --deep` IS the renamed context verb (0.104 line): the
     // machine/workspace aggregate one JSON — wired clients · local
     // providers · key COUNTS (never values) · workflow/run rollups.

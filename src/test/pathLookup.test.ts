@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { commandOnPath } from '../core/pathLookup';
+import { findCommandOnPath } from '../core/pathLookup';
 
-describe('commandOnPath', () => {
+describe('findCommandOnPath', () => {
   const fsOf = (paths: string[]) => (c: string) => paths.includes(c);
 
   it('finds the command in any PATH dir (posix)', () => {
-    expect(commandOnPath('nika', '/usr/bin:/opt/homebrew/bin', 'darwin', fsOf(['/opt/homebrew/bin/nika']))).toBe(true);
+    expect(findCommandOnPath('nika', '/usr/bin:/opt/homebrew/bin', 'darwin', fsOf(['/opt/homebrew/bin/nika']))).toBe('/opt/homebrew/bin/nika');
   });
 
   it('misses when no dir carries it', () => {
-    expect(commandOnPath('nika', '/usr/bin:/usr/local/bin', 'darwin', fsOf([]))).toBe(false);
+    expect(findCommandOnPath('nika', '/usr/bin:/usr/local/bin', 'darwin', fsOf([]))).toBeUndefined();
   });
 
   it('empty or missing PATH is a miss, never a throw', () => {
-    expect(commandOnPath('nika', undefined, 'darwin', fsOf(['/x/nika']))).toBe(false);
-    expect(commandOnPath('nika', '', 'darwin', fsOf(['/x/nika']))).toBe(false);
+    expect(findCommandOnPath('nika', undefined, 'darwin', fsOf(['/x/nika']))).toBeUndefined();
+    expect(findCommandOnPath('nika', '', 'darwin', fsOf(['/x/nika']))).toBeUndefined();
   });
 
   it('windows: semicolon separator + executable extensions', () => {
-    expect(commandOnPath('nika', 'C:\\bin;D:\\tools', 'win32', fsOf(['D:\\tools\\nika.exe']))).toBe(true);
+    expect(findCommandOnPath('nika', 'C:\\bin;D:\\tools', 'win32', fsOf(['D:\\tools\\nika.exe']))).toBe('D:\\tools\\nika.exe');
   });
 });

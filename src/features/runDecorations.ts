@@ -35,11 +35,12 @@ export class RunDecorations implements vscode.Disposable {
     private readonly estimates?: (docUriString: string) => Map<string, string> | undefined,
   ) {
     this.disposables.push(
-      // A fold landed — repaint iff it belongs to the active document.
+      // Publication and removal update every split showing this workflow.
       traceStore.onDidUpdate((key) => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && normalizeWorkflowKey(editor.document.uri.fsPath) === key) {
-          this.apply(editor);
+        for (const editor of vscode.window.visibleTextEditors) {
+          if (normalizeWorkflowKey(editor.document.uri.fsPath) === key) {
+            this.apply(editor);
+          }
         }
       }),
       vscode.window.onDidChangeActiveTextEditor((editor) => {

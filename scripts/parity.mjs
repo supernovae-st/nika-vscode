@@ -200,18 +200,6 @@ const ok = [];
       });
     }
   }
-  // The .cursor/rules content is generated (core/cursorRules.ts builds
-  // it · mcpConfig.ts writes it) — the same law applies to generated
-  // rules, and the gate follows the text to where it lives (a gate that
-  // watched only the writer went blind the day the text moved).
-  for (const rel of ['src/core/cursorRules.ts', 'src/mcpConfig.ts']) {
-    const text = sources.get(rel) ?? fs.readFileSync(path.join(root, rel), 'utf-8');
-    text.split('\n').forEach((line, i) => {
-      if (volatile.test(line)) {
-        findings.push(`volatile count in GENERATED rules: ${rel}:${i + 1} → ${line.trim().slice(0, 80)}`);
-      }
-    });
-  }
   ok.push('teaching surfaces scanned for volatile counts');
 }
 

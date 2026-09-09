@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { parseRichWorkflow } from '../workflowParser';
 import { parseTraceOutputs, xrayHintsForText } from '../core/xray';
+import { readTraceFile } from '../core/traceFile';
 
 interface CacheEntry {
   traceFsPath: string;
@@ -85,7 +86,7 @@ export class XrayInlayProvider implements vscode.InlayHintsProvider {
       }
       let outputs: Map<string, unknown>;
       try {
-        outputs = parseTraceOutputs(fs.readFileSync(f.uri.fsPath, 'utf-8'));
+        outputs = parseTraceOutputs(readTraceFile(f.uri.fsPath));
       } catch {
         continue;
       }

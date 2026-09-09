@@ -8,9 +8,37 @@
 
 import { execFile } from 'child_process';
 
-/** Semver core + an optional prerelease/build tail: the version is the
- *  binary's identity, the tail is part of it (1.2.3 ≠ 1.2.3-rc.1). */
-const VERSION_PATTERN = /([0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?)/;
+/** Candidate source floor. Publication still requires the release receipts. */
+export const MINIMUM_ENGINE_VERSION = '0.118.2';
+
+const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+
+function semver(version: string): RegExpExecArray | null {
+  const match = VERSION_PATTERN.exec(version);
+  if (match?.[4]?.split('.').some((part) => /^0\d+$/.test(part))) { return null; }
+  return match;
+}
+
+/** Parse the whole current engine banner, never a semver substring. */
+export function parseBinaryVersion(banner: string): string | null {
+  const match = /^nika[ \t]+(\S+)(?:[ \t]+\([a-f0-9]+\))?$/.exec(banner.trim());
+  return match && semver(match[1]) ? match[1] : null;
+}
+
+/** One patch-aware support policy shared by admission and the installer. */
+export function engineSupportError(version: string | null): string | null {
+  const update = `Update or select a stable Nika engine >= ${MINIMUM_ENGINE_VERSION}. Static editor features remain available.`;
+  const parsed = version === null ? null : semver(version);
+  if (!parsed) { return `The selected binary did not report a valid Nika version. ${update}`; }
+  if (parsed[4]) { return `Nika ${version} is a prerelease and is not supported. ${update}`; }
+  const actual = parsed.slice(1, 4).map(BigInt);
+  const floor = MINIMUM_ENGINE_VERSION.split('.').map(BigInt);
+  for (let i = 0; i < floor.length; i++) {
+    if (actual[i] > floor[i]) { return null; }
+    if (actual[i] < floor[i]) { return `Nika ${version} is below the supported engine minimum. ${update}`; }
+  }
+  return null;
+}
 
 /** Runs `binaryPath --version` and returns the version it reports, or null
  *  when the binary cannot run or its banner carries no semver. */
@@ -23,8 +51,7 @@ export function probeBinaryVersion(binaryPath: string, timeoutMs = 5000): Promis
       }
       // Engines print their banner on stdout; a wrapper script may use
       // stderr — the version is legitimate on either.
-      const m = VERSION_PATTERN.exec(`${stdout}\n${stderr}`);
-      resolve(m ? m[1] : null);
+      resolve(parseBinaryVersion(`${stdout}\n${stderr}`));
     });
   });
 }

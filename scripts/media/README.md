@@ -48,28 +48,37 @@ The timeline lens is host-built truth (`timeline:request` →
 request itself with recorded-shape rows whose clocks mirror the
 scripted sim's (see `tour.cjs`).
 
-## The two probe suites
+## The browser probe suites
 
-`harness.html` is also what the two judge suites drive. Neither is wired
-to CI by design: the belt stays fast, the judge runs these.
+`harness.html` is also what the probe suites drive. The `probes` job
+in `.github/workflows/ci.yml` runs them on pull requests through
+`npm run probes`, separately from the unit/parity belt.
 
 ```sh
 NIKA_PLAYWRIGHT=<path> node scripts/media/a11y-probes.cjs      # does it SPEAK
 NIKA_PLAYWRIGHT=<path> node scripts/media/chrome-probes.cjs    # does it FIT
 ```
 
-`chrome-probes` sweeps four lenses (clipped text · WCAG 2.2 target size ·
-AA contrast · off-viewport paint) across `SKINS` × `SIZES`, defaulting to
-all three skins at 1440x900. Widen the sweep when touching chrome:
+`chrome-probes` sweeps twelve lenses (clipping · targets · contrast · spill ·
+motion · occlusion · glyphs · collisions · truncation · harmony · type ladder ·
+semantic state) across `SKINS` ×
+`SIZES`. Its defaults are four skins (`nika,editor,phosphor,light`) at
+1440×900, 860×720 and 620×820. The complete `npm run probes` gate also
+checks the shape corpus, forced colors and the accessibility journeys.
+`probes:agents` exercises recorded token ratios and turn-only effects in all
+four skins, reduced motion and forced colors. Its screenshots and assertions
+also check that explicit task focus restores native text size when it fits.
+An additional short-panel case keeps the focused card between chrome insets.
+An additional targeted width sweep can run locally:
 
 ```sh
-SKINS=nika,editor,phosphor SIZES=520x760,880x700,1000x700,1440x900 \
+SKINS=nika,editor,phosphor,light SIZES=520x760,880x700,1000x700,1440x900 \
   NIKA_PLAYWRIGHT=<path> node scripts/media/chrome-probes.cjs
 ```
 
-It reports instances, not a verdict, so a fix can be structural. Every
-defect it has caught so far was invisible to `npm test` and visible in
-one screenshot only if you already knew where to look.
+It reports concrete instances and exits nonzero on findings. These checks
+cover the rendered browser harness, not native editor activation, terminal
+processes or release installation; those retain their own gates.
 
 `harness.html` also serves as the ad-hoc pixel-proof page from
 `docs/DESIGN.md` (stubbed `acquireVsCodeApi`, `?skin=editor|phosphor` to

@@ -1,23 +1,20 @@
 # Prove it ran
 
-Every run writes a journal, and every journal line carries a **hash
-chain**: the SHA-256 of the previous line's exact bytes. Change one byte
-anywhere and every line after it stops adding up.
+The engine owns journal creation and verification. A consistent hash chain
+does not by itself prove who wrote the journal: a whole chain can be
+rewritten. A signature, an external anchor and replay are different proof
+questions, and each can have a gap.
 
-The run's last line prints the head:
+**Verify Journal** (right-click a run · `⌘K ⌘.` reaches the same action)
+asks `nika trace verify <trace> --json`. The editor opens the complete machine
+result, including the attained tier, exit class, proof legs and refusal
+details. It does not collapse them to the first line or reimplement the
+verifier. A timeout or unsupported response gives no integrity verdict.
 
-```
-── 2/2 done · $0.00 · elapsed 0.9s ─────────────────
-  trace: .nika/traces/…ndjson · 8 events · chain 941a7616…
-```
-
-**One head everywhere.** The verdict banner, the Runs-view tooltip and
-the run report all carry the same head: if a journal fails the walk,
-the tooltip shows a shield and the report says its claims are
-unverified. **Verify Journal** (right-click a run · `⌘K ⌘.` reaches
-the same actions from the keyboard) asks the engine itself:
-`nika trace verify` names the first broken link, or says *unchained*
-for pre-0.96 journals: nothing to verify, nothing to distrust.
+The Runs view, detail page and exported report show **recorded observations**,
+not an integrity certificate. They say so explicitly. The verification
+document describes the engine's request-time observation; it is not cached
+as proof of a file that might change later.
 
 **Reproduce Run** compares two recorded runs of the same workflow and
 classifies every task: `reproduced` · `NONDETERMINISTIC` (same
@@ -29,4 +26,4 @@ spend: it reads two files.
 as a local OTLP file for Jaeger, Grafana or Langfuse. No collector, no
 vendor.
 
-The journal was already your flight recorder. Now it can testify.
+The journal is the flight recorder. The engine states what its evidence proves.

@@ -22,7 +22,7 @@ import { extractRunArtifacts } from '../core/artifacts';
 function line(kind: string, tsMs: number, fields: Array<{ key: string; value: unknown }>): string {
   return JSON.stringify({
     id: '00000000-0000-0000-0000-000000000000',
-    timestamp: { unix_ms: tsMs },
+    timestamp: tsMs * 1e6,
     kind,
     run: 'run-detail-test',
     fields,
@@ -37,7 +37,7 @@ const NDJSON = [
   line('task_started', 10, [{ key: 'task', value: 'seed' }]),
   line('task_completed', 1210, [
     { key: 'task', value: 'seed' }, { key: 'note', value: 'infer · mock/echo' },
-    { key: 'duration_ms', value: 1200 }, { key: 'usd', value: 0.01 },
+    { key: 'duration_ms', value: 1200 }, { key: 'cost_usd', value: 0.01 },
   ]),
   line('task_started', 1220, [{ key: 'task', value: 'cachedone' }]),
   line('task_cache_hit', 1222, [{ key: 'task', value: 'cachedone' }, { key: 'duration_ms', value: 2 }]),
@@ -81,7 +81,7 @@ describe('renderRunDetail — the page', () => {
 
   it('carries the journal provenance and teaches the deeper doors BY NAME', () => {
     expect(md).toContain('journal: `/ws/.nika/traces/greet-run.ndjson`');
-    expect(md).toContain('the provable Run Report');
+    expect(md).toContain('the recorded Run Report');
     expect(md).toContain('replay on the canvas');
   });
 
@@ -116,34 +116,13 @@ describe('renderRunDetail — the needs-you and trust facts', () => {
     expect(md).toContain('**waiting on you** — `approve` asks: Ship to prod? (yes · no)');
   });
 
-  it('a broken chain outranks the verdict — stated on the page', () => {
-    const md = renderRunDetail(inputs({ chain: { kind: 'broken', line: 12 } }));
-    expect(md).toContain('**chain BROKEN at line 12**');
-    expect(md).toContain('unverified');
-  });
-
-  it('an intact chain is a positive fact — events sealed, head shown', () => {
-    const md = renderRunDetail(inputs({
-      chain: { kind: 'intact', events: 7, head: 'abcdef0123456789abcdef0123456789' },
-    }));
-    expect(md).toContain('**chain intact** · 7 events sealed');
-    expect(md).toContain('head `abcdef012345…`');
-  });
-
-  it('a torn tail is verified-not-tampered — said in one line', () => {
-    const md = renderRunDetail(inputs({ chain: { kind: 'torn', events: 3, head: 'ff00ff00ff00ff00' } }));
-    expect(md).toContain('**chain verified to the torn tail** · 3 events sealed');
-  });
-
-  it('a pre-chain journal states its era honestly', () => {
-    const md = renderRunDetail(inputs({ chain: { kind: 'unchained' } }));
-    expect(md).toContain('pre-chain journal (engine < 0.96)');
-  });
-
-  it('no chain input stays silent — nothing honest to claim', () => {
+  it('integrity stays an explicit engine request, never an inferred era or seal', () => {
     const md = renderRunDetail(inputs({}));
+    expect(md).toContain('Integrity not verified by this view');
+    expect(md).toContain('Verify Journal');
     expect(md).not.toContain('chain intact');
     expect(md).not.toContain('pre-chain journal');
+    expect(md).not.toContain('events sealed');
   });
 
   it('unparsed lines are counted, never papered over', () => {
@@ -177,7 +156,7 @@ describe('renderRunDetail — artifacts (doors, never the gallery)', () => {
 describe('renderUnreadableDetail — one voice with the Runs view', () => {
   it('speaks the unreadable vocabulary verbatim and names the file', () => {
     const md = renderUnreadableDetail('/t/broken.ndjson', UNREADABLE_DESCRIPTION);
-    expect(md).toContain('This journal would not read — truncated (a killed run) or from another engine generation.');
+    expect(md).toContain(`This journal would not read — ${UNREADABLE_DESCRIPTION}.`);
     expect(md).toContain('journal: `/t/broken.ndjson`');
   });
 });

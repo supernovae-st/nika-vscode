@@ -30,8 +30,9 @@ import * as path from 'path';
 import type { NikaService } from '../nikaService';
 import { parseRichWorkflow } from '../workflowParser';
 import { foldTrace } from '../core/traceFold';
+import { readTraceFile } from '../core/traceFile';
 import { runSummaryLine, taskVerdict } from '../core/testBridge';
-import { latestTraceFor } from '../core/tracePersist';
+import { runObservationError } from '../core/runObservation';
 import {
   matchTraceToWorkflow,
   outputsBlockLine,
@@ -120,20 +121,20 @@ export function registerTestExplorer(
     if (item) { await refreshTasks(item); } else { await discover(); }
   };
 
-  /** Report a folded model's verdicts onto a workflow item + children —
-   *  shared by the engine profile and the publish-only ingest lane. */
+  const reportTask = (run: vscode.TestRun, target: vscode.TestItem, model: RunModel, tid: string): void => {
+    const v = taskVerdict(model.tasks.get(tid));
+    if (v.kind === 'passed') { run.passed(target, v.durationMs); }
+    else if (v.kind === 'failed') {
+      run.failed(target, new vscode.TestMessage(v.message), v.durationMs);
+    } else if (v.kind === 'skipped') { run.skipped(target); }
+    // Unknown is not a task verdict: the run never reached it.
+  };
+
+  /** One reporter for the owned process and publish-only journal ingest. */
   const reportModel = (run: vscode.TestRun, item: vscode.TestItem, model: RunModel): void => {
-    const report = (target: vscode.TestItem, tid: string): void => {
-      const v = taskVerdict(model.tasks.get(tid));
-      if (v.kind === 'passed') { run.passed(target, v.durationMs); }
-      else if (v.kind === 'failed') {
-        run.failed(target, new vscode.TestMessage(v.message), v.durationMs);
-      } else if (v.kind === 'skipped') { run.skipped(target); }
-      // unknown: say nothing — the run never reached it.
-    };
     item.children.forEach((child) => {
       const tid = child.id.split('#').pop();
-      if (tid !== undefined) { report(child, tid); }
+      if (tid !== undefined) { reportTask(run, child, model, tid); }
     });
     const failed = [...model.tasks.values()].some((t) => t.status === 'failed');
     const dur = model.startMs !== undefined && model.endMs !== undefined && model.endMs > model.startMs
@@ -173,38 +174,22 @@ export function registerTestExplorer(
         // tree knows them before the run reports (fresh files).
         if (!isTask && item.children.size === 0) { await refreshTasks(item); }
         run.started(item);
-        const started = Date.now();
         try {
-          const args = ['run', item.uri.fsPath, '--no-progress', ...(taskId !== undefined ? ['--task', taskId] : [])];
+          const args = ['run', item.uri.fsPath, '--json', '--color', 'never', ...(taskId !== undefined ? ['--task', taskId] : [])];
           const res = await service.runCli(args, 300000, undefined, path.dirname(item.uri.fsPath));
-          const dur = Date.now() - started;
-          // The verdicts come from the RECORDED trace, not the exit code
-          // alone — the fold is the same truth every other surface reads.
-          const tracePath = latestTraceFor(item.uri.fsPath);
-          const model = tracePath !== undefined ? foldTrace(fs.readFileSync(tracePath, 'utf-8')) : undefined;
-          if (!model) {
-            if (res.code === 0) { run.passed(item, dur); }
-            else { run.failed(item, new vscode.TestMessage([res.stdout.trim(), res.stderr.trim()].filter(Boolean).join('\n') || `nika run exited ${res.code}`), dur); }
+          // Only this process's complete bounded capture can report its
+          // tasks. A filename-ranked journal can belong to an older run.
+          // Never parse a prefix returned with a spawn/capture error.
+          const model = foldTrace(res.err ? '' : res.stdout);
+          const observationError = runObservationError(model, res.code, res.err);
+          if (observationError) {
+            run.errored(item, new vscode.TestMessage(`${observationError} ${res.stderr.trim()}`.trim()));
             continue;
           }
-          const report = (target: vscode.TestItem, tid: string): void => {
-            const v = taskVerdict(model.tasks.get(tid));
-            if (v.kind === 'passed') { run.passed(target, v.durationMs); }
-            else if (v.kind === 'failed') {
-              const msg = new vscode.TestMessage(v.message);
-              run.failed(target, msg, v.durationMs);
-            } else if (v.kind === 'skipped') { run.skipped(target); }
-            // unknown: say nothing — the run never reached it.
-          };
           if (isTask && taskId !== undefined) {
-            report(item, taskId);
+            reportTask(run, item, model, taskId);
           } else {
-            item.children.forEach((child) => {
-              const tid = child.id.split('#').pop();
-              if (tid !== undefined) { report(child, tid); }
-            });
-            if (res.code === 0) { run.passed(item, dur); }
-            else { run.failed(item, new vscode.TestMessage(runSummaryLine(model)), dur); }
+            reportModel(run, item, model);
           }
         } catch (e) {
           run.errored(item, new vscode.TestMessage(String(e)));
@@ -328,7 +313,7 @@ export function registerTestExplorer(
       if (explorerRunsInFlight > 0) { return; }
       const stat = fs.statSync(uri.fsPath);
       if (publishedTraces.get(uri.fsPath) === stat.size) { return; }
-      const model = foldTrace(fs.readFileSync(uri.fsPath, 'utf-8'));
+      const model = foldTrace(readTraceFile(uri.fsPath));
       if (model.tasks.size === 0) { return; }
       // A growing journal publishes at its terminal write only.
       if (!['completed', 'failed', 'cancelled'].includes(model.workflowStatus)) { return; }

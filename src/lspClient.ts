@@ -58,8 +58,6 @@ export interface ClientState {
   resolvedServerPath: string | undefined;
   /** Lifecycle sink for the status bar (extension.ts wires it). */
   statusSink?: (state: 'starting' | 'running' | 'failed') => void;
-  /** Canon-derived provider groups for generated rules (extension wires it). */
-  rulesIntel?: () => import('./mcpConfig').RulesIntel | undefined;
   /** The one-voice reconciler (#103): called with the server's
    * initialize capabilities on every (re)start — client twins the
    * server replaces are silenced; called with `undefined` when the
@@ -73,27 +71,9 @@ export function getNikaPath(): string {
   return workspace.getConfiguration('nika').get<string>('server.path', 'nika');
 }
 
-export function runNikaCommand(resolvedServerPath: string | undefined, subcmd: string, filePath: string): void {
-  const nika = resolvedServerPath ?? getNikaPath();
-  // The spawn-cwd law reaches the terminal twin: the engine journals at
-  // the process CWD, so a terminal opened at the workspace root would
-  // scatter a nested workflow's journals away from every surface that
-  // looks beside the file (Runs tree · resume substrate · averages).
-  const cwd = filePath.length > 0 ? path.dirname(filePath) : undefined;
-  const terminal = window.createTerminal({ name: `Nika: ${subcmd}`, cwd });
-  terminal.show();
-  if (filePath.length === 0) {
-    terminal.sendText(`"${nika}" ${subcmd}`);
-    return;
-  }
-  const escaped = filePath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  terminal.sendText(`"${nika}" ${subcmd} "${escaped}"`);
-}
-
 /** Compare extension version with LSP server version and warn on mismatch. */
-export function checkVersionMismatch(context: ExtensionContext, log: LogFn, resolvedPath?: string): void {
+export function checkVersionMismatch(context: ExtensionContext, log: LogFn, serverPath: string): void {
   const extVersion = context.extension.packageJSON.version as string;
-  const serverPath = resolvedPath ?? getNikaPath();
 
   execFile(serverPath, ['--version'], { timeout: 5000 }, (error, stdout) => {
     if (error) { return; }
@@ -191,8 +171,9 @@ export function startClient(
    *  orange chip (operator screenshot, 2026-07-28). */
   onRunning?: () => void,
 ): void {
+  if (!overridePath) { return; }
   const config = workspace.getConfiguration('nika');
-  const serverPath = overridePath ?? getNikaPath();
+  const serverPath = overridePath;
   const extraArgs = config.get<string[]>('server.extraArgs', []);
 
   // `nika lsp` (stdio) — the D-2026-06-10-N6 in-binary contract. Extra

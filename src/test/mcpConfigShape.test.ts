@@ -3,7 +3,6 @@ import {
   NIKA_MCP_ARGS,
   isStaleNikaMcpServer,
   patchCursorLikeConfig,
-  patchVscodeConfig,
 } from '../core/mcpConfigShape';
 
 describe('mcpConfigShape', () => {
@@ -49,19 +48,5 @@ describe('mcpConfigShape', () => {
 
     expect(result.changed).toBe(false);
     expect(result.migrated).toBe(false);
-  });
-
-  it('creates VS Code stdio configs with the right shape', () => {
-    const result = patchVscodeConfig(undefined);
-
-    expect(result.config).toEqual({
-      servers: {
-        nika: {
-          type: 'stdio',
-          command: 'nika',
-          args: ['mcp'],
-        },
-      },
-    });
   });
 });

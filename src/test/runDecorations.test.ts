@@ -99,13 +99,13 @@ describe('per-task usd from the wire', () => {
     // Synthetic line in the exact Diamond shape — the mock provider runs
     // free, so no fixture can prove the cost path.
     const line = (kind: string, fields: Array<{ key: string; value: unknown }>): string =>
-      JSON.stringify({ timestamp: { unix_ms: 0 }, kind, fields });
+      JSON.stringify({ timestamp: 0, kind, fields });
     const model = foldTrace([
       line('task_started', [{ key: 'task', value: 'a' }]),
       line('task_completed', [
         { key: 'task', value: 'a' },
         { key: 'duration_ms', value: 1200 },
-        { key: 'cost_usd', value: { float: 0.003 } },
+        { key: 'cost_usd', value: 0.003 },
       ]),
     ].join('\n'));
     expect(model.tasks.get('a')?.usd).toBeCloseTo(0.003);

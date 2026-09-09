@@ -38,7 +38,7 @@ export class AuditInlayHintsProvider implements vscode.InlayHintsProvider, vscod
   constructor(private readonly service: NikaService) {
     this.disposables.push(
       this.emitter,
-      service.onDidChange(() => this.emitter.fire()),
+      service.onDidChangeEngine(() => this.emitter.fire()),
       // When a fresh check/graph lands (debounced diagnostics or explicit
       // command), re-query so the peek path below picks it up.
       service.onDidUpdateDocument(() => this.emitter.fire()),
@@ -128,7 +128,7 @@ export class AuditCodeLensProvider implements vscode.CodeLensProvider, vscode.Di
   constructor(private readonly service: NikaService) {
     this.disposables.push(
       this.emitter,
-      service.onDidChange(() => this.emitter.fire()),
+      service.onDidChangeEngine(() => this.emitter.fire()),
       service.onDidUpdateDocument(() => this.emitter.fire()),
       vscode.workspace.onDidSaveTextDocument(() => this.emitter.fire()),
     );

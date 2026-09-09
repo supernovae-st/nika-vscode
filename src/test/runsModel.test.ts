@@ -159,7 +159,7 @@ describe('unreadableSection — the counted catch', () => {
 
   it('speaks the toast vocabulary verbatim — one voice across surfaces', () => {
     expect(UNREADABLE_DESCRIPTION).toBe(
-      'truncated (a killed run) or from another engine generation',
+      'journal unavailable, over the editor observation limit, truncated or unsupported',
     );
   });
 });

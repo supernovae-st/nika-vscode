@@ -23,7 +23,7 @@ const steps = pkg.contributes.walkthroughs[0].steps;
 describe('walkthrough completionEvents — the honest table', () => {
   it('pins the full table (every step · every event)', () => {
     expect(Object.fromEntries(steps.map((s) => [s.id, s.completionEvents]))).toEqual({
-      install: ['onCommand:nika.checkBinary', 'onCommand:nika.finishSetup'],
+      install: ['onContext:nika.hasBinary'],
       create: ['onCommand:nika.newWorkflow', 'onCommand:nika.initProject', 'onCommand:nika.tryDemo'],
       validate: ['onCommand:nika.checkWorkflow', 'onContext:nika.sawDiagnostics'],
       run: ['onCommand:nika.runWorkflow', 'onContext:nika.everRan'],

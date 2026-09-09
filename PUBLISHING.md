@@ -1,8 +1,8 @@
 # Publishing · Marketplace + OpenVSX runbook
 
-> Researched & source-verified 2026-06-12 (official docs current to
-> 2026-06-10). One artifact, two registries: VS Marketplace (VS Code) and
-> OpenVSX (Cursor · Windsurf · VSCodium). Status boxes reflect THIS repo.
+> Source workflow reviewed 2026-09-05. One artifact, two registries:
+> VS Marketplace (VS Code) and OpenVSX (Cursor · Windsurf · VSCodium).
+> Manifest checks describe source, not current registry/account state.
 
 ## Per-release readiness gate (run before ANY tag)
 
@@ -15,6 +15,8 @@ confidence gate between "the pyramid is green" and "a stranger's first
                                    gate — v0.93.0 died here in 16s: a
                                    feature-branch merge moved a transitive
                                    esbuild without regenerating the lock)
+               npm run compile  → typecheck + build before the belt judges
+                                   the extension and browser artifacts
                npm test         → the belt suite whole (vitest · spec
                                    parity · tokens parity · voice gate ·
                                    glyph registry · release coherence ·
@@ -38,8 +40,8 @@ confidence gate between "the pyramid is green" and "a stranger's first
 3. MANUAL F5   the 20-min feel pass below (what automation can't judge)
 4. DOCS        CHANGELOG has the version's entry · README hero current ·
                the demo GIF still reflects the UI
-5. VERSION     see the odd-minor trap below before choosing stable vs
-               --pre-release
+5. VERSION     engine lockstep and the registry channel must agree;
+               this workflow currently publishes the stable channel
 ```
 
 ### Manual F5 script · 20 min · the feel the smoke test can't judge
@@ -50,9 +52,10 @@ confidence gate between "the pyramid is green" and "a stranger's first
 □ EMPTY STATE   open the DAG panel with no file → the card pitches
                 (title · 2 buttons · 3-gesture crib · walkthrough link);
                 ＋ New workflow scaffolds; the link opens the walkthrough
-□ FIRST RUN     open a *.nika.yaml → Show DAG → cards render content-first
-                in the nika skin; ▶ mock lights the DAG wave-by-wave with
-                ZERO keys; aurora sweeps once on a clean close
+□ FIRST RUN     use a reviewed mock-only fixture → Show DAG → cards render
+                content-first; ▶ mock lights the DAG wave-by-wave;
+                aurora sweeps once on a clean close. Mock changes provider
+                selection, not tool permits or task-local model overrides
 □ THEME         nika.dag.theme: editor → follows your theme; high
                 contrast still legible; toggle back to nika
 □ AUDIT READ    a bounded workflow shows a green cost chip on the pill;
@@ -76,15 +79,19 @@ confidence gate between "the pyramid is green" and "a stranger's first
 
 If every box holds in BOTH skins, the feel is real. Tag when ready.
 
-### Stable or pre-release (choose before you tag)
+### Stable or pre-release
 
-The version tracks the engine announce line. VS Marketplace's OFFICIAL
-pre-release convention uses an odd minor for pre-release builds. Engine
-lockstep remains the source version law, so choose the registry lane explicitly:
+The version tracks the engine announce line. Microsoft's
+[publishing guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#pre-release-extensions)
+recommends even/odd minor lines for stable/pre-release auto-updates; this is a
+recommendation, not a requirement to fork the engine's version. Marketplace
+pre-release publication uses an explicit flag and a distinct numeric version,
+not a SemVer suffix.
 
-- **Stable release**: publish without `--pre-release`.
-- **Pre-release channel**: use `vsce publish --pre-release` and keep that lane
-  consistent for the minor line.
+The current tag workflow packages and publishes a regular VSIX. A future
+pre-release lane must be implemented and tested across packaging and both
+registries before its tag. Do not improvise a separate manual publish or
+change the source version to satisfy the even/odd recommendation.
 
 Source convergence is not publication. Advancing `package.json`, both pins,
 generated projections, and the changelog makes a release candidate; only the
@@ -123,7 +130,11 @@ operator-owned tag ceremony can make the registries claim that version.
       `vscode:prepublish` runs clean+typecheck+build
 - [x] `capabilities.untrustedWorkspaces: limited` with
       `restrictedConfigurations: [nika.server.path, nika.server.extraArgs]`
-      · a malicious workspace must NOT choose which binary we spawn
+      · registration of the active extension also waits for actual workspace
+      trust. Before trust: syntax/snippets only, no engine process or files.
+      `firstContactRestricted` uses a native launcher without the standard
+      test helper's `--disable-workspace-trust`. Normal first-contact and
+      smoke suites are trusted-host tests, not evidence for Restricted Mode.
 - [x] `capabilities.virtualWorkspaces: limited` (undeclared default is
       `true`, wrong for a binary-backed extension)
 - [x] activationEvents: `onLanguage:` implicit since 1.74 · only
@@ -145,8 +156,8 @@ operator-owned tag ceremony can make the registries claim that version.
 ## Version strategy
 
 The extension source tracks the released engine's exact semver line. Advance
-the manifest and lockfile with `npm version <engine-version>
---no-git-tag-version`, set `ENGINE_PIN` to that immutable engine tag, set
+the manifest and lockfile with `npm version <engine-version> --no-git-tag-version`,
+set `ENGINE_PIN` to that immutable engine tag, set
 `SPEC_PIN` to the exact commit recorded by that engine tag, then run the spec
 projectors. Add the changelog entry and complete every automated and manual
 readiness gate before an operator creates the matching tag.
@@ -154,8 +165,14 @@ readiness gate before an operator creates the matching tag.
 When the source candidate exists before its public engine tag, `ENGINE_PIN`
 uses the exact 40-character engine commit and carries a strict
 `# CANDIDATE_VERSION: <semver>` marker. Never write a tag that does not exist.
-Once the engine tag is public and resolves to that commit, replace the marker
-and SHA with the immutable tag before the extension tag ceremony.
+Once the engine tag is public, verify its source against the reviewed candidate
+(including tree equality when a squash changed the commit identity), then
+replace the marker and SHA with the immutable tag before the extension ceremony.
+Add that tag's full commit and four independently verified archive hashes to
+`RELEASE_RECEIPTS` in `scripts/pinned-engine.mjs`, with matching receipt tests.
+These are public artifact anchors, never hashes from a local candidate build.
+The integration installer refuses an unrecorded tag even if GitHub's downloaded
+archive and checksum file agree with each other.
 
 `vsce publish minor|patch` auto-bumps and tags, so it is not the admitted
 lockstep path. The tag is created manually only after source, engine pin, spec
@@ -174,10 +191,11 @@ VSIX = fallback. **Package on Linux/macOS only · Windows-built VSIXes drop
 the POSIX executable bit and the bundled binary won't run.** Canonical CI:
 microsoft/vscode-platform-specific-sample.
 
-## CI (activates when this dir becomes the standalone repo)
+## Live release CI
 
-`.github/workflows/release.yml` is committed here, inert inside the
-monorepo, live on split: tag-gated → refuse either missing registry secret →
+The [standalone repository](https://github.com/supernovae-st/nika-vscode)
+runs [the tag workflow](.github/workflows/release.yml):
+tag-gated → refuse either missing registry secret →
 audit → typecheck · tests · parity → real VS Code integration against the
 checksum-verified `ENGINE_PIN` artifact → package → publish the SAME VSIX to
 OpenVSX then VSM via HaaLeo/publish-vscode-extension. Both secrets are
@@ -185,13 +203,12 @@ mandatory for a green ceremony: `VSCE_PAT` · `OVSX_PAT`. Duplicate versions
 fail loudly; the ceremony never treats « already exists » as proof that the
 registry's bytes equal the VSIX built by this run.
 
-## Repo split (monorepo → supernovae-st/nika-vscode)
-
-1. `git subtree split` (or filter-repo) on
-   `nika/02-engineering/repos/vscode` → new public repo
-2. The monorepo keeps it as a submodule under `02-engineering/repos/`
-   (naming + privacy rules per `submodule-discipline.md`)
-3. PUBLIC repo carries strictly code/tests/docs · no monorepo references
+This is not a cross-registry transaction. OpenVSX can succeed before Marketplace
+fails. Preserve the built VSIX and diagnose each registry's actual state;
+neither a missing second publication nor an occupied version justifies deleting
+published bytes, moving the tag or setting `skipDuplicate: true`.
+Readiness and manual checks are operator gates before the tag; CI does not
+certify that somebody completed them.
 
 ## Lifecycle traps (learned from others' scars)
 

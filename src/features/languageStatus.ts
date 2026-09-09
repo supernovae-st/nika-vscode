@@ -60,7 +60,7 @@ export class NikaLanguageStatus implements vscode.Disposable {
       this.engineItem,
       this.checkItem,
       this.serverItem,
-      service.onDidChange(() => this.renderAll()),
+      service.onDidChangeEngine(() => this.renderAll()),
       vscode.window.onDidChangeActiveTextEditor(() => this.renderCheck()),
       vscode.languages.onDidChangeDiagnostics((e) => {
         const active = activeNikaUri();

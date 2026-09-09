@@ -11,8 +11,8 @@
 // role, steals the focus, or turns the narrator per-tick fails here.
 //
 // Run: NIKA_PLAYWRIGHT=<path> node scripts/media/a11y-probes.cjs
-// (headed — trusted gestures; playwright stays out of the manifest,
-// installed --no-save when judging. Not wired to CI by design.)
+// Headed locally; HEADLESS=1 in the CI probes job. Playwright stays out of
+// the extension manifest and is installed separately by the probe runner.
 
 const path = require('path');
 const { chromium } = require(process.env.NIKA_PLAYWRIGHT || 'playwright');
