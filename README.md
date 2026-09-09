@@ -124,12 +124,12 @@ step · each step checks itself off as you actually do it.
   DAG (schema-driven completions come alive once a supported binary is admitted:
   they read the engine's own `nika spec --schema`).
 
-**Candidate engine requirement:** this source candidate requires stable-version
-engine **0.118.2 or newer**. The 0.118.2 release is not yet published; this is
-preparation for that release, not support supplied by the current 0.116.2
-release. Release versions, immutable asset receipts and clean-host validation
-must converge before this candidate can be published. Developers can select
-the matching candidate binary with `nika.server.path`.
+**Engine requirement:** this source requires stable engine **0.118.2 or newer**.
+The integration suites target public **v0.118.7** from `ENGINE_PIN`, verified
+against the archive digests and build commit stored in the installer. The
+extension source checkpoint is 0.118.7; marketplace publication and native
+first-contact qualification remain separate release gates. Select an existing
+compatible binary with `nika.server.path`.
 
 Every selected binary is checked before LSP, workflow execution or host wiring
 becomes available, including configured, bundled, PATH, cached and downloaded

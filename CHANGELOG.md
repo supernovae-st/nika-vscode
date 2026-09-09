@@ -4,10 +4,11 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [0.118.2] · unpublished candidate · one admitted engine
+## [0.118.7] · source checkpoint · one admitted engine
 
-The source candidate requires stable engine 0.118.2 or newer. `ENGINE_PIN`
-identifies the exact candidate commit; it is not an invented public tag.
+The source requires stable engine 0.118.2 or newer. `ENGINE_PIN` now names
+public v0.118.7, with all four archive digests and its build commit anchored
+in the installer. This source checkpoint does not claim marketplace publication.
 Generated language and design surfaces follow that engine's exact spec pin.
 Public archives, clean-host editor behavior and both registry publications
 remain separate readiness gates in `PUBLISHING.md`.
