@@ -1885,7 +1885,7 @@
     "d3-shape": "^3.2.0",
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
-    "vscode-languageclient": "^10.1.0"
+    "vscode-languageclient": "^10.1.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -1905,7 +1905,7 @@
     "glob": "^13.0.6",
     "mocha": "^12.0.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.68.0",
+    "typescript-eslint": "^8.69.0",
     "vitest": "^4.1.11"
   },
   "qna": false
