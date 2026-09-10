@@ -1,0 +1,114 @@
+# Final README redirect release. Full legacy functionality remains available.
+# Only after the matching canonical version exists in both public registries.
+# legacy-release.yml — tag-gated publish (OpenVSX + VS Marketplace).
+#
+# Push a `legacy-v*` tag → package the VSIX once → publish the identical artifact
+# to both registries. One VSIX, two registries. Missing credentials fail
+# before the artifact is built: a green tag means both publishes ran.
+# Linux runner ON PURPOSE: Windows-built VSIXes drop the POSIX executable
+# bit, which breaks any bundled binary (PUBLISHING.md §platform-specific).
+# Injection-safe: no github.event data is interpolated anywhere.
+#
+# Required secrets:
+#   OVSX_PAT — open-vsx.org token · namespace contributor (Cursor/Windsurf/VSCodium)
+#   VSCE_PAT — Azure DevOps · Marketplace>Manage · all-orgs
+#              (migrate to Entra --azure-credential before Dec 2026)
+
+name: legacy identifier final release
+
+on:
+  push:
+    tags:
+      - 'legacy-v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: legacy-source
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22 # vsce 3.x floor
+          cache: npm
+      - name: Prepare the final legacy identifier source
+        working-directory: .
+        run: |
+          set -euo pipefail
+          node scripts/check-canonical-listings.mjs
+          node scripts/prepare-legacy-release.mjs legacy-source
+      - name: Both registry credentials are configured
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+          [ -n "$OVSX_PAT" ] || { echo "::error::OVSX_PAT is required"; exit 1; }
+          [ -n "$VSCE_PAT" ] || { echo "::error::VSCE_PAT is required"; exit 1; }
+      - run: npm ci
+      - name: Dependency audit
+        # The release lock currently has zero findings. Keep that claim
+        # monotone: low means any future advisory blocks publication.
+        run: npm audit --audit-level=low
+      # The tag IS the version claim — refuse a mislabeled VSIX before
+      # anything builds (a tag/manifest drift must never publish).
+      - name: The manifest matches the tag
+        run: |
+          v="$(node -p "require('./package.json').version")"
+          test "legacy-v$v" = "$GITHUB_REF_NAME" || { echo "manifest $v != tag $GITHUB_REF_NAME"; exit 1; }
+      # compile = typecheck + esbuild bundle → out/extension.js, which the
+      # parity check (run by `npm test`) asserts exists before packaging.
+      - run: npm run compile
+      - run: npm test # vitest (contract suite self-skips without a binary) + parity
+      # The pinned engine REFUSES a permits-declaring workflow with exec
+      # children when the host cannot jail them (NIKA_SANDBOX=auto · the
+      # fail-closed policy). The first-contact demo declares exec permits,
+      # so on a runner without bubblewrap its run never starts, no journal
+      # appears, and the suite times out (measured 2026-09-01 · run
+      # 33570485552 · green on macOS where seatbelt exists). ci.yml's belt
+      # installs the jail before the same suites; this gate must too, or it
+      # is a fossil twin that goes red only at tag time.
+      - name: Install bubblewrap (the exec jail the pinned engine requires)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
+          # Without this the jail starts and dies with status 1 (the demo's
+          # printf: « NIKA-SEC-001 · landlock/bwrap refused the confined
+          # process » · measured 2026-09-02 · run 33577500959) — the belt
+          # has carried this line since its jail step was written.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Real VS Code hosts against the checksum-verified ENGINE_PIN asset
+        run: xvfb-run -a npm run test:integration
+      - run: npx vsce package --no-dependencies -o nika-lang.vsix
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vsix
+          path: legacy-source/nika-lang.vsix
+
+  publish:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: vsix
+      - name: Publish to OpenVSX (Cursor · Windsurf · VSCodium)
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
+        with:
+          pat: ${{ secrets.OVSX_PAT }}
+          extensionFile: nika-lang.vsix
+          skipDuplicate: false # existing version is an error; byte equality is unproven
+      - name: Publish to VS Marketplace
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: nika-lang.vsix
+          skipDuplicate: false # existing version is an error; byte equality is unproven
