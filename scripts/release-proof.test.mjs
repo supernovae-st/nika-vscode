@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -328,4 +329,38 @@ test('deadbeef0 archive and co-modified SHA256SUMS cannot replace the anchored r
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+
+test('legacy redirect retains functionality and refuses to overwrite a source tree', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'nika-legacy-source-'));
+  try {
+    const source = join(fixture, 'repo');
+    const target = join(fixture, 'legacy');
+    mkdirSync(join(source, 'scripts'), { recursive: true });
+    mkdirSync(join(source, 'src'));
+    const manifest = { name: 'nika', publisher: 'supernovae', version: '0.118.7',
+      main: './out/extension.js', activationEvents: ['onUri', 'onStartupFinished'],
+      capabilities: { untrustedWorkspaces: { supported: 'limited' } },
+      contributes: { commands: [{ command: 'nika.runWorkflow' }] } };
+    writeFileSync(join(source, 'package.json'), JSON.stringify(manifest));
+    writeFileSync(join(source, 'package-lock.json'), JSON.stringify({ name: 'nika', packages: { '': { name: 'nika' } } }));
+    writeFileSync(join(source, 'README.md'), '# Nika\n');
+    writeFileSync(join(source, 'CHANGELOG.md'), '## [0.118.7]\n');
+    writeFileSync(join(source, 'src', 'extension.ts'), "const id = 'supernovae.nika'; const other = 'supernovae.nika-other';");
+    writeFileSync(join(source, 'scripts', 'prepare-legacy-release.mjs'), readFileSync(join(root, 'scripts/prepare-legacy-release.mjs')));
+    execFileSync('git', ['init', '-q', source]);
+    execFileSync('git', ['add', '.'], { cwd: source });
+    execFileSync(process.execPath, [join(source, 'scripts/prepare-legacy-release.mjs'), target]);
+    assert.deepEqual(JSON.parse(readFileSync(join(source, 'package.json'))), manifest);
+    assert.deepEqual(JSON.parse(readFileSync(join(target, 'package.json'))), { ...manifest, name: 'nika-lang' });
+    const runtime = readFileSync(join(target, 'src/extension.ts'), 'utf8');
+    assert.match(runtime, /supernovae\.nika-lang'/);
+    assert.match(runtime, /supernovae\.nika-other'/);
+    const readme = readFileSync(join(target, 'README.md'), 'utf8');
+    assert.match(readme, /itemName=supernovae\.nika\)/);
+    assert.match(readme, /disable this old extension/);
+    assert.throws(() => execFileSync(process.execPath, [join(source, 'scripts/prepare-legacy-release.mjs'), target], { stdio: 'pipe' }));
+    assert.deepEqual(JSON.parse(readFileSync(join(target, 'package.json'))), { ...manifest, name: 'nika-lang' });
+  } finally { rmSync(fixture, { recursive: true, force: true }); }
 });

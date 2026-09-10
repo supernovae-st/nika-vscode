@@ -227,3 +227,25 @@ web-extensions · telemetry · activation-events · bundling · CI) ·
 github.com/eclipse-openvsx wiki (Publishing · Namespace-Access) ·
 microsoft/vscode-vsce · HaaLeo/publish-vscode-extension ·
 developer.microsoft.com security-and-trust blog (2025 scanning pipeline).
+
+
+## Final old-identifier redirect release
+
+After the canonical version is public in BOTH registries, the separate
+`legacy-v<engine-version>` tag runs `legacy-release.yml`. It refuses an absent
+canonical listing, generates a legacy source tree without editing the root
+manifest, runs the complete compile/test/integration/package gates, and publishes
+one VSIX to both registries under `supernovae.nika-lang`. Existing-version
+collisions still fail. Never move either tag or rerun by suppressing duplicates.
+
+The legacy source retains functional contributions, settings, activation events,
+workspace trust policy and old deep links. Its README directs users to disable
+the legacy extension before installing the new identifier. Migration is explicit;
+the legacy artifact does not delete storage, uninstall itself or claim that VS Code
+moves extension storage across identifiers. Keep the old listing available.
+
+Local preparation: `node scripts/prepare-legacy-release.mjs <absent-directory>`,
+then `npm ci`, `npm run compile`, `npm test`, `npm run test:integration`, and
+`npx vsce package --no-dependencies` in that generated source. The same manual
+readiness pass applies before a legacy tag. Registry presence is a prerequisite,
+not evidence that any tag was published.
