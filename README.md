@@ -14,6 +14,10 @@
 [![Rating](https://vsmarketplacebadges.dev/rating-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika&ssr=false#review-details)
 [![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika)
 [![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika)
+[![CI](https://img.shields.io/github/actions/workflow/status/supernovae-st/nika-vscode/ci.yml?branch=main&label=ci)](https://github.com/supernovae-st/nika-vscode/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/supernovae-st/nika-vscode?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/supernovae-st/nika-vscode)
+[![Software Heritage](https://img.shields.io/badge/Software%20Heritage-archive-blue.svg)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/supernovae-st/nika-vscode)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
 > **See the DAG before you run it. Local traces, your models.**
 
@@ -218,7 +222,7 @@ theme*, not to extensions:
   extension update
 - **`${{ ... }}` expression intel** · completions, hover and
   go-to-definition across the namespaces · the three value authorities
-  (`inputs.` / `const.` / `secrets.` · nika 0.109) and the two runtime
+  (`inputs.` / `const.` / `secrets.`) and the two runtime
   ones (`with.` / `tasks.`)
 - **Task rename & find-references** · hits all 4 syntactic homes
   (declaration · `after:` entries · `${{ tasks.X }}` islands · bare CEL
