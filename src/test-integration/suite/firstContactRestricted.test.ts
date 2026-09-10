@@ -6,7 +6,7 @@ suite('Restricted Mode · native host with workspace trust enabled', () => {
   test('keeps static language support without probes, commands, or workspace writes', async function () {
     this.timeout(30000);
     assert.equal(vscode.workspace.isTrusted, false, 'the fixture must actually be untrusted');
-    const ext = vscode.extensions.getExtension('supernovae.nika-lang');
+    const ext = vscode.extensions.getExtension('supernovae.nika');
     assert.ok(ext);
     await ext.activate();
     assert.ok(ext.isActive, 'the trust-waiting extension activates');

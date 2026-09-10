@@ -9,13 +9,13 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-const EXT_ID = 'supernovae.nika-lang';
+const EXT_ID = 'supernovae.nika';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-suite('nika-lang · real extension host', () => {
+suite('nika · real extension host', () => {
   suiteSetup(async function () {
     this.timeout(30000);
     const ext = vscode.extensions.getExtension(EXT_ID);

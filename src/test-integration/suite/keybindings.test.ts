@@ -11,7 +11,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-const EXT_ID = 'supernovae.nika-lang';
+const EXT_ID = 'supernovae.nika';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -61,7 +61,7 @@ async function liveKChordOwners(): Promise<Map<string, string>> {
   return owners;
 }
 
-suite('nika-lang · the chord family vs the live default keymap', () => {
+suite('nika · the chord family vs the live default keymap', () => {
   suiteSetup(async function () {
     this.timeout(30000);
     const ext = vscode.extensions.getExtension(EXT_ID);

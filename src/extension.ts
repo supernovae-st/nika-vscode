@@ -3111,7 +3111,7 @@ function activateTrusted(context: ExtensionContext): void {
     commands.registerCommand('nika.openWalkthrough', () => {
       void commands.executeCommand(
         'workbench.action.openWalkthrough',
-        'supernovae.nika-lang#nika.gettingStarted',
+        'supernovae.nika#nika.gettingStarted',
         false,
       );
     }),
@@ -3182,7 +3182,7 @@ function activateTrusted(context: ExtensionContext): void {
         if (choice === 'Open walkthrough') {
           void commands.executeCommand(
             'workbench.action.openWalkthrough',
-            'supernovae.nika-lang#nika.gettingStarted',
+            'supernovae.nika#nika.gettingStarted',
             false,
           );
         }
@@ -4076,7 +4076,7 @@ function activateTrusted(context: ExtensionContext): void {
 
   // ─── The front door: vscode:// deep links (external · guarded) ────────────
   //
-  // `vscode://supernovae.nika-lang/<action>?<query>` — five actions, one
+  // `vscode://supernovae.nika/<action>?<query>` — five actions, one
   // gate (core/deepLink · the welcomeGuard discipline for EXTERNAL input:
   // strict allowlist · canonical relative workflow paths · fails-closed).
   // Resolution is a capability, not a path walk: the named file must be
@@ -4390,7 +4390,7 @@ async function resolveBinary(context: ExtensionContext, explicit = false): Promi
         } else if (choice === 'Open walkthrough') {
           void commands.executeCommand(
             'workbench.action.openWalkthrough',
-            'supernovae.nika-lang#nika.gettingStarted',
+            'supernovae.nika#nika.gettingStarted',
             false,
           );
         }

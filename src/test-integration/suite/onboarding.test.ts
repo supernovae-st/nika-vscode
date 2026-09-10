@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-const EXT_ID = 'supernovae.nika-lang';
+const EXT_ID = 'supernovae.nika';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -19,7 +19,7 @@ function hasWebviewTab(): boolean {
   );
 }
 
-suite('nika-lang · onboarding (V2.a · the door + the sandbox)', () => {
+suite('nika · onboarding (V2.a · the door + the sandbox)', () => {
   suiteSetup(async function () {
     this.timeout(30000);
     const ext = vscode.extensions.getExtension(EXT_ID);

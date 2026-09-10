@@ -9,11 +9,11 @@
 
 # Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
 
-[![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
-[![Installs](https://vsmarketplacebadges.dev/installs-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
-[![Rating](https://vsmarketplacebadges.dev/rating-short/supernovae.nika-lang.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang&ssr=false#review-details)
-[![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika-lang?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika-lang)
-[![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika-lang?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika-lang)
+[![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika&ssr=false#review-details)
+[![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika)
+[![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika)
 
 > **See the DAG before you run it. Local traces, your models.**
 
@@ -113,9 +113,9 @@ step · each step checks itself off as you actually do it.
 ## Install
 
 - **VS Code** · search **“Nika”** in Extensions, or
-  [Marketplace → supernovae.nika-lang](https://marketplace.visualstudio.com/items?itemName=supernovae.nika-lang)
+  [Marketplace → supernovae.nika](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
 - **Cursor · Windsurf · VSCodium** · same search; they install from
-  [OpenVSX → supernovae/nika-lang](https://open-vsx.org/extension/supernovae/nika-lang)
+  [OpenVSX → supernovae/nika](https://open-vsx.org/extension/supernovae/nika)
 - **The engine** (optional: it powers everything past syntax) ·
   `brew install supernovae-st/tap/nika`, or let the extension offer a
   verified download on first open (HTTPS + SHA-256 · explicit consent ·
@@ -700,11 +700,11 @@ A runbook, a PR description or a chat message can open the editor
 straight onto a workflow surface with a `vscode://` link:
 
 ```text
-vscode://supernovae.nika-lang/dag?file=deploy.nika.yaml     open the canvas on a workflow
-vscode://supernovae.nika-lang/check?file=deploy.nika.yaml   audit it (asks first)
-vscode://supernovae.nika-lang/run?file=deploy.nika.yaml     run it (asks first)
-vscode://supernovae.nika-lang/search?q=deploy               open root search, seeded
-vscode://supernovae.nika-lang/demo                          land the offline demo
+vscode://supernovae.nika/dag?file=deploy.nika.yaml     open the canvas on a workflow
+vscode://supernovae.nika/check?file=deploy.nika.yaml   audit it (asks first)
+vscode://supernovae.nika/run?file=deploy.nika.yaml     run it (asks first)
+vscode://supernovae.nika/search?q=deploy               open root search, seeded
+vscode://supernovae.nika/demo                          land the offline demo
 ```
 
 Links are guarded: `file` must be a workspace-relative workflow path
