@@ -4,6 +4,19 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [Unreleased] · the extension carries the product's name
+
+The extension identifier becomes `supernovae.nika` (package name `nika`,
+publisher unchanged). One law for every public name of the product: the
+namespace names the owner, the artifact names the product, a role suffix
+names a satellite only; `nika-lang` also collided with the nikalang
+constructed language. Everything users type or link keeps its shape:
+the language id `nika`, the `nika.*` commands and settings, the
+`source.nika` grammar, the `nika` view container. Only the identifier in
+deep links (`vscode://supernovae.nika/…`), walkthrough references and
+registry URLs changes. `supernovae.nika-lang` stays published for the
+versions it already holds; its last release points here.
+
 ## [0.118.7] · source checkpoint · one admitted engine
 
 The source requires stable engine 0.118.2 or newer. `ENGINE_PIN` now names

@@ -3,12 +3,12 @@
 //
 //   node scripts/stats.mjs
 //
-// Prints what the two registries report for supernovae.nika-lang:
+// Prints what the two registries report for supernovae.nika:
 // VS Marketplace installs + rating (gallery API) and Open VSX version +
 // downloads. This is the first real feedback loop on the canvas wave —
 // run it by hand or from a cron; it never mutates anything.
 
-const EXT = 'supernovae.nika-lang';
+const EXT = 'supernovae.nika';
 
 async function vsMarketplace() {
   const res = await fetch(

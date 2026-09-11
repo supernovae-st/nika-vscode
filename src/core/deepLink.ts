@@ -1,6 +1,6 @@
 // deepLink.ts — the vscode:// deep-link gate (pure · fails-closed).
 //
-// `vscode://supernovae.nika-lang/<action>?<query>` arrives from OUTSIDE
+// `vscode://supernovae.nika/<action>?<query>` arrives from OUTSIDE
 // the editor (a shared doc · a chat message · a README badge), so every
 // byte is attacker-controllable — the same trust class as the webview
 // (#206/#207), one step wider: anything that can render a link can knock

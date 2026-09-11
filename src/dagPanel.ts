@@ -975,7 +975,7 @@ export class DagPanel implements vscode.Disposable {
       case 'dag:openWalkthrough':
         void vscode.commands.executeCommand(
           'workbench.action.openWalkthrough',
-          'supernovae.nika-lang#nika.gettingStarted',
+          'supernovae.nika#nika.gettingStarted',
         );
         break;
 

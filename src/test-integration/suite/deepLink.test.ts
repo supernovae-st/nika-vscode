@@ -11,9 +11,9 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-const EXT_ID = 'supernovae.nika-lang';
+const EXT_ID = 'supernovae.nika';
 
-suite('nika-lang · vscode:// deep-link door', () => {
+suite('nika · vscode:// deep-link door', () => {
   suiteSetup(async function () {
     this.timeout(30000);
     const ext = vscode.extensions.getExtension(EXT_ID);

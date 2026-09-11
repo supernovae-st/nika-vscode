@@ -1,5 +1,5 @@
 {
-  "name": "nika-lang",
+  "name": "nika",
   "displayName": "Nika Workflow Language",
   "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
   "version": "0.118.7",

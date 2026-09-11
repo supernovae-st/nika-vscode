@@ -17,7 +17,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-const EXT_ID = 'supernovae.nika-lang';
+const EXT_ID = 'supernovae.nika';
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -66,7 +66,7 @@ const WORKFLOW = [
   '',
 ].join('\n');
 
-suite('nika-lang · run history (V-SOTA.B B2 · the native tree)', () => {
+suite('nika · run history (V-SOTA.B B2 · the native tree)', () => {
   let docUri: vscode.Uri;
 
   suiteSetup(async function () {
