@@ -2010,7 +2010,7 @@
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.20.2",
     "@types/vscode": "1.91.0",
     "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^3.9.2",

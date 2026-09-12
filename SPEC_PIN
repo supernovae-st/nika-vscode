@@ -4,4 +4,4 @@
 # never red unrelated PRs here (the registry's SPEC_PIN law). The daily
 # spec-pin-heal advances it: re-project → one idempotent PR → this
 # repo's own gates judge. Bump deliberately the same way.
-9f23f1a84c4e3346add32de3acff92f589a9e698
+14bf49f435dc613da08187e4e4822948db267232
