@@ -4,7 +4,14 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
-## [Unreleased] · the extension carries the product's name
+## [0.119.0] · one engine release across the editor
+
+The extension now targets engine v0.119.0. Its real-host tests download the
+release archive and verify the recorded checksums and build commit before
+starting. The engine supplies token usage details and verifies run journals;
+the editor continues to display those results through its existing commands.
+
+### The extension carries the product's name
 
 The extension identifier becomes `supernovae.nika` (package name `nika`,
 publisher unchanged). One law for every public name of the product: the
