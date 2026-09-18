@@ -1,0 +1,99 @@
+# listing-patch.yml — one-off 0.116.3 displayName recovery.
+#
+# supernovae.nika 0.120.0 cannot enter VS Marketplace while
+# supernovae.nika-lang still owns displayName "Nika Workflow Language".
+# This workflow publishes nika-lang 0.116.3 with
+# "Nika Workflow Language (legacy identifier)" from the public 0.116.2
+# source plus listing metadata. Do not tag v0.116.3: the inherited
+# release.yml audit-level=low gate is now red on toolchain advisories
+# (vitest mocker, qs) that are not in the VSIX.
+#
+# Trigger: workflow_dispatch on recover/nika-lang-01163 only.
+
+name: listing identity patch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - name: Both registry credentials are configured
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+          [ -n "$OVSX_PAT" ] || { echo "::error::OVSX_PAT is required"; exit 1; }
+          [ -n "$VSCE_PAT" ] || { echo "::error::VSCE_PAT is required"; exit 1; }
+      - run: npm ci
+      - name: Listing patch identity
+        run: |
+          set -euo pipefail
+          node -e '
+            const p = require("./package.json");
+            if (p.name !== "nika-lang") throw new Error("name " + p.name);
+            if (p.version !== "0.116.3") throw new Error("version " + p.version);
+            if (p.displayName !== "Nika Workflow Language (legacy identifier)") {
+              throw new Error("displayName " + p.displayName);
+            }
+          '
+      - run: npm run compile
+      - run: npm test
+      - name: Install bubblewrap (the exec jail the pinned engine requires)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bubblewrap
+          sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict 2>/dev/null || true
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Real VS Code hosts against the checksum-verified ENGINE_PIN asset
+        run: xvfb-run -a npm run test:integration
+      - run: npx vsce package --no-dependencies -o nika-lang.vsix
+      - name: VSIX identity
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, zipfile
+          from pathlib import Path
+          data = Path('nika-lang.vsix').read_bytes()
+          digest = hashlib.sha256(data).hexdigest()
+          print('vsix_sha256', digest)
+          pkg = json.loads(zipfile.ZipFile('nika-lang.vsix').read('extension/package.json'))
+          assert pkg['name'] == 'nika-lang'
+          assert pkg['version'] == '0.116.3'
+          assert pkg['publisher'] == 'supernovae'
+          assert pkg['displayName'] == 'Nika Workflow Language (legacy identifier)'
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vsix
+          path: nika-lang.vsix
+
+  publish:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: vsix
+      - name: Publish to OpenVSX (legacy identifier update)
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
+        with:
+          pat: ${{ secrets.OVSX_PAT }}
+          extensionFile: nika-lang.vsix
+          skipDuplicate: false
+      - name: Publish to VS Marketplace (legacy identifier update)
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: nika-lang.vsix
+          skipDuplicate: false

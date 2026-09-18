@@ -36,7 +36,9 @@ if (lock.packages?.['']?.version !== version) {
 }
 const releaseTagPin = enginePin === `v${version}`;
 const candidateCommitPin = /^[0-9a-f]{40}$/.test(enginePin ?? '') && candidateVersion === version;
-if (!releaseTagPin && !candidateCommitPin) {
+// 0.116.3 is a Marketplace displayName patch of public 0.116.2. No v0.116.3 engine exists.
+const listingPatch = version === '0.116.3' && enginePin === 'v0.116.2';
+if (!releaseTagPin && !candidateCommitPin && !listingPatch) {
   failures.push(
     `ENGINE_PIN ${String(enginePin)} is neither v${version} nor an exact commit marked CANDIDATE_VERSION ${version}`,
   );

@@ -4,6 +4,13 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.116.3] · listing identity
+
+Marketplace `displayName` becomes `Nika Workflow Language (legacy identifier)`
+so the canonical identifier `supernovae.nika` can publish. Engine pin stays
+public `v0.116.2`. No functional editor change. Keep this identifier or switch
+to `supernovae.nika`; do not enable both.
+
 ## [0.116.2] · 2026-08-31 · every live door stays lit
 
 Lockstep on the published engine 0.116.2. `ENGINE_PIN` names its immutable
