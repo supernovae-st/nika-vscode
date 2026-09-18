@@ -10,7 +10,7 @@ Live workflow files, language association, scanners, watchers, save
 defaults and deep links use lowercase `.nika`. Retired `.nika.yaml` /
 `.nika.yml` aliases are rejected at the filename belt. Project `nika.yaml`
 and runtime `.nika/` stay distinct. Historical entries below keep the old
-spelling on purpose. `SPEC_PIN` is `c0e0da96999f9d12fe08705377cbec63a9793a4e`;
+spelling on purpose. `SPEC_PIN` is `c119bb42fbacde440f66fcdc745f7bc5b966b627`;
 `design-tokens.generated.ts` was re-projected from that spec. The old-suffix
 ratchet now pins hit-count and matching-line hashes, so new teaching inside
 an allowlisted file fails.
