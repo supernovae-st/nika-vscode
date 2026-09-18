@@ -24,6 +24,7 @@ import { execFile } from 'child_process';
 import * as fs from 'fs';
 import { DagPanel, TaskStatus } from './dagPanel';
 import { type LogFn } from './mcpConfig';
+import { WORKFLOW_GLOB } from './core/workflowScan';
 
 export type { LogFn } from './mcpConfig';
 
@@ -196,14 +197,14 @@ export function startClient(
 
   // Owned watcher: a restart would otherwise leak the previous one (the
   // client does not dispose synchronize watchers it did not create).
-  const fileWatcher = workspace.createFileSystemWatcher('**/*.nika.yaml');
+  const fileWatcher = workspace.createFileSystemWatcher(WORKFLOW_GLOB);
   context.subscriptions.push(fileWatcher);
 
   let closedCount = 0;
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: 'file', language: 'nika' },
-      { scheme: 'file', pattern: '**/*.nika.yaml' },
+      { scheme: 'file', pattern: WORKFLOW_GLOB },
       { scheme: 'untitled', language: 'nika' },
     ],
     synchronize: {

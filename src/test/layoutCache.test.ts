@@ -34,7 +34,7 @@ describe('fnv1a32 — canonical vectors', () => {
 
 describe('layoutHashOf — the key discipline', () => {
   it('emits 16 lowercase hex chars', () => {
-    expect(layoutHashOf('file:///w/a.nika.yaml', NODES, EDGES)).toMatch(/^[0-9a-f]{16}$/);
+    expect(layoutHashOf('file:///w/a.nika', NODES, EDGES)).toMatch(/^[0-9a-f]{16}$/);
   });
 
   it('is INSENSITIVE to declaration order (nodes and edges sort canonically)', () => {
@@ -58,8 +58,8 @@ describe('layoutHashOf — the key discipline', () => {
   });
 
   it('NEVER collides across workflows — same structure, different scope (the leak gate)', () => {
-    const a = layoutHashOf('file:///w/a.nika.yaml', NODES, EDGES);
-    const b = layoutHashOf('file:///w/b.nika.yaml', NODES, EDGES);
+    const a = layoutHashOf('file:///w/a.nika', NODES, EDGES);
+    const b = layoutHashOf('file:///w/b.nika', NODES, EDGES);
     expect(b).not.toBe(a);
     // The canonical string is JSON (injective) — pin the envelope.
     const s = layoutKeyStringOf('X', NODES, EDGES);

@@ -15,7 +15,7 @@ export interface SessionState {
   equipped: boolean;
   /** the nika binary resolves */
   binary: boolean;
-  /** `nika new` guided wizard needs a real run surface */
+  /** `nika compile` guided wizard needs a real run surface */
   capNew: boolean;
   /** embedded examples available */
   capExamples: boolean;
@@ -51,12 +51,12 @@ export function buildSessionPicks(s: SessionState): SessionPick[] {
       label: '$(comment-discussion) Guided wizard — build a workflow step by step',
       description: 'the binary asks, you answer — a chat in your terminal, a checked file out',
       command: '',
-      terminal: ['new'],
+      terminal: ['compile'],
     });
   }
   picks.push({
     label: '$(sparkle) Describe it — generate a workflow',
-    description: 'one sentence in, an oracle-checked .nika.yaml out',
+    description: 'one sentence in, an oracle-checked .nika out',
     command: 'nika.generateWorkflow',
   });
   picks.push({

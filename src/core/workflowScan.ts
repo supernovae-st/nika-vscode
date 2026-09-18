@@ -17,7 +17,15 @@
 // truncating its result (the lint cap idiom) must never shear the
 // shared cache.
 
-export const WORKFLOW_GLOB = '**/*.nika.yaml';
+export {
+  WORKFLOW_GLOB,
+  WORKFLOW_GOLDEN_GLOB,
+  WORKFLOW_SUFFIX,
+  isCanonicalWorkflowPath,
+  isLegacyWorkflowPath,
+  withWorkflowSuffix,
+  workflowLogicalStem,
+} from './workflowName';
 
 /** Provider-side ceiling — dominates every consumer cap (500 fork
  *  lookup · 301 lint truncation probe · 300 baseline · 200 explorer ·

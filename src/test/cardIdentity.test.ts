@@ -98,10 +98,10 @@ describe('resolveCardIdentity — verb × builtin × category', () => {
 describe('resolveCardIdentity · composition (spec 14 — invoke workflow:)', () => {
   it('a workflow: tool ref becomes a sub-workflow door: path + ⎘, never a catalog tool', () => {
     const id = resolveCardIdentity(
-      { verb: 'invoke', tool: 'workflow:./sub.nika.yaml' },
+      { verb: 'invoke', tool: 'workflow:./sub.nika' },
       { fetch: { cat: 'network' } } as never,
     );
-    expect(id.subWorkflow).toBe('./sub.nika.yaml');
+    expect(id.subWorkflow).toBe('./sub.nika');
     expect(id.glyph).toBe('⎘');
     expect(id.builtin).toBeUndefined();
     expect(id.category).toBeUndefined();

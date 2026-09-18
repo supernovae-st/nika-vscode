@@ -14,20 +14,20 @@
 // · explain), so this prompt never drifts.
 
 export function buildAuthoringPrompt(workflowPath?: string): string {
-  const target = workflowPath ?? '<file>.nika.yaml';
+  const target = workflowPath ?? '<file>.nika';
   return [
-    'You are authoring a Nika workflow (`*.nika.yaml` · the first line is the mark AND the name: `nika: <kebab-id>`).',
+    'You are authoring a Nika workflow (`*.nika` · the first line is the mark AND the name: `nika: <kebab-id>`).',
     'Follow this DETERMINISTIC protocol — never free-form the structure:',
     '',
     '0. THINK FIRST, free-form: goal · tasks · data flow between them ·',
     '   what each task needs upstream. Only THEN write YAML — reasoning',
     '   under format constraints measurably degrades; separate the phases.',
-    "1. ROUTE — pick the closest template: run `nika new '?'` to list",
-    '   the embedded skeletons, then `nika new <template> ' + target + '`',
-    '   (plain words route too: `nika new "<describe the job>" ' + target + '`).',
+    "1. ROUTE — pick the closest template: run `nika compile --list` to list",
+    '   the embedded skeletons, then `nika compile <template> ' + target + '`',
+    '   (`--json` status ready writes the file; incomplete writes nothing).',
     '2. GROUND — read the embedded contract, never invent fields:',
     '   `nika spec` (language surface) · `nika schema` (JSON Schema) ·',
-    '   bare `nika try` (the catalog) · `nika new <slug> <file>` reads one whole.',
+    '   bare `nika try` (the catalog) · `nika compile --list` names exact skeletons.',
     '3. FILL — edit ONLY the slot values (prompts, commands, models, ids).',
     '   The 4 verbs are infer · exec · invoke · agent — fetching a URL is',
     '   `invoke: { tool: "nika:fetch" }`, not a verb. Secrets go through',

@@ -20,6 +20,7 @@ export const CAPABILITY_COMMANDS = [
   'model',
   'try',
   'new',
+  'compile',
   'trace',
   'run',
   'lsp',
@@ -144,7 +145,7 @@ export function buildCapabilities(
     // V5: the showroom door is `try` (the examples verb tree died
     // in 0.107) — the cap keeps its name, its source is the living door.
     examples: commands.has('try'),
-    newTemplate: commands.has('new'),
+    newTemplate: commands.has('compile') || commands.has('new'),
     trace: commands.has('trace'),
     run: commands.has('run'),
     lsp: commands.has('lsp'),

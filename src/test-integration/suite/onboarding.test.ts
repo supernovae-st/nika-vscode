@@ -35,7 +35,7 @@ suite('nika · onboarding (V2.a · the door + the sandbox)', () => {
 
   test('the door: no workflow in focus opens the welcome, never a dead-end toast', async () => {
     // Nothing active — the porte must PROBE silently (activeNikaDocument),
-    // NOT toast « open a .nika.yaml file first » and dead-end.
+    // NOT toast « open a .nika file first » and dead-end.
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await sleep(400);
 
@@ -55,7 +55,7 @@ suite('nika · onboarding (V2.a · the door + the sandbox)', () => {
     }
 
     assert.ok(
-      !warnings.some((w) => /open a \.nika\.yaml file first/i.test(w)),
+      !warnings.some((w) => /open a \.nika file first/i.test(w)),
       `the door must not dead-end with a toast (saw: ${JSON.stringify(warnings)})`,
     );
     assert.ok(hasWebviewTab(), 'the welcome canvas must be up after the bare showDag');
@@ -64,7 +64,7 @@ suite('nika · onboarding (V2.a · the door + the sandbox)', () => {
   test('the demo: one gesture writes a runnable file beside the canvas', async () => {
     const folder = vscode.workspace.workspaceFolders?.[0];
     assert.ok(folder, 'the integration host opens a workspace folder');
-    const expected = path.join(folder!.uri.fsPath, 'hello-canvas.nika.yaml');
+    const expected = path.join(folder!.uri.fsPath, 'hello-canvas.nika');
     // Clean any prior run so we assert the PRIMARY name (not a -N suffix).
     if (fs.existsSync(expected)) { fs.rmSync(expected); }
     // Model the first-run flow: nothing open yet, so the fresh canvas keeps
@@ -77,7 +77,7 @@ suite('nika · onboarding (V2.a · the door + the sandbox)', () => {
     await sleep(1000);
 
     // (a) the runnable file landed at the workspace root
-    assert.ok(fs.existsSync(expected), 'hello-canvas.nika.yaml must land at the workspace root');
+    assert.ok(fs.existsSync(expected), 'hello-canvas.nika must land at the workspace root');
     const body = fs.readFileSync(expected, 'utf-8');
     assert.ok(body.includes('model: mock/echo'), 'the demo runs offline on mock/echo');
     assert.ok(body.includes('nika: hello-canvas'), 'the demo is the hello-canvas workflow');

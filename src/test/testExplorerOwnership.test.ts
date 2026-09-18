@@ -33,8 +33,8 @@ import { registerTestExplorer } from '../features/testExplorer';
 const event = (kind: string) => JSON.stringify({ kind, fields: [{ key: 'task', value: 'a' }] });
 const complete = `${event('task_completed')}\n${event('workflow_completed')}\n`;
 const item = {
-  id: 'file:///fixture/workflow.nika.yaml#a',
-  uri: { fsPath: '/fixture/workflow.nika.yaml' }, children: new Map(),
+  id: 'file:///fixture/workflow.nika#a',
+  uri: { fsPath: '/fixture/workflow.nika' }, children: new Map(),
 };
 
 beforeEach(() => {
@@ -83,7 +83,7 @@ describe('test explorer judges only its current process capture', () => {
     expect(host.read).not.toHaveBeenCalled();
   });
   it('cannot paint the workflow green while its current task failed', async () => {
-    const workflow = { ...item, id: 'file:///fixture/workflow.nika.yaml', children: new Map([[item.id, item]]) };
+    const workflow = { ...item, id: 'file:///fixture/workflow.nika', children: new Map([[item.id, item]]) };
     await execute({ code: 0, stdout: `${event('task_failed')}\n${event('workflow_completed')}\n`, stderr: '' }, workflow);
     expect(host.run.passed).not.toHaveBeenCalled();
     expect(host.run.errored).toHaveBeenCalledWith(workflow, expect.anything());

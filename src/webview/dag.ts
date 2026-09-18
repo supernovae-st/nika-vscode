@@ -1650,7 +1650,7 @@ function paletteTools(): ToolItem[] {
 /** `nika:fetch` → `⇄ nika:fetch` — binary vocabulary first, fallback map. */
 function toolWithGlyph(tool: string): string {
   // Composition ref — the fact row reads the CHILD's name, not the
-  // full prefixed path (« invoke · ⎘ sub.nika.yaml »).
+  // full prefixed path (« invoke · ⎘ sub.nika »).
   if (tool.startsWith('workflow:')) {
     const base = tool.slice('workflow:'.length).split('/').pop() || tool;
     // The composition ref uses an arrow the house owns: ⎘ is in neither
@@ -2837,7 +2837,7 @@ class DagRenderer {
     }
 
     // Update toolbar — the title IS a filename: the stem carries the
-    // weight, the .nika.yaml suffix recedes (the file it opens, named
+    // weight, the .nika suffix recedes (the file it opens, named
     // the way the disk names it).
     const titleEl = document.getElementById('dag-title');
     if (titleEl) { paintTitleAsFilename(titleEl, graph.workflowName, graph.workflowUri); }
@@ -9404,13 +9404,13 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 
 // The title is the reverse door — one visible mouse path back to the
 // YAML (Enter on a card and Esc-at-rest are its keyboard twins).
-/** The title as a FILENAME: `<stem>` bright, `.nika.yaml` quiet. The
+/** The title as a FILENAME: `<stem>` bright, `.nika` quiet. The
  *  uri (when present) carries the true basename; the workflow name is
  *  the fallback (an untitled buffer has no path). */
 function paintTitleAsFilename(el: HTMLElement, name: string, uri?: string): void {
   const base = uri ? decodeURIComponent(uri.split('/').pop() ?? '') : '';
-  const shown = base || (name.endsWith('.nika.yaml') ? name : `${name}.nika.yaml`);
-  const at = shown.indexOf('.nika.y');
+  const shown = base || (name.endsWith('.nika') ? name : `${name}.nika`);
+  const at = shown.endsWith('.nika') ? shown.length - '.nika'.length : -1;
   el.replaceChildren();
   if (at <= 0) { el.textContent = shown; return; }
   el.append(shown.slice(0, at));
@@ -9444,7 +9444,7 @@ function openTaskPalette(): void {
   });
 }
 document.getElementById('btn-add-task')?.addEventListener('click', () => openTaskPalette());
-// ＋ New — a fresh workflow page (untitled .nika.yaml, extension-side).
+// ＋ New — a fresh workflow page (untitled .nika, extension-side).
 document.getElementById('btn-new')?.addEventListener('click', () => {
   vscode.postMessage({ kind: 'dag:newWorkflow' });
 });

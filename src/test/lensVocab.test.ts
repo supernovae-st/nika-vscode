@@ -36,7 +36,7 @@ describe('lensVocab (one voice for the lens doors)', () => {
 
   it('the inputs door conjugates with its count', () => {
     // The CLI flag stays `--var`: it is the flag that SUPPLIES an
-    // input (`nika run f.nika.yaml --var topic=…`). Only the NOUN moved.
+    // input (`nika run f.nika --var topic=…`). Only the NOUN moved.
     expect(varsDoorTitle(1)).toBe('$(symbol-variable) 1 input rides --var');
     expect(varsDoorTitle(2)).toBe('$(symbol-variable) 2 inputs ride --var');
   });

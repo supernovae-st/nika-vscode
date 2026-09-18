@@ -1,8 +1,8 @@
 {
   "name": "nika",
   "displayName": "Nika Workflow Language",
-  "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika.yaml). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
-  "version": "0.118.7",
+  "description": "See your workflow before it runs: the live DAG canvas for Nika, the workflow language for AI (.nika). Check-as-you-type diagnostics, run + time-travel replay, and a static audit before a token is spent (cost ceiling · secret-flow · permits). Local-first: Ollama, llama.cpp, vLLM, Mistral + more. For VS Code, Cursor, Windsurf, VSCodium.",
+  "version": "0.120.0",
   "publisher": "supernovae",
   "license": "AGPL-3.0-or-later",
   "icon": "icons/nika-icon.png",
@@ -58,7 +58,7 @@
   "activationEvents": [
     "onStartupFinished",
     "onLanguage:nika",
-    "workspaceContains:**/*.nika.yaml",
+    "workspaceContains:**/*.nika",
     "onUri"
   ],
   "extensionKind": [
@@ -156,7 +156,7 @@
           "nika"
         ],
         "extensions": [
-          ".nika.yaml"
+          ".nika"
         ],
         "configuration": "./language-configuration.json",
         "icon": {
@@ -164,8 +164,7 @@
           "dark": "./icons/nika-dark.svg"
         },
         "filenamePatterns": [
-          "*.nika.yaml",
-          "*.nika.yml"
+          "*.nika"
         ]
       }
     ],
@@ -999,7 +998,7 @@
           "type": "boolean",
           "default": true,
           "order": 31,
-          "markdownDescription": "Lint CLOSED `*.nika.yaml` files across the workspace (`nika check --json`) so every workflow shows in the Problems panel. Capped at 300 files per sweep (logged when hit); open files stay with the live controller. Off: only open files report."
+          "markdownDescription": "Lint CLOSED `*.nika` files across the workspace (`nika check --json`) so every workflow shows in the Problems panel. Capped at 300 files per sweep (logged when hit); open files stay with the live controller. Off: only open files report."
         },
         "nika.diagnostics.severity": {
           "type": "object",
@@ -1085,7 +1084,7 @@
           "type": "boolean",
           "default": true,
           "order": 51,
-          "markdownDescription": "The open DAG panel re-targets when you switch to another `.nika.yaml` (debounced). Off: the panel stays on the workflow it was opened for until you ask again."
+          "markdownDescription": "The open DAG panel re-targets when you switch to another `.nika` (debounced). Off: the panel stays on the workflow it was opened for until you ask again."
         },
         "nika.editor.xray": {
           "type": "boolean",
@@ -1142,7 +1141,7 @@
           "type": "boolean",
           "default": true,
           "order": 26,
-          "markdownDescription": "Show the 🦋 badge on `*.nika.yaml` files in the Explorer. Icon themes own the file icon slot; the badge adds nika identity without replacing your theme. Off: files carry the theme icon alone."
+          "markdownDescription": "Show the 🦋 badge on `*.nika` files in the Explorer. Icon themes own the file icon slot; the badge adds nika identity without replacing your theme. Off: files carry the theme icon alone."
         }
       }
     },
@@ -1153,8 +1152,7 @@
         "editor.autoIndent": "advanced"
       },
       "files.associations": {
-        "*.nika.yaml": "nika",
-        "*.nika.yml": "nika"
+        "*.nika": "nika"
       }
     },
     "menus": {
@@ -1626,13 +1624,13 @@
         "displayName": "Nika Check",
         "toolReferenceName": "nikaCheck",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Statically validate a Nika workflow (.nika.yaml) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. You MUST call this after EVERY create or edit of a .nika.yaml file, and fix every finding before declaring the task done: never report success while findings remain. Not for generic YAML or GitHub Actions files.",
+        "modelDescription": "Statically validate a Nika workflow (.nika) BEFORE running it. Returns the full machine-readable pre-flight report: conformance violations, secret leaks/egresses, permits (capability) escapes with machine-applicable fixes, schema findings, unknown tools, cost ceiling. You MUST call this after EVERY create or edit of a .nika file, and fix every finding before declaring the task done: never report success while findings remain. Not for generic YAML or GitHub Actions files.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "Absolute path to the .nika.yaml file (defaults to the active editor)."
+              "description": "Absolute path to the .nika file (defaults to the active editor)."
             }
           }
         }
@@ -1667,7 +1665,7 @@
           "properties": {
             "filePath": {
               "type": "string",
-              "description": "Absolute path to the .nika.yaml file (defaults to the active editor)."
+              "description": "Absolute path to the .nika file (defaults to the active editor)."
             }
           }
         }
@@ -1677,7 +1675,7 @@
         "displayName": "Nika Workspace",
         "toolReferenceName": "nikaWorkspace",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika.yaml audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS, never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires an admitted engine with the current workspace aggregate (`welcome --deep`); without one this tool is not registered.",
+        "modelDescription": "The whole Nika workspace truth in ONE call (context_version 1 JSON): every *.nika audited (clean/strict verdicts, findings count, tasks, waves, per-verb breakdown, cost ceiling with FLOOR honesty, permits), the most recent recorded runs folded from the flight recorder (verdict, spend, unpriced calls), environment facts (wired clients, local providers, cloud key COUNTS, never values), and cross-file rollups. Arrays are capped and counted. Call this FIRST to orient before reading or editing workflows. Requires an admitted engine with the current workspace aggregate (`welcome --deep`); without one this tool is not registered.",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -1742,7 +1740,7 @@
           {
             "id": "create",
             "title": "Create your first workflow",
-            "description": "Scaffold a `.nika.yaml` with the canonical envelope.\n[New Workflow](command:nika.newWorkflow)",
+            "description": "Scaffold a `.nika` with the canonical envelope.\n[New Workflow](command:nika.newWorkflow)",
             "media": {
               "markdown": "walkthrough/02-create.md"
             },
@@ -1869,7 +1867,7 @@
       {
         "view": "nikaWorkflows",
         "when": "isWorkspaceTrusted && (nika.journey == 'noBinary')",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\nThe engine is not on this machine yet: every surface below waits on it.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP: one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation): both sovereign, no account."
+        "contents": "Nika turns repeatable AI work into files: one `.nika`, four verbs, audited before it runs.\nThe engine is not on this machine yet: every surface below waits on it.\n[Finish setup · install engine + wire everything](command:nika.finishSetup)\nVerified download (SHA256SUMS) · MCP · LSP: one gesture, everything lights up.\nPrefer your own install? [Homebrew tap](https://github.com/supernovae-st/homebrew-tap) · [build from source](https://github.com/supernovae-st/nika#installation): both sovereign, no account."
       },
       {
         "view": "nikaWorkflows",
@@ -1884,12 +1882,12 @@
       {
         "view": "nikaWorkflows",
         "when": "isWorkspaceTrusted && (nika.journey == 'empty' && workspaceFolderCount != 0)",
-        "contents": "No workflows here yet: this folder carries no `.nika.yaml` file.\n[▶ Try the demo · offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
+        "contents": "No workflows here yet: this folder carries no `.nika` file.\n[▶ Try the demo · offline, zero keys](command:nika.tryDemo)\nA four-wave sandbox on mock/echo: press ▶ to watch it light up. Or [create your own](command:nika.newWorkflow): the wizard walks name · starter · model, offline with mock/echo."
       },
       {
         "view": "nikaWorkflows",
         "when": "isWorkspaceTrusted && (nika.journey == 'working')",
-        "contents": "Nika turns repeatable AI work into files: one `.nika.yaml`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Try an example (offline)](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
+        "contents": "Nika turns repeatable AI work into files: one `.nika`, four verbs, audited before it runs.\n[New session · wizard · describe · templates](command:nika.newSession)\n[Init project · scaffold + wire everything](command:nika.initProject)\n[＋ New workflow](command:nika.newWorkflow)\n[Describe → generate](command:nika.generateWorkflow)\n[⧈ Try an example (offline)](command:nika.browseExamples)\n[⊡ Open the canvas](command:nika.showDag)\nEverything else lives under ⇧⌘P → “Nika”, or [open the menu](command:nika.showMenu)."
       },
       {
         "view": "nikaRuns",
@@ -1929,7 +1927,7 @@
             "properties": {
               "workflow": {
                 "type": "string",
-                "description": "The .nika.yaml the run executed (stack frames point here)."
+                "description": "The .nika the run executed (stack frames point here)."
               },
               "replay": {
                 "type": "string",
@@ -1955,7 +1953,7 @@
               "type": "nika",
               "request": "launch",
               "name": "Replay ${1:run}",
-              "workflow": "^\"\\${workspaceFolder}/${2:workflow.nika.yaml}\"",
+              "workflow": "^\"\\${workspaceFolder}/${2:workflow.nika}\"",
               "replay": "^\"\\${workspaceFolder}/${3:.nika/traces/run.ndjson}\""
             }
           }
@@ -1987,7 +1985,7 @@
     "release-coherence": "node scripts/release-coherence.mjs",
     "glyphs": "node scripts/glyph-registry.mjs",
     "walkthrough": "node scripts/walkthrough-media.mjs",
-    "test": "vitest run && npm run release-proof && node scripts/parity.mjs && node scripts/harness-parity.mjs && node scripts/legend-parity.mjs && node scripts/projection-shadow.mjs && node scripts/package-hygiene.mjs && node scripts/release-coherence.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && npm run lint",
+    "test": "vitest run && npm run release-proof && node scripts/parity.mjs && node scripts/harness-parity.mjs && node scripts/legend-parity.mjs && node scripts/projection-shadow.mjs && node scripts/package-hygiene.mjs && node scripts/release-coherence.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && node scripts/file-identity-ratchet.mjs && node scripts/file-identity-ratchet.mjs --selftest && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
     "release-proof": "node --test scripts/release-proof.test.mjs",

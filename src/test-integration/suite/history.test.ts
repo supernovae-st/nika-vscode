@@ -106,7 +106,7 @@ suite('nika · run history (V-SOTA.B B2 · the native tree)', () => {
     fs.mkdirSync(path.join(root, 'out'), { recursive: true });
     fs.writeFileSync(path.join(root, 'out', 'receipt.txt'), 'the recorded receipt\n');
 
-    const wf = path.join(root, 'history-int.nika.yaml');
+    const wf = path.join(root, 'history-int.nika');
     fs.writeFileSync(wf, WORKFLOW);
     docUri = vscode.Uri.file(wf);
   });

@@ -7,13 +7,13 @@ describe('buildSessionPicks', () => {
   it('unequipped workspace leads with setup, then the wizard', () => {
     const picks = buildSessionPicks(base);
     expect(picks[0].command).toBe('nika.initProject');
-    expect(picks[1].terminal).toEqual(['new']);
+    expect(picks[1].terminal).toEqual(['compile']);
   });
 
   it('equipped workspace stops advertising setup', () => {
     const picks = buildSessionPicks({ ...base, equipped: true });
     expect(picks.some((p) => p.command === 'nika.initProject')).toBe(false);
-    expect(picks[0].terminal).toEqual(['new']);
+    expect(picks[0].terminal).toEqual(['compile']);
   });
 
   it('binary-less session leads with install and hides the wizard', () => {

@@ -50,7 +50,7 @@ describe('parseInvokeArgKeys — the parent side', () => {
     'tasks:',
     '  brief:',
     '    invoke:',
-    '      workflow: ./brief.nika.yaml',
+    '      workflow: ./brief.nika',
     '      args:',
     '        topic: release notes',
     '        style: crisp',

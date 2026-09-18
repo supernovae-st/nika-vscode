@@ -13,9 +13,10 @@ import { invokeBodyFor, findVerbLines, verbBlockEdit } from '../core/verbBlocks'
 import { NIKA_VERB_STARTERS, type NikaVerb } from '../core/verbStarters.generated';
 import { FALLBACK_TOOL_BLURBS, VERB_ITEMS } from '../core/verbPalette';
 import type { NikaService } from '../nikaService';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 const VERB_GLYPH: Record<string, string> = Object.fromEntries(

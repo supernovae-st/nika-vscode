@@ -457,7 +457,7 @@ the grid answers the three first-minute questions in order: *where am
 I* (hero: the mark, the wordmark, one honest tagline), *how do I
 start* (a describe→generate bar · type a sentence, the house sparkle
 hands it to `nika.generateWorkflow` · then New / Examples / Replay /
-All commands), *what can this do* (recent `*.nika.yaml` from the
+All commands), *what can this do* (recent `*.nika` from the
 workspace by mtime, then the capability map: the one-line commands
 · every button a real `nika.*` command; the living roster is the
 `es-caps` block in `dagPanel.ts`, gated by `WELCOME_COMMANDS` in
@@ -1440,7 +1440,7 @@ engine's voice · we never rewrite it.
 4. What → why → fix, no preamble · `Nika: check failed: engine not on
    PATH → Install: brew install nika`, never `Oops! Something…`.
 5. `couldn't` = user-state · `failed` = system/engine · `unable to`
-   banned · `Nika: couldn't find a .nika.yaml here` vs
+   banned · `Nika: couldn't find a .nika here` vs
    `Nika: doctor failed`.
 6. Name the thing that failed · `Nika: language server stopped`, never
    `Something went wrong`.

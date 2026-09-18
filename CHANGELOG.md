@@ -4,7 +4,33 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.120.0] · public engine qualification
+
+Known engine limitation: the public 0.120.0 project schema still rejects
+canonical `.nika` paths in `nika.yaml` arm bindings. The correction belongs to
+[engine #1692](https://github.com/supernovae-st/nika/pull/1692) and
+[Spec #345](https://github.com/supernovae-st/nika-spec/pull/345), for a later
+engine release. This extension aligns with the current public engine;
+the broader file-identity migration remains open.
+
+Lockstep source for engine 0.120.0. `ENGINE_PIN` is public release
+`v0.120.0`, with all four archive digests and source commit
+`f6155d1be080973500a4793e01dbec93faa451b4` anchored in the integration
+runner. `SPEC_PIN` is
+`e255dbf72336bcb98c8163cd8c087e023051a5ab`. Live programs are lowercase
+`.nika`. Marketplace publication remains a separate release receipt.
+
 ## [Unreleased] · the extension carries the product's name
+
+Live workflow files, language association, scanners, watchers, save
+defaults and deep links use lowercase `.nika`. Retired `.nika.yaml` /
+`.nika.yml` aliases are rejected at the filename belt. Project `nika.yaml`
+and runtime `.nika/` stay distinct. Historical entries below keep the old
+spelling on purpose. `SPEC_PIN` is `e255dbf72336bcb98c8163cd8c087e023051a5ab`;
+`design-tokens.generated.ts` was re-projected from that spec. The old-suffix
+ratchet now pins hit-count and matching-line hashes, so new teaching inside
+an allowlisted file fails.
+
 
 The extension identifier becomes `supernovae.nika` (package name `nika`,
 publisher unchanged). One law for every public name of the product: the

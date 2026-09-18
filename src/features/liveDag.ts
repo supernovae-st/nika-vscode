@@ -26,9 +26,10 @@ import { clientDagFor } from '../core/clientDag';
 import type { NikaService } from '../nikaService';
 import { parseRichWorkflow, topoKey } from '../workflowParser';
 import { isRunActive } from './runLive';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 const DEBOUNCE_MS = 250;
-const NIKA_FILE_RE = /\.nika\.ya?ml$/;
+
 
 export class LiveDag {
   private readonly disposables: Disposable[] = [];
@@ -58,7 +59,7 @@ export class LiveDag {
   /** The narrow trigger chain — every guard is a cheap sync check. */
   private tracks(doc: TextDocument): boolean {
     if (!this.panel.hasPanel) { return false; }
-    if (!NIKA_FILE_RE.test(doc.fileName)) { return false; }
+    if (!isCanonicalWorkflowPath(doc.fileName)) { return false; }
     if (window.activeTextEditor?.document !== doc) { return false; }
     if (isRunActive()) { return false; }
     // Only recompose the workflow the panel is SHOWING (follow-mode

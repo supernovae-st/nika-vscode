@@ -17,7 +17,7 @@ knowledge artifact is missing from this ledger (or points nowhere).
 | builtin tools register (invoke door · agent tools door · palette) | `nika catalog --tools --json` |
 | error-code pedagogy | `nika explain` |
 | graph facts (cost interval · when · fan-out inlays · cleanup units) | `nika inspect --format json` (graph_format 3 · nodes carry `kind: task \| finally` · the unwind attachment is a `finally` edge) · over the LSP, `nika/semanticDocument` serves the SAME document + spans |
-| new-workflow templates | `nika new` (embedded engine templates) |
+| new-workflow templates | `nika compile --list` (embedded engine skeletons) |
 | permits boundary (declare · tighten) | `nika check --infer-permits` |
 
 ## Lane B · build-time projection (spec YAML → generated · CI byte-gate)

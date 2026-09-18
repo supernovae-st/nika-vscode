@@ -14,17 +14,16 @@ import type { DiagnosticsController } from './diagnostics';
 import { NIKA_DIAG_SOURCE } from './diagnostics';
 import { checkLaneTruth } from '../core/statusTruth';
 import type { NikaService } from '../nikaService';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 const SELECTOR: vscode.DocumentSelector = [
   { language: 'nika' },
-  { pattern: '**/*.nika.yaml' },
+  { pattern: '**/*.nika' },
 ];
-
-const NIKA_FILE_RE = /\.nika\.ya?ml$/;
 
 function activeNikaUri(): vscode.Uri | undefined {
   const doc = vscode.window.activeTextEditor?.document;
-  return doc && (doc.languageId === 'nika' || NIKA_FILE_RE.test(doc.fileName)) ? doc.uri : undefined;
+  return doc && (doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName)) ? doc.uri : undefined;
 }
 
 export class NikaLanguageStatus implements vscode.Disposable {

@@ -103,7 +103,7 @@ function registerAdmittedTools(
       invoke: async (options) => {
         const input = (options.input ?? {}) as { filePath?: string };
         const doc = await docFor(input.filePath);
-        if (!doc) { return text('No workflow file found — pass filePath or open a .nika.yaml.'); }
+        if (!doc) { return text('No workflow file found — pass filePath or open a .nika.'); }
         const outcome = await service.checkDocument(doc);
         if (!outcome) { return text('The nika binary is not available (check capability missing).'); }
         if (outcome.report) { breatheAgentCheck(doc.uri.fsPath, countReportFindings(outcome.report)); }
@@ -122,7 +122,7 @@ function registerAdmittedTools(
       invoke: async (options) => {
         const input = (options.input ?? {}) as { filePath?: string };
         const doc = await docFor(input.filePath);
-        if (!doc) { return text('No workflow file found — pass filePath or open a .nika.yaml.'); }
+        if (!doc) { return text('No workflow file found — pass filePath or open a .nika.'); }
         const graph = await service.graphDocument(doc);
         return text(graph
           ? JSON.stringify(graph)

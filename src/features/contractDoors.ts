@@ -16,6 +16,7 @@ import {
 import { VERB_ITEMS } from '../core/verbPalette';
 import type { NikaVerb } from '../core/verbStarters.generated';
 import { parseRichWorkflow } from '../workflowParser';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 const VERB_GLYPH: Record<string, string> = Object.fromEntries(
   VERB_ITEMS.map((v) => [v.verb, v.glyph]),
@@ -31,8 +32,8 @@ async function applyFullRewrite(doc: vscode.TextDocument, next: string): Promise
 async function activeOrOpen(uri?: vscode.Uri): Promise<vscode.TextDocument | undefined> {
   if (uri) { return vscode.workspace.openTextDocument(uri); }
   const doc = vscode.window.activeTextEditor?.document;
-  if (doc && (doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName))) { return doc; }
-  void vscode.window.showInformationMessage('Nika: open a .nika.yaml file first.');
+  if (doc && (doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName))) { return doc; }
+  void vscode.window.showInformationMessage('Nika: open a .nika file first.');
   return undefined;
 }
 

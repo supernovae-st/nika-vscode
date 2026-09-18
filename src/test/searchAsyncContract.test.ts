@@ -48,7 +48,7 @@ describe('law 1 · one scan (the consolidation ratchet)', () => {
     // The door-ids idiom: the literal IS the constant — grep-able AND
     // pinned, so neither can drift alone.
     expect(text).toContain(needle);
-    expect(WORKFLOW_GLOB).toBe('**/*.nika.yaml');
+    expect(WORKFLOW_GLOB).toBe('**/*.nika');
   });
 });
 

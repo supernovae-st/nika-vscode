@@ -176,9 +176,9 @@ export class DagPanel implements vscode.Disposable {
   // restored panel (webview getState) starts with nothing surfaced, so a
   // poisoned persisted graph opens nothing until a real host push lands.
   /** Sub-workflow refs (⎘ chips · card actions) the shown graph carries. */
-  private readonly surfacedSubs = new SurfacedPaths('.nika.yaml');
+  private readonly surfacedSubs = new SurfacedPaths('.nika');
   /** Breadcrumb segment uris from the last dag:trail push. */
-  private readonly surfacedTrail = new SurfacedPaths('.nika.yaml');
+  private readonly surfacedTrail = new SurfacedPaths('.nika');
   /** Host paths of recorded artifacts pushed onto the cards. */
   private readonly surfacedArtifacts = new SurfacedPaths();
 
@@ -1184,7 +1184,7 @@ export class DagPanel implements vscode.Disposable {
     </span>
     <span id="dag-title"></span>
     <div class="tb-group">
-      <button id="btn-new" title="New workflow · a fresh page (untitled .nika.yaml)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
+      <button id="btn-new" title="New workflow · a fresh page (untitled .nika)"><span class="tb-ic">${IC.pageAdd}</span>New</button>
     </div>
     <div class="tb-group tb-lenses" role="group" aria-label="Lenses · one key each">
       <button id="btn-waves" title="Wave bands · topological execution levels (W)"><span class="tb-ic">${HI.lensWaves}</span><span class="tb-name">Waves</span><kbd>W</kbd></button>

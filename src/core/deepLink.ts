@@ -1,3 +1,5 @@
+import { isCanonicalWorkflowPath } from './workflowName';
+
 // deepLink.ts — the vscode:// deep-link gate (pure · fails-closed).
 //
 // `vscode://supernovae.nika/<action>?<query>` arrives from OUTSIDE
@@ -15,7 +17,7 @@
 //       leftover percent-escape (a double-encoded `%252e` still carries
 //       `%` after the platform's one decode and dies here), no glob or
 //       expansion metacharacter (the host feeds it to findFiles as a
-//       literal), exact `.nika.yaml` suffix (the structural belt);
+//       literal), exact lowercase `.nika` suffix (the structural belt);
 //   (c) fails-closed on ambiguity — a repeated key is a lie and kills
 //       the link; a present-but-invalid param kills the WHOLE link too
 //       (silently dropping it would open something the link never named);
@@ -84,8 +86,8 @@ function safeWorkflowPath(raw: string): boolean {
   // Canonical segments — no `.`, no `..`, no empty (`a//b` · trailing /).
   if (raw.split('/').some((s) => s === '' || s === '.' || s === '..')) { return false; }
   // Structural belt: every openable target is a workflow file — rejects
-  // `foo.nika.yaml.evil` lookalikes and arbitrary-file probing outright.
-  return raw.endsWith('.nika.yaml');
+  // `foo.nika.evil` lookalikes, retired aliases, and arbitrary-file probing.
+  return isCanonicalWorkflowPath(raw);
 }
 
 /** True iff `raw` may seed the search box — free text, bounded, printable. */

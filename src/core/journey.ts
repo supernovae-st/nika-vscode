@@ -12,7 +12,7 @@ export interface JourneyFacts {
   workspaceOpen: boolean;
   /** The repo carries the `nika init` scaffold (see [`SCAFFOLD_MARKERS`]). */
   equipped: boolean;
-  /** At least one `*.nika.yaml` lives in the workspace. */
+  /** At least one `*.nika` lives in the workspace. */
   hasWorkflows: boolean;
 }
 

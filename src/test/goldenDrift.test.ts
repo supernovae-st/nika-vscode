@@ -15,10 +15,10 @@ import {
 } from '../core/goldenDrift';
 
 const CHANGED = [
-  '✖ outputs drifted from the golden · probe.nika.yaml.golden.json',
+  '✖ outputs drifted from the golden · probe.nika.golden.json',
   '  ~ outputs.text · golden "mock(echo) · hello" → run "mock(echo) · goodbye"',
   '',
-  '  intended? re-baseline: nika test probe.nika.yaml --update',
+  '  intended? re-baseline: nika test probe.nika --update',
 ].join('\n');
 
 describe('parseGoldenDrift — the engine grammar verbatim', () => {
@@ -91,14 +91,14 @@ describe('matchTraceToWorkflow — the membership gate', () => {
   it('≥60% of the trace ids must live in the workflow; best overlap wins', () => {
     const picked = matchTraceToWorkflow(
       ['a', 'b', 'c'],
-      [wf('/x/one.nika.yaml', ['a', 'b', 'c', 'd']), wf('/x/two.nika.yaml', ['a'])],
+      [wf('/x/one.nika', ['a', 'b', 'c', 'd']), wf('/x/two.nika', ['a'])],
     );
-    expect(picked).toBe('/x/one.nika.yaml');
+    expect(picked).toBe('/x/one.nika');
   });
 
   it('below the gate — no match, no guess', () => {
-    expect(matchTraceToWorkflow(['a', 'b', 'c', 'd', 'e'], [wf('/x/w.nika.yaml', ['a', 'b'])]))
+    expect(matchTraceToWorkflow(['a', 'b', 'c', 'd', 'e'], [wf('/x/w.nika', ['a', 'b'])]))
       .toBeUndefined();
-    expect(matchTraceToWorkflow([], [wf('/x/w.nika.yaml', ['a'])])).toBeUndefined();
+    expect(matchTraceToWorkflow([], [wf('/x/w.nika', ['a'])])).toBeUndefined();
   });
 });

@@ -45,7 +45,7 @@ function runStream(args: string[]): { code: number; stdout: string } {
 }
 
 function tmpWorkflow(content: string): string {
-  const file = path.join(os.tmpdir(), `nika-runwire-${process.pid}-${Math.floor(performance.now() * 1000)}.nika.yaml`);
+  const file = path.join(os.tmpdir(), `nika-runwire-${process.pid}-${Math.floor(performance.now() * 1000)}.nika`);
   fs.writeFileSync(file, content, 'utf-8');
   return file;
 }

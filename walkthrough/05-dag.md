@@ -37,7 +37,7 @@ in one ranked list.
 
 ## Composition
 
-A task that calls another workflow (`invoke: workflow: ./sub.nika.yaml`)
+A task that calls another workflow (`invoke: workflow: ./sub.nika`)
 is a **door**: its card shows the child's shape (hover peeks the
 miniature) and its declared inputs as contract rows · the ⎘ chip opens
 the file, and a breadcrumb trail brings you back up.

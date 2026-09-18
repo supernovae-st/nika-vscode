@@ -16,9 +16,6 @@
 // exemplar (WorfBench arXiv:2410.07869: graph-shaped workflows are where
 // LLMs fail hardest — and Nika data refs do NOT imply ordering).
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import {
   collectFindings,
@@ -39,7 +36,6 @@ interface CorpusDoc extends RankDoc {
 }
 
 let corpusCache: { version: string; docs: CorpusDoc[] } | undefined;
-let tmpSeq = 0;
 
 /** Templates (full bodies) + examples (slug text · bodies on demand). */
 async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
@@ -48,19 +44,10 @@ async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
 
   const docs: CorpusDoc[] = [];
   for (const slug of await service.templatesList()) {
-    tmpSeq += 1;
-    const tmp = path.join(os.tmpdir(), `nika-gen-tpl-${process.pid}-${tmpSeq}.nika.yaml`);
-    const res = await service.newFromTemplate(slug, tmp);
-    let body: string;
-    try {
-      body = fs.readFileSync(tmp, 'utf-8');
-    } catch {
-      body = '';
-    }
-    fs.unlink(tmp, () => undefined);
-    if (res.code === 0 && body.length > 0) {
-      docs.push({ id: `template:${slug}`, kind: 'template', slug, text: `${slug}\n${body}`, body });
-    }
+    const compiled = await service.compilePreview(slug);
+    if (compiled?.status !== 'ready' || !compiled.candidate) { continue; }
+    const body = compiled.candidate;
+    docs.push({ id: `template:${slug}`, kind: 'template', slug, text: `${slug}\n${body}`, body });
   }
   for (const slug of await service.examplesList()) {
     docs.push({ id: `example:${slug}`, kind: 'example', slug, text: slug.replace(/[-_]/g, ' ') });
@@ -116,7 +103,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
   }
 
   const prompt = [
-    'You are authoring ONE Nika workflow (`*.nika.yaml` · the nine-key envelope of nika 0.109:',
+    'You are authoring ONE Nika workflow (`*.nika` · the nine-key envelope of nika 0.109:',
     'the first line is `nika: <kebab-id>` — the workflow\'s own name, never `v1`, no `workflow:` block;',
     'the only top-level keys are nika · model · inputs · const · secrets · permits · run · tasks · outputs).',
     '',
@@ -380,14 +367,14 @@ async function stageGeneratedWorkflow(
         validateInput: (v) => /^[a-z0-9-]+$/.test(v) ? null : 'Use lowercase letters, numbers, hyphens',
       });
       if (!name) { continue; }
-      const target = vscode.Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      const target = vscode.Uri.joinPath(folder.uri, `${name}.nika`);
       // Never silently clobber an existing workflow — the slug default
       // makes a collision easy and a raw fs.writeFile has no undo.
       let exists = false;
       try { await vscode.workspace.fs.stat(target); exists = true; } catch { /* free */ }
       if (exists) {
         const overwrite = await vscode.window.showWarningMessage(
-          `${name}.nika.yaml already exists — overwrite it?`,
+          `${name}.nika already exists — overwrite it?`,
           { modal: true },
           'Overwrite',
         );
@@ -398,7 +385,7 @@ async function stageGeneratedWorkflow(
       const saved = await vscode.workspace.openTextDocument(target);
       await vscode.window.showTextDocument(saved, { preview: false });
       // Diet: the opened file is the answer — flash only.
-      flashStatus(`$(check) ${name}.nika.yaml saved — it flows into check + DAG now`);
+      flashStatus(`$(check) ${name}.nika saved — it flows into check + DAG now`);
       return;
     }
 

@@ -23,7 +23,7 @@ import { RunDecorations } from '../features/runDecorations';
 import { traceStore } from '../core/traceStore';
 import { foldTrace } from '../core/traceFold';
 
-const file = '/fixture/decorations.nika.yaml';
+const file = '/fixture/decorations.nika';
 function editor(fsPath = file) {
   return {
     document: {
@@ -39,7 +39,7 @@ describe('run badges follow observation ownership in every visible editor', () =
   it('retracts actuals in both split editors, without repainting another workflow', () => {
     const left = editor();
     const right = editor();
-    const other = editor('/fixture/other.nika.yaml');
+    const other = editor('/fixture/other.nika');
     host.active = left;
     host.visible = [left, right, other];
     const badges = new RunDecorations();

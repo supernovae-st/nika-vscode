@@ -19,9 +19,10 @@ import { findInputsBlock, parseInputEntries } from '../core/inputsEdit';
 import { inputsRequired } from '../core/cliContract';
 import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 function usd(n: number): string {

@@ -18,8 +18,7 @@
 import * as vscode from 'vscode';
 import { parseRichWorkflow } from '../workflowParser';
 import { AUTHORITIES, scanRefs, type Authority } from '../core/expr';
-
-const NIKA_RE = /\.nika\.ya?ml$/;
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 /** The keys declared under each live authority (one home per spelling). */
 function declaredUnder(text: string): Record<Authority, string[]> {
@@ -37,7 +36,7 @@ export function registerSecretsDecor(context: vscode.ExtensionContext): void {
   });
 
   const paint = (ed: vscode.TextEditor | undefined): void => {
-    if (!ed || !NIKA_RE.test(ed.document.fileName)) { return; }
+    if (!ed || !isCanonicalWorkflowPath(ed.document.fileName)) { return; }
     const text = ed.document.getText();
     const declared = declaredUnder(text);
     const ranges: vscode.Range[] = [];

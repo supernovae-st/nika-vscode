@@ -9,7 +9,7 @@ import { clientDagFor } from '../core/clientDag';
 import { parseRichWorkflow, topoKey } from '../workflowParser';
 
 const SIGNATURE = readFileSync(
-  join(__dirname, 'fixtures', 'signature-demo.nika.yaml'),
+  join(__dirname, 'fixtures', 'signature-demo.nika'),
   'utf8',
 );
 
@@ -42,7 +42,7 @@ describe('topoKey — blind to prose, sensitive to topology', () => {
   });
 
   it('clientDagFor projects the signature shape (9 nodes, diamond, typed)', () => {
-    const g = clientDagFor(SIGNATURE, 'file:///demo.nika.yaml', 'demo');
+    const g = clientDagFor(SIGNATURE, 'file:///demo.nika', 'demo');
     expect(g.nodes).toHaveLength(9);
     expect(g.nodes.map((n) => n.id)).toContain('stats');
     // Both diamond arms exist — and each carries its graph_format 3 kind:

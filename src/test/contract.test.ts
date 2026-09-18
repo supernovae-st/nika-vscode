@@ -67,7 +67,7 @@ function run(args: string[], input?: string): { code: number; stdout: string; st
 }
 
 function tmpWorkflow(content: string): string {
-  const file = path.join(os.tmpdir(), `nika-contract-${process.pid}-${Math.floor(performance.now() * 1000)}.nika.yaml`);
+  const file = path.join(os.tmpdir(), `nika-contract-${process.pid}-${Math.floor(performance.now() * 1000)}.nika`);
   fs.writeFileSync(file, content, 'utf-8');
   return file;
 }
@@ -122,7 +122,14 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   it('the selected development binary meets the candidate support floor', () => {
     const version = run(['--version']);
     expect(version.code).toBe(0);
-    expect(engineSupportError(parseBinaryVersion(version.stdout))).toBeNull();
+    const parsed = parseBinaryVersion(version.stdout);
+    const pinText = fs.readFileSync(path.resolve(__dirname, '../../ENGINE_PIN'), 'utf8');
+    const candidateVersion = pinText.match(/^# CANDIDATE_VERSION: (\d+\.\d+\.\d+)$/m)?.[1];
+    if (candidateVersion) {
+      expect(parsed === candidateVersion || parsed?.startsWith(`${candidateVersion}-`)).toBe(true);
+    } else {
+      expect(engineSupportError(parsed)).toBeNull();
+    }
   });
 
   it.each([
@@ -154,7 +161,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // ships it (a binary without `check` is not a Nika binary). The
     // FIRST-SCREEN floor names the visible craft; the hidden doors are
     // proven by probe above (the belt caught the dark caps 2026-08-01).
-    for (const cmd of ['check', 'explain', 'try', 'new', 'trace']) {
+    for (const cmd of ['check', 'explain', 'try', 'compile', 'trace']) {
       expect(caps.commands.has(cmd), `--help must list ${cmd}`).toBe(true);
     }
     for (const cmd of ['inspect', 'spec']) {
@@ -468,22 +475,41 @@ tasks:
     }
   });
 
-  it('template set parses and every template passes its own check (own-corpus law)', () => {
-    const listing = run(['new', '?']);
-    const templates = parseTemplateSet(`${listing.stdout}\n${listing.stderr}`);
+  it('compile --list is nonempty and hello writes a check-clean file', () => {
+    const listing = run(['compile', '--list', '--json']);
+    const templates = parseTemplateSet(listing.stdout);
     expect(templates.length).toBeGreaterThan(0);
+    expect(templates).toContain('hello');
+    const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-hello.nika`);
+    try {
+      const created = run(['compile', 'hello', dest, '--json']);
+      const compiled = JSON.parse(created.stdout) as { status: string; written: string | null };
+      expect(compiled.status).toBe('ready');
+      expect(compiled.written).toBe(dest);
+      expect(fs.existsSync(dest)).toBe(true);
+      const checked = run(['check', dest, '--json']);
+      const report = parseCheckReport(checked.stdout)!;
+      expect(report.conformance, 'hello must be conformant').toHaveLength(0);
+    } finally {
+      fs.rmSync(dest, { force: true });
+    }
+  });
 
-    for (const slug of templates) {
-      const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-${slug}.nika.yaml`);
-      try {
-        const created = run(['new', slug, dest, '--force']);
-        expect(created.code, `new ${slug}`).toBe(EXIT.OK);
-        const checked = run(['check', dest, '--json']);
-        const report = parseCheckReport(checked.stdout)!;
-        expect(report.conformance, `template ${slug} must be conformant`).toHaveLength(0);
-      } finally {
-        fs.rmSync(dest, { force: true });
-      }
+  it('listed skeleton that needs answers writes no file and keeps prior bytes', () => {
+    const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-chain.nika`);
+    const prior = 'prior-bytes-must-survive\n';
+    fs.writeFileSync(dest, prior);
+    try {
+      const created = run(['compile', 'chain', dest, '--json']);
+      const compiled = JSON.parse(created.stdout) as {
+        status: string; written: string | null; questions: unknown[];
+      };
+      expect(compiled.status).toBe('incomplete');
+      expect(compiled.written).toBeNull();
+      expect(compiled.questions.length).toBeGreaterThan(0);
+      expect(fs.readFileSync(dest, 'utf8')).toBe(prior);
+    } finally {
+      fs.rmSync(dest, { force: true });
     }
   });
 
@@ -847,21 +873,21 @@ describe.skipIf(!BIN)('analysis agreement (real binary)', () => {
 // Capability-honest: older binaries answer exit 2 (unknown template)
 // and the extension's own routing covers; new binaries route natively.
 
-describe.skipIf(!BIN)('new intent routing (real binary)', () => {
-  it('routes a parallel intent or honestly declines (two generations)', () => {
-    const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika.yaml`);
+describe.skipIf(!BIN)('compile intent routing (real binary)', () => {
+  it('writes a skeleton or stays incomplete without inventing a file', () => {
+    const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika`);
     try {
-      const res = run(['new', 'summarize every item in parallel', dest, '--force']);
-      if (res.code === EXIT.OK) {
-        expect(res.stdout).toContain('routed intent');
-        // Own-corpus: whatever it routed to passes the oracle.
+      const res = run(['compile', 'summarize every item in parallel', dest, '--json']);
+      const compiled = JSON.parse(res.stdout) as { status: string; written: string | null };
+      if (compiled.status === 'ready' && compiled.written) {
+        expect(fs.existsSync(dest)).toBe(true);
         const check = run(['check', dest, '--json']);
         const report = parseCheckReport(check.stdout);
         expect(report?.conformance ?? []).toHaveLength(0);
       } else {
-        // Older binary: the wire-contract error, never a half-write.
-        expect(res.code).toBe(EXIT.FILE_FINDINGS);
-        expect(`${res.stdout}${res.stderr}`).toContain('embedded set:');
+        expect(compiled.status).toBe('incomplete');
+        expect(compiled.written).toBeNull();
+        expect(fs.existsSync(dest)).toBe(false);
       }
     } finally {
       fs.rmSync(dest, { force: true });

@@ -35,12 +35,12 @@ describe('classifyWorkflow — three stories, discriminated', () => {
 describe('groupWorkflows — partition by attention', () => {
   it('splits Findings · Clean · Unchecked and leads with unparseable outside any section', () => {
     const g = groupWorkflows([
-      row('/w/clean.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/broken.nika.yaml', { kind: 'unparseable', message: 'EISDIR' }, undefined),
-      row('/w/findings.nika.yaml', OK, { kind: 'findings', count: 2 }),
-      row('/w/unchecked.nika.yaml', OK, undefined),
+      row('/w/clean.nika', OK, { kind: 'clean' }),
+      row('/w/broken.nika', { kind: 'unparseable', message: 'EISDIR' }, undefined),
+      row('/w/findings.nika', OK, { kind: 'findings', count: 2 }),
+      row('/w/unchecked.nika', OK, undefined),
     ], true);
-    expect(g.unparseable.map((r) => r.fsPath)).toEqual(['/w/broken.nika.yaml']);
+    expect(g.unparseable.map((r) => r.fsPath)).toEqual(['/w/broken.nika']);
     expect(g.sections.map((s) => s.label)).toEqual(['Findings — 1', 'Clean — 1', 'Unchecked — 1']);
     expect(g.sections.map((s) => s.id)).toEqual([
       'workflows.section.findings', 'workflows.section.clean', 'workflows.section.unchecked',
@@ -50,8 +50,8 @@ describe('groupWorkflows — partition by attention', () => {
 
   it('an unchecked section says « engine off » when the service is down — never when it runs', () => {
     const rows = [
-      row('/w/a.nika.yaml', OK, undefined),
-      row('/w/b.nika.yaml', OK, { kind: 'clean' }),
+      row('/w/a.nika', OK, undefined),
+      row('/w/b.nika', OK, { kind: 'clean' }),
     ];
     const down = groupWorkflows(rows, false);
     const up = groupWorkflows(rows, true);
@@ -61,40 +61,40 @@ describe('groupWorkflows — partition by attention', () => {
 
   it('a lone section dissolves to flat — one answer needs no headline', () => {
     const g = groupWorkflows([
-      row('/w/b.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/a.nika.yaml', OK, { kind: 'clean' }),
+      row('/w/b.nika', OK, { kind: 'clean' }),
+      row('/w/a.nika', OK, { kind: 'clean' }),
     ], true);
     expect(g.sections).toEqual([]);
-    expect(g.flat.map((r) => r.fsPath)).toEqual(['/w/a.nika.yaml', '/w/b.nika.yaml']);
+    expect(g.flat.map((r) => r.fsPath)).toEqual(['/w/a.nika', '/w/b.nika']);
   });
 
   it('unparseable rows survive the flatten — they lead even over a lone section', () => {
     const g = groupWorkflows([
-      row('/w/ok.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/broken.nika.yaml', { kind: 'unparseable', message: 'ENOENT' }, undefined),
+      row('/w/ok.nika', OK, { kind: 'clean' }),
+      row('/w/broken.nika', { kind: 'unparseable', message: 'ENOENT' }, undefined),
     ], true);
     expect(g.unparseable).toHaveLength(1);
     expect(g.sections).toEqual([]);
-    expect(g.flat.map((r) => r.fsPath)).toEqual(['/w/ok.nika.yaml']);
+    expect(g.flat.map((r) => r.fsPath)).toEqual(['/w/ok.nika']);
   });
 
   it('sorts by path inside each section', () => {
     const g = groupWorkflows([
-      row('/w/z.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/a.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/m.nika.yaml', OK, { kind: 'findings', count: 1 }),
-      row('/w/b.nika.yaml', OK, { kind: 'findings', count: 3 }),
+      row('/w/z.nika', OK, { kind: 'clean' }),
+      row('/w/a.nika', OK, { kind: 'clean' }),
+      row('/w/m.nika', OK, { kind: 'findings', count: 1 }),
+      row('/w/b.nika', OK, { kind: 'findings', count: 3 }),
     ], true);
-    expect(g.sections[0].files.map((r) => r.fsPath)).toEqual(['/w/b.nika.yaml', '/w/m.nika.yaml']);
-    expect(g.sections[1].files.map((r) => r.fsPath)).toEqual(['/w/a.nika.yaml', '/w/z.nika.yaml']);
+    expect(g.sections[0].files.map((r) => r.fsPath)).toEqual(['/w/b.nika', '/w/m.nika']);
+    expect(g.sections[1].files.map((r) => r.fsPath)).toEqual(['/w/a.nika', '/w/z.nika']);
   });
 
   it('never loses nor duplicates a row across the partition', () => {
     const rows = [
-      row('/w/a.nika.yaml', OK, { kind: 'clean' }),
-      row('/w/b.nika.yaml', { kind: 'empty' }, undefined),
-      row('/w/c.nika.yaml', { kind: 'unparseable', message: 'x' }, undefined),
-      row('/w/d.nika.yaml', OK, { kind: 'findings', count: 1 }),
+      row('/w/a.nika', OK, { kind: 'clean' }),
+      row('/w/b.nika', { kind: 'empty' }, undefined),
+      row('/w/c.nika', { kind: 'unparseable', message: 'x' }, undefined),
+      row('/w/d.nika', OK, { kind: 'findings', count: 1 }),
     ];
     const g = groupWorkflows(rows, true);
     const seen = [
@@ -107,24 +107,24 @@ describe('groupWorkflows — partition by attention', () => {
 
   it('disambiguates colliding basenames with the relative folder', () => {
     const g = groupWorkflows([
-      row('/ws/flows/deploy.nika.yaml', OK, { kind: 'clean' }),
-      row('/ws/jobs/deploy.nika.yaml', OK, { kind: 'clean' }),
-      row('/ws/solo.nika.yaml', OK, { kind: 'clean' }),
+      row('/ws/flows/deploy.nika', OK, { kind: 'clean' }),
+      row('/ws/jobs/deploy.nika', OK, { kind: 'clean' }),
+      row('/ws/solo.nika', OK, { kind: 'clean' }),
     ], true);
     const hints = new Map(g.flat.map((r) => [r.fsPath, r.dirHint]));
-    expect(hints.get('/ws/flows/deploy.nika.yaml')).toBe('flows');
-    expect(hints.get('/ws/jobs/deploy.nika.yaml')).toBe('jobs');
-    expect(hints.get('/ws/solo.nika.yaml')).toBeUndefined();
+    expect(hints.get('/ws/flows/deploy.nika')).toBe('flows');
+    expect(hints.get('/ws/jobs/deploy.nika')).toBe('jobs');
+    expect(hints.get('/ws/solo.nika')).toBeUndefined();
   });
 
   it('a nested collision leaves the shallow twin hintless — the deep hint alone tells them apart', () => {
     const g = groupWorkflows([
-      row('/ws/deploy.nika.yaml', OK, { kind: 'clean' }),
-      row('/ws/deep/deploy.nika.yaml', OK, { kind: 'clean' }),
+      row('/ws/deploy.nika', OK, { kind: 'clean' }),
+      row('/ws/deep/deploy.nika', OK, { kind: 'clean' }),
     ], true);
     const hints = new Map(g.flat.map((r) => [r.fsPath, r.dirHint]));
-    expect(hints.get('/ws/deploy.nika.yaml')).toBeUndefined();
-    expect(hints.get('/ws/deep/deploy.nika.yaml')).toBe('deep');
+    expect(hints.get('/ws/deploy.nika')).toBeUndefined();
+    expect(hints.get('/ws/deep/deploy.nika')).toBe('deep');
   });
 
   it('empty input → nothing everywhere', () => {

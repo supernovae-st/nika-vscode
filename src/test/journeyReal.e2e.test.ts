@@ -85,7 +85,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
   it('run → journal → fold/outputs/ladder/report → fork rehydrates upstream', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-journey-'));
     try {
-      const wf = path.join(dir, 'journey.nika.yaml');
+      const wf = path.join(dir, 'journey.nika');
       fs.writeFileSync(wf, WORKFLOW);
 
       // ── Run 1: the flaky diamond (expected to FAIL after retries). ──
@@ -149,7 +149,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
   it('nika:prompt pauses with the QUESTION in the journal; --answer resumes and completes', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-pause-'));
     try {
-      const wf = path.join(dir, 'gate.nika.yaml');
+      const wf = path.join(dir, 'gate.nika');
       fs.writeFileSync(wf, [
         'nika: pause-e2e',
         'permits:',
@@ -197,7 +197,7 @@ describe.skipIf(!BIN || !speaksGen1(BIN))('the journey on the real engine', () =
       const elsewhere = path.join(base, 'elsewhere');
       fs.mkdirSync(wfDir);
       fs.mkdirSync(elsewhere);
-      const wf = path.join(wfDir, 'probe.nika.yaml');
+      const wf = path.join(wfDir, 'probe.nika');
       fs.writeFileSync(wf, 'nika: cwd-probe\npermits:\n  exec: ["true"]\ntasks:\n  a:\n    exec:\n      command: ["true"]\n');
       run(BIN!, elsewhere, ['run', wf, '--json', '--color', 'never']);
       const here = traceFiles(elsewhere).length;

@@ -145,11 +145,11 @@ describe('classifyWorkflow over real parses', () => {
   it('a failed read classifies unparseable and keeps the message', () => {
     const parse = classifyWorkflow<never>({
       kind: 'unreadable',
-      message: "EACCES: permission denied, open '/w/x.nika.yaml'",
+      message: "EACCES: permission denied, open '/w/x.nika'",
     });
     expect(parse).toEqual({
       kind: 'unparseable',
-      message: "EACCES: permission denied, open '/w/x.nika.yaml'",
+      message: "EACCES: permission denied, open '/w/x.nika'",
     });
   });
 });

@@ -113,15 +113,15 @@ describe('computeDirty (direct + downstream cone)', () => {
 describe('canvas-state sidecar (pure parse/merge)', () => {
   it('roundtrips through merge and strict-parses', () => {
     const hashes = taskFingerprints(WF);
-    const state = mergeRunHashes(undefined, 'probe.nika.yaml', hashes, '2026-07-05T05:00:00Z');
+    const state = mergeRunHashes(undefined, 'probe.nika', hashes, '2026-07-05T05:00:00Z');
     const parsed = parseCanvasState(JSON.stringify(state));
-    expect(parsed?.workflows['probe.nika.yaml']?.taskHashes.seed).toBe(hashes.get('seed'));
+    expect(parsed?.workflows['probe.nika']?.taskHashes.seed).toBe(hashes.get('seed'));
   });
 
   it('merge preserves earlier successes not in this run (partial-failure runs)', () => {
-    const first = mergeRunHashes(undefined, 'w.nika.yaml', new Map([['a', '1'], ['b', '2']]), 't1');
-    const second = mergeRunHashes(first, 'w.nika.yaml', new Map([['b', '3']]), 't2');
-    expect(second.workflows['w.nika.yaml'].taskHashes).toEqual({ a: '1', b: '3' });
+    const first = mergeRunHashes(undefined, 'w.nika', new Map([['a', '1'], ['b', '2']]), 't1');
+    const second = mergeRunHashes(first, 'w.nika', new Map([['b', '3']]), 't2');
+    expect(second.workflows['w.nika'].taskHashes).toEqual({ a: '1', b: '3' });
   });
 
   it('rejects corrupt or foreign shapes instead of guessing', () => {

@@ -28,7 +28,7 @@ function fakeIO(paths: () => string[], mtimes: () => Record<string, number>): Sc
 
 describe('the provider constants', () => {
   it('the glob is the one literal and the cap dominates every consumer', () => {
-    expect(WORKFLOW_GLOB).toBe('**/*.nika.yaml');
+    expect(WORKFLOW_GLOB).toBe('**/*.nika');
     // 500 fork lookup · 301 lint probe · 300 baseline · 200 explorer ·
     // 100 tree · 50 symbols · 30 welcome — the provider must see at
     // least as far as the widest consumer asks.

@@ -40,6 +40,7 @@ import {
   reconstructActual,
 } from '../core/goldenDrift';
 import type { RunModel } from '../core/traceFold';
+import { WORKFLOW_GLOB, WORKFLOW_GOLDEN_GLOB } from '../core/workflowScan';
 
 const goldenOf = (fsPath: string): string => `${fsPath}.golden.json`;
 
@@ -370,13 +371,17 @@ export function registerTestExplorer(
     { dispose: () => { for (const t of publishTimers.values()) { clearTimeout(t); } } },
   );
 
-  // Workflows and goldens appear/vanish — re-discover (covers both:
-  // the glob suffix matches `.nika.yaml` and `.nika.yaml.golden.json`).
-  const watcher = vscode.workspace.createFileSystemWatcher('**/*.nika.yaml*');
+  // Workflows and goldens appear/vanish — re-discover. Golden sidecars
+  // stay an explicit glob so they are never classified as programs.
+  const watcher = vscode.workspace.createFileSystemWatcher(WORKFLOW_GLOB);
+  const goldenWatcher = vscode.workspace.createFileSystemWatcher(WORKFLOW_GOLDEN_GLOB);
   context.subscriptions.push(
     watcher,
+    goldenWatcher,
     watcher.onDidCreate(() => { void discover(); }),
     watcher.onDidDelete(() => { void discover(); }),
+    goldenWatcher.onDidCreate(() => { void discover(); }),
+    goldenWatcher.onDidDelete(() => { void discover(); }),
   );
 
   return ctrl;

@@ -19,7 +19,7 @@
 // Pure decision — the shell supplies the probes and opens the winner.
 
 export interface DagTargetProbe {
-  /** The focused editor is a `*.nika.yaml` document. */
+  /** The focused editor is a `*.nika` document. */
   activeIsWorkflow: boolean;
   /** The uri the canvas currently shows, when it holds one. */
   panelHeld?: string;

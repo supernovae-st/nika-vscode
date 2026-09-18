@@ -13,7 +13,7 @@ import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from '../core/demoWo
 
 describe('demoWorkflow — the sandbox const', () => {
   it('is the four-wave hello-canvas on mock/echo', () => {
-    expect(DEMO_WORKFLOW_FILE).toBe('hello-canvas.nika.yaml');
+    expect(DEMO_WORKFLOW_FILE).toBe('hello-canvas.nika');
     // The nine-key envelope (nika 0.109): the identity line IS the name —
     // no `v1`, no `workflow:` block; the description is the comment above.
     expect(DEMO_WORKFLOW).toMatch(/^nika: hello-canvas$/m);

@@ -54,7 +54,7 @@ describe.skipIf(!BIN)('nika/semanticDocument × the real server', () => {
       if (fmt === undefined) { return; }
       session.notify('initialized', {});
 
-      const uri = 'file:///probe/oracle.nika.yaml';
+      const uri = 'file:///probe/oracle.nika';
       session.notify('textDocument/didOpen', {
         textDocument: { uri, languageId: 'nika', version: 1, text: DOC },
       });
