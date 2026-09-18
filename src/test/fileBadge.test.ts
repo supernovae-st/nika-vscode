@@ -12,6 +12,7 @@ describe('the Explorer badge matcher', () => {
     expect(isNikaWorkflowPath('/W/DAILY.NIKA.YAML')).toBe(false);
     expect(isNikaWorkflowPath('/W/DAILY.NIKA')).toBe(false);
     expect(isNikaWorkflowPath('/w/settings.yaml')).toBe(false);
+    expect(isNikaWorkflowPath('/w/nika.yaml')).toBe(false);
     expect(isNikaWorkflowPath('/w/nika.yaml.bak')).toBe(false);
     expect(isNikaWorkflowPath('/w/x.nikayaml')).toBe(false);
     expect(isNikaWorkflowPath('/w/README.md')).toBe(false);

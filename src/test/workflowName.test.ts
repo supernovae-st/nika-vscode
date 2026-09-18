@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  PROJECT_FILE,
   WORKFLOW_GLOB,
   WORKFLOW_GOLDEN_GLOB,
   WORKFLOW_SUFFIX,
@@ -79,6 +80,16 @@ describe('canonical naming contract', () => {
     expect(isLegacyWorkflowPath('foo.nika.yml')).toBe(true);
     expect(isLegacyWorkflowPath('foo.nika')).toBe(false);
     expect(isLegacyWorkflowPath('nika.yaml')).toBe(false);
+  });
+
+  it('treats nika.yaml as the project file, never a program, regardless of bytes', () => {
+    expect(PROJECT_FILE).toBe('nika.yaml');
+    expect(WORKFLOW_GLOB.includes(PROJECT_FILE)).toBe(false);
+    expect(isCanonicalWorkflowPath(PROJECT_FILE)).toBe(false);
+    expect(isCanonicalWorkflowFilename(PROJECT_FILE)).toBe(false);
+    expect(isCanonicalWorkflowPath(`/repo/${PROJECT_FILE}`)).toBe(false);
+    expect(isLegacyWorkflowPath(PROJECT_FILE)).toBe(false);
+    expect(workflowLogicalStem(PROJECT_FILE)).toBeUndefined();
   });
 
   it('is lexical: a directory form is never a program name', () => {
