@@ -1,7 +1,4 @@
-# CANDIDATE_VERSION: 0.120.0
-# The supernovae-st/nika commit this source is proven against until the
-# public v0.120.0 tag exists. A release tag is DOWNLOADED; a commit sha
-# is BUILT from source. Never write a tag that does not exist.
-19d701e749d3587352f3ea17f9885465db2c3478
-
+# The public supernovae-st/nika release this extension is proven against.
+# Its archive digests and source commit are anchored in scripts/pinned-engine.mjs.
+v0.120.0
 
