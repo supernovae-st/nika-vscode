@@ -14,7 +14,6 @@ import {
   languages,
   QuickInputButtons,
   QuickPickItemKind,
-  ThemeIcon,
   Selection,
   StatusBarAlignment,
   TextEditorRevealType,
@@ -3886,7 +3885,8 @@ function activateTrusted(context: ExtensionContext): void {
       }
       // The rich vitrine (0.107): slug · verb glyphs · title, grouped
       // as the shelf prints them; ENTER runs the pick OFFLINE in the
-      // terminal (try's default seat), the side button reads the file.
+      // terminal (`nika try <slug>`). Try-gallery slugs are not compile
+      // skeletons, so there is no read-source button.
       type Item = QuickPickItem & { slug?: string };
       const items: Item[] = [];
       let group = '';
@@ -3900,7 +3900,6 @@ function activateTrusted(context: ExtensionContext): void {
           label: `${r.glyphs ? `${r.glyphs} ` : ''}${r.slug}`,
           description: 'offline · zero keys',
           detail: r.title,
-          buttons: [{ iconPath: new ThemeIcon('go-to-file'), tooltip: 'Read the file (take it with nika compile)' }],
         });
       }
       const qp = window.createQuickPick<Item>();
@@ -3908,10 +3907,6 @@ function activateTrusted(context: ExtensionContext): void {
       qp.placeholder = 'pick one · nika try <slug> (mock rehearsal · zero keys · zero flags)';
       qp.items = items;
       qp.matchOnDetail = true;
-      qp.onDidTriggerItemButton(async (e) => {
-        qp.hide();
-        if (e.item.slug) { await openNikaDoc('example', e.item.slug, 'yaml'); }
-      });
       qp.onDidAccept(() => {
         const picked = qp.selectedItems[0];
         qp.hide();

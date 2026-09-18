@@ -41,7 +41,7 @@ export class NikaDocProvider implements vscode.TextDocumentContentProvider {
         return (await this.service.schemaText()) ?? this.missing('schema');
       case 'example':
         return (await this.service.exampleShow(arg))
-          ?? this.missing(`compile ${arg} (try-gallery slugs are not compile skeletons)`);
+          ?? this.missing(`example ${arg} (try-gallery slugs have no source-read door)`);
       case 'explain':
         return (await this.service.explain(arg)) ?? this.missing(`explain ${arg}`);
       case 'report': {
