@@ -26,7 +26,7 @@ vi.mock('vscode', () => ({
 }));
 vi.mock('../core/binaryVersion', async (original) => ({
   ...await original<typeof import('../core/binaryVersion')>(),
-  probeBinaryVersion: vi.fn(async () => '0.118.2'),
+  probeBinaryVersion: vi.fn(async () => '0.120.1'),
 }));
 vi.mock('../core/spawn', async (original) => ({
   ...await original<typeof import('../core/spawn')>(),
@@ -40,7 +40,7 @@ import { registerStation } from '../features/stationView';
 import { NikaStatusBar } from '../features/statusBar';
 
 const doctor = { summary: { ok: 0, warn: 0, fail: 1 }, findings: [] };
-const deep = { context_version: 1, identity: { version: '0.118.2' } };
+const deep = { context_version: 1, identity: { version: '0.120.1' } };
 const reply = (value: unknown): CliResult => ({ code: 0, stdout: JSON.stringify(value), stderr: '' });
 let subscriptions: Disposable[];
 
@@ -178,7 +178,7 @@ describe('Station refresh is driven by inputs, not its own observations', () => 
     const diagnose = vi.spyOn(service, 'doctorJson');
     mount(service);
     await vi.advanceTimersByTimeAsync(1200);
-    expect(service.deep?.engineVersion).toBe('0.118.2');
+    expect(service.deep?.engineVersion).toBe('0.120.1');
     expect(service.doctorFails).toBe(1);
     expect(observed).toContain(true);
     expect(observed.at(-1)).toBe(false);

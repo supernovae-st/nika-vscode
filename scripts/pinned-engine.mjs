@@ -29,6 +29,15 @@ const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
 // SHA256SUMS too: both its digest and the binary's build commit must still
 // match this reviewed source anchor. Every ENGINE_PIN bump adds one receipt.
 const RELEASE_RECEIPTS = Object.freeze({
+  'v0.120.1': Object.freeze({
+    commit: '9d554c84c8a63144c36e7245fee641e6bfc7349f',
+    assets: Object.freeze({
+      'nika-linux-arm64-0.120.1.tar.gz': 'cd3354a7c3555f59bbd6781e2a1e6d806bc2f537bdd41d63e4346e4803d3654b',
+      'nika-linux-x64-0.120.1.tar.gz': '403112258264381efbb3200fc067742123e7fcccdc877301fc70f974439b0193',
+      'nika-macos-arm64-0.120.1.tar.gz': '10e51b8d1dfdd4b5aa09eefb2c0f9ea7ba82896db8e2f0c3f457c00f8816b5fe',
+      'nika-macos-x64-0.120.1.tar.gz': 'cf450c2a58d98d6ec14a93f9f145dbcd5d1bf071b2cc9d2dc1f4731774b13517',
+    }),
+  }),
   'v0.120.0': Object.freeze({
     commit: 'f6155d1be080973500a4793e01dbec93faa451b4',
     assets: Object.freeze({
