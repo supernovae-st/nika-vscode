@@ -552,7 +552,7 @@ network: every green close settles a ✓ wave through the cards.*
   every recorded run in the flight recorder doubles as that checkpoint ·
   `nika trace show <run>` re-renders any of them in the terminal ·
   scaffold from the same embedded corpus the snippets are tested against
-  (`nika try` · `nika new <template> <file>`) · any code explained:
+  (`nika try` · `nika compile <template> <file>`) · any code explained:
   `nika explain NIKA-XXXX`
 
 ### Agent-native
@@ -611,7 +611,7 @@ network: every green close settles a ✓ wave through the cards.*
   retired command spelling.
 - **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
   are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
-  `nika try` · `nika new`) · nothing duplicated, nothing drifts
+  `nika try` · `nika compile --list`) · nothing duplicated, nothing drifts
 - **Binary auto-download** · optional (`nika.server.autoDownload`) · SHA256
   verified · zero telemetry anywhere
 

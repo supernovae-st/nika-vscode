@@ -3349,7 +3349,7 @@ function activateTrusted(context: ExtensionContext): void {
         }
         // The engine could not write it — fall to the blank page rather
         // than a dead end (same fallback the pre-wizard flow had).
-        log('WARN', `nika new failed (${res.code}): ${res.stderr || res.stdout}`);
+        log('WARN', `nika compile failed (${res.code}): ${res.stderr || res.stdout}`);
         starterPick = { kind: 'blank' };
       }
 
@@ -3888,7 +3888,7 @@ function activateTrusted(context: ExtensionContext): void {
           label: `${r.glyphs ? `${r.glyphs} ` : ''}${r.slug}`,
           description: 'offline · zero keys',
           detail: r.title,
-          buttons: [{ iconPath: new ThemeIcon('go-to-file'), tooltip: 'Read the file (take it with nika new)' }],
+          buttons: [{ iconPath: new ThemeIcon('go-to-file'), tooltip: 'Read the file (take it with nika compile)' }],
         });
       }
       const qp = window.createQuickPick<Item>();

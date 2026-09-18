@@ -1016,7 +1016,8 @@ export function criticalPath(
 //   unknown template `?` — embedded set: agent-loop · chain · etl-state · …
 
 export function parseTemplateSet(text: string): string[] {
-  const tail = text.match(/embedded set:\s*([^\n]+)/i)?.[1];
+  const tail = text.match(/embedded set:\s*([^\n]+)/i)?.[1]
+    ?? text.match(/exact skeletons\s*·\s*([^\n]+)/i)?.[1];
   if (!tail) { return []; }
   return tail
     .split(/[·,]/)

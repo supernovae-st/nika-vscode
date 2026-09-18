@@ -30,7 +30,7 @@ Options:
 `;
 
 const FIRST_CONTACT_HELP = `nika             a plan from a file
-nika new hello   one file that runs on this machine
+nika compile hello hello.nika   one file that runs on this machine
 nika run         run a file
 nika check       audit a file before it runs
 nika doctor      PATH, model, sandbox
@@ -49,7 +49,7 @@ describe('capabilities', () => {
 
   it('parses the 0.116 first-contact mirror without treating bare nika as a command', () => {
     expect([...parseHelpCommands(FIRST_CONTACT_HELP)]).toEqual([
-      'new', 'run', 'check', 'doctor',
+      'compile', 'run', 'check', 'doctor',
     ]);
   });
 

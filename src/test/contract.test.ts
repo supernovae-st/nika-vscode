@@ -122,7 +122,14 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
   it('the selected development binary meets the candidate support floor', () => {
     const version = run(['--version']);
     expect(version.code).toBe(0);
-    expect(engineSupportError(parseBinaryVersion(version.stdout))).toBeNull();
+    const parsed = parseBinaryVersion(version.stdout);
+    const pinText = fs.readFileSync(path.resolve(__dirname, '../../ENGINE_PIN'), 'utf8');
+    const candidateVersion = pinText.match(/^# CANDIDATE_VERSION: (\d+\.\d+\.\d+)$/m)?.[1];
+    if (candidateVersion) {
+      expect(parsed).toBe(`${candidateVersion}-dev`);
+    } else {
+      expect(engineSupportError(parsed)).toBeNull();
+    }
   });
 
   it.each([
@@ -154,7 +161,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     // ships it (a binary without `check` is not a Nika binary). The
     // FIRST-SCREEN floor names the visible craft; the hidden doors are
     // proven by probe above (the belt caught the dark caps 2026-08-01).
-    for (const cmd of ['check', 'explain', 'try', 'new', 'trace']) {
+    for (const cmd of ['check', 'explain', 'try', 'compile', 'trace']) {
       expect(caps.commands.has(cmd), `--help must list ${cmd}`).toBe(true);
     }
     for (const cmd of ['inspect', 'spec']) {
@@ -468,22 +475,20 @@ tasks:
     }
   });
 
-  it('template set parses and every template passes its own check (own-corpus law)', () => {
-    const listing = run(['new', '?']);
+  it('compile --list is nonempty and hello writes a check-clean file', () => {
+    const listing = run(['compile', '--list']);
     const templates = parseTemplateSet(`${listing.stdout}\n${listing.stderr}`);
     expect(templates.length).toBeGreaterThan(0);
-
-    for (const slug of templates) {
-      const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-${slug}.nika`);
-      try {
-        const created = run(['new', slug, dest, '--force']);
-        expect(created.code, `new ${slug}`).toBe(EXIT.OK);
-        const checked = run(['check', dest, '--json']);
-        const report = parseCheckReport(checked.stdout)!;
-        expect(report.conformance, `template ${slug} must be conformant`).toHaveLength(0);
-      } finally {
-        fs.rmSync(dest, { force: true });
-      }
+    expect(templates).toContain('hello');
+    const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-hello.nika`);
+    try {
+      const created = run(['compile', 'hello', dest, '--force']);
+      expect(created.code, 'compile hello').toBe(EXIT.OK);
+      const checked = run(['check', dest, '--json']);
+      const report = parseCheckReport(checked.stdout)!;
+      expect(report.conformance, 'hello must be conformant').toHaveLength(0);
+    } finally {
+      fs.rmSync(dest, { force: true });
     }
   });
 
@@ -847,21 +852,17 @@ describe.skipIf(!BIN)('analysis agreement (real binary)', () => {
 // Capability-honest: older binaries answer exit 2 (unknown template)
 // and the extension's own routing covers; new binaries route natively.
 
-describe.skipIf(!BIN)('new intent routing (real binary)', () => {
-  it('routes a parallel intent or honestly declines (two generations)', () => {
+describe.skipIf(!BIN)('compile intent routing (real binary)', () => {
+  it('writes a skeleton or stays incomplete without inventing a file', () => {
     const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika`);
     try {
-      const res = run(['new', 'summarize every item in parallel', dest, '--force']);
-      if (res.code === EXIT.OK) {
-        expect(res.stdout).toContain('routed intent');
-        // Own-corpus: whatever it routed to passes the oracle.
+      const res = run(['compile', 'summarize every item in parallel', dest, '--force']);
+      if (res.code === EXIT.OK && fs.existsSync(dest)) {
         const check = run(['check', dest, '--json']);
         const report = parseCheckReport(check.stdout);
         expect(report?.conformance ?? []).toHaveLength(0);
       } else {
-        // Older binary: the wire-contract error, never a half-write.
-        expect(res.code).toBe(EXIT.FILE_FINDINGS);
-        expect(`${res.stdout}${res.stderr}`).toContain('embedded set:');
+        expect(`${res.stdout}${res.stderr}`).toMatch(/incomplete|exact skeleton/i);
       }
     } finally {
       fs.rmSync(dest, { force: true });

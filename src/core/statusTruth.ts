@@ -259,7 +259,7 @@ export function statusTruth(t: TruthInput): Truth {
   // honest action (upgrade the engine) — the Station's grammar row stays
   // the deep surface.
   if (t.gen1 === false) {
-    tooltip.unshift('engine speaks the previous grammar generation (nika: v1 · workflow:) — this extension writes the 0.109 envelope; upgrade the engine (brew upgrade nika) or scaffold with `nika new`');
+    tooltip.unshift('engine speaks the previous grammar generation (nika: v1 · workflow:) — this extension writes the 0.109 envelope; upgrade the engine (brew upgrade nika) or scaffold with `nika compile`');
   }
 
   return {

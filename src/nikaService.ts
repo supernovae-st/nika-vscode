@@ -692,13 +692,11 @@ export class NikaService {
 
   async exampleShow(slug: string): Promise<string | undefined> {
     if (!this.caps.examples) { return undefined; }
-    // V5: the read IS the take — materialize into a scratch dir via the
-    // positional `nika new <slug> <dest>` (verbatim body · ingredients
-    // land beside it), read the body, remove the scratch whole.
+    // Materialize a skeleton into a scratch dir via `nika compile`.
     const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'nika-ext-example-'));
     try {
       const dest = path.join(dir, `${slug.replace(/\//g, '-')}.nika`);
-      const res = await this.runCli(['new', slug, dest, '--force']);
+      const res = await this.runCli(['compile', slug, dest, '--force']);
       if (res.code !== EXIT.OK) { return undefined; }
       return await fs.promises.readFile(dest, 'utf8');
     } catch {
@@ -708,12 +706,10 @@ export class NikaService {
     }
   }
 
-  /** Embedded template slugs — `nika new '?'` answers with the set
-   * (the V5 positional discovery query · the `embedded set:` line is
-   * the wire contract and survived the `--from` death). */
+  /** Embedded skeleton slugs — `nika compile --list`. */
   async templatesList(): Promise<string[]> {
     if (!this.caps.newTemplate) { return []; }
-    const res = await this.runCli(['new', '?']);
+    const res = await this.runCli(['compile', '--list']);
     return parseTemplateSet(`${res.stdout}\n${res.stderr}`);
   }
 
@@ -746,7 +742,6 @@ export class NikaService {
   }
 
   async newFromTemplate(slug: string, destFsPath: string): Promise<CliResult> {
-    // V5: `nika new` takes a POSITIONAL template/slug/intent.
-    return this.runCli(['new', slug, destFsPath]);
+    return this.runCli(['compile', slug, destFsPath, '--force']);
   }
 }
