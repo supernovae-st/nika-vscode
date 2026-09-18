@@ -126,7 +126,7 @@ describe.skipIf(!BIN)('engine contract (real binary)', () => {
     const pinText = fs.readFileSync(path.resolve(__dirname, '../../ENGINE_PIN'), 'utf8');
     const candidateVersion = pinText.match(/^# CANDIDATE_VERSION: (\d+\.\d+\.\d+)$/m)?.[1];
     if (candidateVersion) {
-      expect(parsed).toBe(`${candidateVersion}-dev`);
+      expect(parsed === candidateVersion || parsed?.startsWith(`${candidateVersion}-`)).toBe(true);
     } else {
       expect(engineSupportError(parsed)).toBeNull();
     }
@@ -476,20 +476,36 @@ tasks:
   });
 
   it('compile --list is nonempty and hello writes a check-clean file', () => {
-    const listing = run(['compile', '--list']);
-    const templates = parseTemplateSet(`${listing.stdout}\n${listing.stderr}`);
+    const listing = run(['compile', '--list', '--json']);
+    const templates = parseTemplateSet(listing.stdout);
     expect(templates.length).toBeGreaterThan(0);
     expect(templates).toContain('hello');
     const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-hello.nika`);
     try {
-      const created = run(['compile', 'hello', dest, '--force']);
-      expect(created.code, 'compile hello').toBe(EXIT.OK);
+      const created = run(['compile', 'hello', dest, '--json']);
+      const compiled = JSON.parse(created.stdout) as { status: string; written: string | null };
+      expect(compiled.status).toBe('ready');
+      expect(compiled.written).toBe(dest);
+      expect(fs.existsSync(dest)).toBe(true);
       const checked = run(['check', dest, '--json']);
       const report = parseCheckReport(checked.stdout)!;
       expect(report.conformance, 'hello must be conformant').toHaveLength(0);
     } finally {
       fs.rmSync(dest, { force: true });
     }
+  });
+
+  it('listed skeleton that needs answers writes no file', () => {
+    const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-chain.nika`);
+    fs.rmSync(dest, { force: true });
+    const created = run(['compile', 'chain', dest, '--json']);
+    const compiled = JSON.parse(created.stdout) as {
+      status: string; written: string | null; questions: unknown[];
+    };
+    expect(compiled.status).toBe('incomplete');
+    expect(compiled.written).toBeNull();
+    expect(compiled.questions.length).toBeGreaterThan(0);
+    expect(fs.existsSync(dest)).toBe(false);
   });
 
   it('schema + canon project into the full intel (the completion vocabulary)', async () => {
@@ -856,13 +872,17 @@ describe.skipIf(!BIN)('compile intent routing (real binary)', () => {
   it('writes a skeleton or stays incomplete without inventing a file', () => {
     const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika`);
     try {
-      const res = run(['compile', 'summarize every item in parallel', dest, '--force']);
-      if (res.code === EXIT.OK && fs.existsSync(dest)) {
+      const res = run(['compile', 'summarize every item in parallel', dest, '--json']);
+      const compiled = JSON.parse(res.stdout) as { status: string; written: string | null };
+      if (compiled.status === 'ready' && compiled.written) {
+        expect(fs.existsSync(dest)).toBe(true);
         const check = run(['check', dest, '--json']);
         const report = parseCheckReport(check.stdout);
         expect(report?.conformance ?? []).toHaveLength(0);
       } else {
-        expect(`${res.stdout}${res.stderr}`).toMatch(/incomplete|exact skeleton/i);
+        expect(compiled.status).toBe('incomplete');
+        expect(compiled.written).toBeNull();
+        expect(fs.existsSync(dest)).toBe(false);
       }
     } finally {
       fs.rmSync(dest, { force: true });

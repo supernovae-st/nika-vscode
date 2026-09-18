@@ -16,9 +16,6 @@
 // exemplar (WorfBench arXiv:2410.07869: graph-shaped workflows are where
 // LLMs fail hardest — and Nika data refs do NOT imply ordering).
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import {
   collectFindings,
@@ -39,7 +36,6 @@ interface CorpusDoc extends RankDoc {
 }
 
 let corpusCache: { version: string; docs: CorpusDoc[] } | undefined;
-let tmpSeq = 0;
 
 /** Templates (full bodies) + examples (slug text · bodies on demand). */
 async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
@@ -48,19 +44,10 @@ async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
 
   const docs: CorpusDoc[] = [];
   for (const slug of await service.templatesList()) {
-    tmpSeq += 1;
-    const tmp = path.join(os.tmpdir(), `nika-gen-tpl-${process.pid}-${tmpSeq}.nika`);
-    const res = await service.newFromTemplate(slug, tmp);
-    let body: string;
-    try {
-      body = fs.readFileSync(tmp, 'utf-8');
-    } catch {
-      body = '';
-    }
-    fs.unlink(tmp, () => undefined);
-    if (res.code === 0 && body.length > 0) {
-      docs.push({ id: `template:${slug}`, kind: 'template', slug, text: `${slug}\n${body}`, body });
-    }
+    const compiled = await service.compilePreview(slug);
+    if (compiled?.status !== 'ready' || !compiled.candidate) { continue; }
+    const body = compiled.candidate;
+    docs.push({ id: `template:${slug}`, kind: 'template', slug, text: `${slug}\n${body}`, body });
   }
   for (const slug of await service.examplesList()) {
     docs.push({ id: `example:${slug}`, kind: 'example', slug, text: slug.replace(/[-_]/g, ' ') });

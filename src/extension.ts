@@ -139,7 +139,7 @@ import { registerMcpDefinitionProvider } from './features/mcpProvider';
 import { registerGenerate } from './features/generate';
 import { buildAuthoringPrompt } from './core/aiPrompt';
 import {
-  collectFindings, countReportFindings, inputsRequired, parseCheckReport,
+  collectFindings, countReportFindings, inputsRequired, parseCheckReport, parseCompileResult,
 } from './core/cliContract';
 import { WORKFLOWS_SEARCH_CAP } from './core/searchCatalog';
 import { auditByTask } from './core/auditByTask';
@@ -3341,16 +3341,31 @@ function activateTrusted(context: ExtensionContext): void {
       }
 
       if (starterPick.kind === 'template') {
+        try {
+          await workspace.fs.delete(filePath);
+        } catch {
+          // dest did not exist
+        }
         const res = await service.newFromTemplate(starterPick.slug, filePath.fsPath);
-        if (res.code === 0) {
+        const compiled = parseCompileResult(res.stdout);
+        if (compiled?.status === 'ready' && compiled.written) {
           const doc = await workspace.openTextDocument(filePath);
           await window.showTextDocument(doc);
           return;
         }
-        // The engine could not write it — fall to the blank page rather
-        // than a dead end (same fallback the pre-wizard flow had).
-        log('WARN', `nika compile failed (${res.code}): ${res.stderr || res.stdout}`);
-        starterPick = { kind: 'blank' };
+        if (compiled?.status === 'incomplete') {
+          const labels = compiled.questions.map((q) => q.label).filter(Boolean).join(' · ');
+          window.showWarningMessage(
+            labels
+              ? `Nika compile is incomplete (${labels}). No file written.`
+              : 'Nika compile is incomplete. No file written.',
+          );
+          return;
+        }
+        window.showErrorMessage(
+          `Nika compile could not write ${name}.nika (${res.code}): ${res.stderr || res.stdout}`.slice(0, 500),
+        );
+        return;
       }
 
       const content = Buffer.from(

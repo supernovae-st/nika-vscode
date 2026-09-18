@@ -1016,6 +1016,12 @@ export function criticalPath(
 //   unknown template `?` — embedded set: agent-loop · chain · etl-state · …
 
 export function parseTemplateSet(text: string): string[] {
+  try {
+    const parsed = JSON.parse(text) as { skeletons?: unknown };
+    if (Array.isArray(parsed.skeletons)) {
+      return parsed.skeletons.filter((s): s is string => typeof s === 'string' && /^[a-z0-9][a-z0-9_-]*$/.test(s));
+    }
+  } catch { /* text listing */ }
   const tail = text.match(/embedded set:\s*([^\n]+)/i)?.[1]
     ?? text.match(/exact skeletons\s*·\s*([^\n]+)/i)?.[1];
   if (!tail) { return []; }
@@ -1023,6 +1029,47 @@ export function parseTemplateSet(text: string): string[] {
     .split(/[·,]/)
     .map((s) => s.trim())
     .filter((s) => /^[a-z0-9][a-z0-9_-]*$/.test(s));
+}
+
+export interface CompileQuestion {
+  key: string;
+  label: string;
+}
+
+export interface CompileResult {
+  status: string;
+  written: string | null;
+  candidate?: string;
+  questions: CompileQuestion[];
+}
+
+export function parseCompileResult(text: string): CompileResult | undefined {
+  try {
+    const parsed = JSON.parse(text) as {
+      status?: unknown;
+      written?: unknown;
+      candidate?: unknown;
+      questions?: unknown;
+    };
+    if (typeof parsed.status !== 'string') { return undefined; }
+    const questions: CompileQuestion[] = [];
+    if (Array.isArray(parsed.questions)) {
+      for (const q of parsed.questions) {
+        if (q && typeof q === 'object' && typeof (q as CompileQuestion).key === 'string'
+          && typeof (q as CompileQuestion).label === 'string') {
+          questions.push({ key: (q as CompileQuestion).key, label: (q as CompileQuestion).label });
+        }
+      }
+    }
+    return {
+      status: parsed.status,
+      written: typeof parsed.written === 'string' ? parsed.written : null,
+      candidate: typeof parsed.candidate === 'string' ? parsed.candidate : undefined,
+      questions,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 // ─── Exit codes (spec §4 · locked) ──────────────────────────────────────────
