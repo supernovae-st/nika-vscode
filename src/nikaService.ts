@@ -740,7 +740,9 @@ export class NikaService {
     return { catalogEntries: Number(m[1]), wired: Number(m[2]), keySlots: Number(m[3]) };
   }
 
-  async newFromTemplate(slug: string, destFsPath: string): Promise<CliResult> {
-    return this.runCli(['compile', slug, destFsPath, '--json']);
+  async newFromTemplate(slug: string, destFsPath: string, overwrite = false): Promise<CliResult> {
+    const args = ['compile', slug, destFsPath, '--json'];
+    if (overwrite) { args.push('--force'); }
+    return this.runCli(args);
   }
 }

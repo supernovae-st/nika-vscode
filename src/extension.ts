@@ -3328,25 +3328,22 @@ function activateTrusted(context: ExtensionContext): void {
       const filePath = Uri.joinPath(folder.uri, `${name}.nika`);
       // Never silently clobber an existing workflow (a raw fs.writeFile
       // has no undo) — typing an existing name must be an explicit choice.
+      let overwrite = false;
       try {
         await workspace.fs.stat(filePath);
-        const overwrite = await window.showWarningMessage(
+        const choice = await window.showWarningMessage(
           `${name}.nika already exists — overwrite it?`,
           { modal: true },
           'Overwrite',
         );
-        if (overwrite !== 'Overwrite') { return; }
+        if (choice !== 'Overwrite') { return; }
+        overwrite = true;
       } catch {
         // stat threw → the file doesn't exist → free to create.
       }
 
       if (starterPick.kind === 'template') {
-        try {
-          await workspace.fs.delete(filePath);
-        } catch {
-          // dest did not exist
-        }
-        const res = await service.newFromTemplate(starterPick.slug, filePath.fsPath);
+        const res = await service.newFromTemplate(starterPick.slug, filePath.fsPath, overwrite);
         const compiled = parseCompileResult(res.stdout);
         if (compiled?.status === 'ready' && compiled.written) {
           const doc = await workspace.openTextDocument(filePath);

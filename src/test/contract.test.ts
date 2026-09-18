@@ -495,17 +495,22 @@ tasks:
     }
   });
 
-  it('listed skeleton that needs answers writes no file', () => {
+  it('listed skeleton that needs answers writes no file and keeps prior bytes', () => {
     const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-chain.nika`);
-    fs.rmSync(dest, { force: true });
-    const created = run(['compile', 'chain', dest, '--json']);
-    const compiled = JSON.parse(created.stdout) as {
-      status: string; written: string | null; questions: unknown[];
-    };
-    expect(compiled.status).toBe('incomplete');
-    expect(compiled.written).toBeNull();
-    expect(compiled.questions.length).toBeGreaterThan(0);
-    expect(fs.existsSync(dest)).toBe(false);
+    const prior = 'prior-bytes-must-survive\n';
+    fs.writeFileSync(dest, prior);
+    try {
+      const created = run(['compile', 'chain', dest, '--json']);
+      const compiled = JSON.parse(created.stdout) as {
+        status: string; written: string | null; questions: unknown[];
+      };
+      expect(compiled.status).toBe('incomplete');
+      expect(compiled.written).toBeNull();
+      expect(compiled.questions.length).toBeGreaterThan(0);
+      expect(fs.readFileSync(dest, 'utf8')).toBe(prior);
+    } finally {
+      fs.rmSync(dest, { force: true });
+    }
   });
 
   it('schema + canon project into the full intel (the completion vocabulary)', async () => {
