@@ -10,7 +10,10 @@ Live workflow files, language association, scanners, watchers, save
 defaults and deep links use lowercase `.nika`. Retired `.nika.yaml` /
 `.nika.yml` aliases are rejected at the filename belt. Project `nika.yaml`
 and runtime `.nika/` stay distinct. Historical entries below keep the old
-spelling on purpose.
+spelling on purpose. `SPEC_PIN` is `1e37dfb64e6c523fe9d36d59936544e69fd4dffc`;
+`design-tokens.generated.ts` was re-projected from that spec. The old-suffix
+ratchet now pins hit-count and matching-line hashes, so new teaching inside
+an allowlisted file fails.
 
 
 The extension identifier becomes `supernovae.nika` (package name `nika`,

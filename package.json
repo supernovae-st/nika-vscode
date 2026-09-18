@@ -1985,7 +1985,7 @@
     "release-coherence": "node scripts/release-coherence.mjs",
     "glyphs": "node scripts/glyph-registry.mjs",
     "walkthrough": "node scripts/walkthrough-media.mjs",
-    "test": "vitest run && npm run release-proof && node scripts/parity.mjs && node scripts/harness-parity.mjs && node scripts/legend-parity.mjs && node scripts/projection-shadow.mjs && node scripts/package-hygiene.mjs && node scripts/release-coherence.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && node scripts/file-identity-ratchet.mjs && npm run lint",
+    "test": "vitest run && npm run release-proof && node scripts/parity.mjs && node scripts/harness-parity.mjs && node scripts/legend-parity.mjs && node scripts/projection-shadow.mjs && node scripts/package-hygiene.mjs && node scripts/release-coherence.mjs && node scripts/tokens-parity.mjs && node scripts/voice-gate.mjs && node scripts/glyph-registry.mjs && node scripts/walkthrough-media.mjs && node scripts/file-identity-ratchet.mjs && node scripts/file-identity-ratchet.mjs --selftest && npm run lint",
     "test:watch": "vitest",
     "compile:integration": "tsc -p tsconfig.integration.json",
     "release-proof": "node --test scripts/release-proof.test.mjs",

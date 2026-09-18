@@ -1,61 +1,73 @@
 [
   {
-    "path": "src/design-tokens.generated.ts",
-    "category": "generated",
-    "reason": "Spec design projector output. The comment still names the old suffix until the spec pin regenerates it. Do not hand-edit.",
-    "owner": "nika-vscode"
-  },
-  {
     "path": "CHANGELOG.md",
     "category": "historical",
+    "count": 17,
+    "lines_sha256": "sha256:c48ce0adb4da5c88715e1bf2b07be7dadb4fb36e1979dfd5560bfcd0582bd729",
     "reason": "Released notes describe the real old .nika.yaml / .nika.yml product spelling.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/core/workflowName.ts",
     "category": "negative",
+    "count": 1,
+    "lines_sha256": "sha256:ce96e96865a143f0934cd95b7c898aa298410edad61dd09303328902349db206",
     "reason": "Lexical owner names the retired suffixes so it can reject them.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/test/workflowName.test.ts",
     "category": "negative",
+    "count": 6,
+    "lines_sha256": "sha256:cf5e7b0cf3ead6964a0cc0d1003ca4e2742b96db843c79a2ff54e75989d8da61",
     "reason": "Table-driven rejection of retired aliases, lookalikes and empty stems.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/test/fileBadge.test.ts",
     "category": "negative",
+    "count": 2,
+    "lines_sha256": "sha256:592063763dd318cb16d80e8b479c2c8cd49b23319aa2e7b6eceff98eab2d18fb",
     "reason": "Explorer badge must stay silent on retired aliases.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/test/welcomeGuard.test.ts",
     "category": "negative",
+    "count": 3,
+    "lines_sha256": "sha256:b77f332066f943f12c522ac0d3123ffe0d7853e19581a37b497460d26a8bb79f",
     "reason": "Welcome open gate rejects a drifted .nika.yaml member.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/test/webviewPathGuard.test.ts",
     "category": "negative",
+    "count": 3,
+    "lines_sha256": "sha256:39e3c6e3635ce4651e87e105d4d565f2e5b466f1098dbf44f7c29bf5376cee99",
     "reason": "SurfacedPaths / subCreateAllowed reject retired suffixes and lookalikes.",
     "owner": "nika-vscode"
   },
   {
     "path": "src/test/deepLink.test.ts",
     "category": "negative",
+    "count": 1,
+    "lines_sha256": "sha256:9bde723c474b02d1bfe96edf5377c0e5ee70ed8cf0f6df4c6e0942a26e9209ca",
     "reason": "vscode:// file= belt rejects retired aliases.",
     "owner": "nika-vscode"
   },
   {
     "path": "scripts/file-identity-ratchet.mjs",
-    "category": "negative",
+    "category": "ratchet",
+    "count": 18,
+    "lines_sha256": "sha256:efcca1972086d3df76304124171022c4502349aa0bfa3e2d77f322e40aed751d",
     "reason": "Scanner's own forbidden-pattern data.",
     "owner": "nika-vscode"
   },
   {
     "path": "scripts/file-identity-allowlist.json",
-    "category": "negative",
+    "category": "ratchet",
+    "count": 2,
+    "lines_sha256": "sha256:5236ed1ba22f56abfffd2636475463d35f2bb4b9055e5bc81897fc978b3b7326",
     "reason": "Allowlist names the retired suffixes in its reason strings.",
     "owner": "nika-vscode"
   }

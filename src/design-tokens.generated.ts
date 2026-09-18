@@ -31,7 +31,7 @@ export const NIKA_VERB_ICON = { infer: 'ai-magic/sparkle', exec: 'code/console',
  *  currentColor. cost = credit-card interim (bespoke SVG is owed). */
 export const NIKA_FEATURE_CODICON = { doctor: 'pulse', wired: 'plug', trace: 'record', permits: 'shield', replay: 'debug-rerun', chain: 'verified-filled', station: 'radio-tower', cost: 'credit-card', } as const
 
-/** the semantic ROLE a .nika.yaml key carries — MEANING, not syntax.
+/** the semantic ROLE a .nika key carries — MEANING, not syntax.
  *  A generic highlighter colours by syntax class because it does not
  *  know the language; nika is a closed contract, so `command` reads as
  *  exec's because it cannot live anywhere else. Membership is DERIVED
