@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [0.120.0] · public engine qualification
 
+Known engine limitation: the public 0.120.0 project schema still rejects
+canonical `.nika` paths in `nika.yaml` arm bindings. The correction belongs to
+[engine #1692](https://github.com/supernovae-st/nika/pull/1692) and
+[Spec #345](https://github.com/supernovae-st/nika-spec/pull/345), for a later
+engine release. This extension aligns with the current public engine;
+the broader file-identity migration remains open.
+
 Lockstep source for engine 0.120.0. `ENGINE_PIN` is public release
 `v0.120.0`, with all four archive digests and source commit
 `f6155d1be080973500a4793e01dbec93faa451b4` anchored in the integration
