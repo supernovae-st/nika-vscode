@@ -1,7 +1,6 @@
-# The supernovae-st/nika tag (or commit) the real-binary suites
-# (contract · journeyReal · semanticDocReal · graph_format 3 · the
-# dead-envelope refusals) are proven against. A release tag is
-# DOWNLOADED (checksum-verified · the same asset a user installs); a
-# commit sha is BUILT from source. Never « latest release » as a
-# floating pin. Bump deliberately, with the reader.
-v0.118.7
+# CANDIDATE_VERSION: 0.120.0
+# The supernovae-st/nika commit this source is proven against until the
+# public v0.120.0 tag exists. A release tag is DOWNLOADED; a commit sha
+# is BUILT from source. Never write a tag that does not exist.
+4d9db6a8a30c6f36f7657ec7f86a7dc29f9d1d92
+

@@ -4,6 +4,14 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.120.0] · source candidate · engine 4d9db6a8
+
+Lockstep source for engine 0.120.0. `ENGINE_PIN` is commit
+`4d9db6a8a30c6f36f7657ec7f86a7dc29f9d1d92` with `CANDIDATE_VERSION: 0.120.0`
+until public `v0.120.0` exists. `SPEC_PIN` is
+`e255dbf72336bcb98c8163cd8c087e023051a5ab`. Live programs are lowercase
+`.nika`. No marketplace claim until the engine tag and archive receipts exist.
+
 ## [Unreleased] · the extension carries the product's name
 
 Live workflow files, language association, scanners, watchers, save
