@@ -2005,7 +2005,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/d3-ease": "^3.0.2",
-    "@types/d3-selection": "^3.0.11",
+    "@types/d3-selection": "^3.0.12",
     "@types/d3-shape": "^3.2.0",
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
@@ -2013,12 +2013,12 @@
     "@types/node": "^22.20.2",
     "@types/vscode": "1.91.0",
     "@vscode/test-electron": "^3.0.0",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.0.0",
     "elkjs": "^0.12.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.10.0",
     "glob": "^13.0.6",
-    "mocha": "^12.0.0",
+    "mocha": "^12.0.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.0"
