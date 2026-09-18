@@ -24,7 +24,7 @@ beforeEach(() => { vi.clearAllMocks(); host.execute.mockResolvedValue({}); host.
 describe('literal terminal process boundary', () => {
   it('preserves metacharacters as separate argv entries, including the workflow path', async () => {
     const binary = '/tools/nika "quoted" $(not-a-command)';
-    const file = '/work/space and $dollar/`literal`.nika.yaml';
+    const file = '/work/space and $dollar/`literal`.nika';
     const args = ['run', '--var', 'value=a b; $(not-a-command) | "quoted"\nnext', '🦋'];
     await runNikaCommand(binary, args, file);
     expect(host.process).toHaveBeenCalledWith(binary, [...args, file], { cwd: '/work/space and $dollar' });

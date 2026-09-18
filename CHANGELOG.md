@@ -6,6 +6,13 @@ major.minor from 0.97).
 
 ## [Unreleased] · the extension carries the product's name
 
+Live workflow files, language association, scanners, watchers, save
+defaults and deep links use lowercase `.nika`. Retired `.nika.yaml` /
+`.nika.yml` aliases are rejected at the filename belt. Project `nika.yaml`
+and runtime `.nika/` stay distinct. Historical entries below keep the old
+spelling on purpose.
+
+
 The extension identifier becomes `supernovae.nika` (package name `nika`,
 publisher unchanged). One law for every public name of the product: the
 namespace names the owner, the artifact names the product, a role suffix

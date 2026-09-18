@@ -14,9 +14,9 @@
 // · explain), so this prompt never drifts.
 
 export function buildAuthoringPrompt(workflowPath?: string): string {
-  const target = workflowPath ?? '<file>.nika.yaml';
+  const target = workflowPath ?? '<file>.nika';
   return [
-    'You are authoring a Nika workflow (`*.nika.yaml` · the first line is the mark AND the name: `nika: <kebab-id>`).',
+    'You are authoring a Nika workflow (`*.nika` · the first line is the mark AND the name: `nika: <kebab-id>`).',
     'Follow this DETERMINISTIC protocol — never free-form the structure:',
     '',
     '0. THINK FIRST, free-form: goal · tasks · data flow between them ·',

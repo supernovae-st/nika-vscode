@@ -1,0 +1,62 @@
+[
+  {
+    "path": "src/design-tokens.generated.ts",
+    "category": "generated",
+    "reason": "Spec design projector output. The comment still names the old suffix until the spec pin regenerates it. Do not hand-edit.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "CHANGELOG.md",
+    "category": "historical",
+    "reason": "Released notes describe the real old .nika.yaml / .nika.yml product spelling.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/core/workflowName.ts",
+    "category": "negative",
+    "reason": "Lexical owner names the retired suffixes so it can reject them.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/test/workflowName.test.ts",
+    "category": "negative",
+    "reason": "Table-driven rejection of retired aliases, lookalikes and empty stems.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/test/fileBadge.test.ts",
+    "category": "negative",
+    "reason": "Explorer badge must stay silent on retired aliases.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/test/welcomeGuard.test.ts",
+    "category": "negative",
+    "reason": "Welcome open gate rejects a drifted .nika.yaml member.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/test/webviewPathGuard.test.ts",
+    "category": "negative",
+    "reason": "SurfacedPaths / subCreateAllowed reject retired suffixes and lookalikes.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "src/test/deepLink.test.ts",
+    "category": "negative",
+    "reason": "vscode:// file= belt rejects retired aliases.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "scripts/file-identity-ratchet.mjs",
+    "category": "negative",
+    "reason": "Scanner's own forbidden-pattern data.",
+    "owner": "nika-vscode"
+  },
+  {
+    "path": "scripts/file-identity-allowlist.json",
+    "category": "negative",
+    "reason": "Allowlist names the retired suffixes in its reason strings.",
+    "owner": "nika-vscode"
+  }
+]

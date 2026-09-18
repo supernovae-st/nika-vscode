@@ -42,7 +42,7 @@ The default suite also checks (`suite/activation.test.ts`):
 - the extension **activates without throwing**
 - its **command surface is registered** (`nika.showDag` · `checkWorkflow`
   · `newWorkflow` · `doctor`)
-- a `.nika.yaml` **binds to the `nika` language**
+- a `.nika` **binds to the `nika` language**
 - **the DAG webview panel opens** — the CSP + `asWebviewUri` load path
   that only a real host exercises (a malformed CSP or bad asset URI
   throws here, never in the Playwright harness)
@@ -62,7 +62,7 @@ The default suite also checks (`suite/activation.test.ts`):
 ## Manual F5 pass (operator · what the smoke test can't judge — feel)
 
 1. `code .` in the extension repo → F5 (Run Extension).
-2. In the dev host, open a `*.nika.yaml`.
+2. In the dev host, open a `*.nika`.
 3. **DAG**: `Nika: Open the Canvas (workflow DAG)` → cards render in the nika skin,
    run pill + omnibar at the bottom; toggle `nika.dag.theme` → editor.
 4. **Run**: ▶ mock → the DAG lights wave by wave, aurora sweep on close.

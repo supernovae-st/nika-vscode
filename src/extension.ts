@@ -40,6 +40,7 @@ import { budgetError, extraArgsFor } from './core/runInputs';
 import { DEMO_WORKFLOW, DEMO_WORKFLOW_FILE, demoTargetDir } from './core/demoWorkflow';
 import { firstContactMove } from './core/firstContact';
 import { activateOnceTrusted } from './core/trustedActivation';
+import { WORKFLOW_GLOB, isCanonicalWorkflowPath, workflowLogicalStem } from './core/workflowName';
 import { welcomeOpenAllowed } from './core/welcomeGuard';
 import { subCreateAllowed } from './core/webviewPathGuard';
 import { needsConfirm, parseDeepLink } from './core/deepLink';
@@ -269,7 +270,7 @@ async function refreshJourney(): Promise<void> {
   const equipped = !!folder
     && SCAFFOLD_MARKERS.some((m) => fs.existsSync(path.join(folder.uri.fsPath, m)));
   const hasWorkflows = (await workspace.findFiles(
-    '**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 1,
+    WORKFLOW_GLOB, '**/{node_modules,.git,target,dist}/**', 1,
   )).length > 0;
   currentJourney = journey({
     binaryAvailable: svc?.available ?? false,
@@ -286,7 +287,7 @@ function log(level: string, msg: string): void {
   }
 }
 
-const NIKA_FILE_RE = /\.nika\.ya?ml$/;
+
 
 /** Command-link args arrive as plain strings — commands accept both. */
 function toUri(uri?: Uri | string): Uri | undefined {
@@ -305,14 +306,14 @@ function activeNikaDocument(rawUri?: Uri | string): TextDocument | undefined {
       ?? workspace.textDocuments.find((d) => d.uri.fsPath === uri.fsPath);
   }
   const doc = window.activeTextEditor?.document;
-  return doc && NIKA_FILE_RE.test(doc.fileName) ? doc : undefined;
+  return doc && isCanonicalWorkflowPath(doc.fileName) ? doc : undefined;
 }
 
 async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument | undefined> {
   const uri = toUri(rawUri);
   if (uri) {
-    if (!NIKA_FILE_RE.test(uri.fsPath)) {
-      void window.showWarningMessage('Nika: commands target .nika.yaml files.');
+    if (!isCanonicalWorkflowPath(uri.fsPath)) {
+      void window.showWarningMessage('Nika: commands target .nika files.');
       return undefined;
     }
     try {
@@ -323,7 +324,7 @@ async function requireNikaDocument(rawUri?: Uri | string): Promise<TextDocument 
   }
   const doc = activeNikaDocument();
   if (!doc) {
-    void window.showWarningMessage('Nika: open a .nika.yaml file first.');
+    void window.showWarningMessage('Nika: open a .nika file first.');
   }
   return doc;
 }
@@ -649,14 +650,14 @@ function activateTrusted(context: ExtensionContext): void {
   );
 
   // Language-identity enforcement (proven live on Cursor 2026-07-12: a
-  // *.nika.yaml opened as languageId `yaml` DESPITE our extensions field
+  // *.nika opened as languageId `yaml` DESPITE our extensions field
   // AND a files.associations default — some host/extension layer wins the
   // association fight). This runtime layer always wins: any nika file
   // that opens under another language is set to `nika` on open, which
   // brings the grammar, the language icon and the indent rules with it.
   const enforceNikaLanguage = async (doc: TextDocument) => {
     if (doc.languageId === 'nika' || doc.uri.scheme === 'git') { return; }
-    if (/\.nika\.ya?ml$/.test(doc.fileName)) {
+    if (isCanonicalWorkflowPath(doc.fileName)) {
       try {
         await languages.setTextDocumentLanguage(doc, 'nika');
       } catch (e) {
@@ -833,7 +834,7 @@ function activateTrusted(context: ExtensionContext): void {
       if (ref) { void commands.executeCommand('nika.focusTaskInDag', ref.uri, ref.taskId); }
     }),
   );
-  const watcher = workspace.createFileSystemWatcher('**/*.nika.yaml');
+  const watcher = workspace.createFileSystemWatcher('**/*.nika');
   watcher.onDidCreate(() => { workflowTree.refresh(); void refreshJourney(); });
   watcher.onDidDelete(() => { workflowTree.refresh(); void refreshJourney(); });
   watcher.onDidChange(() => workflowTree.refresh());
@@ -1008,7 +1009,7 @@ function activateTrusted(context: ExtensionContext): void {
   const fixAllProvider = new NikaFixAllProvider(diagnosticsController);
   context.subscriptions.push(
     languages.registerCodeActionsProvider(
-      [{ language: 'nika' }, { pattern: '**/*.nika.yaml' }],
+      [{ language: 'nika' }, { pattern: '**/*.nika' }],
       new NikaCodeActionProvider(diagnosticsController, service, () => {
         // The server owns renames when IT advertises code actions
         // (0.99.7+ engines) — read live so a mid-session binary swap
@@ -1019,7 +1020,7 @@ function activateTrusted(context: ExtensionContext): void {
       NikaCodeActionProvider.metadata,
     ),
     languages.registerCodeActionsProvider(
-      [{ language: 'nika' }, { pattern: '**/*.nika.yaml' }],
+      [{ language: 'nika' }, { pattern: '**/*.nika' }],
       fixAllProvider,
       NikaFixAllProvider.metadata,
     ),
@@ -1184,7 +1185,7 @@ function activateTrusted(context: ExtensionContext): void {
     runDecor,
     registerSecretsDecorDisposable(),
     workspace.onDidSaveTextDocument((doc) => {
-      if (NIKA_FILE_RE.test(doc.fileName)) { inlayProvider.refresh(); }
+      if (isCanonicalWorkflowPath(doc.fileName)) { inlayProvider.refresh(); }
     }),
   );
 
@@ -1198,7 +1199,7 @@ function activateTrusted(context: ExtensionContext): void {
       if (!dagPanel.isVisible) { return; }
       if (!workspace.getConfiguration('nika').get<boolean>('dag.cursorSync', true)) { return; }
       const doc = e.textEditor.document;
-      if (!NIKA_FILE_RE.test(doc.fileName)) { return; }
+      if (!isCanonicalWorkflowPath(doc.fileName)) { return; }
       if (dagWorkflowUri?.toString() !== doc.uri.toString()) { return; }
       if (cursorSyncTimer) { clearTimeout(cursorSyncTimer); }
       cursorSyncTimer = setTimeout(() => {
@@ -1238,7 +1239,7 @@ function activateTrusted(context: ExtensionContext): void {
     if (!workspace.getConfiguration('nika').get<boolean>('editor.runHighlight', true)) { return; }
     for (const ed of window.visibleTextEditors) {
       const doc = ed.document;
-      if (!NIKA_FILE_RE.test(doc.fileName)) { continue; }
+      if (!isCanonicalWorkflowPath(doc.fileName)) { continue; }
       if (fsPath !== undefined && doc.uri.fsPath !== fsPath) { continue; }
       if (ids.length === 0) {
         ed.setDecorations(runHighlight, []);
@@ -1271,7 +1272,7 @@ function activateTrusted(context: ExtensionContext): void {
       if (!editor || !dagPanel.hasPanel) { return; }
       if (!workspace.getConfiguration('nika').get<boolean>('dag.followActiveEditor', true)) { return; }
       const doc = editor.document;
-      if (!NIKA_FILE_RE.test(doc.fileName)) { return; }
+      if (!isCanonicalWorkflowPath(doc.fileName)) { return; }
       if (dagWorkflowUri?.toString() === doc.uri.toString()) { return; }
       if (followTimer) { clearTimeout(followTimer); }
       followTimer = setTimeout(async () => {
@@ -1886,7 +1887,7 @@ function activateTrusted(context: ExtensionContext): void {
       let candidates: Uri[] = [];
       try {
         candidates = fs.readdirSync(runCwd)
-          .filter((f) => NIKA_FILE_RE.test(f))
+          .filter((f) => isCanonicalWorkflowPath(f))
           .map((f) => Uri.file(path.join(runCwd, f)));
       } catch {
         // unreadable cwd — the warning below owns the story
@@ -2126,7 +2127,7 @@ function activateTrusted(context: ExtensionContext): void {
             .showWarningMessage(`Nika: the sub-workflow does not exist yet — ${path}`, 'Create it')
             .then(async (pick) => {
               if (pick !== 'Create it') { return; }
-              const name = path.split('/').pop()?.replace(/\.nika\.yaml$/, '') ?? 'sub';
+              const name = workflowLogicalStem(path.split('/').pop() ?? '') ?? 'sub';
               await workspace.fs.writeFile(target, Buffer.from(
                 `# yaml-language-server: $schema=https://nika.sh/spec/v1/workflow.schema.json\nnika: ${name}\n\nmodel: mock/echo\n\ntasks:\n  start:\n    infer:\n      prompt: ""\n`,
                 'utf-8',
@@ -2170,7 +2171,7 @@ function activateTrusted(context: ExtensionContext): void {
   const GREETED_KEY = 'nika.workspaceGreeted.v1';
   if (!context.workspaceState.get<boolean>(GREETED_KEY)) {
     void workspace
-      .findFiles('**/*.nika.{yaml,yml}', '**/{node_modules,.git,target,dist}/**', 10)
+      .findFiles(WORKFLOW_GLOB, '**/{node_modules,.git,target,dist}/**', 10)
       .then((found) => {
         if (found.length === 0) { return; }
         void context.workspaceState.update(GREETED_KEY, true);
@@ -2186,7 +2187,7 @@ function activateTrusted(context: ExtensionContext): void {
   // does NOT imply permission to execute: trust gates the entire activation.
   // The DAG lights itself in under ten seconds; the walkthrough follows as
   // optional depth (the create/run/dag steps already checked by the run).
-  // Guard: a workspace already carrying *.nika.yaml is an existing user's
+  // Guard: a workspace already carrying *.nika is an existing user's
   // territory — never auto-open there (core/firstContact.ts pins the table
   // and the gesture budget). Reduced-motion does NOT gate this: a real run
   // is content, not decoration.
@@ -2199,7 +2200,7 @@ function activateTrusted(context: ExtensionContext): void {
       return;
     }
     autoDemoFlown = true; // claim the one shot BEFORE any await (double-fire guard)
-    const existing = await workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 1);
+    const existing = await workspace.findFiles(WORKFLOW_GLOB, '**/node_modules/**', 1);
     const move = firstContactMove({
       armed: true,
       flown: false,
@@ -2294,7 +2295,7 @@ function activateTrusted(context: ExtensionContext): void {
       const items: QuickPickItem[] = [
         { label: 'Canvas — keys inside the DAG view', kind: QuickPickItemKind.Separator },
         ...CANVAS_KEYMAP.map(([key, what]) => ({ label: key, description: what })),
-        { label: 'Editor — chords on .nika.yaml files', kind: QuickPickItemKind.Separator },
+        { label: 'Editor — chords on .nika files', kind: QuickPickItemKind.Separator },
         ...(pkg.contributes?.keybindings ?? []).map((b) => ({
           label: prettyChord(b, isMac),
           description: titles.get(b.command) ?? b.command,
@@ -2944,7 +2945,7 @@ function activateTrusted(context: ExtensionContext): void {
         };
       }
       const md = renderPreflight(buildPreflight({
-        workflowName: path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
+        workflowName: path.basename(doc.uri.fsPath).replace(/\.nika$/, ''),
         facts: outcome?.report?.requirements !== undefined
           ? factsFromRequirements(outcome.report.requirements, doc.getText())
           : collectPreflightFacts(doc.getText()),
@@ -3040,7 +3041,7 @@ function activateTrusted(context: ExtensionContext): void {
     commands.registerCommand('nika.addTask', async (verbArg?: unknown, toolArg?: unknown) => {
       const doc = activeNikaDocument();
       if (!doc) {
-        void window.showInformationMessage('Nika: open a .nika.yaml file first.');
+        void window.showInformationMessage('Nika: open a .nika file first.');
         return;
       }
       const editor = window.visibleTextEditors.find(
@@ -3324,13 +3325,13 @@ function activateTrusted(context: ExtensionContext): void {
       }
       if (step === 'cancel' || name === undefined || starterPick === undefined) { return; }
 
-      const filePath = Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      const filePath = Uri.joinPath(folder.uri, `${name}.nika`);
       // Never silently clobber an existing workflow (a raw fs.writeFile
       // has no undo) — typing an existing name must be an explicit choice.
       try {
         await workspace.fs.stat(filePath);
         const overwrite = await window.showWarningMessage(
-          `${name}.nika.yaml already exists — overwrite it?`,
+          `${name}.nika already exists — overwrite it?`,
           { modal: true },
           'Overwrite',
         );
@@ -3380,9 +3381,9 @@ function activateTrusted(context: ExtensionContext): void {
       activeIsWorkflow: false, // the caller probed the active editor first
       panelHeld: dagWorkflowUri?.toString(),
       visibleWorkflows: window.visibleTextEditors
-        .filter((e) => NIKA_FILE_RE.test(e.document.fileName))
+        .filter((e) => isCanonicalWorkflowPath(e.document.fileName))
         .map((e) => e.document.uri.toString()),
-      workspaceWorkflows: (await workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 2))
+      workspaceWorkflows: (await workspace.findFiles(WORKFLOW_GLOB, '**/node_modules/**', 2))
         .map((u) => u.toString()),
     });
     if (pick.kind === 'welcome' || pick.kind === 'active') { return undefined; }
@@ -3574,7 +3575,7 @@ function activateTrusted(context: ExtensionContext): void {
       const runs = await collectHistoryRuns(docName, ids);
       await history.show(
         doc.uri,
-        path.basename(doc.uri.fsPath).replace(/\.nika\.ya?ml$/i, ''),
+        path.basename(doc.uri.fsPath).replace(/\.nika$/, ''),
         runs,
         filter,
       );
@@ -4227,7 +4228,7 @@ function activateTrusted(context: ExtensionContext): void {
     await autoEquipOnce();
 
     // « Does this project exist yet? » — the per-WORKSPACE intelligence:
-    // the repo carries .nika.yaml workflows but is not equipped (no
+    // the repo carries .nika workflows but is not equipped (no
     // .cursor/rules/nika.mdc scaffold). One toast per WORKSPACE
     // (workspaceState — the machine-global nudge above is about the
     // plugin, this one is about THIS repo), offering the one-gesture

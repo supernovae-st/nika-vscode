@@ -3,7 +3,7 @@
   "name": "Nika Workflow",
   "scopeName": "source.nika",
   "fileTypes": [
-    "nika.yaml"
+    "nika"
   ],
   "patterns": [
     {

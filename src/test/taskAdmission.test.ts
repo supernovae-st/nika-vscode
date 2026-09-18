@@ -23,7 +23,7 @@ import { registerNikaTaskProvider } from '../features/taskProvider';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  host.relativePath.mockReturnValue('workflow.nika.yaml');
+  host.relativePath.mockReturnValue('workflow.nika');
   host.workspaceFolder.mockReturnValue(undefined);
 });
 const token = {} as Parameters<TaskProvider['provideTasks']>[0];
@@ -48,13 +48,13 @@ describe('native task engine admission', () => {
   });
   it('uses only the admitted binary for auto-provided and explicit tasks', async () => {
     setup(true);
-    host.findFiles.mockResolvedValue([{ scheme: 'file', fsPath: '/work/workflow.nika.yaml' }]);
+    host.findFiles.mockResolvedValue([{ scheme: 'file', fsPath: '/work/workflow.nika' }]);
     expect(await host.provider!.provideTasks(token)).toHaveLength(2);
-    host.provider!.resolveTask({ definition: { type: 'nika', command: 'run', file: 'custom.nika.yaml' }, name: 'custom' } as Task, token);
+    host.provider!.resolveTask({ definition: { type: 'nika', command: 'run', file: 'custom.nika' }, name: 'custom' } as Task, token);
     expect(host.shells.mock.calls).toEqual([
-      ['/admitted/nika', ['check', '/work/workflow.nika.yaml']],
-      ['/admitted/nika', ['run', '/work/workflow.nika.yaml']],
-      ['/admitted/nika', ['run', 'custom.nika.yaml']],
+      ['/admitted/nika', ['check', '/work/workflow.nika']],
+      ['/admitted/nika', ['run', '/work/workflow.nika']],
+      ['/admitted/nika', ['run', 'custom.nika']],
     ]);
   });
   it('keeps multi-root display names out of argv and binds each task to its actual folder', async () => {
@@ -63,7 +63,7 @@ describe('native task engine admission', () => {
       { name: 'api', uri: { fsPath: '/projects/api' }, index: 0 },
       { name: 'web', uri: { fsPath: '/projects/web' }, index: 1 },
     ];
-    const files = folders.map((folder) => ({ scheme: 'file', fsPath: `${folder.uri.fsPath}/flow with spaces.nika.yaml` }));
+    const files = folders.map((folder) => ({ scheme: 'file', fsPath: `${folder.uri.fsPath}/flow with spaces.nika` }));
     host.findFiles.mockResolvedValue(files);
     host.relativePath.mockImplementation((uri) => uri.fsPath.slice('/projects/'.length));
     host.workspaceFolder.mockImplementation((uri) => folders.find((folder) => uri.fsPath.startsWith(`${folder.uri.fsPath}/`)));
@@ -74,13 +74,13 @@ describe('native task engine admission', () => {
     ]));
     expect(tasks.map((task) => task.scope)).toEqual([folders[0], folders[0], folders[1], folders[1]]);
     expect(tasks.map((task) => task.name)).toEqual([
-      'check api/flow with spaces.nika.yaml', 'run api/flow with spaces.nika.yaml',
-      'check web/flow with spaces.nika.yaml', 'run web/flow with spaces.nika.yaml',
+      'check api/flow with spaces.nika', 'run api/flow with spaces.nika',
+      'check web/flow with spaces.nika', 'run web/flow with spaces.nika',
     ]);
   });
   it('does not turn a virtual document URI into a local process path', async () => {
     setup(true);
-    host.findFiles.mockResolvedValue([{ scheme: 'git', fsPath: '/work/virtual.nika.yaml' }]);
+    host.findFiles.mockResolvedValue([{ scheme: 'git', fsPath: '/work/virtual.nika' }]);
     expect(await host.provider!.provideTasks(token)).toEqual([]);
     expect(host.shells).not.toHaveBeenCalled();
   });

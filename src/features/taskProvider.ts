@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import type { NikaService } from '../nikaService';
+import { WORKFLOW_GLOB } from '../core/workflowScan';
 import { nikaProcessExecution } from '../nikaTerminal';
 
 interface NikaTaskDefinition extends vscode.TaskDefinition {
@@ -54,7 +55,7 @@ export function registerNikaTaskProvider(
       async provideTasks(): Promise<vscode.Task[]> {
         if (!service.available) { return []; }
         const files = await vscode.workspace.findFiles(
-          '**/*.nika.yaml',
+          WORKFLOW_GLOB,
           '**/node_modules/**',
           25,
         );

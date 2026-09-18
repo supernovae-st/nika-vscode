@@ -283,7 +283,7 @@
 
     const GRAPH = {
       workflowName: 'release-notes',
-      workflowUri: 'file:///work/release-notes.nika.yaml',
+      workflowUri: 'file:///work/release-notes.nika',
       resumeCapable: true,
       nodes: [
         {
@@ -342,7 +342,7 @@
         },
         {
           id: 'brief', avgMs: 1200, avgRuns: 2,  label: 'brief', verb: 'invoke', status: 'pending',
-          tool: 'workflow:./brief.nika.yaml',
+          tool: 'workflow:./brief.nika',
           subManifest: { tasks: 4, waves: 2, costMin: 0.001, costMax: 0.004, permits: 3,
             contract: [
               { name: 'topic', state: 'supplied', type: 'string' },
@@ -425,7 +425,7 @@
 
     const MEDIA_GRAPH = {
       workflowName: 'brand-studio',
-      workflowUri: 'file:///work/brand-studio.nika.yaml',
+      workflowUri: 'file:///work/brand-studio.nika',
       resumeCapable: true,
       nodes: [
         { id: 'brief', label: 'brief', verb: 'infer', status: 'pending', avgMs: 2100, avgRuns: 3,
@@ -642,7 +642,7 @@
           }
         }
       }
-      return { workflowUri: 'file:///work/perf.nika.yaml', workflowName: 'perf-' + n, nodes, edges };
+      return { workflowUri: 'file:///work/perf.nika', workflowName: 'perf-' + n, nodes, edges };
     }
 
     const sim = (fn, ms) => { if (!STILL && !EMPTY && !(PERF_N > 0) && !MEDIA_ON) { setTimeout(fn, ms); } };

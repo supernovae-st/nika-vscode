@@ -9,9 +9,10 @@ import { MODEL_DOOR } from '../core/lensVocab';
 import { insertDefaultModel } from '../core/modelEdit';
 import { NIKA_PROVIDERS_ORDER } from '../design-tokens.generated';
 import type { NikaService } from '../nikaService';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 /** `model: openai/gpt-5.2` (any indent · optional quotes/comment). */
@@ -103,7 +104,7 @@ export async function chooseDefaultModelFor(
     ? await vscode.workspace.openTextDocument(uri)
     : vscode.window.activeTextEditor?.document;
   if (!doc || !isNikaDoc(doc)) {
-    void vscode.window.showInformationMessage('Nika: open a .nika.yaml file first.');
+    void vscode.window.showInformationMessage('Nika: open a .nika file first.');
     return;
   }
   const ref = await showCatalogPicker(service);

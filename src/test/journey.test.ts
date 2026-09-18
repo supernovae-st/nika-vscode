@@ -33,7 +33,7 @@ describe('the journey stage — one truth, four consumers', () => {
     expect(journeyPlaceholder('noBinary')).toMatch(/Install the engine/);
     expect(journeyPlaceholder('unequipped')).toMatch(/Init/);
     expect(journeyPlaceholder('empty')).toMatch(/offline/);
-    expect(journeyPlaceholder('working', 'a.nika.yaml')).toContain('a.nika.yaml');
+    expect(journeyPlaceholder('working', 'a.nika')).toContain('a.nika');
     expect(journeyPlaceholder('working')).toMatch(/What next/);
   });
 });

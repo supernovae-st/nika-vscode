@@ -9,7 +9,7 @@
 //   IS the message (annexe D anatomy owns those).
 //
 // Outcome answers to a direct gesture (« no traces found », « open a
-// .nika.yaml first ») are NOT mutable: a muted outcome would turn the
+// .nika first ») are NOT mutable: a muted outcome would turn the
 // gesture into a silent dead end — they stay plain toasts by design.
 
 import * as vscode from 'vscode';

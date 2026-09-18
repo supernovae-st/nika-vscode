@@ -680,7 +680,7 @@ export class NikaService {
   }
 
   /** The try showroom, parsed rich: slug · title · verb glyphs · group.
-   * Anchored on the `<file>.nika.yaml` token — the old permissive
+   * Anchored on the `<file>.nika` token — the old permissive
    * `^[\s·•-]*` regex also swallowed rail/heading lines (the wave-3
    * scout's live defect). */
   async showroom(): Promise<ShowroomRow[]> {
@@ -697,7 +697,7 @@ export class NikaService {
     // land beside it), read the body, remove the scratch whole.
     const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'nika-ext-example-'));
     try {
-      const dest = path.join(dir, `${slug.replace(/\//g, '-')}.nika.yaml`);
+      const dest = path.join(dir, `${slug.replace(/\//g, '-')}.nika`);
       const res = await this.runCli(['new', slug, dest, '--force']);
       if (res.code !== EXIT.OK) { return undefined; }
       return await fs.promises.readFile(dest, 'utf8');

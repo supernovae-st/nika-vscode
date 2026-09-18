@@ -15,13 +15,14 @@ import {
 import { applySeverityRemap, NIKA_DIAG_SOURCE } from './diagnostics';
 import { BASELINE_REL_PATH, grandfatherMask, parseBaseline, type LintBaseline } from '../core/lintBaseline';
 import type { NikaService } from '../nikaService';
+import { WORKFLOW_GLOB, isCanonicalWorkflowPath } from '../core/workflowName';
 
 /** Hard cap per sweep — logged when hit, never silently truncated. */
 const MAX_FILES = 300;
 /** Parallel `nika check` spawns during a sweep. */
 const CONCURRENCY = 2;
 
-const NIKA_FILE_RE = /\.nika\.ya?ml$/;
+
 
 function isOpen(uri: vscode.Uri): boolean {
   const key = uri.toString();
@@ -53,7 +54,7 @@ export class WorkspaceLint implements vscode.Disposable {
      *  discover it in a command list while Problems shouts. */
     private readonly onAdoptionDebt?: (fileCount: number) => void,
   ) {
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.nika.yaml');
+    const watcher = vscode.workspace.createFileSystemWatcher(WORKFLOW_GLOB);
     this.disposables.push(
       this.collection,
       watcher,
@@ -62,10 +63,10 @@ export class WorkspaceLint implements vscode.Disposable {
       watcher.onDidDelete((uri) => this.collection.delete(uri)),
       // Ownership handshake with the open-document controller.
       vscode.workspace.onDidOpenTextDocument((doc) => {
-        if (NIKA_FILE_RE.test(doc.fileName)) { this.collection.delete(doc.uri); }
+        if (isCanonicalWorkflowPath(doc.fileName)) { this.collection.delete(doc.uri); }
       }),
       vscode.workspace.onDidCloseTextDocument((doc) => {
-        if (NIKA_FILE_RE.test(doc.fileName)) { void this.lintOne(doc.uri); }
+        if (isCanonicalWorkflowPath(doc.fileName)) { void this.lintOne(doc.uri); }
       }),
       // Binary appeared / capabilities changed → the whole workspace view
       // may change. Config flips re-sweep or clear.

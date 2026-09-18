@@ -14,9 +14,10 @@ import { STATUS_CHAR } from '../core/glyphRegistry';
 import { formatRunBadge } from '../core/traceFold';
 import { normalizeWorkflowKey, traceStore } from '../core/traceStore';
 import { parseRichWorkflow } from '../workflowParser';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 export class RunDecorations implements vscode.Disposable {

@@ -6,7 +6,7 @@ Vendor-neutral agent entry per the AGENTS.md convention (agents.md).
 
 The **`nika` extension** (`supernovae.nika`) for VS Code-platform editors (VS Code ·
 Cursor · Windsurf · VSCodium) · the whole workflow surface for
-`.nika.yaml`: check-as-you-type diagnostics (via `nika check --json`),
+`.nika`: check-as-you-type diagnostics (via `nika check --json`),
 permits quick-fix, cost inlays, the DAG canvas (live runs · trace
 replay · lenses), the omnibar (`⌘K ⌘M` · commands, tasks, workflows,
 recorded runs in one ranked gate), tree action panels (`⌘K ⌘.`), the

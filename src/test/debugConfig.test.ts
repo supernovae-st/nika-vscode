@@ -35,21 +35,21 @@ describe('workflowNameOf', () => {
 describe('matchWorkflowFiles', () => {
   it('returns every match in document order', () => {
     const files = [
-      { path: '/a/one.nika.yaml', text: 'nika: alpha\n' },
-      { path: '/b/two.nika.yaml', text: 'nika: beta\n' },
-      { path: '/c/three.nika.yaml', text: 'nika: alpha\n' },
+      { path: '/a/one.nika', text: 'nika: alpha\n' },
+      { path: '/b/two.nika', text: 'nika: beta\n' },
+      { path: '/c/three.nika', text: 'nika: alpha\n' },
     ];
-    expect(matchWorkflowFiles(files, 'alpha')).toEqual(['/a/one.nika.yaml', '/c/three.nika.yaml']);
+    expect(matchWorkflowFiles(files, 'alpha')).toEqual(['/a/one.nika', '/c/three.nika']);
     expect(matchWorkflowFiles(files, 'gamma')).toEqual([]);
   });
 });
 
 describe('replayConfig', () => {
   it('builds the one launch shape the adapter accepts', () => {
-    const cfg = replayConfig('/w/deploy.nika.yaml', '/w/.nika/traces/run.ndjson');
+    const cfg = replayConfig('/w/deploy.nika', '/w/.nika/traces/run.ndjson');
     expect(cfg.type).toBe('nika');
     expect(cfg.request).toBe('launch');
-    expect(cfg.workflow).toBe('/w/deploy.nika.yaml');
+    expect(cfg.workflow).toBe('/w/deploy.nika');
     expect(cfg.replay).toBe('/w/.nika/traces/run.ndjson');
     expect(cfg.name).toBe('Replay run.ndjson');
   });
@@ -59,16 +59,16 @@ describe('mergeLaunchConfig', () => {
   it('resolved paths beat the generated snippet empty strings', () => {
     const cfg = mergeLaunchConfig(
       { type: 'nika', request: 'launch', name: 'Replay latest run', workflow: '${file}', replay: '' },
-      '/w/deploy.nika.yaml',
+      '/w/deploy.nika',
       '/w/.nika/traces/run.ndjson',
     );
     expect(cfg.replay).toBe('/w/.nika/traces/run.ndjson');
-    expect(cfg.workflow).toBe('/w/deploy.nika.yaml');
+    expect(cfg.workflow).toBe('/w/deploy.nika');
     expect(cfg.name).toBe('Replay latest run');
   });
 
   it('keeps user extras and fills a missing name', () => {
-    const cfg = mergeLaunchConfig({ stopOnEntry: true }, '/w/a.nika.yaml', '/t/r.ndjson');
+    const cfg = mergeLaunchConfig({ stopOnEntry: true }, '/w/a.nika', '/t/r.ndjson');
     expect(cfg.stopOnEntry).toBe(true);
     expect(cfg.name).toBe('Replay r.ndjson');
     expect(cfg.type).toBe('nika');

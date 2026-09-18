@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { ARMOR_SHAPES, armorWrite, wornArmor, type ArmorShape } from '../core/armorEdit';
 import { upstreamCandidates } from '../core/flowEdit';
 import { parseRichWorkflow, taskAtLine } from '../workflowParser';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 async function applyFullRewrite(doc: vscode.TextDocument, next: string): Promise<void> {
   const edit = new vscode.WorkspaceEdit();
@@ -25,8 +26,8 @@ export async function makeResilientFor(uri?: vscode.Uri, taskId?: string): Promi
     doc = await vscode.workspace.openTextDocument(uri);
   } else {
     const active = vscode.window.activeTextEditor;
-    if (!active || !(active.document.languageId === 'nika' || /\.nika\.ya?ml$/.test(active.document.fileName))) {
-      void vscode.window.showInformationMessage('Nika: open a .nika.yaml file first.');
+    if (!active || !(active.document.languageId === 'nika' || isCanonicalWorkflowPath(active.document.fileName))) {
+      void vscode.window.showInformationMessage('Nika: open a .nika file first.');
       return;
     }
     doc = active.document;

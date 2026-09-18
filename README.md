@@ -21,7 +21,7 @@
 
 > **See the DAG before you run it. Local traces, your models.**
 
-**Your AI workflow as a live graph.** A `.nika.yaml` file becomes a
+**Your AI workflow as a live graph.** A `.nika` file becomes a
 content-first canvas: prompts on the cards, wires carrying named data,
 policy and permits as chips (permits = the file's declared boundary:
 what it may reach, run and read), cost as a running meter. And when you
@@ -34,7 +34,7 @@ run together) and closes on a verdict with a verifiable receipt:
 own bundle through the same `dag:*`/`run:*` messages a live `nika run`
 streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
 
-*Tip: `Nika: Open the Canvas (workflow DAG)` opens this canvas on any `.nika.yaml` ·
+*Tip: `Nika: Open the Canvas (workflow DAG)` opens this canvas on any `.nika` ·
 `Nika: Try the Demo Workflow` writes one to open it on.*
 
 > One extension, every VS Code-compatible editor. `nika-vscode` is the
@@ -43,7 +43,7 @@ streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
 > Windsurf, VSCodium and friends install it natively. JetBrains/Zed/Neovim
 > get the same brain via `nika lsp` + the published JSON Schema.
 
-Language support for [Nika](https://nika.sh) (`.nika.yaml`) · **Intent as
+Language support for [Nika](https://nika.sh) (`.nika`) · **Intent as
 Code**, the workflow language for AI (one file, 4 verbs, one binary) that
 turns repeatable AI work into files you can run, review, diff and share.
 And **auditable BEFORE it runs**: cost ceiling, permits boundary, secret
@@ -96,7 +96,7 @@ copied for review rather than executed automatically.
 
 Driving yourself is three gestures:
 
-1. Open any folder → **`Nika: New Workflow`** (or open a `.nika.yaml`).
+1. Open any folder → **`Nika: New Workflow`** (or open a `.nika`).
 2. **`Nika: Open the Canvas (workflow DAG)`**. The file becomes a content-first
    canvas: prompts on infer cards, `$ commands` on exec cards.
 3. Press **▶ mock** on the run pill. The DAG lights up wave by wave with
@@ -152,7 +152,7 @@ not a claim that an executable cannot be replaced on disk later.
 ## Icons in your editor
 
 The extension ships the butterfly everywhere VS Code lets it: the
-Marketplace tile, the activity bar, and a **language icon** so `*.nika.yaml`
+Marketplace tile, the activity bar, and a **language icon** so `*.nika`
 files carry the 16 px glyph in themes that honor language icons (Seti, the
 default, does). File/folder icons beyond that belong to your *file icon
 theme*, not to extensions:
@@ -231,7 +231,7 @@ theme*, not to extensions:
   follows live · **selection ranges** (word → line → task → tasks →
   document smart-expand) · **task dependency hierarchy** in the native
   Call Hierarchy UI (incoming = what it unlocks · outgoing = what it needs)
-- **Workspace-wide lint** · CLOSED `.nika.yaml` files ride `nika check`
+- **Workspace-wide lint** · CLOSED `.nika` files ride `nika check`
   into the Problems panel too (open files stay live) · per-code severity
   remap (`nika.diagnostics.severity` · exact or `NIKA-SEC-*` globs · `off`
   hides a code) · related-information walks you to both ends of a
@@ -445,7 +445,7 @@ network: every green close settles a ✓ wave through the cards.*
   state at any instant computed locally. Replay re-renders, never
   re-executes
 - **F5 time-travel debugger** (nika ≥ 0.96) · set breakpoints in your
-  `.nika.yaml`, press **F5**, and the engine's own DAP adapter replays a
+  `.nika`, press **F5**, and the engine's own DAP adapter replays a
   recorded run under the real VS Code debugger: step **forward and
   backward** through task settles, inspect every recorded output in the
   Variables pane, `continue` runs to your next breakpointed task. Replay
@@ -704,9 +704,9 @@ A runbook, a PR description or a chat message can open the editor
 straight onto a workflow surface with a `vscode://` link:
 
 ```text
-vscode://supernovae.nika/dag?file=deploy.nika.yaml     open the canvas on a workflow
-vscode://supernovae.nika/check?file=deploy.nika.yaml   audit it (asks first)
-vscode://supernovae.nika/run?file=deploy.nika.yaml     run it (asks first)
+vscode://supernovae.nika/dag?file=deploy.nika     open the canvas on a workflow
+vscode://supernovae.nika/check?file=deploy.nika   audit it (asks first)
+vscode://supernovae.nika/run?file=deploy.nika     run it (asks first)
 vscode://supernovae.nika/search?q=deploy               open root search, seeded
 vscode://supernovae.nika/demo                          land the offline demo
 ```

@@ -1,3 +1,5 @@
+import { WORKFLOW_SUFFIX, isCanonicalWorkflowPath } from './workflowName';
+
 // webviewPathGuard.ts — the generic webview→host path gate (pure · capability).
 //
 // Generalizes the welcomeGuard pattern (#206) to EVERY canvas message that
@@ -13,8 +15,8 @@
 //       exclusively on the extension's own pushes;
 //   (c) fails-closed — an empty set (nothing surfaced) allows nothing;
 //   (d) a structural suffix belt where the surface implies a file class
-//       (`.nika.yaml` for workflow refs · none for artifacts, whose set
-//       membership is the whole story).
+//       (canonical `.nika` for workflow refs · none for artifacts, whose
+//       set membership is the whole story).
 
 /** One surfaced-path capability set (recents · subs · trail · artifacts —
  *  one instance per category, never shared across surfaces). */
@@ -44,7 +46,10 @@ export class SurfacedPaths {
   allows(raw: unknown): boolean {
     if (typeof raw !== 'string') { return false; }
     if (!this.surfaced.has(raw)) { return false; }
-    return this.requiredSuffix === undefined || raw.endsWith(this.requiredSuffix);
+    if (this.requiredSuffix === undefined) { return true; }
+    return this.requiredSuffix === WORKFLOW_SUFFIX
+      ? isCanonicalWorkflowPath(raw)
+      : raw.endsWith(this.requiredSuffix);
   }
 }
 
@@ -55,5 +60,5 @@ export class SurfacedPaths {
  *  ref resolves outside the workspace and dies here — the extension never
  *  offers (nor performs) the create. */
 export function subCreateAllowed(target: { path: string; inWorkspace: boolean }): boolean {
-  return target.inWorkspace && target.path.endsWith('.nika.yaml');
+  return target.inWorkspace && isCanonicalWorkflowPath(target.path);
 }

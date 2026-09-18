@@ -1,5 +1,5 @@
 // The `nika try` showroom listing, parsed rich (V5 · 0.107). One pure
-// function over the rail text — anchored on the `<file>.nika.yaml`
+// function over the rail text — anchored on the `<file>.nika`
 // token so headings and rails never parse as slugs (the wave-3 live
 // defect: a permissive prefix regex swallowed `◆ the path — 13 steps`).
 
@@ -16,7 +16,7 @@ export interface ShowroomRow {
   group: string;
 }
 
-const ROW = /^\s*(?:[│┃|]\s*)?([a-z0-9][a-z0-9_./-]*)\.nika\.yaml\s+(.*)$/;
+const ROW = /^\s*(?:[│┃|]\s*)?([a-z0-9][a-z0-9_./-]*)\.nika\s+(.*)$/;
 const HEAD = /^\s*[◆✦◇▷]?\s*(the [a-z]+)\s[—·-]/;
 
 export function parseTryShowroom(stdout: string): ShowroomRow[] {
@@ -25,14 +25,14 @@ export function parseTryShowroom(stdout: string): ShowroomRow[] {
   for (const raw of stdout.split('\n')) {
     const line = raw.replace(/\r$/, '');
     const h = line.match(HEAD);
-    if (h && !line.includes('.nika.yaml')) { group = h[1]; continue; }
+    if (h && !line.includes('.nika')) { group = h[1]; continue; }
     const m = line.match(ROW);
     if (!m) { continue; }
     const tail = m[2].trim();
     const g = tail.match(/^((?:[◇▷◆✦]\s*)+)/);
     rows.push({
       slug: m[1],
-      file: `${m[1]}.nika.yaml`,
+      file: `${m[1]}.nika`,
       glyphs: g ? g[1].replace(/\s+/g, ' ').trim() : '',
       title: (g ? tail.slice(g[1].length) : tail).trim(),
       group,

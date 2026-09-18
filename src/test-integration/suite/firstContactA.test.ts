@@ -29,7 +29,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 const EXT_ID = 'supernovae.nika';
-const DEMO_FILE = 'hello-canvas.nika.yaml';
+const DEMO_FILE = 'hello-canvas.nika';
 /** The demo's five tasks — the four waves (brief → two angles → weave)
  *  plus the receipt (demoWorkflow.ts is the SSOT of these ids). */
 const DEMO_TASKS = ['brief', 'angle_practical', 'angle_skeptical', 'weave', 'receipt'];

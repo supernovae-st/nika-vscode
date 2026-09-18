@@ -126,7 +126,7 @@ describe('capabilities', () => {
 Usage: nika-cli check [OPTIONS] <FILE>
 
 Arguments:
-  <FILE>  Workflow file (\`*.nika.yaml\`) · \`-\` reads stdin
+  <FILE>  Workflow file (\`*.nika\`) · \`-\` reads stdin
 
 Options:
       --json  Emit the machine-readable report (never coloured)
@@ -157,7 +157,7 @@ Usage: nika explain [OPTIONS] <CODE>
 
 Arguments:
   <CODE>
-          An error code (\`NIKA-440\` · bare \`440\`) or a workflow file path (\`*.nika.yaml\` · \`-\` reads stdin)
+          An error code (\`NIKA-440\` · bare \`440\`) or a workflow file path (\`*.nika\` · \`-\` reads stdin)
 
 Options:
       --json  File form only: emit the versioned machine twin

@@ -2,7 +2,7 @@
 //
 // The adapter IS the engine (`nika dap`, stdio) — this file only
 // describes where it lives (DebugAdapterDescriptorFactory), fills in
-// launch configs (DebugConfigurationProvider: F5 on a .nika.yaml with
+// launch configs (DebugConfigurationProvider: F5 on a .nika with
 // no launch.json picks the latest recorded run), and gives the Runs
 // view its "Debug this run" action. Time travel comes free: the
 // adapter claims supportsStepBack, so VS Code renders the back-step
@@ -13,6 +13,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { matchWorkflowFiles, mergeLaunchConfig, replayConfig, workflowNameOf } from '../core/debugConfig';
+import { WORKFLOW_GLOB, isCanonicalWorkflowPath } from '../core/workflowName';
 import { foldTrace } from '../core/traceFold';
 import { readTraceFile } from '../core/traceFile';
 
@@ -68,12 +69,12 @@ class NikaDebugConfigProvider implements vscode.DebugConfigurationProvider {
     const workflow =
       typeof config.workflow === 'string' && config.workflow.length > 0
         ? config.workflow
-        : editor && /\.nika\.ya?ml$/.test(editor.document.uri.fsPath)
+        : editor && isCanonicalWorkflowPath(editor.document.uri.fsPath)
           ? editor.document.uri.fsPath
           : undefined;
     if (!workflow) {
       void vscode.window.showInformationMessage(
-        'Nika: open a .nika.yaml (or add workflow/replay to launch.json) to debug a run.',
+        'Nika: open a .nika (or add workflow/replay to launch.json) to debug a run.',
       );
       return undefined;
     }
@@ -159,7 +160,7 @@ export function registerDebugReplay(
       }
       const text = safeReadTrace(trace.fsPath);
       const name = text ? foldTrace(text).workflowName : undefined;
-      const candidates = await vscode.workspace.findFiles('**/*.nika.{yaml,yml}', '**/node_modules/**', 200);
+      const candidates = await vscode.workspace.findFiles(WORKFLOW_GLOB, '**/node_modules/**', 200);
       const loaded = candidates
         .map((f) => ({ path: f.fsPath, text: safeRead(f.fsPath) ?? '' }))
         .filter((f) => f.text.length > 0);

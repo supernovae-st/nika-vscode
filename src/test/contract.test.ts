@@ -67,7 +67,7 @@ function run(args: string[], input?: string): { code: number; stdout: string; st
 }
 
 function tmpWorkflow(content: string): string {
-  const file = path.join(os.tmpdir(), `nika-contract-${process.pid}-${Math.floor(performance.now() * 1000)}.nika.yaml`);
+  const file = path.join(os.tmpdir(), `nika-contract-${process.pid}-${Math.floor(performance.now() * 1000)}.nika`);
   fs.writeFileSync(file, content, 'utf-8');
   return file;
 }
@@ -474,7 +474,7 @@ tasks:
     expect(templates.length).toBeGreaterThan(0);
 
     for (const slug of templates) {
-      const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-${slug}.nika.yaml`);
+      const dest = path.join(os.tmpdir(), `nika-contract-tpl-${process.pid}-${slug}.nika`);
       try {
         const created = run(['new', slug, dest, '--force']);
         expect(created.code, `new ${slug}`).toBe(EXIT.OK);
@@ -849,7 +849,7 @@ describe.skipIf(!BIN)('analysis agreement (real binary)', () => {
 
 describe.skipIf(!BIN)('new intent routing (real binary)', () => {
   it('routes a parallel intent or honestly declines (two generations)', () => {
-    const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika.yaml`);
+    const dest = path.join(os.tmpdir(), `nika-route-${process.pid}.nika`);
     try {
       const res = run(['new', 'summarize every item in parallel', dest, '--force']);
       if (res.code === EXIT.OK) {

@@ -41,7 +41,7 @@ const FACTS: Record<string, { view: TreeViewId; facts: TreeItemFacts }> = {
   workflowFile: {
     view: 'nikaWorkflows',
     facts: {
-      kind: 'workflowFile', label: 'deploy.nika.yaml', element: { sentinel: 'file' },
+      kind: 'workflowFile', label: 'deploy.nika', element: { sentinel: 'file' },
       click: { command: 'vscode.open', args: ['uri'] },
     },
   },
@@ -128,7 +128,7 @@ describe('curation — each kind serves its verbs, primary first', () => {
     expect(p.itemRows.map((r) => r.command)).toEqual([
       'nika.workflows.run', 'nika.workflows.check', 'nika.workflows.showDag', 'nika.fixWorkflow', 'vscode.open',
     ]);
-    expect(p.title).toBe('Workflows · deploy.nika.yaml');
+    expect(p.title).toBe('Workflows · deploy.nika');
     // The chord teachers point at the palette commands that own chords.
     expect(p.itemRows[0].teach).toBe('nika.runWorkflow');
     expect(p.itemRows[1].teach).toBe('nika.checkWorkflow');

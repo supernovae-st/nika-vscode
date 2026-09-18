@@ -55,7 +55,7 @@ describe.skipIf(FLOOR.off)('door shapes × server islands (one register, two dia
     try {
       await session.request('initialize', { processId: null, rootUri: null, capabilities: {} });
       session.notify('initialized', {});
-      const uri = 'file:///probe/islands.nika.yaml';
+      const uri = 'file:///probe/islands.nika';
       session.notify('textDocument/didOpen', {
         textDocument: { uri, languageId: 'nika', version: 1, text: DOC },
       });

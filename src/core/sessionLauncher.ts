@@ -56,7 +56,7 @@ export function buildSessionPicks(s: SessionState): SessionPick[] {
   }
   picks.push({
     label: '$(sparkle) Describe it — generate a workflow',
-    description: 'one sentence in, an oracle-checked .nika.yaml out',
+    description: 'one sentence in, an oracle-checked .nika out',
     command: 'nika.generateWorkflow',
   });
   picks.push({

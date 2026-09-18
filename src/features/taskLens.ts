@@ -15,9 +15,10 @@ import { countTaskRefs } from '../core/renameRefs';
 import { traceStore } from '../core/traceStore';
 import { NIKA_VERB_HEX } from '../design-tokens.generated';
 import { parseRichWorkflow } from '../workflowParser';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 /** The flow doors — each on the task-level line it rewrites (never on

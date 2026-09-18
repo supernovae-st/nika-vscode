@@ -11,7 +11,7 @@
 //     before · 2 gestures  (Try the demo · ▶ mock)
 //     after  · 0 gestures  — the demo opens and runs itself at activation
 //
-// The guard: a workspace already carrying *.nika.yaml is an existing
+// The guard: a workspace already carrying *.nika is an existing
 // user's territory — the wire never auto-opens there, whatever the keys
 // say. One shot ever: armed dies with the firstActivation key (burned at
 // arm time, host-side), flown dies within the session.

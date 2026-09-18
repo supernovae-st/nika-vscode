@@ -32,7 +32,7 @@ suite('literal native terminal argv', () => {
       const { runNikaCommand } = require(bundle) as { runNikaCommand(binary: string, args: readonly string[], file: string): Promise<boolean> };
       const cwd = path.join(fixture, 'folder with spaces');
       fs.mkdirSync(cwd);
-      const file = path.join(cwd, 'one $value.nika.yaml');
+      const file = path.join(cwd, 'one $value.nika');
       const receipt = path.join(fixture, 'argv.json');
       const values = ['a b', '"quoted"', "'single'", '$(not-a-command)', '`not-a-command`', 'a;b|c&d', 'line\nnext', '🦋', ''];
       const script = path.join(fixture, 'argv-probe.cjs');

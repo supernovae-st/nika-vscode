@@ -7,7 +7,7 @@ vi.mock('vscode', () => ({
   Uri: { file: (fsPath: string) => ({ scheme: 'file', fsPath }) },
 }));
 import { chooseResumeJournal } from '../features/resumeSource';
-const workflow = path.resolve('fixture', 'workflow.nika.yaml');
+const workflow = path.resolve('fixture', 'workflow.nika');
 const journal = path.resolve('fixture', '.nika', 'traces', 'engine.ndjson');
 beforeEach(() => { vi.clearAllMocks(); });
 

@@ -66,7 +66,7 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
   it('a real run journal yields the artifact with its producing task', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-artifacts-e2e-'));
     try {
-      const wf = path.join(dir, 'artifacts-e2e.nika.yaml');
+      const wf = path.join(dir, 'artifacts-e2e.nika');
       fs.writeFileSync(wf, WORKFLOW);
       let ran = true;
       try {
@@ -105,7 +105,7 @@ describe.skipIf(!BIN)('artifacts on the real binary', () => {
     // IMAGE_EXT shipped).
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-chart-e2e-'));
     try {
-      const wf = path.join(dir, 'chart-e2e.nika.yaml');
+      const wf = path.join(dir, 'chart-e2e.nika');
       fs.writeFileSync(wf, `nika: chart-card-e2e
 permits:
   fs:

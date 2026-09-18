@@ -49,7 +49,7 @@ async function buildCorpus(service: NikaService): Promise<CorpusDoc[]> {
   const docs: CorpusDoc[] = [];
   for (const slug of await service.templatesList()) {
     tmpSeq += 1;
-    const tmp = path.join(os.tmpdir(), `nika-gen-tpl-${process.pid}-${tmpSeq}.nika.yaml`);
+    const tmp = path.join(os.tmpdir(), `nika-gen-tpl-${process.pid}-${tmpSeq}.nika`);
     const res = await service.newFromTemplate(slug, tmp);
     let body: string;
     try {
@@ -116,7 +116,7 @@ async function buildGrounding(service: NikaService, intent: string, corpus: Corp
   }
 
   const prompt = [
-    'You are authoring ONE Nika workflow (`*.nika.yaml` · the nine-key envelope of nika 0.109:',
+    'You are authoring ONE Nika workflow (`*.nika` · the nine-key envelope of nika 0.109:',
     'the first line is `nika: <kebab-id>` — the workflow\'s own name, never `v1`, no `workflow:` block;',
     'the only top-level keys are nika · model · inputs · const · secrets · permits · run · tasks · outputs).',
     '',
@@ -380,14 +380,14 @@ async function stageGeneratedWorkflow(
         validateInput: (v) => /^[a-z0-9-]+$/.test(v) ? null : 'Use lowercase letters, numbers, hyphens',
       });
       if (!name) { continue; }
-      const target = vscode.Uri.joinPath(folder.uri, `${name}.nika.yaml`);
+      const target = vscode.Uri.joinPath(folder.uri, `${name}.nika`);
       // Never silently clobber an existing workflow — the slug default
       // makes a collision easy and a raw fs.writeFile has no undo.
       let exists = false;
       try { await vscode.workspace.fs.stat(target); exists = true; } catch { /* free */ }
       if (exists) {
         const overwrite = await vscode.window.showWarningMessage(
-          `${name}.nika.yaml already exists — overwrite it?`,
+          `${name}.nika already exists — overwrite it?`,
           { modal: true },
           'Overwrite',
         );
@@ -398,7 +398,7 @@ async function stageGeneratedWorkflow(
       const saved = await vscode.workspace.openTextDocument(target);
       await vscode.window.showTextDocument(saved, { preview: false });
       // Diet: the opened file is the answer — flash only.
-      flashStatus(`$(check) ${name}.nika.yaml saved — it flows into check + DAG now`);
+      flashStatus(`$(check) ${name}.nika saved — it flows into check + DAG now`);
       return;
     }
 

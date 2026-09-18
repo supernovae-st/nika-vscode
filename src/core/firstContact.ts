@@ -43,7 +43,7 @@ export interface FirstContactFacts {
   /** Explicit VS Code workspace trust, not provider availability or cost. */
   workspaceTrusted: boolean;
   binaryAvailable: boolean;
-  /** The open workspace already contains *.nika.yaml files. */
+  /** The open workspace already contains *.nika files. */
   workspaceHasWorkflows: boolean;
 }
 

@@ -121,17 +121,17 @@ describe('the resting screen', () => {
   const ok: RestingDeps['truth'] = { severity: 'ok' };
 
   it('a working stage with an active file leads with its rows', () => {
-    const head = buildRestingHead({ truth: ok, stage: 'working', active: 'daily.nika.yaml', caps }, chords);
+    const head = buildRestingHead({ truth: ok, stage: 'working', active: 'daily.nika', caps }, chords);
     expect(head.map((r) => r.id)).toEqual(['nika.runWorkflow', 'nika.checkWorkflow', 'nika.showDag']);
     expect(head[0].chord).toBe('⌘+k ⌘+e');
-    expect(head[0].detail).toBe('daily.nika.yaml');
+    expect(head[0].detail).toBe('daily.nika');
   });
 
   it('a degraded lane outranks every journey step', () => {
     const head = buildRestingHead({
       truth: { severity: 'error', headline: { label: 'Install the engine', command: 'nika.finishSetup' } },
       stage: 'working',
-      active: 'daily.nika.yaml',
+      active: 'daily.nika',
       caps,
     }, chords);
     expect(head[0].id).toBe('nika.finishSetup');
@@ -154,7 +154,7 @@ describe('the resting screen', () => {
   });
 
   it('the empty query is a screen, never a void: Now · Everything · footer', () => {
-    const head = buildRestingHead({ truth: ok, stage: 'working', active: 'a.nika.yaml', caps }, chords);
+    const head = buildRestingHead({ truth: ok, stage: 'working', active: 'a.nika', caps }, chords);
     const rows = gateScreen('', catalog, head, buildRestingFoot({ inspect: true }), {}, NOW);
     expect(rows[0]).toEqual({ kind: 'separator', label: 'Now' });
     const everything = rows.findIndex((r) => r.kind === 'separator' && r.label === 'Everything');
@@ -231,10 +231,10 @@ describe('the assigned aliases (applyAliases · the Raycast law)', () => {
 
   it('async family ids are valid targets too (applied on the merge)', () => {
     const wf = buildWorkflowItems([
-      { fsPath: '/w/deploy.nika.yaml', relPath: 'deploy.nika.yaml', mtimeMs: NOW, openArg: 'u' },
+      { fsPath: '/w/deploy.nika', relPath: 'deploy.nika', mtimeMs: NOW, openArg: 'u' },
     ]);
-    const merged = applyAliases(mergeCatalog(catalog, wf, []), { dp: 'workflow./w/deploy.nika.yaml' });
-    expect(merged.find((x) => x.id === 'workflow./w/deploy.nika.yaml')?.aliases).toEqual(['dp']);
+    const merged = applyAliases(mergeCatalog(catalog, wf, []), { dp: 'workflow./w/deploy.nika' });
+    expect(merged.find((x) => x.id === 'workflow./w/deploy.nika')?.aliases).toEqual(['dp']);
   });
 
   it('the aliased row leads its screen over a giant learned habit', () => {
@@ -325,30 +325,30 @@ const wfFact = (over: Partial<WorkflowSearchFact> & { fsPath: string }): Workflo
 
 describe('F3 · the workflow files', () => {
   const facts: WorkflowSearchFact[] = [
-    wfFact({ fsPath: '/w/old.nika.yaml', mtimeMs: NOW - 3 * DAY }),
-    wfFact({ fsPath: '/w/flows/deploy.nika.yaml', mtimeMs: NOW - 1000, badge: { kind: 'findings', count: 2 } }),
-    wfFact({ fsPath: '/w/daily.nika.yaml', mtimeMs: NOW - DAY, badge: { kind: 'clean' } }),
+    wfFact({ fsPath: '/w/old.nika', mtimeMs: NOW - 3 * DAY }),
+    wfFact({ fsPath: '/w/flows/deploy.nika', mtimeMs: NOW - 1000, badge: { kind: 'findings', count: 2 } }),
+    wfFact({ fsPath: '/w/daily.nika', mtimeMs: NOW - DAY, badge: { kind: 'clean' } }),
   ];
   const items = buildWorkflowItems(facts);
 
   it('newest first — the mtime is the relevance prior', () => {
-    expect(items.map((x) => x.label)).toEqual(['deploy.nika.yaml', 'daily.nika.yaml', 'old.nika.yaml']);
+    expect(items.map((x) => x.label)).toEqual(['deploy.nika', 'daily.nika', 'old.nika']);
     expect(items.map((x) => x.declOrder)).toEqual([0, 1, 2]);
   });
 
   it('speaks the groupWorkflows state only when a verdict is KNOWN', () => {
     const byLabel = new Map(items.map((x) => [x.label, x]));
-    expect(byLabel.get('deploy.nika.yaml')?.detail).toBe('2 findings');
-    expect(byLabel.get('daily.nika.yaml')?.detail).toBe('clean');
-    expect(byLabel.get('old.nika.yaml')?.detail).toBeUndefined();
+    expect(byLabel.get('deploy.nika')?.detail).toBe('2 findings');
+    expect(byLabel.get('daily.nika')?.detail).toBe('clean');
+    expect(byLabel.get('old.nika')?.detail).toBeUndefined();
   });
 
   it('opens the file with the door\'s own handle; the relPath is a keyword', () => {
     const deploy = items[0];
     expect(deploy.family).toBe('workflow');
-    expect(deploy.id).toBe('workflow./w/flows/deploy.nika.yaml');
-    expect(deploy.run).toEqual({ command: 'vscode.open', args: ['uri:/w/flows/deploy.nika.yaml'] });
-    expect(deploy.keywords).toEqual(['w/flows/deploy.nika.yaml']);
+    expect(deploy.id).toBe('workflow./w/flows/deploy.nika');
+    expect(deploy.run).toEqual({ command: 'vscode.open', args: ['uri:/w/flows/deploy.nika'] });
+    expect(deploy.keywords).toEqual(['w/flows/deploy.nika']);
     // Folder-qualified typing reaches the row through the keyword.
     const rows = gateScreen('flows/dep', mergeCatalog([], items, []), [], [], {}, NOW);
     expect(rows[0]).toMatchObject({ kind: 'item', item: { id: deploy.id } });
@@ -398,7 +398,7 @@ describe('F4 · the recorded runs', () => {
 });
 
 describe('the append (mergeCatalog · the landing re-rank)', () => {
-  const wf = buildWorkflowItems([wfFact({ fsPath: '/w/digest.nika.yaml' })]);
+  const wf = buildWorkflowItems([wfFact({ fsPath: '/w/digest.nika' })]);
   const runs = buildRunItems([runFact({ fsPath: '/t/digest-run.ndjson' })], NOW);
 
   it('re-numbers globally F1 F2 then F3 then F4, whatever order the families landed', () => {
@@ -416,7 +416,7 @@ describe('the append (mergeCatalog · the landing re-rank)', () => {
     // Pre-landing: zero real matches — the fallback screen holds the q.
     expect(before.every((r) => r.kind === 'item' && r.item.id.startsWith('fallback.'))).toBe(true);
     const after = gateScreen(q, mergeCatalog(catalog, wf, runs), [], [], {}, NOW);
-    expect(after[0]).toMatchObject({ kind: 'item', item: { id: 'workflow./w/digest.nika.yaml' } });
+    expect(after[0]).toMatchObject({ kind: 'item', item: { id: 'workflow./w/digest.nika' } });
   });
 
   it('never an empty screen: any query, landed or not, yields rows (the no-results law)', () => {

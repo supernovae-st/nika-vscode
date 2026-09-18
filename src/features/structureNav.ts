@@ -12,7 +12,7 @@ import { parseRichWorkflow } from '../workflowParser';
 
 const SELECTOR: vscode.DocumentSelector = [
   { language: 'nika' },
-  { pattern: '**/*.nika.yaml' },
+  { pattern: '**/*.nika' },
 ];
 
 /** Task ids are locked to this shape by the engine grammar. */

@@ -21,6 +21,7 @@ import { collectShapes } from '../core/schemaShape';
 import { severityOverrideFor, type SeverityName } from '../core/severityMap';
 import { parseRichWorkflow } from '../workflowParser';
 import type { NikaService } from '../nikaService';
+import { isCanonicalWorkflowPath } from '../core/workflowName';
 
 export const NIKA_DIAG_SOURCE = 'nika';
 
@@ -72,7 +73,7 @@ export function applySeverityRemap(d: vscode.Diagnostic): boolean {
 }
 
 function isNikaDoc(doc: vscode.TextDocument): boolean {
-  return doc.languageId === 'nika' || /\.nika\.ya?ml$/.test(doc.fileName);
+  return doc.languageId === 'nika' || isCanonicalWorkflowPath(doc.fileName);
 }
 
 // Walkthrough completionEvent producer — a one-way session latch. The
@@ -84,7 +85,7 @@ let sawDiagnosticsLatched = false;
 function latchSawDiagnostics(uris: readonly vscode.Uri[]): void {
   if (sawDiagnosticsLatched) { return; }
   for (const uri of uris) {
-    if (!/\.nika\.ya?ml$/.test(uri.fsPath)) { continue; }
+    if (!isCanonicalWorkflowPath(uri.fsPath)) { continue; }
     const hit = vscode.languages.getDiagnostics(uri).some((d) => {
       const code = typeof d.code === 'object' ? String(d.code.value) : String(d.code ?? '');
       return d.source === NIKA_DIAG_SOURCE || code.startsWith('NIKA-');

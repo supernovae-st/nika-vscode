@@ -18,7 +18,7 @@
 import * as path from 'path';
 
 /** The canonical filename the demo lands under (skip-if-exists suffixes). */
-export const DEMO_WORKFLOW_FILE = 'hello-canvas.nika.yaml';
+export const DEMO_WORKFLOW_FILE = 'hello-canvas.nika';
 
 /** Where the demo lands: the open workspace root, or a scratch dir under
  *  the OS temp root when no folder is open (still a real file · file

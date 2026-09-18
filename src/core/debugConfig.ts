@@ -2,7 +2,7 @@
 //
 // The journal records the workflow NAME (not its path), so replaying a
 // run under the debugger needs a name-to-file match across the
-// workspace's .nika.yaml files. Pure functions; the feature layer feeds
+// workspace's .nika files. Pure functions; the feature layer feeds
 // them file contents and wires the pick UI.
 
 /** The workflow's name — the `nika: <id>` identity line of the nine-key

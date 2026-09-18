@@ -37,7 +37,7 @@ let children: Child[];
 let panel: DagPanel;
 let service: NikaService;
 const log = vi.fn();
-const file = '/fixture/workflow.nika.yaml';
+const file = '/fixture/workflow.nika';
 function event(kind: string, fields: { key: string; value: string }[] = []): string {
   return `${JSON.stringify({ kind, timestamp: 0, fields })}\n`;
 }
@@ -139,14 +139,14 @@ describe('live run ownership and settlement', () => {
 
   it('holds one process until close and retains only the latest replacement', () => {
     api.runWorkflowLive(service, panel, file, log);
-    api.runWorkflowLive(service, panel, '/fixture/discarded.nika.yaml', log);
-    api.runWorkflowLive(service, panel, '/fixture/latest.nika.yaml', log);
+    api.runWorkflowLive(service, panel, '/fixture/discarded.nika', log);
+    api.runWorkflowLive(service, panel, '/fixture/latest.nika', log);
     expect(host.spawn).toHaveBeenCalledTimes(1);
     expect(children[0].kill).toHaveBeenCalledTimes(1);
     expect(api.isRunActive()).toBe(true);
     children[0].emit('close', null, 'SIGTERM');
     expect(host.spawn).toHaveBeenCalledTimes(2);
-    expect(host.spawn.mock.calls[1][1][1]).toBe('/fixture/latest.nika.yaml');
+    expect(host.spawn.mock.calls[1][1][1]).toBe('/fixture/latest.nika');
     expect(api.isRunActive()).toBe(true);
   });
 

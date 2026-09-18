@@ -54,19 +54,19 @@ suite('nika · real extension host', () => {
     await vscode.commands.executeCommand('nika.search.resetRanking');
   });
 
-  test('a .nika.yaml opens as the nika language', async () => {
+  test('a .nika opens as the nika language', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-int-'));
-    const file = path.join(dir, 'smoke.nika.yaml');
+    const file = path.join(dir, 'smoke.nika');
     fs.writeFileSync(file, 'nika: smoke\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n');
     const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);
-    assert.strictEqual(doc.languageId, 'nika', 'the .nika.yaml must bind to the nika language');
+    assert.strictEqual(doc.languageId, 'nika', 'the .nika must bind to the nika language');
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
   test('the DAG webview panel opens (CSP + asWebviewUri load path)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nika-int-'));
-    const file = path.join(dir, 'graph.nika.yaml');
+    const file = path.join(dir, 'graph.nika');
     fs.writeFileSync(file, 'nika: g\nmodel: mock/echo\ntasks:\n  a:\n    infer:\n      prompt: "hi"\n  b:\n    after: { a: success }\n    infer:\n      prompt: "bye"\n');
     const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);

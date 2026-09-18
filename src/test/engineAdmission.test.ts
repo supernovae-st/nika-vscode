@@ -39,7 +39,7 @@ describe('service admission before capabilities and effects', () => {
     expect(service.binaryPath).toBeUndefined();
     expect(service.caps.commands.size).toBe(0);
     expect(service.supportError).toContain('0.118.2');
-    const result = await service.runCli(['run', 'workflow.nika.yaml']);
+    const result = await service.runCli(['run', 'workflow.nika']);
     expect(result.code).not.toBe(0);
     expect(result.stderr).toBe(service.supportError);
     const machineAbsolute = vi.fn();
@@ -56,8 +56,8 @@ describe('service admission before capabilities and effects', () => {
     expect(service.supportError).toBeUndefined();
     expect(service.caps.lsp).toBe(true);
     expect(service.caps.resume).toBe(true);
-    await service.runCli(['run', 'workflow.nika.yaml']);
-    expect(spawnCli).toHaveBeenLastCalledWith('/selected/nika', ['run', 'workflow.nika.yaml'], 30000, undefined, undefined);
+    await service.runCli(['run', 'workflow.nika']);
+    expect(spawnCli).toHaveBeenLastCalledWith('/selected/nika', ['run', 'workflow.nika'], 30000, undefined, undefined);
     const verbs = vi.mocked(spawnCli).mock.calls.map((call) => call[1][0]);
     expect(verbs).not.toContain('schema');
     expect(verbs).not.toContain('tools');

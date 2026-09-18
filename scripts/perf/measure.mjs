@@ -179,7 +179,7 @@ if (scenario === 'all' || scenario === 'switch') {
     failures.push(`swr: INTERACTIVE re-layout median ${mid.elkMs}ms (engine clock) > 40% of cold ${coldA.elkMs}ms`);
   }
   // LEAK — same structure, different workflowUri: MUST miss.
-  const leak = await loadAndSettle(page, { n: 300, uri: 'file:///work/perf-leak.nika.yaml', name: 'perf-leak' });
+  const leak = await loadAndSettle(page, { n: 300, uri: 'file:///work/perf-leak.nika', name: 'perf-leak' });
   report['leak'] = { cacheHit: leak.cacheHit, hash: leak.hash };
   if (leak.cacheHit === true) {
     failures.push('LEAK: a different workflowUri with identical structure HIT the cache — layoutKeyOf must scope the key');

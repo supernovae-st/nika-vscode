@@ -1,6 +1,6 @@
 # contrib/ · Nika icons for file-icon themes
 
-`*.nika.yaml` files and `.nika/` folders (the engine's flight-recorder home)
+`*.nika` files and `.nika/` folders (the engine's flight-recorder home)
 deserve the butterfly in YOUR file tree. VS Code has **no extension API for
 per-file/folder icons** · those belong to the active *file icon theme* · so
 this directory ships ready-made artwork + the wiring for the three big themes.
@@ -10,7 +10,7 @@ The glyph is the brand kit's 16 px teardrop mark
 ## Seti (VS Code's default) · nothing to do
 
 This extension already contributes a **language icon** (`contributes.languages[].icon`),
-so `*.nika.yaml` shows the butterfly in any theme that honors language default
+so `*.nika` shows the butterfly in any theme that honors language default
 icons (Seti does since VS Code 1.65). Folder icons are not part of that API.
 
 ## Material Icon Theme · today, via settings
@@ -25,7 +25,7 @@ Until [material-extensions/vscode-material-icon-theme#3529](https://github.com/m
 }
 ```
 
-`*.nika.yaml` keeps Material's YAML icon until the upstream PR merges.
+`*.nika` keeps Material's YAML icon until the upstream PR merges.
 
 ## Material Icon Theme · the upstream contribution ([PR #3529](https://github.com/material-extensions/vscode-material-icon-theme/pull/3529) · in review)
 
