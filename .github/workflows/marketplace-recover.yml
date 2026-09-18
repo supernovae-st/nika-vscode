@@ -1,0 +1,47 @@
+# marketplace-recover.yml — publish existing 0.120.0 VSIX to VS Marketplace only.
+#
+# OpenVSX already has supernovae.nika 0.120.0
+# (sha256 070f15453913cd94dcf5ca44e4e61121e44774fec6feffd29dfba6a554f7f62f)
+# from run 35389419110. Do not republish OpenVSX. Do not retag v0.120.0.
+# Run only after supernovae.nika-lang has freed displayName uniqueness.
+
+name: marketplace recover 0.120.0
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: vsix
+          github-token: ${{ github.token }}
+          run-id: 35389419110
+      - name: Refuse a substituted VSIX
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, zipfile
+          from pathlib import Path
+          expected = '070f15453913cd94dcf5ca44e4e61121e44774fec6feffd29dfba6a554f7f62f'
+          path = Path('nika.vsix')
+          digest = hashlib.sha256(path.read_bytes()).hexdigest()
+          print('vsix_sha256', digest)
+          if digest != expected:
+              raise SystemExit(f'digest {digest} != {expected}')
+          pkg = json.loads(zipfile.ZipFile(path).read('extension/package.json'))
+          assert pkg['name'] == 'nika'
+          assert pkg['version'] == '0.120.0'
+          assert pkg['publisher'] == 'supernovae'
+          assert pkg['displayName'] == 'Nika Workflow Language'
+          PY
+      - name: Publish to VS Marketplace only
+        uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: nika.vsix
+          skipDuplicate: false
