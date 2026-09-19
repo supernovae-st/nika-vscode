@@ -4,6 +4,22 @@ All notable changes to the extension. Versions pace the engine's
 release line (real semver toward 1.0 · lockstep on the engine's
 major.minor from 0.97).
 
+## [0.120.1] · public engine 0.120.1
+
+Lockstep source for public engine 0.120.1. `ENGINE_PIN` is release
+`v0.120.1`, source commit `9d554c84c8a63144c36e7245fee641e6bfc7349f`,
+with all four archive digests anchored in the integration runner.
+`SPEC_PIN` is `4b6eaadde483bcc9db9c05b022afbedfb107f37e` (named by the
+engine release). The support floor is 0.120.1.
+
+Public 0.120.1 includes the project-schema correction from
+[engine #1692](https://github.com/supernovae-st/nika/pull/1692) and
+[Spec #345](https://github.com/supernovae-st/nika-spec/pull/345):
+canonical `.nika` paths in `nika.yaml` arm bindings are accepted.
+NIKA-SEC-014 refuses a value read of a certainly-skipped confirm stage.
+Marketplace publication of this version remains a separate release
+receipt; the 0.120.0 Marketplace listing stays.
+
 ## [0.120.0] · public engine qualification
 
 Known engine limitation: the public 0.120.0 project schema still rejects
