@@ -2008,18 +2008,18 @@
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^22.20.2",
+    "@types/node": "^22.20.4",
     "@types/vscode": "1.91.0",
     "@vscode/test-electron": "^3.0.0",
     "@vscode/vsce": "^4.0.0",
     "elkjs": "^0.12.0",
     "esbuild": "^0.28.2",
-    "eslint": "^10.10.0",
+    "eslint": "^10.11.0",
     "glob": "^13.0.6",
-    "mocha": "^12.0.1",
+    "mocha": "^12.0.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.70.0",
-    "vitest": "^5.0.0"
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
   },
   "qna": false
 }
