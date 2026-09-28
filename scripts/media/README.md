@@ -1,14 +1,20 @@
 # Canvas media · the README captures
 
-Three of the README GIFs are captured from the extension's **real
+Three of the README clips are captured from the extension's **real
 webview bundle** (`out/webview/dag.{js,css}`), driven through the
 extension's own message protocol (`dag:load` · `dag:batchUpdateStatus` ·
 `dag:artifacts` · `run:state` · `run:progress` · `run:verdict`) · the
 same messages a live `nika run` streams onto the DAG. The run timelines
 are scripted replays (states illustrative, chrome and card anatomy
-real). `media/check-as-you-type.gif` is the exception: a real-editor
-capture (VS Code + a live engine), re-shot by hand when the diagnostics
-surface changes.
+real). The README shows the run tour as a still,
+`media/dag-execution-poster.png`, that opens `media/dag-execution.gif`.
+
+`media/check-as-you-type.gif` is the exception: it is the engine
+repository's `editor-diagnostics` clip. Its diagnostics are real
+`nika lsp` output on a broken and a fixed fixture, and its editor is
+drawn (the clip's footer says so). The engine renders it at 12 fps; this
+copy keeps the engine's palette settings at 10 fps to fit the budget
+below (recipe 4). Refresh it when the engine re-renders that clip.
 
 ## Regenerate
 
@@ -29,6 +35,10 @@ ffmpeg -ss 3.0 -to 19.4 -i scripts/media/media-tour.webm \
   -vf "fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" \
   media/dag-execution.gif
 gifsicle -O3 --lossy=90 media/dag-execution.gif -o media/dag-execution.gif
+# its poster: the frame the README shows (the hero card's image landing),
+# cropped to 16:9 like the engine's posters it sits beside
+ffmpeg -ss 6 -i media/dag-execution.gif -frames:v 1 -vf "crop=900:506:0:40" \
+  media/dag-execution-poster.png
 
 # 3 · the lens deck — map → what-if on the writer → timeline → audit → dataflow
 node scripts/media/tour.cjs lens               # → scripts/media/lens-tour.webm
@@ -36,6 +46,13 @@ ffmpeg -ss 1.0 -to 24.1 -i scripts/media/lens-tour.webm \
   -vf "fps=10,scale=1000:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" \
   media/lens-deck.gif
 gifsicle -O3 --lossy=90 media/lens-deck.gif -o media/lens-deck.gif
+
+# 4 · the diagnostics clip: rendered by supernovae-st/nika
+#     (media/gifs/editor-diagnostics.optimized.gif · 12 fps); this copy
+#     keeps its palette settings and drops to 10 fps for the budget
+ffmpeg -i <nika checkout>/media/gifs/editor-diagnostics.optimized.gif \
+  -filter_complex "fps=10,split[x][y];[y]palettegen=max_colors=128:stats_mode=diff[p];[x][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
+  -loop 0 media/check-as-you-type.gif
 ```
 
 Chrome is required (no bundled chromium on dev machines): both runners
