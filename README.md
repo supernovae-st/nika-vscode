@@ -31,9 +31,11 @@
 
 <!-- motion: hover, completion and the live DAG of a .nika file in the editor -->
 <p align="center">
-  <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="760">
+  <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/canvas-live-run.gif">
+    <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="960">
+  </a>
 </p>
-<p align="center"><sub>The extension's real canvas, replaying a scripted run · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
+<p align="center"><sub>Each card shows what its step will do; then two commands run at once, a model's answer streams in, the spend adds up and the run ends on a verdict. The extension's real canvas, replaying a scripted run · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
 
 ## What is Nika?
 
@@ -50,25 +52,15 @@ can verify. One Rust binary, local-first, open source (AGPL-3.0).
 |:---:|:---:|:---:|:---:|
 | Describe the job; Nika writes a `.nika` file | `nika check` audits it before any model is called | `nika run` with the model you choose | `nika trace verify` checks the run's record |
 
-<table>
-  <tr>
-    <td align="center" valign="top" width="33%">
-      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/chat-to-workflow.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/chat-to-workflow.png" alt="A request retyped into a chat every week, beside the same request kept as a .nika file that runs" width="250"></a><br>
-      <b>Why a file?</b><br>
-      <sub>a request you retype every week, kept as a file that runs</sub>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/full-loop.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/full-loop.png" alt="The first four commands in a terminal: compile a workflow, check it, run it and verify its trace" width="250"></a><br>
-      <b>The four steps</b><br>
-      <sub>compile, check, run and verify, in a terminal</sub>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/nika-hero.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/nika-hero.png" alt="nika check audits a workflow before it runs, then a real local-model run writes the action items" width="250"></a><br>
-      <b>Check, then run</b><br>
-      <sub>a local model writes the action items</sub>
-    </td>
-  </tr>
-</table>
+Watch the engine do it on the command line:
+
+- ▶ [Why a file?](https://raw.githubusercontent.com/supernovae-st/nika/main/media/gifs/chat-to-workflow.optimized.gif)
+  A request you retype every week, kept as a file that runs. The chat is
+  an illustration; the file and its run are real.
+- ▶ [The four steps](https://raw.githubusercontent.com/supernovae-st/nika/main/media/gifs/full-loop.optimized.gif)
+  Compile, check, run and verify, captured from a terminal.
+- ▶ [Check, then run](https://raw.githubusercontent.com/supernovae-st/nika/main/media/gifs/nika-hero.optimized.gif)
+  The audit first, then a real local model writes the action items.
 
 **This extension brings those four steps into your editor.** Describe a
 job on an empty canvas, see what `nika check` finds while you type, press
@@ -141,11 +133,11 @@ each step checks itself off as you do it.
 ### Errors as you type
 
 <p align="center">
-  <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/editor-diagnostics.mp4">
-    <img src="media/check-as-you-type.gif" alt="A pull-request review workflow: the language server underlines four errors, a hover explains a mistyped task name and suggests the right one, one keystroke fixes it, the problems panel explains the other three, and the full fix leaves the file clean" width="760">
+  <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/check-as-you-type.gif">
+    <img src="media/check-as-you-type.gif" alt="A pull-request review workflow: the language server underlines four errors, a hover explains a mistyped task name and suggests the right one, one keystroke fixes it, the problems panel explains the other three, and the full fix leaves the file clean" width="860">
   </a>
 </p>
-<p align="center"><sub>Real diagnostics from the engine's language server (<code>nika lsp</code>); the editor around them is drawn · <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/editor-diagnostics.mp4">watch the video</a></sub></p>
+<p align="center"><sub>Four mistakes are underlined. A hover names the mistyped task and one keystroke fixes it; the Problems panel explains the other three, and the full fix leaves the file clean. Real diagnostics from the engine's language server (<code>nika lsp</code>); the editor around them is drawn.</sub></p>
 
 - **The engine's own verdict.** Each underline is a `nika check` finding
   with its `NIKA-…` code and an explanation one click away, so a clean
@@ -163,8 +155,11 @@ each step checks itself off as you do it.
 ### One graph, five ways to read it
 
 <p align="center">
-  <img src="media/lens-deck.gif" alt="One workflow read five ways: the map, a what-if preview where a failing step lights its recovery path, the timeline of a recorded run, what the file may reach before it runs, and where its data flows" width="760">
+  <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/lens-deck.gif">
+    <img src="media/lens-deck.gif" alt="One workflow read five ways: the map, a what-if preview where a failing step lights its recovery path, the timeline of a recorded run, what the file may reach before it runs, and where its data flows" width="860">
+  </a>
 </p>
+<p align="center"><sub>One key per lens. In the what-if, the paths a failing step would stop go dim and its recovery path lights up. The extension's real canvas, driven key by key over a scripted run.</sub></p>
 
 | Press | To see |
 |:---:|---|
@@ -177,25 +172,21 @@ each step checks itself off as you do it.
 
 ### More to watch
 
-<table>
-  <tr>
-    <td align="center" valign="top" width="33%">
-      <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/dag-execution.gif"><img src="media/dag-execution-poster.png" alt="A 38-step workflow running on the canvas: cards light up wave by wave and generated images appear on them" width="250"></a><br>
-      <b>A 38-step run</b><br>
-      <sub>waves light up, images land as the run makes them</sub>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/permits-audit.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/permits-audit.png" alt="A workflow's declared boundary drawn as a map, the escape nika check catches, and the widened boundary" width="250"></a><br>
-      <b>The boundary</b><br>
-      <sub>what a workflow may touch, and the escape the check catches</sub>
-    </td>
-    <td align="center" valign="top" width="33%">
-      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/workflow-gallery.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/workflow-gallery.png" alt="The gallery of ready-made workflows that nika try lists" width="250"></a><br>
-      <b>Ready-made jobs</b><br>
-      <sub>the gallery behind <i>Nika: Try an Example</i></sub>
-    </td>
-  </tr>
-</table>
+**Watch a 38-step workflow run, wave by wave.**
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/dag-execution.gif">
+    <img src="media/dag-execution.gif" alt="A 38-step workflow running on the canvas: cards light up wave by wave and generated images appear on them" width="860">
+  </a>
+</p>
+<p align="center"><sub>The waves light up in turn, and each image lands on its card as the run makes it. The extension's real canvas, replaying a scripted run.</sub></p>
+
+Two more from the engine, on the command line:
+
+- ▶ [The boundary](https://raw.githubusercontent.com/supernovae-st/nika/main/media/gifs/permits-audit.optimized.gif)
+  What a workflow may touch, and the escape the check catches.
+- ▶ [Ready-made jobs](https://raw.githubusercontent.com/supernovae-st/nika/main/media/gifs/workflow-gallery.optimized.gif)
+  The gallery behind *Nika: Try an Example*.
 
 ## How it works
 
