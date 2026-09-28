@@ -6,8 +6,7 @@ extension's own message protocol (`dag:load` · `dag:batchUpdateStatus` ·
 `dag:artifacts` · `run:state` · `run:progress` · `run:verdict`) · the
 same messages a live `nika run` streams onto the DAG. The run timelines
 are scripted replays (states illustrative, chrome and card anatomy
-real). The README shows the run tour as a still,
-`media/dag-execution-poster.png`, that opens `media/dag-execution.gif`.
+real).
 
 `media/check-as-you-type.gif` is the exception: it is the engine
 repository's `editor-diagnostics` clip. Its diagnostics are real
@@ -35,10 +34,6 @@ ffmpeg -ss 3.0 -to 19.4 -i scripts/media/media-tour.webm \
   -vf "fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" \
   media/dag-execution.gif
 gifsicle -O3 --lossy=90 media/dag-execution.gif -o media/dag-execution.gif
-# its poster: the frame the README shows (the hero card's image landing),
-# cropped to 16:9 like the engine's posters it sits beside
-ffmpeg -ss 6 -i media/dag-execution.gif -frames:v 1 -vf "crop=900:506:0:40" \
-  media/dag-execution-poster.png
 
 # 3 · the lens deck — map → what-if on the writer → timeline → audit → dataflow
 node scripts/media/tour.cjs lens               # → scripts/media/lens-tour.webm
@@ -105,4 +100,5 @@ a card element or message kind changes in `src/webview/dag.ts`,
 re-render rather than editing the GIF.
 
 Budgets: every README GIF ≤ 3 MB (the Marketplace renders them on the
-listing page).
+listing page), and at most four GIFs on the page, each on its own row.
+An engine clip over 3 MB is linked as text, never embedded.
