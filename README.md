@@ -7,723 +7,782 @@
   </a>
 </p>
 
-# Nika Workflow Language · VS Code · Cursor · Windsurf · VSCodium
+<h1 align="center">Nika Workflow Language<br><sub>for VS Code · Cursor · Windsurf · VSCodium</sub></h1>
+
+<p align="center">
+  <b>See your AI workflow as a live graph, and catch its mistakes before it runs.</b><br>
+  Watch each run light up step by step, replay it later, and use the models you choose, local or cloud.
+</p>
+
+<div align="center">
 
 [![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
 [![Installs](https://vsmarketplacebadges.dev/installs-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
 [![Rating](https://vsmarketplacebadges.dev/rating-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika&ssr=false#review-details)
 [![Open VSX](https://img.shields.io/open-vsx/v/supernovae/nika?label=Open%20VSX&color=2b62ea)](https://open-vsx.org/extension/supernovae/nika)
 [![Open VSX downloads](https://img.shields.io/open-vsx/dt/supernovae/nika?label=downloads&color=555)](https://open-vsx.org/extension/supernovae/nika)
+
 [![CI](https://img.shields.io/github/actions/workflow/status/supernovae-st/nika-vscode/ci.yml?branch=main&label=ci)](https://github.com/supernovae-st/nika-vscode/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/supernovae-st/nika-vscode?label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/supernovae-st/nika-vscode)
 [![Software Heritage](https://img.shields.io/badge/Software%20Heritage-archive-blue.svg)](https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/supernovae-st/nika-vscode)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
-> **See the DAG before you run it. Local traces, your models.**
+</div>
 
-**Your AI workflow as a live graph.** A `.nika` file becomes a
-content-first canvas: prompts on the cards, wires carrying named data,
-policy and permits as chips (permits = the file's declared boundary:
-what it may reach, run and read), cost as a running meter. And when you
-press ▶, the graph executes wave by wave (a wave = the tasks that can
-run together) and closes on a verdict with a verifiable receipt:
+<!-- motion: hover, completion and the live DAG of a .nika file in the editor -->
+<p align="center">
+  <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="760">
+</p>
+<p align="center"><sub>The extension's real canvas, replaying a scripted run · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
 
-![A release-notes workflow as a live DAG: dense cards with named wires, two exec tasks running in parallel, an infer task streaming, the cost ticker counting real spend, and the run closing on a verdict banner, its trace chain head, and the first-green confetti](media/canvas-live-run.gif)
+## What is Nika?
 
-*Real webview, real message protocol: this capture drives the extension's
-own bundle through the same `dag:*`/`run:*` messages a live `nika run`
-streams (scripted replay; regenerate with [`scripts/media/`](scripts/media/)).*
+Nika turns repeatable AI work into a small file you keep. Say what you
+want done, like *"every Monday, pull the action items out of my meeting
+notes"*, and Nika writes it as a readable `.nika` workflow. Before
+anything runs, `nika check` shows what the workflow will do, which models
+and tools it uses, what it is allowed to touch and what it can cost,
+without calling a model. You run it when you decide, with the model you
+choose, local or cloud, and every run leaves a tamper-evident record you
+can verify. One Rust binary, local-first, open source (AGPL-3.0).
 
-*Tip: `Nika: Open the Canvas (workflow DAG)` opens this canvas on any `.nika` ·
-`Nika: Try the Demo Workflow` writes one to open it on.*
+| 1 · Say it | 2 · Check it | 3 · Run it | 4 · Prove it |
+|:---:|:---:|:---:|:---:|
+| Describe the job; Nika writes a `.nika` file | `nika check` audits it before any model is called | `nika run` with the model you choose | `nika trace verify` checks the run's record |
 
-> One extension, every VS Code-compatible editor. `nika-vscode` is the
-> repo name because that's the extension *platform* (like `vscode-eslint`)
-> · it ships to the **VS Code Marketplace** AND **OpenVSX**, so Cursor,
-> Windsurf, VSCodium and friends install it natively. JetBrains/Zed/Neovim
-> get the same brain via `nika lsp` + the published JSON Schema.
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/chat-to-workflow.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/chat-to-workflow.png" alt="A request retyped into a chat every week, beside the same request kept as a .nika file that runs" width="250"></a><br>
+      <b>Why a file?</b><br>
+      <sub>a request you retype every week, kept as a file that runs</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/full-loop.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/full-loop.png" alt="The first four commands in a terminal: compile a workflow, check it, run it and verify its trace" width="250"></a><br>
+      <b>The four steps</b><br>
+      <sub>compile, check, run and verify, in a terminal</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/nika-hero.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/nika-hero.png" alt="nika check audits a workflow before it runs, then a real local-model run writes the action items" width="250"></a><br>
+      <b>Check, then run</b><br>
+      <sub>a local model writes the action items</sub>
+    </td>
+  </tr>
+</table>
 
-Language support for [Nika](https://nika.sh) (`.nika`) · **Intent as
-Code**, the workflow language for AI (one file, 4 verbs, one binary) that
-turns repeatable AI work into files you can run, review, diff and share.
-And **auditable BEFORE it runs**: cost ceiling, permits boundary, secret
-flows and schema parity are static facts the editor paints in the
-margin, before a single token is spent. Apache-2.0 spec · AGPL engine.
+**This extension brings those four steps into your editor.** Describe a
+job on an empty canvas, see what `nika check` finds while you type, press
+▶ to watch the run light up the graph, and replay or verify any past run.
+The engine does the judging; the extension shows exactly what it reports.
 
-![The static audit painted as you type: real nika check diagnostics (NIKA-VAR-021, NIKA-VAR-001 with did-you-mean), the three-line fix, then a clean verdict](media/check-as-you-type.gif)
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-you-get">What you get</a> ·
+  <a href="#see-it-in-action">See it in action</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#feature-reference">Features</a> ·
+  <a href="#commands">Commands</a> ·
+  <a href="#settings">Settings</a>
+</p>
 
-*The diagnostics above are the real `nika check --json` output: codes,
-messages and positions come from the engine, not the extension.*
+## Quick start
 
-*Tip: squiggles are keystroke-live by default:
-`nika.diagnostics.runOn: save` calms them to save-time.*
+1. **Install the extension.** Open the Extensions view
+   (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>, or <kbd>⇧</kbd><kbd>⌘</kbd><kbd>X</kbd> on macOS)
+   and search **Nika**. VS Code installs it from the Marketplace; Cursor,
+   Windsurf and VSCodium install it from Open VSX.
+2. **Add the engine.** Accept the download the extension offers (HTTPS,
+   checked against the release's SHA-256, never without your consent), or
+   install it yourself:
 
-## Why this one
+   ```sh
+   brew install supernovae-st/tap/nika
+   ```
 
-| The top five | |
+3. **Watch a first run.** Open a folder and trust it. On your first
+   install, a small demo workflow opens on the canvas and runs itself on
+   `mock/echo`, a stand-in model built into the engine: no key, no
+   network, nothing spent. A folder that already holds workflows is left
+   alone, and the getting-started tour greets you instead. To run the
+   demo again, use **Nika: Try the Demo Workflow** from the Command
+   Palette, then press **▶ mock** on the canvas.
+
+Then make it yours. **Nika: New Workflow File** asks for a name, a
+starter and a model, and <kbd>⌘K</kbd> <kbd>⌘G</kbd>
+(<kbd>Ctrl+K</kbd> <kbd>Ctrl+G</kbd>) opens its graph. When you are
+ready, change `model: mock/echo` to a local model or a cloud provider.
+**Nika: Open the Getting-Started Tour** walks you through the rest, and
+each step checks itself off as you do it.
+
+> [!NOTE]
+> Until you trust a folder (Restricted Mode), you get syntax colors and
+> snippets only: the engine, the language server, commands and the demo
+> wait, and Nika writes no files. Review the folder, then use **Manage
+> Workspace Trust**. A mock run needs trust too: no key and no spend does
+> not mean no local effects.
+
+## What you get
+
+| You get | What it does for you |
 |---|---|
-| **The canvas is alive** | not a picture of your workflow · the workflow itself: prompts on the cards, typed wires, five lenses, and the run streaming onto it wave by wave |
-| **Audited before it runs** | cost ceiling · permits boundary · secret flows · dead gates: static facts painted in the margin before the run exists |
-| **A first run after workspace trust** | first install in a trusted, empty workspace opens the hello-canvas demo and streams it on `mock/echo` · offline, zero keys |
-| **Traces stay yours** | every run writes a hash-chained local journal: replay it, diff it, verify it offline · nothing ever leaves your machine |
-| **Your models, local first** | Ollama · llama.cpp · vLLM · LM Studio first-class, then Mistral · Hugging Face · OpenAI · xAI · Anthropic and more · swap one `model:` line |
+| **A live graph** | Each step is a card that shows its prompt, command or tool, and the wires show where each piece of data goes. |
+| **Errors as you type** | The engine's check underlines problems, explains each one and offers one-keystroke fixes, before any model is called. |
+| **The cost up front** | Each step shows its price range and the workflow shows its ceiling, worked out from the file before any run. |
+| **Runs you can watch** | Press ▶ and the graph lights up wave by wave (a wave is the steps that run together), with a live spend counter and a verdict at the end. |
+| **Every run, replayable** | Each run leaves a record on your machine: replay it, step backward through it in the debugger, or compare two runs. |
+| **Proof of what ran** | One command asks the engine to verify a run's tamper-evident record; the run report shows only what that record says. |
+| **Your models** | Ollama, llama.cpp, vLLM and LM Studio on your machine, or any cloud provider the engine knows: change one `model:` line. |
+| **Help for your AI agent** | Agents in your editor check the workflows they write through Nika's Language Model tools and MCP server. |
+| **No telemetry** | The extension collects nothing. Run records and reports stay on your machine unless you export them. |
 
-**Jump to** · [30 seconds to the wow](#30-seconds-to-the-wow) ·
-[Install](#install) · [Features](#features) · [Commands](#commands) ·
-[Settings](#settings) · [The language](#the-language) · [Links](#links)
+## See it in action
 
-## 30 seconds to the wow
+### Errors as you type
 
-After you trust the workspace, on a machine's first install the four-wave
-`hello-canvas` demo opens on the canvas and **runs itself** on
-`mock/echo`: no key, no spend (a workspace that already
-carries workflows is never touched; the walkthrough greets instead).
-The first green verdict you ever watch lands with the one confetti
-this extension will ever throw.
+<p align="center">
+  <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/editor-diagnostics.mp4">
+    <img src="media/check-as-you-type.gif" alt="A pull-request review workflow: the language server underlines four errors, a hover explains a mistyped task name and suggests the right one, one keystroke fixes it, the problems panel explains the other three, and the full fix leaves the file clean" width="760">
+  </a>
+</p>
+<p align="center"><sub>Real diagnostics from the engine's language server (<code>nika lsp</code>); the editor around them is drawn · <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/editor-diagnostics.mp4">watch the video</a></sub></p>
 
-In **Restricted Mode**, syntax highlighting and snippets remain available.
-The engine, LSP, commands and automatic demo do not start, and Nika does not
-write workflow files. Use VS Code's **Manage Workspace Trust** after reviewing
-the folder. Offline or mock execution still needs trust: no keys or spend
-does not mean no local effects.
+- **The engine's own verdict.** Each underline is a `nika check` finding
+  with its `NIKA-…` code and an explanation one click away, so a clean
+  editor means a clean check.
+- **Fixes, not just flags.** A missing permission, a mistyped name or a
+  pasted API key: the fix is one quick fix away
+  (<kbd>Ctrl</kbd>+<kbd>.</kbd>, or <kbd>⌘</kbd><kbd>.</kbd> on macOS).
+- **The whole workspace.** Files you have not opened are checked too, and
+  their findings wait in the Problems panel.
 
-Interactive terminal commands require an open folder. They launch the
-admitted engine with separate arguments, never a generated shell command,
-and retain the result in the task terminal. VS Code `${…}` variable
-expressions in these arguments are refused before submission; use the CLI
-directly when those literal values are required. Doctor suggestions are
-copied for review rather than executed automatically.
+> [!TIP]
+> Squiggles follow every keystroke. For a calmer editor, set
+> `nika.diagnostics.runOn` to `save`.
 
-Driving yourself is three gestures:
+### One graph, five ways to read it
 
-1. Open any folder → **`Nika: New Workflow`** (or open a `.nika`).
-2. **`Nika: Open the Canvas (workflow DAG)`**. The file becomes a content-first
-   canvas: prompts on infer cards, `$ commands` on exec cards.
-3. Press **▶ mock** on the run pill. The DAG lights up wave by wave with
-   `mock/echo`: **deterministic, zero API keys, zero network.**
+<p align="center">
+  <img src="media/lens-deck.gif" alt="One workflow read five ways: the map, a what-if preview where a failing step lights its recovery path, the timeline of a recorded run, what the file may reach before it runs, and where its data flows" width="760">
+</p>
 
-The **Nika status item** is the one door: it opens the root search
-(`⌘K ⌘M` in a nika file) · every command, task, workflow and recorded run in one ranked
-list, resting on *your* next step · no engine yet → **Finish Setup**
-(verified download · MCP · LSP, one gesture) · fresh repo → **Init
-this project** · then the 10-second proof and your files' Run ·
-Check · Graph.
+| Press | To see |
+|:---:|---|
+| <kbd>X</kbd> | what happens if the selected step fails: dead paths dim, recovery paths light up |
+| <kbd>T</kbd> | the recorded run as a timeline, retries and cache hits included |
+| <kbd>P</kbd> | what the file can reach, run and touch before a token is spent |
+| <kbd>D</kbd> | where each piece of data comes from and where it goes |
+| <kbd>H</kbd> | where the time went (before a run: where the cost is) |
+| <kbd>Esc</kbd> | back to the map |
 
-That's the whole loop: the same file then runs on any of the engine's
-providers (local Ollama/llama.cpp/vLLM first-class) by swapping `model:`.
-Prefer a guided pass? **`Nika: Open Walkthrough`** replays it step by
-step · each step checks itself off as you actually do it.
+### More to watch
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/dag-execution.gif"><img src="media/dag-execution-poster.png" alt="A 38-step workflow running on the canvas: cards light up wave by wave and generated images appear on them" width="250"></a><br>
+      <b>A 38-step run</b><br>
+      <sub>waves light up, images land as the run makes them</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/permits-audit.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/permits-audit.png" alt="A workflow's declared boundary drawn as a map, the escape nika check catches, and the widened boundary" width="250"></a><br>
+      <b>The boundary</b><br>
+      <sub>what a workflow may touch, and the escape the check catches</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/supernovae-st/nika/raw/refs/heads/main/media/videos/workflow-gallery.mp4"><img src="https://raw.githubusercontent.com/supernovae-st/nika/main/media/posters/workflow-gallery.png" alt="The gallery of ready-made workflows that nika try lists" width="250"></a><br>
+      <b>Ready-made jobs</b><br>
+      <sub>the gallery behind <i>Nika: Try an Example</i></sub>
+    </td>
+  </tr>
+</table>
+
+## How it works
+
+```mermaid
+flowchart LR
+  file[".nika file"] -- "as you type" --> check["nika check"]
+  check -- findings --> marks["underlines and fixes"]
+  file -- "press ▶" --> run["nika run"]
+  run -- "live events" --> canvas["live graph"]
+  run -- writes --> trace["trace on your machine"]
+  trace -- replay --> canvas
+  trace -- verify --> proof["nika trace verify"]
+```
+
+The extension never judges your workflow itself. Every underline, number
+and color comes from the `nika` engine you installed. That is why the
+fields and tools a newer engine knows appear in your completions without
+an extension update, and why the graph never shows a result the engine
+did not report.
 
 ## Install
 
-- **VS Code** · search **“Nika”** in Extensions, or
-  [Marketplace → supernovae.nika](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
-- **Cursor · Windsurf · VSCodium** · same search; they install from
-  [OpenVSX → supernovae/nika](https://open-vsx.org/extension/supernovae/nika)
-- **The engine** (optional: it powers everything past syntax) ·
-  `brew install supernovae-st/tap/nika`, or let the extension offer a
-  verified download on first open (HTTPS + SHA-256 · explicit consent ·
-  [policy](SECURITY.md)).
-  Without the binary you still get syntax, snippets and the client-side
-  DAG (schema-driven completions come alive once a supported binary is admitted:
-  they read the engine's own `nika spec --schema`).
+| Your editor | Install from |
+|---|---|
+| **VS Code** | the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=supernovae.nika), or `code --install-extension supernovae.nika` |
+| **Cursor · Windsurf · VSCodium** | [Open VSX](https://open-vsx.org/extension/supernovae/nika), through the same Extensions search |
+| **JetBrains · Zed · Neovim** | not this extension: they get the same checks from `nika lsp` and the published JSON Schema |
 
-**Engine requirement:** this source requires stable engine **0.120.1 or newer**.
-The integration suites target public **v0.120.1** from `ENGINE_PIN`, verified
-against the archive digests and build commit stored in the installer. The
-extension source checkpoint is 0.120.1; marketplace publication and native
-first-contact qualification remain separate release gates. Select an existing
-compatible binary with `nika.server.path`.
+**The engine** powers everything past syntax colors. Install it with
+`brew install supernovae-st/tap/nika`, or accept the download the
+extension offers on first open: HTTPS only, verified against the
+release's SHA-256 before it lands, and only with your consent
+([policy](SECURITY.md)). Without the engine you still get syntax colors,
+snippets and a graph the extension draws itself; completions from the
+engine's schema (`nika spec --schema`) arrive with the engine.
 
-Every selected binary is checked before LSP, workflow execution or host wiring
-becomes available, including configured, bundled, PATH, cached and downloaded
-binaries and restarts. Older, malformed or prerelease versions produce an
-update reason; the extension does not silently replace the selected binary.
-Syntax, snippets and static editor views remain available. Downloads still
-require consent, and an unsupported latest public release is refused before
-downloading its executable.
+> [!IMPORTANT]
+> This version needs a stable engine, **0.120.1 or newer**. To use a
+> binary you already have, point `nika.server.path` at it. An older,
+> malformed or prerelease engine gets an update notice; the extension
+> never replaces your binary behind your back.
 
-Discovery freezes the selected executable's absolute path, including PATH
-entries and symlinks. MCP wiring uses that selection too: Cursor and Windsurf
-can receive a machine-scoped absolute path; portable VS Code wiring is refused
-until `nika` on PATH resolves to the admitted engine. This is path consistency,
-not a claim that an executable cannot be replaced on disk later.
+<details>
+<summary><b>How the extension chooses and checks the engine</b></summary>
 
-## Icons in your editor
+- Every binary is checked before the language server, workflow runs or
+  agent wiring start: configured, bundled, on PATH, cached or downloaded,
+  and again on every restart. Syntax, snippets and static views stay
+  available meanwhile.
+- The integration suites target public engine **v0.120.1** from
+  `ENGINE_PIN`, verified against the archive digests and build commit
+  stored in the installer. Marketplace publication and native
+  first-contact qualification are separate release gates.
+- A download always asks first, and an unsupported latest public release
+  is refused before its executable is fetched.
+- Discovery freezes the chosen executable's absolute path, PATH entries
+  and symlinks included. MCP wiring uses the same choice: Cursor and
+  Windsurf can receive a machine-scoped absolute path, and portable
+  VS Code wiring is refused until `nika` on PATH resolves to the admitted
+  engine. This keeps the path consistent; it does not stop anyone from
+  replacing the file on disk later.
+- Commands that open a terminal need an open folder. They start the
+  admitted engine with separate arguments, never a generated shell line,
+  and keep the result in the task terminal. VS Code `${…}` variables in
+  those arguments are refused before submission; run the CLI yourself
+  when you need those literal values. Doctor suggestions are copied for
+  you to review, never run for you.
 
-The extension ships the butterfly everywhere VS Code lets it: the
-Marketplace tile, the activity bar, and a **language icon** so `*.nika`
-files carry the 16 px glyph in themes that honor language icons (Seti, the
-default, does). File/folder icons beyond that belong to your *file icon
-theme*, not to extensions:
+</details>
 
-- **Material Icon Theme** · give the engine's `.nika/` folder an icon today:
-  ```jsonc
-  "material-icon-theme.folders.associations": { ".nika": "flow" }
-  ```
-- **vscode-icons** · full custom butterfly (file + folder + open-folder):
-  see [`contrib/`](contrib/README.md).
-- Upstream Material icons (real `nika` file + `.nika` folder artwork) are
-  submitted: [material-icon-theme#3530](https://github.com/material-extensions/vscode-material-icon-theme/pull/3530)
-  (sources in [`contrib/material-icon-theme/`](contrib/README.md)).
+## Feature reference
 
-## Features
+Everything the extension does, grouped. Open a section when you need it.
 
-### The audit, in the editor
-- **Check-as-you-type** · `nika check --json` painted as diagnostics
-  (conformance · secret leaks/egresses · permits escapes · schema findings ·
-  unknown tools · **typo'd or missing tool args with did-you-mean** ·
-  **provably dead `when:` gates** · hints), with `NIKA-XXXX` codes linking
-  to explanations: the full `is_clean` family list, so the editor's
-  verdict IS the binary's exit code
-- **No tmp-file dance** · dirty and untitled buffers pipe straight into
-  the binary over stdin (`nika check -`): keystroke-fresh audits
-  without ever touching your disk; unsupported engines are refused
-- **One-keystroke permits repair** · the engine's machine-applicable fix
-  grammar (`add "X" to permits.<path>`) applied as a quick fix · the same
-  convergence loop agents run in CI
-- **Inferred boundary** · one command inserts the whole `permits:` block
-  derived by `check --infer-permits` (default-deny from then on)
-- **Static cost audit** · per-task `$min–max` inlay hints + the workflow
-  ceiling on a code lens · the price is a static fact, not a surprise
-- **A door on every language line** · a lens title is a call, not a
-  caption · each line offers the gesture it's for, fed by the SSOT
-  that owns it (the spec's oracle-proven starters · THIS binary's
-  catalog · the file's own DAG). The full map:
+<details>
+<summary><b>Checks and fixes in the editor</b></summary>
 
-  | line | door | writes |
-  |---|---|---|
-  | `nika:` | GitHub · Check · DAG · Run · Explain | (the identity line · mark AND name · nine keys) |
-  | `model:` | *choose your model* | the catalog ref (local-first) |
-  | `inputs:` | *declare an input* · *make it callable · N untyped* | a typed input (`type:` is required) · untyped→typed repair |
-  | `tasks:` (status row) | verdict + ceiling · *add a task* · *declare the boundary* · *choose your model* (no model anywhere) · *choose what it publishes* (on dead-spend) · *N inputs ride --var* | each run-blocking gap, one gesture |
-  | `greet:` (the task key) | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a FAILED run) | `run --task` · DAG focus · retry/recover/skip/timeout |
-  | `after:` | *order on state* | pre-checked multi-pick of `{producer: predicate}` control entries · descendants never offered (cycle-safe) |
-  | `when:` | *choose a gate* | a CEL v0.1 shape over LOCAL reads (the value authorities · with) · upstream state becomes `after:` · an upstream value hoists through `with:` first |
-  | `for_each:` | *choose the collection* | list-typed inputs (`{ array: T }`) · upstream outputs (bound through `with:` · the binding IS the edge) |
-  | `infer:`/`exec:`/`agent:` | *choose a starter* · *type its output* (schema missing) | the spec's shapes · a proven schema (fields · list · verdict · grade) |
-  | `invoke:` | *choose your tool* | starters + every builtin THIS binary carries, args skeleton from the tool's own schema |
-  | agent `tools:` | *choose its tools* | the catalog multi-pick · MCP/globs/strangers survive verbatim; `[]` is least privilege |
-  | `outputs:` | *choose what it publishes* | owned rows re-picked; typed/jq/commented rows survive verbatim |
-  | `permits:` | *tighten the boundary* | the `--infer-permits` recompute (one undo) |
+- **Everything `nika check` reports**, as you type: conformance, secret
+  leaks and egress, permits escapes, schema findings, unknown tools,
+  mistyped or missing tool arguments (with did-you-mean), `when:` gates
+  that can never pass, and hints. Each `NIKA-…` code links to its
+  explanation. The editor carries the full family of findings behind the
+  engine's verdict, so its verdict is the binary's exit code.
+- **No temporary files.** Unsaved and untitled buffers go to the engine
+  over stdin (`nika check -`): a fresh check on every keystroke, nothing
+  written to disk. Unsupported engines are refused.
+- **Quick fixes from the engine.** Its machine-applicable fixes
+  (`add "X" to permits.<path>`) apply in one keystroke, the same repair
+  loop agents run in CI. Did-you-mean replacements, missing declarations
+  and the engine's rename repairs (`nika check --fix`) are quick fixes
+  too.
+- **Inferred boundary.** One command inserts the whole `permits:` block
+  that `nika check --infer-permits` computes; anything it does not list is
+  denied from then on.
+- **Cost in the margin.** Each task shows a `$min–max` inlay hint and the
+  workflow shows its ceiling on a code lens, before the run.
+- **Secrets lint.** A local pattern scan (no network) flags literal
+  credentials, with a quick fix that declares the key under `secrets:`
+  (`source: env`) and reads it masked as `${{ secrets.<name> }}`.
+- **Your severities.** `nika.diagnostics.severity` remaps any code or
+  family (`NIKA-SEC-*`), and `off` hides one. Related information walks
+  you to both ends of a missing wire.
 
-  Every write is surgical (one edit · one undo), refuses a moved
-  anchor, and never guesses what the engine can judge.
-- **Secrets lint** · literal credentials flagged locally (pure scan · zero
-  network) with a quick fix that declares the key under `secrets:`
-  (`source: env`) and reads it masked as `${{ secrets.<name> }}`
+</details>
 
-### Language intelligence (LSP-grade · live today)
-- **Schema-derived completions & hover** · every key, enum and doc comes
-  FROM the binary (`nika spec --schema` + `nika spec --canon`): top-level keys,
-  task fields, per-verb bodies, `capture`/`backoff_strategy` enums, the
-  closed builtin tool set, provider-prefixed `model:` values, `nika:fetch`
-  extract modes · a new field in the engine lights up here with zero
-  extension update
-- **`${{ ... }}` expression intel** · completions, hover and
-  go-to-definition across the namespaces · the three value authorities
-  (`inputs.` / `const.` / `secrets.`) and the two runtime
-  ones (`with.` / `tasks.`)
-- **Task rename & find-references** · hits all 4 syntactic homes
-  (declaration · `after:` entries · `${{ tasks.X }}` islands · bare CEL
-  in WIP text) and enforces the engine id grammar (snake_case · CEL-safe)
-- **Linked editing** · type in ANY home of a task id and every reference
-  follows live · **selection ranges** (word → line → task → tasks →
-  document smart-expand) · **task dependency hierarchy** in the native
-  Call Hierarchy UI (incoming = what it unlocks · outgoing = what it needs)
-- **Workspace-wide lint** · CLOSED `.nika` files ride `nika check`
-  into the Problems panel too (open files stay live) · per-code severity
-  remap (`nika.diagnostics.severity` · exact or `NIKA-SEC-*` globs · `off`
-  hides a code) · related-information walks you to both ends of a
-  missing wire
-- **Language status** · the `{}` flyout carries the engine version, the
-  ACTIVE file's check verdict (busy while a pass runs) and the LSP state
-- **Outline / breadcrumbs** · tasks with verb detail + the permits boundary
-- **Full LSP** (the day the binary ships `nika lsp`, it takes over
-  automatically · the client declares which layers it keeps via
-  initializationOptions, no double-reporting)
-- **Syntax + snippets + semantic scopes** for the 4-verb surface · every
-  snippet is own-corpus tested against `nika check`
-- **Add Task from anywhere** (`⌘K ⌘N` · `Nika: Add Task`) · one picker
-  speaking the canvas palette's vocabulary · the 4 verbs and every
-  builtin as a pre-wired `invoke:` (the binary's own catalog with its
-  descriptions when present) · the skeleton lands after the task under
-  your cursor, selection on the new id
+<details>
+<summary><b>An action above every section of the file</b></summary>
 
-### Understand before it runs · prove after it ran
+Each key line of a workflow carries a code lens: a clickable action for
+what that line is for, fed by the source that owns the answer (the spec's
+proven starters, this engine's catalog, the file's own graph).
 
-- **Preflight: the flight plan before the run** · `Nika: Preflight`
-  composes what nothing else shows pre-run: every infer/agent model
-  resolved against the engine catalog (`nika catalog`: the embedded
-  provider/model list with capabilities and env-var requirements; the
-  builtin side lives in `nika catalog --tools`, the `nika:*` schemas an `invoke`
-  can reach without MCP) and its key requirements (local
-  providers marked sovereign · mock marked zero-spend), secrets and env
-  reads checked against your actual environment (`env`-sourced
-  verified; vault/file say *declared*, never *verified*), permits +
-  capability escapes + secret flows, the wave-by-wave plan, and the
-  cost ceiling, with the **prices named** (nika ≥ 0.98): the pricing
-  snapshot's provenance line (source · date · model count) plus a
-  staleness hint past 120 days, so every estimate says which prices
-  produced it. A **verdict chip on the run pill** keeps it glanceable
-  (`✗ 2 missing` · `⚠ flows` · `✓ preflight`); click it for the doc
-- **Lineage: follow the data** · click a card, or put the caret inside
-  `${{ tasks.x… }}` in the YAML: the producer and every consumer stay
-  lit (direct neighbors louder than the transitive reach), the data
-  wires saturate, everything else fades. Esc clears
-- **Source-bound run highlight** · while a run executes or a replay
-  scrubs, the YAML spans of the RUNNING tasks glow: the source *is*
-  the timeline
-- **X-ray ghost values** · every `${{ tasks.x… }}` shows what it
-  resolved to in the last matching recorded run, inline (` = "Hello
-  HN"` · full value on hover). No recorded value → no hint
-- **Fork-from-step** · pick a task in a recorded run (⑂ in the Runs
-  view): it and its downstream re-execute, everything upstream
-  rehydrates from the trace: counterfactual iteration without
-  re-spending everything upstream
-- **Run report** · one markdown per recorded run: verdict, per-task
-  table, **artifacts with provenance** (image outputs render inline),
-  failures with their **retry ladder** (each attempt's NIKA-code and
-  clock). Every line is the trace's own events; gaps are stated, never
-  filled
-- **Test Explorer** · golden-backed workflows (`<file>.golden.json`)
-  run in the native testing UI: the failure message IS the engine's
-  per-path diff; a second profile re-pins the golden explicitly
+| Line | Actions | What it writes |
+|---|---|---|
+| `nika:` | GitHub · Check · DAG · Run · Explain | nothing: the identity line (the file's mark and its name; the envelope has nine keys) |
+| `model:` | *choose your model* | a catalog reference, local models first |
+| `inputs:` | *declare an input* · *make it callable · N untyped* | a typed input (`type:` is required) · the untyped-to-typed repair |
+| `tasks:` (status row) | the verdict and ceiling · *add a task* · *declare the boundary* · *choose your model* (when none is set) · *choose what it publishes* (when output goes unread) · *N inputs ride --var* | one gesture for each gap that blocks a run |
+| a task key, such as `greet:` | *re-run* · *see it in the graph · N refs* · *make it resilient* (only after a failed run) | `run --task` · focus on the graph · retry, recover, skip or timeout |
+| `after:` | *order on state* | a pre-checked pick of `{producer: predicate}` entries; a task's descendants are never offered, so no cycle |
+| `when:` | *choose a gate* | a CEL v0.1 condition over local reads (the value authorities and `with:`); upstream state becomes `after:`, and an upstream value is hoisted through `with:` first |
+| `for_each:` | *choose the collection* | list-typed inputs (`{ array: T }`) or upstream outputs bound through `with:` (the binding is the edge) |
+| `infer:` · `exec:` · `agent:` | *choose a starter* · *type its output* (when the schema is missing) | the spec's shapes · a proven schema (fields, list, verdict, grade) |
+| `invoke:` | *choose your tool* | starters and every builtin this engine carries, with an args skeleton from the tool's own schema |
+| agent `tools:` | *choose its tools* | a pick from the catalog; MCP entries, globs and unknown names stay as written, and `[]` is least privilege |
+| `outputs:` | *choose what it publishes* | the rows it owns, re-picked; typed, jq and commented rows stay as written |
+| `permits:` | *tighten the boundary* | the `--infer-permits` recompute, in one undo |
 
-### One graph · five lenses
+Every write is one edit with one undo, refuses to apply if its anchor
+moved, and never guesses what the engine can judge.
 
-![The lens deck over one typed graph: the map, a what-if failure preview lighting the recovery path, the timeline with ghost ceilings and a retry ladder, capability hulls with the audit banner, and the dataflow read](media/lens-deck.gif)
+</details>
 
-*Tip: one key each: `X` what-if · `T` timeline · `P` audit ·
-`D` dataflow · `H` heatmap. Esc returns to the map.*
+<details>
+<summary><b>Language intelligence</b></summary>
 
-The canvas is a deck of projections over the SAME typed graph. The
-language feeds it typed edges · pass-sets · engine-attributed permits ·
-static cost · recorded clocks, and each lens renders one question:
+- **Completions and hover from the engine.** Keys, values and docs come
+  from the installed binary (`nika spec --schema`, `nika spec --canon`):
+  top-level keys, task fields, per-verb bodies, enums such as `capture`
+  and `backoff_strategy`, the builtin tools, provider-prefixed `model:`
+  values and `nika:fetch` extract modes. A field the engine adds appears
+  here with no extension update.
+- **Expressions.** Completion, hover and go-to-definition inside
+  `${{ ... }}`, across the three value authorities (`inputs.`, `const.`,
+  `secrets.`) and the two runtime namespaces (`with.`, `tasks.`).
+- **Rename and references.** A task rename updates all four places an id
+  lives (its declaration, `after:` entries, `${{ tasks.X }}` expressions,
+  bare CEL in work-in-progress text) and enforces the engine's id rules
+  (snake_case, CEL-safe). With linked editing, every reference follows as
+  you type.
+- **Structure.** Smart selection grows from word to line, task, tasks and
+  document. The native Call Hierarchy shows task dependencies (incoming:
+  what a task unlocks; outgoing: what it needs). Outline and breadcrumbs
+  list tasks with their verb, plus the permits boundary.
+- **Language status.** The `{}` status item shows the engine version, the
+  active file's verdict (busy while a check runs) and the language server
+  state.
+- **Full language server.** When the engine provides `nika lsp`, it takes
+  over automatically; the client tells it which layers it keeps
+  (`initializationOptions`), so nothing is reported twice.
+- **Syntax, snippets and semantic colors** for the four verbs. Every
+  snippet is tested against `nika check`.
+- **Add Task from anywhere** (<kbd>⌘K</kbd> <kbd>⌘N</kbd>): one picker with
+  the four verbs and every builtin as a pre-wired `invoke:`, described
+  from the engine's own catalog. The skeleton lands after the task under
+  your cursor, with its new id selected.
+- **Draft from a sentence.** On an empty canvas, describe the job. When
+  your editor offers a language model, the extension drafts candidates
+  and checks each one with the engine; without one, it copies a grounded
+  prompt for your own chat and opens the closest template.
 
-- **X · what if?** · pick a task, press **X**: the client replays the
-  run rules with that task failed. Dead paths dim to their cancelled
-  read, and the paths that exist *only because of failure* **light
-  up**: why `on_error` exists, visible ahead of any run
-- **T · timeline** · the recorded run as a Gantt: real clocks only,
-  retries as sub-segments, cache hits hollow, the **ghost ceiling**
-  (your recorded mean) behind every bar: est-vs-actual at a glance,
-  and the replay scrubber's cursor rides the lens
-- **P · audit** · *what can this file DO before a token is spent*:
-  capability hulls (egress · programs · files · tools) painted under
-  the wires, and the banner says it in one line:
-  <!-- voice-ok: quotes the canvas banner verbatim, em dash separator included -->
-  "this file can: reaches example.com · runs git · est ≥$0.0010"
-- **D · dataflow** · where the data comes from and goes: the control
-  scaffolding sleeps, the typed data wires and their bindings carry
-  the whole story
-- **H · heatmap** · where the time went, as a toggle, never ambient
+</details>
 
-### The map in the corner
+<details>
+<summary><b>Before a run: preflight, lineage and the audit on the canvas</b></summary>
 
-The minimap is not a thumbnail of the canvas · it is a second reading
-of the same graph, quieter, in three layers:
+- **Preflight** (`Nika: Preflight`) is the flight plan before any token:
+  every infer and agent model resolved against the engine catalog
+  (`nika catalog`: providers and models with their capabilities and
+  environment variables; builtin tools in `nika catalog --tools`) with its
+  key needs (local providers marked sovereign, mock marked zero-spend);
+  secrets and environment reads checked against your real environment
+  (`env` sources verified; vault and file sources say *declared*, never
+  *verified*); permits, capability escapes and secret flows; the
+  wave-by-wave plan; and the cost ceiling with its prices named (the
+  pricing source, date and model count, and a staleness hint past 120
+  days). A chip on the run pill keeps the verdict in view
+  (`✗ 2 missing` · `⚠ flows` · `✓ preflight`); click it for the details.
+- **Follow the data.** Click a card, or put the caret inside
+  `${{ tasks.x… }}` in the YAML: the producer and every consumer stay lit
+  (direct neighbors brighter than the rest), the data wires saturate, and
+  everything else fades. <kbd>Esc</kbd> clears.
+- **The audit on the canvas.** A cost forecast on the run pill
+  (`$min–$max` when `nika check` can price the file, an amber `≥ $X` when
+  an uncapped task makes it a floor); `⚠N` chips on cards with that
+  task's findings (secret flow, permits, schema, unknown tools), each
+  opening the report; a `△N` count of what a run will re-execute; and a
+  `Δ ±$` delta of what your edits changed in cost since the last commit,
+  amber only when it grew. Every number is static, read before a token is
+  spent.
+- **Stale steps.** A `△ stale` badge marks each task edited since its last
+  successful run, and everything downstream of it. That state lives in a
+  `.nika/canvas-state.json` sidecar, never in your workflow file.
+- **Explain, inspect, dry-run.** `Nika: Explain Workflow` tells the story
+  wave by wave (cost ceiling, what it touches, structural risks) with no
+  model, offline. `Nika: Inspect Anatomy` shows `nika inspect`, and
+  **Dry-Run** shows the engine's `--dry-run` plan with zero effects.
 
-- **the plan's rhythm** · faint bands, one per wave, the same read the
-  rail gives you on the left
-- **the topology** · every wire, because an overview without edges is a
-  scatter plot: it can say how much is done and never how the run is
-  ordered
-- **the critical path** · in the canvas's own amber, so the chain that
-  owns the wall-clock is the one thing the overview never buries
+</details>
 
-The frame says where you are and nothing else: it clamps to the card
-rather than clipping away at its edges, and when it covers the whole
-graph it fades, because « all of it » is what the card's own border
-already says. Drag anywhere in it to fly · the camera follows the
-pointer instead of easing after it. Hover a task and it lights on the
-canvas too; the map and the graph are one surface, not two pictures of
-one thing.
+<details>
+<summary><b>The canvas: reading a workflow</b></summary>
 
-### See the run
+- **Lenses and views.** Besides <kbd>X</kbd> <kbd>T</kbd> <kbd>P</kbd>
+  <kbd>D</kbd> <kbd>H</kbd>: <kbd>W</kbd> wave bands, <kbd>B</kbd> smooth
+  or square wires, <kbd>G</kbd> follow the run's frontier, <kbd>L</kbd>
+  the activity feed, <kbd>?</kbd> what am I looking at.
+- **Cards carry the content.** Before any run, infer cards show their
+  prompt, exec cards their `$ command`, invoke cards their tool and args.
+  An inputs row names the incoming wires (`alias ← producer`; click one to
+  jump to it). A policy row shows the declared execution policy as chips
+  (retry `×3`, timeout `30s`, the `on_error` route, named output bindings,
+  permits); a settled card adds its recorded spend (`✓ 1.2s · $0.0042`).
+- **Expanded cards.** The header floats above the frame (verb, task id,
+  and a model chip you click to change the model), and a pill below holds
+  the key parameters (`16:9 ×3`, `voice · format`, the HTTP method), the
+  static cost range and the recorded mean `⌀`, then `⤓` open the
+  artifact, `⑂` fork, `⋯` every action with its shortcut (<kbd>K</kbd>).
+- **Two card sizes.** `min` shows the head, the verdict and one line;
+  `grand` tells the full story (run facts, blast radius, pinch points,
+  needs and unlocks, an actions row `▸ run · ⚡ what if · ❏ dup`, plus
+  `✎ explain` and `⑂ fork` on a failed card). Double-click or
+  <kbd>E</kbd> toggles one card, <kbd>Shift</kbd>+<kbd>V</kbd> sets them
+  all (min, grand, mix), and <kbd>Space</kbd> peeks at the focused card.
+  Right-click is a real VS Code menu (run task, open YAML, duplicate,
+  delete, copy id). Nothing declared, nothing drawn.
+- **Each verb has a character.** `infer` wears a thought aurora and its
+  tile breathes while the model thinks; `exec` shows CRT scanlines and a
+  blinking caret while the process runs; `invoke` carries a flowing
+  current during the call; `agent` turns an orbit ring while its loop
+  runs. At rest, cards stay still, and every animation honors reduced
+  motion. Each builtin carries its identity too: six category tints, port
+  collars typed by what flows through them, and a one-line description
+  from the engine's catalog.
+- **Media cards.** `image_generate` shows an empty frame at its declared
+  aspect ratio (the `n:` count as a corner chip, the provider as caption),
+  `tts_generate` a bar strip with `voice · format`, `chart` a sketch of
+  its declared type, `image_fx` the recipe beside the result. A develop
+  sweep rides the run, then the recorded artifact becomes the card's body
+  (image thumbnails that open the file, playable audio), taken from the
+  latest matching trace and refreshed when a live run closes. Only files
+  a run actually wrote appear. Running tasks show their observed elapsed
+  time (`12.4s ⋯`) until the engine's measured duration lands.
+- **The minimap** is a second reading of the graph, in three layers:
+  faint bands for the waves, every wire (an overview without edges cannot
+  show order), and the critical path in amber. Its frame clamps to the
+  card and fades when it covers the whole graph. Drag anywhere in it to
+  fly; hovering a task lights it on the canvas too.
+- **Wires like a metro map.** Rounded right angles on aligned rails, the
+  same style when you drag a card; where two wires cross, the upper one
+  breaks the lower so you can read over and under.
+- **Skins.** `nika` (the default) follows the nika.sh design: engineered
+  black, one blue accent, the four verb hues as node spines, Martian
+  Mono, and a full-spectrum aurora that sweeps once on a clean close and
+  flashes red on failure. `editor` follows your theme. `phosphor` is for
+  OLED screens: true black, phosphor ink, and verb colors that wake only
+  on live tasks. High contrast always wins.
+- **The engineering read.** Exact maximum parallelism (a Dilworth
+  antichain with a witness set), the speedup ceiling (work-span),
+  wall-clock estimates for k workers (Graham-bounded list scheduling, in
+  measured milliseconds after a run), pinch points and per-task failure
+  blast radius, in the explainer (<kbd>?</kbd>) and each card's facts.
+  Algorithms and citations: [docs/ALGORITHMS.md](docs/ALGORITHMS.md).
 
-![A 38-task brand-studio workflow executes: the map lights up wave by wave, the camera dives onto expanded cards where declared media frames develop into recorded artifacts (image as the card body, floating header, the params pill), then pulls back for the verdict](media/dag-execution.gif)
+</details>
 
-*Tip: `▶ mock` on the run pill streams the same file without keys or
-network: every green close settles a ✓ wave through the cards.*
+<details>
+<summary><b>The canvas: building and editing</b></summary>
 
-- **DAG visualization** · the engine's canonical graph projection (verb ·
-  model · when-gates ⌁ · fan-out ×N · cost badges) · click-to-jump ·
-  mermaid/dot export · **SVG/PNG image export** (styles + font embedded)
-- **Wires read like a metro map** · one rounded-orthogonal language on
-  aligned rails, whoever moved the card (a dragged card re-routes in
-  the same voice, never a second dialect) · at crossings the upper
-  wire punches a quiet gap in the lower: over and under, readable at
-  a glance
-- **Arriving is describing** · a fresh (zero-task) workflow greets you
-  with a centered describe bar: type the intent, the oracle-checked
-  generate lands the tasks. Or press **N**: one searchable **task
-  palette** with the 4 verbs and the full builtin-tool vocabulary,
-  grouped by category (picking a tool lands an `invoke` task pinned to
-  it, named after the tool; its required args arrive as check findings:
-  the engine teaches). `⧇ New` opens the next blank page without
-  leaving the canvas
-- **Media declare, develop, deliver** · a media card speaks before,
-  during and after the run: `image_generate` letterboxes a ghost frame
-  at its declared `aspect_ratio` (the `n:` count as a corner chip, the
-  provider as caption), `tts_generate` shows its declarative bar strip
-  with `voice · format`, `chart` sketches its declared type, `image_fx`
-  splits the frame into recipe and result. A develop sweep rides the
-  run, then the RECORDED artifact settles in as the card's body: image
-  thumbnails (click opens the file) and playable audio rows, pulled
-  from the latest matching trace and refreshed the moment a live run
-  closes. Engine truth only: a file a run actually wrote, or nothing.
-  Running tasks tick their **observed elapsed** (`12.4s ⋯`) until the
-  engine's measured duration lands
-- **The dense card** · the substance lives ON the node:
-  - **the io row** · names the inbound wires (`alias ← producer`;
-    click one, jump to the producer, `+N` when more)
-  - **the policy row** · the declared execution policy as chips, each
-    led by its own mark (retry budget `×3` · timeout `30s` · the
-    on_error route · named output bindings · permits, engine-projected)
-    · a settled verdict shows its recorded spend (`✓ 1.2s · $0.0042`)
-  - **the floating header + the pill** · an expanded card floats its
-    verb tile, task id and engine identity (the model chip stays the
-    click-to-change door) above the frame, and the declared knobs
-    settle into a detached pill under the card: key params
-    (`16:9 ×3` · `voice · format` · the HTTP method), the static cost
-    interval, the recorded `⌀` mean, then `⤓` open artifact ·
-    `⑂` fork · `⋯` every action with its shortcut (`K`)
-  - **two modes** · `min` (head · verdict · one essence line) and
-    `grand` (the full story: run-story facts, blast radius, pinch,
-    needs/unlocks jumps, and a visible actions row `▸ run · ⚡ what
-    if · ❏ dup`, plus `✎ explain + ⑂ fork` on a failed card).
-    Double-click or `E` toggles one card, `Shift+V` sets the global
-    card density (min / grand / mix), and `Space` peeks the focused
-    card without touching the layout · **right-click stays a real VS
-    Code menu** (run task · open YAML · duplicate · delete · copy id).
-    Facts only: nothing declared, nothing rendered
-- **Content-first canvas** · the node IS the content: infer cards show
-  their prompt, exec cards their `$ command`, invoke cards their tool +
-  args, before any run:
-  - **Every verb has a soul** · `infer` wears a thought-aurora and its
-    tile breathes while the model thinks, `exec` shows CRT scanlines
-    and blinks a terminal caret while the subprocess is live, `invoke`
-    carries flowing current while the tool call is in flight, `agent`
-    has an orbit ring that rotates while the loop turns. Matter at
-    rest, character only while RUNNING (every animation has a
-    reduced-motion opt-out). And all 28 builtins carry their identity:
-    six category tints, port collars typed by what flows through them,
-    a soul line read from the engine's own catalog, never a guess
-  - **editing on the card** · the **model chip edits** (provider
-    picker → one undoable YAML edit), `⌀` badges carry the mean
-    duration across your recorded runs, and ports appear on hover
-    (drag out-port → card = `after: { from: success }`, or drop on
-    empty canvas → a new pre-wired task)
-  - **the verb palette + omnibar** · at the bottom: `+ infer after
-    gather` inserts deterministically, `/text` filters, a sentence
-    routes to oracle-checked generation. Semantic zoom keeps 100-task
-    graphs readable as a map
-- **Run from the canvas** · a **▶ Run / ▶ mock / ■ Stop** pill drives the
-  run without leaving the panel; **▶ mock** streams
-  `run --model mock/echo` (deterministic · zero keys · zero network).
-  The DAG lights live; the pill flips ▶/■ from the real spawn/close.
-  On a 0.93+ engine a **Δ changed** button joins the pill. Engine
-  `--resume`: unchanged tasks cache-hit their recorded output (dashed
-  `○ cached` cards, never a fake fresh-green), edited tasks re-run.
-  **A repaired success never paints clean** (nika ≥ 0.98): a task saved
-  by `on_error: recover` says `✚ recovered` in retry-amber: on the
-  card, in the activity feed, in the legend chips and the run report,
-  with the absorbed NIKA code in the card's fact block
-- **The live cost ticker** · the status pill counts the run's recorded
-  spend as tasks settle (`2 done · 4 running · ≥ $0.0022`): engine
-  truth only, the `≥` because unpriced tasks make it a floor, and a
-  mock/local-only run shows nothing rather than a fake `$0.00`. The
-  card closes the loop per task: `cost $min → $max` (the estimate, on
-  the params row) next to `spent $… recorded` (the terminal event's
-  fact, in the grand fact block)
-- **Every run opens its detail** · Enter on a recorded run shows one
-  calm page: verdict, per-task breakdown, artifacts, spend, the
-  question when a run waits on you · live while the engine writes
-- **Time-travel replay** · replay a recorded run (`⌘K ⌘Y`) and **scrub
-  its whole timeline**: play/pause (Space), drag the handle, the DAG
-  state at any instant computed locally. Replay re-renders, never
-  re-executes
-- **F5 time-travel debugger** (nika ≥ 0.96) · set breakpoints in your
-  `.nika`, press **F5**, and the engine's own DAP adapter replays a
-  recorded run under the real VS Code debugger: step **forward and
-  backward** through task settles, inspect every recorded output in the
-  Variables pane, `continue` runs to your next breakpointed task. Replay
-  never re-executes, which is why stepping back is free. Also on every
-  run in the Runs view: "Debug This Run (replay · time travel)"
-- **Export to OpenTelemetry** (nika ≥ 0.96) · one action on any recorded
-  run projects its journal to OTLP/JSON lines: drag into Jaeger UI, or
-  POST to Aspire/Grafana/Langfuse (cost included). Local file, zero
-  collector, zero vendor
-- **Engine-owned verification** · **Verify Journal** asks
-  `nika trace verify <trace> --json` and opens the complete result: chain,
-  seal, anchor, replay and refusal details. Recorded views and reports
-  explicitly remain unverified observations. They neither recompute a
-  second integrity verdict nor infer a signature from hash consistency
-- **Reproduce Run: determinism check** (nika ≥ 0.97) · right-click a
-  run, pick another journal of the same workflow: every task classified
-  reproduced / NONDETERMINISTIC (same def+inputs, different output) /
-  authored / environment, with the engine attestation compared
-- **Paused runs ask, you answer, they finish** · a `nika:prompt` task
-  pauses the run (a pause is not a failure: the verdict goes amber ⏸
-  with the question itself), a notification offers **Answer…**, and the
-  control matches the mode: confirm → Yes/No, choice → the workflow's
-  own options, input → a box. The answer resumes the exact journal the
-  engine wrote: upstream cache-hits, the gated side effects run live.
-  A dismissed toast strands nothing: a quiet `⏸ <task> asks` status
-  beacon holds the state until the answer launches
-- **Run with inputs, spend bounded** · `Nika: Run Workflow with
-  Inputs` turns the check report's own required vars into a short
-  form (Esc anywhere cancels the whole run), then an optional spend
-  ceiling rides `--max-cost-usd` · parameterized runs stop being a
-  copy-a-line-to-a-terminal dance
-- **The cross-run story** · `Nika: Run History` renders the last runs of
-  THIS workflow as a grid (rows = tasks · columns = runs): flaky steps
-  are a recorded fact, not a guess; and **diff v2** compares any two
-  runs leading with the **first divergence** (the culprit task, centered
-  on the canvas), output changes and duration shifts after it
-- **Dirty-nodes** · a `△ stale` badge marks every task edited since its
-  last successful run (and everything downstream of it): you see what a
-  run will re-execute. The last-success state lives in a
-  `.nika/canvas-state.json` sidecar, never in your workflow YAML
-- **Regions** · a `# nika:region <name>` comment (ignored by the engine)
-  groups the tasks that follow it into a labeled box on the canvas:
-  logic grouping at zero cost to the YAML
-- **Audit before you run** · the same audit, on the canvas. A **cost
-  forecast** rides the run pill: `$min–$max` when `nika check` can price
-  it (a ceiling), an honest amber `≥ $X` when an uncapped task makes it
-  a floor; **`⚠N` audit chips** on the cards surface the task's
-  `nika check` findings (secret-flow · permits · schema · unknown-tools),
-  click-through to the report; a **`△N` stale count** shows what a run
-  will re-execute; a **`Δ ±$` cost delta** beside the ceiling shows what
-  your edits changed vs the last commit (the delta is the review signal:
-  amber only when it grew). Every number is static: read before a token
-  is spent
-- **Keyboard-drivable, completely** · `Tab` / `⇧Tab` cycle the
-  topological order, `↑` walks to a dependency, `↓` to a dependent,
-  `Enter` opens the YAML · `c` wires the focused card pointer-free
-  (connect-mode: a picker of the valid targets, the same wire the drag
-  makes) · `⌥`+arrows nudge a card one 8px grid cell · the `⌘K` chord
-  family carries the flight recorder (`⌘K ⌘A` diff two runs ·
-  `⌘K ⌘Y` replay · `⌘K ⌘B` fork from task): the whole canvas without
-  the mouse · every command is rebindable in Keyboard Shortcuts
-  (`⌘K ⌘S`: search "nika")
-- **The nika.sh skin** · the panel ships the landing page's design
-  language by default: engineered-black register, one blue accent, the
-  4 verb hues as node LED spines, each verb wearing its own mark,
-  Martian Mono, a full-spectrum edge aurora that sweeps once on a clean
-  run close and flashes red on failure · `nika.dag.theme: editor` follows
-  your theme instead · `phosphor` is the OLED register: true-black
-  pool, phosphor ink, and verb chroma that sleeps at rest and wakes
-  ONLY on live tasks (the color is the execution) · high contrast
-  always wins
-- **`/` filter** · type to fade everything but matching tasks
-  (id · verb · model · tool · provider) · Enter cycles the matches
-- **The engineering read** · exact max parallelism (Dilworth antichain,
-  with a witness set), speedup ceiling (work-span), k-worker wall-clock
-  estimates (Graham-bounded list scheduling · measured milliseconds after
-  a run), pinch points, and per-task failure blast radius · in the DAG
-  explainer (`?`) and the card's fact block. Algorithms + citations:
-  `docs/ALGORITHMS.md`
-- **Live run** · `nika run` streams its event stream straight onto the
-  DAG · statuses light per the §3.1 run-state machine (running · retrying
-  · success · failed · cancelled · skipped), terminal transitions narrate
-  in the activity feed, the verdict + cost land on close. The same canonical
-  NDJSON the flight recorder writes, painted in real time
-- **Flight recorder** · a Runs view over `.nika/traces/*.ndjson` (status ·
-  duration · cost per run) and **animated trace replay** through the DAG;
-  replay re-renders, never re-executes
-- **Golden test, one command** · `Nika: Golden Test` runs
-  `nika test <file>` (mock provider · offline · deterministic) against
-  `<file>.golden.json`, and `Update the Golden` re-pins it: the offline
-  CI gate without leaving the editor
-- **Validate / Inspect / Explain / Dry-run** from the editor:
-  `nika check` diagnostics, `nika inspect` anatomy, a **deterministic
-  Explain Workflow** (the story wave-by-wave · cost ceiling · what it
-  touches · structural risks; zero LLM, works offline), and the
-  engine's `--dry-run` plan; tasks + problem matcher
-- **The 0.93 loop rides the integrated terminal** · launch inputs with
-  `nika run --var key=value` · pin the output contract with
-  `nika test <file> --update` and keep `nika test` as the offline CI gate
-  (the mock synthesizes schema-conformant output) · a run you killed,
-  or a durable `nika:prompt` pause (exit 4, journaled as
+- **Start by describing.** A new, empty workflow opens on a describe bar:
+  type the job and a checked draft lands its tasks. Or press <kbd>N</kbd>
+  for the task palette: the four verbs and every builtin tool, grouped by
+  category. Picking a tool adds an `invoke` task pinned to it and named
+  after it; its required arguments arrive as check findings, so the
+  engine teaches you. `⧇ New` opens a blank page without leaving the
+  canvas.
+- **Edit on the card.** The model chip opens a provider picker and makes
+  one undoable YAML edit. Ports appear on hover: drag an out-port onto a
+  card to add `after: { from: success }`, or drop it on empty canvas for a
+  new pre-wired task.
+- **The command bar** at the bottom: `+ infer after gather` inserts a
+  task, `/text` filters, and a sentence goes to checked generation.
+  Semantic zoom keeps 100-task graphs readable as a map.
+- **Filter.** Press <kbd>/</kbd> and type to fade everything except
+  matching tasks (id, verb, model, tool, provider); <kbd>Enter</kbd>
+  cycles through the matches.
+- **Keyboard only, if you like.** <kbd>Tab</kbd> and <kbd>⇧Tab</kbd> walk
+  the topological order, <kbd>↑</kbd> goes to a dependency, <kbd>↓</kbd>
+  to a dependent, <kbd>Enter</kbd> opens the YAML, <kbd>C</kbd> wires the
+  focused card to a target you pick, <kbd>⌥</kbd>+arrows nudge a card by
+  one 8 px grid cell, <kbd>F</kbd> fits the view and <kbd>A</kbd> resets
+  the layout.
+- **Regions.** A `# nika:region <name>` comment groups the tasks after it
+  into a labeled box (see [The language](#the-language)).
+- **Export** the graph as Mermaid or Graphviz (`Nika: Export DAG`), or as
+  an SVG or PNG image with styles and fonts embedded.
+
+</details>
+
+<details>
+<summary><b>Running a workflow</b></summary>
+
+- **Run, mock, stop.** The run pill offers **▶ Run**, **▶ mock**
+  (`run --model mock/echo`: deterministic, no key, no network) and
+  **■ Stop**, and follows the real process start and exit. The graph
+  lights up live through the run states (running, retrying, success,
+  failed, cancelled, skipped), the activity feed narrates each change,
+  and the verdict and cost land at the close: the same NDJSON events the
+  flight recorder writes.
+- **Δ changed** re-runs only what changed (the engine's `--resume`):
+  unchanged tasks reuse their recorded output (dashed `○ cached` cards,
+  never painted as fresh), and edited tasks run again.
+- **Recovered is not clean.** A task saved by `on_error: recover` says
+  `✚ recovered` in amber on its card, in the activity feed, the legend
+  and the run report, with the absorbed `NIKA-…` code in the card's
+  facts.
+- **Live spend.** The status pill adds up recorded spend as tasks settle
+  (`2 done · 4 running · ≥ $0.0022`): engine facts only, `≥` because
+  unpriced tasks make it a floor, and nothing at all for a mock or
+  local-only run rather than a fake `$0.00`. Each card pairs its estimate
+  (`cost $min → $max`) with what it spent (`spent $… recorded`).
+- **The source follows the run.** While a run executes or a replay
+  scrubs, the YAML of the running tasks glows.
+- **Ghost values.** Each `${{ tasks.x… }}` shows, inline, what it resolved
+  to in the last matching recorded run (` = "Hello HN"`, the full value on
+  hover). No recorded value, no hint.
+- **Paused runs ask you.** A `nika:prompt` task pauses the run (a pause is
+  not a failure: the verdict turns amber ⏸ with the question itself). A
+  notification offers **Answer…** with the right control (Yes/No, the
+  workflow's own choices, or a text box), and your answer resumes the
+  exact journal the engine wrote: upstream tasks reuse their results, and
+  the gated side effects run live. Dismissed it? A `⏸ <task> asks` status
+  item waits until you answer.
+- **Inputs and a spend ceiling.** `Nika: Run Workflow with Inputs` turns
+  the check's required inputs into a short form (<kbd>Esc</kbd> cancels
+  the whole run), then offers an optional ceiling passed as
+  `--max-cost-usd`.
+- **The same loop in a terminal.** `nika run --var key=value` sets inputs.
+  `nika test <file> --update` pins the output contract and `nika test`
+  stays the offline CI gate (the mock produces schema-conformant output).
+  A run you stopped, or a `nika:prompt` pause (exit 4, journaled as
   `workflow_paused`), resumes with `nika run --resume <trace>`
-  (`--answer approve=true` re-arms the gate · cache hits stay visible) ·
-  every recorded run in the flight recorder doubles as that checkpoint ·
-  `nika trace show <run>` re-renders any of them in the terminal ·
-  scaffold from the same embedded corpus the snippets are tested against
-  (`nika try` · `nika compile <template> <file>`) · any code explained:
-  `nika explain NIKA-XXXX`
+  (`--answer approve=true` answers the gate; cache hits stay visible),
+  and every recorded run doubles as that checkpoint.
+  `nika trace show <run>` re-renders a run in the terminal, `nika try`
+  and `nika compile <template> <file>` scaffold from the same tested
+  corpus as the snippets, and `nika explain NIKA-XXXX` explains any code.
 
-### Agent-native
-- **LM tools** · `nika_check` / `nika_explain` / `nika_graph` /
-  `nika_workspace` registered as Language Model Tools · in-editor AI
-  agents validate the workflows they write through the REAL oracle
-  instead of guessing (`nika_workspace` appears only when the probed
-  engine carries its door · the tool list itself stays honest)
-- **MCP + rules setup** · one command wires editor MCP config and Cursor
-  rules: engine-canonical through `nika wire` when the binary ships it,
-  with a one-tap follow-up for codex/claude; `nika init` scaffolds the
-  repo-local `AGENTS.md`. On VS Code 1.101+ agent mode discovers
-  `nika mcp` natively (zero config files)
-- **Doctor** · `Nika: Doctor` runs the engine's own environment diagnosis
-  (binary · config · provider keys · image/tts planes): prints exact
-  fixes, never mutates; **`Doctor + Ping`** (0.94+) opt-in TCP-probes your
-  LOCAL provider ports only (Ollama · LM Studio · llama.cpp · LocalAI ·
-  vLLM; loopback, 300ms cap, nothing sent on the socket)
-- **Works with your CLI agents too** · `nika wire cursor` / `claude` /
-  `windsurf` / `codex` patches each client's MCP config (idempotent ·
-  preserves your other servers) so Claude Code, Codex CLI and friends
-  call the same oracle from the terminal
-- **One plugin, three ecosystems** · Cursor: search "nika" in Settings →
-  Plugins (one Add installs skill + subagent + commands + check-on-edit
-  hook + MCP oracle) · Codex: `codex plugin marketplace add
-  supernovae-st/nika-plugins` + `codex plugin add nika@nika` · Claude Code:
-  `claude plugin marketplace add supernovae-st/nika-plugins` + `claude
-  plugin install nika@nika`. This extension is the IDE surface; the
-  [nika-plugins](https://github.com/supernovae-st/nika-plugins) plugin is
-  the agent surface · its README carries the who-does-what map (plugin =
-  per-agent · `nika init` = per-repo · `nika wire` = per-machine).
-- **Deterministic authoring prompt** · copy the template→check→repair
-  protocol for any chat agent
+</details>
 
-### The Station: the engine room
+<details>
+<summary><b>After a run: replay, compare, prove</b></summary>
 
-- **One tree for the machinery** · the engine row (version · a
-  too-old grammar names itself), the doctor's verdict with each fix
-  one click away, the agent clients with their wire state
-  (`Agents · 3/6 wired`), and the providers: local runtimes detected,
-  cloud keys counted (`3/11 present`)
-- **Local models, the whole lifecycle** · one row per pulled GGUF
-  (`owner/repo:QUANT` · size · the engine's own remark), read live
-  from `nika model list` · **`Serve a model…`** opens the
-  OpenAI-compatible server in a terminal, foreground on purpose: the
-  banner says how workflows reach it, Ctrl-C stops it where it
-  started · **`Pull a model…`** keeps the engine's own ceremony (size
-  prints before a byte downloads · 2 GiB and over confirms · an
-  interrupted pull resumes) · reclaiming rides the wrench behind a
-  modal confirm: destruction is never a primary click
+- **Run detail.** <kbd>Enter</kbd> on a recorded run opens one calm page:
+  verdict, per-task breakdown, artifacts, spend, and the question when a
+  run waits on you. It stays live while the engine writes.
+- **Time-travel replay** (<kbd>⌘K</kbd> <kbd>⌘Y</kbd>). Scrub the whole
+  timeline: play or pause with <kbd>Space</kbd>, drag the handle, and the
+  graph shows the state at any instant, computed locally. Replay redraws;
+  it never re-executes.
+- **A debugger that steps backward.** Set breakpoints in your `.nika` and
+  press <kbd>F5</kbd>: the engine's own debug adapter replays a recorded
+  run under the VS Code debugger. Step forward and backward through task
+  settles, read every recorded output in the Variables pane, and continue
+  to the next breakpointed task. Stepping back is free because replay
+  never re-executes. Every run in the Runs view also offers **Debug This
+  Run**.
+- **Compare runs.** `Nika: Run History` shows the last runs of a workflow
+  as a grid (rows are tasks, columns are runs), so flaky steps are a
+  recorded fact, not a guess. The run diff (<kbd>⌘K</kbd> <kbd>⌘A</kbd>)
+  leads with the first divergence, centered on the canvas, then output
+  changes and duration shifts.
+- **Fork from a task** (<kbd>⌘K</kbd> <kbd>⌘B</kbd>, or ⑂ in the Runs
+  view): that task and everything downstream run again, while everything
+  upstream is restored from the trace, so you iterate without paying for
+  the upstream work twice.
+- **Run report.** One markdown page per recorded run: verdict, per-task
+  table, artifacts with provenance (images inline), failures with their
+  retry ladder (each attempt's code and clock). Every line comes from the
+  trace's own events; gaps are stated, never filled.
+- **Verify Journal** (<kbd>⌘K</kbd> <kbd>⌘V</kbd>) asks
+  `nika trace verify <trace> --json` and opens the complete result: chain,
+  seal, anchor, replay and refusal details. The other views and reports
+  stay unverified observations: they never compute a second integrity
+  verdict or infer a signature from hash consistency.
+- **Reproduce Run.** Pick another journal of the same workflow; each task
+  is classified reproduced, nondeterministic (same definition and inputs,
+  different output), authored or environment, with the engine
+  attestation compared.
+- **Export.** One action turns a run's journal into OpenTelemetry
+  (OTLP/JSON lines) for Jaeger, Aspire, Grafana or Langfuse, cost
+  included: a local file, no collector, no vendor.
+  `Nika: Export Evidence Pack` writes the journal, manifest, receipt and
+  a VERIFY.md.
+- **Flight recorder.** The Runs view lists `.nika/traces/*.ndjson`
+  (status, duration and cost per run) and replays any of them on the
+  graph.
+- **Tests.** Workflows with a `<file>.golden.json` run in the native Test
+  Explorer, where the failure message is the engine's per-path diff; a
+  second profile re-pins the golden. `Nika: Golden Test` runs
+  `nika test <file>` (mock model, offline, deterministic) and
+  `Nika: Update the Golden` re-pins it.
 
-### Engine-honest by construction
-- **Capability-gated UI** · the extension probes what the binary ACTUALLY
-  ships after version admission. LSP, workflow and wiring surfaces require
-  their current capabilities; a refused operation does not trigger a
-  retired command spelling.
-- **Binary = vocabulary SSOT** · spec, JSON schema, examples and templates
-  are read from the self-contained binary (`nika spec` · `nika spec --schema` ·
-  `nika try` · `nika compile --list`) · nothing duplicated, nothing drifts
-- **Binary auto-download** · optional (`nika.server.autoDownload`) · SHA256
-  verified · zero telemetry anywhere
+</details>
+
+<details>
+<summary><b>Agents, MCP and the Station</b></summary>
+
+- **Language Model tools.** `nika_check`, `nika_explain`, `nika_graph` and
+  `nika_workspace` let the agents in your editor check the workflows they
+  write through the real engine instead of guessing (`nika_workspace`
+  appears only when the engine supports it).
+- **MCP and rules in one command.** `Nika: Setup MCP + Agent Rules` wires
+  your editor's MCP configuration and Cursor rules (through `nika wire`),
+  with a one-tap follow-up for Codex and Claude. On VS Code 1.101 or
+  newer, agent mode finds `nika mcp` natively, with no config file.
+  `nika init` sets up a repository: VS Code schema wiring, `AGENTS.md`, a
+  Cursor rule and MCP, and the authoring skill.
+- **Terminal agents too.** `nika wire cursor`, `nika wire claude`,
+  `nika wire windsurf` or `nika wire codex` patch each client's MCP
+  configuration, idempotently, keeping your other servers.
+- **Agent plugins.** [nika-plugins](https://github.com/supernovae-st/nika-plugins)
+  is the agent side of Nika. Claude Code:
+  `claude plugin marketplace add supernovae-st/nika-plugins`, then
+  `claude plugin install nika@nika`. Codex:
+  `codex plugin marketplace add supernovae-st/nika-plugins`, then
+  `codex plugin add nika@nika`. For Cursor and other hosts, its README
+  has the steps and explains who does what (the plugin per agent,
+  `nika init` per repository, `nika wire` per machine).
+- **A prompt for any chat.** `Nika: Copy AI Authoring Prompt` copies the
+  template, check and repair protocol for any chat assistant.
+- **Doctor.** `Nika: Doctor` runs the engine's own environment diagnosis
+  (binary, configuration, provider keys, image and speech planes) and
+  prints exact fixes without changing anything.
+  `Nika: Doctor + Ping Local Providers` also probes your local provider
+  ports only (Ollama, LM Studio, llama.cpp, LocalAI, vLLM) over loopback,
+  with a 300 ms cap and nothing sent on the socket.
+- **The Station** is one tree for the machinery: the engine (its version;
+  a grammar that is too old names itself), the doctor's verdict with each
+  fix one click away, your agent clients and their wiring
+  (`Agents · 3/6 wired`), and your providers (local runtimes detected,
+  cloud keys counted, `3/11 present`).
+- **Local models, start to finish.** One row per downloaded GGUF model
+  (`owner/repo:QUANT`, its size, the engine's remark), read live from
+  `nika model list`. **Serve a model…** opens the OpenAI-compatible
+  server in a terminal, in the foreground on purpose: its banner says how
+  workflows reach it, and <kbd>Ctrl</kbd>+<kbd>C</kbd> stops it.
+  **Pull a model…** keeps the engine's safeguards (the size prints before
+  a byte downloads, 2 GiB and more asks for confirmation, an interrupted
+  pull resumes). Removing a model sits behind the wrench and a
+  confirmation.
+
+</details>
+
+<details>
+<summary><b>Honest by construction</b></summary>
+
+- **The engine decides what the UI offers.** After version admission, the
+  extension probes what the binary actually ships. Language server,
+  workflow and wiring features need their current capabilities, and a
+  refused operation never falls back to a retired command spelling.
+- **The binary is the vocabulary.** The spec, JSON Schema, examples and
+  templates are read from the self-contained binary (`nika spec`,
+  `nika spec --schema`, `nika try`, `nika compile --list`): nothing
+  duplicated, nothing drifting.
+- **Run journals belong to the engine.** The extension neither duplicates
+  nor prunes them. Resume uses the journal announced for the current
+  workflow, or asks you to pick one; canceling the picker starts no run.
+- **A 16 MiB reading limit.** The editor reads at most 16 MiB per
+  journal, live or recorded. A larger file stays on disk, and the detail,
+  report and replay views say why no partial preview loads. This is not a
+  global cache budget, nor a claim that the file cannot change while it
+  is read; engine CLI operations keep their own limits and integrity
+  checks.
+- **Optional download, zero telemetry.** `nika.server.autoDownload` turns
+  the download offer off, and a download is always SHA-256 verified.
+
+</details>
 
 ## Commands
 
-The sixteen you'll reach for first: the full set lives in the
-**Feature Contributions** tab.
+The sixteen you will reach for first. The full list is in the extension's
+**Feature Contributions** tab in your editor.
 
 | Command | What it does |
 |---|---|
-| `Nika: Try the Demo Workflow` | writes the four-wave hello-canvas beside the canvas · offline, nothing spent |
-| `Nika: New Workflow File` | the wizard: name · starter · model (mock first, locals next) |
-| `Nika: Open the Canvas (workflow DAG)` | the live canvas (the welcome home when no workflow is open) |
-| `Nika: Run Current Workflow` | `nika run --json` streamed onto the DAG, verdict on close |
-| `Nika: Run Workflow with Inputs` | required vars become a short form · a spend ceiling rides `--max-cost-usd` |
-| `Nika: Resume Last Run` | re-run what changed: unchanged tasks cache-hit their recorded output |
-| `Nika: Validate Current Workflow` | the engine's full `nika check` verdict on demand |
-| `Nika: Preflight` | cost · secrets · permits · the wave plan, ahead of the run |
-| `Nika: Explain Workflow` | the deterministic story, wave by wave · zero LLM, offline |
-| `Nika: Golden Test` | `nika test` against the pinned golden (mock provider · offline) |
-| `Nika: Replay a Recorded Run` | scrub the whole timeline: replay re-renders, never re-executes |
-| `Nika: Diff Two Runs on the DAG` | the first divergence leads; the culprit task centers |
-| `Nika: Run Report` | recorded events and stated gaps, with integrity verification kept separate |
-| `Nika: Run History` | the cross-run grid: flaky steps are a recorded fact, not a guess |
-| `Nika: Doctor` | the engine diagnoses its environment: exact fixes, never mutates |
-| `Nika: Open the Getting-Started Tour` | the walkthrough: steps check themselves off as you do them |
+| `Nika: Try the Demo Workflow` | writes the four-wave hello-canvas demo beside the canvas; offline, nothing spent |
+| `Nika: New Workflow File` | a short wizard: name, starter, model (mock first, then local models) |
+| `Nika: Open the Canvas (workflow DAG)` | the live graph (a welcome page when no workflow is open) |
+| `Nika: Run Current Workflow` | `nika run --json` streamed onto the graph, verdict at the end |
+| `Nika: Run Workflow with Inputs` | required inputs become a short form; an optional spend ceiling rides `--max-cost-usd` |
+| `Nika: Resume Last Run` | re-runs what changed; unchanged tasks reuse their recorded output |
+| `Nika: Validate Current Workflow` | the engine's full `nika check` verdict, on demand |
+| `Nika: Preflight` | cost, secrets, permits and the wave plan, before any token |
+| `Nika: Explain Workflow` | the workflow's story, wave by wave; no model, offline |
+| `Nika: Golden Test` | `nika test` against the pinned golden output (mock model, offline) |
+| `Nika: Replay a Recorded Run` | scrub a past run's timeline; replay redraws, never re-executes |
+| `Nika: Diff Two Runs on the DAG` | the first difference leads, its task centered on the graph |
+| `Nika: Run Report` | a run's recorded events and stated gaps; verification stays a separate command |
+| `Nika: Run History` | the cross-run grid: flaky steps become a recorded fact |
+| `Nika: Doctor` | the engine checks its environment and prints exact fixes; it changes nothing |
+| `Nika: Open the Getting-Started Tour` | the walkthrough; each step checks itself off as you go |
+
+## Keyboard shortcuts
+
+Each chord works in a `.nika` file (*file*), on the canvas (*canvas*) or
+in the Nika side bar (*side bar*). Every shortcut can be changed: open
+Keyboard Shortcuts (<kbd>⌘K</kbd> <kbd>⌘S</kbd>, or <kbd>Ctrl+K</kbd>
+<kbd>Ctrl+S</kbd>) and search "nika".
+
+| macOS | Windows, Linux | Does | In |
+|---|---|---|---|
+| <kbd>⌘K</kbd> <kbd>⌘M</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+M</kbd> | search everything: commands, tasks, workflows, recorded runs | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘G</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+G</kbd> | open the canvas | file |
+| <kbd>⌘K</kbd> <kbd>⌘E</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+E</kbd> | run the workflow | file |
+| <kbd>⌘K</kbd> <kbd>⌘K</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+K</kbd> | validate with the engine's full check | file |
+| <kbd>⌘K</kbd> <kbd>⌘N</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+N</kbd> | add a task | file |
+| <kbd>⌘K</kbd> <kbd>⌘Y</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+Y</kbd> | replay a recorded run | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘A</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+A</kbd> | compare two runs | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘B</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+B</kbd> | fork from a task | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘V</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+V</kbd> | verify a run's journal | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘H</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+H</kbd> | try the demo | file, canvas |
+| <kbd>⌘K</kbd> <kbd>⌘.</kbd> | <kbd>Ctrl+K</kbd> <kbd>Ctrl+.</kbd> | every action of the focused row | side bar |
+
+On the canvas itself: <kbd>N</kbd> add a task · <kbd>/</kbd> filter ·
+<kbd>X</kbd> <kbd>T</kbd> <kbd>P</kbd> <kbd>D</kbd> <kbd>H</kbd> lenses ·
+<kbd>W</kbd> wave bands · <kbd>G</kbd> follow the run · <kbd>L</kbd>
+activity feed · <kbd>F</kbd> fit · <kbd>A</kbd> auto-layout ·
+<kbd>E</kbd> expand a card · <kbd>K</kbd> card actions · <kbd>?</kbd>
+help.
 
 ## Settings
 
-Key settings are below; the complete list, defaults and cross-links live
-in the **Feature Contributions** tab.
+The ones you are most likely to change. Every setting, with its default,
+is in the extension's **Feature Contributions** tab.
 
-| Setting | Default | What it carries |
+| Setting | Default | What it controls |
 |---|---|---|
-| `nika.server.path` | `nika` | which binary: point it at a dev build and every surface follows |
-| `nika.server.autoDownload` | on | offer a verified engine download (HTTPS + SHA-256 · explicit consent) |
-| `nika.dag.theme` | `nika` | canvas skin: `nika` · `editor` (follows your theme) · `phosphor` (OLED) · `auto` |
-| `nika.diagnostics.runOn` | `type` | when `nika check` paints squiggles (`save` calms it, `off` silences) |
-| `nika.diagnostics.severity` | `{}` | remap any finding per code or family (`NIKA-SEC-*` · `off` hides one) |
-| `nika.run.liveDag` | on | runs stream onto the DAG instead of a terminal scroll |
-| `nika.replay.speed` | `6` | time-travel compression (6 = six times faster than recorded) |
-| `nika.editor.xray` | on | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
-| `nika.ai.toolsEnabled` | on | register the four Language Model tools for in-editor agents |
-
-Run journals and retention belong to the engine; the extension neither
-duplicates nor prunes them. Resume uses the journal announced for the current
-workflow, or asks you to choose one. Canceling the picker starts no run.
-
-Editor observations admit at most 16 MiB per journal, live or recorded.
-An oversized file remains on disk; detail, report and replay explain why no
-partial preview is loaded. The bound is not a global cache budget or a claim
-that the file cannot change while it is read. Engine CLI operations keep
-their own limits and integrity checks.
-
-<!-- city:map -->
-## The city · where this repo sits
-
-```
-📜 nika-spec ──── the civil code · the law tables, the corpus, the exam
-    │ sync-pack: byte-gated mirror        │ projectors: drift-gated
-    ▼                                     ▼
-⚙️ nika ───────── the engine + the catalog (the yellow pages)
-    │ the release train                  🖥️ nika.sh · 📖 nika-docs
-    ▼                                     the showroom · the manual
-📦 homebrew-tap · npm · Docker ── the docks
-🔌 nika-client · 🎨 nika-vscode · 🤖 nika-plugins · ⚡ gh-nika ── the doors   ◀── you are here
-🏭 nika-action · 🧪 nika-actions-starter ── the CI district
-🏪 nika-registry ── the market · 🏛 nika-estate ── the land registry
-```
-
-**This building** · THE WORKBENCH · the full IDE surface: LSP, live DAG canvas, replay debugger.
-
-**Root** · neither · this building serves both roots to the editor. The schema is pinned from nika-spec (SPEC_PIN), the language server from the released engine · nothing authoritative is typed here.
-
-**Consumes** · the engine binary (LSP · check · replay · the pinned spec grammar).
-
-**Serves** · VS Code · Cursor · Windsurf (Marketplace + OpenVSX, one build).
-
-**Truth lives** · rides the engine's release train · what the canvas shows derives from the engine's own reading, never re-derived site-side.
-
-All the buildings: [nika-spec](https://github.com/supernovae-st/nika-spec) · [nika](https://github.com/supernovae-st/nika) · [nika.sh](https://github.com/supernovae-st/nika.sh) · [nika-docs](https://github.com/supernovae-st/nika-docs) · [nika-client](https://github.com/supernovae-st/nika-client) · [nika-vscode](https://github.com/supernovae-st/nika-vscode) · [nika-plugins](https://github.com/supernovae-st/nika-plugins) · [gh-nika](https://github.com/supernovae-st/gh-nika) · [homebrew-tap](https://github.com/supernovae-st/homebrew-tap) · [nika-action](https://github.com/supernovae-st/nika-action) · [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) · [nika-registry](https://github.com/supernovae-st/nika-registry) · [nika-estate](https://github.com/supernovae-st/nika-estate)
-
-Every fact has one home · everything else is a gated projection.
-The living map: [nika.sh/map](https://nika.sh/map).
-<!-- /city:map -->
+| `nika.server.path` | `nika` | which engine binary to use; point it at a dev build and every feature follows |
+| `nika.server.autoDownload` | `true` | offer a verified engine download (HTTPS, SHA-256, your consent) |
+| `nika.dag.theme` | `nika` | the canvas look: `nika`, `editor` (your theme), `phosphor` (OLED) or `auto` |
+| `nika.diagnostics.runOn` | `type` | when checks run: `type`, `save` or `off` |
+| `nika.diagnostics.severity` | `{}` | a finding's severity per code or family (`NIKA-SEC-*`); `off` hides it |
+| `nika.run.liveDag` | `true` | stream runs onto the graph instead of a terminal |
+| `nika.replay.speed` | `6` | replay speed: 6 plays six times faster than recorded |
+| `nika.editor.xray` | `true` | ghost values: what each `${{ tasks.x… }}` resolved to, inline |
+| `nika.ai.toolsEnabled` | `true` | register the four Language Model tools for agents in your editor |
 
 ## Deep links
 
-A runbook, a PR description or a chat message can open the editor
-straight onto a workflow surface with a `vscode://` link:
+A runbook, a pull request or a chat message can open the editor on a
+workflow with a `vscode://` link:
 
 ```text
-vscode://supernovae.nika/dag?file=deploy.nika     open the canvas on a workflow
-vscode://supernovae.nika/check?file=deploy.nika   audit it (asks first)
-vscode://supernovae.nika/run?file=deploy.nika     run it (asks first)
-vscode://supernovae.nika/search?q=deploy               open root search, seeded
-vscode://supernovae.nika/demo                          land the offline demo
+vscode://supernovae.nika/dag?file=deploy.nika      open the canvas on a workflow
+vscode://supernovae.nika/check?file=deploy.nika    audit it (asks first)
+vscode://supernovae.nika/run?file=deploy.nika      run it (asks first)
+vscode://supernovae.nika/search?q=deploy           open search with a query
+vscode://supernovae.nika/demo                      open the offline demo
 ```
 
-Links are guarded: `file` must be a workspace-relative workflow path
-(absolute paths, `..`, and anything that resolves outside the open
-workspace are ignored), and a link never executes anything on its own ·
-`run` and `check` always ask with a native confirm before the engine
-touches the file. An unrecognized link breathes in the status bar and
-does nothing.
+> [!NOTE]
+> Links are guarded. `file` must be a workflow path relative to the open
+> workspace; absolute paths, `..` and anything that resolves outside it
+> are ignored. A link never runs anything by itself: `run` and `check`
+> always ask with a native confirmation before the engine touches the
+> file. An unknown link shows a brief status bar message and does nothing.
 
 ## The language
 
-**4 verbs · locked forever.**
+A workflow has four verbs, and that set is locked: `infer` asks a model,
+`exec` runs a command, `invoke` calls a builtin or MCP tool (fetching a
+URL is the `nika:fetch` builtin), and `agent` runs an agent loop whose
+tools are denied unless you list them.
 
 ```yaml
-nika: hello               # identity is nika: <kebab-id> · nine keys
+nika: hello               # the identity line: nika: <kebab-id>
 
 model: mock/echo          # deterministic · swap for ollama/qwen3.5:4b or any provider
 
@@ -733,14 +792,16 @@ tasks:
       prompt: "Say hello in French, in one short sentence."
 ```
 
-`infer` (LLM) · `exec` (subprocess) · `invoke` (builtin/tool · HTTP fetch is the
-`nika:fetch` builtin here) · `agent` (agent loop · default-deny tools).
+The whole language is in the
+[specification](https://github.com/supernovae-st/nika-spec) (Apache-2.0)
+and the [documentation](https://docs.nika.sh).
 
-### Canvas regions (editor-only · engine ignores it)
+<details>
+<summary><b>Canvas regions</b> (editor only; the engine ignores them)</summary>
 
 A `# nika:region <name>` comment groups the tasks that follow it into a
-labeled box on the DAG canvas. It's a plain YAML comment; the engine
-never sees it, so it costs nothing at runtime:
+labeled box on the canvas. It is a plain YAML comment, so the engine never
+sees it and it costs nothing at run time:
 
 ```yaml
 tasks:
@@ -757,13 +818,111 @@ tasks:
     exec: { command: ["gh", "pr", "comment", "${{ inputs.pr }}", "--body-file", "verdict.md"] }
 ```
 
+</details>
+
+## Icons in your editor
+
+The extension puts the butterfly on its Marketplace tile, in the activity
+bar, and on `.nika` files as a 16 px language icon, in themes that show
+language icons (the default Seti theme does). Other file and folder icons
+come from your file icon theme:
+
+- **Material Icon Theme**: give the engine's `.nika/` folder an icon
+  today:
+
+  ```jsonc
+  "material-icon-theme.folders.associations": { ".nika": "flow" }
+  ```
+
+- **vscode-icons**: a full butterfly set (file, folder, open folder) is
+  in [`contrib/`](contrib/README.md).
+- **Upstream**: Material icons for `nika` files and the `.nika` folder are
+  proposed in
+  [material-icon-theme#3530](https://github.com/material-extensions/vscode-material-icon-theme/pull/3530)
+  (sources in [`contrib/material-icon-theme/`](contrib/README.md)).
+
+<!-- city:map -->
+## 🦋 The Nika family
+
+| | Repository | What it gives you |
+|---|---|---|
+| 🦋 | [nika](https://github.com/supernovae-st/nika) | The engine and CLI: write, check, run and verify AI workflows |
+| 📖 | [nika-docs](https://github.com/supernovae-st/nika-docs) | The documentation, live at [docs.nika.sh](https://docs.nika.sh) |
+| 📜 | [nika-spec](https://github.com/supernovae-st/nika-spec) | The language specification and the suite that proves an engine follows it |
+| 🧩 | **[nika-vscode](https://github.com/supernovae-st/nika-vscode)** | **The editor extension: your workflow as a live graph, errors as you type** |
+| 🟦 | [nika-client](https://github.com/supernovae-st/nika-client) | Run and verify workflows from TypeScript |
+| ✅ | [nika-action](https://github.com/supernovae-st/nika-action) | A GitHub Action that posts a `nika check` verdict on your pull requests |
+| 🚀 | [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) | A ready template: workflows, editor setup and CI from the first push |
+| 📦 | [nika-registry](https://github.com/supernovae-st/nika-registry) | Shareable workflows, pinned and re-verified |
+| 🤖 | [nika-plugins](https://github.com/supernovae-st/nika-plugins) | Teaches your coding agent (Claude Code, Codex, Cursor…) to write Nika |
+| 🍺 | [homebrew-tap](https://github.com/supernovae-st/homebrew-tap) | `brew install supernovae-st/tap/nika` |
+| 🐙 | [gh-nika](https://github.com/supernovae-st/gh-nika) | The Nika CLI as a GitHub CLI extension |
+| 🏛️ | [nika-estate](https://github.com/supernovae-st/nika-estate) | Where each file in Nika's core repositories comes from, declared and re-checkable |
+<!-- /city:map -->
+
+## Privacy and security
+
+- **No telemetry.** The extension collects nothing; nothing phones home.
+- **Your runs stay local.** Traces live in `.nika/traces/` in your
+  project. An export (OpenTelemetry lines, an evidence pack) is a file on
+  your disk; where it goes next is up to you.
+- **One program, started safely.** The extension runs one program, the
+  `nika` engine, with separate arguments and timeouts, never a shell line
+  built from your text.
+- **A locked canvas.** The canvas panel runs only the extension's own
+  bundled scripts under a `default-src 'none'` Content-Security-Policy,
+  and loads nothing from the network.
+- **A checked download.** The optional engine installer fetches only from
+  `github.com/supernovae-st/nika` releases over HTTPS, refuses any
+  non-HTTPS redirect and verifies the release `SHA256SUMS` before
+  anything lands. A checksum miss stops the install.
+- **Secrets stay yours.** The credential lint is a local pattern scan; its
+  fix moves a pasted secret to `secrets:`, which masks the value in logs,
+  traces and journal events. The extension stores no secrets of its own.
+
+Found a vulnerability? Report it privately through
+[GitHub security advisories](https://github.com/supernovae-st/nika-vscode/security/advisories/new),
+not in a public issue. [SECURITY.md](SECURITY.md) has the details; `main`
+and the latest Marketplace release are the supported versions.
+
+## Contributing
+
+Issues and pull requests are welcome on
+[GitHub](https://github.com/supernovae-st/nika-vscode/issues).
+
+- **Build and test:** `npm ci`, then `npm run compile` and `npm test`,
+  which runs the unit tests, the repository's parity, voice and glyph
+  gates, and lint. Press <kbd>F5</kbd> in VS Code to open a development
+  window with your build of the extension.
+- **A wrong diagnostic is usually an engine issue.** Reproduce it with
+  `nika check <file>` first; if the engine reports the same thing, open
+  the issue on [supernovae-st/nika](https://github.com/supernovae-st/nika/issues).
+- **Pins:** the verb starters, authoring shapes and design tokens are
+  generated from the nika-spec commit in `SPEC_PIN`, and the integration
+  suites run against the engine release in `ENGINE_PIN`. Nothing
+  authoritative about the language is typed by hand here.
+- **Media:** the canvas clips come from the real webview bundle; the
+  recipes are in [`scripts/media/`](scripts/media/README.md).
+- **House rules** for contributors and coding agents are in
+  [AGENTS.md](AGENTS.md); the release runbook is
+  [PUBLISHING.md](PUBLISHING.md).
+
+## License
+
+The extension is licensed under [AGPL-3.0-or-later](LICENSE). The Nika
+engine is AGPL-3.0-or-later as well, and the language specification is
+Apache-2.0.
+
 ## Links
 
-- **Every door in one page**: install paths, IDEs, agents, skills, MCP, CI, SDKs: [docs.nika.sh/integrations/everywhere](https://docs.nika.sh/integrations/everywhere)
-- Language spec (Apache-2.0) · https://github.com/supernovae-st/nika-spec
-- Engine (AGPL-3.0-or-later) · https://github.com/supernovae-st/nika
-- Docs · https://docs.nika.sh
-- Timeline (the verifiable record: eras · releases · claims re-proven in CI) · https://nika.sh/timeline
+- **Every way to use Nika, on one page** (install paths, editors, agents,
+  skills, MCP, CI, SDKs): [docs.nika.sh/integrations/everywhere](https://docs.nika.sh/integrations/everywhere)
+- **Documentation**: [docs.nika.sh](https://docs.nika.sh)
+- **Engine** (AGPL-3.0-or-later): [github.com/supernovae-st/nika](https://github.com/supernovae-st/nika)
+- **Language specification** (Apache-2.0): [github.com/supernovae-st/nika-spec](https://github.com/supernovae-st/nika-spec)
+- **Timeline**, the verifiable record of eras, releases and claims re-proven in CI: [nika.sh/timeline](https://nika.sh/timeline)
+- **Ecosystem map**, how every Nika repository connects: [nika.sh/map](https://nika.sh/map)
 
 ---
-🦋 SuperNovae Studio · Paris
+
+<p align="center">🦋 SuperNovae Studio · Paris</p>
