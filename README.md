@@ -44,7 +44,7 @@
     <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="960">
   </a>
 </p>
-<p align="center"><sub>Each card shows what its step will do; then two commands run at once, a model's answer streams in, the spend adds up and the run ends on a verdict. The extension's real canvas, replaying a scripted run · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
+<p align="center"><sub>Each card shows what its step will do; then two commands run at once, a model's answer streams in, the spend adds up and the run ends on a verdict. The extension's real canvas, replaying a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
 
 ## What is Nika?
 
@@ -168,7 +168,7 @@ each step checks itself off as you do it.
     <img src="media/lens-deck.gif" alt="One workflow read five ways: the map, a what-if preview where a failing step lights its recovery path, the timeline of a recorded run, what the file may reach before it runs, and where its data flows" width="860">
   </a>
 </p>
-<p align="center"><sub>One key per lens. In the what-if, the paths a failing step would stop go dim and its recovery path lights up. The extension's real canvas, driven key by key over a scripted run.</sub></p>
+<p align="center"><sub>One key per lens. In the what-if, the paths a failing step would stop go dim and its recovery path lights up. The extension's real canvas, driven key by key over a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses.</sub></p>
 
 | Press | To see |
 |:---:|---|
@@ -188,7 +188,7 @@ each step checks itself off as you do it.
     <img src="media/dag-execution.gif" alt="A 38-step workflow running on the canvas: cards light up wave by wave and generated images appear on them" width="860">
   </a>
 </p>
-<p align="center"><sub>The waves light up in turn, and each image lands on its card as the run makes it. The extension's real canvas, replaying a scripted run.</sub></p>
+<p align="center"><sub>The waves light up in turn, and each image lands on its card as the run makes it. The extension's real canvas, replaying a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses.</sub></p>
 
 Two more from the engine, on the command line:
 
