@@ -33,6 +33,9 @@ Please report vulnerabilities privately via
 
 ## Supported
 
-The `main` branch and the latest marketplace release are the supported
-surfaces. Security fixes ship there · older `.vsix` artifacts are not
-patched retroactively.
+The extension is frozen at 0.120.0, the release on both marketplaces. It is
+no longer developed and was not qualified with engine 0.123. Report a
+vulnerability in it privately, as above. The engine it runs, including
+`nika lsp`, has its own
+[security policy](https://github.com/supernovae-st/nika/blob/main/SECURITY.md).
+Older `.vsix` artifacts are not patched retroactively.

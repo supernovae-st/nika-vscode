@@ -14,6 +14,16 @@
   Watch each run light up step by step, replay it later, and use the models you choose, local or cloud.
 </p>
 
+> [!WARNING]
+> **Frozen at 0.120.0.** The extension on both marketplaces is release
+> 0.120.0, it is no longer developed, and it was not qualified with engine
+> 0.123. Its download offer and Homebrew both install the latest engine
+> release, so with 0.123 point the `nika.server.path` setting at your
+> installed binary, and if the editor and the command line disagree, trust
+> `nika check`. Any editor that reads the published JSON Schema and runs
+> `nika lsp` gets the same checks without this extension. See the
+> [known limits](https://docs.nika.sh/changelog/known-limits).
+
 <div align="center">
 
 [![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
@@ -29,7 +39,6 @@
 
 </div>
 
-<!-- motion: hover, completion and the live DAG of a .nika file in the editor -->
 <p align="center">
   <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/canvas-live-run.gif">
     <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="960">
@@ -224,10 +233,11 @@ snippets and a graph the extension draws itself; completions from the
 engine's schema (`nika spec --schema`) arrive with the engine.
 
 > [!IMPORTANT]
-> This version needs a stable engine, **0.120.1 or newer**. To use a
-> binary you already have, point `nika.server.path` at it. An older,
-> malformed or prerelease engine gets an update notice; the extension
-> never replaces your binary behind your back.
+> The published release, **0.120.0**, accepts a stable engine 0.118.2 or
+> newer and sets no upper bound, so it also accepts 0.123, which it was not
+> qualified with. To use a binary you already have, point `nika.server.path`
+> at it. An older, malformed or prerelease engine gets an update notice; the
+> extension never replaces your binary behind your back.
 
 <details>
 <summary><b>How the extension chooses and checks the engine</b></summary>
@@ -236,12 +246,14 @@ engine's schema (`nika spec --schema`) arrive with the engine.
   agent wiring start: configured, bundled, on PATH, cached or downloaded,
   and again on every restart. Syntax, snippets and static views stay
   available meanwhile.
-- The integration suites target public engine **v0.120.1** from
-  `ENGINE_PIN`, verified against the archive digests and build commit
-  stored in the installer. Marketplace publication and native
-  first-contact qualification are separate release gates.
-- A download always asks first, and an unsupported latest public release
-  is refused before its executable is fetched.
+- This repository's `main` holds source 0.120.1, never published. Its
+  integration suites target public engine **v0.120.1** from `ENGINE_PIN`,
+  verified against the archive digests and build commit stored in the
+  installer.
+- A download always asks first. The published 0.120.0 takes the latest
+  public release and refuses one below its 0.118.2 floor before the
+  executable is fetched; the latest release today is 0.123, which it
+  accepts without having been qualified with it.
 - Discovery freezes the chosen executable's absolute path, PATH entries
   and symlinks included. MCP wiring uses the same choice: Cursor and
   Windsurf can receive a machine-scoped absolute path, and portable
@@ -873,8 +885,8 @@ come from your file icon theme:
 
 Found a vulnerability? Report it privately through
 [GitHub security advisories](https://github.com/supernovae-st/nika-vscode/security/advisories/new),
-not in a public issue. [SECURITY.md](SECURITY.md) has the details; `main`
-and the latest Marketplace release are the supported versions.
+not in a public issue. [SECURITY.md](SECURITY.md) has the details. The
+extension is frozen at 0.120.0, the release on both marketplaces.
 
 ## Contributing
 
