@@ -852,7 +852,7 @@ come from your file icon theme:
 | 🦋 | [nika](https://github.com/supernovae-st/nika) | The engine and CLI: write, check, run and verify AI workflows |
 | 📖 | [nika-docs](https://github.com/supernovae-st/nika-docs) | The documentation, live at [docs.nika.sh](https://docs.nika.sh) |
 | 📜 | [nika-spec](https://github.com/supernovae-st/nika-spec) | The language specification and the suite that proves an engine follows it |
-| 🧩 | **[nika-vscode](https://github.com/supernovae-st/nika-vscode)** | **The editor extension: your workflow as a live graph, errors as you type** |
+| 🧩 | **[nika-vscode](https://github.com/supernovae-st/nika-vscode)** | **The editor extension, frozen at 0.120 and not qualified with 0.123: use `nika lsp` and the JSON Schema** |
 | 🟦 | [nika-client](https://github.com/supernovae-st/nika-client) | Run and verify workflows from TypeScript |
 | ✅ | [nika-action](https://github.com/supernovae-st/nika-action) | A GitHub Action that posts a `nika check` verdict on your pull requests |
 | 🚀 | [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) | A ready template: workflows, editor setup and CI from the first push |
