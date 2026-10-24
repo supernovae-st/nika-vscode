@@ -14,6 +14,16 @@
   Watch each run light up step by step, replay it later, and use the models you choose, local or cloud.
 </p>
 
+> [!WARNING]
+> **Frozen at 0.120.0.** The extension on both marketplaces is release
+> 0.120.0, it is no longer developed, and it was not qualified with engine
+> 0.123. Its download offer and Homebrew both install the latest engine
+> release, so with 0.123 point the `nika.server.path` setting at your
+> installed binary, and if the editor and the command line disagree, trust
+> `nika check`. Any editor that reads the published JSON Schema and runs
+> `nika lsp` gets the same checks without this extension. See the
+> [known limits](https://docs.nika.sh/changelog/known-limits).
+
 <div align="center">
 
 [![Version](https://vsmarketplacebadges.dev/version-short/supernovae.nika.svg)](https://marketplace.visualstudio.com/items?itemName=supernovae.nika)
@@ -29,13 +39,12 @@
 
 </div>
 
-<!-- motion: hover, completion and the live DAG of a .nika file in the editor -->
 <p align="center">
   <a href="https://raw.githubusercontent.com/supernovae-st/nika-vscode/main/media/canvas-live-run.gif">
     <img src="media/canvas-live-run.gif" alt="A release-notes workflow drawn as a live graph: each card shows its prompt or command, two commands run side by side, a model call streams, the spend counter adds up, and the run ends on a verdict" width="960">
   </a>
 </p>
-<p align="center"><sub>Each card shows what its step will do; then two commands run at once, a model's answer streams in, the spend adds up and the run ends on a verdict. The extension's real canvas, replaying a scripted run · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
+<p align="center"><sub>Each card shows what its step will do; then two commands run at once, a model's answer streams in, the spend adds up and the run ends on a verdict. The extension's real canvas, replaying a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses · <a href="https://github.com/supernovae-st/nika-vscode/tree/main/scripts/media">how this clip is made</a></sub></p>
 
 ## What is Nika?
 
@@ -159,7 +168,7 @@ each step checks itself off as you do it.
     <img src="media/lens-deck.gif" alt="One workflow read five ways: the map, a what-if preview where a failing step lights its recovery path, the timeline of a recorded run, what the file may reach before it runs, and where its data flows" width="860">
   </a>
 </p>
-<p align="center"><sub>One key per lens. In the what-if, the paths a failing step would stop go dim and its recovery path lights up. The extension's real canvas, driven key by key over a scripted run.</sub></p>
+<p align="center"><sub>One key per lens. In the what-if, the paths a failing step would stop go dim and its recovery path lights up. The extension's real canvas, driven key by key over a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses.</sub></p>
 
 | Press | To see |
 |:---:|---|
@@ -179,7 +188,7 @@ each step checks itself off as you do it.
     <img src="media/dag-execution.gif" alt="A 38-step workflow running on the canvas: cards light up wave by wave and generated images appear on them" width="860">
   </a>
 </p>
-<p align="center"><sub>The waves light up in turn, and each image lands on its card as the run makes it. The extension's real canvas, replaying a scripted run.</sub></p>
+<p align="center"><sub>The waves light up in turn, and each image lands on its card as the run makes it. The extension's real canvas, replaying a scripted run, recorded with extension 0.107.10 in August 2026, before <code>.nika</code> replaced the older file suffix shown on screen, which engine 0.123 refuses.</sub></p>
 
 Two more from the engine, on the command line:
 
@@ -224,10 +233,11 @@ snippets and a graph the extension draws itself; completions from the
 engine's schema (`nika spec --schema`) arrive with the engine.
 
 > [!IMPORTANT]
-> This version needs a stable engine, **0.120.1 or newer**. To use a
-> binary you already have, point `nika.server.path` at it. An older,
-> malformed or prerelease engine gets an update notice; the extension
-> never replaces your binary behind your back.
+> The published release, **0.120.0**, accepts a stable engine 0.118.2 or
+> newer and sets no upper bound, so it also accepts 0.123, which it was not
+> qualified with. To use a binary you already have, point `nika.server.path`
+> at it. An older, malformed or prerelease engine gets an update notice; the
+> extension never replaces your binary behind your back.
 
 <details>
 <summary><b>How the extension chooses and checks the engine</b></summary>
@@ -236,12 +246,14 @@ engine's schema (`nika spec --schema`) arrive with the engine.
   agent wiring start: configured, bundled, on PATH, cached or downloaded,
   and again on every restart. Syntax, snippets and static views stay
   available meanwhile.
-- The integration suites target public engine **v0.120.1** from
-  `ENGINE_PIN`, verified against the archive digests and build commit
-  stored in the installer. Marketplace publication and native
-  first-contact qualification are separate release gates.
-- A download always asks first, and an unsupported latest public release
-  is refused before its executable is fetched.
+- This repository's `main` holds source 0.120.1, never published. Its
+  integration suites target public engine **v0.120.1** from `ENGINE_PIN`,
+  verified against the archive digests and build commit stored in the
+  installer.
+- A download always asks first. The published 0.120.0 takes the latest
+  public release and refuses one below its 0.118.2 floor before the
+  executable is fetched; the latest release today is 0.123, which it
+  accepts without having been qualified with it.
 - Discovery freezes the chosen executable's absolute path, PATH entries
   and symlinks included. MCP wiring uses the same choice: Cursor and
   Windsurf can receive a machine-scoped absolute path, and portable
@@ -840,7 +852,7 @@ come from your file icon theme:
 | 🦋 | [nika](https://github.com/supernovae-st/nika) | The engine and CLI: write, check, run and verify AI workflows |
 | 📖 | [nika-docs](https://github.com/supernovae-st/nika-docs) | The documentation, live at [docs.nika.sh](https://docs.nika.sh) |
 | 📜 | [nika-spec](https://github.com/supernovae-st/nika-spec) | The language specification and the suite that proves an engine follows it |
-| 🧩 | **[nika-vscode](https://github.com/supernovae-st/nika-vscode)** | **The editor extension: your workflow as a live graph, errors as you type** |
+| 🧩 | **[nika-vscode](https://github.com/supernovae-st/nika-vscode)** | **The editor extension, frozen at 0.120 and not qualified with 0.123: use `nika lsp` and the JSON Schema** |
 | 🟦 | [nika-client](https://github.com/supernovae-st/nika-client) | Run and verify workflows from TypeScript |
 | ✅ | [nika-action](https://github.com/supernovae-st/nika-action) | A GitHub Action that posts a `nika check` verdict on your pull requests |
 | 🚀 | [nika-actions-starter](https://github.com/supernovae-st/nika-actions-starter) | A ready template: workflows, editor setup and CI from the first push |
@@ -873,8 +885,8 @@ come from your file icon theme:
 
 Found a vulnerability? Report it privately through
 [GitHub security advisories](https://github.com/supernovae-st/nika-vscode/security/advisories/new),
-not in a public issue. [SECURITY.md](SECURITY.md) has the details; `main`
-and the latest Marketplace release are the supported versions.
+not in a public issue. [SECURITY.md](SECURITY.md) has the details. The
+extension is frozen at 0.120.0, the release on both marketplaces.
 
 ## Contributing
 

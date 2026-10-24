@@ -1,8 +1,10 @@
 # Changelog · nika-vscode
 
-All notable changes to the extension. Versions pace the engine's
-release line (real semver toward 1.0 · lockstep on the engine's
-major.minor from 0.97).
+All notable changes to the extension. Versions paced the engine's
+release line, in lockstep on the engine's major.minor from 0.97 to 0.120.
+The extension is frozen at 0.120.0, the last release on both marketplaces
+(2026-09-18), and was not qualified with engine 0.123. The 0.120.1 entry
+below is source on `main` and was never published.
 
 ## [0.120.1] · public engine 0.120.1
 

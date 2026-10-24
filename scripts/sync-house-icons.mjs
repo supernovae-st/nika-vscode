@@ -12,7 +12,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const lib = process.env.NIKA_ICONS ?? '/Users/thibaut/Downloads/_svg';
+// The library lives outside this repository: name it, there is no default.
+const lib = process.env.NIKA_ICONS;
 
 // name → library path. Every pick is a CHROME verb the canvas speaks;
 // the domain marks (verbs · builtins · features) stay with the site
@@ -69,6 +70,10 @@ const PICK = {
   more: 'interface-general/circle-dots-center-1',
 };
 
+if (!lib) {
+  console.error('sync-house-icons: set NIKA_ICONS to the icon library directory (the master _svg set)');
+  process.exit(1);
+}
 if (!existsSync(lib)) {
   console.error(`sync-house-icons: library not found at ${lib} — set NIKA_ICONS`);
   process.exit(1);

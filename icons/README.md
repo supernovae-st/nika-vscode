@@ -1,8 +1,7 @@
 # icons/ · vendored from the Nika brand kit
 
-Source of truth: the Nika brand kit, published at
-[nika.sh/brand](https://nika.sh/brand/nika-logo-dark.svg) (usage doc:
-[`BRAND.md`](https://github.com/supernovae-st/nika.sh/blob/main/BRAND.md)).
+Source of truth: the Nika brand kit, published by [nika.sh](https://nika.sh)
+under [nika.sh/brand](https://nika.sh/brand/nika-logo-dark.svg).
 Paths here are pinned by `package.json` and `src/dagPanel.ts` · sync contents,
 never rename.
 
